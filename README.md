@@ -8,12 +8,17 @@ Frontend for UpNext, an IT recruitment platform.
 - React + TypeScript strict
 - Tailwind CSS v4
 - TanStack Query for server state
+- TanStack Table for data tables
 - Zustand for client/UI state
 - React Hook Form + Zod
+- next-intl for locale routing and messages
+- date-fns for date formatting
+- Phosphor Icons for UI icons
+- shadcn/ui CLI config for selective accessible component adoption
 - MSW, Vitest, Playwright
 - Oxlint, Oxfmt, Commitlint, Lefthook
 
-`shadcn/ui` and `next-intl` are intentionally not installed yet.
+Lucide is intentionally not installed. Prefer Phosphor Icons for product icons.
 
 ## Requirements
 
@@ -30,6 +35,8 @@ pnpm dev
 ```
 
 Open `http://localhost:3000`.
+
+The default locale is Vietnamese, so `/` redirects to `/vi`. English is available at `/en`.
 
 Copy `.env.example` when local environment values are needed:
 
@@ -56,6 +63,7 @@ pnpm verify:full    # verify + build + e2e
 ```txt
 src/
   app/                 # Next routes, layouts, metadata, app-level providers
+    [locale]/          # localized route tree
   features/            # domain features, created as real product work starts
     auth/
     jobs/
@@ -74,12 +82,19 @@ src/
     stores/
     types/
     ui/
+      data-table/
+  i18n/                # next-intl routing, request config, navigation helpers
   mocks/               # MSW setup and handlers
   test/                # test setup utilities
+messages/              # next-intl message catalogs
 e2e/                   # Playwright tests
 ```
 
 Feature folders should usually contain only the pieces they need: `api/`, `components/`, `hooks/`, `schemas/`, `types.ts`, and colocated tests.
+
+Use `src/shared/lib/date.ts` for app date formatting. Use `src/shared/ui/data-table` as the shared TanStack Table baseline before adding domain-specific table behavior.
+
+shadcn/ui is configured for selective adoption. Add components only when a design-backed screen needs an accessible interactive primitive, then restyle the generated source to match the UpNext design system.
 
 ## Quality Gates
 

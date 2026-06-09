@@ -1,0 +1,11 @@
+{
+  "Metadata": {
+    "title": "UpNext",
+    "description": "Frontend cho nền tảng tuyển dụng nhân sự IT."
+  },
+  "HomePage": {
+    "eyebrow": "UpNext Frontend",
+    "title": "Nền tảng frontend đã sẵn sàng cho sản phẩm.",
+    "description": "Next.js, TypeScript strict, Tailwind CSS, TanStack Query, MSW, Vitest, Playwright, Oxlint, Oxfmt, Commitlint và Lefthook đã được cấu hình làm nền tảng frontend."
+  }
+}

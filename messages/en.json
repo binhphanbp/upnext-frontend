@@ -1,0 +1,11 @@
+{
+  "Metadata": {
+    "title": "UpNext",
+    "description": "Frontend for an IT recruitment platform."
+  },
+  "HomePage": {
+    "eyebrow": "UpNext Frontend",
+    "title": "Foundation is ready for product work.",
+    "description": "Next.js, strict TypeScript, Tailwind CSS, TanStack Query, MSW, Vitest, Playwright, Oxlint, Oxfmt, Commitlint, and Lefthook are wired as the frontend baseline."
+  }
+}
