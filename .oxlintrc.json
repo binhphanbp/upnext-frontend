@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "jsx-a11y", "nextjs", "vitest", "import"],
+  "env": {
+    "browser": true,
+    "es2024": true,
+    "node": true
+  },
+  "settings": {
+    "next": {
+      "rootDir": ["."]
+    },
+    "react": {
+      "version": "19.2.4"
+    }
+  },
+  "ignorePatterns": [
+    ".next/**",
+    "coverage/**",
+    "node_modules/**",
+    "playwright-report/**",
+    "public/mockServiceWorker.js",
+    "test-results/**"
+  ]
+}

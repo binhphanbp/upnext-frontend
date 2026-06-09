@@ -1,0 +1,71 @@
+{
+  "name": "upnext-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "oxlint . --tsconfig tsconfig.json",
+    "lint:fix": "oxlint . --tsconfig tsconfig.json --fix",
+    "format": "oxfmt --ignore-path .oxfmtignore .",
+    "format:check": "oxfmt --check --ignore-path .oxfmtignore .",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "verify": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
+    "verify:full": "pnpm verify && pnpm build && pnpm test:e2e",
+    "preinstall": "node scripts/check-package-manager.mjs",
+    "prepare": "lefthook install"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
+    "@tanstack/react-query": "^5.101.0",
+    "@tanstack/react-query-devtools": "^5.101.0",
+    "clsx": "^2.1.1",
+    "motion": "^12.40.0",
+    "next": "16.2.7",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.78.0",
+    "recharts": "^3.8.1",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "@playwright/test": "^1.60.0",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.2",
+    "jsdom": "^29.1.1",
+    "lefthook": "^2.1.9",
+    "msw": "^2.14.6",
+    "oxfmt": "^0.53.0",
+    "oxlint": "^1.68.0",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.8"
+  },
+  "engines": {
+    "node": "24.11.1",
+    "pnpm": "11.5.2"
+  },
+  "packageManager": "pnpm@11.5.2",
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}
