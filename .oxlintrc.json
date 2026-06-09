@@ -15,7 +15,10 @@
     }
   },
   "ignorePatterns": [
+    ".cache/**",
     ".next/**",
+    ".turbo/**",
+    ".vite/**",
     "coverage/**",
     "node_modules/**",
     "playwright-report/**",

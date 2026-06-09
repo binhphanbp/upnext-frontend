@@ -1,6 +1,10 @@
 node_modules
 .next
+.cache
+.turbo
+.vite
 coverage
 playwright-report
+pnpm-lock.yaml
 test-results
 public/mockServiceWorker.js

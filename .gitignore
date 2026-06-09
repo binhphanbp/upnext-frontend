@@ -15,6 +15,11 @@
 /playwright-report
 /test-results
 
+# local caches
+/.cache
+/.turbo
+/.vite
+
 # next.js
 /.next/
 /out/
