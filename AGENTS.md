@@ -66,7 +66,7 @@ Run `pnpm verify` before handing off normal changes. Run `pnpm verify:full` when
 - Treat Figma/product design as the UI source of truth. shadcn/ui is a source-code starter for accessible primitives, not the design system.
 - Do not add shadcn/ui components proactively. Add them only for design-backed needs such as `Dialog`, `Popover`, `DropdownMenu`, `Select`, `Command`, `Tooltip`, or other interaction-heavy primitives.
 - Generated shadcn/ui files must live under `src/shared/ui`, be reviewed as project-owned code, use `cn()`, and be restyled to match UpNext before use.
-- Do not edit generated files such as `public/mockServiceWorker.js`.
+- Do not edit generated files such as `next-env.d.ts` or `public/mockServiceWorker.js`.
 - Never expose secrets to the client. Public env vars must start with `NEXT_PUBLIC_`.
 - Read env through `src/shared/lib/env.ts`; add new env keys there with Zod validation.
 - Keep API URL creation and fetch behavior in `src/shared/api`; feature code should wrap it with domain-specific query/mutation hooks.

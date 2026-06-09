@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit --pretty false",
+    "typecheck": "next typegen && tsc --noEmit --pretty false",
     "lint": "oxlint . --tsconfig tsconfig.json",
     "lint:fix": "oxlint . --tsconfig tsconfig.json --fix",
     "format": "oxfmt --ignore-path .oxfmtignore .",
