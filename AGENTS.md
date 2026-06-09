@@ -58,7 +58,11 @@ Run `pnpm verify` before handing off normal changes. Run `pnpm verify:full` when
 - Use MSW for network mocking in tests.
 - Put browser flow tests under `e2e/`.
 - Keep Oxlint/Oxfmt ignores focused on generated output, caches, build artifacts, and lockfiles.
-- Commit messages must follow Conventional Commits; lefthook runs commitlint.
+- Lefthook runs fast local gates:
+  - `pre-commit`: `typecheck`, `lint`, `format:check`, `test`.
+  - `pre-push`: `pnpm verify`.
+  - `commit-msg`: Conventional Commit validation.
+- CI is the full source of truth and runs `verify`, `build`, and `test:e2e`.
 - New domain behavior should include focused tests unless it is purely presentational.
 
 ## Git Safety

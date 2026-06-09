@@ -1,16 +1,22 @@
 pre-commit:
   parallel: false
-  commands:
-    typecheck:
+  jobs:
+    - name: typecheck
       run: pnpm typecheck
-    lint:
+    - name: lint
       run: pnpm lint
-    format:
+    - name: format
       run: pnpm format:check
-    test:
+    - name: test
       run: pnpm test
 
+pre-push:
+  files: git ls-files
+  jobs:
+    - name: verify
+      run: pnpm verify
+
 commit-msg:
-  commands:
-    commitlint:
+  jobs:
+    - name: commitlint
       run: pnpm exec commitlint --edit {1}
