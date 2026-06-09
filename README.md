@@ -1,34 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# UpNext Frontend
+
+Frontend for UpNext, an IT recruitment platform.
+
+## Tech Stack
+
+- Next.js App Router
+- React + TypeScript strict
+- Tailwind CSS v4
+- TanStack Query for server state
+- Zustand for client/UI state
+- React Hook Form + Zod
+- MSW, Vitest, Playwright
+- Oxlint, Oxfmt, Commitlint, Lefthook
+
+`shadcn/ui` and `next-intl` are intentionally not installed yet.
+
+## Requirements
+
+- Node: see `.node-version` / `.nvmrc`
+- pnpm: see `packageManager` in `package.json`
+
+This project requires pnpm. Other package managers are blocked by `preinstall`.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy `.env.example` when local environment values are needed:
 
-## Learn More
+```bash
+cp .env.example .env.local
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm typecheck      # TypeScript no-emit check
+pnpm lint           # Oxlint
+pnpm format:check   # Oxfmt check
+pnpm format         # Oxfmt write
+pnpm test           # Vitest
+pnpm test:e2e       # Playwright
+pnpm build          # Next production build
+pnpm verify         # typecheck + lint + format:check + test
+pnpm verify:full    # verify + build + e2e
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```txt
+src/
+  app/                 # Next routes, layouts, metadata, app-level providers
+  features/            # domain features, created as real product work starts
+    auth/
+    jobs/
+    companies/
+    candidates/
+    applications/
+    messages/
+    notifications/
+    employer-dashboard/
+    admin/
+    search/
+  shared/              # reusable non-domain code
+    api/
+    hooks/
+    lib/
+    stores/
+    types/
+    ui/
+  mocks/               # MSW setup and handlers
+  test/                # test setup utilities
+e2e/                   # Playwright tests
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Feature folders should usually contain only the pieces they need: `api/`, `components/`, `hooks/`, `schemas/`, `types.ts`, and colocated tests.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Quality Gates
+
+Lefthook runs local checks:
+
+- `pre-commit`: typecheck, lint, format check, unit tests
+- `commit-msg`: Conventional Commit validation
+- `pre-push`: `pnpm verify`
+
+GitHub Actions runs the full gate on `dev` and `main`: verify, build, and E2E.
+
+## Agent Guidance
+
+Read `AGENTS.md` before changing code. `CLAUDE.md` points Claude to the same canonical guide.
