@@ -1,91 +1,75 @@
 # UpNext Frontend Agent Guide
 
-Keep this file short. Follow these rules before changing code.
+Keep this file short. Follow it before changing code.
 
 ## Project
 
-- Frontend for UpNext, an IT recruitment platform.
-- Stack: Next.js App Router, React, TypeScript strict, Tailwind CSS v4, next-intl, TanStack Query, TanStack Table, React Hook Form, Zod, Zustand, date-fns, Phosphor Icons, shadcn/ui, MSW, Vitest, Playwright, Oxlint, Oxfmt.
-- Lucide is not installed. Do not assume it exists.
-- Package manager is pnpm only. Use Node and pnpm versions from `.node-version`, `.nvmrc`, and `package.json`.
+- UpNext FE: IT recruitment platform.
+- Stack: Next.js App Router, strict TS, Tailwind v4, next-intl, TanStack Query/Table, RHF + Zod, Zustand, date-fns, Motion, Phosphor Icons, shadcn/ui, MSW, Vitest, Playwright, Oxlint/Oxfmt.
+- pnpm only. Use Node/pnpm versions from `.node-version`, `.nvmrc`, and `package.json`.
+- Lucide is not installed.
 
-## Agent Operating Rules
+## Operating Rules
 
-- State important assumptions when requirements are ambiguous.
-- Prefer the simplest implementation that satisfies the requested behavior.
-- Do not add abstractions, config, or dependencies for hypothetical future needs.
-- Keep diffs surgical. Do not refactor adjacent code unless required.
-- If unrelated issues are found, mention them instead of fixing them silently.
-- Every handoff must include the verification command that was run.
+- State assumptions when requirements are ambiguous.
+- Keep changes simple, scoped, and surgical. Do not refactor adjacent code unless required.
+- Do not add abstractions, config, dependencies, or shadcn components for hypothetical needs.
+- Mention unrelated issues instead of fixing them silently.
+- Every handoff must include verification commands run.
 
 ## Commands
 
-- Install: `pnpm install`
-- Dev: `pnpm dev`
-- Typecheck: `pnpm typecheck`
-- Lint: `pnpm lint`
-- Format check: `pnpm format:check`
-- Format write: `pnpm format`
-- Unit tests: `pnpm test`
-- E2E tests: `pnpm test:e2e`
-- Standard verification: `pnpm verify`
-- Full verification: `pnpm verify:full`
+- `pnpm install`
+- `pnpm dev`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm format:check` / `pnpm format`
+- `pnpm test`
+- `pnpm test:e2e`
+- `pnpm verify`
+- `pnpm verify:full`
 
-Run `pnpm verify` before handing off normal changes. Run `pnpm verify:full` when routes, app shell, provider setup, or E2E behavior changes.
+Run `pnpm verify` for normal changes. Run `pnpm verify:full` for routes, app shell, providers, or E2E behavior.
 
 ## Architecture
 
-- Use Feature-First Hybrid:
-  - `src/app/[locale]`: localized routes, layouts, metadata, app-level composition only.
-  - `src/app`: global styles and app-level providers.
-  - `src/features/<domain>`: domain UI, hooks, schemas, API calls, types, and tests.
-  - `src/shared`: reusable non-domain code such as `api`, `lib`, `ui`, hooks, stores, and types.
-  - `src/i18n`: next-intl routing, request config, and navigation helpers.
-  - `messages`: next-intl message catalogs.
-  - `src/mocks`: MSW handlers/setup.
-  - `src/test`: test setup utilities.
-- Add a feature folder only when real domain code exists. Expected domains: `auth`, `jobs`, `companies`, `candidates`, `applications`, `messages`, `notifications`, `employer-dashboard`, `admin`, `search`.
-- Avoid business logic in `src/app`. App routes should compose feature/shared modules.
-- Prefer this feature shape when needed: `api/`, `components/`, `hooks/`, `schemas/`, `types.ts`, and colocated `*.test.ts(x)`.
-- Use `@/*` imports for source paths.
+- Feature-First Hybrid:
+  - `src/app/[locale]`: localized routes/layouts/metadata/composition only.
+  - `src/features/<domain>`: domain UI, hooks, schemas, API calls, types, tests.
+  - `src/shared`: reusable `api`, `lib`, `ui`, hooks, stores, types.
+  - `src/i18n`, `messages`, `src/mocks`, `src/test`, `e2e`.
+- Expected domains: `auth`, `jobs`, `companies`, `candidates`, `applications`, `messages`, `notifications`, `employer-dashboard`, `admin`, `search`.
+- Avoid business logic in `src/app`. Routes compose feature/shared modules.
+- Preferred feature shape: `api/`, `components/`, `hooks/`, `schemas/`, `types.ts`, colocated `*.test.ts(x)`.
+- Use `@/*` imports.
 
 ## Coding Rules
 
-- Keep TypeScript strict. Do not loosen `tsconfig.json`.
-- Prefer Server Components by default. Add `"use client"` only for state, effects, browser APIs, event handlers, or client-only libraries.
-- Use TanStack Query for server state and API caching. Do not store API data in Zustand.
-- Use Zustand only for client/UI state, not API data.
-- Use React Hook Form with Zod for forms and validation.
-- Use next-intl for UI messages and locale routing. Do not hardcode user-facing strings in reusable/product UI when a translation key is expected.
-- Use `motion/react` for animation imports.
-- Use icons from `@phosphor-icons/react`.
-- Use Tailwind CSS v4 utilities and `cn()` from `src/shared/lib/cn.ts` for class merging.
-- Use `src/shared/lib/date.ts` for app date formatting with date-fns.
-- Use `src/shared/ui/data-table` as the TanStack Table baseline before adding domain-specific table behavior.
-- Keep shared UI primitives in `src/shared/ui`; domain-specific UI belongs in `src/features/<domain>`.
-- Treat Figma/product design as the UI source of truth. shadcn/ui is a source-code starter for accessible primitives, not the design system.
-- Do not add shadcn/ui components proactively. Add them only for design-backed needs such as `Dialog`, `Popover`, `DropdownMenu`, `Select`, `Command`, `Tooltip`, or other interaction-heavy primitives.
-- Generated shadcn/ui files must live under `src/shared/ui`, be reviewed as project-owned code, use `cn()`, and be restyled to match UpNext before use.
-- Do not edit generated files such as `next-env.d.ts` or `public/mockServiceWorker.js`.
-- Never expose secrets to the client. Public env vars must start with `NEXT_PUBLIC_`.
-- Read env through `src/shared/lib/env.ts`; add new env keys there with Zod validation.
-- Keep API URL creation and fetch behavior in `src/shared/api`; feature code should wrap it with domain-specific query/mutation hooks.
+- Prefer Server Components. Add `"use client"` only for hooks, browser APIs, events, Zustand, React Query, or client-only libraries.
+- TanStack Query owns server state. Zustand is only for client/UI state.
+- Forms use React Hook Form + Zod.
+- UI text uses next-intl when product-facing.
+- Icons come from `@phosphor-icons/react`; animation imports come from `motion/react`.
+- Use Tailwind v4 and `cn()` from `src/shared/lib/cn.ts`.
+- Use `src/shared/lib/date.ts` for date formatting and `src/shared/ui/data-table` for table baseline.
+- Figma/product design is the UI source of truth. shadcn/ui is only a source-code starter for accessible primitives.
+- Generated shadcn files live in `src/shared/ui`, are project-owned code, and must be restyled to UpNext.
+- Never edit generated files: `next-env.d.ts`, `public/mockServiceWorker.js`.
+- Never expose secrets. Public env vars must start with `NEXT_PUBLIC_` and be validated in `src/shared/lib/env.ts`.
+- Feature API wrappers should build on `src/shared/api`.
 
-## Testing And Quality
+## Skills
 
-- Place unit/component tests next to the code they cover using `*.test.ts` or `*.test.tsx`.
-- Use MSW for network mocking in tests.
-- Put browser flow tests under `e2e/`.
-- Keep Oxlint/Oxfmt ignores focused on generated output, caches, build artifacts, and lockfiles.
-- Lefthook runs fast local gates:
-  - `pre-commit`: `typecheck`, `lint`, `format:check`, `test`.
-  - `pre-push`: `pnpm verify`.
-  - `commit-msg`: Conventional Commit validation.
-- CI is the full source of truth and runs `verify`, `build`, and `test:e2e`.
-- New domain behavior should include focused tests unless it is purely presentational.
+- Use Vercel React Best Practices as a performance checklist; do not add dependencies or rewrite architecture because of it.
+- Use Web Design Guidelines and Accessibility Review for UI review tasks.
+- Use Browser/Playwright Verification after meaningful UI, route, form, or interaction changes.
+- Use View Transitions only when product/design explicitly requires route or shared-element motion; do not add it proactively.
 
-## Git Safety
+## Testing And Git
 
+- Tests live next to code as `*.test.ts(x)`; browser flows live in `e2e/`.
+- Use MSW for network mocking.
+- Keep lint/format ignores limited to generated output, caches, build artifacts, and lockfiles.
+- Lefthook: pre-commit runs typecheck/lint/format/test; pre-push runs `pnpm verify`; commit-msg runs commitlint.
+- CI is source of truth: verify, build, E2E.
 - Do not revert user changes unless explicitly asked.
-- Keep changes scoped to the requested task.
-- Do not introduce new libraries without a clear reason and package.json update.
