@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { notFound } from "next/navigation";
 
 import { routing } from "@/i18n/routing";
 
 import "../globals.css";
 import { Providers } from "../providers";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin", "vietnamese"],
+  display: "swap",
+  variable: "--font-sans",
+});
 
 type LocaleLayoutProps = Readonly<{
   children: React.ReactNode;
@@ -45,7 +52,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   return (
     <html lang={locale}>
-      <body>
+      <body className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}>
         <NextIntlClientProvider>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>

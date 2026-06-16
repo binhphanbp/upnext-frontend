@@ -1,11 +1,295 @@
 {
   "Metadata": {
-    "title": "UpNext",
-    "description": "Frontend cho nền tảng tuyển dụng nhân sự IT."
+    "title": "UpNext - Nền tảng tuyển dụng nhân sự IT",
+    "description": "UpNext kết nối ứng viên IT với công ty công nghệ uy tín, tập trung vào kỹ năng, dữ liệu thị trường và trải nghiệm tuyển dụng hiện đại."
   },
   "HomePage": {
-    "eyebrow": "UpNext Frontend",
-    "title": "Nền tảng frontend đã sẵn sàng cho sản phẩm.",
-    "description": "Next.js, TypeScript strict, Tailwind CSS, TanStack Query, MSW, Vitest, Playwright, Oxlint, Oxfmt, Commitlint và Lefthook đã được cấu hình làm nền tảng frontend."
+    "content": {
+      "header": {
+        "nav": [
+          {
+            "label": "Việc làm IT",
+            "eyebrow": "Khám phá việc làm",
+            "description": "Tìm đúng vị trí theo chuyên môn, level và định hướng nghề nghiệp.",
+            "items": [
+              {
+                "label": "Frontend",
+                "description": "React, Vue, Angular, UI Engineer.",
+                "href": "/jobs?position=Frontend",
+                "icon": "jobs"
+              },
+              {
+                "label": "Backend",
+                "description": "Java, Node.js, Go, .NET, PHP.",
+                "href": "/jobs?position=Backend",
+                "icon": "jobs"
+              },
+              {
+                "label": "Data & AI",
+                "description": "Data Engineer, ML, AI Engineer.",
+                "href": "/jobs?position=Data%20AI",
+                "icon": "features",
+                "badge": "Hot"
+              },
+              {
+                "label": "Tất cả việc làm",
+                "description": "Duyệt toàn bộ tin tuyển dụng IT.",
+                "href": "/jobs",
+                "icon": "jobs"
+              }
+            ]
+          },
+          {
+            "label": "Công ty IT",
+            "eyebrow": "Nhà tuyển dụng uy tín",
+            "description": "Xem thông tin công ty, điểm tin cậy và cơ hội đang mở.",
+            "items": [
+              {
+                "label": "Top công ty công nghệ",
+                "description": "Các công ty có nhiều vị trí IT chất lượng.",
+                "href": "/companies",
+                "icon": "companies"
+              },
+              {
+                "label": "Công ty đã xác thực",
+                "description": "Nhà tuyển dụng có thông tin minh bạch.",
+                "href": "/companies?verified=true",
+                "icon": "companies"
+              }
+            ]
+          },
+          {
+            "label": "Tính năng",
+            "eyebrow": "Công cụ cho ứng viên IT",
+            "description": "Hồ sơ, gợi ý việc làm, dữ liệu lương và luyện phỏng vấn.",
+            "items": [
+              {
+                "label": "Tạo CV chuẩn IT",
+                "description": "Tối ưu hồ sơ theo kỹ năng và JD.",
+                "href": "/candidate/profile",
+                "icon": "features"
+              },
+              {
+                "label": "Phỏng vấn AI",
+                "description": "Luyện tập theo CV, JD và level mục tiêu.",
+                "href": "/candidate/ai",
+                "icon": "features",
+                "badge": "Mới"
+              },
+              {
+                "label": "Báo cáo lương",
+                "description": "Dữ liệu theo vị trí, kinh nghiệm và khu vực.",
+                "href": "/salary",
+                "icon": "blog"
+              }
+            ]
+          }
+        ],
+        "employerCta": "Nhà tuyển dụng",
+        "login": "Đăng nhập",
+        "register": "Đăng ký",
+        "menuLabel": "Mở menu",
+        "closeLabel": "Đóng menu"
+      },
+      "hero": {
+        "eyebrow": "Nền tảng tuyển dụng IT hàng đầu",
+        "title": "Tìm đúng việc IT.",
+        "highlight": "Bật tăng sự nghiệp.",
+        "description": "UpNext kết nối ứng viên IT với các công ty công nghệ uy tín. Tìm việc nhanh chóng, phù hợp kỹ năng và định hướng của bạn.",
+        "search": {
+          "keywordPlaceholder": "Nhập tên công việc, kỹ năng...",
+          "keywordLabel": "Từ khóa tìm việc",
+          "locationPlaceholder": "Tất cả địa điểm",
+          "locationLabel": "Địa điểm",
+          "submit": "Tìm việc",
+          "suggestionsLabel": "Gợi ý từ khóa",
+          "locationsLabel": "Danh sách địa điểm"
+        },
+        "popularLabel": "Từ khóa phổ biến:",
+        "popularSearches": ["Frontend", "Backend", "DevOps", "AI Engineer", "Data", "UI/UX"],
+        "keywordSuggestions": [
+          "React",
+          "Vue.js",
+          "Angular",
+          "Node.js",
+          "Java",
+          "Spring Boot",
+          "Python",
+          "Golang",
+          "AWS",
+          "Kubernetes",
+          "Data Engineer",
+          "AI Engineer",
+          "QA Automation",
+          "UI/UX Designer"
+        ],
+        "locations": ["TP. Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Remote", "Nước ngoài"],
+        "floatingJob": {
+          "badge": "Nổi bật",
+          "title": "Senior Frontend Developer",
+          "company": "UpNext · Hà Nội",
+          "tags": ["React", "TypeScript", "Tailwind"],
+          "salary": "25 - 40 triệu VND"
+        },
+        "floatingSalary": {
+          "label": "Mức lương trung bình",
+          "role": "Frontend Developer",
+          "value": "24.5 triệu",
+          "trend": "12% so với tháng trước"
+        }
+      },
+      "trust": {
+        "stats": [
+          { "value": "2.500+", "label": "Việc làm IT đang tuyển" },
+          { "value": "1.000+", "label": "Công ty công nghệ" },
+          { "value": "50.000+", "label": "Ứng viên đã tin tưởng" }
+        ],
+        "label": "Được tin tưởng bởi các công ty công nghệ hàng đầu",
+        "companies": ["FPT Software", "VNG", "Viettel", "Tiki", "MoMo"]
+      },
+      "featuredJobs": {
+        "eyebrow": "Việc làm nổi bật",
+        "title": "Cơ hội IT chất lượng từ nhà tuyển dụng đã xác thực",
+        "description": "Các tin tuyển dụng được chọn lọc theo mức độ phù hợp, độ minh bạch và nhu cầu tuyển dụng thực tế.",
+        "cta": "Xem tất cả",
+        "jobs": [
+          {
+            "title": "Senior Fullstack Developer",
+            "company": "FPT Software",
+            "salary": "35 - 60 triệu",
+            "location": "Hà Nội",
+            "mode": "Hybrid",
+            "experience": "3 - 5 năm",
+            "tags": ["React", "Node.js", "TypeScript", "AWS"],
+            "href": "/jobs/fpt-fullstack",
+            "logo": "/assets/marketing/home/companies/fpt.png",
+            "logoColor": "#0a66c2",
+            "badge": "Nổi bật",
+            "verified": true
+          },
+          {
+            "title": "Backend Engineer",
+            "company": "VNG Corporation",
+            "salary": "25 - 40 triệu",
+            "location": "TP. Hồ Chí Minh",
+            "mode": "Hybrid",
+            "experience": "2 - 4 năm",
+            "tags": ["Java", "Spring Boot", "Kafka"],
+            "href": "/jobs/vnd-backend",
+            "logo": "/assets/marketing/home/companies/vng.png",
+            "logoColor": "#1a8cff",
+            "badge": "Mới đăng",
+            "verified": true
+          },
+          {
+            "title": "DevOps Engineer",
+            "company": "Viettel Solutions",
+            "salary": "28 - 50 triệu",
+            "location": "Đà Nẵng",
+            "mode": "Onsite",
+            "experience": "3 - 6 năm",
+            "tags": ["AWS", "Docker", "Kubernetes", "Terraform"],
+            "href": "/jobs/viettel-devops",
+            "logo": "/assets/marketing/home/companies/viettel.png",
+            "logoColor": "#ee0033",
+            "badge": "Tuyển gấp",
+            "verified": true
+          }
+        ]
+      },
+      "companies": {
+        "eyebrow": "Công ty nổi bật",
+        "title": "Tìm hiểu nhà tuyển dụng trước khi ứng tuyển",
+        "description": "Thông tin công ty, số lượng vị trí mở và tín hiệu uy tín giúp ứng viên ra quyết định tốt hơn.",
+        "cta": "Khám phá công ty",
+        "items": [
+          {
+            "name": "FPT Software",
+            "category": "Outsourcing",
+            "jobs": 158,
+            "followers": "12.4k theo dõi",
+            "href": "/companies/fpt-software",
+            "logo": "/assets/marketing/home/companies/fpt.png",
+            "cover": "/assets/marketing/home/covers/fpt.jpg",
+            "logoColor": "#0a66c2",
+            "description": "Công ty công nghệ hàng đầu Việt Nam, cung cấp giải pháp và dịch vụ CNTT cho khách hàng toàn cầu.",
+            "tags": ["Outsourcing", "Global", "Java"]
+          },
+          {
+            "name": "VNG Corporation",
+            "category": "Product",
+            "jobs": 86,
+            "followers": "9.8k theo dõi",
+            "href": "/companies/vng",
+            "logo": "/assets/marketing/home/companies/vng.png",
+            "logoColor": "#1a8cff",
+            "description": "Tập đoàn sản phẩm công nghệ với hệ sinh thái nền tảng số, game, cloud và AI.",
+            "tags": ["Product", "Cloud", "AI"]
+          },
+          {
+            "name": "MoMo",
+            "category": "Fintech",
+            "jobs": 64,
+            "followers": "8.6k theo dõi",
+            "href": "/companies/momo",
+            "logo": "/assets/marketing/home/companies/momo.png",
+            "logoColor": "#a50064",
+            "description": "Nền tảng tài chính số phục vụ hàng chục triệu người dùng với quy mô dữ liệu lớn.",
+            "tags": ["Fintech", "Data", "Mobile"]
+          }
+        ]
+      },
+      "market": {
+        "eyebrow": "Dữ liệu thị trường",
+        "title": "Nhìn nhanh xu hướng tuyển dụng",
+        "highlight": "trước khi ứng tuyển",
+        "description": "Theo dõi nhu cầu tuyển dụng, mức lương và tốc độ mở vị trí để chọn chiến lược tìm việc phù hợp.",
+        "cta": "Xem thị trường việc làm",
+        "kpis": [
+          { "value": "2.570", "label": "Việc làm mới 24h gần nhất" },
+          { "value": "56.483", "label": "Việc làm đang tuyển" },
+          { "value": "19.223", "label": "Công ty đang tuyển" }
+        ],
+        "growthTitle": "Tăng trưởng việc làm",
+        "salaryTitle": "Phân bổ mức lương",
+        "growth": [
+          { "label": "04/05", "value": 46280 },
+          { "label": "11/05", "value": 50812 },
+          { "label": "18/05", "value": 52945 },
+          { "label": "25/05", "value": 55667 },
+          { "label": "01/06", "value": 56483 }
+        ],
+        "salaries": [
+          { "label": "<10", "value": 2341 },
+          { "label": "10-20", "value": 8752 },
+          { "label": "20-30", "value": 22318 },
+          { "label": "30-50", "value": 15624 },
+          { "label": ">50", "value": 7448 }
+        ]
+      },
+      "footer": {
+        "title": "Hành trình sự nghiệp IT tốt hơn",
+        "highlight": "bắt đầu từ đây",
+        "description": "Hàng nghìn cơ hội việc làm IT chất lượng đang chờ bạn khám phá.",
+        "primaryCta": "Tìm việc ngay",
+        "secondaryCta": "Tạo hồ sơ miễn phí",
+        "brandDescription": "UpNext kết nối ứng viên IT với công ty công nghệ uy tín, tập trung vào kỹ năng, dữ liệu thị trường và trải nghiệm tuyển dụng minh bạch.",
+        "quickLinksTitle": "Liên kết nhanh",
+        "quickLinks": [
+          { "label": "Tìm việc IT", "href": "/jobs" },
+          { "label": "Công ty công nghệ", "href": "/companies" },
+          { "label": "Tạo hồ sơ", "href": "/candidate/profile" },
+          { "label": "Báo cáo lương", "href": "/salary" },
+          { "label": "Đăng tuyển dụng", "href": "/employer/jobs" },
+          { "label": "Giải pháp tuyển dụng", "href": "/employer" }
+        ],
+        "contactTitle": "Liên hệ / Nhận tin",
+        "contactDescription": "Nhận thông tin việc làm IT mới nhất và các bài viết hữu ích từ UpNext.",
+        "emailPlaceholder": "Nhập email của bạn",
+        "subscribe": "Đăng ký",
+        "contactItems": ["contact@upnext.works", "028 7303 2468", "TP. Hồ Chí Minh, Việt Nam"],
+        "copyright": "© 2026 UpNext. Tất cả quyền được bảo lưu."
+      }
+    }
   }
 }

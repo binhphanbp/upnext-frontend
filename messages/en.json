@@ -1,11 +1,295 @@
 {
   "Metadata": {
-    "title": "UpNext",
-    "description": "Frontend for an IT recruitment platform."
+    "title": "UpNext - IT recruitment platform",
+    "description": "UpNext connects IT talent with trusted technology companies through skill-first matching, market data, and a modern hiring experience."
   },
   "HomePage": {
-    "eyebrow": "UpNext Frontend",
-    "title": "Foundation is ready for product work.",
-    "description": "Next.js, strict TypeScript, Tailwind CSS, TanStack Query, MSW, Vitest, Playwright, Oxlint, Oxfmt, Commitlint, and Lefthook are wired as the frontend baseline."
+    "content": {
+      "header": {
+        "nav": [
+          {
+            "label": "IT Jobs",
+            "eyebrow": "Explore jobs",
+            "description": "Find roles by specialty, level, and career direction.",
+            "items": [
+              {
+                "label": "Frontend",
+                "description": "React, Vue, Angular, UI Engineer.",
+                "href": "/jobs?position=Frontend",
+                "icon": "jobs"
+              },
+              {
+                "label": "Backend",
+                "description": "Java, Node.js, Go, .NET, PHP.",
+                "href": "/jobs?position=Backend",
+                "icon": "jobs"
+              },
+              {
+                "label": "Data & AI",
+                "description": "Data Engineer, ML, AI Engineer.",
+                "href": "/jobs?position=Data%20AI",
+                "icon": "features",
+                "badge": "Hot"
+              },
+              {
+                "label": "All jobs",
+                "description": "Browse all IT openings.",
+                "href": "/jobs",
+                "icon": "jobs"
+              }
+            ]
+          },
+          {
+            "label": "IT Companies",
+            "eyebrow": "Trusted employers",
+            "description": "Review company profiles, trust signals, and open roles.",
+            "items": [
+              {
+                "label": "Top tech companies",
+                "description": "Companies with strong IT hiring demand.",
+                "href": "/companies",
+                "icon": "companies"
+              },
+              {
+                "label": "Verified employers",
+                "description": "Transparent and verified hiring profiles.",
+                "href": "/companies?verified=true",
+                "icon": "companies"
+              }
+            ]
+          },
+          {
+            "label": "Features",
+            "eyebrow": "Tools for IT talent",
+            "description": "Profiles, job recommendations, salary data, and interview practice.",
+            "items": [
+              {
+                "label": "IT-ready CV",
+                "description": "Improve your profile against target job descriptions.",
+                "href": "/candidate/profile",
+                "icon": "features"
+              },
+              {
+                "label": "AI interview",
+                "description": "Practice by CV, job description, and target level.",
+                "href": "/candidate/ai",
+                "icon": "features",
+                "badge": "New"
+              },
+              {
+                "label": "Salary report",
+                "description": "Market data by role, experience, and location.",
+                "href": "/salary",
+                "icon": "blog"
+              }
+            ]
+          }
+        ],
+        "employerCta": "For employers",
+        "login": "Log in",
+        "register": "Sign up",
+        "menuLabel": "Open menu",
+        "closeLabel": "Close menu"
+      },
+      "hero": {
+        "eyebrow": "A leading IT recruitment platform",
+        "title": "Find the right IT job.",
+        "highlight": "Grow your career.",
+        "description": "UpNext connects IT talent with trusted technology companies. Search faster, match better, and move toward roles that fit your skills.",
+        "search": {
+          "keywordPlaceholder": "Enter role, skill, or keyword...",
+          "keywordLabel": "Job keyword",
+          "locationPlaceholder": "All locations",
+          "locationLabel": "Location",
+          "submit": "Search jobs",
+          "suggestionsLabel": "Keyword suggestions",
+          "locationsLabel": "Location list"
+        },
+        "popularLabel": "Popular searches:",
+        "popularSearches": ["Frontend", "Backend", "DevOps", "AI Engineer", "Data", "UI/UX"],
+        "keywordSuggestions": [
+          "React",
+          "Vue.js",
+          "Angular",
+          "Node.js",
+          "Java",
+          "Spring Boot",
+          "Python",
+          "Golang",
+          "AWS",
+          "Kubernetes",
+          "Data Engineer",
+          "AI Engineer",
+          "QA Automation",
+          "UI/UX Designer"
+        ],
+        "locations": ["Ho Chi Minh City", "Ha Noi", "Da Nang", "Remote", "Overseas"],
+        "floatingJob": {
+          "badge": "Featured",
+          "title": "Senior Frontend Developer",
+          "company": "UpNext · Ha Noi",
+          "tags": ["React", "TypeScript", "Tailwind"],
+          "salary": "25 - 40M VND"
+        },
+        "floatingSalary": {
+          "label": "Average salary",
+          "role": "Frontend Developer",
+          "value": "24.5M",
+          "trend": "12% vs last month"
+        }
+      },
+      "trust": {
+        "stats": [
+          { "value": "2,500+", "label": "Open IT jobs" },
+          { "value": "1,000+", "label": "Technology companies" },
+          { "value": "50,000+", "label": "Trusted candidates" }
+        ],
+        "label": "Trusted by leading technology companies",
+        "companies": ["FPT Software", "VNG", "Viettel", "Tiki", "MoMo"]
+      },
+      "featuredJobs": {
+        "eyebrow": "Featured jobs",
+        "title": "Quality IT opportunities from verified employers",
+        "description": "Curated roles based on fit, transparency, and real hiring demand.",
+        "cta": "View all",
+        "jobs": [
+          {
+            "title": "Senior Fullstack Developer",
+            "company": "FPT Software",
+            "salary": "35 - 60M VND",
+            "location": "Ha Noi",
+            "mode": "Hybrid",
+            "experience": "3 - 5 years",
+            "tags": ["React", "Node.js", "TypeScript", "AWS"],
+            "href": "/jobs/fpt-fullstack",
+            "logo": "/assets/marketing/home/companies/fpt.png",
+            "logoColor": "#0a66c2",
+            "badge": "Featured",
+            "verified": true
+          },
+          {
+            "title": "Backend Engineer",
+            "company": "VNG Corporation",
+            "salary": "25 - 40M VND",
+            "location": "Ho Chi Minh City",
+            "mode": "Hybrid",
+            "experience": "2 - 4 years",
+            "tags": ["Java", "Spring Boot", "Kafka"],
+            "href": "/jobs/vnd-backend",
+            "logo": "/assets/marketing/home/companies/vng.png",
+            "logoColor": "#1a8cff",
+            "badge": "New",
+            "verified": true
+          },
+          {
+            "title": "DevOps Engineer",
+            "company": "Viettel Solutions",
+            "salary": "28 - 50M VND",
+            "location": "Da Nang",
+            "mode": "Onsite",
+            "experience": "3 - 6 years",
+            "tags": ["AWS", "Docker", "Kubernetes", "Terraform"],
+            "href": "/jobs/viettel-devops",
+            "logo": "/assets/marketing/home/companies/viettel.png",
+            "logoColor": "#ee0033",
+            "badge": "Urgent",
+            "verified": true
+          }
+        ]
+      },
+      "companies": {
+        "eyebrow": "Featured companies",
+        "title": "Know the employer before applying",
+        "description": "Company profiles, open roles, and trust signals help candidates decide with confidence.",
+        "cta": "Explore companies",
+        "items": [
+          {
+            "name": "FPT Software",
+            "category": "Outsourcing",
+            "jobs": 158,
+            "followers": "12.4k followers",
+            "href": "/companies/fpt-software",
+            "logo": "/assets/marketing/home/companies/fpt.png",
+            "cover": "/assets/marketing/home/covers/fpt.jpg",
+            "logoColor": "#0a66c2",
+            "description": "A leading Vietnamese technology company delivering IT services and digital solutions globally.",
+            "tags": ["Outsourcing", "Global", "Java"]
+          },
+          {
+            "name": "VNG Corporation",
+            "category": "Product",
+            "jobs": 86,
+            "followers": "9.8k followers",
+            "href": "/companies/vng",
+            "logo": "/assets/marketing/home/companies/vng.png",
+            "logoColor": "#1a8cff",
+            "description": "A technology product group across digital platforms, games, cloud, and AI.",
+            "tags": ["Product", "Cloud", "AI"]
+          },
+          {
+            "name": "MoMo",
+            "category": "Fintech",
+            "jobs": 64,
+            "followers": "8.6k followers",
+            "href": "/companies/momo",
+            "logo": "/assets/marketing/home/companies/momo.png",
+            "logoColor": "#a50064",
+            "description": "A digital finance platform serving millions of users with large-scale data and mobile systems.",
+            "tags": ["Fintech", "Data", "Mobile"]
+          }
+        ]
+      },
+      "market": {
+        "eyebrow": "Market data",
+        "title": "Understand hiring trends",
+        "highlight": "before applying",
+        "description": "Track job demand, salary ranges, and role growth to choose a smarter search strategy.",
+        "cta": "View job market",
+        "kpis": [
+          { "value": "2,570", "label": "New jobs in the last 24h" },
+          { "value": "56,483", "label": "Open jobs" },
+          { "value": "19,223", "label": "Hiring companies" }
+        ],
+        "growthTitle": "Job growth",
+        "salaryTitle": "Salary distribution",
+        "growth": [
+          { "label": "04/05", "value": 46280 },
+          { "label": "11/05", "value": 50812 },
+          { "label": "18/05", "value": 52945 },
+          { "label": "25/05", "value": 55667 },
+          { "label": "01/06", "value": 56483 }
+        ],
+        "salaries": [
+          { "label": "<10", "value": 2341 },
+          { "label": "10-20", "value": 8752 },
+          { "label": "20-30", "value": 22318 },
+          { "label": "30-50", "value": 15624 },
+          { "label": ">50", "value": 7448 }
+        ]
+      },
+      "footer": {
+        "title": "A better IT career journey",
+        "highlight": "starts here",
+        "description": "Thousands of quality IT opportunities are ready for you to explore.",
+        "primaryCta": "Find jobs",
+        "secondaryCta": "Create free profile",
+        "brandDescription": "UpNext connects IT talent with trusted technology companies through skill-first matching, market data, and transparent hiring experiences.",
+        "quickLinksTitle": "Quick links",
+        "quickLinks": [
+          { "label": "IT jobs", "href": "/jobs" },
+          { "label": "Tech companies", "href": "/companies" },
+          { "label": "Create profile", "href": "/candidate/profile" },
+          { "label": "Salary report", "href": "/salary" },
+          { "label": "Post a job", "href": "/employer/jobs" },
+          { "label": "Hiring solutions", "href": "/employer" }
+        ],
+        "contactTitle": "Contact / Newsletter",
+        "contactDescription": "Get the latest IT jobs and practical career articles from UpNext.",
+        "emailPlaceholder": "Enter your email",
+        "subscribe": "Subscribe",
+        "contactItems": ["contact@upnext.works", "028 7303 2468", "Ho Chi Minh City, Vietnam"],
+        "copyright": "© 2026 UpNext. All rights reserved."
+      }
+    }
   }
 }
