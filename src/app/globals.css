@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../features/marketing/home/marketing-home.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -34,6 +35,22 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
+  --color-premium: var(--premium);
+  --color-premium-foreground: var(--premium-foreground);
+  --color-premium-muted: var(--premium-muted);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-info: var(--info);
+  --color-info-muted: var(--info-muted);
+  --color-warning: var(--warning);
+  --color-warning-muted: var(--warning-muted);
+  --color-error: var(--error);
+  --color-error-muted: var(--error-muted);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -42,37 +59,109 @@
 
 :root {
   --radius: 0.5rem;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+  --foreground: #0f172a;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
+  --card-foreground: #0f172a;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
+  --popover-foreground: #0f172a;
+  --primary: #10a778;
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --accent: #ecfdf5;
+  --accent-foreground: #0b7f5f;
+  --destructive: #ef4444;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #6366f1;
+  --chart-1: #10b981;
+  --chart-2: #6366f1;
+  --chart-3: #38bdf8;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
   --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.21 0.006 285.885);
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #10a778;
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
+  --sidebar-accent: #ecfdf5;
+  --sidebar-accent-foreground: #0b7f5f;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #6366f1;
+  --brand: #10a778;
+  --brand-foreground: #ffffff;
+  --brand-muted: #e7fff7;
+  --premium: #574bf5;
+  --premium-foreground: #ffffff;
+  --premium-muted: #eef2ff;
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --success: #10b981;
+  --success-muted: #ecfdf5;
+  --info: #3b82f6;
+  --info-muted: #eff6ff;
+  --warning: #f59e0b;
+  --warning-muted: #fffbeb;
+  --error: #ef4444;
+  --error-muted: #fef2f2;
+  --color-slate-0: #ffffff;
+  --color-slate-25: #fcfcfd;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+  --color-teal-50: #ecfdf5;
+  --color-teal-100: #d1fae5;
+  --color-teal-200: #a7f3d0;
+  --color-teal-300: #6ee7b7;
+  --color-teal-400: #34d399;
+  --color-teal-500: #10b981;
+  --color-teal-600: #10a778;
+  --color-teal-700: #0b7f5f;
+  --color-teal-800: #065f46;
+  --color-teal-900: #064e3b;
+  --color-indigo-50: #eef2ff;
+  --color-indigo-100: #e0e7ff;
+  --color-indigo-200: #c7d2fe;
+  --color-indigo-300: #a5b4fc;
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #574bf5;
+  --color-indigo-700: #4338ca;
+  --color-indigo-800: #3730a3;
+  --color-indigo-900: #312e81;
+  --color-background-canvas: #ffffff;
+  --color-background-subtle: #f8fafc;
+  --color-background-soft: #f1f5f9;
+  --color-border-subtle: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #64748b;
+  --color-text-inverse: #ffffff;
+  --color-brand-logo: #10a778;
+  --color-action-primary-default: #10a778;
+  --color-action-primary-hover: #0b7f5f;
+  --color-action-primary-subtle: #ecfdf5;
+  --color-action-primary-text: #065f46;
+  --color-action-premium-default: #574bf5;
+  --color-action-premium-hover: #4338ca;
+  --color-action-premium-subtle: #eef2ff;
+  --color-action-premium-text: #3730a3;
+  --color-feedback-success: #10b981;
+  --color-feedback-info: #3b82f6;
+  --color-feedback-warning: #f59e0b;
+  --color-feedback-error: #ef4444;
 }
 
 .dark {
@@ -107,6 +196,22 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+  --brand: #34d399;
+  --brand-foreground: #022c22;
+  --brand-muted: #053528;
+  --premium: #818cf8;
+  --premium-foreground: #1e1b4b;
+  --premium-muted: #25205f;
+  --surface: #0f172a;
+  --surface-muted: #1e293b;
+  --success: #34d399;
+  --success-muted: #053528;
+  --info: #60a5fa;
+  --info-muted: #172554;
+  --warning: #fbbf24;
+  --warning-muted: #451a03;
+  --error: #f87171;
+  --error-muted: #450a0a;
 }
 
 @layer base {
@@ -116,5 +221,26 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    text-rendering: geometricPrecision;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  ::selection {
+    background: #b9f0d8;
+    color: #064e3b;
+  }
+}
+
+@layer utilities {
+  .upnext-focus {
+    @apply focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
   }
 }

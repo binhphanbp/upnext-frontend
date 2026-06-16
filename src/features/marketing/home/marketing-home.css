@@ -1,0 +1,4099 @@
+/* Marketing homepage: isolated route for the reference-matched hero. */
+@property --search-ring-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.marketing-home-page {
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: #111827;
+  background: #ffffff;
+}
+
+.marketing-home-page button,
+.marketing-home-page input {
+  font-family: var(--font-sans);
+}
+
+.marketing-home-header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 80;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 24px 44px;
+  padding: 0 48px;
+  border-bottom: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.marketing-home-logo,
+.marketing-home-nav button,
+.marketing-home-header-actions button {
+  border: 0;
+  background: transparent;
+}
+
+.marketing-home-logo {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.marketing-home-logo img {
+  width: 158px;
+  height: auto;
+  display: block;
+}
+
+.marketing-home-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 38px;
+}
+
+.marketing-home-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 0;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Features dropdown (mega-menu) */
+.marketing-home-nav-dd {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.marketing-home-nav-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Animated underline that grows from the center on hover/open. */
+.marketing-home-nav-trigger::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  margin: 0 auto;
+  width: 0;
+  border-radius: 2px;
+  background: #10b981;
+  transition: width 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-nav-dd .marketing-home-nav-trigger svg {
+  transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-nav-dd.is-open .marketing-home-nav-trigger {
+  color: #0b7f5f;
+}
+
+.marketing-home-nav-dd.is-open .marketing-home-nav-trigger::after {
+  width: 100%;
+}
+
+.marketing-home-nav-dd.is-open .marketing-home-nav-trigger svg {
+  transform: rotate(180deg);
+}
+
+.marketing-home-mega {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 18px);
+  left: -24px;
+  width: 640px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #eceff3;
+  border-radius: 18px;
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.14),
+    0 2px 6px rgba(15, 23, 42, 0.05);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top left;
+  transition:
+    opacity 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 200ms;
+}
+
+/* Hover bridge so the menu doesn't close in the gap between trigger and panel. */
+.marketing-home-mega::before {
+  content: "";
+  position: absolute;
+  top: -18px;
+  left: 0;
+  right: 0;
+  height: 18px;
+}
+
+.marketing-home-mega::after {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 38px;
+  width: 14px;
+  height: 14px;
+  transform: rotate(45deg);
+  background: #ffffff;
+  border-top: 1px solid #eceff3;
+  border-left: 1px solid #eceff3;
+}
+
+.marketing-home-nav-dd.is-open .marketing-home-mega {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.marketing-home-mega-head {
+  margin: 4px 6px 16px;
+}
+
+.marketing-home-mega-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #0a9f6f;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.marketing-home-mega-head p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.marketing-home-mega-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.marketing-home-mega.is-single {
+  width: 360px;
+}
+
+.marketing-home-mega.is-single .marketing-home-mega-grid {
+  grid-template-columns: 1fr;
+}
+
+/* The last nav menu sits near the right edge — anchor its panel to the right
+   so a wide mega-menu never overflows the viewport. */
+.marketing-home-nav-dd:last-child .marketing-home-mega {
+  left: auto;
+  right: -24px;
+  transform-origin: top right;
+}
+
+.marketing-home-nav-dd:last-child .marketing-home-mega::after {
+  left: auto;
+  right: 38px;
+}
+
+.marketing-home-mega-item {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 13px;
+  text-align: left;
+  border-radius: 13px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 180ms ease;
+}
+
+.marketing-home-mega-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+}
+
+.feat-icon-cv {
+  color: #2563eb;
+  background: #e6eefe;
+}
+.feat-icon-ai {
+  color: #0aa56f;
+  background: #e4f8f0;
+}
+.feat-icon-path {
+  color: #b5179e;
+  background: #fbe7f6;
+}
+.feat-icon-salary {
+  color: #d97706;
+  background: #fdf0db;
+}
+.feat-icon-community {
+  color: #0891b2;
+  background: #e0f5fa;
+}
+.feat-icon-learn {
+  color: #7c3aed;
+  background: #f0e9fe;
+}
+
+.marketing-home-mega-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: block;
+  overflow: visible;
+}
+
+.marketing-home-mega-text b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: #111827;
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.marketing-home-mega-text b > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marketing-home-mega-badge {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  color: #0a9f6f;
+  font-size: 10px;
+  font-weight: 800;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: #e4f8f0;
+  border-radius: 999px;
+}
+
+.marketing-home-mega-text small {
+  display: block;
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.marketing-home-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.marketing-home-header-actions .marketing-home-employer {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 0 13px 0 15px;
+  color: #334155;
+  border: 1px solid #bfe9d6;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #eafaf2 0%, #f4fbf7 55%, #ffffff 100%);
+  white-space: nowrap;
+}
+
+/* Soft sheen that sweeps across on hover — marks it as the standout pill. */
+.marketing-home-employer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -130%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transform: skewX(-18deg);
+  transition: left 650ms cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+}
+
+.marketing-home-employer-text {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.marketing-home-employer-text small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #0a9f6f;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.marketing-home-employer-text b {
+  color: #0f3d2e;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.marketing-home-employer-arrow {
+  position: relative;
+  flex: 0 0 auto;
+  color: #0aa56f;
+  transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.marketing-home-action-sep {
+  width: 1px;
+  height: 22px;
+  background: #e5e9f0;
+}
+
+/* Language dropdown — scales to any number of languages. */
+.marketing-home-lang {
+  position: relative;
+}
+
+.marketing-home-lang-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 10px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1px solid #e5e9f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.marketing-home-lang-trigger > svg:last-child {
+  color: #94a3b8;
+  transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-lang.is-open .marketing-home-lang-trigger {
+  color: #0b7f5f;
+  border-color: #c8ecdc;
+  background: #f3fdf8;
+}
+
+.marketing-home-lang.is-open .marketing-home-lang-trigger > svg:last-child {
+  transform: rotate(180deg);
+}
+
+.marketing-home-lang-menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 184px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #ffffff;
+  border: 1px solid #eceff3;
+  border-radius: 14px;
+  box-shadow:
+    0 20px 44px rgba(15, 23, 42, 0.14),
+    0 2px 6px rgba(15, 23, 42, 0.05);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top right;
+  transition:
+    opacity 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 200ms;
+}
+
+.marketing-home-lang.is-open .marketing-home-lang-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.marketing-home-lang-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 40px;
+  padding: 0 12px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  border-radius: 9px;
+  background: transparent;
+}
+
+.marketing-home-lang-flag {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 16px;
+  overflow: hidden;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 23, 42, 0.12),
+    0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.marketing-home-lang-flag svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.marketing-home-lang-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.marketing-home-lang-option svg {
+  color: #0aa56f;
+}
+
+.marketing-home-lang-option.is-active {
+  color: #0b7f5f;
+  font-weight: 800;
+  background: #eafaf2;
+}
+
+/* Light / dark mode toggle. */
+.marketing-home-theme {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: #475569;
+  border: 1px solid #e5e9f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.marketing-home-theme svg {
+  transition: transform 400ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-header-actions .marketing-home-login,
+.marketing-home-header-actions .marketing-home-register {
+  min-height: 40px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 9px;
+  white-space: nowrap;
+}
+
+.marketing-home-header-actions .marketing-home-login {
+  color: #111827;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+}
+
+.marketing-home-header-actions .marketing-home-register {
+  position: relative;
+  overflow: hidden;
+  color: #ffffff;
+  border: 1px solid #10a778;
+  background: #0aa56f;
+}
+
+/* Light sheen that sweeps across the primary button on hover. */
+.marketing-home-header-actions .marketing-home-register::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-18deg);
+  transition: left 600ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-content {
+  width: min(1280px, calc(100vw - 96px));
+  margin: 0 auto;
+  padding: 72px 0 58px;
+}
+
+.marketing-home-hero {
+  min-height: 520px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.04fr);
+  align-items: center;
+  gap: 32px;
+  position: relative;
+  padding-top: 18px;
+}
+
+.marketing-home-copy {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+}
+
+.marketing-home-eyebrow {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 15px;
+  color: #087456;
+  font-size: 13.5px;
+  font-weight: 700;
+  background: #e7f8f1;
+  border-radius: 999px;
+}
+
+.marketing-home-copy h1 {
+  margin: 22px 0 20px;
+  color: #121722;
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+}
+
+.marketing-home-copy h1 span {
+  color: #10a778;
+}
+
+.marketing-home-copy p {
+  max-width: 540px;
+  margin: 0 0 30px;
+  color: #5f6979;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.7;
+}
+
+.marketing-home-visual {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Clean white stage; the backdrop is an SVG of soft blobs + connector arcs. */
+.marketing-home-stage {
+  position: relative;
+  width: 100%;
+  max-width: 580px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* Decorative + drag-interactive area: never let the browser text-select or
+     ghost-drag its contents while spinning the orbit. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.marketing-home-stage-bg {
+  position: absolute;
+  inset: -4% -6% -2% -2%;
+  width: 112%;
+  height: 106%;
+}
+
+.marketing-home-stage-dot {
+  position: absolute;
+  z-index: 1;
+  border-radius: 50%;
+  background: #10b981;
+  animation: marketing-home-floaty 5s ease-in-out infinite;
+}
+
+.marketing-home-stage-dot-1 {
+  top: 30%;
+  left: 6%;
+  width: 9px;
+  height: 9px;
+  box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.14);
+  animation-delay: -1s;
+}
+
+.marketing-home-stage-dot-2 {
+  bottom: 30%;
+  left: 2%;
+  width: 7px;
+  height: 7px;
+  background: #34d399;
+  animation-delay: -2.4s;
+}
+
+.marketing-home-hero-banner {
+  position: relative;
+  z-index: 2;
+  width: 90%;
+  max-width: 500px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 22px 36px rgba(15, 23, 42, 0.14));
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+/* Shared floating card style. */
+.marketing-home-float {
+  position: absolute;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(6px);
+}
+
+/* Job card — top left. */
+.marketing-home-float-job {
+  top: 8%;
+  left: -3%;
+  width: 246px;
+  padding: 15px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  animation: marketing-home-floaty 6s ease-in-out infinite;
+}
+
+.float-job-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #94a3b8;
+}
+
+.float-job-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  color: #0a9f6f;
+  font-size: 11px;
+  font-weight: 800;
+  background: #e7f8f1;
+  border-radius: 999px;
+}
+
+.float-job-title {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.float-job-company {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #6b7280;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.float-job-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.float-job-tags i {
+  padding: 3px 9px;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  font-style: normal;
+  background: #f1f5f9;
+  border-radius: 7px;
+}
+
+.float-job-salary {
+  margin-top: 2px;
+  color: #0aa56f;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* Salary insight card — bottom right. */
+.marketing-home-float-salary {
+  right: -4%;
+  bottom: 12%;
+  width: 210px;
+  padding: 15px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  animation: marketing-home-floaty 6.6s ease-in-out infinite;
+  animation-delay: -2s;
+}
+
+.float-salary-label {
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.float-salary-role {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.float-salary-value {
+  margin-top: 2px;
+  color: #111827;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.float-salary-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #0a9f6f;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.float-salary-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 30px;
+  margin-top: 8px;
+}
+
+.float-salary-spark i {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, #34d399, #0aa56f);
+  opacity: 0.85;
+}
+
+/* Match pill — bottom left, clear of the mug at center. */
+.marketing-home-float-match {
+  bottom: 4%;
+  left: -4%;
+  width: 256px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: #94a3b8;
+  animation: marketing-home-floaty 7s ease-in-out infinite;
+  animation-delay: -3.4s;
+}
+
+.float-match-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  color: #ffffff;
+  background: linear-gradient(150deg, #34d399, #0aa56f);
+  border-radius: 10px;
+}
+
+.float-match-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.float-match-text b {
+  display: block;
+  color: #111827;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.float-match-text small {
+  display: block;
+  margin-top: 1px;
+  color: #6b7280;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+/* Interactive tech-skill orbit — drag to spin around the figure. */
+.tech-orbit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.tech-orbit:active {
+  cursor: grabbing;
+}
+
+.tech-orbit-chip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px 8px 10px;
+  color: var(--c, #334155);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid #eef2f7;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(4px);
+  will-change: transform, opacity;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tech-orbit-chip svg {
+  flex: 0 0 auto;
+}
+
+@keyframes marketing-home-floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes marketing-home-search-ring {
+  to {
+    --search-ring-angle: 360deg;
+  }
+}
+
+.marketing-home-search-card {
+  position: relative;
+  z-index: 3;
+  margin-bottom: 22px;
+  padding: 9px;
+  isolation: isolate;
+  overflow: visible;
+  background: #ffffff;
+  border: 2px solid rgba(16, 185, 129, 0.42);
+  border-radius: 17px;
+  box-shadow:
+    0 20px 48px rgba(15, 23, 42, 0.11),
+    0 0 0 6px rgba(16, 185, 129, 0.08);
+  transition:
+    box-shadow 240ms ease,
+    transform 240ms ease;
+}
+
+.marketing-home-search-card::before {
+  display: none;
+}
+
+.marketing-home-search-card::after {
+  display: none;
+}
+
+.marketing-home-search-card:hover,
+.marketing-home-search-card:focus-within {
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.14),
+    0 0 0 7px rgba(16, 185, 129, 0.11);
+  transform: translateY(-1px);
+}
+
+.marketing-home-search-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.marketing-home-field {
+  position: relative;
+  min-width: 0;
+}
+
+/* Location field gets a hairline divider on its left, like the reference. */
+.marketing-home-field:not(.marketing-home-field-keyword)::before {
+  content: "";
+  position: absolute;
+  top: 22%;
+  left: 0;
+  width: 1px;
+  height: 56%;
+  background: #e5e9f0;
+}
+
+.marketing-home-field-label {
+  display: none;
+}
+
+.marketing-home-control {
+  width: 100%;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 16px;
+  color: #64748b;
+  text-align: left;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.marketing-home-control > svg:first-child {
+  flex: 0 0 auto;
+  color: #94a3b8;
+}
+
+button.marketing-home-control {
+  font-family: var(--font-sans);
+}
+
+.marketing-home-field.is-open .marketing-home-control {
+  background: #f8fafc;
+}
+
+.marketing-home-control svg:last-child {
+  margin-left: auto;
+  flex: 0 0 auto;
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-field.is-open .marketing-home-control svg:last-child {
+  transform: rotate(180deg);
+}
+
+.marketing-home-control span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marketing-home-control span.has-value {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.marketing-home-control span.is-placeholder {
+  color: #97a0af;
+}
+
+.marketing-home-search-grid input {
+  min-width: 0;
+  width: 100%;
+  color: #334155;
+  font-size: 14.5px;
+  font-weight: 500;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.marketing-home-search-grid input::placeholder {
+  color: #97a0af;
+  opacity: 1;
+}
+
+.marketing-home-dropdown {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  max-height: 288px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+}
+
+.marketing-home-option {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  color: #334155;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.marketing-home-option svg {
+  flex: 0 0 auto;
+  color: #94a3b8;
+}
+
+.marketing-home-option .check {
+  margin-left: auto;
+  color: #0aa56f;
+}
+
+.marketing-home-option.is-active {
+  color: #087456;
+  font-weight: 700;
+  background: #e9faf3;
+}
+
+.marketing-home-option.is-active svg {
+  color: #0aa56f;
+}
+
+.marketing-home-option-clear {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.marketing-home-search-submit {
+  min-height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 26px;
+  color: #ffffff;
+  font-size: 14.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(100deg, #098f63, #10b981);
+  box-shadow: 0 12px 26px rgba(16, 185, 129, 0.28);
+}
+
+.marketing-home-popular {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.marketing-home-popular > span {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.marketing-home-popular > div {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.marketing-home-popular > div button {
+  min-height: 31px;
+  padding: 0 15px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f5f7;
+}
+
+.marketing-home-trust-strip {
+  min-height: 117px;
+  display: grid;
+  grid-template-columns: 1.85fr 0.9fr;
+  gap: 32px;
+  align-items: center;
+  margin-top: 30px;
+  padding: 15px 26px;
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.04);
+}
+
+.marketing-home-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.marketing-home-stats article {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+}
+
+/* Separator: a vertical gradient line, solid and visible through the middle
+   with a soft brand-mint core, easing to transparent at both ends. */
+.marketing-home-stats article::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 2px;
+  height: 60%;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    #ced7e2 25%,
+    #9ed9bf 50%,
+    #ced7e2 75%,
+    transparent 100%
+  );
+}
+
+.marketing-home-stats article:first-child {
+  padding-left: 0;
+}
+
+.marketing-home-stats article:last-child::after {
+  display: none;
+}
+
+.marketing-home-stats i {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #0aa56f;
+  background: #e4f8f0;
+  border-radius: 50%;
+}
+
+.marketing-home-stats p {
+  min-width: 0;
+  margin: 0;
+}
+
+.marketing-home-stats strong,
+.marketing-home-stats span {
+  display: block;
+}
+
+.marketing-home-stats strong {
+  color: #111827;
+  font-size: 23px;
+  line-height: 1;
+}
+
+.marketing-home-stats span {
+  margin-top: 7px;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.marketing-home-trusted {
+  min-width: 0;
+}
+
+.marketing-home-trusted > span {
+  display: block;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.marketing-home-marquee {
+  margin-top: 18px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, #000 0%, #000 93%, transparent);
+}
+
+.marketing-home-marquee-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  animation: marketing-home-marquee 38s linear infinite;
+  will-change: transform;
+}
+
+.marketing-home-marquee-track .marketing-home-company {
+  flex: 0 0 auto;
+  margin-right: 56px;
+}
+
+@keyframes marketing-home-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-home-marquee-track {
+    animation: none;
+    width: auto;
+    flex-wrap: wrap;
+    gap: 20px 40px;
+  }
+
+  .marketing-home-company-clone {
+    display: none;
+  }
+
+  .marketing-home-float,
+  .tech-orbit-chip {
+    animation: none;
+  }
+
+  .marketing-home-search-card::before {
+    animation: none;
+    opacity: 0.42;
+  }
+
+  .marketing-home-search-card:hover,
+  .marketing-home-search-card:focus-within {
+    transform: none;
+  }
+
+  .v2job-card:hover::before {
+    animation: none;
+  }
+
+  .marketing-home-jobs-track {
+    transition: none;
+  }
+}
+
+.marketing-home-company {
+  color: #111827;
+  font-size: 23px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  white-space: nowrap;
+}
+
+.marketing-home-company small {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.marketing-home-company-FPT {
+  color: #1682c4;
+  font-size: 22px;
+}
+.marketing-home-company-VNG {
+  color: #ef6c21;
+}
+.marketing-home-company-viettel {
+  color: #ef1c2c;
+}
+.marketing-home-company-tiki {
+  color: #0876ef;
+  font-size: 29px;
+}
+.marketing-home-company-momo {
+  color: #a50070;
+  font-size: 25px;
+}
+
+/* ============================================================
+   Section: Cơ hội đang được quan tâm (featured jobs)
+   ============================================================ */
+.marketing-home-jobs {
+  margin-top: 64px;
+}
+
+.marketing-home-jobs-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px 24px;
+}
+
+.marketing-home-jobs-head h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.marketing-home-jobs-head p {
+  margin: 12px 0 0;
+  color: #5f6979;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.marketing-home-jobs-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 20px;
+  color: #0b7f5f;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid #cdeadd;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.marketing-home-jobs-all svg {
+  transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-jobs-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 28px 0 26px;
+}
+
+.marketing-home-jobs-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid #e5e9f0;
+  border-radius: 999px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    color 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    border-color 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    background 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-jobs-tab svg {
+  color: #94a3b8;
+  transition: color 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-jobs-tab.is-active {
+  color: #ffffff;
+  border-color: transparent;
+  background: linear-gradient(100deg, #098f63, #10b981);
+}
+
+.marketing-home-jobs-tab.is-active svg {
+  color: #ffffff;
+}
+
+/* --- Carousel: a sliding track of full-width page slides. --- */
+.marketing-home-jobs-viewport {
+  overflow: hidden;
+}
+
+.marketing-home-jobs-track {
+  display: flex;
+  will-change: transform;
+  transition: transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.marketing-home-jobs-track.no-anim {
+  transition: none;
+}
+
+.marketing-home-jobs-slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+}
+
+.marketing-home-jobs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+/* --- Job card --- */
+@property --beam-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.v2job-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid #e6eaf0;
+  border-radius: 18px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    border-color 320ms cubic-bezier(0.32, 0.72, 0, 1),
+    background 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* A mint light that traces around the card's edge on hover (border beam).
+   The conic gradient is masked to a 1.6px ring, then its angle is animated. */
+.v2job-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  padding: 1.6px;
+  background: conic-gradient(
+    from var(--beam-angle),
+    transparent 0deg,
+    transparent 230deg,
+    #34d399 300deg,
+    #10b981 340deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+
+@keyframes v2job-beam {
+  to {
+    --beam-angle: 360deg;
+  }
+}
+
+/* Keep real content above the decorative layer. */
+.v2job-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.v2job-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.v2job-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+.v2job-badge-featured {
+  color: #0b7f5f;
+  background: #e4f8f0;
+}
+.v2job-badge-new {
+  color: #0891b2;
+  background: #e0f5fa;
+}
+.v2job-badge-urgent {
+  color: #d9480f;
+  background: #ffece0;
+}
+.v2job-badge-remote {
+  color: #6d28d9;
+  background: #f0e9fe;
+}
+.v2job-badge-salary {
+  color: #b45309;
+  background: #fdf0db;
+}
+
+.v2job-save {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    background 200ms ease;
+}
+
+.v2job-save.is-saved {
+  color: #0aa56f;
+}
+
+.v2job-company {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 18px;
+  min-width: 0;
+}
+
+/* When the verify tooltip is shown, lift the whole company row above the
+   card's later siblings (title/salary) so the popover isn't painted over. */
+.v2job-company:has(.v2job-verify:hover),
+.v2job-company:has(.v2job-verify:focus-within) {
+  z-index: 40;
+}
+
+.v2job-logo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #eef2f7;
+}
+
+.v2job-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 5px;
+}
+
+.v2job-logo-mono {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  border: 0;
+}
+
+/* Company row: name truncates with ellipsis; verified badge never shrinks. */
+.v2job-company-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.v2job-company-name {
+  overflow: hidden;
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Verified employer badge + trust tooltip --- */
+.v2job-verify {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+}
+
+.v2job-verify-btn {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #0aa56f;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.v2job-verify-pop {
+  position: absolute;
+  z-index: 30;
+  left: -10px;
+  top: calc(100% + 11px);
+  width: 256px;
+  transform: translateY(-6px) scale(0.97);
+  transform-origin: top left;
+  padding: 14px 16px;
+  color: #e5e7eb;
+  background: #0f172a;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.28);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 200ms;
+}
+
+/* Little pointer arrow at the top of the tooltip, under the badge. */
+.v2job-verify-pop::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 20px;
+  width: 12px;
+  height: 12px;
+  transform: translateY(50%) rotate(45deg);
+  background: #0f172a;
+}
+
+.v2job-verify-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.v2job-verify-head svg {
+  flex: 0 0 auto;
+  color: #34d399;
+}
+
+.v2job-verify-pop ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v2job-verify-pop li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #cbd5e1;
+}
+
+.v2job-verify-pop li svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #34d399;
+}
+
+/* Title: cap at two lines (natural height). Footer is pinned to the bottom
+   via margin-top:auto, so cards stay equal height WITHOUT reserving title
+   space — any slack collects above the footer divider, not under the title. */
+.v2job-title {
+  margin: 14px 0 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.v2job-salary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  color: #0aa56f;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.v2job-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 14px;
+}
+
+.v2job-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.v2job-meta svg {
+  color: #94a3b8;
+}
+
+/* Tags: single clipped row; the "+N" chip absorbs the overflow count. */
+.v2job-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+
+.v2job-tags i {
+  flex: 0 0 auto;
+  max-width: 150px;
+  overflow: hidden;
+  padding: 5px 11px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 7px;
+  background: #f1f5f9;
+}
+
+.v2job-tags .v2job-tag-more {
+  color: #0b7f5f;
+  background: #e4f8f0;
+  cursor: default;
+}
+
+.v2job-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.v2job-deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.v2job-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 16px;
+  color: #0b7f5f;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid #cdeadd;
+  border-radius: 9px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    background 200ms ease,
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.v2job-apply svg {
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* --- Pagination --- */
+.marketing-home-jobs-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  margin-top: 36px;
+}
+
+.marketing-home-jobs-pager button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: #475569;
+  border: 1px solid #d9e6df;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.marketing-home-jobs-pager button:disabled {
+  color: #cbd5e1;
+  border-color: #eef2f7;
+  cursor: not-allowed;
+}
+
+.marketing-home-jobs-pager span {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.marketing-home-jobs-pager b {
+  color: #0aa56f;
+  font-weight: 800;
+}
+
+/* ============================================================
+   Section: Công ty công nghệ tiêu biểu (featured companies)
+   ============================================================ */
+.marketing-home-companies {
+  margin-top: 64px;
+}
+
+.marketing-home-co-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+}
+
+.marketing-home-co-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  color: #334155;
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid #e6eaf0;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.marketing-home-co-count svg {
+  color: #0aa56f;
+}
+
+/* Stage holds the side arrows + the bento grid. */
+.marketing-home-co-stage {
+  position: relative;
+  margin-top: 28px;
+}
+
+.marketing-home-co-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 4;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  color: #334155;
+  border: 1px solid #e6eaf0;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.marketing-home-co-arrow-prev {
+  left: -23px;
+}
+
+.marketing-home-co-arrow-next {
+  right: -23px;
+}
+
+/* Bento: 3 columns. Row 1 = three cards; the featured spotlight then spans
+   column 3 across the next rows while cards fill columns 1-2. */
+.marketing-home-co-bento {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  grid-auto-flow: row dense;
+  gap: 18px;
+  animation: v2co-fade 420ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes v2co-fade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Featured spotlight: bottom-right — column 3, rows 2-5 (under the first card). */
+.v2co-featured {
+  grid-column: 3;
+  grid-row: 2 / span 4;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #e6eaf0;
+  border-radius: 18px;
+  background: #0f172a;
+}
+
+.v2co-featured-cover {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.v2co-featured-cover-img,
+.v2co-featured-cover-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Gradient scrim: transparent at the top, fading to the body's dark navy at
+   the bottom so the photo melts seamlessly into the card body. */
+.v2co-featured-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 23, 42, 0) 0%,
+    rgba(15, 23, 42, 0.1) 45%,
+    rgba(15, 23, 42, 0.55) 78%,
+    #0f172a 100%
+  );
+}
+
+.v2co-featured-logo {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin: -42px 0 0 22px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #eef2f7;
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
+}
+
+.v2co-featured-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.v2co-featured-logo .v2co-logo-mono {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.v2co-featured-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 16px 22px 22px;
+  color: #e5e7eb;
+}
+
+.v2co-featured-body h3 {
+  margin: 6px 0 0;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.v2co-featured-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.v2co-featured-tags i {
+  padding: 4px 12px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+  font-style: normal;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.v2co-featured-body p {
+  margin: 14px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.v2co-featured-jobs {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  color: #34d399;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.v2co-featured-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.v2co-featured-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 1;
+  min-height: 44px;
+  padding: 0 16px;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(100deg, #098f63, #10b981);
+  cursor: pointer;
+  transition: background 220ms ease;
+}
+
+.v2co-featured-view svg {
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.v2co-featured-follow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-height: 44px;
+  padding: 0 16px;
+  color: #e5e7eb;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 11px;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.v2co-featured-follow.is-following {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.1);
+}
+
+/* Small company card. */
+.v2co-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #e6eaf0;
+  border-radius: 16px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    border-color 220ms ease,
+    background 220ms ease;
+}
+
+.v2co-logo {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  padding: 8px;
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.v2co-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.v2co-logo-mono {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.v2co-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+
+.v2co-body h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.v2co-cat {
+  color: #94a3b8;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.v2co-jobs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.v2co-jobs svg {
+  color: #0aa56f;
+}
+
+.v2co-follow {
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 14px;
+  color: #0b7f5f;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid #cdeadd;
+  border-radius: 9px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.v2co-follow.is-following {
+  color: #ffffff;
+  border-color: transparent;
+  background: linear-gradient(100deg, #098f63, #10b981);
+}
+
+.marketing-home-co-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 26px;
+}
+
+.marketing-home-co-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #d4dbe5;
+  cursor: pointer;
+  transition:
+    width 260ms cubic-bezier(0.32, 0.72, 0, 1),
+    background 260ms ease;
+}
+
+.marketing-home-co-dot.is-active {
+  width: 26px;
+  background: linear-gradient(100deg, #098f63, #10b981);
+}
+
+/* "See all companies" CTA — only shown on tablet/mobile, where the section is
+   a trimmed teaser and the header button is harder to reach. */
+.marketing-home-co-more {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 50px;
+  margin-top: 22px;
+  color: #0b7f5f;
+  font-size: 14.5px;
+  font-weight: 700;
+  border: 1px solid #cdeadd;
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.marketing-home-co-more svg {
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ============================================================
+   Section: Thị trường việc làm IT (job market dashboard)
+   ============================================================ */
+.marketing-home-market {
+  margin-top: 72px;
+  padding-top: 0;
+}
+
+.jm-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+.jm-head h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.jm-head h2 span {
+  color: #10a778;
+}
+
+.jm-head p {
+  margin: 8px 0 0;
+  color: #5f6979;
+  font-size: 14.5px;
+  font-weight: 500;
+}
+
+.jm-report-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 20px;
+  color: #0b7f5f;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid #cdeadd;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.jm-report-btn > svg:first-child {
+  color: #0aa56f;
+}
+
+.jm-report-btn > svg:last-child {
+  color: #0aa56f;
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.jm-report-btn {
+  transition:
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.jm-grid {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 22px;
+  margin-top: 26px;
+}
+
+/* --- Left rail --- */
+.jm-rail {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* AI mascot illustration — fills the rail's top block edge-to-edge. */
+.jm-illu {
+  flex: 1;
+  display: block;
+  min-height: 200px;
+  border-bottom: 1px solid #eef2f7;
+  overflow: hidden;
+}
+
+.jm-illu-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.jm-illu-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 200px;
+  color: #ffffff;
+  background: linear-gradient(150deg, #34d399, #0f766e);
+  box-shadow: 0 14px 30px rgba(13, 148, 102, 0.28);
+}
+
+/* Latest jobs list — flat, no inner frame (the rail is already the card). */
+.jm-latest {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 18px 16px;
+}
+
+.jm-latest-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.jm-latest-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: #ffffff;
+  background: linear-gradient(150deg, #34d399, #0aa56f);
+  border-radius: 4px;
+}
+
+.jm-latest ul {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jm-latest li + li {
+  border-top: 1px solid #f1f5f9;
+}
+
+.jm-latest li button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 4px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.jm-latest-logo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  padding: 6px;
+  border: 1px solid #eef2f7;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.jm-latest-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.jm-latest-mono {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.jm-latest-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.jm-latest-body b {
+  color: #111827;
+  font-size: 13.5px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jm-latest-body em {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.jm-latest-body small {
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.jm-latest-time {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  color: #0aa56f;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.jm-latest-all {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 12px;
+  min-height: 44px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+/* --- Right area: KPIs + charts --- */
+.jm-main {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+/* KPI ribbon: one connected panel, big gradient numbers, accent marks and
+   thin dividers between — squared, editorial. */
+.jm-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.jm-kpi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 24px;
+}
+
+/* Full-height squared divider between stats. */
+.jm-kpi + .jm-kpi::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 1px;
+  background: #e2e8f0;
+}
+
+/* Short accent bar above each number, tinted per stat. */
+.jm-kpi-mark {
+  width: 28px;
+  height: 4px;
+}
+
+.jm-kpi-mint .jm-kpi-mark {
+  background: linear-gradient(90deg, #34d399, #10b981);
+}
+.jm-kpi-green .jm-kpi-mark {
+  background: linear-gradient(90deg, #4ade80, #16a34a);
+}
+.jm-kpi-violet .jm-kpi-mark {
+  background: linear-gradient(90deg, #a78bfa, #7c3aed);
+}
+
+.jm-kpi strong {
+  margin-top: 14px;
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.jm-kpi-mint strong {
+  background-image: linear-gradient(120deg, #0aa56f, #34d399);
+}
+.jm-kpi-green strong {
+  background-image: linear-gradient(120deg, #16a34a, #4ade80);
+}
+.jm-kpi-violet strong {
+  background-image: linear-gradient(120deg, #7c3aed, #a78bfa);
+}
+
+.jm-kpi-label {
+  margin-top: 9px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.jm-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.jm-chart {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.jm-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.jm-chart-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.jm-chart-head h3 svg {
+  color: #0aa56f;
+}
+
+/* Compact dropdown for chart controls. */
+.jm-dropdown {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.jm-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 12px;
+  color: #334155;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.jm-dropdown-trigger svg {
+  color: #94a3b8;
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.jm-dropdown.is-open .jm-dropdown-trigger {
+  border-color: #c8ecdc;
+  background: #f3fdf8;
+}
+
+.jm-dropdown.is-open .jm-dropdown-trigger svg {
+  transform: rotate(180deg);
+  color: #0aa56f;
+}
+
+.jm-dropdown-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 150px;
+  margin: 0;
+  padding: 5px;
+  list-style: none;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
+}
+
+.jm-dropdown-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.jm-dropdown-menu button svg {
+  color: #0aa56f;
+}
+
+.jm-dropdown-menu button.is-active {
+  color: #0b7f5f;
+  font-weight: 700;
+  background: #e9faf3;
+}
+
+.jm-chart-body {
+  height: 252px;
+  margin: 16px 0 4px;
+}
+
+.jm-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 12px;
+  color: #ffffff;
+  background: #0f172a;
+  border-radius: 4px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.24);
+}
+
+.jm-tooltip span {
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.jm-tooltip strong {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.jm-chart-foot {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.jm-chart-foot span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.jm-chart-foot em {
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.jm-chart-foot b {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.jm-chart-foot small {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.jm-chart-foot-up b {
+  color: #0a9f6f;
+}
+
+/* ============================================================
+   Marketing homepage footer
+   ============================================================ */
+.marketing-home-footer {
+  position: relative;
+  width: 100vw;
+  margin-top: 74px;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: 46px 0 30px;
+  border-top: 1px solid #dfe7ef;
+  border-bottom: 1px solid #e8eef5;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(16, 185, 129, 0.08), transparent 28%),
+    radial-gradient(circle at 78% 5%, rgba(99, 102, 241, 0.08), transparent 24%), #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 -24px 80px rgba(15, 23, 42, 0.035);
+  overflow: hidden;
+}
+
+.marketing-home-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      circle at 9% 18%,
+      transparent 0 48px,
+      rgba(16, 185, 129, 0.16) 49px 50px,
+      transparent 51px 72px
+    ),
+    radial-gradient(
+      circle at 92% 10%,
+      transparent 0 56px,
+      rgba(16, 185, 129, 0.14) 57px 58px,
+      transparent 59px 86px
+    );
+  opacity: 0.8;
+}
+
+.marketing-home-footer-cta,
+.marketing-home-footer-main,
+.marketing-home-footer-bottom {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: min(1280px, calc(100vw - 96px));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.marketing-home-footer-cta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 30px;
+  min-height: 148px;
+  padding: 30px 40px;
+  border: 1px solid #dbe8ef;
+  border-radius: 22px;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.92), rgba(244, 253, 248, 0.9)),
+    radial-gradient(circle at 58% 45%, rgba(16, 185, 129, 0.1), transparent 30%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 18px 44px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+.marketing-home-footer-cta::before,
+.marketing-home-footer-cta::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.marketing-home-footer-cta::before {
+  width: 170px;
+  height: 170px;
+  right: -48px;
+  top: -70px;
+  border: 1px dashed rgba(16, 185, 129, 0.28);
+  border-radius: 50%;
+}
+
+.marketing-home-footer-cta::after {
+  width: 9px;
+  height: 9px;
+  right: 28px;
+  top: 106px;
+  color: #7c3aed;
+  background: currentColor;
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
+
+.marketing-home-footer-cta-icon {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  color: #ffffff;
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #0aa56f, #34d399), #10b981;
+  box-shadow:
+    0 0 0 18px rgba(16, 185, 129, 0.08),
+    0 20px 42px rgba(16, 185, 129, 0.26);
+}
+
+.marketing-home-footer-cta-copy h2 {
+  margin: 0;
+  color: #111827;
+  font-size: clamp(23px, 1.75vw, 28px);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+}
+
+.marketing-home-footer-cta-copy h2 span {
+  color: #0aa56f;
+}
+
+.marketing-home-footer-cta-copy p {
+  margin: 12px 0 0;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.marketing-home-footer-cta-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.marketing-home-footer-primary,
+.marketing-home-footer-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 28px;
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+  border-radius: 12px;
+  cursor: pointer;
+  transition:
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    border-color 220ms ease,
+    background 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.marketing-home-footer-primary {
+  gap: 10px;
+  min-width: 178px;
+  color: #ffffff;
+  border: 1px solid #0a9f6f;
+  background: linear-gradient(135deg, #0b7f5f 0%, #10b981 100%);
+  box-shadow: 0 16px 30px rgba(10, 159, 111, 0.26);
+}
+
+.marketing-home-footer-secondary {
+  min-width: 204px;
+  color: #0b7f5f;
+  border: 1px solid #10a778;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.marketing-home-footer-main {
+  display: grid;
+  grid-template-columns:
+    minmax(250px, 0.9fr)
+    minmax(430px, 1.45fr)
+    minmax(320px, 1fr);
+  gap: 64px;
+  padding: 64px 8px 50px;
+}
+
+.marketing-home-footer-logo {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.marketing-home-footer-logo img {
+  width: 164px;
+  height: auto;
+  display: block;
+}
+
+.marketing-home-footer-brand p,
+.marketing-home-footer-contact p {
+  margin: 28px 0 0;
+  color: #64748b;
+  font-size: 15.5px;
+  font-weight: 500;
+  line-height: 1.75;
+}
+
+.marketing-home-footer-socials {
+  display: flex;
+  gap: 14px;
+  margin-top: 36px;
+}
+
+.marketing-home-footer-socials a {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: #0a9f6f;
+  border: 1px solid #dfe7ef;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+  transition:
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    border-color 220ms ease,
+    background 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.marketing-home-footer-links,
+.marketing-home-footer-contact {
+  min-width: 0;
+}
+
+.marketing-home-footer-links h3,
+.marketing-home-footer-contact h3 {
+  margin: 0 0 28px;
+  color: #111827;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.marketing-home-footer-links {
+  display: flex;
+  flex-direction: column;
+}
+
+.marketing-home-footer-link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 34px;
+}
+
+.marketing-home-footer-links button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-footer-links button span {
+  min-width: 0;
+}
+
+.marketing-home-footer-links button svg {
+  flex: 0 0 auto;
+  color: #0aa56f;
+  opacity: 0.95;
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-footer-newsletter {
+  display: flex;
+  min-width: 0;
+  margin-top: 26px;
+  border: 1px solid #dfe7ef;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+.marketing-home-footer-newsletter input {
+  min-width: 0;
+  flex: 1 1 auto;
+  height: 54px;
+  padding: 0 18px;
+  color: #111827;
+  font-size: 14.5px;
+  font-weight: 600;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.marketing-home-footer-newsletter input::placeholder {
+  color: #94a3b8;
+}
+
+.marketing-home-footer-newsletter button {
+  flex: 0 0 auto;
+  min-width: 90px;
+  padding: 0 20px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  border: 0;
+  background: linear-gradient(135deg, #0a9f6f, #10b981);
+  cursor: pointer;
+}
+
+.marketing-home-footer-contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 30px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marketing-home-footer-contact-list li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.marketing-home-footer-contact-list svg {
+  flex: 0 0 auto;
+  color: #0aa56f;
+}
+
+.marketing-home-footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 8px 2px;
+  border-top: 1px solid #dfe7ef;
+}
+
+.marketing-home-footer-bottom p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.marketing-home-footer-bottom-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.marketing-home-footer-bottom-actions > span {
+  width: 1px;
+  height: 28px;
+  background: #dfe7ef;
+}
+
+.marketing-home-footer-bottom-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0;
+  color: #475569;
+  font-size: 14.5px;
+  font-weight: 700;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transition: color 200ms ease;
+}
+
+@media (hover: hover) {
+  .marketing-home-nav-trigger,
+  .marketing-home-header-actions button,
+  .marketing-home-search-submit,
+  .marketing-home-popular button {
+    transition:
+      color 240ms cubic-bezier(0.32, 0.72, 0, 1),
+      border-color 240ms cubic-bezier(0.32, 0.72, 0, 1),
+      background 240ms cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow 240ms cubic-bezier(0.32, 0.72, 0, 1),
+      transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  /* Nav: text tints + underline sweeps in from the center. */
+  .marketing-home-nav-trigger:hover {
+    color: #0b7f5f;
+  }
+
+  .marketing-home-nav-dd:hover .marketing-home-nav-trigger::after {
+    width: 100%;
+  }
+
+  .marketing-home-nav-dd:hover .marketing-home-nav-trigger svg {
+    transform: rotate(180deg);
+  }
+
+  /* Mega-menu item: tinted panel + icon springs forward. */
+  .marketing-home-mega-item:hover {
+    background: #f4f7fb;
+  }
+
+  .marketing-home-mega-item .marketing-home-mega-icon {
+    transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .marketing-home-mega-item:hover .marketing-home-mega-icon {
+    transform: scale(1.1) rotate(-4deg);
+  }
+
+  /* Employer: the standout pill — gradient deepens, border + shadow brighten,
+     sheen sweeps across and the arrow shoots up-right. */
+  .marketing-home-employer:hover {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #d8f5e8 0%, #eafaf2 60%, #ffffff 100%);
+    box-shadow: 0 3px 8px rgba(10, 165, 111, 0.14);
+  }
+
+  .marketing-home-employer:hover::before {
+    left: 135%;
+  }
+
+  .marketing-home-employer:hover .marketing-home-employer-arrow {
+    transform: translate(2px, -2px);
+  }
+
+  /* Language dropdown: trigger tints, options highlight on hover. */
+  .marketing-home-lang-trigger:hover {
+    color: #0b7f5f;
+    border-color: #c8ecdc;
+    background: #f3fdf8;
+  }
+
+  .marketing-home-lang-option:not(.is-active):hover {
+    background: #f4f7fb;
+  }
+
+  /* Theme toggle: icon spins as it brightens. */
+  .marketing-home-theme:hover {
+    color: #0aa56f;
+    border-color: #c8ecdc;
+    background: #f3fdf8;
+  }
+
+  .marketing-home-theme:hover svg {
+    transform: rotate(45deg);
+  }
+
+  /* Login (secondary): border + text adopt the brand, tight focus ring. */
+  .marketing-home-header-actions .marketing-home-login:hover {
+    color: #0b7f5f;
+    border-color: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+  }
+
+  /* Register (primary): deepens and the sheen sweeps across; crisp shadow. */
+  .marketing-home-header-actions .marketing-home-register:hover {
+    background: #098f63;
+    box-shadow: 0 4px 12px rgba(10, 165, 111, 0.22);
+  }
+
+  .marketing-home-header-actions .marketing-home-register:hover::after {
+    left: 130%;
+  }
+
+  /* Primary search button: same family as register, crisp shadow. */
+  .marketing-home-search-submit:hover {
+    box-shadow: 0 5px 14px rgba(10, 165, 111, 0.22);
+  }
+
+  /* Popular chips: fill with mint, gentle press feel. */
+  .marketing-home-popular > div button:hover {
+    color: #087456;
+    background: #e7fff7;
+  }
+
+  .marketing-home-option:hover {
+    background: #f1f5f9;
+  }
+
+  .marketing-home-option.is-active:hover {
+    background: #defaef;
+  }
+
+  /* Featured jobs section */
+  .marketing-home-jobs-all:hover {
+    border-color: #0aa56f;
+    background: #f3fdf8;
+  }
+
+  .marketing-home-jobs-all:hover svg {
+    transform: translateX(3px);
+  }
+
+  .marketing-home-jobs-tab:not(.is-active):hover {
+    color: #0b7f5f;
+    border-color: #c8ecdc;
+    background: #f3fdf8;
+  }
+
+  .marketing-home-jobs-tab:not(.is-active):hover svg {
+    color: #0aa56f;
+  }
+
+  .v2job-card:hover {
+    border-color: #d8eee4;
+    background: #fbfdfc;
+  }
+
+  .v2job-card:hover::before {
+    opacity: 1;
+    animation: v2job-beam 3.6s linear infinite;
+  }
+
+  .v2job-card:hover .v2job-title {
+    color: #0b7f5f;
+  }
+
+  .v2job-verify:hover .v2job-verify-pop,
+  .v2job-verify:focus-within .v2job-verify-pop {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+
+  .v2job-save:hover {
+    color: #0aa56f;
+    background: #eef7f3;
+  }
+
+  .v2job-apply:hover {
+    color: #ffffff;
+    border-color: transparent;
+    background: linear-gradient(100deg, #098f63, #10b981);
+  }
+
+  .v2job-apply:hover svg {
+    transform: translateX(3px);
+  }
+
+  .marketing-home-jobs-pager button:not(:disabled):hover {
+    color: #0b7f5f;
+    border-color: #0aa56f;
+    background: #f3fdf8;
+  }
+
+  /* Featured companies */
+  .marketing-home-co-arrow:hover {
+    color: #0b7f5f;
+    border-color: #0aa56f;
+    background: #f3fdf8;
+  }
+
+  .v2co-card:hover {
+    border-color: #cdeadd;
+    background: #fbfdfc;
+  }
+
+  .v2co-follow:not(.is-following):hover {
+    color: #ffffff;
+    border-color: transparent;
+    background: linear-gradient(100deg, #098f63, #10b981);
+  }
+
+  .v2co-featured-view:hover {
+    background: linear-gradient(100deg, #087a55, #0fa873);
+  }
+
+  .v2co-featured-view:hover svg {
+    transform: translateX(3px);
+  }
+
+  .v2co-featured-follow:not(.is-following):hover {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .marketing-home-co-dot:not(.is-active):hover {
+    background: #9fb0c2;
+  }
+
+  /* Job market section */
+  .jm-report-btn:hover {
+    border-color: #c8ecdc;
+    background: #f3fdf8;
+  }
+
+  .jm-report-btn:hover > svg:last-child {
+    transform: translateX(2px);
+  }
+
+  .jm-latest li button:hover {
+    background: #f8fafc;
+  }
+
+  .jm-latest li button:hover .jm-latest-body b {
+    color: #0b7f5f;
+  }
+
+  .jm-latest-all:hover {
+    border-color: #c8ecdc;
+    color: #0b7f5f;
+    background: #f3fdf8;
+  }
+
+  .jm-dropdown-trigger:hover {
+    border-color: #c8ecdc;
+    background: #f3fdf8;
+  }
+
+  .jm-dropdown-menu button:not(.is-active):hover {
+    background: #f4f7fb;
+  }
+
+  /* Footer */
+  .marketing-home-footer-primary:hover,
+  .marketing-home-footer-secondary:hover,
+  .marketing-home-footer-socials a:hover {
+    transform: translateY(-2px);
+  }
+
+  .marketing-home-footer-primary:hover {
+    background: linear-gradient(135deg, #087456 0%, #0aa56f 100%);
+    box-shadow: 0 18px 36px rgba(10, 159, 111, 0.3);
+  }
+
+  .marketing-home-footer-secondary:hover {
+    color: #087456;
+    border-color: #0aa56f;
+    background: #f3fdf8;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
+  }
+
+  .marketing-home-footer-socials a:hover {
+    border-color: #10b981;
+    background: #e9faf3;
+    box-shadow: 0 14px 30px rgba(10, 159, 111, 0.12);
+  }
+
+  .marketing-home-footer-links button:hover {
+    color: #0b7f5f;
+    transform: translateX(2px);
+  }
+
+  .marketing-home-footer-links button:hover svg {
+    transform: translateX(3px);
+  }
+
+  .marketing-home-footer-newsletter button:hover {
+    background: linear-gradient(135deg, #087456, #0aa56f);
+  }
+
+  .marketing-home-footer-bottom-actions button:hover {
+    color: #0b7f5f;
+  }
+}
+
+@media (max-width: 1180px) {
+  .marketing-home-header {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: 24px 30px;
+    padding: 0 30px;
+  }
+
+  .marketing-home-nav {
+    gap: 27px;
+  }
+
+  .marketing-home-content {
+    width: min(100%, calc(100vw - 60px));
+  }
+
+  .marketing-home-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .marketing-home-copy h1 {
+    font-size: 46px;
+  }
+
+  /* Tighten floating elements so they don't crowd the narrower stage. */
+  .marketing-home-float-job {
+    width: 210px;
+    left: -2%;
+  }
+
+  .marketing-home-float-salary {
+    width: 188px;
+    right: -2%;
+  }
+
+  .marketing-home-float-match {
+    width: 230px;
+    left: 16%;
+  }
+
+  .tech-orbit-chip {
+    font-size: 12px;
+    padding: 7px 11px 7px 9px;
+  }
+
+  .marketing-home-popular {
+    flex-wrap: wrap;
+  }
+
+  .marketing-home-trust-strip {
+    grid-template-columns: 1fr;
+    padding: 23px 29px;
+  }
+
+  .marketing-home-jobs-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .marketing-home-jobs-head h2 {
+    font-size: 30px;
+  }
+
+  /* Tablet: hide the big featured card; show a limited set of small cards in
+     3 columns. "Xem tất cả" / slider dots cover the rest. */
+  .marketing-home-co-bento {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: auto;
+    grid-auto-flow: row;
+  }
+
+  .v2co-featured {
+    display: none;
+  }
+
+  /* Narrow columns cramp the inline follow button, so drop it to its own
+     full-width row below the company info. */
+  .v2co-card {
+    flex-wrap: wrap;
+  }
+
+  .v2co-body {
+    flex-basis: 0;
+  }
+
+  .v2co-card .v2co-follow {
+    flex: 1 0 100%;
+    align-self: stretch;
+    justify-content: center;
+    min-height: 38px;
+    margin-top: 4px;
+  }
+
+  .marketing-home-co-arrow-prev {
+    left: -14px;
+  }
+
+  .marketing-home-co-arrow-next {
+    right: -14px;
+  }
+
+  /* Trimmed teaser: surface the "see all" CTA, drop the header's duplicate. */
+  .marketing-home-co-more {
+    display: inline-flex;
+  }
+
+  .marketing-home-companies .marketing-home-jobs-all {
+    display: none;
+  }
+
+  /* Job market: stack the rail above, charts go full-width single column. */
+  .marketing-home-market {
+    padding: 24px;
+  }
+
+  .jm-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .jm-charts {
+    grid-template-columns: 1fr;
+  }
+
+  .jm-head h2 {
+    font-size: 26px;
+  }
+
+  .marketing-home-footer {
+    padding: 38px 0 26px;
+  }
+
+  .marketing-home-footer-cta,
+  .marketing-home-footer-main,
+  .marketing-home-footer-bottom {
+    width: min(100%, calc(100vw - 60px));
+  }
+
+  .marketing-home-footer-cta {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 24px;
+    padding: 28px;
+  }
+
+  .marketing-home-footer-cta-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .marketing-home-footer-main {
+    grid-template-columns: 1fr;
+    gap: 38px;
+    padding: 48px 4px 42px;
+  }
+
+  .marketing-home-footer-link-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px 24px;
+  }
+
+  .marketing-home-footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .marketing-home-footer-bottom-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 820px) {
+  .marketing-home-header {
+    min-height: 64px;
+    grid-template-columns: 1fr auto;
+    padding: 0 20px;
+  }
+
+  .marketing-home-logo img {
+    width: 152px;
+  }
+
+  .marketing-home-nav,
+  .marketing-home-header-actions .marketing-home-login,
+  .marketing-home-header-actions .marketing-home-employer,
+  .marketing-home-header-actions .marketing-home-lang,
+  .marketing-home-action-sep {
+    display: none;
+  }
+
+  .marketing-home-header-actions {
+    gap: 8px;
+  }
+
+  .marketing-home-header-actions .marketing-home-register {
+    min-height: 42px;
+    padding: 0 18px;
+  }
+
+  .marketing-home-content {
+    width: min(100%, calc(100vw - 32px));
+  }
+
+  .marketing-home-hero {
+    display: flex;
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .marketing-home-copy {
+    padding: 36px 0 0;
+  }
+
+  .marketing-home-eyebrow {
+    min-height: 34px;
+    padding: 0 13px;
+    font-size: 12px;
+  }
+
+  .marketing-home-copy h1 {
+    margin: 22px 0 16px;
+    font-size: clamp(36px, 10vw, 52px);
+    line-height: 1.1;
+  }
+
+  .marketing-home-copy p {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .marketing-home-visual {
+    order: -1;
+    justify-content: center;
+    margin: 8px 0 0;
+    padding: 0;
+  }
+
+  .marketing-home-stage {
+    max-width: 380px;
+  }
+
+  /* Keep the two key cards, scale them down; drop the orbit on mobile. */
+  .tech-orbit {
+    display: none;
+  }
+
+  .marketing-home-float-job {
+    width: 188px;
+    left: -2%;
+    padding: 12px;
+    gap: 7px;
+  }
+
+  .marketing-home-float-job .float-job-tags {
+    display: none;
+  }
+
+  .marketing-home-float-salary {
+    width: 168px;
+    right: -2%;
+    bottom: 16%;
+    padding: 12px;
+  }
+
+  .marketing-home-float-match {
+    width: 220px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: none;
+  }
+
+  .marketing-home-hero-banner {
+    max-width: 100%;
+  }
+
+  .marketing-home-search-card {
+    padding: 10px;
+  }
+
+  .marketing-home-search-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .marketing-home-field:not(.marketing-home-field-keyword)::before {
+    display: none;
+  }
+
+  .marketing-home-control {
+    border: 1px solid #e5e9f0;
+  }
+
+  .marketing-home-search-submit {
+    min-height: 48px;
+  }
+
+  .marketing-home-popular {
+    display: block;
+    margin-top: 18px;
+  }
+
+  .marketing-home-popular > div {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 11px;
+  }
+
+  .marketing-home-trust-strip {
+    gap: 25px;
+    margin-top: 28px;
+    padding: 20px;
+  }
+
+  .marketing-home-stats {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .marketing-home-stats article {
+    padding: 0;
+  }
+
+  .marketing-home-stats article::after {
+    display: none;
+  }
+
+  .marketing-home-stats i {
+    width: 50px;
+    height: 50px;
+  }
+
+  .marketing-home-marquee-track .marketing-home-company {
+    margin-right: 40px;
+  }
+
+  .marketing-home-jobs {
+    margin-top: 44px;
+  }
+
+  .marketing-home-jobs-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .marketing-home-jobs-head h2 {
+    font-size: 26px;
+  }
+
+  .marketing-home-jobs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-home-jobs-tabs {
+    margin: 22px 0 20px;
+  }
+
+  /* Companies on mobile: single column, header actions stack, hide side arrows
+     (the dots remain for paging). */
+  .marketing-home-companies {
+    margin-top: 44px;
+  }
+
+  .marketing-home-co-head-actions {
+    flex-wrap: wrap;
+  }
+
+  .marketing-home-co-bento {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+    gap: 14px;
+  }
+
+  /* Mobile: bring back the featured card as the single hero (small cards are
+     dropped via JS count=0); slider dots page between featured companies. */
+  .v2co-featured {
+    display: flex;
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .v2co-featured-cover {
+    height: 150px;
+  }
+
+  .v2co-featured-logo {
+    width: 64px;
+    height: 64px;
+    margin: -36px 0 0 18px;
+    padding: 8px;
+  }
+
+  .v2co-featured-body {
+    padding: 14px 18px 18px;
+  }
+
+  .v2co-featured-body h3 {
+    font-size: 20px;
+  }
+
+  .marketing-home-co-arrow {
+    display: none;
+  }
+
+  /* Job market on mobile: KPIs stack, chart footers wrap. */
+  .marketing-home-market {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .jm-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  /* Stacked stats on mobile: divider becomes a horizontal rule between rows. */
+  .jm-kpi {
+    padding: 16px 18px;
+  }
+
+  .jm-kpi + .jm-kpi::before {
+    left: 18px;
+    right: 18px;
+    top: 0;
+    width: auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e6eaf0 50%, transparent);
+  }
+
+  .jm-kpi strong {
+    margin-top: 12px;
+    font-size: 32px;
+  }
+
+  .jm-chart-foot {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .jm-chart-foot span {
+    flex-basis: calc(50% - 7px);
+  }
+
+  .jm-head h2 {
+    font-size: 23px;
+  }
+
+  .jm-report-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .marketing-home-footer {
+    margin-top: 52px;
+    padding: 34px 0 24px;
+  }
+
+  .marketing-home-footer-cta,
+  .marketing-home-footer-main,
+  .marketing-home-footer-bottom {
+    width: min(100%, calc(100vw - 32px));
+  }
+
+  .marketing-home-footer-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    min-height: auto;
+    padding: 24px;
+    border-radius: 18px;
+  }
+
+  .marketing-home-footer-cta::after {
+    display: none;
+  }
+
+  .marketing-home-footer-cta-icon {
+    width: 64px;
+    height: 64px;
+    box-shadow:
+      0 0 0 12px rgba(16, 185, 129, 0.08),
+      0 16px 34px rgba(16, 185, 129, 0.2);
+  }
+
+  .marketing-home-footer-cta-copy h2 {
+    font-size: 24px;
+  }
+
+  .marketing-home-footer-cta-copy p {
+    font-size: 14.5px;
+  }
+
+  .marketing-home-footer-cta-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .marketing-home-footer-primary,
+  .marketing-home-footer-secondary {
+    width: 100%;
+    min-width: 0;
+    min-height: 50px;
+    padding: 0 18px;
+    font-size: 14.5px;
+  }
+
+  .marketing-home-footer-main {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 38px 4px 34px;
+  }
+
+  .marketing-home-footer-contact {
+    grid-column: auto;
+  }
+
+  .marketing-home-footer-brand p,
+  .marketing-home-footer-contact p {
+    margin-top: 18px;
+    font-size: 14.5px;
+  }
+
+  .marketing-home-footer-socials {
+    margin-top: 24px;
+  }
+
+  .marketing-home-footer-links h3,
+  .marketing-home-footer-contact h3 {
+    margin-bottom: 14px;
+  }
+
+  .marketing-home-footer-link-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .marketing-home-footer-newsletter {
+    flex-direction: column;
+    border-radius: 12px;
+  }
+
+  .marketing-home-footer-newsletter button {
+    min-height: 46px;
+  }
+
+  .marketing-home-footer-bottom {
+    padding-top: 22px;
+  }
+
+  .marketing-home-footer-bottom-actions {
+    width: 100%;
+    gap: 12px 16px;
+  }
+
+  .marketing-home-footer-bottom-actions > span {
+    display: none;
+  }
+
+  .marketing-home-footer-bottom-actions button {
+    min-height: 38px;
+    padding: 0 10px;
+    border: 1px solid #dfe7ef;
+    border-radius: 999px;
+    background: #ffffff;
+  }
+}

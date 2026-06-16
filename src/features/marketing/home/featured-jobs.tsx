@@ -1,0 +1,627 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+
+import {
+  ArrowRight,
+  BadgeCheck,
+  Bookmark,
+  Briefcase,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Coins,
+  Flame,
+  Globe,
+  LayoutGrid,
+  MapPin,
+  Monitor,
+  ShieldCheck,
+  Sparkles,
+  Star,
+} from "./v2-icons";
+
+type FeaturedJobsProps = {
+  navigate: (path: string) => void;
+};
+
+type BadgeTone = "featured" | "new" | "urgent" | "remote" | "salary";
+type FilterKey = "remote" | "high-salary" | "newest";
+
+type JobCard = {
+  id: string;
+  badge: { label: string; tone: BadgeTone };
+  company: string;
+  verified: boolean;
+  /** Logo file under /public/assets/marketing/home/companies, or '' for a monogram. */
+  logo: string;
+  /** Monogram tint, used when there is no logo image. */
+  logoColor: string;
+  title: string;
+  salary: string;
+  location: string;
+  mode: string;
+  experience: string;
+  tags: string[];
+  deadline: string;
+  filters: FilterKey[];
+};
+
+const MAX_TAGS = 4;
+const PAGE_SIZE = 6;
+
+const badgeIcon: Record<BadgeTone, ReactNode> = {
+  featured: <Star size={13} />,
+  new: <Sparkles size={13} />,
+  urgent: <Flame size={13} />,
+  remote: <Globe size={13} />,
+  salary: <Coins size={13} />,
+};
+
+const verifyPoints = [
+  "Đã xác thực email tên miền công ty",
+  "Đã xác thực số điện thoại",
+  "Đã duyệt giấy phép kinh doanh",
+  "Tài khoản được tạo tối thiểu 6 tháng",
+  "Chưa có lịch sử bị báo cáo tin đăng",
+];
+
+/** Logo image with a colored-monogram fallback. */
+function CompanyLogo({ src, name, color }: { src: string; name: string; color: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <i className="v2job-logo v2job-logo-mono" style={{ background: color }}>
+        {name.charAt(0)}
+      </i>
+    );
+  }
+
+  return (
+    <i className="v2job-logo">
+      <img src={src} alt={`Logo ${name}`} onError={() => setFailed(true)} />
+    </i>
+  );
+}
+
+/** Verified company badge with an on-hover/focus trust tooltip. */
+function VerifiedBadge() {
+  return (
+    <span className="v2job-verify">
+      <button
+        type="button"
+        className="v2job-verify-btn"
+        aria-label="Nhà tuyển dụng đã được xác thực"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <BadgeCheck size={15} />
+      </button>
+      <span className="v2job-verify-pop" role="tooltip">
+        <span className="v2job-verify-head">
+          <ShieldCheck size={15} />
+          Nhà tuyển dụng đã được xác thực
+        </span>
+        <ul>
+          {verifyPoints.map((point) => (
+            <li key={point}>
+              <Check size={13} />
+              {point}
+            </li>
+          ))}
+        </ul>
+      </span>
+    </span>
+  );
+}
+
+const logo = (file: string) => `/assets/marketing/home/companies/${file}`;
+
+// Six curated edge-case jobs sit first so they're visible on page 1:
+// long title, very long company name, many tags, minimal tags, short name.
+const curatedJobs: JobCard[] = [
+  {
+    id: "sepay-fullstack",
+    badge: { label: "Nổi bật", tone: "featured" },
+    company: "CÔNG TY CỔ PHẦN GIẢI PHÁP CÔNG NGHỆ TÀI CHÍNH SEPAY VIỆT NAM",
+    verified: true,
+    logo: logo("fpt.png"),
+    logoColor: "#2563eb",
+    title:
+      "Senior Fullstack Developer (ReactJS/NodeJS) - Thu Nhập Hấp Dẫn Lên Đến 60 Triệu Kèm Thưởng Dự Án",
+    salary: "Thỏa thuận",
+    location: "Hồ Chí Minh",
+    mode: "Hybrid",
+    experience: "3 - 5 năm",
+    tags: ["ReactJS", "NodeJS", "TypeScript", "PostgreSQL", "Docker", "AWS", "Redis", "GraphQL"],
+    deadline: "Còn 18 ngày để nộp",
+    filters: ["high-salary"],
+  },
+  {
+    id: "vng-backend",
+    badge: { label: "Mới đăng", tone: "new" },
+    company: "VNG",
+    verified: true,
+    logo: logo("vng.png"),
+    logoColor: "#1a8cff",
+    title: "Backend Developer",
+    salary: "25 - 40 triệu",
+    location: "Hồ Chí Minh",
+    mode: "Hybrid",
+    experience: "2 - 4 năm",
+    tags: ["Java", "Spring Boot"],
+    deadline: "Còn 2 ngày để nộp",
+    filters: ["newest"],
+  },
+  {
+    id: "viettel-devops",
+    badge: { label: "Tuyển gấp", tone: "urgent" },
+    company: "Viettel Solutions",
+    verified: true,
+    logo: logo("viettel.png"),
+    logoColor: "#ee0033",
+    title: "DevOps Engineer (Kubernetes/Terraform)",
+    salary: "28 - 50 triệu",
+    location: "Đà Nẵng",
+    mode: "Onsite",
+    experience: "3 - 6 năm",
+    tags: ["AWS", "Docker", "Kubernetes", "Terraform", "CI/CD", "Ansible"],
+    deadline: "Còn 1 ngày để nộp",
+    filters: ["high-salary"],
+  },
+  {
+    id: "momo-data",
+    badge: { label: "Remote", tone: "remote" },
+    company: "MoMo",
+    verified: true,
+    logo: logo("momo.png"),
+    logoColor: "#a50064",
+    title: "Data Engineer",
+    salary: "27 - 45 triệu",
+    location: "Remote",
+    mode: "Remote",
+    experience: "2 - 5 năm",
+    tags: ["Python", "Spark", "Snowflake", "Airflow"],
+    deadline: "Còn 5 ngày để nộp",
+    filters: ["remote", "high-salary"],
+  },
+  {
+    id: "tiki-mobile",
+    badge: { label: "Lương tốt", tone: "salary" },
+    company: "Tiki",
+    verified: false,
+    logo: logo("tiki.png"),
+    logoColor: "#1a94ff",
+    title: "Mobile Developer (Flutter)",
+    salary: "22 - 38 triệu",
+    location: "Hà Nội",
+    mode: "Hybrid",
+    experience: "1 - 3 năm",
+    tags: ["Flutter", "Dart", "Firebase"],
+    deadline: "Còn 6 ngày để nộp",
+    filters: ["newest"],
+  },
+  {
+    id: "vnpay-qa",
+    badge: { label: "Nổi bật", tone: "featured" },
+    company: "VNPAY",
+    verified: true,
+    logo: logo("vnpay.png"),
+    logoColor: "#005baa",
+    title: "QA Automation Engineer (Selenium / Cypress / Playwright) Cho Hệ Thống Thanh Toán",
+    salary: "18 - 30 triệu",
+    location: "Hồ Chí Minh",
+    mode: "Hybrid",
+    experience: "2 - 4 năm",
+    tags: ["Selenium", "Cypress", "Playwright", "API Testing", "JIRA"],
+    deadline: "Còn 8 ngày để nộp",
+    filters: ["newest"],
+  },
+];
+
+// --- Pools used to synthesise the remaining jobs for pagination testing. ---
+const companyPool = [
+  { name: "FPT Software", file: "fpt.png", color: "#2563eb" },
+  { name: "VNG Corporation", file: "vng.png", color: "#1a8cff" },
+  { name: "Viettel Solutions", file: "viettel.png", color: "#ee0033" },
+  { name: "MoMo", file: "momo.png", color: "#a50064" },
+  { name: "Tiki", file: "tiki.png", color: "#1a94ff" },
+  { name: "VNPAY", file: "vnpay.png", color: "#005baa" },
+  { name: "KMS Technology", file: "", color: "#0aa56f" },
+  { name: "NashTech Vietnam", file: "", color: "#db2777" },
+  { name: "Axon Active Vietnam", file: "", color: "#7c3aed" },
+  { name: "Got It AI", file: "", color: "#d97706" },
+  {
+    name: "CÔNG TY TNHH GIẢI PHÁP PHẦN MỀM VÀ DỊCH VỤ CÔNG NGHỆ CAO SAO BẮC ĐẨU",
+    file: "",
+    color: "#0891b2",
+  },
+  { name: "Zalo", file: "", color: "#0068ff" },
+];
+
+const rolePool: Array<{ title: string; tags: string[]; filter: FilterKey }> = [
+  {
+    title: "Frontend Developer (ReactJS)",
+    tags: ["React", "TypeScript", "Redux", "Vite", "Tailwind CSS", "Jest"],
+    filter: "newest",
+  },
+  {
+    title: "Senior Backend Engineer (Golang)",
+    tags: ["Go", "gRPC", "PostgreSQL", "Kafka", "Docker"],
+    filter: "high-salary",
+  },
+  {
+    title: "Fullstack Developer (NodeJS/ReactJS)",
+    tags: ["Node.js", "React", "MongoDB", "AWS"],
+    filter: "newest",
+  },
+  {
+    title: "AI/ML Engineer",
+    tags: ["Python", "PyTorch", "LLM", "MLOps", "Kubernetes"],
+    filter: "high-salary",
+  },
+  {
+    title: "Cloud Engineer (AWS)",
+    tags: ["AWS", "Terraform", "Lambda", "CloudFormation"],
+    filter: "high-salary",
+  },
+  {
+    title: "UI/UX Designer",
+    tags: ["Figma", "Design System", "Prototyping"],
+    filter: "newest",
+  },
+  {
+    title: "Business Analyst (IT)",
+    tags: ["SQL", "BPMN", "Agile"],
+    filter: "newest",
+  },
+  {
+    title: "Embedded Software Engineer (C/C++)",
+    tags: ["C", "C++", "RTOS", "ARM", "Linux Kernel"],
+    filter: "high-salary",
+  },
+  {
+    title: "Security Engineer (Pentest)",
+    tags: ["Pentest", "OWASP", "Burp Suite", "Python"],
+    filter: "high-salary",
+  },
+  {
+    title: "Mobile Developer (React Native)",
+    tags: ["React Native", "TypeScript", "Redux"],
+    filter: "newest",
+  },
+  {
+    title: "Database Administrator (Oracle/PostgreSQL)",
+    tags: ["Oracle", "PostgreSQL", "Tuning", "Backup"],
+    filter: "newest",
+  },
+  {
+    title: "Solution Architect",
+    tags: ["Microservices", "AWS", "System Design", "Kafka", "DDD"],
+    filter: "high-salary",
+  },
+];
+
+const badgePool: Array<{ label: string; tone: BadgeTone }> = [
+  { label: "Nổi bật", tone: "featured" },
+  { label: "Mới đăng", tone: "new" },
+  { label: "Tuyển gấp", tone: "urgent" },
+  { label: "Remote", tone: "remote" },
+  { label: "Lương tốt", tone: "salary" },
+];
+
+const locationPool = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Remote", "Cần Thơ", "Bình Dương"];
+const modePool = ["Hybrid", "Onsite", "Remote"];
+const expPool = ["Dưới 1 năm", "1 - 3 năm", "2 - 4 năm", "3 - 5 năm", "5+ năm"];
+const salaryPool = [
+  "Thỏa thuận",
+  "15 - 25 triệu",
+  "20 - 35 triệu",
+  "25 - 40 triệu",
+  "30 - 50 triệu",
+  "40 - 60 triệu",
+];
+
+function buildJobs(): JobCard[] {
+  const generated: JobCard[] = [];
+  const target = 40 - curatedJobs.length;
+
+  for (let i = 0; i < target; i += 1) {
+    const role = rolePool[i % rolePool.length]!;
+    const company = companyPool[i % companyPool.length]!;
+    const mode = modePool[i % modePool.length]!;
+    const location = mode === "Remote" ? "Remote" : locationPool[i % locationPool.length]!;
+    const salary = salaryPool[i % salaryPool.length]!;
+
+    const filters: FilterKey[] = [];
+    if (mode === "Remote" || location === "Remote") filters.push("remote");
+    if (role.filter === "high-salary" || salary === "40 - 60 triệu") {
+      filters.push("high-salary");
+    }
+    if (i % 2 === 0) filters.push("newest");
+
+    generated.push({
+      id: `gen-${i}`,
+      badge: badgePool[i % badgePool.length]!,
+      company: company.name,
+      verified: i % 4 !== 0,
+      logo: company.file ? logo(company.file) : "",
+      logoColor: company.color,
+      title: role.title,
+      salary,
+      location,
+      mode,
+      experience: expPool[i % expPool.length]!,
+      tags: role.tags,
+      deadline: `Còn ${((i * 3) % 29) + 1} ngày để nộp`,
+      filters: Array.from(new Set(filters)),
+    });
+  }
+
+  return [...curatedJobs, ...generated];
+}
+
+const jobs = buildJobs();
+
+const tabs = [
+  { key: "all", label: "Tất cả", icon: <LayoutGrid size={16} /> },
+  { key: "remote", label: "Remote", icon: <Globe size={16} /> },
+  { key: "high-salary", label: "Lương cao", icon: <Coins size={16} /> },
+  { key: "newest", label: "Mới nhất", icon: <Clock size={16} /> },
+] as const;
+
+type TabKey = (typeof tabs)[number]["key"];
+
+export function FeaturedJobs({ navigate }: FeaturedJobsProps) {
+  const [activeTab, setActiveTab] = useState<TabKey>("all");
+  const [index, setIndex] = useState(0);
+  const [animate, setAnimate] = useState(false);
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [paused, setPaused] = useState(false);
+
+  const filtered = useMemo(() => {
+    if (activeTab === "all") return jobs;
+    return jobs.filter((job) => job.filters.includes(activeTab));
+  }, [activeTab]);
+
+  // Split into pages of PAGE_SIZE, then append a clone of page 1 at the end so
+  // the loop from last → first slides FORWARD seamlessly instead of rewinding.
+  const pages = useMemo(() => {
+    const result: JobCard[][] = [];
+    for (let i = 0; i < filtered.length; i += PAGE_SIZE) {
+      result.push(filtered.slice(i, i + PAGE_SIZE));
+    }
+    return result.length ? result : [[]];
+  }, [filtered]);
+
+  const totalPages = pages.length;
+  const hasLoop = totalPages > 1;
+  const slides = hasLoop ? [...pages, pages[0]!] : pages;
+  const displayPage = (index % totalPages) + 1;
+
+  // Reset to the first slide whenever the filter changes.
+  useEffect(() => {
+    setAnimate(false);
+    setIndex(0);
+  }, [activeTab]);
+
+  // Auto-advance every 2s, looping forward. Pauses on hover/focus and respects
+  // reduced-motion so it never fights the user.
+  useEffect(() => {
+    if (!hasLoop || paused) return undefined;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return undefined;
+    }
+    const timer = window.setInterval(() => {
+      setAnimate(true);
+      setIndex((i) => (i >= totalPages ? i : i + 1));
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [hasLoop, totalPages, paused]);
+
+  // When the slide INTO the clone finishes, snap back to the real first slide
+  // with no transition — invisible because the clone shows identical content.
+  function handleTransitionEnd() {
+    if (index >= totalPages) {
+      setAnimate(false);
+      setIndex(0);
+    }
+  }
+
+  function goNext() {
+    if (!hasLoop) return;
+    setAnimate(true);
+    setIndex((i) => (i >= totalPages ? i : i + 1));
+  }
+
+  function goPrev() {
+    if (!hasLoop) return;
+    if (index <= 0) {
+      // Jump (no anim) to the clone position, then slide back to the last page.
+      setAnimate(false);
+      setIndex(totalPages);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setAnimate(true);
+          setIndex(totalPages - 1);
+        });
+      });
+    } else {
+      setAnimate(true);
+      setIndex((i) => i - 1);
+    }
+  }
+
+  function selectTab(key: TabKey) {
+    setActiveTab(key);
+  }
+
+  function toggleSaved(id: string) {
+    setSaved((current) => ({ ...current, [id]: !current[id] }));
+  }
+
+  return (
+    <section
+      className="marketing-home-jobs"
+      aria-label="Cơ hội đang được quan tâm"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
+    >
+      <header className="marketing-home-jobs-head">
+        <div>
+          <h2>Cơ hội đang được quan tâm</h2>
+          <p>Những vị trí IT nổi bật từ các công ty uy tín, được cập nhật liên tục.</p>
+        </div>
+        <button
+          type="button"
+          className="marketing-home-jobs-all"
+          onClick={() => navigate("/jobs-v2")}
+        >
+          Xem tất cả <ChevronRight size={16} />
+        </button>
+      </header>
+
+      <div className="marketing-home-jobs-tabs" role="tablist" aria-label="Lọc cơ hội">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            className={`marketing-home-jobs-tab${activeTab === tab.key ? " is-active" : ""}`}
+            onClick={() => selectTab(tab.key)}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className={`marketing-home-jobs-viewport${animate ? " is-animating" : ""}`}>
+        <div
+          className={`marketing-home-jobs-track${animate ? "" : " no-anim"}`}
+          style={{ transform: `translateX(${-index * 100}%)` }}
+          onTransitionEnd={handleTransitionEnd}
+        >
+          {slides.map((slideJobs, slideIndex) => (
+            <div
+              className={`marketing-home-jobs-slide${slideIndex === index ? " is-active" : ""}`}
+              key={slideIndex}
+              aria-hidden={slideIndex !== index}
+            >
+              <div className="marketing-home-jobs-grid">
+                {slideJobs.map((job) => {
+                  const shownTags = job.tags.slice(0, MAX_TAGS);
+                  const extraTags = job.tags.length - shownTags.length;
+
+                  return (
+                    <article
+                      key={job.id}
+                      className="v2job-card"
+                      onClick={() => navigate(`/jobs-v2?keyword=${encodeURIComponent(job.title)}`)}
+                    >
+                      <header className="v2job-top">
+                        <span className={`v2job-badge v2job-badge-${job.badge.tone}`}>
+                          {badgeIcon[job.badge.tone]}
+                          {job.badge.label}
+                        </span>
+                        <button
+                          type="button"
+                          className={`v2job-save${saved[job.id] ? " is-saved" : ""}`}
+                          aria-label={saved[job.id] ? "Bỏ lưu tin" : "Lưu tin"}
+                          aria-pressed={saved[job.id] ?? false}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleSaved(job.id);
+                          }}
+                        >
+                          <Bookmark size={18} fill={saved[job.id] ? "currentColor" : "none"} />
+                        </button>
+                      </header>
+
+                      <div className="v2job-company">
+                        <CompanyLogo src={job.logo} name={job.company} color={job.logoColor} />
+                        <span className="v2job-company-row">
+                          <span className="v2job-company-name" title={job.company}>
+                            {job.company}
+                          </span>
+                          {job.verified && <VerifiedBadge />}
+                        </span>
+                      </div>
+
+                      <h3 className="v2job-title">{job.title}</h3>
+
+                      <div className="v2job-salary">
+                        <Coins size={16} />
+                        {job.salary}
+                      </div>
+
+                      <div className="v2job-meta">
+                        <span>
+                          <MapPin size={15} />
+                          {job.location}
+                        </span>
+                        <span>
+                          <Monitor size={15} />
+                          {job.mode}
+                        </span>
+                        <span>
+                          <Briefcase size={15} />
+                          {job.experience}
+                        </span>
+                      </div>
+
+                      <div className="v2job-tags">
+                        {shownTags.map((tag) => (
+                          <i key={tag}>{tag}</i>
+                        ))}
+                        {extraTags > 0 && (
+                          <i className="v2job-tag-more" title={job.tags.slice(MAX_TAGS).join(", ")}>
+                            +{extraTags}
+                          </i>
+                        )}
+                      </div>
+
+                      <footer className="v2job-foot">
+                        <span className="v2job-deadline">
+                          <Clock size={14} />
+                          {job.deadline}
+                        </span>
+                        <button
+                          type="button"
+                          className="v2job-apply"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate("/candidate/apply");
+                          }}
+                        >
+                          Ứng tuyển <ArrowRight size={15} />
+                        </button>
+                      </footer>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <nav className="marketing-home-jobs-pager" aria-label="Phân trang">
+        <button type="button" aria-label="Trang trước" disabled={!hasLoop} onClick={goPrev}>
+          <ChevronLeft size={18} />
+        </button>
+        <span>
+          <b>{displayPage}</b> / {totalPages} trang
+        </span>
+        <button type="button" aria-label="Trang sau" disabled={!hasLoop} onClick={goNext}>
+          <ChevronRight size={18} />
+        </button>
+      </nav>
+    </section>
+  );
+}
