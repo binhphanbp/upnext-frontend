@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
   Area,
@@ -22,7 +23,7 @@ import {
   PieChart,
   TrendingUp,
   Zap,
-} from "./v2-icons";
+} from "./marketing-icons";
 
 type JobMarketProps = {
   navigate: (path: string) => void;
@@ -225,7 +226,7 @@ function JMDropdown({
       <button
         type="button"
         className="jm-dropdown-trigger"
-        aria-haspopup="listbox"
+        aria-haspopup="true"
         aria-expanded={open}
         aria-label={ariaLabel}
         onClick={() => setOpen((o) => !o)}
@@ -234,13 +235,11 @@ function JMDropdown({
         <ChevronDown size={15} />
       </button>
       {open && (
-        <ul className="jm-dropdown-menu" role="listbox" aria-label={ariaLabel}>
+        <ul className="jm-dropdown-menu" aria-label={ariaLabel}>
           {options.map((option) => (
             <li key={option.value}>
               <button
                 type="button"
-                role="option"
-                aria-selected={option.value === value}
                 className={option.value === value ? "is-active" : ""}
                 onClick={() => {
                   onChange(option.value);
@@ -285,11 +284,7 @@ export function JobMarket({ navigate }: JobMarketProps) {
             Cập nhật nhanh xu hướng tuyển dụng, số lượng việc làm và cơ hội mới nhất trên UpNext.
           </p>
         </div>
-        <button
-          type="button"
-          className="jm-report-btn"
-          onClick={() => navigate("/candidate/salary")}
-        >
+        <button type="button" className="jm-report-btn" onClick={() => navigate("/jobs")}>
           <FileText size={17} />
           Xem báo cáo đầy đủ
           <ChevronRight size={16} />
@@ -313,7 +308,7 @@ export function JobMarket({ navigate }: JobMarketProps) {
             <ul>
               {latestJobs.map((job) => (
                 <li key={job.id}>
-                  <button type="button" onClick={() => navigate("/jobs-v2")}>
+                  <button type="button" onClick={() => navigate("/jobs")}>
                     <span className="jm-latest-logo">
                       <JobLogo job={job} />
                     </span>
@@ -327,7 +322,7 @@ export function JobMarket({ navigate }: JobMarketProps) {
                 </li>
               ))}
             </ul>
-            <button type="button" className="jm-latest-all" onClick={() => navigate("/jobs-v2")}>
+            <button type="button" className="jm-latest-all" onClick={() => navigate("/jobs")}>
               Xem tất cả việc làm mới <ChevronRight size={16} />
             </button>
           </div>
@@ -528,7 +523,15 @@ function JobLogo({ job }: { job: (typeof latestJobs)[number] }) {
       </span>
     );
   }
-  return <img src={job.logo} alt={`Logo ${job.company}`} onError={() => setFailed(true)} />;
+  return (
+    <Image
+      src={job.logo}
+      alt={`Logo ${job.company}`}
+      width={44}
+      height={44}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 /** AI market mascot illustration; falls back to a gradient bot tile until the
@@ -543,10 +546,12 @@ function MarketIllustration() {
     );
   }
   return (
-    <img
+    <Image
       className="jm-illu-img"
       src="/assets/marketing/home/market-ai.png"
       alt="Trợ lý phân tích thị trường việc làm IT của UpNext"
+      width={560}
+      height={560}
       onError={() => setFailed(true)}
     />
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -10,7 +11,7 @@ import {
   ChevronRight,
   Plus,
   UsersRound,
-} from "./v2-icons";
+} from "./marketing-icons";
 
 type FeaturedCompaniesProps = {
   navigate: (path: string) => void;
@@ -259,12 +260,24 @@ function Logo({ company }: { company: Company | FeaturedCompany }) {
   const [failed, setFailed] = useState(false);
   if (!company.logo || failed) {
     return (
-      <span className="v2co-logo-mono" style={{ color: company.logoColor }} aria-hidden="true">
+      <span
+        className="featured-company-logo-mono"
+        style={{ color: company.logoColor }}
+        aria-hidden="true"
+      >
         {company.name.charAt(0)}
       </span>
     );
   }
-  return <img src={company.logo} alt={`Logo ${company.name}`} onError={() => setFailed(true)} />;
+  return (
+    <Image
+      src={company.logo}
+      alt={`Logo ${company.name}`}
+      width={56}
+      height={56}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 /** Cover photo for the featured card; falls back to a brand gradient. */
@@ -273,7 +286,7 @@ function CoverImage({ company }: { company: FeaturedCompany }) {
   if (!company.cover || failed) {
     return (
       <span
-        className="v2co-featured-cover-fallback"
+        className="featured-company-featured-cover-fallback"
         style={{
           background: `linear-gradient(150deg, ${company.logoColor}, #0f172a)`,
         }}
@@ -281,10 +294,12 @@ function CoverImage({ company }: { company: FeaturedCompany }) {
     );
   }
   return (
-    <img
-      className="v2co-featured-cover-img"
+    <Image
+      className="featured-company-featured-cover-img"
       src={company.cover}
       alt=""
+      width={640}
+      height={360}
       onError={() => setFailed(true)}
     />
   );
@@ -345,7 +360,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
           <button
             type="button"
             className="marketing-home-jobs-all"
-            onClick={() => navigate("/candidate/companies")}
+            onClick={() => navigate("/companies")}
           >
             Xem tất cả <ChevronRight size={16} />
           </button>
@@ -371,25 +386,27 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
           />
 
           {cards.map((company) => (
-            <article
-              key={company.id}
-              className="v2co-card"
-              onClick={() => navigate("/candidate/companies")}
-            >
-              <span className="v2co-logo">
-                <Logo company={company} />
-              </span>
-              <div className="v2co-body">
-                <h3 title={company.name}>{company.name}</h3>
-                <span className="v2co-cat">{company.category}</span>
-                <span className="v2co-jobs">
-                  <Briefcase size={14} />
-                  {company.jobs} việc làm
-                </span>
-              </div>
+            <article key={company.id} className="featured-company-card">
               <button
                 type="button"
-                className={`v2co-follow${following[company.id] ? " is-following" : ""}`}
+                className="featured-company-card-main"
+                onClick={() => navigate("/companies")}
+              >
+                <span className="featured-company-logo">
+                  <Logo company={company} />
+                </span>
+                <span className="featured-company-body">
+                  <strong title={company.name}>{company.name}</strong>
+                  <span className="featured-company-cat">{company.category}</span>
+                  <span className="featured-company-jobs">
+                    <Briefcase size={14} />
+                    {company.jobs} việc làm
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`featured-company-follow${following[company.id] ? " is-following" : ""}`}
                 aria-pressed={following[company.id] ?? false}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -435,7 +452,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
       <button
         type="button"
         className="marketing-home-co-more"
-        onClick={() => navigate("/candidate/companies")}
+        onClick={() => navigate("/companies")}
       >
         Xem tất cả công ty <ArrowRight size={16} />
       </button>
@@ -455,40 +472,40 @@ function FeaturedCard({
   navigate: (path: string) => void;
 }) {
   return (
-    <article className="v2co-featured">
-      <div className="v2co-featured-cover" aria-hidden="true">
+    <article className="featured-company-featured">
+      <div className="featured-company-featured-cover" aria-hidden="true">
         <CoverImage company={company} />
         {/* Gradient scrim blends the photo smoothly into the dark body. */}
-        <span className="v2co-featured-scrim" />
+        <span className="featured-company-featured-scrim" />
       </div>
 
-      <span className="v2co-featured-logo">
+      <span className="featured-company-featured-logo">
         <Logo company={company} />
       </span>
 
-      <div className="v2co-featured-body">
+      <div className="featured-company-featured-body">
         <h3>{company.name}</h3>
-        <div className="v2co-featured-tags">
+        <div className="featured-company-featured-tags">
           {company.tags.map((tag) => (
             <i key={tag}>{tag}</i>
           ))}
         </div>
         <p>{company.description}</p>
-        <span className="v2co-featured-jobs">
+        <span className="featured-company-featured-jobs">
           <Briefcase size={15} />
           {company.jobs} việc làm đang tuyển
         </span>
-        <div className="v2co-featured-actions">
+        <div className="featured-company-featured-actions">
           <button
             type="button"
-            className="v2co-featured-view"
-            onClick={() => navigate("/candidate/companies")}
+            className="featured-company-featured-view"
+            onClick={() => navigate("/companies")}
           >
             Xem việc làm <ArrowRight size={15} />
           </button>
           <button
             type="button"
-            className={`v2co-featured-follow${following ? " is-following" : ""}`}
+            className={`featured-company-featured-follow${following ? " is-following" : ""}`}
             aria-pressed={following}
             onClick={onFollow}
           >

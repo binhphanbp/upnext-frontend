@@ -63,18 +63,28 @@ pnpm verify:full    # verify + build + e2e
 ```txt
 src/
   app/                 # Next routes, layouts, metadata, app-level providers
-    [locale]/          # localized route tree
+    [locale]/          # localized route tree; route groups do not affect URLs
+      (public)/        # public discovery pages: /, /jobs, /companies
+      (auth)/          # auth pages: /login, /register
+      (candidate)/     # protected candidate workspace, add when real code exists
+      (employer)/      # protected employer workspace, add when real code exists
+      (admin)/         # protected admin workspace, add when real code exists
   features/            # domain features, created as real product work starts
     auth/
-    jobs/
-    companies/
-    candidates/
-    applications/
-    messages/
-    notifications/
-    employer-dashboard/
-    admin/
-    search/
+    marketing/         # public homepage, jobs, companies, public navigation
+      home/
+      jobs/            # public jobs listing/detail pages
+      companies/       # public company pages
+      shared/
+    employer/          # hiring-side workspace, routes under /[locale]/employer/*
+    admin/             # admin workspace, routes under /[locale]/admin/*
+    jobs/              # shared/core jobs domain, create only when real code exists
+    companies/         # shared/core companies domain, create only when real code exists
+    candidate/         # signed-in candidate workspace, create only when real code exists
+    applications/      # create only when real code exists
+    messages/          # create only when real code exists
+    notifications/     # create only when real code exists
+    search/            # create only when real code exists
   shared/              # reusable non-domain code
     api/
     hooks/
@@ -91,6 +101,14 @@ e2e/                   # Playwright tests
 ```
 
 Feature folders should usually contain only the pieces they need: `api/`, `components/`, `hooks/`, `schemas/`, `types.ts`, and colocated tests.
+
+Do not commit empty placeholder folders or `.gitkeep` files for future domains. Add a domain folder only in the PR that adds real code for that domain.
+
+Public pages remain public even when the viewer is a signed-in candidate. Add candidate personalization through optional viewer/session data; do not duplicate public discovery pages under `/candidate`.
+
+Reserve `/candidate/*` for the signed-in candidate workspace: profile, applications, saved jobs, messages, and settings.
+
+Use `employer` as the canonical hiring-side domain. `recruiter` may be used later only as a member or permission role inside an employer account.
 
 Use `src/shared/lib/date.ts` for app date formatting. Use `src/shared/ui/data-table` as the shared TanStack Table baseline before adding domain-specific table behavior.
 

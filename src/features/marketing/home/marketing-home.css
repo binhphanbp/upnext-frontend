@@ -1151,22 +1151,95 @@ button.marketing-home-control {
   white-space: nowrap;
 }
 
-.marketing-home-popular > div {
-  display: flex;
-  align-items: center;
-  gap: 11px;
+.marketing-home-popular-viewport {
+  --popular-panel-height: 72px;
+  position: relative;
+  height: var(--popular-panel-height);
+  max-width: min(100%, 620px);
+  overflow: hidden;
 }
 
-.marketing-home-popular > div button {
+.marketing-home-popular-track {
+  display: grid;
+  animation: marketing-home-popular-slide 20s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.marketing-home-popular-row {
+  display: flex;
+  align-items: center;
+  align-content: center;
+  flex-wrap: wrap;
+  gap: 9px 10px;
+  min-height: var(--popular-panel-height);
+}
+
+.marketing-home-popular-row button {
   min-height: 31px;
   padding: 0 15px;
+  max-width: min(150px, 100%);
+  overflow: hidden;
   color: #334155;
   font-size: 12px;
   font-weight: 600;
+  text-overflow: ellipsis;
   white-space: nowrap;
   border: 0;
   border-radius: 999px;
   background: #f3f5f7;
+}
+
+.marketing-home-popular-viewport:hover .marketing-home-popular-track {
+  animation-play-state: paused;
+}
+
+@keyframes marketing-home-popular-slide {
+  0%,
+  16% {
+    transform: translateY(0);
+  }
+
+  20%,
+  36% {
+    transform: translateY(calc(var(--popular-panel-height) * -1));
+  }
+
+  40%,
+  56% {
+    transform: translateY(calc(var(--popular-panel-height) * -2));
+  }
+
+  60%,
+  76% {
+    transform: translateY(calc(var(--popular-panel-height) * -3));
+  }
+
+  80%,
+  96% {
+    transform: translateY(calc(var(--popular-panel-height) * -4));
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-home-popular-viewport {
+    height: auto;
+    overflow: visible;
+    mask-image: none;
+  }
+
+  .marketing-home-popular-track {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    animation: none;
+  }
+
+  .marketing-home-popular-row {
+    flex-wrap: wrap;
+  }
 }
 
 .marketing-home-trust-strip {
@@ -1328,7 +1401,7 @@ button.marketing-home-control {
     transform: none;
   }
 
-  .v2job-card:hover::before {
+  .featured-job-card:hover::before {
     animation: none;
   }
 
@@ -1499,7 +1572,7 @@ button.marketing-home-control {
   initial-value: 0deg;
 }
 
-.v2job-card {
+.featured-job-card {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1515,7 +1588,7 @@ button.marketing-home-control {
 
 /* A mint light that traces around the card's edge on hover (border beam).
    The conic gradient is masked to a 1.6px ring, then its angle is animated. */
-.v2job-card::before {
+.featured-job-card::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1542,25 +1615,25 @@ button.marketing-home-control {
   pointer-events: none;
 }
 
-@keyframes v2job-beam {
+@keyframes featured-job-beam {
   to {
     --beam-angle: 360deg;
   }
 }
 
 /* Keep real content above the decorative layer. */
-.v2job-card > * {
+.featured-job-card > * {
   position: relative;
   z-index: 1;
 }
 
-.v2job-top {
+.featured-job-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.v2job-badge {
+.featured-job-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1570,28 +1643,28 @@ button.marketing-home-control {
   border-radius: 999px;
 }
 
-.v2job-badge-featured {
+.featured-job-badge-featured {
   color: #0b7f5f;
   background: #e4f8f0;
 }
-.v2job-badge-new {
+.featured-job-badge-new {
   color: #0891b2;
   background: #e0f5fa;
 }
-.v2job-badge-urgent {
+.featured-job-badge-urgent {
   color: #d9480f;
   background: #ffece0;
 }
-.v2job-badge-remote {
+.featured-job-badge-remote {
   color: #6d28d9;
   background: #f0e9fe;
 }
-.v2job-badge-salary {
+.featured-job-badge-salary {
   color: #b45309;
   background: #fdf0db;
 }
 
-.v2job-save {
+.featured-job-save {
   width: 34px;
   height: 34px;
   display: grid;
@@ -1606,11 +1679,11 @@ button.marketing-home-control {
     background 200ms ease;
 }
 
-.v2job-save.is-saved {
+.featured-job-save.is-saved {
   color: #0aa56f;
 }
 
-.v2job-company {
+.featured-job-company {
   position: relative;
   z-index: 1;
   display: flex;
@@ -1621,13 +1694,13 @@ button.marketing-home-control {
 }
 
 /* When the verify tooltip is shown, lift the whole company row above the
-   card's later siblings (title/salary) so the popover isn't painted over. */
-.v2job-company:has(.v2job-verify:hover),
-.v2job-company:has(.v2job-verify:focus-within) {
+   card's later siblings (title/jobs) so the popover isn't painted over. */
+.featured-job-company:has(.featured-job-verify:hover),
+.featured-job-company:has(.featured-job-verify:focus-within) {
   z-index: 40;
 }
 
-.v2job-logo {
+.featured-job-logo {
   display: grid;
   place-items: center;
   width: 40px;
@@ -1639,14 +1712,14 @@ button.marketing-home-control {
   border: 1px solid #eef2f7;
 }
 
-.v2job-logo img {
+.featured-job-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
   padding: 5px;
 }
 
-.v2job-logo-mono {
+.featured-job-logo-mono {
   color: #ffffff;
   font-size: 18px;
   font-weight: 800;
@@ -1654,14 +1727,14 @@ button.marketing-home-control {
 }
 
 /* Company row: name truncates with ellipsis; verified badge never shrinks. */
-.v2job-company-row {
+.featured-job-company-row {
   display: flex;
   align-items: center;
   gap: 5px;
   min-width: 0;
 }
 
-.v2job-company-name {
+.featured-job-company-name {
   overflow: hidden;
   color: #475569;
   font-size: 13.5px;
@@ -1671,13 +1744,13 @@ button.marketing-home-control {
 }
 
 /* --- Verified employer badge + trust tooltip --- */
-.v2job-verify {
+.featured-job-verify {
   position: relative;
   flex: 0 0 auto;
   display: inline-flex;
 }
 
-.v2job-verify-btn {
+.featured-job-verify-btn {
   display: grid;
   place-items: center;
   padding: 0;
@@ -1687,7 +1760,7 @@ button.marketing-home-control {
   cursor: pointer;
 }
 
-.v2job-verify-pop {
+.featured-job-verify-pop {
   position: absolute;
   z-index: 30;
   left: -10px;
@@ -1710,7 +1783,7 @@ button.marketing-home-control {
 }
 
 /* Little pointer arrow at the top of the tooltip, under the badge. */
-.v2job-verify-pop::after {
+.featured-job-verify-pop::after {
   content: "";
   position: absolute;
   bottom: 100%;
@@ -1721,7 +1794,7 @@ button.marketing-home-control {
   background: #0f172a;
 }
 
-.v2job-verify-head {
+.featured-job-verify-head {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1732,12 +1805,12 @@ button.marketing-home-control {
   line-height: 1.3;
 }
 
-.v2job-verify-head svg {
+.featured-job-verify-head svg {
   flex: 0 0 auto;
   color: #34d399;
 }
 
-.v2job-verify-pop ul {
+.featured-job-verify-pop ul {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1746,7 +1819,7 @@ button.marketing-home-control {
   gap: 8px;
 }
 
-.v2job-verify-pop li {
+.featured-job-verify-pop li {
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -1756,7 +1829,7 @@ button.marketing-home-control {
   color: #cbd5e1;
 }
 
-.v2job-verify-pop li svg {
+.featured-job-verify-pop li svg {
   flex: 0 0 auto;
   margin-top: 2px;
   color: #34d399;
@@ -1765,12 +1838,17 @@ button.marketing-home-control {
 /* Title: cap at two lines (natural height). Footer is pinned to the bottom
    via margin-top:auto, so cards stay equal height WITHOUT reserving title
    space — any slack collects above the footer divider, not under the title. */
-.v2job-title {
+.featured-job-title {
   margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: #111827;
   font-size: 18px;
   font-weight: 800;
   line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -1779,7 +1857,7 @@ button.marketing-home-control {
   transition: color 280ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.v2job-salary {
+.featured-job-salary {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -1789,14 +1867,14 @@ button.marketing-home-control {
   font-weight: 800;
 }
 
-.v2job-meta {
+.featured-job-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;
   margin-top: 14px;
 }
 
-.v2job-meta span {
+.featured-job-meta span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1805,12 +1883,12 @@ button.marketing-home-control {
   font-weight: 600;
 }
 
-.v2job-meta svg {
+.featured-job-meta svg {
   color: #94a3b8;
 }
 
 /* Tags: single clipped row; the "+N" chip absorbs the overflow count. */
-.v2job-tags {
+.featured-job-tags {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1819,7 +1897,7 @@ button.marketing-home-control {
   flex-wrap: nowrap;
 }
 
-.v2job-tags i {
+.featured-job-tags i {
   flex: 0 0 auto;
   max-width: 150px;
   overflow: hidden;
@@ -1834,13 +1912,13 @@ button.marketing-home-control {
   background: #f1f5f9;
 }
 
-.v2job-tags .v2job-tag-more {
+.featured-job-tags .featured-job-tag-more {
   color: #0b7f5f;
   background: #e4f8f0;
   cursor: default;
 }
 
-.v2job-foot {
+.featured-job-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1850,7 +1928,7 @@ button.marketing-home-control {
   border-top: 1px solid #f1f5f9;
 }
 
-.v2job-deadline {
+.featured-job-deadline {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1859,7 +1937,7 @@ button.marketing-home-control {
   font-weight: 600;
 }
 
-.v2job-apply {
+.featured-job-apply {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1880,7 +1958,7 @@ button.marketing-home-control {
     box-shadow 200ms ease;
 }
 
-.v2job-apply svg {
+.featured-job-apply svg {
   transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -2001,10 +2079,10 @@ button.marketing-home-control {
   grid-auto-rows: 1fr;
   grid-auto-flow: row dense;
   gap: 18px;
-  animation: v2co-fade 420ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: featured-company-fade 420ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
-@keyframes v2co-fade {
+@keyframes featured-company-fade {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -2016,7 +2094,7 @@ button.marketing-home-control {
 }
 
 /* Featured spotlight: bottom-right — column 3, rows 2-5 (under the first card). */
-.v2co-featured {
+.featured-company-featured {
   grid-column: 3;
   grid-row: 2 / span 4;
   display: flex;
@@ -2027,15 +2105,15 @@ button.marketing-home-control {
   background: #0f172a;
 }
 
-.v2co-featured-cover {
+.featured-company-featured-cover {
   position: relative;
   height: 180px;
   overflow: hidden;
   background: #0f172a;
 }
 
-.v2co-featured-cover-img,
-.v2co-featured-cover-fallback {
+.featured-company-featured-cover-img,
+.featured-company-featured-cover-fallback {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2046,7 +2124,7 @@ button.marketing-home-control {
 
 /* Gradient scrim: transparent at the top, fading to the body's dark navy at
    the bottom so the photo melts seamlessly into the card body. */
-.v2co-featured-scrim {
+.featured-company-featured-scrim {
   position: absolute;
   inset: 0;
   background: linear-gradient(
@@ -2058,7 +2136,7 @@ button.marketing-home-control {
   );
 }
 
-.v2co-featured-logo {
+.featured-company-featured-logo {
   position: relative;
   z-index: 2;
   display: grid;
@@ -2073,18 +2151,18 @@ button.marketing-home-control {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
 }
 
-.v2co-featured-logo img {
+.featured-company-featured-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.v2co-featured-logo .v2co-logo-mono {
+.featured-company-featured-logo .featured-company-logo-mono {
   font-size: 30px;
   font-weight: 800;
 }
 
-.v2co-featured-body {
+.featured-company-featured-body {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -2092,21 +2170,21 @@ button.marketing-home-control {
   color: #e5e7eb;
 }
 
-.v2co-featured-body h3 {
+.featured-company-featured-body h3 {
   margin: 6px 0 0;
   color: #ffffff;
   font-size: 22px;
   font-weight: 800;
 }
 
-.v2co-featured-tags {
+.featured-company-featured-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
 }
 
-.v2co-featured-tags i {
+.featured-company-featured-tags i {
   padding: 4px 12px;
   color: #cbd5e1;
   font-size: 12px;
@@ -2117,7 +2195,7 @@ button.marketing-home-control {
   background: rgba(255, 255, 255, 0.06);
 }
 
-.v2co-featured-body p {
+.featured-company-featured-body p {
   margin: 14px 0 0;
   color: #94a3b8;
   font-size: 13px;
@@ -2125,7 +2203,7 @@ button.marketing-home-control {
   line-height: 1.6;
 }
 
-.v2co-featured-jobs {
+.featured-company-featured-jobs {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -2135,14 +2213,14 @@ button.marketing-home-control {
   font-weight: 700;
 }
 
-.v2co-featured-actions {
+.featured-company-featured-actions {
   display: flex;
   gap: 10px;
   margin-top: auto;
   padding-top: 18px;
 }
 
-.v2co-featured-view {
+.featured-company-featured-view {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2160,11 +2238,11 @@ button.marketing-home-control {
   transition: background 220ms ease;
 }
 
-.v2co-featured-view svg {
+.featured-company-featured-view svg {
   transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.v2co-featured-follow {
+.featured-company-featured-follow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2185,14 +2263,14 @@ button.marketing-home-control {
     background 200ms ease;
 }
 
-.v2co-featured-follow.is-following {
+.featured-company-featured-follow.is-following {
   color: #34d399;
   border-color: rgba(52, 211, 153, 0.4);
   background: rgba(52, 211, 153, 0.1);
 }
 
 /* Small company card. */
-.v2co-card {
+.featured-company-card {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -2200,13 +2278,25 @@ button.marketing-home-control {
   border: 1px solid #e6eaf0;
   border-radius: 16px;
   background: #ffffff;
-  cursor: pointer;
   transition:
     border-color 220ms ease,
     background 220ms ease;
 }
 
-.v2co-logo {
+.featured-company-card-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 16px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.featured-company-logo {
   display: grid;
   place-items: center;
   width: 54px;
@@ -2218,18 +2308,18 @@ button.marketing-home-control {
   background: #ffffff;
 }
 
-.v2co-logo img {
+.featured-company-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.v2co-logo-mono {
+.featured-company-logo-mono {
   font-size: 24px;
   font-weight: 800;
 }
 
-.v2co-body {
+.featured-company-body {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -2237,7 +2327,7 @@ button.marketing-home-control {
   flex: 1;
 }
 
-.v2co-body h3 {
+.featured-company-body strong {
   margin: 0;
   color: #111827;
   font-size: 15px;
@@ -2248,14 +2338,14 @@ button.marketing-home-control {
   white-space: nowrap;
 }
 
-.v2co-cat {
+.featured-company-cat {
   color: #94a3b8;
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.2;
 }
 
-.v2co-jobs {
+.featured-company-jobs {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2266,11 +2356,11 @@ button.marketing-home-control {
   line-height: 1.2;
 }
 
-.v2co-jobs svg {
+.featured-company-jobs svg {
   color: #0aa56f;
 }
 
-.v2co-follow {
+.featured-company-follow {
   flex: 0 0 auto;
   align-self: center;
   display: inline-flex;
@@ -2292,7 +2382,7 @@ button.marketing-home-control {
     background 200ms ease;
 }
 
-.v2co-follow.is-following {
+.featured-company-follow.is-following {
   color: #ffffff;
   border-color: transparent;
   background: linear-gradient(100deg, #098f63, #10b981);
@@ -3344,7 +3434,7 @@ button.marketing-home-control {
   }
 
   /* Popular chips: fill with mint, gentle press feel. */
-  .marketing-home-popular > div button:hover {
+  .marketing-home-popular-row button:hover {
     color: #087456;
     background: #e7fff7;
   }
@@ -3377,39 +3467,39 @@ button.marketing-home-control {
     color: #0aa56f;
   }
 
-  .v2job-card:hover {
+  .featured-job-card:hover {
     border-color: #d8eee4;
     background: #fbfdfc;
   }
 
-  .v2job-card:hover::before {
+  .featured-job-card:hover::before {
     opacity: 1;
-    animation: v2job-beam 3.6s linear infinite;
+    animation: featured-job-beam 3.6s linear infinite;
   }
 
-  .v2job-card:hover .v2job-title {
+  .featured-job-card:hover .featured-job-title {
     color: #0b7f5f;
   }
 
-  .v2job-verify:hover .v2job-verify-pop,
-  .v2job-verify:focus-within .v2job-verify-pop {
+  .featured-job-verify:hover .featured-job-verify-pop,
+  .featured-job-verify:focus-within .featured-job-verify-pop {
     opacity: 1;
     visibility: visible;
     transform: translateY(0) scale(1);
   }
 
-  .v2job-save:hover {
+  .featured-job-save:hover {
     color: #0aa56f;
     background: #eef7f3;
   }
 
-  .v2job-apply:hover {
+  .featured-job-apply:hover {
     color: #ffffff;
     border-color: transparent;
     background: linear-gradient(100deg, #098f63, #10b981);
   }
 
-  .v2job-apply:hover svg {
+  .featured-job-apply:hover svg {
     transform: translateX(3px);
   }
 
@@ -3426,26 +3516,26 @@ button.marketing-home-control {
     background: #f3fdf8;
   }
 
-  .v2co-card:hover {
+  .featured-company-card:hover {
     border-color: #cdeadd;
     background: #fbfdfc;
   }
 
-  .v2co-follow:not(.is-following):hover {
+  .featured-company-follow:not(.is-following):hover {
     color: #ffffff;
     border-color: transparent;
     background: linear-gradient(100deg, #098f63, #10b981);
   }
 
-  .v2co-featured-view:hover {
+  .featured-company-featured-view:hover {
     background: linear-gradient(100deg, #087a55, #0fa873);
   }
 
-  .v2co-featured-view:hover svg {
+  .featured-company-featured-view:hover svg {
     transform: translateX(3px);
   }
 
-  .v2co-featured-follow:not(.is-following):hover {
+  .featured-company-featured-follow:not(.is-following):hover {
     color: #ffffff;
     border-color: rgba(255, 255, 255, 0.4);
     background: rgba(255, 255, 255, 0.1);
@@ -3580,6 +3670,11 @@ button.marketing-home-control {
     flex-wrap: wrap;
   }
 
+  .marketing-home-popular-viewport {
+    --popular-panel-height: 78px;
+    max-width: 100%;
+  }
+
   .marketing-home-trust-strip {
     grid-template-columns: 1fr;
     padding: 23px 29px;
@@ -3601,21 +3696,21 @@ button.marketing-home-control {
     grid-auto-flow: row;
   }
 
-  .v2co-featured {
+  .featured-company-featured {
     display: none;
   }
 
   /* Narrow columns cramp the inline follow button, so drop it to its own
      full-width row below the company info. */
-  .v2co-card {
+  .featured-company-card {
     flex-wrap: wrap;
   }
 
-  .v2co-body {
+  .featured-company-body {
     flex-basis: 0;
   }
 
-  .v2co-card .v2co-follow {
+  .featured-company-card .featured-company-follow {
     flex: 1 0 100%;
     align-self: stretch;
     justify-content: center;
@@ -3709,6 +3804,7 @@ button.marketing-home-control {
 
   .marketing-home-logo img {
     width: 152px;
+    height: auto;
   }
 
   .marketing-home-nav,
@@ -3830,10 +3926,14 @@ button.marketing-home-control {
     margin-top: 18px;
   }
 
-  .marketing-home-popular > div {
-    flex-wrap: wrap;
-    gap: 8px;
+  .marketing-home-popular-viewport {
+    --popular-panel-height: 112px;
     margin-top: 11px;
+  }
+
+  .marketing-home-popular-row {
+    align-content: flex-start;
+    gap: 8px;
   }
 
   .marketing-home-trust-strip {
@@ -3904,28 +4004,28 @@ button.marketing-home-control {
 
   /* Mobile: bring back the featured card as the single hero (small cards are
      dropped via JS count=0); slider dots page between featured companies. */
-  .v2co-featured {
+  .featured-company-featured {
     display: flex;
     grid-column: 1;
     grid-row: auto;
   }
 
-  .v2co-featured-cover {
+  .featured-company-featured-cover {
     height: 150px;
   }
 
-  .v2co-featured-logo {
+  .featured-company-featured-logo {
     width: 64px;
     height: 64px;
     margin: -36px 0 0 18px;
     padding: 8px;
   }
 
-  .v2co-featured-body {
+  .featured-company-featured-body {
     padding: 14px 18px 18px;
   }
 
-  .v2co-featured-body h3 {
+  .featured-company-featured-body h3 {
     font-size: 20px;
   }
 
