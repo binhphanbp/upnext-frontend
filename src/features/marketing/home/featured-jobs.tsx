@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -21,7 +22,7 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
-} from "./v2-icons";
+} from "./marketing-icons";
 
 type FeaturedJobsProps = {
   navigate: (path: string) => void;
@@ -74,15 +75,21 @@ function CompanyLogo({ src, name, color }: { src: string; name: string; color: s
 
   if (!src || failed) {
     return (
-      <i className="v2job-logo v2job-logo-mono" style={{ background: color }}>
+      <i className="featured-job-logo featured-job-logo-mono" style={{ background: color }}>
         {name.charAt(0)}
       </i>
     );
   }
 
   return (
-    <i className="v2job-logo">
-      <img src={src} alt={`Logo ${name}`} onError={() => setFailed(true)} />
+    <i className="featured-job-logo">
+      <Image
+        src={src}
+        alt={`Logo ${name}`}
+        width={48}
+        height={48}
+        onError={() => setFailed(true)}
+      />
     </i>
   );
 }
@@ -90,17 +97,17 @@ function CompanyLogo({ src, name, color }: { src: string; name: string; color: s
 /** Verified company badge with an on-hover/focus trust tooltip. */
 function VerifiedBadge() {
   return (
-    <span className="v2job-verify">
+    <span className="featured-job-verify">
       <button
         type="button"
-        className="v2job-verify-btn"
+        className="featured-job-verify-btn"
         aria-label="Nhà tuyển dụng đã được xác thực"
         onClick={(event) => event.stopPropagation()}
       >
         <BadgeCheck size={15} />
       </button>
-      <span className="v2job-verify-pop" role="tooltip">
-        <span className="v2job-verify-head">
+      <span className="featured-job-verify-pop" role="tooltip">
+        <span className="featured-job-verify-head">
           <ShieldCheck size={15} />
           Nhà tuyển dụng đã được xác thực
         </span>
@@ -476,11 +483,7 @@ export function FeaturedJobs({ navigate }: FeaturedJobsProps) {
           <h2>Cơ hội đang được quan tâm</h2>
           <p>Những vị trí IT nổi bật từ các công ty uy tín, được cập nhật liên tục.</p>
         </div>
-        <button
-          type="button"
-          className="marketing-home-jobs-all"
-          onClick={() => navigate("/jobs-v2")}
-        >
+        <button type="button" className="marketing-home-jobs-all" onClick={() => navigate("/jobs")}>
           Xem tất cả <ChevronRight size={16} />
         </button>
       </header>
@@ -519,19 +522,15 @@ export function FeaturedJobs({ navigate }: FeaturedJobsProps) {
                   const extraTags = job.tags.length - shownTags.length;
 
                   return (
-                    <article
-                      key={job.id}
-                      className="v2job-card"
-                      onClick={() => navigate(`/jobs-v2?keyword=${encodeURIComponent(job.title)}`)}
-                    >
-                      <header className="v2job-top">
-                        <span className={`v2job-badge v2job-badge-${job.badge.tone}`}>
+                    <article key={job.id} className="featured-job-card">
+                      <header className="featured-job-top">
+                        <span className={`featured-job-badge featured-job-badge-${job.badge.tone}`}>
                           {badgeIcon[job.badge.tone]}
                           {job.badge.label}
                         </span>
                         <button
                           type="button"
-                          className={`v2job-save${saved[job.id] ? " is-saved" : ""}`}
+                          className={`featured-job-save${saved[job.id] ? " is-saved" : ""}`}
                           aria-label={saved[job.id] ? "Bỏ lưu tin" : "Lưu tin"}
                           aria-pressed={saved[job.id] ?? false}
                           onClick={(event) => {
@@ -543,24 +542,32 @@ export function FeaturedJobs({ navigate }: FeaturedJobsProps) {
                         </button>
                       </header>
 
-                      <div className="v2job-company">
+                      <div className="featured-job-company">
                         <CompanyLogo src={job.logo} name={job.company} color={job.logoColor} />
-                        <span className="v2job-company-row">
-                          <span className="v2job-company-name" title={job.company}>
+                        <span className="featured-job-company-row">
+                          <span className="featured-job-company-name" title={job.company}>
                             {job.company}
                           </span>
                           {job.verified && <VerifiedBadge />}
                         </span>
                       </div>
 
-                      <h3 className="v2job-title">{job.title}</h3>
+                      <h3>
+                        <button
+                          type="button"
+                          className="featured-job-title"
+                          onClick={() => navigate(`/jobs?keyword=${encodeURIComponent(job.title)}`)}
+                        >
+                          {job.title}
+                        </button>
+                      </h3>
 
-                      <div className="v2job-salary">
+                      <div className="featured-job-salary">
                         <Coins size={16} />
                         {job.salary}
                       </div>
 
-                      <div className="v2job-meta">
+                      <div className="featured-job-meta">
                         <span>
                           <MapPin size={15} />
                           {job.location}
@@ -575,28 +582,31 @@ export function FeaturedJobs({ navigate }: FeaturedJobsProps) {
                         </span>
                       </div>
 
-                      <div className="v2job-tags">
+                      <div className="featured-job-tags">
                         {shownTags.map((tag) => (
                           <i key={tag}>{tag}</i>
                         ))}
                         {extraTags > 0 && (
-                          <i className="v2job-tag-more" title={job.tags.slice(MAX_TAGS).join(", ")}>
+                          <i
+                            className="featured-job-tag-more"
+                            title={job.tags.slice(MAX_TAGS).join(", ")}
+                          >
                             +{extraTags}
                           </i>
                         )}
                       </div>
 
-                      <footer className="v2job-foot">
-                        <span className="v2job-deadline">
+                      <footer className="featured-job-foot">
+                        <span className="featured-job-deadline">
                           <Clock size={14} />
                           {job.deadline}
                         </span>
                         <button
                           type="button"
-                          className="v2job-apply"
+                          className="featured-job-apply"
                           onClick={(event) => {
                             event.stopPropagation();
-                            navigate("/candidate/apply");
+                            navigate("/register");
                           }}
                         >
                           Ứng tuyển <ArrowRight size={15} />

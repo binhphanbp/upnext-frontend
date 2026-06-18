@@ -3,6 +3,53 @@
     "title": "UpNext - IT recruitment platform",
     "description": "UpNext connects IT talent with trusted technology companies through skill-first matching, market data, and a modern hiring experience."
   },
+  "Auth": {
+    "common": {
+      "or": "or",
+      "homeLabel": "Go to UpNext homepage",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "employerCta": "For employers"
+    },
+    "social": {
+      "google": "Continue with Google",
+      "github": "Continue with GitHub"
+    },
+    "fields": {
+      "fullName": "Full name",
+      "fullNamePlaceholder": "Enter your full name",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "createPasswordPlaceholder": "Create a password",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "Re-enter your password"
+    },
+    "login": {
+      "ariaLabel": "Log in to UpNext",
+      "title": "Log in",
+      "forgotPassword": "Forgot password?",
+      "submit": "Log in",
+      "signupPrompt": "Don't have an account?",
+      "signupLink": "Sign up"
+    },
+    "register": {
+      "ariaLabel": "Sign up for UpNext",
+      "title": "Sign up",
+      "submit": "Create account",
+      "loginPrompt": "Already have an account?",
+      "loginLink": "Log in"
+    },
+    "validation": {
+      "invalidEmail": "Enter a valid email",
+      "passwordRequired": "Password is required",
+      "fullNameMin": "Enter your full name",
+      "passwordMin": "Password must be at least 8 characters",
+      "confirmRequired": "Please confirm your password",
+      "passwordMismatch": "Passwords do not match"
+    }
+  },
   "HomePage": {
     "content": {
       "header": {
@@ -66,20 +113,20 @@
               {
                 "label": "IT-ready CV",
                 "description": "Improve your profile against target job descriptions.",
-                "href": "/candidate/profile",
+                "href": "/register",
                 "icon": "features"
               },
               {
                 "label": "AI interview",
                 "description": "Practice by CV, job description, and target level.",
-                "href": "/candidate/ai",
+                "href": "/register",
                 "icon": "features",
                 "badge": "New"
               },
               {
                 "label": "Salary report",
                 "description": "Market data by role, experience, and location.",
-                "href": "/salary",
+                "href": "/jobs",
                 "icon": "blog"
               }
             ]
@@ -278,10 +325,10 @@
         "quickLinks": [
           { "label": "IT jobs", "href": "/jobs" },
           { "label": "Tech companies", "href": "/companies" },
-          { "label": "Create profile", "href": "/candidate/profile" },
-          { "label": "Salary report", "href": "/salary" },
-          { "label": "Post a job", "href": "/employer/jobs" },
-          { "label": "Hiring solutions", "href": "/employer" }
+          { "label": "Create profile", "href": "/register" },
+          { "label": "Salary report", "href": "/jobs" },
+          { "label": "Post a job", "href": "/register" },
+          { "label": "Hiring solutions", "href": "/register" }
         ],
         "contactTitle": "Contact / Newsletter",
         "contactDescription": "Get the latest IT jobs and practical career articles from UpNext.",

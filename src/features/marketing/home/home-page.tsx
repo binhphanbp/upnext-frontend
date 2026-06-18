@@ -1,248 +1,46 @@
 "use client";
 
 import { useLocale } from "next-intl";
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { usePathname, useRouter } from "@/i18n/navigation";
 
+import { PublicHeader } from "../shared/public-header";
 import { upnextLogo } from "./brand";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
 import { JobMarket } from "./job-market";
-import { TechOrbit } from "./tech-orbit";
 import {
   ArrowRight,
   ArrowUp,
-  ArrowUpRight,
   Bookmark,
-  Bot,
-  Brain,
   BriefcaseBusiness,
   Building2,
   Check,
   ChevronDown,
   ChevronRight,
-  Code2,
-  Compass,
   Facebook,
-  FileText,
-  GraduationCap,
   Github,
-  Landmark,
-  Layers,
   Linkedin,
   Mail,
   MapPin,
-  MessagesSquare,
-  Moon,
-  Newspaper,
   Phone,
-  Route,
   Search,
-  ShieldCheck,
-  Smartphone,
   Sparkles,
-  Star,
-  Sun,
   TrendingUp,
   UsersRound,
-  WalletCards,
   Youtube,
-} from "./v2-icons";
-
-type MenuItem = {
-  label: string;
-  desc: string;
-  icon: ReactNode;
-  path: string;
-  badge?: string;
-  iconClass: string;
-};
-
-type NavMenu = {
-  key: string;
-  label: string;
-  eyebrow: string;
-  tagline: string;
-  /** Two columns look best for 4-6 items; one column for short lists. */
-  columns: 1 | 2;
-  items: MenuItem[];
-};
-
-const navMenus: NavMenu[] = [
-  {
-    key: "jobs",
-    label: "Việc làm IT",
-    eyebrow: "Khám phá việc làm",
-    tagline: "Tìm đúng vị trí theo chuyên môn và định hướng của bạn.",
-    columns: 2,
-    items: [
-      {
-        label: "Frontend",
-        desc: "React, Vue, Angular, UI Engineer.",
-        icon: <Code2 size={20} />,
-        path: "/jobs-v2?position=Frontend Developer",
-        iconClass: "feat-icon-cv",
-      },
-      {
-        label: "Backend",
-        desc: "Java, Node.js, Go, .NET, PHP.",
-        icon: <Layers size={20} />,
-        path: "/jobs-v2?position=Backend Developer",
-        iconClass: "feat-icon-ai",
-      },
-      {
-        label: "Mobile",
-        desc: "iOS, Android, Flutter, React Native.",
-        icon: <Smartphone size={20} />,
-        path: "/jobs-v2?position=Mobile Developer",
-        iconClass: "feat-icon-community",
-      },
-      {
-        label: "Data & AI",
-        desc: "Data Engineer, ML, AI Engineer.",
-        icon: <Brain size={20} />,
-        path: "/jobs-v2?position=AI%2FML Engineer",
-        iconClass: "feat-icon-path",
-      },
-      {
-        label: "DevOps & Cloud",
-        desc: "AWS, Kubernetes, CI/CD, SRE.",
-        icon: <ShieldCheck size={20} />,
-        path: "/jobs-v2?position=DevOps Engineer",
-        iconClass: "feat-icon-salary",
-      },
-      {
-        label: "Tất cả việc làm",
-        desc: "Duyệt toàn bộ tin tuyển dụng IT.",
-        icon: <BriefcaseBusiness size={20} />,
-        path: "/jobs-v2",
-        iconClass: "feat-icon-learn",
-      },
-    ],
-  },
-  {
-    key: "companies",
-    label: "Công ty IT",
-    eyebrow: "Nhà tuyển dụng",
-    tagline: "Tìm hiểu công ty uy tín trước khi ứng tuyển.",
-    columns: 1,
-    items: [
-      {
-        label: "Top công ty công nghệ",
-        desc: "Bảng xếp hạng theo điểm uy tín và đánh giá.",
-        icon: <Building2 size={20} />,
-        path: "/candidate/companies",
-        iconClass: "feat-icon-cv",
-      },
-      {
-        label: "Công ty đánh giá cao",
-        desc: "Môi trường, phúc lợi và văn hóa nổi bật.",
-        icon: <Star size={20} />,
-        path: "/candidate/companies",
-        iconClass: "feat-icon-salary",
-      },
-      {
-        label: "Big Tech & Tập đoàn",
-        desc: "FPT, Viettel, VNG, MoMo, ngân hàng số.",
-        icon: <Landmark size={20} />,
-        path: "/candidate/companies",
-        iconClass: "feat-icon-ai",
-      },
-    ],
-  },
-  {
-    key: "blog",
-    label: "Bài viết",
-    eyebrow: "Kiến thức & insight",
-    tagline: "Cập nhật xu hướng và kinh nghiệm nghề nghiệp IT.",
-    columns: 1,
-    items: [
-      {
-        label: "Tin tức công nghệ",
-        desc: "Xu hướng, công nghệ mới và thị trường tuyển dụng.",
-        icon: <Newspaper size={20} />,
-        path: "/candidate/salary",
-        iconClass: "feat-icon-community",
-      },
-      {
-        label: "Cẩm nang nghề nghiệp",
-        desc: "Hướng dẫn CV, phỏng vấn và phát triển sự nghiệp.",
-        icon: <Compass size={20} />,
-        path: "/candidate/salary",
-        iconClass: "feat-icon-path",
-      },
-      {
-        label: "Báo cáo lương IT",
-        desc: "Số liệu lương theo vị trí, level và khu vực.",
-        icon: <TrendingUp size={20} />,
-        path: "/candidate/salary",
-        iconClass: "feat-icon-salary",
-      },
-    ],
-  },
-  {
-    key: "features",
-    label: "Tính năng",
-    eyebrow: "Công cụ cho ứng viên IT",
-    tagline: "Mọi thứ bạn cần để tìm việc có chiến lược, không rải CV.",
-    columns: 2,
-    items: [
-      {
-        label: "Tạo CV chuẩn IT",
-        desc: "Mẫu CV tối ưu ATS, chấm điểm và gợi ý cải thiện theo JD.",
-        icon: <FileText size={20} />,
-        path: "/candidate/profile",
-        iconClass: "feat-icon-cv",
-      },
-      {
-        label: "Phỏng vấn AI",
-        desc: "Luyện phỏng vấn với bộ câu hỏi theo CV, JD và level mục tiêu.",
-        icon: <Bot size={20} />,
-        path: "/candidate/ai",
-        badge: "Mới",
-        iconClass: "feat-icon-ai",
-      },
-      {
-        label: "Lộ trình IT",
-        desc: "Bản đồ nghề nghiệp từ Fresher đến Lead theo từng stack.",
-        icon: <Route size={20} />,
-        path: "/candidate/ai",
-        iconClass: "feat-icon-path",
-      },
-      {
-        label: "Cẩm nang lương",
-        desc: "Dữ liệu lương theo vị trí, kinh nghiệm và khu vực.",
-        icon: <WalletCards size={20} />,
-        path: "/candidate/salary",
-        iconClass: "feat-icon-salary",
-      },
-      {
-        label: "Cộng đồng & Mentor",
-        desc: "Hỏi đáp, review CV và kết nối mentor trong ngành.",
-        icon: <MessagesSquare size={20} />,
-        path: "/candidate/messages",
-        iconClass: "feat-icon-community",
-      },
-      {
-        label: "Học tập & Sự kiện",
-        desc: "Workshop, livestream và khóa học kỹ năng cho dev.",
-        icon: <GraduationCap size={20} />,
-        path: "/candidate/ai",
-        iconClass: "feat-icon-learn",
-      },
-    ],
-  },
-];
+} from "./marketing-icons";
+import { buildPopularKeywordSlides, getPopularKeywordsForLocale } from "./popular-keywords";
+import { TechOrbit } from "./tech-orbit";
 
 type MarketingHomeExperienceProps = {
   navigate: (path: string) => void;
 };
 
 type FieldKey = "keyword" | "location";
-
-const popularSearches = ["Frontend", "Backend", "DevOps", "AI Engineer", "Data", "UI/UX"];
 
 const locationOptions = [
   "TP. Hồ Chí Minh",
@@ -302,18 +100,18 @@ const trustedCompanies = [
 ];
 
 const footerQuickLinks = [
-  { label: "Tìm việc IT", path: "/jobs-v2" },
-  { label: "Công ty công nghệ", path: "/candidate/companies" },
-  { label: "Tạo hồ sơ", path: "/candidate/profile" },
-  { label: "Cẩm nang nghề nghiệp", path: "/candidate/salary" },
-  { label: "Đăng tuyển dụng", path: "/employer/jobs" },
-  { label: "Tìm hồ sơ", path: "/employer/candidates" },
-  { label: "Giải pháp tuyển dụng", path: "/employer" },
-  { label: "Bảng giá", path: "/employer/billing" },
-  { label: "Blog", path: "/candidate/salary" },
-  { label: "Hướng dẫn", path: "/candidate/ai" },
-  { label: "Chính sách bảo mật", path: "/candidate/profile" },
-  { label: "Điều khoản sử dụng", path: "/candidate/profile" },
+  { label: "Tìm việc IT", path: "/jobs" },
+  { label: "Công ty công nghệ", path: "/companies" },
+  { label: "Tạo hồ sơ", path: "/register" },
+  { label: "Cẩm nang nghề nghiệp", path: "/jobs" },
+  { label: "Đăng tuyển dụng", path: "/register" },
+  { label: "Tìm hồ sơ", path: "/register" },
+  { label: "Giải pháp tuyển dụng", path: "/register" },
+  { label: "Bảng giá", path: "/register/billing" },
+  { label: "Blog", path: "/jobs" },
+  { label: "Hướng dẫn", path: "/register" },
+  { label: "Chính sách bảo mật", path: "/register" },
+  { label: "Điều khoản sử dụng", path: "/register" },
 ];
 
 const footerSocials = [
@@ -322,29 +120,6 @@ const footerSocials = [
   { label: "GitHub", icon: <Github size={19} />, href: "https://github.com/" },
   { label: "YouTube", icon: <Youtube size={19} />, href: "https://www.youtube.com/" },
 ];
-
-const enNavCopy: Record<string, { label: string; eyebrow: string; tagline: string }> = {
-  jobs: {
-    label: "IT Jobs",
-    eyebrow: "Explore jobs",
-    tagline: "Find roles by specialty, stack, and career direction.",
-  },
-  companies: {
-    label: "IT Companies",
-    eyebrow: "Employers",
-    tagline: "Research trusted companies before applying.",
-  },
-  blog: {
-    label: "Articles",
-    eyebrow: "Knowledge & insights",
-    tagline: "Follow IT career advice and hiring market trends.",
-  },
-  features: {
-    label: "Features",
-    eyebrow: "Tools for IT talent",
-    tagline: "Everything you need to search strategically, not spam applications.",
-  },
-};
 
 function FlagIcon({ code, label }: { code: Language["code"]; label?: string }) {
   return (
@@ -463,16 +238,18 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("");
   const [openField, setOpenField] = useState<FieldKey | null>(null);
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [langOpen, setLangOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  const lang: Language["code"] = locale === "en" ? "EN" : "VI";
   const copy = locale === "en" ? homeCopy.en : homeCopy.vi;
-  const langRef = useRef<HTMLDivElement | null>(null);
+  const popularKeywords = useMemo(
+    () => getPopularKeywordsForLocale(locale === "en" ? "en" : "vi"),
+    [locale],
+  );
+  const popularKeywordSlides = useMemo(
+    () => buildPopularKeywordSlides(popularKeywords, { itemsPerSlide: 6 }),
+    [popularKeywords],
+  );
 
   const searchCardRef = useRef<HTMLElement | null>(null);
-  const navRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!openField) return undefined;
@@ -494,46 +271,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     };
   }, [openField]);
 
-  useEffect(() => {
-    if (!openMenu) return undefined;
-
-    function handlePointerDown(event: MouseEvent) {
-      if (!navRef.current?.contains(event.target as Node)) {
-        setOpenMenu(null);
-      }
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpenMenu(null);
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [openMenu]);
-
-  useEffect(() => {
-    if (!langOpen) return undefined;
-
-    function handlePointerDown(event: MouseEvent) {
-      if (!langRef.current?.contains(event.target as Node)) {
-        setLangOpen(false);
-      }
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setLangOpen(false);
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [langOpen]);
-
   const keywordMatches = useMemo(() => {
     const query = keyword.trim().toLowerCase();
     const source = query
@@ -549,7 +286,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     if (location) params.set("location", location);
     setOpenField(null);
     const query = params.toString();
-    navigate(query ? `/jobs-v2?${query}` : "/jobs-v2");
+    navigate(query ? `/jobs?${query}` : "/jobs");
   }
 
   function toggleField(field: FieldKey) {
@@ -557,154 +294,13 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   }
 
   function switchLanguage(language: Language) {
-    setLangOpen(false);
     if (language.locale === locale) return;
     router.replace(pathname, { locale: language.locale });
   }
 
   return (
     <main className="marketing-home-page">
-      <header className="marketing-home-header">
-        <button
-          className="marketing-home-logo"
-          onClick={() => navigate("/")}
-          aria-label="Trang chủ UpNext"
-        >
-          <img src={upnextLogo.wordmark} alt="UpNext" />
-        </button>
-
-        <nav className="marketing-home-nav" aria-label="Điều hướng chính" ref={navRef}>
-          {navMenus.map((menu) => (
-            <div
-              key={menu.key}
-              className={`marketing-home-nav-dd${openMenu === menu.key ? " is-open" : ""}`}
-              onMouseEnter={() => setOpenMenu(menu.key)}
-              onMouseLeave={() => setOpenMenu(null)}
-            >
-              {(() => {
-                const navCopy = locale === "en" ? enNavCopy[menu.key] : undefined;
-
-                return (
-                  <>
-                    <button
-                      type="button"
-                      className="marketing-home-nav-trigger"
-                      aria-haspopup="true"
-                      aria-expanded={openMenu === menu.key}
-                      onClick={() => setOpenMenu((open) => (open === menu.key ? null : menu.key))}
-                    >
-                      {navCopy?.label ?? menu.label}
-                      <ChevronDown size={15} />
-                    </button>
-
-                    <div
-                      className={`marketing-home-mega${menu.columns === 1 ? " is-single" : ""}`}
-                      role="menu"
-                    >
-                      <div className="marketing-home-mega-head">
-                        <span className="marketing-home-mega-eyebrow">
-                          <Sparkles size={14} /> {navCopy?.eyebrow ?? menu.eyebrow}
-                        </span>
-                        <p>{navCopy?.tagline ?? menu.tagline}</p>
-                      </div>
-                      <div className="marketing-home-mega-grid">
-                        {menu.items.map((item) => (
-                          <button
-                            key={item.label}
-                            type="button"
-                            role="menuitem"
-                            className="marketing-home-mega-item"
-                            onClick={() => {
-                              setOpenMenu(null);
-                              navigate(item.path);
-                            }}
-                          >
-                            <i className={`marketing-home-mega-icon ${item.iconClass}`}>
-                              {item.icon}
-                            </i>
-                            <span className="marketing-home-mega-text">
-                              <b>
-                                <span>{item.label}</span>
-                                {item.badge && (
-                                  <em className="marketing-home-mega-badge">{item.badge}</em>
-                                )}
-                              </b>
-                              <small>{item.desc}</small>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          ))}
-        </nav>
-
-        <div className="marketing-home-header-actions">
-          <button className="marketing-home-employer" onClick={() => navigate("/employer")}>
-            <span className="marketing-home-employer-text">
-              <small>{copy.employerSmall}</small>
-              <b>{copy.employerLabel}</b>
-            </span>
-            <ArrowUpRight className="marketing-home-employer-arrow" size={17} />
-          </button>
-
-          <span className="marketing-home-action-sep" aria-hidden="true" />
-
-          <div className={`marketing-home-lang${langOpen ? " is-open" : ""}`} ref={langRef}>
-            <button
-              type="button"
-              className="marketing-home-lang-trigger"
-              aria-haspopup="listbox"
-              aria-expanded={langOpen}
-              aria-label={copy.languageLabel}
-              onClick={() => setLangOpen((open) => !open)}
-            >
-              <FlagIcon code={lang} />
-              <span>{lang}</span>
-              <ChevronDown size={14} />
-            </button>
-
-            <ul className="marketing-home-lang-menu" role="listbox">
-              {languages.map((item) => (
-                <li key={item.code}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={lang === item.code}
-                    className={`marketing-home-lang-option${lang === item.code ? " is-active" : ""}`}
-                    onClick={() => switchLanguage(item)}
-                  >
-                    <FlagIcon code={item.code} label={item.flagLabel} />
-                    <span className="marketing-home-lang-name">{item.label}</span>
-                    {lang === item.code && <Check size={15} />}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <button
-            type="button"
-            className="marketing-home-theme"
-            aria-label={theme === "light" ? copy.themeDark : copy.themeLight}
-            onClick={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
-          >
-            {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
-
-          <span className="marketing-home-action-sep" aria-hidden="true" />
-
-          <button className="marketing-home-login" onClick={() => navigate("/login")}>
-            {copy.login}
-          </button>
-          <button className="marketing-home-register" onClick={() => navigate("/register")}>
-            {copy.register}
-          </button>
-        </div>
-      </header>
+      <PublicHeader navigate={navigate} />
 
       <section className="marketing-home-content">
         <section className="marketing-home-hero">
@@ -750,18 +346,12 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                     />
                   </div>
                   {openField === "keyword" && keywordMatches.length > 0 && (
-                    <ul
-                      className="marketing-home-dropdown"
-                      role="listbox"
-                      aria-label="Gợi ý từ khóa"
-                    >
+                    <ul className="marketing-home-dropdown" aria-label="Gợi ý từ khóa">
                       {keywordMatches.map((item) => (
                         <li key={item}>
                           <button
                             type="button"
                             className="marketing-home-option"
-                            role="option"
-                            aria-selected={keyword === item}
                             onClick={() => {
                               setKeyword(item);
                               runSearch({ keyword: item });
@@ -798,19 +388,32 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
             <div className="marketing-home-popular">
               <span>{copy.popular}</span>
-              <div>
-                {popularSearches.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => {
-                      setKeyword(item);
-                      runSearch({ keyword: item });
-                    }}
-                  >
-                    {item}
-                  </button>
-                ))}
+              <div className="marketing-home-popular-viewport">
+                <div className="marketing-home-popular-track">
+                  {popularKeywordSlides.map((group, index) => (
+                    <div
+                      className="marketing-home-popular-row"
+                      key={`${group.map((keyword) => keyword.query).join("-")}-${index}`}
+                      aria-hidden={index === popularKeywordSlides.length - 1 ? "true" : undefined}
+                    >
+                      {group.map((keyword) => (
+                        <button
+                          key={keyword.query}
+                          type="button"
+                          title={keyword.label}
+                          aria-label={keyword.label}
+                          tabIndex={index === popularKeywordSlides.length - 1 ? -1 : undefined}
+                          onClick={() => {
+                            setKeyword(keyword.query);
+                            runSearch({ keyword: keyword.query });
+                          }}
+                        >
+                          {keyword.shortLabel ?? keyword.label}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -871,11 +474,14 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 aria-hidden="true"
               />
 
-              <img
+              <Image
                 className="marketing-home-hero-banner"
                 src="/assets/marketing/home/hero-banner.png"
                 alt="Ứng viên IT đang làm việc trên nền tảng UpNext"
+                width={720}
+                height={520}
                 draggable={false}
+                priority
               />
 
               {/* Floating job card */}
@@ -1012,14 +618,14 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
               <button
                 type="button"
                 className="marketing-home-footer-primary"
-                onClick={() => navigate("/jobs-v2")}
+                onClick={() => navigate("/jobs")}
               >
                 {copy.footerPrimary} <ArrowRight size={19} />
               </button>
               <button
                 type="button"
                 className="marketing-home-footer-secondary"
-                onClick={() => navigate("/candidate/profile")}
+                onClick={() => navigate("/register")}
               >
                 {copy.footerSecondary}
               </button>
@@ -1034,7 +640,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 onClick={() => navigate("/")}
                 aria-label="Trang chủ UpNext"
               >
-                <img src={upnextLogo.wordmark} alt="UpNext" />
+                <Image src={upnextLogo.wordmark} alt="UpNext" width={164} height={39} />
               </button>
               <p>
                 Nền tảng tuyển dụng IT kết nối ứng viên tài năng với các công ty công nghệ hàng đầu.
@@ -1159,7 +765,7 @@ function SelectField({
       <button
         type="button"
         className="marketing-home-control"
-        aria-haspopup="listbox"
+        aria-haspopup="true"
         aria-expanded={open}
         onClick={onToggle}
       >
@@ -1168,7 +774,7 @@ function SelectField({
         <ChevronDown size={17} />
       </button>
       {open && (
-        <ul className="marketing-home-dropdown" role="listbox" aria-label={label}>
+        <ul className="marketing-home-dropdown" aria-label={label}>
           {value && (
             <li>
               <button
@@ -1185,8 +791,6 @@ function SelectField({
               <button
                 type="button"
                 className={`marketing-home-option${value === item ? " is-active" : ""}`}
-                role="option"
-                aria-selected={value === item}
                 onClick={() => onSelect(item)}
               >
                 {item}

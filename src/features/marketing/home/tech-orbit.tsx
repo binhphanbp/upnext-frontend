@@ -131,7 +131,6 @@ export function TechOrbit() {
   return (
     <div
       className="tech-orbit"
-      role="group"
       aria-label="Kéo để xoay vòng các công nghệ"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

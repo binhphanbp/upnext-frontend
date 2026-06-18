@@ -35,6 +35,7 @@ export function RecruiterSidebar() {
                 )}
                 href={item.href}
                 key={item.href}
+                prefetch={false}
               >
                 <Icon aria-hidden className="h-5 w-5" />
                 <span>{item.label}</span>
@@ -49,6 +50,7 @@ export function RecruiterSidebar() {
                 : "text-slate-700 hover:bg-slate-50 hover:text-slate-950",
             )}
             href="/recruiter/team"
+            prefetch={false}
           >
             <UserGear aria-hidden className="h-5 w-5" />
             <span>Thành viên & phân quyền</span>
@@ -62,6 +64,7 @@ export function RecruiterSidebar() {
                   : "text-slate-700 hover:bg-slate-50 hover:text-slate-950",
               )}
               href={settingsItem.href}
+              prefetch={false}
             >
               <SettingsIcon aria-hidden className="h-5 w-5" />
               <span>{settingsItem.label}</span>

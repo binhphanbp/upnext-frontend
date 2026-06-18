@@ -34,11 +34,19 @@ Run `pnpm verify` for normal changes. Run `pnpm verify:full` for routes, app she
 ## Architecture
 
 - Feature-First Hybrid:
-  - `src/app/[locale]`: localized routes/layouts/metadata/composition only.
+  - `src/app/[locale]`: localized route tree; route groups organize layout/access and do not affect URLs.
+  - `src/app/[locale]/(public)`: public discovery pages such as `/`, `/jobs`, and `/companies`.
+  - `src/app/[locale]/(auth)`: auth pages such as `/login` and `/register`.
+  - `src/app/[locale]/(candidate|employer|admin)`: protected workspaces, created only when real code exists.
   - `src/features/<domain>`: domain UI, hooks, schemas, API calls, types, tests.
   - `src/shared`: reusable `api`, `lib`, `ui`, hooks, stores, types.
   - `src/i18n`, `messages`, `src/mocks`, `src/test`, `e2e`.
-- Expected domains: `auth`, `jobs`, `companies`, `candidates`, `applications`, `messages`, `notifications`, `employer-dashboard`, `admin`, `search`.
+- Expected domains when real code exists: `auth`, `jobs`, `companies`, `candidate`, `applications`, `messages`, `notifications`, `employer`, `admin`, `search`.
+- Public marketing pages live under `src/features/marketing/*`; `marketing/jobs` is not the shared/core `jobs` domain.
+- Public pages may be personalized for a signed-in candidate, but do not duplicate them under `/candidate`.
+- `/candidate/*` is reserved for the protected candidate workspace: profile, applications, saved jobs, messages, settings.
+- Employer is the canonical hiring-side domain. Use `recruiter` only for member/permission roles inside employer.
+- Do not commit empty placeholder folders or `.gitkeep` files for future domains.
 - Avoid business logic in `src/app`. Routes compose feature/shared modules.
 - Preferred feature shape: `api/`, `components/`, `hooks/`, `schemas/`, `types.ts`, colocated `*.test.ts(x)`.
 - Use `@/*` imports.
