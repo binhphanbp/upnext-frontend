@@ -6,22 +6,34 @@ import { Link, usePathname } from "@/i18n/navigation";
 export function RecruiterTopbar() {
   const pathname = usePathname();
   const isCandidatesPage = pathname.startsWith("/recruiter/candidates");
-  const searchPlaceholder = isCandidatesPage
-    ? "Tìm kiếm ứng viên, vị trí, kỹ năng..."
-    : "Tìm kiếm vị trí, mã tin...";
+  const isInterviewsPage = pathname.startsWith("/recruiter/interviews");
+  const isResourcesPage = pathname.startsWith("/recruiter/company-billing");
+  const isTeamPage = pathname.startsWith("/recruiter/team");
+  const searchPlaceholder = isTeamPage
+    ? "Tìm thành viên, email, vai trò..."
+    : isInterviewsPage
+      ? "Tìm kiếm ứng viên, lịch phỏng vấn, vị trí..."
+      : isCandidatesPage
+        ? "Tìm kiếm ứng viên, vị trí, kỹ năng..."
+        : isResourcesPage
+          ? "Tìm ứng viên, tin tuyển dụng..."
+          : "Tìm kiếm vị trí, mã tin...";
 
   return (
-    <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between gap-4 border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 flex h-[72px] shrink-0 items-center justify-between gap-4 border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
       <button
         aria-label="Mở menu"
         className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-700 lg:hidden"
+        type="button"
       >
         <Menu aria-hidden className="h-5 w-5" />
       </button>
 
       <div
         className={`relative hidden h-11 w-full items-center sm:flex ${
-          isCandidatesPage ? "max-w-[500px]" : "max-w-[400px]"
+          isCandidatesPage || isInterviewsPage || isTeamPage || isResourcesPage
+            ? "max-w-[500px]"
+            : "max-w-[400px]"
         }`}
       >
         <Search aria-hidden className="absolute left-4 h-5 w-5 text-slate-400" />
@@ -37,10 +49,29 @@ export function RecruiterTopbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        {isCandidatesPage ? (
+        {isInterviewsPage ? (
+          <button
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white shadow-[0_12px_26px_rgba(5,150,105,0.22)] transition hover:bg-emerald-700 sm:h-11 sm:px-5"
+            onClick={() => window.dispatchEvent(new Event("upnext:open-create-interview"))}
+            type="button"
+          >
+            <Plus aria-hidden className="h-5 w-5" />
+            <span className="hidden sm:inline">Tạo lịch phỏng vấn</span>
+          </button>
+        ) : isTeamPage ? (
+          <button
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white shadow-[0_12px_26px_rgba(5,150,105,0.22)] transition hover:bg-emerald-700 sm:h-11 sm:px-5"
+            onClick={() => window.dispatchEvent(new Event("upnext:open-invite-member"))}
+            type="button"
+          >
+            <Plus aria-hidden className="h-5 w-5" />
+            <span className="hidden sm:inline">Mời thành viên</span>
+          </button>
+        ) : isCandidatesPage ? (
           <button
             aria-label="Tiện ích"
             className="hidden h-10 w-10 items-center justify-center rounded-lg text-slate-800 transition hover:bg-slate-50 sm:inline-flex"
+            type="button"
           >
             <Gift aria-hidden className="h-5 w-5" />
           </button>
@@ -57,6 +88,7 @@ export function RecruiterTopbar() {
         <button
           aria-label="Thông báo"
           className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-800 transition hover:bg-slate-50"
+          type="button"
         >
           <Bell aria-hidden className="h-5 w-5" />
           <span className="absolute top-1 right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] leading-none font-bold text-white">
@@ -66,13 +98,16 @@ export function RecruiterTopbar() {
 
         <span className="hidden h-6 w-px bg-slate-200 sm:block" />
 
-        <button className="hidden items-center gap-3 rounded-lg px-1.5 py-1.5 transition hover:bg-slate-50 sm:flex">
+        <button
+          className="hidden items-center gap-3 rounded-lg px-1.5 py-1.5 transition hover:bg-slate-50 sm:flex"
+          type="button"
+        >
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-extrabold text-white">
             U
           </span>
           <span className="flex flex-col items-start leading-tight">
             <span className="text-sm font-bold text-slate-950">UpNext Studio</span>
-            {isCandidatesPage ? (
+            {isCandidatesPage || isInterviewsPage || isTeamPage || isResourcesPage ? (
               <span className="text-xs font-semibold text-slate-500">Nhà tuyển dụng</span>
             ) : null}
           </span>

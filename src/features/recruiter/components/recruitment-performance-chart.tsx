@@ -4,12 +4,33 @@ import { useSyncExternalStore } from "react";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { Area, AreaChart, CartesianGrid, Line, Tooltip, XAxis, YAxis } from "recharts";
 
-import { performanceData } from "@/features/recruiter/data/dashboard-data";
-import { ChevronDown } from "@/features/recruiter/icons";
+import {
+  getTrendClasses,
+  type DashboardChartPoint,
+  type DashboardTrend,
+} from "@/features/recruiter/data/dashboard-metrics";
+import { ArrowUp } from "@/features/recruiter/icons";
+import { cn } from "@/shared/lib/cn";
 
 import { SectionCard } from "./section-card";
 
-export function RecruitmentPerformanceChart() {
+type RecruitmentPerformanceChartProps = {
+  points: DashboardChartPoint[];
+  title: string;
+  totalInterviews: string;
+  totalProfiles: string;
+  trendInterviews: DashboardTrend;
+  trendProfiles: DashboardTrend;
+};
+
+export function RecruitmentPerformanceChart({
+  points,
+  title,
+  totalInterviews,
+  totalProfiles,
+  trendInterviews,
+  trendProfiles,
+}: RecruitmentPerformanceChartProps) {
   const mounted = useIsClient();
   const chartRef = useRef<HTMLDivElement | null>(null);
   const chartWidth = useElementWidth(chartRef);
@@ -17,13 +38,7 @@ export function RecruitmentPerformanceChart() {
   return (
     <SectionCard className="p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-[15px] leading-snug font-extrabold text-slate-950">
-          Hiệu suất tuyển dụng 30 ngày
-        </h2>
-        <button className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700">
-          30 ngày
-          <ChevronDown aria-hidden className="h-3.5 w-3.5" />
-        </button>
+        <h2 className="text-[15px] leading-snug font-extrabold text-slate-950">{title}</h2>
       </div>
 
       <div className="mb-3 flex items-center gap-6 pl-1 text-xs font-bold text-slate-600">
@@ -39,15 +54,25 @@ export function RecruitmentPerformanceChart() {
 
       <div className="h-[205px]" ref={chartRef}>
         {mounted && chartWidth > 0 ? (
-          <AreaChartContent width={chartWidth} />
+          <AreaChartContent points={points} width={chartWidth} />
         ) : (
           <div className="h-full rounded-lg bg-gradient-to-b from-emerald-50 to-white" />
         )}
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-4">
-        <SummaryCard color="emerald" label="Tổng hồ sơ nhận" value="1,248" />
-        <SummaryCard color="blue" label="Tổng phỏng vấn" value="186" />
+        <SummaryCard
+          color="emerald"
+          label="Tổng hồ sơ nhận"
+          trend={trendProfiles}
+          value={totalProfiles}
+        />
+        <SummaryCard
+          color="blue"
+          label="Tổng phỏng vấn"
+          trend={trendInterviews}
+          value={totalInterviews}
+        />
       </div>
     </SectionCard>
   );
@@ -86,10 +111,13 @@ function useElementWidth(ref: RefObject<HTMLElement | null>) {
   return width;
 }
 
-function AreaChartContent({ width }: { width: number }) {
+function AreaChartContent({ points, width }: { points: DashboardChartPoint[]; width: number }) {
+  const maxValue = Math.max(10, ...points.flatMap((point) => [point.interviews, point.profiles]));
+  const yDomain = Math.ceil(maxValue / 5) * 5;
+
   return (
     <AreaChart
-      data={performanceData}
+      data={points}
       height={205}
       margin={{ bottom: 0, left: -26, right: 4, top: 8 }}
       width={width}
@@ -103,14 +131,14 @@ function AreaChartContent({ width }: { width: number }) {
       <CartesianGrid stroke="#e5e7eb" vertical={false} />
       <XAxis
         axisLine={false}
-        dataKey="date"
-        interval={2}
+        dataKey="label"
+        minTickGap={8}
         tick={{ fill: "#64748b", fontSize: 11, fontWeight: 700 }}
         tickLine={false}
       />
       <YAxis
         axisLine={false}
-        domain={[0, 100]}
+        domain={[0, yDomain]}
         tick={{ fill: "#64748b", fontSize: 11, fontWeight: 700 }}
         tickCount={6}
         tickLine={false}
@@ -147,14 +175,16 @@ function AreaChartContent({ width }: { width: number }) {
 function SummaryCard({
   color,
   label,
+  trend,
   value,
 }: {
   color: "blue" | "emerald";
   label: string;
+  trend: DashboardTrend;
   value: string;
 }) {
   const dot = color === "emerald" ? "bg-emerald-500" : "bg-blue-500";
-  const trend = color === "emerald" ? "18%" : "12%";
+  const trendClasses = getTrendClasses(trend.tone);
 
   return (
     <div className="rounded-lg border border-slate-200 px-3 py-2">
@@ -162,9 +192,20 @@ function SummaryCard({
         <span className={`h-2 w-2 rounded-full ${dot}`} />
         {label}
       </p>
-      <div className="mt-1 flex items-end justify-between">
+      <div className="mt-1 flex items-end justify-between gap-3">
         <p className="text-lg leading-none font-extrabold text-slate-950">{value}</p>
-        <p className="text-xs font-extrabold text-emerald-600">↑ {trend}</p>
+        <p className="flex items-center gap-1 text-xs font-extrabold">
+          <ArrowUp
+            aria-hidden
+            className={cn(
+              "h-3.5 w-3.5",
+              trend.direction === "down" && "rotate-180",
+              trend.direction === "flat" && "rotate-90",
+              trendClasses.icon,
+            )}
+          />
+          <span className={trendClasses.text}>{trend.amount}</span>
+        </p>
       </div>
     </div>
   );
