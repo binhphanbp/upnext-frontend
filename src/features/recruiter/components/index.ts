@@ -5,4 +5,6 @@ export { PackageCard } from "./package-card";
 export { PipelineProgress } from "./pipeline-progress";
 export { RecruitmentPerformanceChart } from "./recruitment-performance-chart";
 export { TaskCard } from "./task-card";
+export { TeamRolesPage } from "./team-roles-page";
 export { TrustScoreCard } from "./trust-score-card";
+export { CompanyProfilePage } from "./company-profile-page";

@@ -7,10 +7,7 @@ import {
   candidateKpis,
   candidates,
   candidateTabs,
-  performanceMetrics,
   quickFilters,
-  reminderItems,
-  rightPanelTasks,
   statusLabels,
   type CandidateApplication,
   type CandidateStatus,
@@ -27,7 +24,6 @@ import {
   MoreHorizontal,
   RefreshCw,
   Search,
-  ShieldCheck,
   SlidersHorizontal,
 } from "@/features/recruiter/icons";
 import { cn } from "@/shared/lib/cn";
@@ -105,18 +101,15 @@ export function CandidatesPage() {
       <CandidateKpiGrid />
       <CandidateTabs activeTab={activeTab} onChange={setActiveTab} />
 
-      <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="min-w-0 space-y-4">
-          <CandidateFilters />
-          <CandidateTable
-            onClear={() => setSelectedIds(new Set())}
-            onToggle={toggleCandidate}
-            selectedCount={selectedCount}
-            selectedIds={selectedIds}
-          />
-        </section>
-        <CandidateRightPanel />
-      </div>
+      <section className="mt-4 min-w-0 space-y-4">
+        <CandidateFilters />
+        <CandidateTable
+          onClear={() => setSelectedIds(new Set())}
+          onToggle={toggleCandidate}
+          selectedCount={selectedCount}
+          selectedIds={selectedIds}
+        />
+      </section>
     </div>
   );
 }
@@ -491,102 +484,6 @@ function CandidateRow({
   );
 }
 
-function CandidateRightPanel() {
-  return (
-    <aside className="space-y-4 xl:sticky xl:top-[88px] xl:w-[320px] xl:shrink-0 xl:self-start">
-      <SideCard>
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-extrabold text-slate-950">Việc cần xử lý</h2>
-          <button className="text-xs font-extrabold text-emerald-600" type="button">
-            Xem tất cả →
-          </button>
-        </div>
-        <div className="mt-5 space-y-4">
-          {rightPanelTasks.map((task) => {
-            const Icon = task.icon;
-            return (
-              <div className="grid grid-cols-[24px_28px_1fr] items-center gap-3" key={task.label}>
-                <span
-                  className={cn(
-                    "inline-flex h-6 w-6 items-center justify-center rounded-full",
-                    task.tone === "amber" && "bg-amber-50 text-amber-500",
-                    task.tone === "blue" && "bg-blue-50 text-blue-500",
-                    task.tone === "violet" && "bg-violet-50 text-violet-500",
-                  )}
-                >
-                  <Icon aria-hidden className="h-4 w-4" />
-                </span>
-                <span className="text-lg font-extrabold text-slate-950">{task.count}</span>
-                <span className="text-xs font-bold text-slate-600">{task.label}</span>
-              </div>
-            );
-          })}
-        </div>
-      </SideCard>
-
-      <SideCard>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-extrabold text-slate-950">Hiệu suất xử lý</h2>
-          <button className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-600">
-            7 ngày qua
-            <ChevronDown aria-hidden className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {performanceMetrics.map((metric, index) => (
-            <div className="grid grid-cols-[1fr_86px] items-end gap-3 py-3" key={metric.label}>
-              <div>
-                <p className="text-xs font-semibold text-slate-500">{metric.label}</p>
-                <p className="mt-2 text-xl font-extrabold text-slate-950">{metric.value}</p>
-                <p
-                  className={cn(
-                    "mt-1 flex items-center gap-1 text-xs font-bold",
-                    metric.trendDirection === "up" ? "text-emerald-600" : "text-red-500",
-                  )}
-                >
-                  {metric.trendDirection === "up" ? "↑" : "↓"} {metric.trend}
-                </p>
-              </div>
-              <MiniSparkline color={metric.color} variant={index} />
-            </div>
-          ))}
-        </div>
-        <button
-          className="mt-4 inline-flex items-center gap-2 text-left text-sm font-extrabold text-emerald-600"
-          type="button"
-        >
-          Xem báo cáo chi tiết
-          <ArrowRight aria-hidden className="h-4 w-4" />
-        </button>
-      </SideCard>
-
-      <SideCard>
-        <h2 className="text-base font-extrabold text-slate-950">Nhắc nhở</h2>
-        <div className="mt-4 grid grid-cols-[1fr_70px] gap-3">
-          <div className="space-y-3">
-            {reminderItems.map((item) => (
-              <p
-                className="flex items-start gap-2 text-xs leading-5 font-bold text-slate-600"
-                key={item}
-              >
-                <span className="mt-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-emerald-500 text-[10px] text-emerald-600">
-                  ✓
-                </span>
-                {item}
-              </p>
-            ))}
-          </div>
-          <div className="flex items-end justify-center">
-            <span className="grid h-16 w-16 place-items-center rounded-2xl border-4 border-emerald-100 bg-emerald-50 text-emerald-600">
-              <ShieldCheck aria-hidden className="h-9 w-9" />
-            </span>
-          </div>
-        </div>
-      </SideCard>
-    </aside>
-  );
-}
-
 function BatchButton({ children }: { children: ReactNode }) {
   return (
     <button className="h-9 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700">
@@ -603,38 +500,5 @@ function PageButton({ ariaLabel, children }: { ariaLabel: string; children: Reac
     >
       {children}
     </button>
-  );
-}
-
-function SideCard({ children }: { children: ReactNode }) {
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
-      {children}
-    </section>
-  );
-}
-
-function MiniSparkline({ color, variant }: { color: string; variant: number }) {
-  const paths = [
-    "M2 28 C12 20 18 31 28 18 C38 7 43 24 52 13 C61 2 66 15 74 9 C82 4 88 8 94 1",
-    "M2 30 C9 22 16 31 24 18 C32 7 38 20 46 10 C54 1 58 18 66 7 C74 0 82 16 94 7",
-    "M2 33 C12 25 21 29 30 21 C39 13 48 19 58 11 C68 3 74 17 84 9 C90 5 92 1 94 0",
-  ];
-
-  return (
-    <svg aria-hidden className="h-12 w-24" viewBox="0 0 96 38">
-      <path
-        d="M2 36H94V8C84 9 78 1 70 8C62 15 56 8 48 18C40 27 32 8 24 18C16 31 10 23 2 32V36Z"
-        fill={`${color}16`}
-      />
-      <path
-        d={paths[variant] ?? paths[0]}
-        fill="none"
-        stroke={color}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
   );
 }

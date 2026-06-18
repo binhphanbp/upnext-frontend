@@ -2,13 +2,10 @@ import { Sparkles } from "@/features/recruiter/data/job-posts-data";
 import { Plus } from "@/features/recruiter/icons";
 import { Link } from "@/i18n/navigation";
 
-import { CurrentPlanCard } from "./job-posts/current-plan-card";
 import { JobFilters } from "./job-posts/job-filters";
 import { JobKpiGrid } from "./job-posts/job-kpi-grid";
 import { JobPostsTable } from "./job-posts/job-posts-table";
 import { JobStatusTabs } from "./job-posts/job-status-tabs";
-import { PostingPerformanceCard } from "./job-posts/posting-performance-card";
-import { RightActionCard } from "./job-posts/right-action-card";
 
 export function RecruiterJobPostsPage() {
   return (
@@ -39,16 +36,9 @@ export function RecruiterJobPostsPage() {
 
       <JobKpiGrid />
       <JobStatusTabs />
-      <div className="mt-3 grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px] 2xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-5">
-          <JobFilters />
-          <JobPostsTable />
-        </div>
-        <aside className="space-y-4">
-          <RightActionCard />
-          <PostingPerformanceCard />
-          <CurrentPlanCard />
-        </aside>
+      <div className="mt-3 space-y-5">
+        <JobFilters />
+        <JobPostsTable />
       </div>
     </div>
   );
