@@ -76,6 +76,14 @@ import {
   WarningCircle,
   X,
   XCircle,
+  Monitor,
+  PauseCircle,
+  LockSimple,
+  Copy,
+  ArrowCounterClockwise,
+  ClockCounterClockwise,
+  Headset,
+  Trash,
 } from "@phosphor-icons/react/ssr";
 
 export type LucideIcon = Icon;
@@ -158,4 +166,16 @@ export {
   WarningCircle,
   X,
   XCircle,
+  DotsThree,
+  Users,
+  PencilSimple,
+  PaperPlaneTilt,
+  Monitor,
+  PauseCircle,
+  LockSimple,
+  Copy,
+  ArrowCounterClockwise,
+  ClockCounterClockwise,
+  Headset,
+  Trash,
 };

@@ -17,7 +17,6 @@ import { InterviewSchedule } from "./interview-schedule";
 import { JobPerformanceTable } from "./job-performance-table";
 import { KpiGrid } from "./kpi-grid";
 import { PackageCard } from "./package-card";
-import { PipelineProgress } from "./pipeline-progress";
 import { RecruitmentPerformanceChart } from "./recruitment-performance-chart";
 import { TaskCard } from "./task-card";
 import { TrustScoreCard } from "./trust-score-card";
@@ -85,7 +84,6 @@ export function RecruiterDashboardPage() {
       <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <JobPerformanceTable />
         <div className="grid gap-4">
-          <PipelineProgress stages={dashboard.pipeline.stages} title={dashboard.pipeline.title} />
           <PackageCard />
           <TrustScoreCard score={trustScoreValue} />
         </div>

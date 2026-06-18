@@ -19,8 +19,9 @@ export function createApiUrl(path: string) {
   const baseUrl = env.NEXT_PUBLIC_API_BASE_URL.endsWith("/")
     ? env.NEXT_PUBLIC_API_BASE_URL
     : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
+  const normalizedPath = path.replace(/^\/+/u, "");
 
-  return new URL(path, baseUrl).toString();
+  return new URL(normalizedPath, baseUrl).toString();
 }
 
 export async function apiRequest<TResponse>(

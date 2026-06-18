@@ -1,0 +1,285 @@
+[  168215ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  168276ms] [LOG] [Fast Refresh] done in 167ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  421006ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  421140ms] [LOG] [Fast Refresh] done in 247ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  459764ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  460003ms] [LOG] [Fast Refresh] done in 346ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  460966ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  461257ms] [LOG] [Fast Refresh] done in 399ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  522765ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  522915ms] [LOG] [Fast Refresh] done in 266ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  558321ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  559128ms] [LOG] [Fast Refresh] done in 917ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  559637ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  560641ms] [LOG] [Fast Refresh] done in 1104ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  560745ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  560772ms] [LOG] [Fast Refresh] done in 127ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  596286ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  599403ms] [LOG] [Fast Refresh] done in 3229ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  602425ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  602454ms] [LOG] [Fast Refresh] done in 130ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  608378ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  608468ms] [LOG] [Fast Refresh] done in 202ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  685901ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  686134ms] [LOG] [Fast Refresh] done in 337ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  687473ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  687506ms] [LOG] [Fast Refresh] done in 144ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  704631ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  704640ms] [LOG] [Fast Refresh] done in 114ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  755942ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  755949ms] [LOG] [Fast Refresh] done in 112ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[  873382ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  876746ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  880091ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  883443ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  886806ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  894188ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  901552ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  908930ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  916301ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  923670ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  931047ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[  938447ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=0iEX9b12pZeQavBWt3JzH' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_client_0htqy-j._.js:13422
+[ 1949296ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 1949387ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 1949575ms] [WARNING] Image with src "/upnext-logo/wordmark-cropped.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 1978529ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 1982267ms] [LOG] [Fast Refresh] done in 3842ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 1982373ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 1983097ms] [LOG] [Fast Refresh] done in 824ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2044331ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2044487ms] [LOG] [Fast Refresh] done in 220ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2072794ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2073698ms] [LOG] [Fast Refresh] done in 946ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2073816ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074007ms] [LOG] [Fast Refresh] done in 296ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074331ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074349ms] [LOG] [Fast Refresh] done in 120ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074561ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074562ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074565ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074566ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074567ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074567ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074596ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074631ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074646ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074709ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2074748ms] [LOG] [Fast Refresh] done in 161ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2105755ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2105818ms] [LOG] [Fast Refresh] done in 169ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2187546ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2187623ms] [LOG] [Fast Refresh] done in 178ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2189566ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2189629ms] [LOG] [Fast Refresh] done in 177ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2241401ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2241981ms] [LOG] [Fast Refresh] done in 601ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2242259ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2242612ms] [LOG] [Fast Refresh] done in 458ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2269415ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2269487ms] [LOG] [Fast Refresh] done in 182ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2442553ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2443232ms] [LOG] [Fast Refresh] done in 790ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2443990ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2444236ms] [LOG] [Fast Refresh] done in 353ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2444272ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2444273ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2444274ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2444275ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2444276ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2444277ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2444298ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2444321ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2444328ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2454887ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2455016ms] [LOG] [Fast Refresh] done in 239ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2455207ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2455320ms] [LOG] [Fast Refresh] done in 215ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2455440ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2455536ms] [LOG] [Fast Refresh] done in 209ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 2997810ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000335ms] [LOG] [Fast Refresh] done in 2515ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000346ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000346ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000347ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000347ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000348ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000348ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000525ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000609ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000614ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3000619ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3001460ms] [LOG] [Fast Refresh] done in 1041ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3001823ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3001925ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002161ms] [WARNING] Image with src "/upnext-logo/wordmark-cropped.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002260ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002261ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002262ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002263ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002264ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002264ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002277ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002295ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002300ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002469ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3002639ms] [LOG] [Fast Refresh] done in 271ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3038275ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3038921ms] [LOG] [Fast Refresh] done in 756ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3039115ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3039287ms] [LOG] [Fast Refresh] done in 273ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3039406ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3039451ms] [LOG] [Fast Refresh] done in 145ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3063117ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3063890ms] [LOG] [Fast Refresh] done in 880ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3064026ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3064062ms] [LOG] [Fast Refresh] done in 137ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3064170ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3064223ms] [LOG] [Fast Refresh] done in 161ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3083221ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3083278ms] [LOG] [Fast Refresh] done in 170ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3087916ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3087978ms] [LOG] [Fast Refresh] done in 162ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3521435ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3521624ms] [LOG] [Fast Refresh] done in 297ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3525425ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3525563ms] [LOG] [Fast Refresh] done in 251ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3552695ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3552743ms] [LOG] [Fast Refresh] done in 154ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3553299ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3553377ms] [LOG] [Fast Refresh] done in 184ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3561323ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3561916ms] [LOG] [Fast Refresh] done in 702ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3562324ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3562610ms] [LOG] [Fast Refresh] done in 387ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3573127ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3573246ms] [LOG] [Fast Refresh] done in 225ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3573402ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3573418ms] [LOG] [Fast Refresh] done in 122ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581134ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581701ms] [LOG] [Fast Refresh] done in 529ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581898ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581899ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581900ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581900ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581904ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581904ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581918ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581950ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3581957ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3582008ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3583175ms] [LOG] [Fast Refresh] done in 1272ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584035ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584089ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584285ms] [WARNING] Image with src "/upnext-logo/wordmark-cropped.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584405ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584405ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584407ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584407ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584408ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584408ms] [WARNING] Next.js detected. `immediatelyRender` defaults to false to avoid hydration mismatches. Pass `immediatelyRender: true` explicitly if you are rendering the editor only on the client. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584414ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584423ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3584428ms] [WARNING] [tiptap warn]: Duplicate extension names found: ['link', 'underline']. This can lead to issues. @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3589953ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3590050ms] [LOG] [Fast Refresh] done in 199ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3593293ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3593345ms] [LOG] [Fast Refresh] done in 162ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3597565ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3597999ms] [LOG] [Fast Refresh] done in 535ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3603643ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3603789ms] [LOG] [Fast Refresh] done in 166ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3603907ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3603909ms] [LOG] [Fast Refresh] done in 102ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3604088ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3604134ms] [LOG] [Fast Refresh] done in 148ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3604406ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3604409ms] [LOG] [Fast Refresh] done in 110ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3604711ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3604714ms] [LOG] [Fast Refresh] done in 105ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3605032ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3605034ms] [LOG] [Fast Refresh] done in 104ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3605207ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3605253ms] [LOG] [Fast Refresh] done in 147ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3607495ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3607648ms] [LOG] [Fast Refresh] done in 73ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3608039ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3608116ms] [LOG] [Fast Refresh] done in 181ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3608525ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3608541ms] [LOG] [Fast Refresh] done in 118ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3608976ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3608984ms] [LOG] [Fast Refresh] done in 111ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3609413ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3609423ms] [LOG] [Fast Refresh] done in 110ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3655997ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3661740ms] [LOG] [Fast Refresh] done in 5856ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3661843ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3662767ms] [LOG] [Fast Refresh] done in 1027ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3666431ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3667045ms] [LOG] [Fast Refresh] done in 723ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3667426ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3667551ms] [LOG] [Fast Refresh] done in 225ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3672806ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3672869ms] [LOG] [Fast Refresh] done in 175ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3716408ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3717253ms] [LOG] [Fast Refresh] done in 878ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3717392ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3717759ms] [LOG] [Fast Refresh] done in 467ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3717894ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3717916ms] [LOG] [Fast Refresh] done in 127ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3718163ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 3718210ms] [LOG] [Fast Refresh] done in 152ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4028503ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4028657ms] [LOG] [Fast Refresh] done in 264ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4028852ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4028967ms] [LOG] [Fast Refresh] done in 216ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4029072ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4029180ms] [LOG] [Fast Refresh] done in 213ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4046488ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4046660ms] [LOG] [Fast Refresh] done in 270ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4046820ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4046996ms] [LOG] [Fast Refresh] done in 278ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4140015ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4140183ms] [LOG] [Fast Refresh] done in 278ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4140366ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4140592ms] [LOG] [Fast Refresh] done in 327ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4173683ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4173745ms] [LOG] [Fast Refresh] done in 163ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4293787ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4294055ms] [LOG] [Fast Refresh] done in 364ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4294248ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4294299ms] [LOG] [Fast Refresh] done in 155ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4294401ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4294509ms] [LOG] [Fast Refresh] done in 210ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4331032ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4331069ms] [LOG] [Fast Refresh] done in 148ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4331617ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4331632ms] [LOG] [Fast Refresh] done in 131ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4472737ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4473337ms] [LOG] [Fast Refresh] done in 706ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4473622ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4473992ms] [LOG] [Fast Refresh] done in 474ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4498124ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4498384ms] [LOG] [Fast Refresh] done in 367ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4498618ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4499106ms] [LOG] [Fast Refresh] done in 589ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4613248ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4613357ms] [LOG] [Fast Refresh] done in 211ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4613535ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4613760ms] [LOG] [Fast Refresh] done in 324ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4613893ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4613901ms] [LOG] [Fast Refresh] done in 108ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4635445ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4635486ms] [LOG] [Fast Refresh] done in 144ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4713469ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4713586ms] [LOG] [Fast Refresh] done in 216ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4713772ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4713853ms] [LOG] [Fast Refresh] done in 192ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4713986ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4714184ms] [LOG] [Fast Refresh] done in 300ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4729432ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4729514ms] [LOG] [Fast Refresh] done in 189ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4729679ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4729762ms] [LOG] [Fast Refresh] done in 190ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4771391ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477
+[ 4771423ms] [LOG] [Fast Refresh] done in 139ms @ http://localhost:3000/_next/static/chunks/1-qr_next_dist_0e35a51._.js:2477

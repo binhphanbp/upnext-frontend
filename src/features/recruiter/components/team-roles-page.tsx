@@ -1,21 +1,19 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   activityLogs,
-  permissionRules,
-  roleDefinitions,
-  roleOrder,
-  teamKpis,
-  teamMembers,
+  permissionRules as fallbackPermissionRules,
   teamTabs,
-  type CompanyMember,
-  type MemberStatus,
-  type TeamRole,
   type TeamTabId,
 } from "@/features/recruiter/data/team-data";
+import {
+  useInviteCompanyMember,
+  useTeamPageData,
+  useUpdateCompanyMemberRole,
+} from "@/features/recruiter/hooks/use-team-page-data";
 import {
   ArrowDown,
   ArrowLeft,
@@ -34,6 +32,12 @@ import {
   UsersRound,
   X,
 } from "@/features/recruiter/icons";
+import {
+  type CompanyMember,
+  type MemberStatus,
+  type RecruiterRoleDefinition,
+  type TeamKpi,
+} from "@/features/recruiter/types";
 import { cn } from "@/shared/lib/cn";
 
 const kpiTone = {
@@ -42,38 +46,33 @@ const kpiTone = {
   rose: "bg-rose-50 text-rose-500",
 } as const;
 
-const roleBadgeTone: Record<TeamRole, string> = {
-  ADMIN: "border-blue-100 bg-blue-50 text-blue-700",
-  INTERVIEWER: "border-orange-100 bg-orange-50 text-orange-700",
-  OWNER: "border-violet-100 bg-violet-50 text-violet-700",
-  RECRUITER: "border-emerald-100 bg-emerald-50 text-emerald-700",
-};
+const roleBadgeTone = {
+  blue: "border-blue-100 bg-blue-50 text-blue-700",
+  emerald: "border-emerald-100 bg-emerald-50 text-emerald-700",
+  orange: "border-orange-100 bg-orange-50 text-orange-700",
+  slate: "border-slate-200 bg-slate-50 text-slate-700",
+  violet: "border-violet-100 bg-violet-50 text-violet-700",
+} as const;
 
 const roleIconTone = {
   blue: "bg-blue-50 text-blue-600",
   emerald: "bg-emerald-50 text-emerald-600",
   orange: "bg-orange-50 text-orange-600",
+  slate: "bg-slate-100 text-slate-600",
   violet: "bg-violet-50 text-violet-600",
 } as const;
 
-const statusCopy: Record<MemberStatus, string> = {
-  ACTIVE: "Hoạt động",
-  PENDING: "Chờ xác nhận",
-  SUSPENDED: "Tạm khóa",
-};
-
-const statusTone: Record<MemberStatus, string> = {
-  ACTIVE: "bg-emerald-50 text-emerald-700 before:bg-emerald-500",
-  PENDING: "bg-amber-50 text-amber-700 before:bg-amber-500",
-  SUSPENDED: "bg-rose-50 text-rose-700 before:bg-rose-500",
-};
-
 export function TeamRolesPage() {
+  const { error, isLoading, kpis, members, refetchMembers, roles } = useTeamPageData();
+  const inviteMutation = useInviteCompanyMember();
+  const updateRoleMutation = useUpdateCompanyMemberRole();
+
   const [activeTab, setActiveTab] = useState<TeamTabId>("members");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [rolesDrawerOpen, setRolesDrawerOpen] = useState(false);
+  const [detailMember, setDetailMember] = useState<CompanyMember | null>(null);
   const [roleMember, setRoleMember] = useState<CompanyMember | null>(null);
-  const [selectedRole, setSelectedRole] = useState<TeamRole>("RECRUITER");
+  const [selectedRoleId, setSelectedRoleId] = useState("");
 
   useEffect(() => {
     function openInviteDialog() {
@@ -84,10 +83,51 @@ export function TeamRolesPage() {
     return () => window.removeEventListener("upnext:open-invite-member", openInviteDialog);
   }, []);
 
+  useEffect(() => {
+    function openMemberDetail(event: Event) {
+      const memberId =
+        event instanceof CustomEvent && typeof event.detail === "string" ? event.detail : null;
+
+      if (!memberId) {
+        return;
+      }
+
+      setDetailMember(members.find((member) => member.id === memberId) ?? null);
+    }
+
+    window.addEventListener("upnext:open-member-detail", openMemberDetail);
+    return () => window.removeEventListener("upnext:open-member-detail", openMemberDetail);
+  }, [members]);
+
+  useEffect(() => {
+    if (!selectedRoleId && roles[0]) {
+      setSelectedRoleId(roles[0].id);
+    }
+  }, [roles, selectedRoleId]);
+
   function openRoleDialog(member: CompanyMember) {
-    setSelectedRole(member.role);
+    setSelectedRoleId(member.roleId);
     setRoleMember(member);
   }
+
+  async function handleInviteMember(payload: { email: string; roleId: string }) {
+    await inviteMutation.mutateAsync(payload);
+    setInviteOpen(false);
+  }
+
+  async function handleChangeRole() {
+    if (!roleMember || !selectedRoleId) {
+      return;
+    }
+
+    await updateRoleMutation.mutateAsync({
+      memberId: roleMember.id,
+      roleId: selectedRoleId,
+    });
+    setRoleMember(null);
+  }
+
+  const pageError = error ? getErrorMessage(error) : null;
 
   return (
     <div className="w-full overflow-x-hidden">
@@ -120,33 +160,68 @@ export function TeamRolesPage() {
           </p>
         </div>
 
-        <TeamKpiGrid />
+        {pageError ? (
+          <div className="mt-5 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+            {pageError}
+          </div>
+        ) : null}
+
+        <TeamKpiGrid items={kpis} />
 
         <TeamTabs activeTab={activeTab} onChange={setActiveTab} />
 
         <div className="mt-0">
-          {activeTab === "members" ? <MembersPanel onChangeRole={openRoleDialog} /> : null}
+          {activeTab === "members" ? (
+            <MembersPanel
+              isLoading={isLoading}
+              members={members}
+              onChangeRole={openRoleDialog}
+              onViewDetails={setDetailMember}
+              onRefresh={() => {
+                void refetchMembers();
+              }}
+              roles={roles}
+            />
+          ) : null}
           {activeTab === "activity" ? <ActivityLogTable /> : null}
         </div>
       </section>
 
-      <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      <InviteMemberDialog
+        isPending={inviteMutation.isPending}
+        onClose={() => setInviteOpen(false)}
+        onSubmit={handleInviteMember}
+        open={inviteOpen}
+        roles={roles}
+      />
       <ChangeRoleDialog
+        isPending={updateRoleMutation.isPending}
         member={roleMember}
         onClose={() => setRoleMember(null)}
-        selectedRole={selectedRole}
-        setSelectedRole={setSelectedRole}
+        onSubmit={handleChangeRole}
+        roles={roles}
+        selectedRoleId={selectedRoleId}
+        setSelectedRoleId={setSelectedRoleId}
       />
-      <RolesRulesDrawer open={rolesDrawerOpen} onClose={() => setRolesDrawerOpen(false)} />
+      <MemberDetailDialog
+        member={detailMember}
+        onClose={() => setDetailMember(null)}
+        roles={roles}
+      />
+      <RolesRulesDrawer
+        fallbackRules={fallbackPermissionRules}
+        onClose={() => setRolesDrawerOpen(false)}
+        open={rolesDrawerOpen}
+        roles={roles}
+      />
     </div>
   );
 }
 
-function TeamKpiGrid() {
+function TeamKpiGrid({ items }: { items: TeamKpi[] }) {
   return (
     <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {teamKpis.map((item) => {
-        const Icon = item.icon;
+      {items.map((item) => {
         const up = item.trendDirection === "up";
         const down = item.trendDirection === "down";
 
@@ -162,7 +237,7 @@ function TeamKpiGrid() {
                   kpiTone[item.tone],
                 )}
               >
-                <Icon aria-hidden className="h-6 w-6" />
+                <UsersRound aria-hidden className="h-6 w-6" />
               </span>
               <div>
                 <p className="text-xs font-bold text-slate-600">{item.label}</p>
@@ -176,9 +251,8 @@ function TeamKpiGrid() {
               {down ? <ArrowDown aria-hidden className="h-4 w-4 text-red-500" /> : null}
               {!up && !down ? <span className="text-slate-500">-</span> : null}
               <span className={up ? "text-emerald-600" : down ? "text-red-500" : "text-slate-500"}>
-                {item.trend.split(" ")[0]}
+                {item.trend}
               </span>
-              <span>{item.trend.split(" ").slice(1).join(" ")}</span>
             </p>
           </article>
         );
@@ -219,7 +293,39 @@ function TeamTabs({
   );
 }
 
-function MembersPanel({ onChangeRole }: { onChangeRole: (member: CompanyMember) => void }) {
+function MembersPanel({
+  isLoading,
+  members,
+  onChangeRole,
+  onViewDetails,
+  onRefresh,
+  roles,
+}: {
+  isLoading: boolean;
+  members: CompanyMember[];
+  onChangeRole: (member: CompanyMember) => void;
+  onViewDetails: (member: CompanyMember) => void;
+  onRefresh: () => void;
+  roles: RecruiterRoleDefinition[];
+}) {
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  const filteredMembers = useMemo(() => {
+    return members.filter((member) => {
+      const normalizedSearch = search.trim().toLowerCase();
+      const searchMatch =
+        normalizedSearch.length === 0 ||
+        member.fullName.toLowerCase().includes(normalizedSearch) ||
+        member.email.toLowerCase().includes(normalizedSearch);
+      const roleMatch = roleFilter === "ALL" || member.roleId === roleFilter;
+      const statusMatch = statusFilter === "ALL" || member.status === statusFilter;
+
+      return searchMatch && roleMatch && statusMatch;
+    });
+  }, [members, roleFilter, search, statusFilter]);
+
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
       <div className="border-b border-slate-100 p-4">
@@ -229,18 +335,41 @@ function MembersPanel({ onChangeRole }: { onChangeRole: (member: CompanyMember) 
             <input
               aria-label="Tìm thành viên"
               className="h-11 w-full rounded-lg border border-slate-200 bg-white pr-10 pl-4 text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Tìm thành viên, email..."
               type="search"
+              value={search}
             />
             <Search
               aria-hidden
               className="absolute top-1/2 right-3 h-5 w-5 -translate-y-1/2 text-slate-500"
             />
           </label>
-          <FilterButton label="Vai trò" />
-          <FilterButton label="Trạng thái" />
-          <FilterButton label="Phòng ban" />
-          <button className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-700">
+          <FilterButton
+            label="Vai trò"
+            onChange={setRoleFilter}
+            options={[
+              { label: "Tất cả", value: "ALL" },
+              ...roles.map((role) => ({ label: role.label, value: role.id })),
+            ]}
+            value={roleFilter}
+          />
+          <FilterButton
+            label="Trạng thái"
+            onChange={setStatusFilter}
+            options={[
+              { label: "Tất cả", value: "ALL" },
+              { label: "Hoạt động", value: "ACTIVE" },
+              { label: "Chờ xác nhận", value: "PENDING" },
+              { label: "Tạm khóa", value: "SUSPENDED" },
+            ]}
+            value={statusFilter}
+          />
+          <button
+            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-700"
+            onClick={onRefresh}
+            type="button"
+          >
             <RefreshCw aria-hidden className="h-4 w-4" />
             Làm mới
           </button>
@@ -262,18 +391,49 @@ function MembersPanel({ onChangeRole }: { onChangeRole: (member: CompanyMember) 
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {teamMembers.map((member) => (
-              <MemberRow key={member.id} member={member} onChangeRole={onChangeRole} />
-            ))}
+            {isLoading ? (
+              <tr>
+                <td
+                  className="px-4 py-8 text-center text-sm font-semibold text-slate-500"
+                  colSpan={8}
+                >
+                  Đang tải danh sách thành viên...
+                </td>
+              </tr>
+            ) : null}
+            {!isLoading && filteredMembers.length === 0 ? (
+              <tr>
+                <td
+                  className="px-4 py-8 text-center text-sm font-semibold text-slate-500"
+                  colSpan={8}
+                >
+                  Chưa có thành viên nào khớp bộ lọc hiện tại.
+                </td>
+              </tr>
+            ) : null}
+            {!isLoading
+              ? filteredMembers.map((member) => (
+                  <MemberRow
+                    key={member.id}
+                    member={member}
+                    onChangeRole={onChangeRole}
+                    onViewDetails={onViewDetails}
+                    roles={roles}
+                  />
+                ))
+              : null}
           </tbody>
         </table>
       </div>
 
       <div className="flex flex-col gap-4 px-4 py-4 text-sm font-semibold text-slate-500 lg:flex-row lg:items-center">
-        <span>Hiển thị 1-5 trên 12 thành viên</span>
+        <span>
+          Hiển thị {filteredMembers.length === 0 ? 0 : 1}-{filteredMembers.length} trên{" "}
+          {members.length} thành viên
+        </span>
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <button className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-4 font-bold text-slate-700">
-            10 / trang <ChevronDown aria-hidden className="h-4 w-4" />
+            Tất cả <ChevronDown aria-hidden className="h-4 w-4" />
           </button>
           <PageButton ariaLabel="Trang trước">
             <ArrowLeft aria-hidden className="h-4 w-4" />
@@ -284,13 +444,6 @@ function MembersPanel({ onChangeRole }: { onChangeRole: (member: CompanyMember) 
             type="button"
           >
             1
-          </button>
-          <button
-            aria-label="Trang 2"
-            className="h-9 w-9 rounded-lg border border-slate-200 bg-white text-sm font-extrabold text-slate-700"
-            type="button"
-          >
-            2
           </button>
           <PageButton ariaLabel="Trang sau">
             <ArrowRight aria-hidden className="h-4 w-4" />
@@ -304,11 +457,16 @@ function MembersPanel({ onChangeRole }: { onChangeRole: (member: CompanyMember) 
 function MemberRow({
   member,
   onChangeRole,
+  onViewDetails,
+  roles,
 }: {
   member: CompanyMember;
   onChangeRole: (member: CompanyMember) => void;
+  onViewDetails: (member: CompanyMember) => void;
+  roles: RecruiterRoleDefinition[];
 }) {
   const isChangeRoleAction = member.actionLabel === "Đổi vai trò";
+  const role = findRoleDefinition(roles, member.roleId, member.roleCode, member.roleName);
 
   return (
     <tr className="align-middle text-slate-800">
@@ -324,7 +482,7 @@ function MemberRow({
         </div>
       </td>
       <td className="px-3 py-3">
-        <RoleBadge role={member.role} />
+        <RoleBadge role={role} />
       </td>
       <td className="px-3 py-3 font-bold">{member.department}</td>
       <td className="px-3 py-3">
@@ -338,11 +496,15 @@ function MemberRow({
       <td className="px-4 py-3">
         <div className="flex items-center justify-end gap-2">
           <button
+            aria-label={`${member.actionLabel} cho ${member.fullName}`}
             className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-extrabold whitespace-nowrap text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700"
             onClick={() => {
               if (isChangeRoleAction) {
                 onChangeRole(member);
+                return;
               }
+
+              onViewDetails(member);
             }}
             type="button"
           >
@@ -371,71 +533,153 @@ function MemberRow({
   );
 }
 
-function RoleBadge({ role }: { role: TeamRole }) {
-  const definition = roleDefinitions[role];
-  const Icon = definition.icon;
+function MemberDetailDialog({
+  member,
+  onClose,
+  roles,
+}: {
+  member: CompanyMember | null;
+  onClose: () => void;
+  roles: RecruiterRoleDefinition[];
+}) {
+  if (!member) {
+    return null;
+  }
+
+  const role = findRoleDefinition(roles, member.roleId, member.roleCode, member.roleName);
+
+  return (
+    <DialogFrame onClose={onClose} title="Chi tiết thành viên">
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-emerald-100 text-sm font-extrabold text-slate-700">
+            {member.avatar}
+          </span>
+          <div>
+            <p className="font-extrabold text-slate-950">{member.fullName}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-500">{member.email}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="text-xs font-extrabold text-slate-600">Vai trò</p>
+            <div className="mt-2">
+              <RoleBadge role={role} />
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-extrabold text-slate-600">Trạng thái</p>
+            <div className="mt-2">
+              <StatusBadge status={member.status} />
+            </div>
+          </div>
+          <ReadOnlyField label="Phòng ban" value={member.department} />
+          <ReadOnlyField label="Hoạt động cuối" value={member.lastActiveAt} />
+          <ReadOnlyField label="Tin phụ trách" value={`${member.assignedJobCount}`} />
+          <ReadOnlyField label="Lịch phỏng vấn" value={`${member.interviewCount}`} />
+        </div>
+      </div>
+      <div className="mt-6 flex justify-end">
+        <button
+          className="h-10 rounded-lg bg-emerald-600 px-5 text-sm font-bold text-white shadow-[0_12px_26px_rgba(5,150,105,0.22)]"
+          onClick={onClose}
+          type="button"
+        >
+          Đóng
+        </button>
+      </div>
+    </DialogFrame>
+  );
+}
+
+function RoleBadge({ role }: { role: RecruiterRoleDefinition }) {
+  const Icon = role.icon;
 
   return (
     <span
       className={cn(
         "inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-extrabold",
-        roleBadgeTone[role],
+        roleBadgeTone[role.tone],
       )}
     >
       <Icon aria-hidden className="h-3.5 w-3.5" />
-      {definition.label}
+      {role.label}
     </span>
   );
 }
 
 function StatusBadge({ status }: { status: MemberStatus }) {
+  const { label, tone } = getStatusPresentation(status);
+
   return (
     <span
       className={cn(
         "inline-flex h-7 items-center gap-2 rounded-lg px-3 text-[11px] font-extrabold before:h-1.5 before:w-1.5 before:rounded-full",
-        statusTone[status],
+        tone,
       )}
     >
-      {statusCopy[status]}
+      {label}
     </span>
   );
 }
 
-function FilterButton({ label }: { label: string }) {
+function FilterButton({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  options: Array<{ label: string; value: string }>;
+  value: string;
+}) {
+  const fieldId = `team-filter-${label.toLowerCase().replace(/[^a-z0-9]+/gu, "-")}`;
+
   return (
-    <button className="flex h-11 min-w-[130px] items-center justify-between rounded-lg border border-slate-200 bg-white px-4 text-left text-xs font-bold text-slate-600">
-      <span>
+    <div className="flex h-11 min-w-[130px] items-center justify-between rounded-lg border border-slate-200 bg-white px-4 text-left text-xs font-bold text-slate-600">
+      <label htmlFor={fieldId}>
         <span className="block text-[11px] text-slate-500">{label}</span>
-        Tất cả
-      </span>
-      <ChevronDown aria-hidden className="h-4 w-4 text-slate-500" />
-    </button>
+      </label>
+      <select
+        id={fieldId}
+        className="min-w-[82px] bg-transparent text-right text-xs font-bold text-slate-700 outline-none"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
-function FixedRolesCard() {
+function FixedRolesCard({ roles }: { roles: RecruiterRoleDefinition[] }) {
   return (
     <SideCard className="overflow-hidden p-0">
       <div className="p-4">
-        <h2 className="text-lg font-extrabold text-slate-950">4 vai trò cố định</h2>
+        <h2 className="text-lg font-extrabold text-slate-950">{roles.length} vai trò hiện có</h2>
         <div className="mt-5 space-y-4">
-          {roleOrder.map((role) => {
-            const item = roleDefinitions[role];
-            const Icon = item.icon;
+          {roles.map((role) => {
+            const Icon = role.icon;
 
             return (
-              <div className="flex items-center gap-4" key={role}>
+              <div className="flex items-center gap-4" key={role.id}>
                 <span
                   className={cn(
                     "inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
-                    roleIconTone[item.tone],
+                    roleIconTone[role.tone],
                   )}
                 >
                   <Icon aria-hidden className="h-6 w-6" />
                 </span>
                 <div>
-                  <p className="font-extrabold text-slate-950">{item.label}</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-500">{item.description}</p>
+                  <p className="font-extrabold text-slate-950">{role.label}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">{role.description}</p>
                 </div>
               </div>
             );
@@ -444,13 +688,25 @@ function FixedRolesCard() {
       </div>
       <div className="flex items-center gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500">
         <LockKey aria-hidden className="h-4 w-4" />
-        Không thể tùy chỉnh quyền theo từng vai trò
+        Các quyền hiện được backend quản lý theo từng vai trò
       </div>
     </SideCard>
   );
 }
 
-function PermissionRulesCard() {
+function PermissionRulesCard({
+  fallbackRules,
+  roles,
+}: {
+  fallbackRules: readonly string[];
+  roles: RecruiterRoleDefinition[];
+}) {
+  const permissionLines =
+    roles.flatMap((role) => role.permissions.map((permission) => `${role.label}: ${permission}`)) ||
+    [];
+
+  const lines = permissionLines.length > 0 ? permissionLines : [...fallbackRules];
+
   return (
     <SideCard>
       <div className="flex items-center justify-between gap-3">
@@ -460,7 +716,7 @@ function PermissionRulesCard() {
         </span>
       </div>
       <div className="mt-4 space-y-3">
-        {permissionRules.map((rule) => (
+        {lines.map((rule) => (
           <p
             className="flex items-start gap-2 text-xs leading-5 font-bold text-slate-600"
             key={rule}
@@ -513,79 +769,128 @@ function ActivityLogTable() {
   );
 }
 
-function InviteMemberDialog({ onClose, open }: { onClose: () => void; open: boolean }) {
+function InviteMemberDialog({
+  isPending,
+  onClose,
+  onSubmit,
+  open,
+  roles,
+}: {
+  isPending: boolean;
+  onClose: () => void;
+  onSubmit: (payload: { email: string; roleId: string }) => Promise<void>;
+  open: boolean;
+  roles: RecruiterRoleDefinition[];
+}) {
+  const [email, setEmail] = useState("");
+  const [roleId, setRoleId] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      setEmail("");
+      setRoleId(roles[0]?.id ?? "");
+      return;
+    }
+
+    if (!roleId && roles[0]) {
+      setRoleId(roles[0].id);
+    }
+  }, [open, roleId, roles]);
+
   if (!open) {
     return null;
+  }
+
+  async function handleSubmit() {
+    if (!email || !roleId) {
+      return;
+    }
+
+    await onSubmit({
+      email,
+      roleId,
+    });
   }
 
   return (
     <DialogFrame onClose={onClose} title="Mời thành viên">
       <div className="grid gap-4">
-        <TextField label="Email *" placeholder="name@company.com" type="email" />
-        <TextField label="Họ tên" placeholder="Nhập họ tên" />
-        <SelectField label="Vai trò *" />
-        <TextField label="Phòng ban" placeholder="HR, Engineering..." />
-        <TextField label="Gán tin tuyển dụng" placeholder="Frontend Developer, Backend..." />
-        <label className="block">
-          <span className="text-xs font-extrabold text-slate-600">Lời nhắn</span>
-          <textarea
-            aria-label="Lời nhắn"
-            className="mt-2 min-h-20 w-full resize-none rounded-lg border border-slate-200 px-3 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
-            placeholder="Thêm lời nhắn cho thành viên mới"
-          />
-        </label>
+        <TextField
+          label="Email *"
+          onChange={setEmail}
+          placeholder="recruiter@company.com"
+          type="email"
+          value={email}
+        />
+        <SelectField
+          label="Vai trò *"
+          onChange={setRoleId}
+          options={roles.map((role) => ({
+            label: role.label,
+            value: role.id,
+          }))}
+          value={roleId}
+        />
         <p className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-xs leading-5 font-bold text-slate-600">
-          Vai trò sử dụng bộ quyền cố định của hệ thống. Bạn chỉ có thể chọn vai trò, không thể
-          chỉnh quyền chi tiết.
+          Backend hiện hỗ trợ gửi lời mời bằng email và role. Email này cần đã có recruiterAccount
+          trước khi mời vào công ty.
         </p>
       </div>
-      <DialogActions onClose={onClose} primaryLabel="Gửi lời mời" />
+      <DialogActions
+        disabled={isPending || !email || !roleId}
+        onClose={onClose}
+        onSubmit={() => {
+          void handleSubmit();
+        }}
+        primaryLabel={isPending ? "Đang gửi..." : "Gửi lời mời"}
+      />
     </DialogFrame>
   );
 }
 
 function ChangeRoleDialog({
+  isPending,
   member,
   onClose,
-  selectedRole,
-  setSelectedRole,
+  onSubmit,
+  roles,
+  selectedRoleId,
+  setSelectedRoleId,
 }: {
+  isPending: boolean;
   member: CompanyMember | null;
   onClose: () => void;
-  selectedRole: TeamRole;
-  setSelectedRole: (role: TeamRole) => void;
+  onSubmit: () => Promise<void>;
+  roles: RecruiterRoleDefinition[];
+  selectedRoleId: string;
+  setSelectedRoleId: (roleId: string) => void;
 }) {
   if (!member) {
     return null;
   }
 
-  const isLastOwner = member.role === "OWNER";
+  const selectedRole = roles.find((role) => role.id === selectedRoleId) ?? roles[0] ?? null;
+  const isLastOwner = member.roleCode === "OWNER";
 
   return (
     <DialogFrame onClose={onClose} title="Đổi vai trò">
       <div className="space-y-4">
         <ReadOnlyField label="Thành viên" value={`${member.fullName} - ${member.email}`} />
-        <ReadOnlyField label="Vai trò hiện tại" value={roleDefinitions[member.role].label} />
-        <label className="block">
-          <span className="text-xs font-extrabold text-slate-600">Vai trò mới</span>
-          <select
-            aria-label="Vai trò mới"
-            className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
-            disabled={isLastOwner}
-            onChange={(event) => setSelectedRole(event.target.value as TeamRole)}
-            value={selectedRole}
-          >
-            {roleOrder.map((role) => (
-              <option key={role} value={role}>
-                {roleDefinitions[role].label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ReadOnlyField label="Vai trò hiện tại" value={member.roleName} />
+        <SelectField
+          disabled={isLastOwner}
+          label="Vai trò mới"
+          onChange={setSelectedRoleId}
+          options={roles.map((role) => ({
+            label: role.label,
+            value: role.id,
+          }))}
+          value={selectedRoleId}
+        />
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-extrabold text-slate-500">Tóm tắt quyền của vai trò mới</p>
           <p className="mt-2 text-sm font-bold text-slate-800">
-            {roleDefinitions[selectedRole].description}
+            {selectedRole?.description ?? "Vai trò tuyển dụng"}
           </p>
         </div>
         {isLastOwner ? (
@@ -594,7 +899,14 @@ function ChangeRoleDialog({
           </p>
         ) : null}
       </div>
-      <DialogActions disabled={isLastOwner} onClose={onClose} primaryLabel="Cập nhật vai trò" />
+      <DialogActions
+        disabled={isLastOwner || isPending || !selectedRoleId}
+        onClose={onClose}
+        onSubmit={() => {
+          void onSubmit();
+        }}
+        primaryLabel={isPending ? "Đang cập nhật..." : "Cập nhật vai trò"}
+      />
     </DialogFrame>
   );
 }
@@ -631,10 +943,12 @@ function DialogFrame({
 function DialogActions({
   disabled,
   onClose,
+  onSubmit,
   primaryLabel,
 }: {
   disabled?: boolean;
   onClose: () => void;
+  onSubmit: () => void;
   primaryLabel: string;
 }) {
   return (
@@ -649,7 +963,7 @@ function DialogActions({
       <button
         className="h-10 rounded-lg bg-emerald-600 px-5 text-sm font-bold text-white shadow-[0_12px_26px_rgba(5,150,105,0.22)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
         disabled={disabled}
-        onClick={onClose}
+        onClick={onSubmit}
         type="button"
       >
         {primaryLabel}
@@ -660,12 +974,16 @@ function DialogActions({
 
 function TextField({
   label,
+  onChange,
   placeholder,
   type = "text",
+  value,
 }: {
   label: string;
+  onChange: (value: string) => void;
   placeholder: string;
   type?: "email" | "text";
+  value: string;
 }) {
   return (
     <label className="block">
@@ -673,24 +991,41 @@ function TextField({
       <input
         aria-label={label}
         className="mt-2 h-11 w-full rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+        onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         type={type}
+        value={value}
       />
     </label>
   );
 }
 
-function SelectField({ label }: { label: string }) {
+function SelectField({
+  disabled,
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  disabled?: boolean;
+  label: string;
+  onChange: (value: string) => void;
+  options: Array<{ label: string; value: string }>;
+  value: string;
+}) {
   return (
     <label className="block">
       <span className="text-xs font-extrabold text-slate-600">{label}</span>
       <select
         aria-label={label}
-        className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+        className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
       >
-        {roleOrder.map((role) => (
-          <option key={role} value={role}>
-            {roleDefinitions[role].label}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>
@@ -722,7 +1057,17 @@ function SideCard({ children, className }: { children: ReactNode; className?: st
   );
 }
 
-function RolesRulesDrawer({ onClose, open }: { onClose: () => void; open: boolean }) {
+function RolesRulesDrawer({
+  fallbackRules,
+  onClose,
+  open,
+  roles,
+}: {
+  fallbackRules: readonly string[];
+  onClose: () => void;
+  open: boolean;
+  roles: RecruiterRoleDefinition[];
+}) {
   useEffect(() => {
     if (!open) {
       return undefined;
@@ -749,7 +1094,7 @@ function RolesRulesDrawer({ onClose, open }: { onClose: () => void; open: boolea
           <div>
             <h2 className="text-xl font-extrabold text-slate-950">Vai trò và quy tắc</h2>
             <p className="mt-1 text-sm font-semibold text-slate-500">
-              Xem nhanh 4 vai trò cố định và các quy tắc hệ thống.
+              Xem nhanh các vai trò hiện có và các quyền hệ thống đang trả về từ backend.
             </p>
           </div>
           <button
@@ -763,8 +1108,8 @@ function RolesRulesDrawer({ onClose, open }: { onClose: () => void; open: boolea
         </div>
 
         <div className="space-y-4">
-          <FixedRolesCard />
-          <PermissionRulesCard />
+          <FixedRolesCard roles={roles} />
+          <PermissionRulesCard fallbackRules={fallbackRules} roles={roles} />
         </div>
       </div>
     </div>
@@ -781,4 +1126,52 @@ function PageButton({ ariaLabel, children }: { ariaLabel: string; children: Reac
       {children}
     </button>
   );
+}
+
+function findRoleDefinition(
+  roles: RecruiterRoleDefinition[],
+  roleId: string,
+  roleCode: string,
+  roleName: string,
+) {
+  return (
+    roles.find((role) => role.id === roleId) ??
+    roles.find((role) => role.code === roleCode) ?? {
+      code: roleCode,
+      description: "Vai trò tuyển dụng",
+      icon: UsersRound,
+      id: roleId,
+      label: roleName,
+      permissions: [],
+      tone: "slate" as const,
+    }
+  );
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Không thể tải dữ liệu thành viên.";
+}
+
+function getStatusPresentation(status: MemberStatus) {
+  switch (status) {
+    case "ACTIVE":
+      return {
+        label: "Hoạt động",
+        tone: "bg-emerald-50 text-emerald-700 before:bg-emerald-500",
+      };
+    case "PENDING":
+      return {
+        label: "Chờ xác nhận",
+        tone: "bg-amber-50 text-amber-700 before:bg-amber-500",
+      };
+    default:
+      return {
+        label: "Tạm khóa",
+        tone: "bg-rose-50 text-rose-700 before:bg-rose-500",
+      };
+  }
 }

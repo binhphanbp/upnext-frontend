@@ -1,1106 +1,1089 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import type { Control, UseFormRegisterReturn } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
-import {
-  assistantSuggestions,
-  assistantTips,
-  basicFields,
-  benefits,
-  candidateCriteria,
-  createJobSteps,
-  createPlanUsage,
-  jobDescription,
-  noticeItems,
-  previewBenefits,
-  previewMeta,
-  previewProcess,
-  salaryFields,
-  type WizardStep,
-  Eye,
-  Save,
-  Sparkles,
-} from "@/features/recruiter/data/create-job-data";
+import type {
+  EmploymentTypeApiItem,
+  ExperienceLevelApiItem,
+  JobCategoryApiItem,
+} from "@/features/recruiter/api/job-posts";
+import { getJobPostDetail } from "@/features/recruiter/api/job-posts";
+import { useCreateJobPostData } from "@/features/recruiter/hooks/use-create-job-post-data";
 import {
   ArrowLeft,
-  ArrowRight,
-  Bold,
+  BriefcaseBusiness,
+  Building2,
   CalendarDays,
-  Check,
-  ChevronDown,
-  Italic,
-  Link2,
-  List,
-  Minus,
-  Send,
-  Underline,
-  X,
+  Clock3,
+  Eye,
+  FileText,
+  Gift,
+  Globe2,
+  MapPin,
+  NotePencil,
+  RefreshCw,
+  Save,
+  ShieldCheck,
+  Target,
+  UsersRound,
 } from "@/features/recruiter/icons";
+import {
+  createJobPostDefaultValues,
+  createJobPostSchema,
+  type CreateJobPostFormValues,
+} from "@/features/recruiter/schemas/create-job-post";
+import { useRouter } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 
-export function CreateJobPostPage() {
-  const [step, setStep] = useState<WizardStep>(1);
-  const [toast, setToast] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+const RichTextEditor = dynamic(
+  () => import("@/shared/ui/rich-text-editor").then((mod) => mod.RichTextEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-[180px] w-full animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
+    ),
+  },
+);
 
-  const isPreview = step === 5;
+export function CreateJobPostPage({
+  mode = "create",
+  jobId,
+}: Readonly<{
+  mode?: "create" | "edit";
+  jobId?: string;
+}>) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"editor" | "preview">("editor");
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [isEditingSaving, setIsEditingSaving] = useState(false);
 
-  function showToast(message: string) {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 2000);
-  }
+  const {
+    createJobPostMutation,
+    employmentTypes,
+    error,
+    experienceLevels,
+    isLoading: isMetaDataLoading,
+    jobCategories,
+    recruiterAccount,
+  } = useCreateJobPostData();
 
-  function goNext() {
-    setStep((current) => (current < 5 ? ((current + 1) as WizardStep) : current));
-  }
+  const jobDetailQuery = useQuery({
+    enabled: mode === "edit" && Boolean(jobId),
+    queryKey: ["recruiter-job-post-detail", jobId],
+    queryFn: () => getJobPostDetail(jobId as string),
+  });
 
-  function goBack() {
-    setStep((current) => (current > 1 ? ((current - 1) as WizardStep) : current));
-  }
+  const { data: jobDetail, isLoading: isJobDetailLoading } = jobDetailQuery;
+  const isLoading = isMetaDataLoading || (mode === "edit" && isJobDetailLoading);
 
-  return (
-    <div className="w-full">
-      <CreateJobHeader
-        onEdit={() => setStep(1)}
-        onNext={goNext}
-        onPreview={() => setStep(5)}
-        onSave={() => showToast("Đã lưu nháp")}
-        onSubmit={() => setSubmitted(true)}
-        step={step}
-      />
-      <JobPostStepper onSelect={setStep} step={step} />
+  const {
+    control,
+    formState: { errors, isSubmitted, isSubmitting: isFormSubmitting },
+    getValues,
+    handleSubmit,
+    register,
+    reset,
+    setValue,
+    watch,
+  } = useForm<CreateJobPostFormValues>({
+    defaultValues: createJobPostDefaultValues,
+    resolver: zodResolver(createJobPostSchema),
+  });
 
-      <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
-        <div className="min-w-0">
-          {step === 1 && <StepBasicInfo />}
-          {step === 2 && <StepSalaryBenefits />}
-          {step === 3 && <StepJobDescription />}
-          {step === 4 && <StepCandidateCriteria />}
-          {step === 5 && <StepPreviewSubmit />}
-        </div>
-        <CreateJobRightPanel step={step} />
-      </div>
+  const isSubmitting = isFormSubmitting || isEditingSaving;
 
-      <FormFooterActions
-        isPreview={isPreview}
-        onBack={goBack}
-        onNext={goNext}
-        onSave={() => showToast("Đã lưu nháp")}
-        onSubmit={() => setSubmitted(true)}
-        step={step}
-      />
+  useEffect(() => {
+    if (mode === "edit" && jobDetail) {
+      reset({
+        benefits: jobDetail.benefits ?? "",
+        description: jobDetail.description ?? "",
+        employmentTypeId: jobDetail.employmentTypeId ?? "",
+        experienceLevelId: jobDetail.experienceLevelId ?? "",
+        jobCategoryId: jobDetail.jobCategoryId ?? "",
+        requirements: jobDetail.requirements ?? "",
+        salaryCurrency: "VND",
+        salaryIsNegotiable: jobDetail.salaryIsNegotiable ?? false,
+        salaryIsVisible: jobDetail.salaryIsVisible ?? true,
+        salaryMax:
+          typeof jobDetail.salaryMax === "number"
+            ? jobDetail.salaryMax
+            : Number(jobDetail.salaryMax) || 20000000,
+        salaryMin:
+          typeof jobDetail.salaryMin === "number"
+            ? jobDetail.salaryMin
+            : Number(jobDetail.salaryMin) || 12000000,
+        salaryPeriod: "MONTH",
+        title: jobDetail.title ?? "",
+        vacanciesCount: jobDetail.vacanciesCount ?? 1,
+      });
+    }
+  }, [mode, jobDetail, reset]);
 
-      {toast ? (
-        <div className="fixed right-6 bottom-6 z-50 rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-2xl">
-          {toast}
-        </div>
-      ) : null}
+  useEffect(() => {
+    if (mode === "edit") return;
 
-      {submitted ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/30 px-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-2xl">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-              <Check aria-hidden className="h-6 w-6" />
-            </div>
-            <h2 className="mt-4 text-xl font-extrabold text-slate-950">
-              Tin tuyển dụng đã được gửi duyệt
-            </h2>
-            <p className="mt-2 text-sm leading-6 font-semibold text-slate-500">
-              Bạn sẽ nhận thông báo khi tin được duyệt và hiển thị trên UpNext.
-            </p>
-            <button
-              className="mt-6 h-11 w-full rounded-lg bg-emerald-600 text-sm font-bold text-white"
-              onClick={() => setSubmitted(false)}
-            >
-              Đã hiểu
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
+    if (!getValues("jobCategoryId") && jobCategories[0]) {
+      setValue("jobCategoryId", jobCategories[0].id);
+    }
+
+    if (!getValues("experienceLevelId") && experienceLevels[0]) {
+      setValue("experienceLevelId", experienceLevels[0].id);
+    }
+
+    if (!getValues("employmentTypeId") && employmentTypes[0]) {
+      setValue("employmentTypeId", employmentTypes[0].id);
+    }
+  }, [mode, employmentTypes, experienceLevels, getValues, jobCategories, setValue]);
+
+  const previewValues = watch();
+
+  const previewMeta = useMemo(
+    () => ({
+      companyName: recruiterAccount?.company?.name ?? "UpNext Studio",
+      employmentTypeLabel: getOptionLabel(
+        employmentTypes,
+        previewValues.employmentTypeId,
+        "Loại hình",
+      ),
+      experienceLevelLabel: getOptionLabel(
+        experienceLevels,
+        previewValues.experienceLevelId,
+        "Cấp độ",
+      ),
+      jobCategoryLabel: getOptionLabel(jobCategories, previewValues.jobCategoryId, "Danh mục"),
+      recruiterName:
+        recruiterAccount?.profile?.fullName ?? recruiterAccount?.email ?? "Nhà tuyển dụng",
+    }),
+    [employmentTypes, experienceLevels, jobCategories, previewValues, recruiterAccount],
   );
-}
 
-function CreateJobHeader({
-  onEdit,
-  onNext,
-  onPreview,
-  onSave,
-  onSubmit,
-  step,
-}: {
-  onEdit: () => void;
-  onNext: () => void;
-  onPreview: () => void;
-  onSave: () => void;
-  onSubmit: () => void;
-  step: WizardStep;
-}) {
-  const preview = step === 5;
+  const loadErrorMessage =
+    error instanceof Error
+      ? getQueryErrorMessage(error)
+      : !recruiterAccount && !isLoading
+        ? "Chúng tôi chưa tìm thấy tài khoản tuyển dụng đang hoạt động. Vui lòng kiểm tra lại dữ liệu công ty trước khi đăng tin."
+        : null;
+
+  const submitErrorMessage = createJobPostMutation.error
+    ? getSubmitErrorMessage(createJobPostMutation.error)
+    : null;
+
+  async function onSubmit(values: CreateJobPostFormValues) {
+    if (mode === "edit") {
+      setIsEditingSaving(true);
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setIsEditingSaving(false);
+      router.push(`/recruiter/job-posts/${jobId}?updated=true`);
+      return;
+    }
+
+    await createJobPostMutation.mutateAsync(values);
+
+    reset({
+      ...createJobPostDefaultValues,
+      employmentTypeId: values.employmentTypeId,
+      experienceLevelId: values.experienceLevelId,
+      jobCategoryId: values.jobCategoryId,
+    });
+
+    router.push("/recruiter/job-posts");
+  }
+
+  function handleSaveDraft() {
+    setDraftSaved(true);
+    window.setTimeout(() => setDraftSaved(false), 2400);
+  }
 
   return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div>
+    <div className="w-full pb-8">
+      <div className="mb-6 max-w-3xl">
         <h1 className="text-[28px] leading-tight font-extrabold text-slate-950">
-          Đăng tin tuyển dụng mới
+          {mode === "edit" ? "Chỉnh sửa tin tuyển dụng" : "Đăng tin tuyển dụng mới"}
         </h1>
-        <p className="mt-2 text-sm font-semibold text-slate-500">
-          {preview
-            ? "Kiểm tra lại nội dung trước khi gửi duyệt tin tuyển dụng."
-            : "Tạo bài đăng rõ ràng, chuyên nghiệp để thu hút ứng viên phù hợp."}
+        <p className="mt-2 text-sm leading-6 font-semibold text-slate-500 sm:text-[15px]">
+          {mode === "edit"
+            ? "Cập nhật thông tin tin tuyển dụng trước khi gửi duyệt hoặc tiếp tục tuyển."
+            : "Tạo tin tuyển dụng rõ ràng, thu hút ứng viên và sẵn sàng gửi duyệt trên UpNext."}
         </p>
       </div>
-      <div className="flex flex-wrap gap-3">
-        <ActionButton icon={<Save className="h-4.5 w-4.5" />} onClick={onSave}>
-          Lưu nháp
-        </ActionButton>
-        <ActionButton
-          icon={preview ? <PenIcon /> : <Eye className="h-4.5 w-4.5" />}
-          onClick={preview ? onEdit : onPreview}
+
+      {loadErrorMessage ? <StatusBanner tone="warning">{loadErrorMessage}</StatusBanner> : null}
+      {submitErrorMessage ? <StatusBanner tone="danger">{submitErrorMessage}</StatusBanner> : null}
+
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <CreateJobPostTabs activeTab={activeTab} onChange={setActiveTab} />
+
+        {activeTab === "editor" ? (
+          <section
+            aria-labelledby="create-job-editor-tab"
+            className="min-w-0 space-y-6"
+            id="create-job-editor-panel"
+            role="tabpanel"
+          >
+            <JobPostFormSection
+              isLoading={isLoading}
+              subtitle="Điền các thông tin quan trọng để ứng viên hiểu rõ vị trí và yêu cầu công việc."
+              title="Thông tin tuyển dụng"
+            >
+              <TextField
+                error={errors.title?.message}
+                label="Tiêu đề tuyển dụng *"
+                placeholder="Ví dụ: Frontend Developer"
+                registration={register("title")}
+              />
+              <NumberField
+                error={errors.vacanciesCount?.message}
+                label="Số lượng tuyển *"
+                min={1}
+                registration={register("vacanciesCount", { valueAsNumber: true })}
+              />
+              <SelectField
+                error={errors.jobCategoryId?.message}
+                label="Danh mục công việc *"
+                options={jobCategories.map((item) => ({ label: item.name, value: item.id }))}
+                registration={register("jobCategoryId")}
+              />
+              <SelectField
+                error={errors.experienceLevelId?.message}
+                label="Cấp độ kinh nghiệm *"
+                options={experienceLevels.map((item) => ({ label: item.name, value: item.id }))}
+                registration={register("experienceLevelId")}
+              />
+              <SelectField
+                error={errors.employmentTypeId?.message}
+                label="Loại hình làm việc *"
+                options={employmentTypes.map((item) => ({ label: item.name, value: item.id }))}
+                registration={register("employmentTypeId")}
+              />
+              <StaticField label="Chu kỳ lương" value="VND / tháng" />
+              <RichTextField
+                control={control}
+                error={errors.description?.message}
+                label="Mô tả công việc *"
+                name="description"
+                placeholder="Mô tả tổng quan vai trò, phạm vi công việc, mục tiêu..."
+              />
+              <RichTextField
+                control={control}
+                error={errors.requirements?.message}
+                label="Yêu cầu công việc *"
+                name="requirements"
+                placeholder="Liệt kê kỹ năng, kinh nghiệm, bằng cấp hoặc điều kiện bắt buộc..."
+              />
+              <RichTextField
+                control={control}
+                error={errors.benefits?.message}
+                label="Quyền lợi *"
+                name="benefits"
+                placeholder="Mô tả lương thưởng, chế độ, môi trường làm việc..."
+              />
+            </JobPostFormSection>
+
+            <SalaryVisibilitySection subtitle="Thiết lập khoảng lương và cách hiển thị thông tin lương với ứng viên.">
+              <NumberField
+                error={errors.salaryMin?.message}
+                label="Lương tối thiểu *"
+                min={0}
+                registration={register("salaryMin", { valueAsNumber: true })}
+              />
+              <NumberField
+                error={errors.salaryMax?.message}
+                label="Lương tối đa *"
+                min={0}
+                registration={register("salaryMax", { valueAsNumber: true })}
+              />
+              <ToggleField
+                description="Bật nếu vị trí có thể thương lượng lương."
+                label="Lương thỏa thuận"
+                registration={register("salaryIsNegotiable")}
+              />
+              <ToggleField
+                description="Tắt nếu bạn muốn lưu lương nội bộ, không hiển thị cho ứng viên."
+                label="Hiển thị lương"
+                registration={register("salaryIsVisible")}
+              />
+            </SalaryVisibilitySection>
+          </section>
+        ) : (
+          <section className="min-w-0">
+            <JobPostFullPreview
+              companyName={previewMeta.companyName}
+              benefits={previewValues.benefits}
+              description={previewValues.description}
+              employmentType={previewMeta.employmentTypeLabel}
+              experienceLevel={previewMeta.experienceLevelLabel}
+              isSalaryNegotiable={previewValues.salaryIsNegotiable}
+              isSalaryVisible={previewValues.salaryIsVisible}
+              jobCategory={previewMeta.jobCategoryLabel}
+              recruiterName={previewMeta.recruiterName}
+              requirements={previewValues.requirements}
+              salaryMax={previewValues.salaryMax}
+              salaryMin={previewValues.salaryMin}
+              title={previewValues.title}
+              vacanciesCount={previewValues.vacanciesCount}
+            />
+          </section>
+        )}
+
+        <CreateJobPostActions
+          activeTab={activeTab}
+          disabled={Boolean(loadErrorMessage) || isLoading || !recruiterAccount}
+          isSubmitting={isSubmitting || createJobPostMutation.isPending}
+          onBack={() => {
+            if (mode === "edit") {
+              router.push(`/recruiter/job-posts/${jobId}`);
+            } else {
+              router.push("/recruiter/job-posts");
+            }
+          }}
+          onPreview={() => setActiveTab("preview")}
+          onEdit={() => setActiveTab("editor")}
+          onSaveDraft={handleSaveDraft}
+          mode={mode}
+        />
+
+        {draftSaved ? (
+          <p className="text-sm font-semibold text-emerald-700">
+            Đã lưu bản nháp trên trình duyệt.
+          </p>
+        ) : null}
+
+        {isSubmitted && Object.keys(errors).length > 0 ? (
+          <p className="text-sm font-semibold text-rose-600">
+            Vui lòng kiểm tra lại các thông tin bắt buộc trước khi tạo tin tuyển dụng.
+          </p>
+        ) : null}
+      </form>
+    </div>
+  );
+}
+
+function CreateJobPostTabs({
+  activeTab,
+  onChange,
+}: Readonly<{
+  activeTab: "editor" | "preview";
+  onChange: (tab: "editor" | "preview") => void;
+}>) {
+  return (
+    <div className="overflow-x-auto border-b border-slate-200">
+      <div className="flex min-w-max gap-2" role="tablist" aria-label="Chế độ tạo tin tuyển dụng">
+        <TabButton
+          active={activeTab === "editor"}
+          id="create-job-editor-tab"
+          onClick={() => onChange("editor")}
+          panelId="create-job-editor-panel"
         >
-          {preview ? "Chỉnh sửa" : "Xem trước"}
-        </ActionButton>
-        <button
-          className="inline-flex h-11 min-w-[150px] items-center justify-center gap-3 rounded-lg bg-emerald-600 px-6 text-sm font-bold text-white shadow-[0_14px_30px_rgba(5,150,105,0.22)] transition hover:bg-emerald-700"
-          onClick={preview ? onSubmit : onNext}
+          Soạn tin tuyển dụng
+        </TabButton>
+        <TabButton
+          active={activeTab === "preview"}
+          id="create-job-preview-tab"
+          onClick={() => onChange("preview")}
+          panelId="create-job-preview-panel"
         >
-          {preview ? "Gửi duyệt" : "Tiếp tục"}
-          {preview ? (
-            <Send aria-hidden className="h-4.5 w-4.5" />
-          ) : (
-            <ArrowRight aria-hidden className="h-4.5 w-4.5" />
-          )}
-        </button>
+          Xem trước
+        </TabButton>
       </div>
     </div>
   );
 }
 
-function PenIcon() {
-  return <span className="inline-block h-4.5 w-4.5 border-b-2 border-slate-600" />;
-}
-
-function ActionButton({
+function TabButton({
+  active,
   children,
-  icon,
+  id,
   onClick,
-}: {
+  panelId,
+}: Readonly<{
+  active: boolean;
   children: ReactNode;
-  icon: ReactNode;
+  id: string;
   onClick: () => void;
-}) {
+  panelId: string;
+}>) {
   return (
     <button
-      className="inline-flex h-11 min-w-[130px] items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-[0_10px_28px_rgba(15,23,42,0.04)]"
+      aria-controls={panelId}
+      aria-selected={active}
+      className={cn(
+        "relative h-12 px-4 text-sm font-extrabold text-slate-500 outline-none transition",
+        "focus-visible:ring-4 focus-visible:ring-emerald-100",
+        active && "text-emerald-700",
+      )}
+      id={id}
       onClick={onClick}
+      role="tab"
+      type="button"
     >
-      {icon}
       {children}
+      {active ? (
+        <span className="absolute right-3 bottom-0 left-3 h-0.5 rounded-full bg-emerald-600" />
+      ) : null}
     </button>
   );
 }
 
-function JobPostStepper({
-  onSelect,
-  step,
-}: {
-  onSelect: (step: WizardStep) => void;
-  step: WizardStep;
-}) {
-  return (
-    <div className="mt-7 flex items-center gap-2 overflow-x-auto pb-2">
-      {createJobSteps.map((item, index) => {
-        const done = item.id < step;
-        const active = item.id === step;
-
-        return (
-          <div className="flex min-w-max items-center gap-2" key={item.id}>
-            <button
-              className={cn(
-                "flex items-center gap-2 text-[13px] font-bold",
-                active || done ? "text-emerald-700" : "text-slate-600",
-              )}
-              onClick={() => onSelect(item.id)}
-            >
-              <span
-                className={cn(
-                  "inline-flex h-8 w-8 items-center justify-center rounded-full border text-sm font-extrabold",
-                  done && "border-emerald-600 bg-emerald-600 text-white",
-                  active && "border-emerald-600 bg-emerald-600 text-white",
-                  !done && !active && "border-slate-200 bg-slate-100 text-slate-700",
-                )}
-              >
-                {done ? <Check aria-hidden className="h-4.5 w-4.5" /> : item.id}
-              </span>
-              <span>
-                {item.id}. {item.label}
-              </span>
-            </button>
-            {index < createJobSteps.length - 1 ? (
-              <span className="h-px w-[44px] bg-slate-200" />
-            ) : null}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function StepCard({
-  autosave = "Đã lưu nháp 1 phút trước",
+function JobPostFormSection({
   children,
+  isLoading,
+  subtitle,
   title,
-}: {
-  autosave?: string;
+}: Readonly<{
   children: ReactNode;
+  isLoading?: boolean;
+  subtitle: string;
   title: string;
-}) {
+}>) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-        <h2 className="text-xl font-extrabold text-slate-950">{title}</h2>
-        <p className="text-sm font-semibold text-slate-500">{autosave}</p>
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.05)] sm:p-6">
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-950">{title}</h2>
+          <p className="mt-1 text-sm leading-6 font-semibold text-slate-500">{subtitle}</p>
+        </div>
+        {isLoading ? (
+          <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-500">
+            <RefreshCw aria-hidden className="h-3.5 w-3.5 animate-spin" />
+            Đang tải
+          </span>
+        ) : null}
       </div>
-      <div className="p-5">{children}</div>
+
+      <div className="grid gap-5 lg:grid-cols-2">{children}</div>
     </section>
   );
 }
 
-function StepBasicInfo() {
+function SalaryVisibilitySection({
+  children,
+  subtitle,
+}: Readonly<{
+  children: ReactNode;
+  subtitle: string;
+}>) {
   return (
-    <StepCard autosave="" title="Thông tin cơ bản">
-      <div className="grid gap-x-6 gap-y-5 lg:grid-cols-2">
-        <Field
-          label="Tên vị trí tuyển dụng *"
-          value={basicFields.title}
-          helper="Tiêu đề rõ công nghệ và cấp bậc sẽ giúp ứng viên hiểu nhanh hơn."
-        />
-        <SelectField label="Cấp bậc *" value={basicFields.level} />
-        <Field label="Số lượng tuyển *" value={basicFields.headcount} />
-        <SelectField label="Phòng ban / Team" value={basicFields.department} />
-        <SelectField label="Ngành nghề" value={basicFields.industry} />
-        <SelectField label="Loại hợp đồng" value={basicFields.contractType} />
-        <div>
-          <Label>Hình thức làm việc *</Label>
-          <Segmented options={["Onsite", "Hybrid", "Remote"]} selected="Hybrid" />
-        </div>
-        <SelectField chips={basicFields.locations} label="Địa điểm làm việc *" value="" />
-        <Field
-          icon={<CalendarDays className="h-4.5 w-4.5" />}
-          label="Hạn nhận hồ sơ *"
-          value={basicFields.deadline}
-        />
-        <SelectField label="Người phụ trách tuyển dụng" value={basicFields.owner} />
-        <Field label="Email liên hệ" value={basicFields.contactEmail} />
-        <Field label="Số điện thoại liên hệ" value={basicFields.contactPhone} />
-        <div className="lg:col-span-2">
-          <TextareaField count="131/300" label="Mô tả ngắn vị trí" value={basicFields.summary} />
-        </div>
-      </div>
-      <DisplaySettings
-        items={[
-          ["Hiển thị tên công ty", "Ứng viên sẽ thấy tên công ty trên bài đăng."],
-          [
-            "Hiển thị mức độ ưu tiên tuyển dụng",
-            "Hiển thị mức ưu tiên (Cao/Trung bình/Thấp) cho tin tuyển dụng.",
-          ],
-          ["Nhận hồ sơ qua nền tảng UpNext", "Ứng viên có thể nộp hồ sơ trực tiếp qua UpNext."],
-        ]}
-        title="Thiết lập hiển thị"
-      />
-    </StepCard>
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.05)] sm:p-6">
+      <h2 className="text-xl font-extrabold text-slate-950">Lương và hiển thị</h2>
+      <p className="mt-1 text-sm leading-6 font-semibold text-slate-500">{subtitle}</p>
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">{children}</div>
+    </section>
   );
 }
 
-function StepSalaryBenefits() {
+function CreateJobPostActions({
+  activeTab,
+  disabled,
+  isSubmitting,
+  onBack,
+  onEdit,
+  onPreview,
+  onSaveDraft,
+  mode = "create",
+}: Readonly<{
+  activeTab: "editor" | "preview";
+  disabled: boolean;
+  isSubmitting: boolean;
+  onBack: () => void;
+  onEdit: () => void;
+  onPreview: () => void;
+  onSaveDraft: () => void;
+  mode?: "create" | "edit";
+}>) {
   return (
-    <StepCard title="Lương & phúc lợi">
-      <div className="grid gap-x-6 gap-y-5 lg:grid-cols-2">
-        <Field label="Lương tối thiểu *" value={salaryFields.min} />
-        <Field label="Lương tối đa *" value={salaryFields.max} />
-        <div>
-          <Label>Mức lương hiển thị</Label>
-          <Segmented
-            options={["Hiển thị khoảng lương", "Thỏa thuận", "Ẩn lương"]}
-            selected="Hiển thị khoảng lương"
-          />
-        </div>
-        <SelectField label="Đơn vị tiền tệ" value={salaryFields.currency} />
-        <TextareaField count="55/300" label="Thưởng & phụ cấp" value={salaryFields.perks} />
-        <SelectField label="Chính sách làm việc" value={salaryFields.workingPolicy} />
-        <div>
-          <Label>Phúc lợi nổi bật</Label>
-          <div className="flex flex-wrap gap-2">
-            {benefits.map((benefit) => (
-              <Chip key={benefit}>{benefit}</Chip>
-            ))}
-            <button className="h-9 rounded-lg border border-dashed border-slate-300 px-5 text-sm font-bold text-slate-600">
-              + Thêm phúc lợi
+    <div className="sticky bottom-0 z-10 rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_-10px_30px_rgba(15,23,42,0.06)] backdrop-blur">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {activeTab === "editor" ? (
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              className="inline-flex h-11 items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              onClick={onBack}
+              type="button"
+            >
+              <ArrowLeft aria-hidden className="h-4.5 w-4.5" />
+              {mode === "edit" ? "Quay lại chi tiết" : "Quay lại danh sách"}
+            </button>
+            {mode !== "edit" && (
+              <button
+                className="inline-flex h-11 items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                onClick={onSaveDraft}
+                type="button"
+              >
+                <Save aria-hidden className="h-4.5 w-4.5" />
+                Lưu nháp
+              </button>
+            )}
+            <button
+              className="inline-flex h-11 items-center justify-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-5 text-sm font-bold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100"
+              onClick={onPreview}
+              type="button"
+            >
+              <Eye aria-hidden className="h-4.5 w-4.5" />
+              Xem trước
             </button>
           </div>
-        </div>
-        <Field label="Thời gian làm việc" value={salaryFields.schedule} />
-        <TextareaField count="106/300" label="Mô tả ngắn về phúc lợi" value={salaryFields.note} />
-        <Field label="Ngày nghỉ & phép" value={salaryFields.leavePolicy} />
-        <div />
-        <Field label="Thiết bị làm việc" value={salaryFields.equipment} />
-      </div>
-      <DisplaySettings
-        items={[
-          ["Hiển thị mức lương", "Cho phép ứng viên thấy khoảng lương trong tin đăng."],
-          ["Hiển thị phúc lợi nổi bật", "Hiển thị các phúc lợi nổi bật trên bài đăng."],
-          [
-            "Ưu tiên tin có phúc lợi nổi bật",
-            "Ưu tiên hiển thị tin có phúc lợi nổi bật trên UpNext.",
-          ],
-        ]}
-        title="Thiết lập quyền lợi hiển thị"
-      />
-    </StepCard>
-  );
-}
+        ) : (
+          <button
+            className="inline-flex h-11 items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+            onClick={onEdit}
+            type="button"
+          >
+            <ArrowLeft aria-hidden className="h-4.5 w-4.5" />
+            Quay lại chỉnh sửa
+          </button>
+        )}
 
-function StepJobDescription() {
-  return (
-    <div className="space-y-4">
-      <StepCard autosave="Đã lưu nháp 2 phút trước" title="Mô tả công việc">
-        <div className="space-y-5">
-          <RichTextField label="Mô tả vai trò *" value={jobDescription.overview} />
-          <BulletEditor
-            helper="Liệt kê các nhiệm vụ chính"
-            label="Trách nhiệm chính *"
-            items={jobDescription.responsibilities}
-          />
-          <BulletEditor
-            helper="Những yêu cầu bắt buộc"
-            label="Yêu cầu bắt buộc *"
-            items={jobDescription.requirements}
-          />
-          <BulletEditor
-            helper="Các yêu cầu là lợi thế"
-            label="Yêu cầu ưu tiên"
-            items={jobDescription.niceToHave}
-          />
-          <BulletEditor
-            helper="Các quyền lợi dành cho ứng viên"
-            label="Quyền lợi"
-            items={jobDescription.perks}
-          />
-          <Field label="Quy trình phỏng vấn" value={jobDescription.interviewProcess} />
-        </div>
-      </StepCard>
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
-        <h2 className="text-xl font-extrabold text-slate-950">Tiêu chí ứng viên</h2>
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <ChipField label="Kỹ năng bắt buộc" chips={candidateCriteria.requiredSkills} />
-          <SelectField label="Kinh nghiệm" value={candidateCriteria.experience} />
-          <ChipField
-            label="Kỹ năng ưu tiên"
-            chips={candidateCriteria.preferredSkills.slice(0, 3)}
-          />
-          <SelectField label="Tiếng Anh" value={candidateCriteria.english} />
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {["Cân bằng", "Ưu tiên kỹ năng", "Ưu tiên kinh nghiệm"].map((item, index) => (
-            <button
-              className={cn(
-                "h-10 rounded-lg border text-sm font-bold",
-                index === 0
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-slate-200 text-slate-600",
-              )}
-              key={item}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-      </section>
+        <button
+          className={cn(
+            "inline-flex h-11 min-w-[220px] items-center justify-center gap-3 rounded-xl bg-emerald-600 px-6 text-sm font-bold text-white shadow-[0_14px_30px_rgba(5,150,105,0.22)] transition",
+            "hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none",
+          )}
+          disabled={disabled || isSubmitting}
+          type="submit"
+        >
+          {isSubmitting ? (
+            <>
+              <RefreshCw aria-hidden className="h-4.5 w-4.5 animate-spin" />
+              {mode === "edit" ? "Đang lưu thay đổi..." : "Đang tạo tin..."}
+            </>
+          ) : (
+            <>
+              <Save aria-hidden className="h-4.5 w-4.5" />
+              {mode === "edit" ? "Lưu thay đổi" : "Tạo tin tuyển dụng"}
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
 
-function StepCandidateCriteria() {
+function JobPostFullPreview({
+  benefits,
+  companyName,
+  description,
+  employmentType,
+  experienceLevel,
+  isSalaryNegotiable,
+  isSalaryVisible,
+  jobCategory,
+  recruiterName,
+  requirements,
+  salaryMax,
+  salaryMin,
+  title,
+  vacanciesCount,
+}: Readonly<{
+  benefits: string;
+  companyName: string;
+  description: string;
+  employmentType: string;
+  experienceLevel: string;
+  isSalaryNegotiable: boolean;
+  isSalaryVisible: boolean;
+  jobCategory: string;
+  recruiterName: string;
+  requirements: string;
+  salaryMax: number;
+  salaryMin: number;
+  title: string;
+  vacanciesCount: number;
+}>) {
+  const previewTitle = title.trim() || "Tiêu đề vị trí tuyển dụng";
+  const previewDescription =
+    description.trim() || "Nội dung mô tả chi tiết công việc đang được cập nhật...";
+  const previewRequirements =
+    requirements.trim() || "Thông tin yêu cầu chuyên môn đang được cập nhật...";
+  const previewBenefits =
+    benefits.trim() || "Chế độ đãi ngộ và quyền lợi ứng viên đang được cập nhật...";
+
   return (
-    <StepCard title="Tiêu chí ứng viên">
-      <div className="grid gap-x-6 gap-y-5 lg:grid-cols-2">
-        <ChipField label="Kỹ năng bắt buộc *" chips={candidateCriteria.requiredSkills} withAdd />
-        <ChipField label="Kỹ năng ưu tiên" chips={candidateCriteria.preferredSkills} withAdd />
-        <SelectField label="Kinh nghiệm tối thiểu *" value={candidateCriteria.experience} />
-        <SelectField label="Trình độ tiếng Anh" value={candidateCriteria.english} />
-        <ChipField label="Khu vực ưu tiên" chips={candidateCriteria.locations} />
-        <div>
-          <Label>Mức lương mong muốn phù hợp</Label>
-          <div className="grid grid-cols-[1fr_20px_1fr_42px] items-center gap-3">
-            <InputBox>{candidateCriteria.salaryMin}</InputBox>
-            <Minus aria-hidden className="h-4 w-4 text-slate-400" />
-            <InputBox>{candidateCriteria.salaryMax}</InputBox>
-            <span className="text-sm font-bold text-slate-600">VND</span>
-          </div>
-        </div>
-        <div>
-          <Label>Hình thức làm việc phù hợp</Label>
-          <Segmented options={candidateCriteria.workModels} selected="Hybrid" />
-        </div>
-        <ChipField label="Từ khóa loại trừ" chips={candidateCriteria.excluded} />
-        <div className="lg:col-span-2">
-          <TextareaField count="101/300" label="Ghi chú sàng lọc" value={candidateCriteria.note} />
+    <div
+      className="mx-auto max-w-[960px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)]"
+      id="create-job-preview-panel"
+      role="tabpanel"
+    >
+      {/* Decorative cover header */}
+      <div className="relative h-36 w-full bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-950 sm:h-44">
+        {/* Abstract background graphics */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] bg-[size:4rem_4rem] opacity-30" />
+
+        {/* Verification badge */}
+        <div className="absolute top-4 right-4 flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-500/15 px-3.5 py-1 text-[11px] font-extrabold text-emerald-400 shadow-sm backdrop-blur-md">
+          <ShieldCheck className="h-4 w-4" />
+          Tuyển dụng xác thực
         </div>
       </div>
 
-      <div className="mt-6 border-t border-slate-100 pt-5">
-        <h3 className="text-base font-extrabold text-slate-950">Thiết lập ưu tiên</h3>
-        <div className="mt-4 grid gap-3 sm:grid-cols-4">
-          {["Cân bằng", "Ưu tiên kỹ năng", "Ưu tiên kinh nghiệm", "Ưu tiên lương phù hợp"].map(
-            (item, index) => (
-              <button
-                className={cn(
-                  "h-10 rounded-lg border text-sm font-bold",
-                  index === 0
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                    : "border-slate-200 text-slate-600",
-                )}
-                key={item}
-              >
-                {item}
-              </button>
-            ),
-          )}
+      {/* Main header information */}
+      <div className="relative border-b border-slate-100 px-6 pb-6 sm:px-8 sm:pb-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          {/* Logo overlapping the cover */}
+          <div className="relative -mt-16 flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-white shadow-lg sm:-mt-20 sm:h-28 sm:w-28">
+            <img
+              src="/assets/company-profile/logo.png"
+              alt="Logo"
+              className="h-full w-full rounded-xl object-contain p-1.5"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = "none";
+              }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-emerald-600 text-3xl font-black text-white">
+              {getCompanyInitial(companyName)}
+            </div>
+          </div>
         </div>
-        <p className="mt-4 text-sm font-bold text-slate-600">Trọng số gợi ý (tổng 100%)</p>
-        <div className="mt-3 grid gap-4 sm:grid-cols-3">
-          {[
-            ["Kỹ năng", "50%"],
-            ["Kinh nghiệm", "30%"],
-            ["Yếu tố khác", "20%"],
-          ].map(([label, value]) => (
-            <div className="rounded-lg border border-slate-200 p-4" key={label}>
-              <div className="flex items-center justify-between text-sm font-extrabold">
-                <span>{label}</span>
-                <span>{value}</span>
+
+        <div className="mt-5">
+          <h2
+            className={cn(
+              "text-2xl leading-tight font-black text-slate-950 sm:text-3xl tracking-tight",
+              !title.trim() && "text-slate-400",
+            )}
+            id="job-post-preview-title"
+          >
+            {previewTitle}
+          </h2>
+
+          <div className="mt-3.5 flex flex-wrap items-center gap-y-2 text-sm font-bold text-slate-500">
+            <span className="cursor-pointer text-slate-800 transition hover:text-emerald-700">
+              {companyName}
+            </span>
+            <span className="mx-3 text-slate-300">•</span>
+            <span className="font-semibold text-slate-600">Người đăng: {recruiterName}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Body content with 2 columns layout */}
+      <div className="grid grid-cols-1 gap-8 bg-slate-50/50 p-6 sm:p-8 lg:grid-cols-3">
+        {/* Left Column: Job detail sections */}
+        <div className="space-y-6 lg:col-span-2">
+          <PreviewSection
+            title="Mô tả công việc"
+            icon={<FileText className="h-4.5 w-4.5 text-emerald-600" />}
+          >
+            {previewDescription}
+          </PreviewSection>
+
+          <PreviewSection
+            title="Yêu cầu công việc"
+            icon={<Target className="h-4.5 w-4.5 text-emerald-600" />}
+          >
+            {previewRequirements}
+          </PreviewSection>
+
+          <PreviewSection
+            title="Quyền lợi được hưởng"
+            icon={<Gift className="h-4.5 w-4.5 text-emerald-600" />}
+          >
+            {previewBenefits}
+          </PreviewSection>
+        </div>
+
+        {/* Right Column: Sidebar information */}
+        <div className="space-y-6">
+          {/* Job overview summary card */}
+          <div className="rounded-2xl border border-slate-200/60 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.02)]">
+            <h3 className="text-xs font-black tracking-wider text-slate-950 uppercase">
+              Thông tin chung
+            </h3>
+
+            <div className="mt-5 space-y-4">
+              <SidebarItem
+                icon={<BriefcaseBusiness className="h-4.5 w-4.5 text-emerald-600" />}
+                label="Mức lương"
+              >
+                {formatSalaryPreview({
+                  isSalaryNegotiable,
+                  isSalaryVisible,
+                  salaryMax,
+                  salaryMin,
+                })}
+              </SidebarItem>
+
+              <SidebarItem
+                icon={<Clock3 className="h-4.5 w-4.5 text-emerald-600" />}
+                label="Cấp bậc / Kinh nghiệm"
+              >
+                {experienceLevel}
+              </SidebarItem>
+
+              <SidebarItem
+                icon={<CalendarDays className="h-4.5 w-4.5 text-emerald-600" />}
+                label="Hình thức làm việc"
+              >
+                {employmentType}
+              </SidebarItem>
+
+              <SidebarItem
+                icon={<UsersRound className="h-4.5 w-4.5 text-emerald-600" />}
+                label="Số lượng cần tuyển"
+              >
+                Tuyển {Math.max(vacanciesCount || 0, 1)} người
+              </SidebarItem>
+
+              <SidebarItem
+                icon={<NotePencil className="h-4.5 w-4.5 text-emerald-600" />}
+                label="Lĩnh vực chuyên môn"
+              >
+                {jobCategory}
+              </SidebarItem>
+            </div>
+          </div>
+
+          {/* Company Summary Card */}
+          <div className="rounded-2xl border border-slate-200/60 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.02)]">
+            <h3 className="text-xs font-black tracking-wider text-slate-950 uppercase">
+              Về công ty
+            </h3>
+
+            <div className="mt-4 flex items-center gap-3">
+              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
+                <img
+                  src="/assets/company-profile/logo.png"
+                  alt="Logo"
+                  className="h-full w-full object-contain p-1"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = "none";
+                  }}
+                />
+                <div className="absolute flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-base font-black text-white">
+                  {getCompanyInitial(companyName)}
+                </div>
               </div>
-              <div className="mt-4 h-1.5 rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-emerald-500" style={{ width: value }} />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-extrabold text-slate-900">{companyName}</p>
+                <p className="mt-0.5 text-xs font-semibold text-slate-500">
+                  Nhà tuyển dụng chuyên nghiệp
+                </p>
               </div>
             </div>
-          ))}
+          </div>
         </div>
       </div>
 
-      <DisplaySettings
-        items={[
-          [
-            "Tự động gợi ý ứng viên phù hợp",
-            "UpNext sẽ đề xuất các hồ sơ phù hợp dựa trên tiêu chí đã thiết lập.",
-          ],
-          [
-            "Ưu tiên hồ sơ đang tìm việc",
-            "Tăng khả năng hiển thị và gợi ý ứng viên đang tìm việc tích cực.",
-          ],
-          [
-            "Cho phép lọc theo mức lương mong muốn",
-            "Lọc ứng viên dựa trên mức lương mong muốn phù hợp với ngân sách.",
-          ],
-        ]}
-        title="Thiết lập lọc hồ sơ"
-      />
-    </StepCard>
-  );
-}
-
-function StepPreviewSubmit() {
-  return (
-    <StepCard title="Xem trước tin tuyển dụng">
-      <div className="flex flex-col gap-5 border-b border-slate-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex gap-4">
-          <div className="grid h-14 w-14 place-items-center rounded-lg bg-indigo-800 text-2xl font-black text-white">
-            U
-          </div>
-          <div>
-            <h2 className="text-2xl font-extrabold text-slate-950">{basicFields.title}</h2>
-            <p className="mt-1 text-sm font-extrabold text-emerald-600">UpNext Studio</p>
-          </div>
+      {/* Footer sticky action banner */}
+      <footer className="flex items-center justify-between border-t border-slate-200 bg-white px-6 py-5 sm:px-8">
+        <div className="hidden sm:block">
+          <p className="text-xs font-semibold text-slate-400">Xem trước hiển thị</p>
+          <p className="mt-0.5 text-sm font-extrabold text-slate-800">
+            Ứng viên sẽ nhìn thấy giao diện này
+          </p>
         </div>
-        <button className="h-10 rounded-lg bg-emerald-600 px-6 text-sm font-bold text-white">
+        <button
+          aria-disabled="true"
+          className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white opacity-60 sm:w-auto sm:min-w-[200px]"
+          type="button"
+        >
           Ứng tuyển ngay
         </button>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-3">
-        {previewMeta.map((item) => {
-          const Icon = item.icon;
-          return (
-            <span
-              className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-600"
-              key={item.text}
-            >
-              <Icon aria-hidden className="h-4 w-4" />
-              {item.text}
-            </span>
-          );
-        })}
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-6 border-b border-slate-100 pb-4 text-sm font-bold text-slate-700">
-        <span>15,000,000 - 30,000,000 VND / tháng</span>
-        <span>Hạn nộp hồ sơ: 30/06/2025</span>
-      </div>
-
-      <PreviewSection title="Mô tả vai trò">
-        <p>{jobDescription.overview}</p>
-      </PreviewSection>
-      <PreviewList title="Trách nhiệm chính" items={jobDescription.responsibilities} />
-      <PreviewList title="Yêu cầu bắt buộc" items={jobDescription.requirements} />
-      <PreviewList title="Yêu cầu ưu tiên" items={jobDescription.niceToHave} />
-
-      <PreviewSection title="Quyền lợi">
-        <div className="flex flex-wrap gap-2">
-          {previewBenefits.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Chip key={item.text}>
-                <Icon aria-hidden className="h-3.5 w-3.5" />
-                {item.text}
-              </Chip>
-            );
-          })}
-        </div>
-      </PreviewSection>
-
-      <PreviewSection title="Quy trình phỏng vấn">
-        <div className="grid gap-3 md:grid-cols-[1fr_24px_1fr_24px_1fr]">
-          {previewProcess.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <div className="contents" key={item.title}>
-                <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-3">
-                  <Icon aria-hidden className="h-5 w-5 text-slate-600" />
-                  <div>
-                    <p className="text-sm font-extrabold text-slate-950">{item.title}</p>
-                    <p className="text-sm font-semibold text-slate-600">{item.text}</p>
-                  </div>
-                </div>
-                {index < previewProcess.length - 1 ? (
-                  <ArrowRight
-                    aria-hidden
-                    className="mx-auto hidden h-5 w-5 self-center text-slate-400 md:block"
-                  />
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </PreviewSection>
-
-      <PreviewSection title="Tiêu chí ứng viên">
-        <div className="grid gap-3 md:grid-cols-4">
-          <CriteriaBox title="Kỹ năng bắt buộc" values={candidateCriteria.requiredSkills} />
-          <CriteriaBox
-            title="Kỹ năng ưu tiên"
-            values={candidateCriteria.preferredSkills.slice(0, 3)}
-          />
-          <CriteriaBox title="Kinh nghiệm" values={[candidateCriteria.experience]} />
-          <CriteriaBox title="Tiếng Anh" values={[candidateCriteria.english]} />
-        </div>
-      </PreviewSection>
-    </StepCard>
-  );
-}
-
-function CreateJobRightPanel({ step }: { step: WizardStep }) {
-  return (
-    <aside className="space-y-4">
-      <CompletionCard step={step} />
-      {step === 5 ? <ValidationCard step={step} /> : <AiAssistantCard step={step} />}
-      <CurrentCreatePlanCard />
-      <NoticeCard step={step} />
-    </aside>
-  );
-}
-
-function CompletionCard({ step }: { step: WizardStep }) {
-  const percent: Record<WizardStep, number> = { 1: 22, 2: 42, 3: 72, 4: 62, 5: 92 };
-  const note: Record<WizardStep, string> = {
-    1: "Bạn mới hoàn thành 1/5 bước.",
-    2: "Bạn mới hoàn thành 2/5 bước.",
-    3: "Bạn đã hoàn thành 4/5 bước.",
-    4: "Bạn mới hoàn thành 4/5 bước.",
-    5: "Tin đã sẵn sàng để gửi duyệt.",
-  };
-
-  return (
-    <SideCard>
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-extrabold text-slate-950">Mức độ hoàn thiện</h2>
-        <span className="text-base font-extrabold text-slate-950">{percent[step]}%</span>
-      </div>
-      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100">
-        <div
-          className="h-full rounded-full bg-emerald-500"
-          style={{ width: `${percent[step]}%` }}
-        />
-      </div>
-      <div className="mt-4 space-y-3">
-        {createJobSteps.map((item) => {
-          const done = item.id < step || step === 5;
-          const active = item.id === step && step !== 5;
-          return (
-            <div className="flex items-center gap-3 text-sm font-bold" key={item.id}>
-              <span
-                className={cn(
-                  "inline-flex h-4 w-4 items-center justify-center rounded-full",
-                  done || active ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-400",
-                )}
-              >
-                {done ? <Check aria-hidden className="h-3 w-3" /> : null}
-              </span>
-              <span className={done || active ? "text-slate-700" : "text-slate-500"}>
-                {item.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <p className="mt-4 text-sm font-semibold text-slate-500">{note[step]}</p>
-    </SideCard>
-  );
-}
-
-function AiAssistantCard({ step }: { step: WizardStep }) {
-  return (
-    <SideCard>
-      <h2 className="flex items-center gap-2 text-base font-extrabold text-slate-950">
-        <Sparkles aria-hidden className="h-5 w-5 text-violet-500" />
-        Trợ lý AI viết tin
-      </h2>
-      <div className="mt-4 space-y-1.5">
-        {assistantSuggestions[step].map((item) => {
-          const Icon = item.icon;
-          return (
-            <div
-              className="flex h-8 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-bold text-slate-600"
-              key={item.text}
-            >
-              <Icon aria-hidden className="h-4 w-4" />
-              {item.text}
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3">
-        <p className="text-sm leading-6 font-semibold text-emerald-700">{assistantTips[step]}</p>
-        <button className="mt-3 h-8 rounded-md border border-emerald-300 bg-white px-3 text-sm font-bold text-emerald-700">
-          Áp dụng gợi ý
-        </button>
-      </div>
-    </SideCard>
-  );
-}
-
-function ValidationCard({ step }: { step: WizardStep }) {
-  return (
-    <SideCard>
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-extrabold text-slate-950">Kiểm tra nội dung</h2>
-        <span className="rounded-md bg-emerald-50 px-3 py-1.5 text-xs font-extrabold text-emerald-700">
-          Hợp lệ
-        </span>
-      </div>
-      <div className="mt-4 space-y-3">
-        {assistantSuggestions[step].map((item) => (
-          <div className="flex items-center gap-3 text-sm font-bold text-slate-600" key={item.text}>
-            <Check className="h-4 w-4 rounded-full bg-emerald-500 p-0.5 text-white" />
-            {item.text}
-          </div>
-        ))}
-      </div>
-      <a
-        className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-emerald-600"
-        href="#"
-      >
-        Xem chính sách nội dung
-        <ArrowRight aria-hidden className="h-4 w-4" />
-      </a>
-    </SideCard>
-  );
-}
-
-function CurrentCreatePlanCard() {
-  return (
-    <SideCard>
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-extrabold text-slate-950">Gói hiện tại</h2>
-        <span className="rounded-md bg-emerald-50 px-4 py-2 text-xs font-extrabold text-emerald-700">
-          Pro
-        </span>
-      </div>
-      <div className="mt-4 space-y-4">
-        {createPlanUsage.map((item) => (
-          <div key={item.label}>
-            <div className="mb-2 flex justify-between text-xs font-bold">
-              <span className="text-slate-500">{item.label}</span>
-              <span className="text-slate-950">{item.value}</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-emerald-500"
-                style={{ width: `${item.percent}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-      <a
-        className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-emerald-600"
-        href="#"
-      >
-        Nâng cấp gói
-        <ArrowRight aria-hidden className="h-4 w-4" />
-      </a>
-    </SideCard>
-  );
-}
-
-function NoticeCard({ step }: { step: WizardStep }) {
-  const ready = step === 5;
-  const valid = step === 3;
-  const title =
-    step === 5
-      ? "Lưu ý trước khi gửi"
-      : step === 3
-        ? "Kiểm tra nội dung"
-        : step === 4
-          ? "Kiểm tra thiết lập"
-          : "Lưu ý trước khi đăng";
-
-  return (
-    <SideCard>
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-extrabold text-slate-950">{title}</h2>
-        <span
-          className={cn(
-            "rounded-md px-3 py-1.5 text-xs font-extrabold",
-            ready || valid ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-600",
-          )}
-        >
-          {ready ? "Sẵn sàng" : valid ? "Hợp lệ" : step === 4 ? "Cần kiểm tra" : "Còn thiếu"}
-        </span>
-      </div>
-      <div className="mt-4 space-y-3">
-        {noticeItems[step].map((item) => (
-          <div className="flex items-center gap-3 text-sm font-bold text-slate-600" key={item.text}>
-            {ready || valid ? (
-              <Check className="h-4 w-4 rounded-full bg-emerald-500 p-0.5 text-white" />
-            ) : (
-              <X className="h-4 w-4 rounded-full border border-slate-300 p-0.5 text-slate-500" />
-            )}
-            {item.text}
-          </div>
-        ))}
-      </div>
-      <a
-        className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold text-emerald-600"
-        href="#"
-      >
-        {step === 4 ? "Xem hướng dẫn cấu hình" : "Xem hướng dẫn đăng tin"}
-        <ArrowRight aria-hidden className="h-4 w-4" />
-      </a>
-    </SideCard>
-  );
-}
-
-function FormFooterActions({
-  isPreview,
-  onBack,
-  onNext,
-  onSave,
-  onSubmit,
-  step,
-}: {
-  isPreview: boolean;
-  onBack: () => void;
-  onNext: () => void;
-  onSave: () => void;
-  onSubmit: () => void;
-  step: WizardStep;
-}) {
-  return (
-    <div className="mt-4 flex items-center justify-between gap-3">
-      <button
-        className="inline-flex h-11 items-center gap-3 rounded-lg border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700"
-        onClick={onBack}
-      >
-        <ArrowLeft aria-hidden className="h-4.5 w-4.5" />
-        Quay lại
-      </button>
-      <div className="flex gap-3">
-        <button
-          className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 bg-white px-6 text-sm font-bold text-slate-700"
-          onClick={onSave}
-        >
-          <Save aria-hidden className="h-4.5 w-4.5" />
-          Lưu nháp
-        </button>
-        <button
-          className="inline-flex h-11 min-w-[150px] items-center justify-center gap-3 rounded-lg bg-emerald-600 px-6 text-sm font-bold text-white"
-          onClick={isPreview ? onSubmit : onNext}
-        >
-          {step === 5 ? "Gửi duyệt" : "Tiếp tục"}
-          <ArrowRight aria-hidden className="h-4.5 w-4.5" />
-        </button>
-      </div>
+      </footer>
     </div>
   );
 }
 
-function Label({ children }: { children: ReactNode }) {
-  return <label className="mb-2 block text-sm font-extrabold text-slate-700">{children}</label>;
-}
-
-function Field({
-  helper,
+function SidebarItem({
+  children,
   icon,
   label,
-  value,
-}: {
-  helper?: string;
-  icon?: ReactNode;
-  label: string;
-  value: string;
-}) {
+}: Readonly<{ children: ReactNode; icon: ReactNode; label: string }>) {
   return (
-    <div>
-      <Label>{label}</Label>
-      <div className="flex h-10 items-center gap-3 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700">
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
         {icon}
-        <span>{value}</span>
       </div>
-      {helper ? <p className="mt-2 text-xs font-semibold text-slate-500">{helper}</p> : null}
+      <div>
+        <p className="text-xs font-bold text-slate-400">{label}</p>
+        <p className="mt-0.5 text-sm font-extrabold text-slate-900">{children}</p>
+      </div>
     </div>
+  );
+}
+
+function PreviewSection({
+  children,
+  title,
+  icon,
+}: Readonly<{ children: string; title: string; icon: ReactNode }>) {
+  return (
+    <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_2px_8px_rgba(15,23,42,0.01)]">
+      <h3 className="flex items-center gap-2.5 text-sm font-black tracking-wider text-slate-950 uppercase">
+        {icon}
+        {title}
+      </h3>
+      <div
+        className={cn(
+          "mt-3.5 text-[14px] leading-7 font-semibold text-slate-600",
+          "[&_p]:mb-3 last:[&_p]:mb-0",
+          "[&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 first:[&_h2]:mt-0",
+          "[&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-bold [&_h3]:text-slate-900 first:[&_h3]:mt-0",
+          "[&_ul]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul_li]:mb-1",
+          "[&_ol]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol_li]:mb-1",
+          "[&_blockquote]:my-3 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-slate-500",
+          "[&_a]:text-emerald-600 [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-emerald-700",
+        )}
+        dangerouslySetInnerHTML={{ __html: children }}
+      />
+    </section>
+  );
+}
+
+function formatSalaryPreview({
+  isSalaryNegotiable,
+  isSalaryVisible,
+  salaryMax,
+  salaryMin,
+}: Readonly<{
+  isSalaryNegotiable: boolean;
+  isSalaryVisible: boolean;
+  salaryMax: number;
+  salaryMin: number;
+}>) {
+  if (!isSalaryVisible) {
+    return "Không hiển thị lương";
+  }
+
+  if (isSalaryNegotiable) {
+    return "Lương thỏa thuận";
+  }
+
+  return `${formatMillion(salaryMin)} - ${formatMillion(salaryMax)} triệu VND/tháng`;
+}
+
+function formatMillion(value: number) {
+  const amount = (value || 0) / 1000000;
+
+  return new Intl.NumberFormat("vi-VN", {
+    maximumFractionDigits: Number.isInteger(amount) ? 0 : 1,
+  }).format(amount);
+}
+
+function getCompanyInitial(companyName: string) {
+  return companyName.trim().charAt(0).toUpperCase() || "U";
+}
+
+function StatusBanner({
+  children,
+  tone,
+}: Readonly<{
+  children: ReactNode;
+  tone: "danger" | "warning";
+}>) {
+  return (
+    <div
+      className={cn(
+        "mb-5 rounded-2xl border px-4 py-3 text-sm font-semibold",
+        tone === "danger" && "border-rose-100 bg-rose-50 text-rose-700",
+        tone === "warning" && "border-amber-100 bg-amber-50 text-amber-900",
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function TextField({
+  error,
+  label,
+  placeholder,
+  registration,
+}: Readonly<{
+  error: string | undefined;
+  label: string;
+  placeholder: string;
+  registration: UseFormRegisterReturn;
+}>) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-extrabold text-slate-700">{label}</span>
+      <input
+        aria-invalid={Boolean(error)}
+        className={cn(
+          "h-11 w-full rounded-xl border bg-white px-4 text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-400",
+          "focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100",
+          error ? "border-rose-300" : "border-slate-200",
+        )}
+        placeholder={placeholder}
+        type="text"
+        {...registration}
+      />
+      {error ? <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p> : null}
+    </label>
+  );
+}
+
+function NumberField({
+  error,
+  label,
+  min,
+  registration,
+}: Readonly<{
+  error: string | undefined;
+  label: string;
+  min: number;
+  registration: UseFormRegisterReturn;
+}>) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-extrabold text-slate-700">{label}</span>
+      <input
+        aria-invalid={Boolean(error)}
+        className={cn(
+          "h-11 w-full rounded-xl border bg-white px-4 text-sm font-semibold text-slate-700 outline-none",
+          "focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100",
+          error ? "border-rose-300" : "border-slate-200",
+        )}
+        min={min}
+        type="number"
+        {...registration}
+      />
+      {error ? <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p> : null}
+    </label>
   );
 }
 
 function SelectField({
-  chips,
+  error,
   label,
-  value,
-}: {
-  chips?: readonly string[];
+  options,
+  registration,
+}: Readonly<{
+  error: string | undefined;
   label: string;
-  value: string;
-}) {
+  options: Array<{ label: string; value: string }>;
+  registration: UseFormRegisterReturn;
+}>) {
   return (
-    <div>
-      <Label>{label}</Label>
-      <div className="flex h-10 items-center justify-between rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700">
-        <div className="flex gap-2">
-          {chips?.map((chip) => <Chip key={chip}>{chip}</Chip>) ?? <span>{value}</span>}
-        </div>
-        <ChevronDown aria-hidden className="h-4 w-4 text-slate-500" />
-      </div>
+    <label className="block">
+      <span className="mb-2 block text-sm font-extrabold text-slate-700">{label}</span>
+      <select
+        aria-invalid={Boolean(error)}
+        className={cn(
+          "h-11 w-full rounded-xl border bg-white px-4 text-sm font-semibold text-slate-700 outline-none",
+          "focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100",
+          error ? "border-rose-300" : "border-slate-200",
+        )}
+        {...registration}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {error ? <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p> : null}
+    </label>
+  );
+}
+
+function RichTextField({
+  control,
+  error,
+  label,
+  name,
+  placeholder,
+}: Readonly<{
+  control: Control<CreateJobPostFormValues>;
+  error: string | undefined;
+  label: string;
+  name: "description" | "requirements" | "benefits";
+  placeholder?: string;
+}>) {
+  return (
+    <div className="block lg:col-span-2">
+      <span className="mb-2 block text-sm font-extrabold text-slate-700">{label}</span>
+      <Controller
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <RichTextEditor
+            error={Boolean(error)}
+            onChange={field.onChange}
+            placeholder={placeholder}
+            value={field.value ?? ""}
+          />
+        )}
+      />
+      {error ? <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p> : null}
     </div>
   );
 }
 
-function TextareaField({ count, label, value }: { count: string; label: string; value: string }) {
+function ToggleField({
+  description,
+  label,
+  registration,
+}: Readonly<{
+  description: string;
+  label: string;
+  registration: UseFormRegisterReturn;
+}>) {
+  return (
+    <label className="flex items-start gap-3 rounded-2xl border border-slate-200 p-4">
+      <input
+        className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+        type="checkbox"
+        {...registration}
+      />
+      <span>
+        <span className="block text-sm font-extrabold text-slate-800">{label}</span>
+        <span className="mt-1 block text-sm leading-6 font-semibold text-slate-500">
+          {description}
+        </span>
+      </span>
+    </label>
+  );
+}
+
+function StaticField({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <div>
-      <Label>{label}</Label>
-      <div className="min-h-[72px] rounded-lg border border-slate-200 p-3 text-sm leading-6 font-semibold text-slate-700">
+      <span className="mb-2 block text-sm font-extrabold text-slate-700">{label}</span>
+      <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-600">
         {value}
-        <p className="mt-2 text-right text-xs font-semibold text-slate-500">{count}</p>
       </div>
     </div>
   );
 }
 
-function RichTextField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid gap-3 md:grid-cols-[190px_minmax(0,1fr)]">
-      <div>
-        <Label>{label}</Label>
-        <p className="text-xs font-semibold text-slate-500">Tóm tắt ngắn gọn về vai trò</p>
-      </div>
-      <div className="overflow-hidden rounded-lg border border-slate-200">
-        <div className="flex h-9 items-center gap-5 border-b border-slate-100 px-4 text-slate-600">
-          {[Bold, Italic, Underline, List, List, Link2].map((Icon, index) => (
-            <Icon aria-hidden className="h-4 w-4" key={index} />
-          ))}
-        </div>
-        <p className="p-4 text-sm leading-6 font-semibold text-slate-700">{value}</p>
-      </div>
-    </div>
-  );
+function getOptionLabel(
+  options: JobCategoryApiItem[] | ExperienceLevelApiItem[] | EmploymentTypeApiItem[],
+  id: string,
+  fallback: string,
+) {
+  return options.find((item) => item.id === id)?.name ?? fallback;
 }
 
-function BulletEditor({
-  helper,
-  items,
-  label,
-}: {
-  helper: string;
-  items: readonly string[];
-  label: string;
-}) {
-  return (
-    <div className="grid gap-3 md:grid-cols-[190px_minmax(0,1fr)]">
-      <div>
-        <Label>{label}</Label>
-        <p className="text-xs font-semibold text-slate-500">{helper}</p>
-      </div>
-      <div>
-        <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
-          {items.map((item) => (
-            <div
-              className="flex h-9 items-center gap-3 px-4 text-sm font-semibold text-slate-700"
-              key={item}
-            >
-              <span>•</span>
-              <span className="flex-1">{item}</span>
-              <X aria-hidden className="h-4 w-4 text-slate-500" />
-            </div>
-          ))}
-        </div>
-        <button className="mt-2 text-sm font-extrabold text-emerald-600">+ Thêm mục</button>
-      </div>
-    </div>
-  );
+function getQueryErrorMessage(error: Error) {
+  if (error instanceof ApiError && error.status >= 500) {
+    return "Không thể tải dữ liệu cần thiết lúc này. Vui lòng thử lại sau ít phút.";
+  }
+
+  return "Có lỗi xảy ra khi chuẩn bị dữ liệu cho trang đăng tin. Vui lòng tải lại trang và thử lại.";
 }
 
-function ChipField({
-  chips,
-  label,
-  withAdd,
-}: {
-  chips: readonly string[];
-  label: string;
-  withAdd?: boolean;
-}) {
-  return (
-    <div>
-      <Label>{label}</Label>
-      <div className="flex min-h-10 flex-wrap items-center gap-2 rounded-lg border border-slate-200 p-2">
-        {chips.map((chip) => (
-          <Chip key={chip}>
-            {chip}
-            <X aria-hidden className="h-3.5 w-3.5" />
-          </Chip>
-        ))}
-      </div>
-      {withAdd ? (
-        <button className="mt-2 h-9 w-full rounded-lg border border-dashed border-slate-300 text-sm font-bold text-slate-600">
-          + Thêm kỹ năng
-        </button>
-      ) : null}
-    </div>
-  );
-}
+function getSubmitErrorMessage(error: Error) {
+  if (error instanceof ApiError) {
+    if (error.status === 400) {
+      return "Thông tin tin tuyển dụng chưa hợp lệ. Vui lòng kiểm tra lại nội dung và thử lại.";
+    }
 
-function Segmented({ options, selected }: { options: readonly string[]; selected: string }) {
-  return (
-    <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-slate-200">
-      {options.map((option) => (
-        <button
-          className={cn(
-            "h-10 border-r border-slate-200 text-sm font-bold last:border-r-0",
-            option === selected ? "bg-emerald-50 text-emerald-700" : "bg-white text-slate-600",
-          )}
-          key={option}
-        >
-          {option}
-        </button>
-      ))}
-    </div>
-  );
-}
+    if (error.status === 401 || error.status === 403) {
+      return "Tài khoản hiện tại chưa có quyền thực hiện thao tác này.";
+    }
 
-function DisplaySettings({
-  items,
-  title,
-}: {
-  items: readonly (readonly [string, string])[];
-  title: string;
-}) {
-  return (
-    <div className="mt-6 border-t border-slate-100 pt-5">
-      <h3 className="text-base font-extrabold text-slate-950">{title}</h3>
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
-        {items.map(([itemTitle, caption]) => (
-          <div className="flex gap-4 rounded-lg border border-slate-200 p-4" key={itemTitle}>
-            <Toggle />
-            <div>
-              <p className="text-sm font-extrabold text-slate-800">{itemTitle}</p>
-              <p className="mt-1 text-xs leading-5 font-semibold text-slate-500">{caption}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+    if (error.status >= 500) {
+      return "Hệ thống đang bận xử lý. Vui lòng thử đăng tin lại sau ít phút.";
+    }
+  }
 
-function Toggle() {
-  return (
-    <span className="flex h-6 w-11 shrink-0 items-center rounded-full bg-emerald-500 p-0.5">
-      <span className="ml-auto h-5 w-5 rounded-full bg-white" />
-    </span>
-  );
-}
-
-function Chip({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex h-7 items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-emerald-700">
-      {children}
-    </span>
-  );
-}
-
-function InputBox({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex h-10 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700">
-      {children}
-    </div>
-  );
-}
-
-function SideCard({ children }: { children: ReactNode }) {
-  return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
-      {children}
-    </section>
-  );
-}
-
-function PreviewSection({ children, title }: { children: ReactNode; title: string }) {
-  return (
-    <section className="border-b border-slate-100 py-4 text-sm leading-6 font-semibold text-slate-700">
-      <h3 className="mb-2 text-base font-extrabold text-slate-950">{title}</h3>
-      {children}
-    </section>
-  );
-}
-
-function PreviewList({ items, title }: { items: readonly string[]; title: string }) {
-  return (
-    <PreviewSection title={title}>
-      <ul className="list-disc space-y-1 pl-5">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </PreviewSection>
-  );
-}
-
-function CriteriaBox({ title, values }: { title: string; values: readonly string[] }) {
-  return (
-    <div className="rounded-lg border border-slate-200 p-3">
-      <p className="text-xs font-extrabold text-slate-600">{title}</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {values.map((value) => (
-          <Chip key={value}>{value}</Chip>
-        ))}
-      </div>
-    </div>
-  );
+  return "Chưa thể tạo tin tuyển dụng lúc này. Vui lòng thử lại.";
 }

@@ -1,20 +1,26 @@
-import { jobKpis } from "@/features/recruiter/data/job-posts-data";
-import { ArrowUp } from "@/features/recruiter/icons";
+import {
+  BriefcaseBusiness,
+  CalendarClock,
+  Clock3,
+  FileWarning,
+  UsersRound,
+} from "@/features/recruiter/icons";
+import { type RecruiterJobPostsKpi } from "@/features/recruiter/types";
 import { cn } from "@/shared/lib/cn";
 
 const accentClasses = {
   blue: "bg-blue-50 text-blue-500",
-  green: "bg-emerald-50 text-emerald-500",
+  emerald: "bg-emerald-50 text-emerald-500",
   orange: "bg-orange-50 text-orange-500",
-  red: "bg-red-50 text-red-500",
+  rose: "bg-rose-50 text-rose-500",
   violet: "bg-violet-50 text-violet-500",
 } as const;
 
-export function JobKpiGrid() {
+export function JobKpiGrid({ items }: { items: RecruiterJobPostsKpi[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-      {jobKpis.map((item) => {
-        const Icon = item.icon;
+      {items.map((item) => {
+        const Icon = getKpiIcon(item.label);
 
         return (
           <article
@@ -25,7 +31,7 @@ export function JobKpiGrid() {
               <span
                 className={cn(
                   "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                  accentClasses[item.accent],
+                  accentClasses[item.tone],
                 )}
               >
                 <Icon aria-hidden className="h-5 w-5 stroke-[1.9]" />
@@ -37,18 +43,25 @@ export function JobKpiGrid() {
                 </p>
               </div>
             </div>
-            <p className="mt-5 flex items-center gap-2 text-xs font-bold text-slate-500">
-              {item.trend ? (
-                <>
-                  <ArrowUp aria-hidden className="h-4 w-4 text-emerald-600" />
-                  <span className="text-emerald-600">{item.trend}</span>
-                </>
-              ) : null}
-              <span>{item.helper}</span>
-            </p>
+            <p className="mt-5 text-xs font-bold text-slate-500">{item.helper}</p>
           </article>
         );
       })}
     </div>
   );
+}
+
+function getKpiIcon(label: string) {
+  switch (label) {
+    case "Tổng tin":
+      return BriefcaseBusiness;
+    case "Đang tuyển":
+      return UsersRound;
+    case "Chờ duyệt":
+      return Clock3;
+    case "Sắp hết hạn":
+      return CalendarClock;
+    default:
+      return FileWarning;
+  }
 }
