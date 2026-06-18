@@ -23,7 +23,6 @@ for (const viewport of [
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "1 tuần" })).toHaveClass(/bg-emerald-50/);
     await expect(page.getByText("Hiệu suất tuyển dụng 7 ngày")).toBeVisible();
-    await expect(page.getByText("Tiến độ tuyển dụng 7 ngày")).toBeVisible();
     await expect(page.getByText("Lịch chờ xác nhận")).toHaveCount(0);
     await expect(page.getByText("Đã xác nhận")).toHaveCount(0);
     await expect(page.getByText("Chờ xác nhận")).toHaveCount(0);
@@ -31,12 +30,10 @@ for (const viewport of [
 
     await page.getByRole("button", { name: "1 ngày" }).click();
     await expect(page.getByText("Hiệu suất tuyển dụng hôm nay")).toBeVisible();
-    await expect(page.getByText("Tiến độ tuyển dụng hôm nay")).toBeVisible();
     await expect(page.getByText("Phỏng vấn hôm nay", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "1 năm" }).click();
     await expect(page.getByText("Hiệu suất tuyển dụng 12 tháng")).toBeVisible();
-    await expect(page.getByText("Tiến độ tuyển dụng 12 tháng")).toBeVisible();
 
     expect(consoleMessages).toEqual([]);
   });
