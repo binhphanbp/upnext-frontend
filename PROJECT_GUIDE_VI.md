@@ -43,12 +43,17 @@ Với thay đổi bình thường, chạy `pnpm verify`. Với thay đổi route
 src/
   app/
     [locale]/
+      (auth)/
+      (public)/
+      (workspace)/
       layout.tsx
-      page.tsx
     globals.css
     providers.tsx
     providers.test.tsx
   features/
+    admin/
+    recruiter/
+    workspace-shell/
     marketing/
       home/
     auth/
@@ -89,7 +94,7 @@ public/
 Vai trò từng khu vực:
 
 - `src/app`: chỉ nên chứa route, layout, metadata, provider và composition cấp app. Không nên đặt business logic ở đây.
-- `src/features`: nơi chứa code theo nghiệp vụ/domain. Ví dụ `jobs`, `companies`, `candidates`, `marketing`.
+- `src/features`: nơi chứa code theo nghiệp vụ/domain. Ví dụ `marketing`, `auth`, `admin`, `recruiter`, `workspace-shell`.
 - `src/shared`: code dùng lại giữa nhiều feature, ví dụ API client, helper date, UI primitive, table.
 - `src/i18n`: cấu hình locale, message loading, navigation helper.
 - `messages`: file dịch cho `next-intl`.
@@ -108,7 +113,7 @@ Khi người dùng vào website:
 4. Route `/vi` hoặc `/en` đi vào `src/app/[locale]/layout.tsx`.
 5. Layout kiểm tra locale hợp lệ. Nếu sai thì `notFound()`.
 6. Layout load font, metadata, `NextIntlClientProvider`, rồi bọc app bằng `Providers`.
-7. `src/app/[locale]/page.tsx` render trang chủ bằng `MarketingHomePage`.
+7. Route public nằm trong `src/app/[locale]/(public)`. Trang chủ render bằng `MarketingHomePage`.
 8. `MarketingHomePage` nằm trong `src/features/marketing/home`.
 
 Nói ngắn gọn:
@@ -119,7 +124,7 @@ request
 -> src/i18n/routing.ts
 -> src/app/[locale]/layout.tsx
 -> src/app/providers.tsx
--> src/app/[locale]/page.tsx
+-> src/app/[locale]/(public)/page.tsx
 -> src/features/marketing/home
 ```
 
@@ -262,12 +267,21 @@ Styling chính:
 - Token màu/theme trong `src/app/globals.css`.
 - Helper `cn()` ở `src/shared/lib/cn.ts` để merge class.
 - UI shared trong `src/shared/ui`.
+- shadcn UI style `new-york` được cấu hình ở `components.json`, alias trỏ về `src/shared/ui`.
 - Icon dùng `@phosphor-icons/react`. Không dùng Lucide vì dự án không cài Lucide.
+
+Quy tắc dùng UI:
+
+- Public marketing pages như homepage, job list, job detail, company detail được phép dùng bespoke CSS/component để giữ visual landing page.
+- Candidate profile, Recruiter, Admin dùng shadcn-style primitives trong `src/shared/ui` để dựng form, tabs, dialog, drawer, dropdown, select, table và dashboard.
+- Khi add component bằng shadcn CLI, alias phải về `src/shared/ui` và màu/radius/font phải map theo token UpNext, không để nguyên theme zinc mặc định nếu không phù hợp.
+- Teal là primary brand; indigo/purple chỉ dùng cho premium/accent. Font chính là Plus Jakarta Sans từ layout locale.
 
 Shared UI hiện có:
 
 - `button`: Button primitive.
 - `badge`: Badge primitive.
+- `card`, `input`, `label`, `checkbox`, `tabs`, `dialog`, `sheet`, `dropdown-menu`, `select`, `separator`, `scroll-area`, `tooltip`: shadcn-style primitives đã custom token UpNext.
 - `data-table`: baseline cho TanStack Table.
 - `container`, `logo`, `job-card`, `company-card`, `search-box`, `icon`.
 
@@ -324,7 +338,32 @@ src/features/marketing/home/
 
 Chỉ tách khi có nhu cầu thật. Không tách quá sớm nếu màn hình vẫn đơn giản.
 
-## 12. Data table
+## 12. Workspace shell cho Candidate profile, Recruiter, Admin
+
+Các app surfaces dùng layout nội bộ trong `src/features/workspace-shell`.
+
+Hiện có:
+
+- `WorkspaceShell`: sidebar có thu gọn/mở rộng, topbar, search, user menu, notification.
+- `nav-config.ts`: nav config riêng cho Recruiter và Admin.
+- `WorkspacePlaceholder`: placeholder để route mới có nền UI trước khi dựng nghiệp vụ.
+
+Route workspace nằm dưới:
+
+```txt
+src/app/[locale]/(workspace)/
+  admin/
+  recruiter/
+```
+
+Quy tắc:
+
+- Route file trong `src/app` chỉ compose layout/page mỏng.
+- UI nghiệp vụ đặt trong `src/features/admin` hoặc `src/features/recruiter`.
+- Không tạo sidebar/topbar riêng cho từng role; mở rộng `WorkspaceShell` hoặc nav config khi cần.
+- Candidate profile cũng nên dùng cùng primitive shadcn, nhưng có thể có layout riêng nếu sản phẩm cần trải nghiệm nhẹ hơn Recruiter/Admin.
+
+## 13. Data table
 
 `src/shared/ui/data-table/data-table.tsx` là baseline cho bảng bằng TanStack Table.
 
@@ -361,7 +400,7 @@ export function CandidateTable({ data }: { data: Candidate[] }) {
 }
 ```
 
-## 13. Date/time
+## 14. Date/time
 
 Dùng helper trong `src/shared/lib/date.ts`:
 
@@ -379,7 +418,7 @@ import { formatAppDate } from "@/shared/lib/date";
 const label = formatAppDate("2026-06-16", "vi");
 ```
 
-## 14. Mock API bằng MSW
+## 15. Mock API bằng MSW
 
 File chính:
 
@@ -401,7 +440,7 @@ NEXT_PUBLIC_API_MOCKING=enabled
 
 Không sửa `public/mockServiceWorker.js` bằng tay vì đây là file generated.
 
-## 15. Test
+## 16. Test
 
 Các loại test:
 
@@ -430,7 +469,7 @@ describe("formatAppDate", () => {
 });
 ```
 
-## 16. Cách thêm một feature mới
+## 17. Cách thêm một feature mới
 
 Ví dụ thêm feature `jobs`.
 
@@ -511,7 +550,7 @@ export function JobsPage() {
 
 Bước 6: thêm test phù hợp, rồi chạy `pnpm verify`.
 
-## 17. Cách code form
+## 18. Cách code form
 
 Dự án định hướng dùng React Hook Form + Zod.
 
@@ -536,7 +575,7 @@ Quy tắc:
 - Submit handler không chứa logic API phức tạp; gọi hook/API wrapper.
 - Text hiển thị cho người dùng nên lấy từ `next-intl` khi là product-facing.
 
-## 18. Import path
+## 19. Import path
 
 Dùng alias `@/*`.
 
@@ -553,7 +592,7 @@ Không nên import đường dài tương đối như:
 import { cn } from "../../../shared/lib/cn";
 ```
 
-## 19. Quy tắc đặt code
+## 20. Quy tắc đặt code
 
 Hỏi nhanh trước khi tạo file:
 
@@ -566,7 +605,7 @@ Hỏi nhanh trước khi tạo file:
 
 Không tạo abstraction chỉ vì “có thể sau này cần”. Chỉ tách khi nó giảm lặp thật, giảm phức tạp thật, hoặc khớp pattern sẵn có.
 
-## 20. Checklist trước khi commit
+## 21. Checklist trước khi commit
 
 Trước khi handoff hoặc commit:
 
@@ -581,7 +620,7 @@ Trước khi handoff hoặc commit:
 9. Dùng `cn()` khi merge class Tailwind.
 10. Chạy lệnh verify phù hợp và ghi lại lệnh đã chạy.
 
-## 21. Nên đọc file nào trước?
+## 22. Nên đọc file nào trước?
 
 Nếu bạn mới vào dự án, đọc theo thứ tự này:
 
@@ -592,14 +631,14 @@ Nếu bạn mới vào dự án, đọc theo thứ tự này:
 5. `src/proxy.ts`: hiểu middleware locale.
 6. `src/app/[locale]/layout.tsx`: hiểu app shell.
 7. `src/app/providers.tsx`: hiểu provider client.
-8. `src/app/[locale]/page.tsx`: hiểu route trang chủ.
+8. `src/app/[locale]/(public)/page.tsx`: hiểu route trang chủ.
 9. `src/features/marketing/home/home-page.tsx`: hiểu feature đang có nhiều UI nhất.
 10. `src/shared/api/http.ts`: hiểu cách gọi API.
 11. `src/shared/lib/env.ts`: hiểu env.
 12. `src/shared/ui/button/button.tsx`: hiểu style shared UI.
 13. `e2e/home.spec.ts`: hiểu browser flow hiện tại.
 
-## 22. Tóm tắt ngắn
+## 23. Tóm tắt ngắn
 
 UpNext FE đang theo kiến trúc Feature-First Hybrid:
 
