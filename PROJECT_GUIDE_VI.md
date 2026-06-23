@@ -44,23 +44,27 @@ src/
   app/
     [locale]/
       layout.tsx
-      page.tsx
+      (public)/
+        layout.tsx
+        page.tsx
+        jobs/
+        companies/
+      (auth)/
+        login/
+        register/
     globals.css
     providers.tsx
     providers.test.tsx
   features/
     marketing/
       home/
+      jobs/
+      companies/
+      shared/
     auth/
-    jobs/
-    companies/
-    candidates/
-    applications/
-    messages/
-    notifications/
-    employer-dashboard/
+    candidate/
+    employer/
     admin/
-    search/
   i18n/
     routing.ts
     request.ts
@@ -89,7 +93,9 @@ public/
 Vai trò từng khu vực:
 
 - `src/app`: chỉ nên chứa route, layout, metadata, provider và composition cấp app. Không nên đặt business logic ở đây.
-- `src/features`: nơi chứa code theo nghiệp vụ/domain. Ví dụ `jobs`, `companies`, `candidates`, `marketing`.
+- `src/features`: nơi chứa code theo nghiệp vụ/domain. Ví dụ `marketing`, `auth`, `candidate`, `employer`, `admin`.
+- `src/features/marketing/jobs` và `src/features/marketing/companies` là public marketing pages, không phải shared/core domain `jobs` hoặc `companies`.
+- `src/features/candidate`, `src/features/employer`, `src/features/admin` chỉ tạo khi có code thật cho workspace bảo vệ tương ứng.
 - `src/shared`: code dùng lại giữa nhiều feature, ví dụ API client, helper date, UI primitive, table.
 - `src/i18n`: cấu hình locale, message loading, navigation helper.
 - `messages`: file dịch cho `next-intl`.

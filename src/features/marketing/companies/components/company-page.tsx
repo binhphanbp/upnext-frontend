@@ -4,10 +4,8 @@ import Image from "next/image";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
-import { upnextLogo } from "../../home/brand";
 import {
   ArrowRight,
-  ArrowUp,
   ArrowUpRight,
   BadgeCheck,
   Briefcase,
@@ -35,6 +33,7 @@ import {
   Youtube,
 } from "../../home/marketing-icons";
 import { jobs } from "../../jobs/components/jobs-page";
+import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
 
 import "../company-page.css";
@@ -137,39 +136,6 @@ const socials = [
   { icon: <Youtube size={18} />, href: "https://www.youtube.com/" },
   { icon: <Github size={18} />, href: "https://github.com/" },
   { icon: <Globe size={18} />, href: "https://fptsoftware.com" },
-];
-
-const footerColumns = [
-  {
-    title: "Liên kết nhanh",
-    links: [
-      { label: "Tìm việc IT", path: "/jobs" },
-      { label: "Công ty công nghệ", path: "/companies" },
-      { label: "Top hồ sơ", path: "/register" },
-      { label: "Tính năng", path: "/" },
-      { label: "Bảng giá", path: "/register" },
-      { label: "Blog", path: "/jobs" },
-    ],
-  },
-  {
-    title: "Nhà tuyển dụng",
-    links: [
-      { label: "Đăng tin tuyển dụng", path: "/register" },
-      { label: "Tìm hồ sơ", path: "/register" },
-      { label: "Giải pháp tuyển dụng", path: "/register" },
-      { label: "Bảng giá", path: "/register" },
-      { label: "Liên hệ", path: "/register" },
-    ],
-  },
-  {
-    title: "Hỗ trợ",
-    links: [
-      { label: "Trung tâm trợ giúp", path: "/jobs" },
-      { label: "Hướng dẫn sử dụng", path: "/jobs" },
-      { label: "Chính sách bảo mật", path: "/jobs" },
-      { label: "Điều khoản sử dụng", path: "/jobs" },
-    ],
-  },
 ];
 
 function CompanyLogo({ size = "normal" }: { size?: "normal" | "large" }) {
@@ -506,63 +472,7 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
         </div>
       </section>
 
-      <footer className="company-footer">
-        <div className="company-footer-main">
-          <div className="company-footer-brand">
-            <Image src={upnextLogo.wordmark} alt="UpNext" width={140} height={33} />
-            <p>
-              Nền tảng tuyển dụng IT kết nối ứng viên tài năng với các công ty công nghệ hàng đầu.
-              Cơ hội phù hợp, sự nghiệp bứt phá.
-            </p>
-            <div className="company-footer-social">
-              {socials.slice(0, 4).map((social, index) => (
-                <a key={index} href={social.href} target="_blank" rel="noreferrer">
-                  {social.icon}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {footerColumns.map((column) => (
-            <nav key={column.title} aria-label={column.title}>
-              <h4>{column.title}</h4>
-              {column.links.map((link) => (
-                <button key={link.label} type="button" onClick={() => navigate(link.path)}>
-                  {link.label}
-                </button>
-              ))}
-            </nav>
-          ))}
-
-          <div className="company-footer-news">
-            <h4>Nhận thông tin việc làm IT mới nhất</h4>
-            <p>Đăng ký nhận email để không bỏ lỡ cơ hội việc làm phù hợp với bạn.</p>
-            <form className="company-news-form" onSubmit={(event) => event.preventDefault()}>
-              <input type="email" placeholder="Nhập email của bạn" aria-label="Email" />
-              <button type="submit">Đăng ký</button>
-            </form>
-          </div>
-        </div>
-
-        <div className="company-footer-bottom">
-          <p>© 2026 UpNext. Tất cả quyền được bảo lưu.</p>
-          <div>
-            <button type="button">Tiếng Việt</button>
-            <button type="button">English</button>
-            <button type="button">Điều khoản</button>
-            <button type="button">Bảo mật</button>
-          </div>
-        </div>
-      </footer>
-
-      <button
-        type="button"
-        className="company-top"
-        aria-label="Lên đầu trang"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      >
-        <ArrowUp size={18} />
-      </button>
+      <PublicFooter navigate={navigate} />
     </main>
   );
 }
