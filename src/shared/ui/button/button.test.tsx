@@ -9,4 +9,17 @@ describe("Button", () => {
 
     expect(screen.getByRole("button", { name: "Search jobs" })).toBeInTheDocument();
   });
+
+  it("can render as a child link", () => {
+    render(
+      <Button asChild>
+        <a href="https://upnext.works/jobs">View jobs</a>
+      </Button>,
+    );
+
+    expect(screen.getByRole("link", { name: "View jobs" })).toHaveAttribute(
+      "href",
+      "https://upnext.works/jobs",
+    );
+  });
 });
