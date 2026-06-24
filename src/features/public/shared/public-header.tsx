@@ -1,5 +1,18 @@
 "use client";
 
+import {
+  Bell,
+  BookmarkSimple,
+  ChatCircleText,
+  Eye,
+  FileText as FileTextIcon,
+  GearSix,
+  House,
+  PaperPlaneTilt,
+  ShieldCheck as ShieldCheckIcon,
+  SignOut,
+  UserCircle,
+} from "@phosphor-icons/react";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -23,14 +36,12 @@ import {
   Landmark,
   Layers,
   MessagesSquare,
-  Moon,
   Newspaper,
   Route,
   ShieldCheck,
   Smartphone,
   Sparkles,
   Star,
-  Sun,
   TrendingUp,
   WalletCards,
 } from "../home/marketing-icons";
@@ -64,15 +75,41 @@ type PublicHeaderCopy = {
   employerSmall: string;
   employerLabel: string;
   languageLabel: string;
-  themeDark: string;
-  themeLight: string;
   login: string;
   register: string;
   homeLabel: string;
+  accountLabel: string;
+  messagesLabel: string;
+  notificationsLabel: string;
+  profileLabel: string;
+  settingsLabel: string;
+  workspaceLabel: string;
+  logoutLabel: string;
+  accountGroup: string;
+  activityGroup: string;
+  settingsGroup: string;
+  overviewLabel: string;
+  resumesLabel: string;
+  jobPreferencesLabel: string;
+  applicationsLabel: string;
+  savedJobsLabel: string;
+  profileViewsLabel: string;
+  accountSettingsLabel: string;
+  privacyLabel: string;
 };
 
 type PublicHeaderProps = {
   navigate: (path: string) => void;
+  viewer?: PublicHeaderViewer | null;
+};
+
+export type PublicHeaderViewer = {
+  initials: string;
+  name: string;
+  roleLabel: string;
+  workspaceHref: string;
+  unreadMessages?: number;
+  unreadNotifications?: number;
 };
 
 const navMenus: NavMenu[] = [
@@ -269,26 +306,61 @@ const languages: Language[] = [
   { code: "EN", locale: "en", label: "English", flagLabel: "English" },
 ];
 
+const demoAuthStorageKey = "upnext.demo.auth";
+const demoAuthChangeEvent = "upnext-demo-auth-change";
+
 const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
   vi: {
     employerSmall: "Dành cho",
     employerLabel: "Nhà Tuyển Dụng",
     languageLabel: "Chọn ngôn ngữ",
-    themeDark: "Chuyển sang chế độ tối",
-    themeLight: "Chuyển sang chế độ sáng",
     login: "Đăng nhập",
     register: "Đăng ký",
     homeLabel: "Trang chủ UpNext",
+    accountLabel: "Tài khoản",
+    messagesLabel: "Tin nhắn",
+    notificationsLabel: "Thông báo",
+    profileLabel: "Hồ sơ",
+    settingsLabel: "Cài đặt",
+    workspaceLabel: "Vào workspace",
+    logoutLabel: "Đăng xuất",
+    accountGroup: "Tài khoản",
+    activityGroup: "Hoạt động",
+    settingsGroup: "Cài đặt",
+    overviewLabel: "Tổng quan",
+    resumesLabel: "CV của tôi",
+    jobPreferencesLabel: "Mong muốn việc làm",
+    applicationsLabel: "Việc đã ứng tuyển",
+    savedJobsLabel: "Việc đã lưu",
+    profileViewsLabel: "Lượt xem hồ sơ",
+    accountSettingsLabel: "Cài đặt tài khoản",
+    privacyLabel: "Quyền riêng tư",
   },
   en: {
     employerSmall: "Employer",
     employerLabel: "Hiring Hub",
     languageLabel: "Choose language",
-    themeDark: "Switch to dark mode",
-    themeLight: "Switch to light mode",
     login: "Log in",
     register: "Sign up",
     homeLabel: "UpNext homepage",
+    accountLabel: "Account",
+    messagesLabel: "Messages",
+    notificationsLabel: "Notifications",
+    profileLabel: "Profile",
+    settingsLabel: "Settings",
+    workspaceLabel: "Go to workspace",
+    logoutLabel: "Log out",
+    accountGroup: "Account",
+    activityGroup: "My activity",
+    settingsGroup: "Settings",
+    overviewLabel: "Overview",
+    resumesLabel: "Resumes",
+    jobPreferencesLabel: "Job Preferences",
+    applicationsLabel: "Applications",
+    savedJobsLabel: "Saved Jobs",
+    profileViewsLabel: "Profile Views",
+    accountSettingsLabel: "Account Settings",
+    privacyLabel: "Privacy",
   },
 };
 
@@ -325,18 +397,32 @@ function FlagIcon({ code, label }: { code: Language["code"]; label?: string }) {
   );
 }
 
-export function PublicHeader({ navigate }: PublicHeaderProps) {
+function createCandidateViewer(locale: "vi" | "en"): PublicHeaderViewer {
+  return {
+    initials: "AJ",
+    name: "Alex Johnson",
+    roleLabel: locale === "en" ? "Candidate" : "Ứng viên",
+    workspaceHref: "/candidate/profile",
+    unreadMessages: 2,
+    unreadNotifications: 3,
+  };
+}
+
+export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [langOpen, setLangOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [storedViewer, setStoredViewer] = useState<PublicHeaderViewer | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
   const langRef = useRef<HTMLDivElement | null>(null);
+  const accountRef = useRef<HTMLDivElement | null>(null);
   const currentLocale = locale === "en" ? "en" : "vi";
   const lang: Language["code"] = currentLocale === "en" ? "EN" : "VI";
   const copy = copyByLocale[currentLocale];
+  const effectiveViewer = viewer === undefined ? storedViewer : viewer;
 
   useEffect(() => {
     if (!openMenu) return undefined;
@@ -378,6 +464,41 @@ export function PublicHeader({ navigate }: PublicHeaderProps) {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [langOpen]);
+
+  useEffect(() => {
+    if (!accountOpen) return undefined;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!accountRef.current?.contains(event.target as Node)) setAccountOpen(false);
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setAccountOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [accountOpen]);
+
+  useEffect(() => {
+    if (viewer !== undefined) return undefined;
+
+    function syncViewer() {
+      const role = window.localStorage.getItem(demoAuthStorageKey);
+      setStoredViewer(role === "candidate" ? createCandidateViewer(currentLocale) : null);
+    }
+
+    syncViewer();
+    window.addEventListener("storage", syncViewer);
+    window.addEventListener(demoAuthChangeEvent, syncViewer);
+    return () => {
+      window.removeEventListener("storage", syncViewer);
+      window.removeEventListener(demoAuthChangeEvent, syncViewer);
+    };
+  }, [currentLocale, viewer]);
 
   function switchLanguage(language: Language) {
     setLangOpen(false);
@@ -507,24 +628,235 @@ export function PublicHeader({ navigate }: PublicHeaderProps) {
           </ul>
         </div>
 
-        <button
-          type="button"
-          className="marketing-home-theme"
-          aria-label={theme === "light" ? copy.themeDark : copy.themeLight}
-          onClick={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
-        >
-          {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
-        </button>
+        {effectiveViewer ? (
+          <div className="marketing-home-auth">
+            <button
+              type="button"
+              className="marketing-home-auth-icon"
+              aria-label={copy.notificationsLabel}
+              onClick={() => navigate("/candidate/notifications")}
+            >
+              <Bell size={20} aria-hidden="true" />
+              {effectiveViewer.unreadNotifications ? (
+                <span className="marketing-home-auth-badge">
+                  {effectiveViewer.unreadNotifications}
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              className="marketing-home-auth-icon"
+              aria-label={copy.messagesLabel}
+              onClick={() => navigate("/candidate/messages")}
+            >
+              <ChatCircleText size={20} aria-hidden="true" />
+              {effectiveViewer.unreadMessages ? (
+                <span className="marketing-home-auth-badge">{effectiveViewer.unreadMessages}</span>
+              ) : null}
+            </button>
 
-        <span className="marketing-home-action-sep" aria-hidden="true" />
+            <div
+              className={`marketing-home-account${accountOpen ? " is-open" : ""}`}
+              ref={accountRef}
+            >
+              <button
+                type="button"
+                className="marketing-home-account-trigger"
+                aria-label={copy.accountLabel}
+                aria-haspopup="menu"
+                aria-expanded={accountOpen}
+                onClick={() => setAccountOpen((open) => !open)}
+              >
+                <span className="marketing-home-account-avatar">{effectiveViewer.initials}</span>
+                <span className="marketing-home-account-copy">
+                  <b>{effectiveViewer.name}</b>
+                  <small>{effectiveViewer.roleLabel}</small>
+                </span>
+                <ChevronDown size={14} aria-hidden="true" />
+              </button>
 
-        <button className="marketing-home-login" onClick={() => navigate("/login")}>
-          {copy.login}
-        </button>
-        <button className="marketing-home-register" onClick={() => navigate("/register")}>
-          {copy.register}
-        </button>
+              <div className="marketing-home-account-menu" role="menu">
+                <div className="marketing-home-account-menu-profile">
+                  <span className="marketing-home-account-menu-avatar">
+                    {effectiveViewer.initials}
+                  </span>
+                  <span className="marketing-home-account-menu-identity">
+                    <b>{effectiveViewer.name}</b>
+                    <small>
+                      {effectiveViewer.name === "Nguyễn Quốc Vương"
+                        ? "vuong.nguyenquoc.sis..."
+                        : "alex.johnson@email.com"}
+                    </small>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate("/candidate/profile");
+                      }}
+                    >
+                      {copy.profileLabel}
+                    </button>
+                  </span>
+                </div>
+
+                <AccountMenuGroup label={copy.accountGroup}>
+                  <AccountMenuItem
+                    icon={<House size={18} aria-hidden="true" />}
+                    label={copy.overviewLabel}
+                    active
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate(effectiveViewer.workspaceHref);
+                    }}
+                  />
+                  <AccountMenuItem
+                    icon={<UserCircle size={18} aria-hidden="true" />}
+                    label={copy.profileLabel}
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate("/candidate/profile");
+                    }}
+                  />
+                  <AccountMenuItem
+                    icon={<FileTextIcon size={18} aria-hidden="true" />}
+                    label={copy.resumesLabel}
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate("/candidate/resume");
+                    }}
+                  />
+                  <AccountMenuItem
+                    icon={<GearSix size={18} aria-hidden="true" />}
+                    label={copy.jobPreferencesLabel}
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate("/candidate/settings");
+                    }}
+                  />
+                </AccountMenuGroup>
+
+                <AccountMenuGroup label={copy.activityGroup}>
+                  <AccountMenuItem
+                    icon={<PaperPlaneTilt size={18} aria-hidden="true" />}
+                    label={copy.applicationsLabel}
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate("/candidate/applications");
+                    }}
+                  />
+                  <AccountMenuItem
+                    icon={<BookmarkSimple size={18} aria-hidden="true" />}
+                    label={copy.savedJobsLabel}
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate("/candidate/saved-jobs");
+                    }}
+                  />
+                  <AccountMenuItem
+                    icon={<Eye size={18} aria-hidden="true" />}
+                    label={copy.profileViewsLabel}
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate("/candidate/profile-views");
+                    }}
+                  />
+                </AccountMenuGroup>
+
+                <AccountMenuGroup label={copy.settingsGroup}>
+                  <AccountMenuItem
+                    icon={<GearSix size={18} aria-hidden="true" />}
+                    label={copy.accountSettingsLabel}
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate("/candidate/settings");
+                    }}
+                  />
+                  <AccountMenuItem
+                    icon={<Bell size={18} aria-hidden="true" />}
+                    label={copy.notificationsLabel}
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate("/candidate/notifications");
+                    }}
+                  />
+                  <AccountMenuItem
+                    icon={<ShieldCheckIcon size={18} aria-hidden="true" />}
+                    label={copy.privacyLabel}
+                    onClick={() => {
+                      setAccountOpen(false);
+                      navigate("/candidate/privacy");
+                    }}
+                  />
+                </AccountMenuGroup>
+
+                <span className="marketing-home-account-menu-sep" aria-hidden="true" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="is-danger"
+                  onClick={() => {
+                    setAccountOpen(false);
+                    window.localStorage.removeItem(demoAuthStorageKey);
+                    window.dispatchEvent(new Event(demoAuthChangeEvent));
+                    navigate("/");
+                  }}
+                >
+                  <SignOut size={18} aria-hidden="true" />
+                  {copy.logoutLabel}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <button className="marketing-home-login" onClick={() => navigate("/login")}>
+              {copy.login}
+            </button>
+            <button className="marketing-home-register" onClick={() => navigate("/register")}>
+              {copy.register}
+            </button>
+          </>
+        )}
       </div>
     </header>
+  );
+}
+
+function AccountMenuGroup({
+  label,
+  children,
+}: Readonly<{
+  label: string;
+  children: ReactNode;
+}>) {
+  return (
+    <div className="marketing-home-account-menu-group">
+      <span className="marketing-home-account-menu-label">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function AccountMenuItem({
+  icon,
+  label,
+  active = false,
+  onClick,
+}: Readonly<{
+  icon: ReactNode;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}>) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      className={active ? "is-active" : undefined}
+      onClick={onClick}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }

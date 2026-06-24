@@ -187,9 +187,18 @@
       },
       "trust": {
         "stats": [
-          { "value": "2,500+", "label": "Open IT jobs" },
-          { "value": "1,000+", "label": "Technology companies" },
-          { "value": "50,000+", "label": "Trusted candidates" }
+          {
+            "value": "2,500+",
+            "label": "Open IT jobs"
+          },
+          {
+            "value": "1,000+",
+            "label": "Technology companies"
+          },
+          {
+            "value": "50,000+",
+            "label": "Trusted candidates"
+          }
         ],
         "label": "Trusted by leading technology companies",
         "companies": ["FPT Software", "VNG", "Viettel", "Tiki", "MoMo"]
@@ -293,25 +302,64 @@
         "description": "Track job demand, salary ranges, and role growth to choose a smarter search strategy.",
         "cta": "View job market",
         "kpis": [
-          { "value": "2,570", "label": "New jobs in the last 24h" },
-          { "value": "56,483", "label": "Open jobs" },
-          { "value": "19,223", "label": "Hiring companies" }
+          {
+            "value": "2,570",
+            "label": "New jobs in the last 24h"
+          },
+          {
+            "value": "56,483",
+            "label": "Open jobs"
+          },
+          {
+            "value": "19,223",
+            "label": "Hiring companies"
+          }
         ],
         "growthTitle": "Job growth",
         "salaryTitle": "Salary distribution",
         "growth": [
-          { "label": "04/05", "value": 46280 },
-          { "label": "11/05", "value": 50812 },
-          { "label": "18/05", "value": 52945 },
-          { "label": "25/05", "value": 55667 },
-          { "label": "01/06", "value": 56483 }
+          {
+            "label": "04/05",
+            "value": 46280
+          },
+          {
+            "label": "11/05",
+            "value": 50812
+          },
+          {
+            "label": "18/05",
+            "value": 52945
+          },
+          {
+            "label": "25/05",
+            "value": 55667
+          },
+          {
+            "label": "01/06",
+            "value": 56483
+          }
         ],
         "salaries": [
-          { "label": "<10", "value": 2341 },
-          { "label": "10-20", "value": 8752 },
-          { "label": "20-30", "value": 22318 },
-          { "label": "30-50", "value": 15624 },
-          { "label": ">50", "value": 7448 }
+          {
+            "label": "<10",
+            "value": 2341
+          },
+          {
+            "label": "10-20",
+            "value": 8752
+          },
+          {
+            "label": "20-30",
+            "value": 22318
+          },
+          {
+            "label": "30-50",
+            "value": 15624
+          },
+          {
+            "label": ">50",
+            "value": 7448
+          }
         ]
       },
       "footer": {
@@ -323,12 +371,30 @@
         "brandDescription": "UpNext connects IT talent with trusted technology companies through skill-first matching, market data, and transparent hiring experiences.",
         "quickLinksTitle": "Quick links",
         "quickLinks": [
-          { "label": "IT jobs", "href": "/jobs" },
-          { "label": "Tech companies", "href": "/companies" },
-          { "label": "Create profile", "href": "/register" },
-          { "label": "Salary report", "href": "/jobs" },
-          { "label": "Post a job", "href": "/register" },
-          { "label": "Hiring solutions", "href": "/register" }
+          {
+            "label": "IT jobs",
+            "href": "/jobs"
+          },
+          {
+            "label": "Tech companies",
+            "href": "/companies"
+          },
+          {
+            "label": "Create profile",
+            "href": "/register"
+          },
+          {
+            "label": "Salary report",
+            "href": "/jobs"
+          },
+          {
+            "label": "Post a job",
+            "href": "/register"
+          },
+          {
+            "label": "Hiring solutions",
+            "href": "/register"
+          }
         ],
         "contactTitle": "Contact / Newsletter",
         "contactDescription": "Get the latest IT jobs and practical career articles from UpNext.",
@@ -487,6 +553,160 @@
         "conflict": "Tax code or profile already exists in the system.",
         "serverError": "Server encountered an error while updating profile. Please try again later.",
         "unknown": "Failed to complete update. Please try again."
+      }
+    }
+  },
+  "WorkspaceShell": {
+    "searchPlaceholder": "Search jobs, resumes, companies, skills...",
+    "roles": {
+      "candidate": "Candidate"
+    },
+    "groups": {
+      "account": "Account"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "profile": "My Profile",
+      "jobs": "Jobs",
+      "applications": "Applications",
+      "savedJobs": "Saved Jobs",
+      "messages": "Messages",
+      "assessments": "Assessments",
+      "interviewPrep": "Interview Prep",
+      "resume": "Resume",
+      "settings": "Settings",
+      "notifications": "Notifications"
+    },
+    "account": {
+      "label": "Account",
+      "profile": "Profile",
+      "settings": "Settings",
+      "logout": "Log out"
+    },
+    "tips": {
+      "title": "Profile tips",
+      "description": "Add focused skills and a fresh resume to improve recruiter match quality.",
+      "progress": "3/5 complete",
+      "improve": "Improve profile"
+    },
+    "candidateTabsLabel": "Candidate workspace sections",
+    "candidateMobileNavLabel": "Candidate mobile navigation"
+  },
+  "CandidateProfile": {
+    "content": {
+      "page": {
+        "title": "My Profile",
+        "description": "Manage your professional profile and job-seeking information.",
+        "previewProfile": "Preview profile",
+        "saveChanges": "Save changes",
+        "save": "Save",
+        "mobileStatus": "82% complete · Visible to recruiters"
+      },
+      "status": {
+        "title": "Your profile is almost complete",
+        "badge": "Needs attention",
+        "description": "Finish the high-impact sections below to improve search visibility and recruiter confidence.",
+        "completedTitle": "Completed sections",
+        "completedDescription": "These parts are ready and should not be repeated elsewhere.",
+        "completionLabel": "Profile completion"
+      },
+      "tasks": [
+        {
+          "title": "Add 2 more skills",
+          "description": "Skill coverage improves matching and helps recruiters filter your profile faster.",
+          "action": "Add now",
+          "tone": "warning"
+        },
+        {
+          "title": "Upload latest resume",
+          "description": "A current resume gives recruiters a reliable snapshot to compare with your profile.",
+          "action": "Upload",
+          "tone": "neutral"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Personal info",
+          "status": "Updated"
+        },
+        {
+          "label": "About summary",
+          "status": "Updated"
+        },
+        {
+          "label": "Work history",
+          "status": "2 roles added"
+        },
+        {
+          "label": "Education",
+          "status": "2 records"
+        }
+      ],
+      "sidebar": {
+        "verifiedProfile": "Verified profile",
+        "editPhoto": "Edit profile photo",
+        "resume": "Resume",
+        "primary": "Primary",
+        "resumeFile": "Alex_Johnson_Resume.pdf",
+        "resumeMeta": "Uploaded May 12, 2024 · 248 KB",
+        "downloadResume": "Download resume",
+        "uploadResume": "Upload new resume",
+        "resumeHint": "PDF, DOCX up to 5MB",
+        "preferencesTitle": "Job preferences summary",
+        "viewPreferences": "View full preferences",
+        "visibilityTitle": "Profile visibility",
+        "visibilityDescription": "Your profile is visible to recruiters.",
+        "visibilityEnabled": "Profile visibility is enabled",
+        "manageVisibility": "Manage visibility settings"
+      },
+      "labels": {
+        "fullName": "Full name",
+        "headline": "Professional headline",
+        "email": "Email",
+        "phone": "Phone",
+        "location": "Location",
+        "website": "Website",
+        "github": "GitHub",
+        "linkedin": "LinkedIn",
+        "basicInformation": "Basic Information",
+        "about": "About Me",
+        "skills": "Skills",
+        "workExperience": "Work Experience",
+        "education": "Education",
+        "projects": "Projects / Portfolio",
+        "certificationsLanguages": "Certifications & Languages",
+        "certifications": "Certifications",
+        "languages": "Languages",
+        "jobPreferences": "Job Preferences"
+      },
+      "actions": {
+        "edit": "Edit",
+        "addSkill": "Add skill",
+        "addExperience": "Add experience",
+        "addEducation": "Add education",
+        "addProject": "Add project",
+        "addLanguage": "Add language",
+        "addPreference": "Add preference",
+        "missing": "Missing"
+      },
+      "about": "Passionate frontend developer with 5+ years of experience building responsive, accessible and performant web applications. I love turning complex problems into simple, beautiful and intuitive user experiences. Experienced in React, Next.js, TypeScript and performance optimization.",
+      "current": "Current",
+      "languages": [
+        ["English", "Native"],
+        ["Spanish", "Professional"],
+        ["French", "Basic"]
+      ],
+      "preferences": [
+        ["Desired role", "Frontend Developer"],
+        ["Employment type", "Full-time"],
+        ["Salary range", "$100,000 - $140,000"],
+        ["Work mode", "Hybrid, Remote"],
+        ["Preferred locations", "San Francisco, CA, USA · Austin, TX, USA"]
+      ],
+      "contact": {
+        "profileDetailsLabel": "Profile details",
+        "completedSectionsLabel": "Completed profile sections",
+        "bottomNavLabel": "Candidate mobile navigation"
       }
     }
   }
