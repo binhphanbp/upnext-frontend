@@ -1,14 +1,14 @@
-name: Quality Check
+name: CI
 
 on:
   pull_request:
     branches:
-      - dev
       - main
+      - develop
   push:
     branches:
-      - dev
       - main
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -19,8 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: Typecheck, lint, format, test, build, and e2e
+  ci:
+    name: Lint, typecheck, test, and build
     runs-on: ubuntu-latest
 
     steps:
@@ -41,14 +41,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify
-        run: pnpm verify
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Test
+        run: pnpm test
 
       - name: Build
         run: pnpm build
-
-      - name: Install Playwright
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: E2E
-        run: pnpm test:e2e

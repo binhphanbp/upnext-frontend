@@ -44,6 +44,18 @@ Copy `.env.example` when local environment values are needed:
 cp .env.example .env.local
 ```
 
+## Environment
+
+Frontend runtime configuration is intentionally limited to public browser-safe values:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=https://api.upnext.works
+NEXT_PUBLIC_API_MOCKING=disabled
+NEXT_PUBLIC_RECRUITER_COMPANY_ID=76445328-62fc-4f74-b4e8-9398a8ad7a3a
+```
+
+Use `https://api-staging.upnext.works` for staging builds. `NEXT_PUBLIC_*` values are embedded into client bundles during `pnpm build`, so build Docker images with the target environment's API URL.
+
 ## Scripts
 
 ```bash
@@ -124,7 +136,28 @@ Lefthook runs local checks:
 - `commit-msg`: Conventional Commit validation
 - `pre-push`: `pnpm verify`
 
-GitHub Actions runs the full gate on `dev` and `main`: verify, build, and E2E.
+GitHub Actions CI runs typecheck, lint, format check, tests, and build on `main` and `develop`.
+
+## Docker
+
+Build a production image locally:
+
+```bash
+docker build `
+  --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.upnext.works `
+  --build-arg NEXT_PUBLIC_API_MOCKING=disabled `
+  -t upnext-frontend:local .
+```
+
+Run it locally:
+
+```bash
+docker run --rm -p 3000:3000 upnext-frontend:local
+```
+
+For staging, use `NEXT_PUBLIC_API_BASE_URL=https://api-staging.upnext.works` at build time.
+
+This frontend repo owns only the app image and CI image publishing. Docker Compose, Nginx, SSL, database services, deploy scripts, monitoring, and backups belong in `upnext-infra`.
 
 ## Agent Guidance
 

@@ -1,7 +1,5 @@
 import { apiRequest } from "@/shared/api/http";
 
-const apiBaseUrl = "http://localhost:3636/api/v1";
-
 export type RecruiterPermission = Readonly<{
   id: string;
   code: string;
@@ -55,7 +53,7 @@ export type PermissionPayload = Readonly<{
 }>;
 
 export function getCompanyMembers(companyId: string, token: string) {
-  return apiRequest<CompanyMember[]>(`${apiBaseUrl}/companies/${companyId}/members`, {
+  return apiRequest<CompanyMember[]>(`/companies/${companyId}/members`, {
     headers: authHeaders(token),
   });
 }
@@ -66,7 +64,7 @@ export function inviteCompanyMember(
   roleId: string,
   token: string,
 ) {
-  return apiRequest<CompanyMember>(`${apiBaseUrl}/companies/${companyId}/members/invite`, {
+  return apiRequest<CompanyMember>(`/companies/${companyId}/members/invite`, {
     body: JSON.stringify({ email, roleId: roleId || null }),
     headers: jsonAuthHeaders(token),
     method: "POST",
@@ -74,7 +72,7 @@ export function inviteCompanyMember(
 }
 
 export function updateCompanyMemberRole(memberId: string, roleId: string, token: string) {
-  return apiRequest<CompanyMember>(`${apiBaseUrl}/company-members/${memberId}/role`, {
+  return apiRequest<CompanyMember>(`/company-members/${memberId}/role`, {
     body: JSON.stringify({ roleId }),
     headers: jsonAuthHeaders(token),
     method: "PATCH",
@@ -82,20 +80,20 @@ export function updateCompanyMemberRole(memberId: string, roleId: string, token:
 }
 
 export function removeCompanyMember(memberId: string, token: string) {
-  return apiRequest<void>(`${apiBaseUrl}/company-members/${memberId}`, {
+  return apiRequest<void>(`/company-members/${memberId}`, {
     headers: authHeaders(token),
     method: "DELETE",
   });
 }
 
 export function getRecruiterRoles(token: string) {
-  return apiRequest<RecruiterRole[]>(`${apiBaseUrl}/recruiter-roles`, {
+  return apiRequest<RecruiterRole[]>("/recruiter-roles", {
     headers: authHeaders(token),
   });
 }
 
 export function createRecruiterRole(payload: RolePayload, token: string) {
-  return apiRequest<RecruiterRole>(`${apiBaseUrl}/recruiter-roles`, {
+  return apiRequest<RecruiterRole>("/recruiter-roles", {
     body: JSON.stringify(removeEmptyFields(payload)),
     headers: jsonAuthHeaders(token),
     method: "POST",
@@ -103,7 +101,7 @@ export function createRecruiterRole(payload: RolePayload, token: string) {
 }
 
 export function updateRecruiterRole(roleId: string, payload: RolePayload, token: string) {
-  return apiRequest<RecruiterRole>(`${apiBaseUrl}/recruiter-roles/${roleId}`, {
+  return apiRequest<RecruiterRole>(`/recruiter-roles/${roleId}`, {
     body: JSON.stringify(removeEmptyFields(payload)),
     headers: jsonAuthHeaders(token),
     method: "PATCH",
@@ -111,7 +109,7 @@ export function updateRecruiterRole(roleId: string, payload: RolePayload, token:
 }
 
 export function deleteRecruiterRole(roleId: string, token: string) {
-  return apiRequest<void>(`${apiBaseUrl}/recruiter-roles/${roleId}`, {
+  return apiRequest<void>(`/recruiter-roles/${roleId}`, {
     headers: authHeaders(token),
     method: "DELETE",
   });
@@ -122,7 +120,7 @@ export function assignRecruiterRolePermissions(
   permissionIds: string[],
   token: string,
 ) {
-  return apiRequest<RecruiterRole>(`${apiBaseUrl}/recruiter-roles/${roleId}/permissions`, {
+  return apiRequest<RecruiterRole>(`/recruiter-roles/${roleId}/permissions`, {
     body: JSON.stringify({ permissionIds }),
     headers: jsonAuthHeaders(token),
     method: "POST",
@@ -130,13 +128,13 @@ export function assignRecruiterRolePermissions(
 }
 
 export function getRecruiterPermissions(token: string) {
-  return apiRequest<RecruiterPermission[]>(`${apiBaseUrl}/recruiter-permissions`, {
+  return apiRequest<RecruiterPermission[]>("/recruiter-permissions", {
     headers: authHeaders(token),
   });
 }
 
 export function createRecruiterPermission(payload: PermissionPayload, token: string) {
-  return apiRequest<RecruiterPermission>(`${apiBaseUrl}/recruiter-permissions`, {
+  return apiRequest<RecruiterPermission>("/recruiter-permissions", {
     body: JSON.stringify(removeEmptyFields(payload)),
     headers: jsonAuthHeaders(token),
     method: "POST",
@@ -148,7 +146,7 @@ export function updateRecruiterPermission(
   payload: PermissionPayload,
   token: string,
 ) {
-  return apiRequest<RecruiterPermission>(`${apiBaseUrl}/recruiter-permissions/${permissionId}`, {
+  return apiRequest<RecruiterPermission>(`/recruiter-permissions/${permissionId}`, {
     body: JSON.stringify(removeEmptyFields(payload)),
     headers: jsonAuthHeaders(token),
     method: "PATCH",
@@ -156,7 +154,7 @@ export function updateRecruiterPermission(
 }
 
 export function deleteRecruiterPermission(permissionId: string, token: string) {
-  return apiRequest<void>(`${apiBaseUrl}/recruiter-permissions/${permissionId}`, {
+  return apiRequest<void>(`/recruiter-permissions/${permissionId}`, {
     headers: authHeaders(token),
     method: "DELETE",
   });

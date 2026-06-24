@@ -1,9 +1,5 @@
 import { apiRequest } from "@/shared/api/http";
 
-const recruiterAuthBaseUrl = "http://localhost:3636/api/v1/recruiter/auth";
-const recruiterPasswordResetBaseUrl =
-  "http://localhost:3636/api/v1/recruiter-accounts/password-reset";
-
 export type RecruiterAuthUser = Readonly<{
   id: string;
   email: string;
@@ -31,7 +27,7 @@ export type PasswordResetMessageResponse = Readonly<{
 }>;
 
 export function loginRecruiter(payload: RecruiterLoginPayload) {
-  return apiRequest<RecruiterLoginResponse>(`${recruiterAuthBaseUrl}/login`, {
+  return apiRequest<RecruiterLoginResponse>("/recruiter/auth/login", {
     body: JSON.stringify(payload),
     headers: {
       "Content-Type": "application/json",
@@ -41,7 +37,7 @@ export function loginRecruiter(payload: RecruiterLoginPayload) {
 }
 
 export function registerRecruiter(payload: RecruiterRegisterPayload) {
-  return apiRequest<RecruiterLoginResponse>(`${recruiterAuthBaseUrl}/register`, {
+  return apiRequest<RecruiterLoginResponse>("/recruiter/auth/register", {
     body: JSON.stringify(payload),
     headers: {
       "Content-Type": "application/json",
@@ -51,7 +47,7 @@ export function registerRecruiter(payload: RecruiterRegisterPayload) {
 }
 
 export function requestRecruiterPasswordReset(email: string) {
-  return apiRequest<PasswordResetMessageResponse>(`${recruiterPasswordResetBaseUrl}/request`, {
+  return apiRequest<PasswordResetMessageResponse>("/recruiter-accounts/password-reset/request", {
     body: JSON.stringify({ email }),
     headers: {
       "Content-Type": "application/json",
@@ -61,7 +57,7 @@ export function requestRecruiterPasswordReset(email: string) {
 }
 
 export function confirmRecruiterPasswordReset(payload: { token: string; password: string }) {
-  return apiRequest<PasswordResetMessageResponse>(`${recruiterPasswordResetBaseUrl}/confirm`, {
+  return apiRequest<PasswordResetMessageResponse>("/recruiter-accounts/password-reset/confirm", {
     body: JSON.stringify(payload),
     headers: {
       "Content-Type": "application/json",
