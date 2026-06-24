@@ -9,7 +9,7 @@ export default function AdminSupportPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Trung tâm hỗ trợ</h1>
         <p className="text-muted-foreground">
-          Tiếp nhận và xử lý các yêu cầu hỗ trợ (Ticket) từ Ứng viên và Nhà tuyển dụng.
+          Tiếp nhận và xử lý các yêu cầu hỗ trợ từ Ứng viên và Nhà tuyển dụng.
         </p>
       </div>
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 export type AdminModerationReport = {
   id: string;
@@ -61,6 +64,79 @@ const data: AdminModerationReport[] = [
     reason: "Chứa link đáng ngờ",
     status: "Đang chờ xử lý",
     reportedDate: "24/06/2026",
+  },
+  // Add more items for pagination
+  {
+    id: "REP-9923",
+    contentType: "Tin tuyển dụng",
+    targetName: "Trang lừa đảo tiền",
+    reporter: "user99@gmail.com",
+    reason: "Yêu cầu đóng phí",
+    status: "Đang chờ xử lý",
+    reportedDate: "25/06/2026",
+  },
+  {
+    id: "REP-9924",
+    contentType: "Bình luận",
+    targetName: "Bài viết #ART-5015",
+    reporter: "spam_hunter",
+    reason: "Quảng cáo cá cược",
+    status: "Đã giải quyết",
+    reportedDate: "25/06/2026",
+  },
+  {
+    id: "REP-9925",
+    contentType: "Hồ sơ",
+    targetName: "Clone Acc 1",
+    reporter: "admin",
+    reason: "Avatar phản cảm",
+    status: "Đã giải quyết",
+    reportedDate: "26/06/2026",
+  },
+  {
+    id: "REP-9926",
+    contentType: "Review công ty",
+    targetName: "Công ty XYZ",
+    reporter: "Ẩn danh",
+    reason: "Bôi nhọ danh dự",
+    status: "Đã từ chối",
+    reportedDate: "26/06/2026",
+  },
+  {
+    id: "REP-9927",
+    contentType: "Tin tuyển dụng",
+    targetName: "Việc nhẹ lương cao",
+    reporter: "hr_fpt",
+    reason: "Việc làm không có thật",
+    status: "Đang chờ xử lý",
+    reportedDate: "27/06/2026",
+  },
+  {
+    id: "REP-9928",
+    contentType: "Bình luận",
+    targetName: "Bài viết #ART-5018",
+    reporter: "user001",
+    reason: "Ngôn từ thô tục",
+    status: "Đang chờ xử lý",
+    reportedDate: "27/06/2026",
+  },
+  {
+    id: "REP-9929",
+    contentType: "Review công ty",
+    targetName: "Tech Startup X",
+    reporter: "ceo_startup",
+    reason: "Review giả mạo",
+    status: "Đã giải quyết",
+    reportedDate: "28/06/2026",
+  },
+  {
+    id: "REP-9930",
+    contentType: "Hồ sơ",
+    targetName: "Fake Profile 2",
+    reporter: "bot_scanner",
+    reason: "Tên chứa ký tự lạ",
+    status: "Đã từ chối",
+    reportedDate: "28/06/2026",
   },
 ];
 
@@ -145,9 +221,39 @@ export const columns: ColumnDef<AdminModerationReport>[] = [
 ];
 
 export function ModerationTable() {
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
+  const filteredData = React.useMemo(() => {
+    if (statusFilter === "all") return data;
+    return data.filter((item) => item.status === statusFilter);
+  }, [statusFilter]);
+
   return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={data} />
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:w-[350px]">
+          <MagnifyingGlass
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+            size={18}
+          />
+          <Input
+            className="bg-muted h-10 rounded-xl pl-10"
+            placeholder="Tìm theo loại nội dung, mục tiêu..."
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="Đang chờ xử lý">Đang chờ xử lý</SelectItem>
+            <SelectItem value="Đã giải quyết">Đã giải quyết</SelectItem>
+            <SelectItem value="Đã từ chối">Đã từ chối</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
 }

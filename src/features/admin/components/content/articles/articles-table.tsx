@@ -1,7 +1,8 @@
 "use client";
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 export type AdminArticle = {
   id: string;
@@ -58,6 +61,79 @@ const data: AdminArticle[] = [
     title: "Review môi trường làm việc tại các công ty Outsource",
     author: "Khách mời",
     category: "Review công ty",
+    status: "Bản nháp",
+    views: 0,
+    publishedDate: null,
+  },
+  // Add more items for pagination
+  {
+    id: "ART-5019",
+    title: "Mẹo viết CV chuẩn ATS cho Developer",
+    author: "Hoa Phượng",
+    category: "Phát triển nghề nghiệp",
+    status: "Đã xuất bản",
+    views: 4200,
+    publishedDate: "20/06/2026",
+  },
+  {
+    id: "ART-5020",
+    title: "Tương lai của AI trong lập trình",
+    author: "Tiến Đạt",
+    category: "Góc kỹ thuật",
+    status: "Đang chờ duyệt",
+    views: 0,
+    publishedDate: null,
+  },
+  {
+    id: "ART-5021",
+    title: "Sự kiện Tech Summit 2026",
+    author: "Ban Biên Tập",
+    category: "Tin tức",
+    status: "Bản nháp",
+    views: 0,
+    publishedDate: null,
+  },
+  {
+    id: "ART-5022",
+    title: "Top 5 công ty IT lương cao nhất HN",
+    author: "Mai Lê",
+    category: "Báo cáo thị trường",
+    status: "Đã xuất bản",
+    views: 15600,
+    publishedDate: "22/06/2026",
+  },
+  {
+    id: "ART-5023",
+    title: "Hướng dẫn sử dụng Redux Toolkit",
+    author: "Anh Trần",
+    category: "Góc kỹ thuật",
+    status: "Đã xuất bản",
+    views: 3200,
+    publishedDate: "23/06/2026",
+  },
+  {
+    id: "ART-5024",
+    title: "Tâm sự nghề Dev: Lúc buồn",
+    author: "Khách mời",
+    category: "Blog",
+    status: "Đang chờ duyệt",
+    views: 0,
+    publishedDate: null,
+  },
+  {
+    id: "ART-5025",
+    title: "So sánh Vue và React năm 2026",
+    author: "Bình Nguyễn",
+    category: "Góc kỹ thuật",
+    status: "Đã xuất bản",
+    views: 5000,
+    publishedDate: "24/06/2026",
+  },
+  {
+    id: "ART-5026",
+    title: "Cách đàm phán lương hiệu quả",
+    author: "Hoa Phượng",
+    category: "Phát triển nghề nghiệp",
     status: "Bản nháp",
     views: 0,
     publishedDate: null,
@@ -141,9 +217,39 @@ export const columns: ColumnDef<AdminArticle>[] = [
 ];
 
 export function ArticlesTable() {
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
+  const filteredData = React.useMemo(() => {
+    if (statusFilter === "all") return data;
+    return data.filter((item) => item.status === statusFilter);
+  }, [statusFilter]);
+
   return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={data} />
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:w-[350px]">
+          <MagnifyingGlass
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+            size={18}
+          />
+          <Input
+            className="bg-muted h-10 rounded-xl pl-10"
+            placeholder="Tìm theo tiêu đề, tác giả..."
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="Đã xuất bản">Đã xuất bản</SelectItem>
+            <SelectItem value="Đang chờ duyệt">Đang chờ duyệt</SelectItem>
+            <SelectItem value="Bản nháp">Bản nháp</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
 }

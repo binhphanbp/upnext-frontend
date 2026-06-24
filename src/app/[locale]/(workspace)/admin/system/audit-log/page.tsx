@@ -10,10 +10,9 @@ export default function AdminAuditLogPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Nhật ký hệ thống (Audit Log)</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Nhật ký hệ thống</h1>
           <p className="text-muted-foreground">
-            Lưu vết mọi thao tác thay đổi dữ liệu của nhân sự nội bộ (Admin/Staff) vì mục đích bảo
-            mật.
+            Lưu vết mọi thao tác thay đổi dữ liệu của nhân sự nội bộ vì mục đích bảo mật.
           </p>
         </div>
         <Button variant="outline">

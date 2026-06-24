@@ -1,8 +1,5 @@
-import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
-
 import { AddEmployerDialog } from "@/features/admin/components/users/add-employer-dialog";
 import { EmployersTable } from "@/features/admin/components/users/employers-table";
-import { Input } from "@/shared/ui/input";
 
 export default function EmployersPage() {
   return (
@@ -16,19 +13,6 @@ export default function EmployersPage() {
         </div>
         <div className="flex items-center space-x-2">
           <AddEmployerDialog />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative max-w-sm flex-1">
-          <MagnifyingGlass
-            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
-            size={18}
-          />
-          <Input
-            className="bg-muted h-10 rounded-xl pl-10"
-            placeholder="Tìm theo tên công ty, email..."
-          />
         </div>
       </div>
 

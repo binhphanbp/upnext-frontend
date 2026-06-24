@@ -1,7 +1,8 @@
 "use client";
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 export type AdminJobPost = {
   id: string;
@@ -76,6 +79,77 @@ const data: AdminJobPost[] = [
     status: "Đã từ chối",
     postedDate: "23/06/2026",
     applicants: 0,
+  },
+  // Add more items for pagination
+  {
+    id: "JOB-1031",
+    title: "Backend Engineer (Go)",
+    employer: "Momo",
+    location: "Hồ Chí Minh",
+    type: "Toàn thời gian",
+    status: "Đang hiển thị",
+    postedDate: "25/06/2026",
+    applicants: 15,
+  },
+  {
+    id: "JOB-1032",
+    title: "QA Automation Engineer",
+    employer: "Tiki",
+    location: "Hà Nội",
+    type: "Toàn thời gian",
+    status: "Đang hiển thị",
+    postedDate: "26/06/2026",
+    applicants: 8,
+  },
+  {
+    id: "JOB-1033",
+    title: "System Administrator",
+    employer: "Viettel",
+    location: "Hà Nội",
+    type: "Toàn thời gian",
+    status: "Chờ duyệt",
+    postedDate: "27/06/2026",
+    applicants: 2,
+  },
+  {
+    id: "JOB-1034",
+    title: "DevOps Engineer",
+    employer: "VNG Corporation",
+    location: "Hồ Chí Minh",
+    type: "Toàn thời gian",
+    status: "Đang hiển thị",
+    postedDate: "28/06/2026",
+    applicants: 22,
+  },
+  {
+    id: "JOB-1035",
+    title: "React Native Developer",
+    employer: "FPT Software",
+    location: "Đà Nẵng",
+    type: "Toàn thời gian",
+    status: "Hết hạn",
+    postedDate: "01/06/2026",
+    applicants: 50,
+  },
+  {
+    id: "JOB-1036",
+    title: "Fake Job Scam",
+    employer: "Scam Co",
+    location: "Remote",
+    type: "Thực tập",
+    status: "Đã từ chối",
+    postedDate: "29/06/2026",
+    applicants: 0,
+  },
+  {
+    id: "JOB-1037",
+    title: "UI/UX Designer",
+    employer: "Zalo",
+    location: "Hồ Chí Minh",
+    type: "Toàn thời gian",
+    status: "Đang hiển thị",
+    postedDate: "30/06/2026",
+    applicants: 10,
   },
 ];
 
@@ -166,9 +240,40 @@ export const columns: ColumnDef<AdminJobPost>[] = [
 ];
 
 export function JobPostsTable() {
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
+  const filteredData = React.useMemo(() => {
+    if (statusFilter === "all") return data;
+    return data.filter((item) => item.status === statusFilter);
+  }, [statusFilter]);
+
   return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={data} />
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:w-[350px]">
+          <MagnifyingGlass
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+            size={18}
+          />
+          <Input
+            className="bg-muted h-10 rounded-xl pl-10"
+            placeholder="Tìm theo tiêu đề, công ty..."
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="Đang hiển thị">Đang hiển thị</SelectItem>
+            <SelectItem value="Chờ duyệt">Chờ duyệt</SelectItem>
+            <SelectItem value="Hết hạn">Hết hạn</SelectItem>
+            <SelectItem value="Đã từ chối">Đã từ chối</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
 }

@@ -9,7 +9,7 @@ export default function AdminMasterDataPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dữ liệu gốc (Master Data)</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Dữ liệu gốc</h1>
           <p className="text-muted-foreground">
             Quản lý các danh mục lõi của hệ thống như Ngành nghề, Kỹ năng, Địa điểm, v.v.
           </p>

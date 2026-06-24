@@ -1,7 +1,8 @@
 "use client";
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 export type AdminMasterData = {
   id: string;
@@ -64,6 +67,62 @@ const data: AdminMasterData[] = [
     itemCount: 120,
     status: "Ngừng sử dụng",
     lastUpdated: "10/12/2025",
+  },
+  {
+    id: "MD-006",
+    name: "Danh sách Ngôn ngữ Lập trình",
+    category: "Ngành nghề",
+    itemCount: 45,
+    status: "Đang hoạt động",
+    lastUpdated: "12/06/2026",
+  },
+  {
+    id: "MD-007",
+    name: "Chứng chỉ Công nghệ (Certificates)",
+    category: "Kỹ năng",
+    itemCount: 85,
+    status: "Đang hoạt động",
+    lastUpdated: "18/06/2026",
+  },
+  {
+    id: "MD-008",
+    name: "Các Quận/Huyện tại TP.HCM",
+    category: "Địa điểm",
+    itemCount: 24,
+    status: "Đang hoạt động",
+    lastUpdated: "05/01/2026",
+  },
+  {
+    id: "MD-009",
+    name: "Các Quận/Huyện tại Hà Nội",
+    category: "Địa điểm",
+    itemCount: 30,
+    status: "Đang hoạt động",
+    lastUpdated: "05/01/2026",
+  },
+  {
+    id: "MD-010",
+    name: "Hình thức làm việc (Work Types)",
+    category: "Loại hình",
+    itemCount: 6,
+    status: "Đang hoạt động",
+    lastUpdated: "15/05/2026",
+  },
+  {
+    id: "MD-011",
+    name: "Quy mô công ty (Company Size)",
+    category: "Loại hình",
+    itemCount: 7,
+    status: "Đang hoạt động",
+    lastUpdated: "20/05/2026",
+  },
+  {
+    id: "MD-012",
+    name: "Danh sách Ngành nghề cũ (2020)",
+    category: "Ngành nghề",
+    itemCount: 38,
+    status: "Ngừng sử dụng",
+    lastUpdated: "01/12/2021",
   },
 ];
 
@@ -154,9 +213,46 @@ export const columns: ColumnDef<AdminMasterData>[] = [
 ];
 
 export function MasterDataTable() {
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
+
+  const filteredData = React.useMemo(() => {
+    return data.filter((item) => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [searchTerm, statusFilter]);
+
   return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={data} />
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <MagnifyingGlass
+            size={18}
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+          />
+          <Input
+            placeholder="Tìm kiếm theo tên tập dữ liệu..."
+            className="rounded-xl bg-white pl-10 lg:max-w-md"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full rounded-xl bg-white sm:w-[200px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="Đang hoạt động">Đang hoạt động</SelectItem>
+            <SelectItem value="Ngừng sử dụng">Ngừng sử dụng</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
 }

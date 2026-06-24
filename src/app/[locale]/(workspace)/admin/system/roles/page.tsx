@@ -9,9 +9,9 @@ export default function AdminRolesPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Vai trò & Phân quyền</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Phân quyền</h1>
           <p className="text-muted-foreground">
-            Quản lý các nhóm quyền (Roles) và thiết lập mức độ truy cập cho nhân sự nội bộ.
+            Quản lý các nhóm quyền và thiết lập mức độ truy cập cho nhân sự nội bộ.
           </p>
         </div>
         <AddRoleDialog />

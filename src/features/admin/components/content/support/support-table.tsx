@@ -1,7 +1,8 @@
 "use client";
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 export type AdminSupportTicket = {
   id: string;
@@ -56,6 +59,71 @@ const data: AdminSupportTicket[] = [
     priority: "Cao",
     status: "Mở",
     createdDate: "24/06/2026 11:45",
+  },
+  // Add more items for pagination
+  {
+    id: "TIC-1022",
+    subject: "Quên mật khẩu tài khoản Admin",
+    user: "admin02 (Admin)",
+    priority: "Cao",
+    status: "Mở",
+    createdDate: "25/06/2026 08:20",
+  },
+  {
+    id: "TIC-1023",
+    subject: "Lỗi hiển thị logo công ty",
+    user: "Tiki HR (Employer)",
+    priority: "Thấp",
+    status: "Đang xử lý",
+    createdDate: "25/06/2026 09:10",
+  },
+  {
+    id: "TIC-1024",
+    subject: "Không nhận được mã OTP xác thực",
+    user: "Hoàng Văn D (Candidate)",
+    priority: "Trung bình",
+    status: "Đã đóng",
+    createdDate: "26/06/2026 14:00",
+  },
+  {
+    id: "TIC-1025",
+    subject: "Sai thông tin hóa đơn điện tử",
+    user: "FPT Software (Employer)",
+    priority: "Cao",
+    status: "Mở",
+    createdDate: "26/06/2026 16:30",
+  },
+  {
+    id: "TIC-1026",
+    subject: "Tính năng lọc CV bị chậm",
+    user: "Momo Talent (Employer)",
+    priority: "Trung bình",
+    status: "Đang xử lý",
+    createdDate: "27/06/2026 10:00",
+  },
+  {
+    id: "TIC-1027",
+    subject: "Hỏi về gói dịch vụ Premium",
+    user: "Công ty ABC (Employer)",
+    priority: "Thấp",
+    status: "Mở",
+    createdDate: "27/06/2026 11:15",
+  },
+  {
+    id: "TIC-1028",
+    subject: "Lỗi không tải được CV dạng PDF",
+    user: "Phạm E (Candidate)",
+    priority: "Cao",
+    status: "Đã đóng",
+    createdDate: "28/06/2026 09:45",
+  },
+  {
+    id: "TIC-1029",
+    subject: "Xin cấp lại quyền truy cập API",
+    user: "ZaloPay Tech (Employer)",
+    priority: "Trung bình",
+    status: "Mở",
+    createdDate: "28/06/2026 15:20",
   },
 ];
 
@@ -137,9 +205,39 @@ export const columns: ColumnDef<AdminSupportTicket>[] = [
 ];
 
 export function SupportTable() {
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
+  const filteredData = React.useMemo(() => {
+    if (statusFilter === "all") return data;
+    return data.filter((item) => item.status === statusFilter);
+  }, [statusFilter]);
+
   return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={data} />
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:w-[350px]">
+          <MagnifyingGlass
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+            size={18}
+          />
+          <Input
+            className="bg-muted h-10 rounded-xl pl-10"
+            placeholder="Tìm theo tiêu đề, mã ticket, user..."
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="Mở">Mở</SelectItem>
+            <SelectItem value="Đang xử lý">Đang xử lý</SelectItem>
+            <SelectItem value="Đã đóng">Đã đóng</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
 }
