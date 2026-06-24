@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "sweetalert2/dist/sweetalert2.min.css";
-@import "../features/marketing/home/marketing-home.css";
 @import "../features/public/home/marketing-home.css";
 
 @custom-variant dark (&:is(.dark *));
