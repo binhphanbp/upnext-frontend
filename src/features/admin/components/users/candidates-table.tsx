@@ -1,7 +1,8 @@
 "use client";
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 export type Candidate = {
   id: string;
@@ -70,6 +73,70 @@ const data: Candidate[] = [
     status: "Công khai",
     applications: 3,
     joinDate: "05/06/2026",
+  },
+  // Add 10 more mock users for pagination testing
+  {
+    id: "6",
+    name: "Nguyễn Văn Toàn",
+    email: "toan@gmail.com",
+    specialty: "UI/UX Designer",
+    status: "Công khai",
+    applications: 2,
+    joinDate: "01/01/2026",
+  },
+  {
+    id: "7",
+    name: "Trần Hữu Khang",
+    email: "khang@gmail.com",
+    specialty: "Fullstack Developer",
+    status: "Đang tìm việc",
+    applications: 4,
+    joinDate: "02/02/2026",
+  },
+  {
+    id: "8",
+    name: "Lý Mạc Sầu",
+    email: "sau@gmail.com",
+    specialty: "QA Engineer",
+    status: "Đóng",
+    applications: 1,
+    joinDate: "03/03/2026",
+  },
+  {
+    id: "9",
+    name: "Quách Tĩnh",
+    email: "tinh@gmail.com",
+    specialty: "Business Analyst",
+    status: "Công khai",
+    applications: 0,
+    joinDate: "04/04/2026",
+  },
+  {
+    id: "10",
+    name: "Hoàng Dung",
+    email: "dung@gmail.com",
+    specialty: "Data Engineer",
+    status: "Đang tìm việc",
+    applications: 7,
+    joinDate: "05/05/2026",
+  },
+  {
+    id: "11",
+    name: "Dương Quá",
+    email: "qua@gmail.com",
+    specialty: "Mobile Developer",
+    status: "Công khai",
+    applications: 3,
+    joinDate: "06/06/2026",
+  },
+  {
+    id: "12",
+    name: "Tiểu Long Nữ",
+    email: "nu@gmail.com",
+    specialty: "Frontend (Vue)",
+    status: "Đóng",
+    applications: 0,
+    joinDate: "07/07/2026",
   },
 ];
 
@@ -154,9 +221,39 @@ export const columns: ColumnDef<Candidate>[] = [
 ];
 
 export function CandidatesTable() {
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
+  const filteredData = React.useMemo(() => {
+    if (statusFilter === "all") return data;
+    return data.filter((item) => item.status === statusFilter);
+  }, [statusFilter]);
+
   return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={data} />
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:w-[350px]">
+          <MagnifyingGlass
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+            size={18}
+          />
+          <Input
+            className="bg-muted h-10 rounded-xl pl-10"
+            placeholder="Tìm theo tên ứng viên, email, kỹ năng..."
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="Công khai">Công khai</SelectItem>
+            <SelectItem value="Đang tìm việc">Đang tìm việc</SelectItem>
+            <SelectItem value="Đóng">Đóng</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
 }

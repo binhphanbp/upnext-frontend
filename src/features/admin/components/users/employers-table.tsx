@@ -1,7 +1,8 @@
 "use client";
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 export type Employer = {
   id: string;
@@ -76,6 +79,77 @@ const data: Employer[] = [
     status: "Bị khóa",
     activeJobs: 0,
     joinDate: "20/06/2026",
+  },
+  // Add 10 more mock employers for pagination testing
+  {
+    id: "6",
+    companyName: "Momo",
+    representative: "Lê E",
+    email: "hr@momo.vn",
+    plan: "Premium",
+    status: "Đã xác thực",
+    activeJobs: 20,
+    joinDate: "01/02/2025",
+  },
+  {
+    id: "7",
+    companyName: "ZaloPay",
+    representative: "Trần F",
+    email: "jobs@zalopay.vn",
+    plan: "Pro",
+    status: "Đã xác thực",
+    activeJobs: 12,
+    joinDate: "15/04/2025",
+  },
+  {
+    id: "8",
+    companyName: "Tiki",
+    representative: "Phạm G",
+    email: "tuyendung@tiki.vn",
+    plan: "Pro",
+    status: "Chờ duyệt",
+    activeJobs: 5,
+    joinDate: "10/06/2026",
+  },
+  {
+    id: "9",
+    companyName: "Be Group",
+    representative: "Nguyễn H",
+    email: "hr@be.com.vn",
+    plan: "Free",
+    status: "Đã xác thực",
+    activeJobs: 3,
+    joinDate: "22/07/2025",
+  },
+  {
+    id: "10",
+    companyName: "Grab Vietnam",
+    representative: "Lý K",
+    email: "careers@grab.com",
+    plan: "Premium",
+    status: "Đã xác thực",
+    activeJobs: 30,
+    joinDate: "05/01/2024",
+  },
+  {
+    id: "11",
+    companyName: "Gojek Vietnam",
+    representative: "Đặng L",
+    email: "jobs@gojek.com",
+    plan: "Pro",
+    status: "Bị khóa",
+    activeJobs: 0,
+    joinDate: "12/08/2025",
+  },
+  {
+    id: "12",
+    companyName: "VinAI",
+    representative: "Hoàng M",
+    email: "hr@vinai.io",
+    plan: "Premium",
+    status: "Đã xác thực",
+    activeJobs: 18,
+    joinDate: "09/09/2024",
   },
 ];
 
@@ -164,9 +238,39 @@ export const columns: ColumnDef<Employer>[] = [
 ];
 
 export function EmployersTable() {
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
+  const filteredData = React.useMemo(() => {
+    if (statusFilter === "all") return data;
+    return data.filter((item) => item.status === statusFilter);
+  }, [statusFilter]);
+
   return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={data} />
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:w-[350px]">
+          <MagnifyingGlass
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+            size={18}
+          />
+          <Input
+            className="bg-muted h-10 rounded-xl pl-10"
+            placeholder="Tìm theo tên công ty, email..."
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="Chờ duyệt">Chờ duyệt</SelectItem>
+            <SelectItem value="Đã xác thực">Đã xác thực</SelectItem>
+            <SelectItem value="Bị khóa">Bị khóa</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
 }

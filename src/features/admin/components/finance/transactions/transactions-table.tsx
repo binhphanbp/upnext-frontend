@@ -1,7 +1,8 @@
 "use client";
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 export type AdminTransaction = {
   id: string;
@@ -70,6 +73,70 @@ const data: AdminTransaction[] = [
     paymentMethod: "Thẻ tín dụng",
     status: "Đã hoàn tiền",
     transactionDate: "20/06/2026 09:12:45",
+  },
+  // Add more items for pagination
+  {
+    id: "TRX-88207",
+    client: "Công ty ABC",
+    service: "Employer Pro (1 Tháng)",
+    amount: 2500000,
+    paymentMethod: "Chuyển khoản",
+    status: "Thành công",
+    transactionDate: "25/06/2026 08:10:00",
+  },
+  {
+    id: "TRX-88208",
+    client: "Trần Văn E (Candidate)",
+    service: "Candidate Pro",
+    amount: 99000,
+    paymentMethod: "MoMo",
+    status: "Thành công",
+    transactionDate: "25/06/2026 09:15:30",
+  },
+  {
+    id: "TRX-88209",
+    client: "ZaloPay HR",
+    service: "Employer Premium (1 Năm)",
+    amount: 24000000,
+    paymentMethod: "Thẻ tín dụng",
+    status: "Thành công",
+    transactionDate: "25/06/2026 10:20:45",
+  },
+  {
+    id: "TRX-88210",
+    client: "FPT Software",
+    service: "Gói 10 Tin Tuyển Dụng",
+    amount: 2800000,
+    paymentMethod: "VNPAY",
+    status: "Đang xử lý",
+    transactionDate: "26/06/2026 11:30:15",
+  },
+  {
+    id: "TRX-88211",
+    client: "Shopee Vietnam",
+    service: "Employer Enterprise",
+    amount: 50000000,
+    paymentMethod: "Chuyển khoản",
+    status: "Thành công",
+    transactionDate: "26/06/2026 14:45:00",
+  },
+  {
+    id: "TRX-88212",
+    client: "Phạm F (Candidate)",
+    service: "1:1 Mentorship",
+    amount: 500000,
+    paymentMethod: "Thẻ tín dụng",
+    status: "Thất bại",
+    transactionDate: "27/06/2026 09:00:10",
+  },
+  {
+    id: "TRX-88213",
+    client: "Tiki HR",
+    service: "Gói xem 100 CV",
+    amount: 2000000,
+    paymentMethod: "MoMo",
+    status: "Thành công",
+    transactionDate: "27/06/2026 15:20:30",
   },
 ];
 
@@ -164,9 +231,40 @@ export const columns: ColumnDef<AdminTransaction>[] = [
 ];
 
 export function TransactionsTable() {
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
+  const filteredData = React.useMemo(() => {
+    if (statusFilter === "all") return data;
+    return data.filter((item) => item.status === statusFilter);
+  }, [statusFilter]);
+
   return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={data} />
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:w-[350px]">
+          <MagnifyingGlass
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+            size={18}
+          />
+          <Input
+            className="bg-muted h-10 rounded-xl pl-10"
+            placeholder="Tìm theo mã GD, khách hàng..."
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="Thành công">Thành công</SelectItem>
+            <SelectItem value="Đang xử lý">Đang xử lý</SelectItem>
+            <SelectItem value="Thất bại">Thất bại</SelectItem>
+            <SelectItem value="Đã hoàn tiền">Đã hoàn tiền</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
 }

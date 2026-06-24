@@ -1,7 +1,8 @@
 "use client";
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 export type AdminSubscriptionPlan = {
   id: string;
@@ -69,6 +72,61 @@ const data: AdminSubscriptionPlan[] = [
     price: 1000000,
     billingCycle: "Tháng",
     activeSubscribers: 45,
+    status: "Ngừng bán (Legacy)",
+  },
+  // Add more items for pagination
+  {
+    id: "PLAN-EMP-LITE",
+    planName: "Employer Lite",
+    targetAudience: "Nhà tuyển dụng",
+    price: 500000,
+    billingCycle: "Tháng",
+    activeSubscribers: 300,
+    status: "Đang bán",
+  },
+  {
+    id: "PLAN-CAN-BASIC",
+    planName: "Candidate Basic",
+    targetAudience: "Ứng viên",
+    price: 49000,
+    billingCycle: "Tháng",
+    activeSubscribers: 8500,
+    status: "Bản nháp",
+  },
+  {
+    id: "PLAN-EMP-ENT",
+    planName: "Employer Enterprise",
+    targetAudience: "Nhà tuyển dụng",
+    price: 50000000,
+    billingCycle: "Năm",
+    activeSubscribers: 15,
+    status: "Đang bán",
+  },
+  {
+    id: "PLAN-EMP-CRED-10",
+    planName: "Gói 10 Tin Tuyển Dụng",
+    targetAudience: "Nhà tuyển dụng",
+    price: 2800000,
+    billingCycle: "Gói tín dụng (One-time)",
+    activeSubscribers: 420,
+    status: "Đang bán",
+  },
+  {
+    id: "PLAN-CAN-MENTOR",
+    planName: "1:1 Mentorship",
+    targetAudience: "Ứng viên",
+    price: 500000,
+    billingCycle: "Gói tín dụng (One-time)",
+    activeSubscribers: 120,
+    status: "Bản nháp",
+  },
+  {
+    id: "PLAN-EMP-CV",
+    planName: "Gói xem 100 CV",
+    targetAudience: "Nhà tuyển dụng",
+    price: 2000000,
+    billingCycle: "Gói tín dụng (One-time)",
+    activeSubscribers: 600,
     status: "Ngừng bán (Legacy)",
   },
 ];
@@ -167,9 +225,39 @@ export const columns: ColumnDef<AdminSubscriptionPlan>[] = [
 ];
 
 export function PlansTable() {
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+
+  const filteredData = React.useMemo(() => {
+    if (statusFilter === "all") return data;
+    return data.filter((item) => item.status === statusFilter);
+  }, [statusFilter]);
+
   return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={data} />
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:w-[350px]">
+          <MagnifyingGlass
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+            size={18}
+          />
+          <Input
+            className="bg-muted h-10 rounded-xl pl-10"
+            placeholder="Tìm theo tên gói, mã ID..."
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="Đang bán">Đang bán</SelectItem>
+            <SelectItem value="Bản nháp">Bản nháp</SelectItem>
+            <SelectItem value="Ngừng bán (Legacy)">Ngừng bán (Legacy)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
 }

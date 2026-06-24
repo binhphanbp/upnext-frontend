@@ -1,7 +1,8 @@
 "use client";
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -14,6 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 export type AdminRole = {
   id: string;
@@ -62,6 +65,54 @@ const data: AdminRole[] = [
     name: "Thực tập sinh Marketing",
     description: "Chỉ được xem và đăng bài viết PR.",
     userCount: 3,
+    type: "Tùy chỉnh",
+    status: "Vô hiệu hóa",
+  },
+  {
+    id: "ROLE-CUSTOM-02",
+    name: "Cộng tác viên Nội dung",
+    description: "Tạo bài viết nháp.",
+    userCount: 12,
+    type: "Tùy chỉnh",
+    status: "Kích hoạt",
+  },
+  {
+    id: "ROLE-CUSTOM-03",
+    name: "Tuyển dụng nội bộ",
+    description: "Quản lý quy trình tuyển dụng nội bộ.",
+    userCount: 4,
+    type: "Tùy chỉnh",
+    status: "Kích hoạt",
+  },
+  {
+    id: "ROLE-CUSTOM-04",
+    name: "Chuyên viên Phân tích",
+    description: "Xem báo cáo dữ liệu.",
+    userCount: 6,
+    type: "Tùy chỉnh",
+    status: "Vô hiệu hóa",
+  },
+  {
+    id: "ROLE-CUSTOM-05",
+    name: "Kế toán viên",
+    description: "Quản lý hóa đơn và thanh toán.",
+    userCount: 3,
+    type: "Tùy chỉnh",
+    status: "Kích hoạt",
+  },
+  {
+    id: "ROLE-CUSTOM-06",
+    name: "Chăm sóc Khách hàng VIP",
+    description: "Hỗ trợ riêng cho tài khoản doanh nghiệp VIP.",
+    userCount: 2,
+    type: "Tùy chỉnh",
+    status: "Kích hoạt",
+  },
+  {
+    id: "ROLE-CUSTOM-07",
+    name: "Quản trị viên IT",
+    description: "Bảo trì hệ thống nội bộ.",
+    userCount: 5,
     type: "Tùy chỉnh",
     status: "Vô hiệu hóa",
   },
@@ -146,9 +197,46 @@ export const columns: ColumnDef<AdminRole>[] = [
 ];
 
 export function RolesTable() {
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
+
+  const filteredData = React.useMemo(() => {
+    return data.filter((item) => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [searchTerm, statusFilter]);
+
   return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={data} />
+    <div className="mt-6 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <MagnifyingGlass
+            size={18}
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+          />
+          <Input
+            placeholder="Tìm kiếm theo tên vai trò..."
+            className="rounded-xl bg-white pl-10 lg:max-w-md"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full rounded-xl bg-white sm:w-[200px]">
+            <SelectValue placeholder="Tất cả trạng thái" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="Kích hoạt">Kích hoạt</SelectItem>
+            <SelectItem value="Vô hiệu hóa">Vô hiệu hóa</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
 }

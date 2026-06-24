@@ -52,7 +52,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   return (
     <html lang={locale}>
-      <body className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}>
+      <body
+        suppressHydrationWarning
+        className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}
+      >
         <NextIntlClientProvider>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>

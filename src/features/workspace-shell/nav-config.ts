@@ -74,17 +74,16 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
   {
     label: "Tài chính & Kinh doanh",
     items: [
-      { label: "Sales CRM", href: "/admin/finance/sales", icon: UsersThree },
       { label: "Gói dịch vụ", href: "/admin/finance/plans", icon: Package },
-      { label: "Lịch sử giao dịch", href: "/admin/finance/transactions", icon: Receipt },
+      { label: "Hóa đơn", href: "/admin/finance/transactions", icon: Receipt },
     ],
   },
   {
     label: "Quản trị Hệ thống",
     items: [
       { label: "Dữ liệu gốc", href: "/admin/system/master-data", icon: Database },
-      { label: "Vai trò & Phân quyền", href: "/admin/system/roles", icon: IdentificationBadge },
-      { label: "Audit Log", href: "/admin/system/audit-log", icon: ListChecks },
+      { label: "Phân quyền", href: "/admin/system/roles", icon: IdentificationBadge },
+      { label: "Nhật ký hệ thống", href: "/admin/system/audit-log", icon: ListChecks },
     ],
   },
 ];
