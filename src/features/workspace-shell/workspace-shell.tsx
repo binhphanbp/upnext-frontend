@@ -20,6 +20,7 @@ import { useState } from "react";
 
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
+import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
@@ -162,7 +163,13 @@ export function WorkspaceShell({
                   </h2>
                   <div className="space-y-1">
                     {group.items.map((item) => {
-                      const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                      const isRootNode =
+                        item.href === "/admin" ||
+                        item.href === "/recruiter" ||
+                        item.href === "/candidate";
+                      const active =
+                        pathname === item.href ||
+                        (!isRootNode && pathname.startsWith(`${item.href}/`));
                       const Icon = item.icon;
                       return (
                         <Link
@@ -175,23 +182,12 @@ export function WorkspaceShell({
                               : "text-slate-700 hover:bg-slate-50 hover:text-primary",
                           )}
                         >
-                          <Icon
-                            size={18}
-                            className={cn(
-                              "flex-shrink-0",
-                              active ? "text-white" : "text-slate-400",
-                            )}
-                          />
-                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                          {item.badge ? (
-                            <span
-                              className={cn(
-                                "ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full",
-                                active ? "bg-white/20 text-white" : "bg-emerald-50 text-primary",
-                              )}
-                            >
-                              {item.badge}
-                            </span>
+                          <Icon size={20} />
+                          {!collapsed ? (
+                            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                          ) : null}
+                          {!collapsed && item.badge ? (
+                            <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
                           ) : null}
                         </Link>
                       );
@@ -202,16 +198,24 @@ export function WorkspaceShell({
             </nav>
           </ScrollArea>
 
-          <div className="border-t border-slate-100 p-4">
+          <div className="border-border space-y-2 border-t p-3">
+            {workspaceRole !== "admin" ? (
+              <Button
+                className="w-full justify-start"
+                variant="secondary"
+                size={collapsed ? "icon" : "md"}
+              >
+                <Sparkle />
+                {!collapsed ? "Gói tuyển dụng Pro" : null}
+              </Button>
+            ) : null}
             <Button
-              className="text-primary hover:text-primary/90 w-full justify-start gap-2 border-0 bg-indigo-50 font-bold hover:bg-indigo-100"
-              variant="outline"
-              asChild
+              className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50"
+              variant="ghost"
+              size={collapsed ? "icon" : "md"}
             >
-              <Link href="#">
-                <Sparkle weight="fill" />
-                <span>{t("shell.proPackage")}</span>
-              </Link>
+              <SignOut />
+              {!collapsed ? "Đăng xuất" : null}
             </Button>
           </div>
         </aside>

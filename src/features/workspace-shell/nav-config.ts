@@ -1,13 +1,17 @@
 import {
+  Article,
   Bell,
   Briefcase,
   Buildings,
   ChartLineUp,
   CreditCard,
+  Database,
   Gauge,
-  GearSix,
+  Headset,
   IdentificationBadge,
   ListChecks,
+  Package,
+  Receipt,
   ShieldCheck,
   Users,
   UsersThree,
@@ -44,21 +48,43 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
 
 export const adminNavGroups: WorkspaceNavGroup[] = [
   {
-    label: "Vận hành",
+    label: "Tổng quan",
+    items: [{ label: "Thống kê nền tảng", href: "/admin", icon: Gauge }],
+  },
+  {
+    label: "Quản lý Người dùng",
     items: [
-      { label: "Thống kê nền tảng", href: "/admin", icon: Gauge },
-      { label: "Kiểm duyệt", href: "/admin/moderation", icon: ShieldCheck, badge: "19" },
-      { label: "Người dùng & tài chính", href: "/admin/users-finance", icon: CreditCard },
-      { label: "Vai trò & phân quyền", href: "/admin/roles", icon: IdentificationBadge },
+      { label: "Nhà tuyển dụng", href: "/admin/users/employers", icon: Buildings },
+      { label: "Ứng viên", href: "/admin/users/candidates", icon: Users },
     ],
   },
   {
-    label: "Tăng trưởng",
+    label: "Vận hành & Nội dung",
     items: [
-      { label: "SEO Console", href: "/admin/seo", icon: ChartLineUp },
-      { label: "Sales CRM", href: "/admin/sales", icon: UsersThree },
-      { label: "Audit log", href: "/admin/audit-log", icon: ListChecks },
-      { label: "Cài đặt", href: "/admin/settings", icon: GearSix },
+      { label: "Quản lý tin đăng", href: "/admin/content/jobs", icon: Briefcase },
+      { label: "Quản lý bài viết", href: "/admin/content/articles", icon: Article },
+      {
+        label: "Kiểm duyệt nội dung",
+        href: "/admin/content/moderation",
+        icon: ShieldCheck,
+      },
+      { label: "Trung tâm hỗ trợ", href: "/admin/content/support", icon: Headset },
+    ],
+  },
+  {
+    label: "Tài chính & Kinh doanh",
+    items: [
+      { label: "Sales CRM", href: "/admin/finance/sales", icon: UsersThree },
+      { label: "Gói dịch vụ", href: "/admin/finance/plans", icon: Package },
+      { label: "Lịch sử giao dịch", href: "/admin/finance/transactions", icon: Receipt },
+    ],
+  },
+  {
+    label: "Quản trị Hệ thống",
+    items: [
+      { label: "Dữ liệu gốc", href: "/admin/system/master-data", icon: Database },
+      { label: "Vai trò & Phân quyền", href: "/admin/system/roles", icon: IdentificationBadge },
+      { label: "Audit Log", href: "/admin/system/audit-log", icon: ListChecks },
     ],
   },
 ];
