@@ -1,0 +1,8 @@
+.recruiter-auth-input:focus,
+.recruiter-auth-input:focus-visible {
+  border: 1.5px solid var(--color-action-primary-default) !important;
+  box-shadow:
+    0 0 0 1px var(--color-action-primary-default),
+    0 0 0 4px var(--color-action-primary-subtle) !important;
+  outline: none;
+}

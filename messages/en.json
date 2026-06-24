@@ -338,5 +338,156 @@
         "copyright": "© 2026 UpNext. All rights reserved."
       }
     }
+  },
+  "Recruiter": {
+    "nav": {
+      "recruitment": "Recruitment",
+      "report": "Recruitment Report",
+      "jobPosts": "Job Posts",
+      "candidates": "Candidates",
+      "pipeline": "Pipeline",
+      "interviews": "Interviews",
+      "company": "Company",
+      "companyProfile": "Company Profile",
+      "team": "Team & Permissions",
+      "analytics": "Analytics",
+      "billing": "Billing",
+      "platformStats": "Platform Stats",
+      "moderation": "Moderation",
+      "usersFinance": "Users & Finance",
+      "roles": "Roles & Permissions",
+      "seo": "SEO Console",
+      "sales": "Sales CRM",
+      "auditLog": "Audit Log",
+      "settings": "Settings"
+    },
+    "shell": {
+      "loading": "Loading recruiter workspace...",
+      "proPackage": "Recruiter Pro",
+      "notifications": "Notifications",
+      "allNotifications": "See all notifications",
+      "profile": "My Profile",
+      "subscription": "My Subscription",
+      "invoice": "My Invoice",
+      "settings": "Account Settings",
+      "signOut": "Sign Out"
+    },
+    "dashboard": {
+      "title": "Recruitment Overview",
+      "subtitle": "Track verification status of your profile and company.",
+      "welcomeBack": "Welcome Back",
+      "budget": "Budget",
+      "totalJobPosts": "Total Job Posts",
+      "totalCandidates": "Total Candidates",
+      "revenueForecast": "Revenue Forecast",
+      "overviewProfit": "Overview of Profit",
+      "accountCard": {
+        "title": "Account",
+        "btnDetail": "View Details"
+      },
+      "profileCard": {
+        "title": "Recruiter Profile",
+        "notUpdated": "Not updated",
+        "btnDetail": "View Details"
+      },
+      "companyCard": {
+        "title": "Business Verification",
+        "status": {
+          "verified": "Verified",
+          "pending": "Pending Approval",
+          "rejected": "Rejected",
+          "unverified": "Unverified"
+        },
+        "btnDetail": "View Details"
+      },
+      "instructionCard": {
+        "title": "Account Activation Guide",
+        "content": "Your profile is currently partially activated. After completing the 3 update steps in the dialog (Recruiter Info, Company Profile, and uploading a valid business verification file), the system will submit a request to the administrator. Your company will be fully activated for recruitment as soon as your profile is successfully verified."
+      }
+    },
+    "onboarding": {
+      "step0": "Recruiter Info",
+      "step1": "Company Profile",
+      "step2": "Company Verification",
+      "loading": "Loading info...",
+      "updateProfile": "Update profile to start recruiting",
+      "dialogDescription": "Complete recruiter info, company profile, and upload business verification.",
+      "labels": {
+        "fullName": "Full Name",
+        "phone": "Phone Number",
+        "gender": "Gender",
+        "avatar": "Avatar",
+        "companyName": "Company Name",
+        "taxCode": "Tax Code",
+        "address": "Address",
+        "companyEmail": "Company Email",
+        "companyPhone": "Company Phone",
+        "businessLicense": "Business License",
+        "website": "Website",
+        "companySize": "Size",
+        "description": "Company Description"
+      },
+      "placeholders": {
+        "fullName": "E.g. John Doe",
+        "phone": "E.g. 0912345678",
+        "gender": "Select gender",
+        "companyName": "E.g. UpNext Joint Stock Company",
+        "taxCode": "E.g. 0312345678",
+        "address": "District 1, Ho Chi Minh City",
+        "companyEmail": "hr@company.com",
+        "companyPhone": "02812345678",
+        "website": "https://company.com",
+        "companySize": "51-200 employees",
+        "description": "Brief description about your company, field, and team..."
+      },
+      "gender": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "upload": {
+        "chooseFile": "Choose file",
+        "noFile": "No file selected",
+        "uploading": "Uploading...",
+        "onlyImages": "Only image files are accepted.",
+        "onlyPdfs": "Only PDF files are accepted.",
+        "helpText": "Accepts PDF, PNG, JPG. After submission, the company status will be pending."
+      },
+      "buttons": {
+        "back": "Back",
+        "next": "Continue",
+        "finish": "Finish Update",
+        "submitting": "Submitting profile..."
+      },
+      "messages": {
+        "success": "Information updated successfully!",
+        "error": "Please review your information.",
+        "submittingSuccess": "Company profile submitted. UpNext will verify your license details."
+      },
+      "validation": {
+        "fullNameMin": "Please enter the person in charge's full name.",
+        "phoneNumberMin": "Please enter a valid phone number.",
+        "genderRequired": "Please select gender.",
+        "avatarRequired": "Please upload an avatar.",
+        "companyNameMin": "Please enter the company name.",
+        "taxCodeMin": "Please enter the tax code.",
+        "addressMin": "Please enter the company address.",
+        "companyEmailInvalid": "Invalid company email address.",
+        "companyPhoneMin": "Please enter the company phone number.",
+        "websiteInvalid": "Website must start with http:// or https://.",
+        "companySizeMin": "Please select company size.",
+        "descriptionMin": "Please describe the company with at least 20 characters.",
+        "businessLicenseRequired": "Please upload the business registration license."
+      },
+      "apiErrors": {
+        "network": "Failed to connect to the server. Please try again later.",
+        "invalidInfo": "Invalid company info or profile. Please check again.",
+        "sessionExpired": "Session expired. Please log in again.",
+        "forbidden": "Account does not have permission to update this company.",
+        "conflict": "Tax code or profile already exists in the system.",
+        "serverError": "Server encountered an error while updating profile. Please try again later.",
+        "unknown": "Failed to complete update. Please try again."
+      }
+    }
   }
 }

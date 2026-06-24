@@ -19,4 +19,6 @@ export type WorkspaceIdentity = Readonly<{
   name: string;
   roleLabel: string;
   initials: string;
+  email?: string | undefined;
+  avatarUrl?: string | undefined;
 }>;
