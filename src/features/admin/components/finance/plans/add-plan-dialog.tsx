@@ -17,7 +17,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
-export function AddEmployerDialog() {
+export function AddPlanDialog() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,39 +25,47 @@ export function AddEmployerDialog() {
       <DialogTrigger asChild>
         <Button variant="primary">
           <Plus className="mr-2" weight="bold" />
-          Thêm nhà tuyển dụng
+          Tạo Gói Dịch Vụ Mới
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Thêm Nhà Tuyển Dụng</DialogTitle>
+          <DialogTitle>Tạo Gói Dịch Vụ Mới</DialogTitle>
           <DialogDescription>
-            Điền thông tin cơ bản để tạo tài khoản doanh nghiệp mới trên hệ thống.
+            Thiết lập thông tin cơ bản cho gói dịch vụ (Subscription/Credit) mới trên hệ thống.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="companyName">Tên công ty</Label>
-            <Input id="companyName" placeholder="VD: VNG Corporation" />
+            <Label htmlFor="planName">Tên gói dịch vụ</Label>
+            <Input id="planName" placeholder="VD: Employer Premium 2026" />
           </div>
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="representative">Người đại diện</Label>
-            <Input id="representative" placeholder="VD: Nguyễn Văn A" />
-          </div>
-          <div className="flex flex-col gap-2.5">
-            <Label htmlFor="email">Email liên hệ</Label>
-            <Input id="email" type="email" placeholder="VD: hr@congty.com" />
-          </div>
-          <div className="flex flex-col gap-2.5">
-            <Label htmlFor="plan">Gói dịch vụ mặc định</Label>
-            <Select defaultValue="Free">
+            <Label htmlFor="targetAudience">Đối tượng khách hàng</Label>
+            <Select defaultValue="employer">
               <SelectTrigger>
-                <SelectValue placeholder="Chọn gói dịch vụ" />
+                <SelectValue placeholder="Chọn đối tượng" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Free">Gói Cơ bản (Free)</SelectItem>
-                <SelectItem value="Pro">Gói Nâng cao (Pro)</SelectItem>
-                <SelectItem value="Premium">Gói Cao cấp (Premium)</SelectItem>
+                <SelectItem value="employer">Nhà tuyển dụng</SelectItem>
+                <SelectItem value="candidate">Ứng viên</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            <Label htmlFor="price">Đơn giá (VNĐ)</Label>
+            <Input id="price" type="number" placeholder="VD: 2500000" />
+          </div>
+          <div className="flex flex-col gap-2.5">
+            <Label htmlFor="billingCycle">Chu kỳ thanh toán</Label>
+            <Select defaultValue="month">
+              <SelectTrigger>
+                <SelectValue placeholder="Chọn chu kỳ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Hàng tháng (Monthly)</SelectItem>
+                <SelectItem value="year">Hàng năm (Yearly)</SelectItem>
+                <SelectItem value="one-time">Gói tín dụng (One-time)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -67,7 +75,7 @@ export function AddEmployerDialog() {
             Hủy
           </Button>
           <Button variant="primary" onClick={() => setOpen(false)}>
-            Tạo tài khoản
+            Tạo bản nháp
           </Button>
         </DialogFooter>
       </DialogContent>
