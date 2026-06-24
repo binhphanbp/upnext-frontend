@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  CaretDown,
   SignOut,
   Sparkle,
   List,
@@ -475,12 +474,12 @@ export function WorkspaceShell({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#10a778] text-white transition hover:opacity-85 focus:outline-none"
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full text-white transition hover:opacity-85 focus:outline-none"
                     aria-label="Select Language"
                     type="button"
                   >
-                    <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-white">
-                      <span className="block size-8">
+                    <span className="flex size-12 items-center justify-center overflow-hidden rounded-full bg-white">
+                      <span className="block size-12 h-auto">
                         {currentLocale === "en" ? <UkFlag /> : <VnFlag />}
                       </span>
                     </span>
@@ -555,7 +554,18 @@ export function WorkspaceShell({
                       className="size-8 rounded-full border border-white/40 bg-white object-cover"
                     />
 
-                    <CaretDown size={12} className="text-white" />
+                    <svg
+                      aria-hidden="true"
+                      className="iconify iconify--solar hover:text-primary dark:text-primary group-hover/menu:text-primary"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="m12.37 15.835l6.43-6.63C19.201 8.79 18.958 8 18.43 8H5.57c-.528 0-.771.79-.37 1.205l6.43 6.63c.213.22.527.22.74 0"
+                      />
+                    </svg>
                   </button>
                 </DropdownMenuTrigger>
 

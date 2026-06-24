@@ -46,6 +46,34 @@ export type CompanyResponse = Readonly<{
   name: string;
 }>;
 
+export type CompanyDetail = Readonly<{
+  id: string;
+  name: string;
+  taxCode: string | null;
+  address: string | null;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  description: string | null;
+  companySize: string | null;
+  status: string;
+  verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
+  businessLicenseFileId: string | null;
+  logoFileId?: string | null;
+  logoFile?: {
+    id: string;
+    publicUrl: string;
+  } | null;
+  coverFile?: {
+    id: string;
+    publicUrl: string;
+  } | null;
+  photos?: Array<{
+    id: string;
+    publicUrl: string;
+  }> | null;
+}>;
+
 export function getRecruiterAccount(accountId: string, token: string) {
   return apiRequest<RecruiterAccountDetail>(`${apiBaseUrl}/recruiter-accounts/${accountId}`, {
     headers: authHeaders(token),
@@ -136,6 +164,34 @@ export function uploadCompanyBusinessLicense(companyId: string, file: File, toke
   });
 }
 
+export function uploadCompanyLogo(companyId: string, file: File, token: string) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiRequest<UploadFileResponse>(`${apiBaseUrl}/companies/${companyId}/logo`, {
+    body: formData,
+    headers: authHeaders(token),
+    method: "POST",
+  });
+}
+
+export function uploadCompanyCover(companyId: string, file: File, token: string) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiRequest<UploadFileResponse>(`${apiBaseUrl}/companies/${companyId}/cover`, {
+    body: formData,
+    headers: authHeaders(token),
+    method: "POST",
+  });
+}
+
+export function getCompanyBusinessLicenseUrl(companyId: string, token: string) {
+  return apiRequest<{ url: string }>(`${apiBaseUrl}/companies/${companyId}/business-license/url`, {
+    headers: authHeaders(token),
+  });
+}
+
 export function getRecruiterStats(accountId: string, token: string) {
   return apiRequest<{ totalJobPosts: number; totalCandidates: number }>(
     `${apiBaseUrl}/recruiter-accounts/${accountId}/dashboard-stats`,
@@ -168,8 +224,26 @@ export function updateCompany(companyId: string, payload: CreateCompanyPayload, 
 }
 
 export function getCompany(companyId: string, token: string) {
-  return apiRequest<any>(`${apiBaseUrl}/companies/${companyId}`, {
+  return apiRequest<CompanyDetail>(`${apiBaseUrl}/companies/${companyId}`, {
     headers: authHeaders(token),
+  });
+}
+
+export function uploadCompanyPhoto(companyId: string, file: File, token: string) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiRequest<UploadFileResponse>(`${apiBaseUrl}/companies/${companyId}/photos`, {
+    body: formData,
+    headers: authHeaders(token),
+    method: "POST",
+  });
+}
+
+export function deleteCompanyPhoto(companyId: string, photoId: string, token: string) {
+  return apiRequest(`${apiBaseUrl}/companies/${companyId}/photos/${photoId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
   });
 }
 

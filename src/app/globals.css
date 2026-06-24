@@ -78,7 +78,7 @@
   --destructive: #ef4444;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #6366f1;
+  --ring: #10a778;
   --chart-1: #10b981;
   --chart-2: #6366f1;
   --chart-3: #38bdf8;
@@ -183,7 +183,7 @@
   --destructive: #f87171;
   --border: #1e293b;
   --input: #334155;
-  --ring: #818cf8;
+  --ring: #34d399;
   --chart-1: #34d399;
   --chart-2: #818cf8;
   --chart-3: #60a5fa;
@@ -242,7 +242,7 @@
 
 @layer utilities {
   .upnext-focus {
-    @apply focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply focus:border-primary focus-visible:border-primary focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none;
   }
 }
 
@@ -254,4 +254,20 @@
   background:
     linear-gradient(180deg, #002b33, rgba(0, 43, 51, 0.25)),
     linear-gradient(90deg, #008060 21.86%, #2bab60 78.13%);
+}
+
+.bg-header-table {
+  background:
+    linear-gradient(180deg, #0d966d, rgba(0, 43, 51, 0.25)),
+    linear-gradient(90deg, #008060 21.86%, #2bab60 78.13%);
+  color: #ffffff;
+  /* border-bottom: 2px solid #008060; */
+}
+
+.upnext-shadow {
+  box-shadow:
+    var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow),
+    var(--tw-ring-shadow), var(--tw-shadow);
+  --tw-shadow: none;
+  border: none;
 }
