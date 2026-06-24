@@ -1,7 +1,5 @@
 import { apiRequest } from "@/shared/api/http";
 
-const apiBaseUrl = "http://localhost:3636/api/v1";
-
 export type RecruiterAccountDetail = Readonly<{
   id: string;
   email: string;
@@ -75,13 +73,13 @@ export type CompanyDetail = Readonly<{
 }>;
 
 export function getRecruiterAccount(accountId: string, token: string) {
-  return apiRequest<RecruiterAccountDetail>(`${apiBaseUrl}/recruiter-accounts/${accountId}`, {
+  return apiRequest<RecruiterAccountDetail>(`/recruiter-accounts/${accountId}`, {
     headers: authHeaders(token),
   });
 }
 
 export function createRecruiterProfile(payload: CreateRecruiterProfilePayload, token: string) {
-  return apiRequest(`${apiBaseUrl}/recruiter-profiles`, {
+  return apiRequest("/recruiter-profiles", {
     body: JSON.stringify(removeEmptyFields(payload)),
     headers: {
       ...authHeaders(token),
@@ -96,7 +94,7 @@ export function updateRecruiterProfile(
   payload: Partial<Omit<CreateRecruiterProfilePayload, "recruiterAccountId">>,
   token: string,
 ) {
-  return apiRequest(`${apiBaseUrl}/recruiter-profiles/${profileId}`, {
+  return apiRequest(`/recruiter-profiles/${profileId}`, {
     body: JSON.stringify(removeEmptyFields(payload)),
     headers: {
       ...authHeaders(token),
@@ -124,7 +122,7 @@ export function uploadFile(file: File, purpose: string, visibility: string, toke
   formData.append("purpose", purpose);
   formData.append("visibility", visibility);
 
-  return apiRequest<UploadFileResponse>(`${apiBaseUrl}/files/upload`, {
+  return apiRequest<UploadFileResponse>("/files/upload", {
     body: formData,
     headers: authHeaders(token),
     method: "POST",
@@ -132,7 +130,7 @@ export function uploadFile(file: File, purpose: string, visibility: string, toke
 }
 
 export function createCompany(payload: CreateCompanyPayload, token: string) {
-  return apiRequest<CompanyResponse>(`${apiBaseUrl}/companies`, {
+  return apiRequest<CompanyResponse>("/companies", {
     body: JSON.stringify(removeEmptyFields(payload)),
     headers: {
       ...authHeaders(token),
@@ -143,7 +141,7 @@ export function createCompany(payload: CreateCompanyPayload, token: string) {
 }
 
 export function attachRecruiterCompany(accountId: string, companyId: string, token: string) {
-  return apiRequest(`${apiBaseUrl}/recruiter-accounts/${accountId}`, {
+  return apiRequest(`/recruiter-accounts/${accountId}`, {
     body: JSON.stringify({ companyId }),
     headers: {
       ...authHeaders(token),
@@ -157,7 +155,7 @@ export function uploadCompanyBusinessLicense(companyId: string, file: File, toke
   const formData = new FormData();
   formData.append("file", file);
 
-  return apiRequest(`${apiBaseUrl}/companies/${companyId}/business-license`, {
+  return apiRequest(`/companies/${companyId}/business-license`, {
     body: formData,
     headers: authHeaders(token),
     method: "POST",
@@ -168,7 +166,7 @@ export function uploadCompanyLogo(companyId: string, file: File, token: string) 
   const formData = new FormData();
   formData.append("file", file);
 
-  return apiRequest<UploadFileResponse>(`${apiBaseUrl}/companies/${companyId}/logo`, {
+  return apiRequest<UploadFileResponse>(`/companies/${companyId}/logo`, {
     body: formData,
     headers: authHeaders(token),
     method: "POST",
@@ -179,7 +177,7 @@ export function uploadCompanyCover(companyId: string, file: File, token: string)
   const formData = new FormData();
   formData.append("file", file);
 
-  return apiRequest<UploadFileResponse>(`${apiBaseUrl}/companies/${companyId}/cover`, {
+  return apiRequest<UploadFileResponse>(`/companies/${companyId}/cover`, {
     body: formData,
     headers: authHeaders(token),
     method: "POST",
@@ -187,14 +185,14 @@ export function uploadCompanyCover(companyId: string, file: File, token: string)
 }
 
 export function getCompanyBusinessLicenseUrl(companyId: string, token: string) {
-  return apiRequest<{ url: string }>(`${apiBaseUrl}/companies/${companyId}/business-license/url`, {
+  return apiRequest<{ url: string }>(`/companies/${companyId}/business-license/url`, {
     headers: authHeaders(token),
   });
 }
 
 export function getRecruiterStats(accountId: string, token: string) {
   return apiRequest<{ totalJobPosts: number; totalCandidates: number }>(
-    `${apiBaseUrl}/recruiter-accounts/${accountId}/dashboard-stats`,
+    `/recruiter-accounts/${accountId}/dashboard-stats`,
     {
       headers: authHeaders(token),
     },
@@ -202,7 +200,7 @@ export function getRecruiterStats(accountId: string, token: string) {
 }
 
 export function changePassword(accountId: string, payload: Record<string, string>, token: string) {
-  return apiRequest(`${apiBaseUrl}/recruiter-accounts/${accountId}/change-password`, {
+  return apiRequest(`/recruiter-accounts/${accountId}/change-password`, {
     body: JSON.stringify(payload),
     headers: {
       ...authHeaders(token),
@@ -213,7 +211,7 @@ export function changePassword(accountId: string, payload: Record<string, string
 }
 
 export function updateCompany(companyId: string, payload: CreateCompanyPayload, token: string) {
-  return apiRequest(`${apiBaseUrl}/companies/${companyId}`, {
+  return apiRequest(`/companies/${companyId}`, {
     body: JSON.stringify(removeEmptyFields(payload)),
     headers: {
       ...authHeaders(token),
@@ -224,7 +222,7 @@ export function updateCompany(companyId: string, payload: CreateCompanyPayload, 
 }
 
 export function getCompany(companyId: string, token: string) {
-  return apiRequest<CompanyDetail>(`${apiBaseUrl}/companies/${companyId}`, {
+  return apiRequest<CompanyDetail>(`/companies/${companyId}`, {
     headers: authHeaders(token),
   });
 }
@@ -233,7 +231,7 @@ export function uploadCompanyPhoto(companyId: string, file: File, token: string)
   const formData = new FormData();
   formData.append("file", file);
 
-  return apiRequest<UploadFileResponse>(`${apiBaseUrl}/companies/${companyId}/photos`, {
+  return apiRequest<UploadFileResponse>(`/companies/${companyId}/photos`, {
     body: formData,
     headers: authHeaders(token),
     method: "POST",
@@ -241,7 +239,7 @@ export function uploadCompanyPhoto(companyId: string, file: File, token: string)
 }
 
 export function deleteCompanyPhoto(companyId: string, photoId: string, token: string) {
-  return apiRequest(`${apiBaseUrl}/companies/${companyId}/photos/${photoId}`, {
+  return apiRequest(`/companies/${companyId}/photos/${photoId}`, {
     headers: authHeaders(token),
     method: "DELETE",
   });
