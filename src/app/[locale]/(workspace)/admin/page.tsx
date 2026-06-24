@@ -1,4 +1,4 @@
-import { WorkspacePlaceholder } from "@/features/workspace-shell";
+import { WorkspacePlaceholder } from "@/features/workspace-shell/workspace-placeholder";
 
 export default function AdminPage() {
   return (

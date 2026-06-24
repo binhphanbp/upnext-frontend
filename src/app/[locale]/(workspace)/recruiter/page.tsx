@@ -1,11 +1,14 @@
-import { WorkspacePlaceholder } from "@/features/workspace-shell";
+import { setRequestLocale } from "next-intl/server";
 
-export default function RecruiterPage() {
-  return (
-    <WorkspacePlaceholder
-      eyebrow="Nhà tuyển dụng"
-      title="Không gian tuyển dụng UpNext"
-      description="Nền layout Recruiter đã sẵn sàng để dựng báo cáo tuyển dụng, tin tuyển dụng, ứng viên, pipeline, phỏng vấn, đội ngũ và thanh toán bằng shadcn UI đã custom theo UpNext."
-    />
-  );
+import { RecruiterDashboardPage } from "@/features/recruiter/components/recruiter-dashboard-page";
+
+type RecruiterPageProps = Readonly<{
+  params: Promise<{ locale: string }>;
+}>;
+
+export default async function RecruiterPage({ params }: RecruiterPageProps) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  return <RecruiterDashboardPage />;
 }

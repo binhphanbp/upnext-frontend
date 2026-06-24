@@ -338,5 +338,156 @@
         "copyright": "© 2026 UpNext. Tất cả quyền được bảo lưu."
       }
     }
+  },
+  "Recruiter": {
+    "nav": {
+      "recruitment": "Tuyển dụng",
+      "report": "Báo cáo tuyển dụng",
+      "jobPosts": "Tin tuyển dụng",
+      "candidates": "Ứng viên",
+      "pipeline": "Pipeline",
+      "interviews": "Phỏng vấn",
+      "company": "Công ty",
+      "companyProfile": "Hồ sơ công ty",
+      "team": "Đội ngũ & quyền",
+      "analytics": "Phân tích",
+      "billing": "Thanh toán",
+      "platformStats": "Thống kê nền tảng",
+      "moderation": "Kiểm duyệt",
+      "usersFinance": "Người dùng & tài chính",
+      "roles": "Vai trò & phân quyền",
+      "seo": "SEO Console",
+      "sales": "Sales CRM",
+      "auditLog": "Audit log",
+      "settings": "Cài đặt"
+    },
+    "shell": {
+      "loading": "Đang tải không gian nhà tuyển dụng...",
+      "proPackage": "Gói tuyển dụng Pro",
+      "notifications": "Thông báo",
+      "allNotifications": "Xem tất cả thông báo",
+      "profile": "Hồ sơ",
+      "subscription": "Gói đăng ký",
+      "invoice": "Hóa đơn của tôi",
+      "settings": "Cài đặt tài khoản",
+      "signOut": "Đăng xuất"
+    },
+    "dashboard": {
+      "title": "Tổng quan tuyển dụng",
+      "subtitle": "Theo dõi trạng thái xác thực hồ sơ và công ty của bạn.",
+      "welcomeBack": "Chào mừng trở lại",
+      "budget": "Ngân sách",
+      "totalJobPosts": "Tổng bài đăng",
+      "totalCandidates": "Tổng ứng viên",
+      "revenueForecast": "Dự báo doanh thu",
+      "overviewProfit": "Tổng quan lợi nhuận",
+      "accountCard": {
+        "title": "Tài khoản",
+        "btnDetail": "Xem chi tiết"
+      },
+      "profileCard": {
+        "title": "Hồ sơ tuyển dụng",
+        "notUpdated": "Chưa cập nhật",
+        "btnDetail": "Xem chi tiết"
+      },
+      "companyCard": {
+        "title": "Xác thực doanh nghiệp",
+        "status": {
+          "verified": "Đã xác thực",
+          "pending": "Chờ phê duyệt",
+          "rejected": "Bị từ chối",
+          "unverified": "Chưa xác thực"
+        },
+        "btnDetail": "Xem chi tiết"
+      },
+      "instructionCard": {
+        "title": "Hướng dẫn kích hoạt tài khoản",
+        "content": "Hồ sơ của bạn hiện đang ở trạng thái kích hoạt từng phần. Sau khi hoàn tất 3 bước cập nhật thông tin trong hộp thoại (Thông tin nhà tuyển dụng, hồ sơ công ty và tải lên minh chứng doanh nghiệp hợp lệ), hệ thống sẽ gửi yêu cầu phê duyệt đến quản trị viên. Công ty của bạn sẽ được kích hoạt đầy đủ tính năng tuyển dụng ngay khi hồ sơ được xác minh thành công."
+      }
+    },
+    "onboarding": {
+      "step0": "Thông tin nhà tuyển dụng",
+      "step1": "Hồ sơ công ty",
+      "step2": "Minh chứng công ty",
+      "loading": "Đang tải thông tin...",
+      "updateProfile": "Cập nhật hồ sơ để bắt đầu tuyển dụng",
+      "dialogDescription": "Hoàn tất thông tin nhà tuyển dụng, hồ sơ công ty và tải lên minh chứng doanh nghiệp.",
+      "labels": {
+        "fullName": "Họ và tên",
+        "phone": "Số điện thoại",
+        "gender": "Giới tính",
+        "avatar": "Ảnh đại diện",
+        "companyName": "Tên công ty",
+        "taxCode": "Mã số thuế",
+        "address": "Địa chỉ",
+        "companyEmail": "Email công ty",
+        "companyPhone": "Số điện thoại công ty",
+        "businessLicense": "Giấy phép kinh doanh",
+        "website": "Website",
+        "companySize": "Quy mô",
+        "description": "Mô tả công ty"
+      },
+      "placeholders": {
+        "fullName": "Nguyễn Văn A",
+        "phone": "0912345678",
+        "gender": "Chọn giới tính",
+        "companyName": "Công ty cổ phần UpNext",
+        "taxCode": "0312345678",
+        "address": "Quận 1, TP. Hồ Chí Minh",
+        "companyEmail": "hr@company.com",
+        "companyPhone": "02812345678",
+        "website": "https://company.com",
+        "companySize": "51-200 nhân sự",
+        "description": "Giới thiệu ngắn về công ty, lĩnh vực hoạt động và đội ngũ..."
+      },
+      "gender": {
+        "male": "Nam",
+        "female": "Nữ",
+        "other": "Khác"
+      },
+      "upload": {
+        "chooseFile": "Chọn tệp tin",
+        "noFile": "Chưa chọn tệp",
+        "uploading": "Đang tải lên...",
+        "onlyImages": "Chỉ chấp nhận file hình ảnh.",
+        "onlyPdfs": "Chỉ chấp nhận file PDF.",
+        "helpText": "Chấp nhận PDF, PNG, JPG. Sau khi gửi, công ty sẽ ở trạng thái chờ duyệt."
+      },
+      "buttons": {
+        "back": "Quay lại",
+        "next": "Tiếp tục",
+        "finish": "Hoàn tất cập nhật",
+        "submitting": "Đang gửi hồ sơ..."
+      },
+      "messages": {
+        "success": "Cập nhật thông tin thành công!",
+        "error": "Vui lòng kiểm tra lại thông tin.",
+        "submittingSuccess": "Đã gửi hồ sơ công ty. UpNext sẽ kiểm duyệt minh chứng của bạn."
+      },
+      "validation": {
+        "fullNameMin": "Vui lòng nhập họ tên người phụ trách.",
+        "phoneNumberMin": "Vui lòng nhập số điện thoại hợp lệ.",
+        "genderRequired": "Vui lòng chọn giới tính.",
+        "avatarRequired": "Vui lòng tải lên ảnh đại diện.",
+        "companyNameMin": "Vui lòng nhập tên công ty.",
+        "taxCodeMin": "Vui lòng nhập mã số thuế.",
+        "addressMin": "Vui lòng nhập địa chỉ công ty.",
+        "companyEmailInvalid": "Email công ty chưa hợp lệ.",
+        "companyPhoneMin": "Vui lòng nhập số điện thoại công ty.",
+        "websiteInvalid": "Website cần bắt đầu bằng http:// hoặc https://.",
+        "companySizeMin": "Vui lòng chọn quy mô công ty.",
+        "descriptionMin": "Vui lòng mô tả công ty tối thiểu 20 ký tự.",
+        "businessLicenseRequired": "Vui lòng tải lên giấy phép đăng ký kinh doanh."
+      },
+      "apiErrors": {
+        "network": "Không thể kết nối đến hệ thống. Vui lòng thử lại sau.",
+        "invalidInfo": "Thông tin công ty hoặc hồ sơ chưa hợp lệ. Vui lòng kiểm tra lại.",
+        "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+        "forbidden": "Tài khoản chưa có quyền cập nhật công ty này.",
+        "conflict": "Mã số thuế hoặc hồ sơ này đã tồn tại trên hệ thống.",
+        "serverError": "Hệ thống đang gặp sự cố khi cập nhật hồ sơ. Vui lòng thử lại sau.",
+        "unknown": "Không thể hoàn tất cập nhật. Vui lòng thử lại."
+      }
+    }
   }
 }

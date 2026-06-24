@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "sweetalert2/dist/sweetalert2.min.css";
 @import "../features/marketing/home/marketing-home.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -243,4 +244,14 @@
   .upnext-focus {
     @apply focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
   }
+}
+
+.bg-primary {
+  background-color: var(--primary);
+}
+
+.bg-header {
+  background:
+    linear-gradient(180deg, #002b33, rgba(0, 43, 51, 0.25)),
+    linear-gradient(90deg, #008060 21.86%, #2bab60 78.13%);
 }

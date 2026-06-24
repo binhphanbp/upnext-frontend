@@ -34,7 +34,7 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
   {
     label: "Công ty",
     items: [
-      { label: "Hồ sơ công ty", href: "/recruiter/company-profile", icon: Buildings },
+      { label: "Hồ sơ công ty", href: "/recruiter/settings", icon: Buildings },
       { label: "Đội ngũ & quyền", href: "/recruiter/team", icon: UsersThree },
       { label: "Phân tích", href: "/recruiter/analytics", icon: ChartLineUp },
       { label: "Thanh toán", href: "/recruiter/billing", icon: CreditCard },
