@@ -3,35 +3,32 @@
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
-import { usePathname, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 
+import { PublicFooter } from "../shared/public-footer";
 import { PublicHeader } from "../shared/public-header";
-import { upnextLogo } from "./brand";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
 import { JobMarket } from "./job-market";
 import {
-  ArrowRight,
-  ArrowUp,
   Bookmark,
   BriefcaseBusiness,
+  Briefcase,
   Building2,
   Check,
   ChevronDown,
   ChevronRight,
-  Facebook,
-  Github,
-  Linkedin,
-  Mail,
+  Clock,
+  Coins,
+  Eye,
+  Flame,
   MapPin,
-  Phone,
   Search,
   Sparkles,
   TrendingUp,
   UsersRound,
-  Youtube,
 } from "./marketing-icons";
 import { buildPopularKeywordSlides, getPopularKeywordsForLocale } from "./popular-keywords";
 import { TechOrbit } from "./tech-orbit";
@@ -51,19 +48,6 @@ const locationOptions = [
   "Hải Phòng",
   "Remote",
   "Nước ngoài",
-];
-
-type Language = {
-  code: "VI" | "EN";
-  locale: "vi" | "en";
-  label: string;
-  flagLabel: string;
-};
-
-// Add new languages here — the switch UI scales automatically.
-const languages: Language[] = [
-  { code: "VI", locale: "vi", label: "Tiếng Việt", flagLabel: "Việt Nam" },
-  { code: "EN", locale: "en", label: "English", flagLabel: "English" },
 ];
 
 const keywordSuggestions = [
@@ -99,60 +83,72 @@ const trustedCompanies = [
   ["momo", ""],
 ];
 
-const footerQuickLinks = [
-  { label: "Tìm việc IT", path: "/jobs" },
-  { label: "Công ty công nghệ", path: "/companies" },
-  { label: "Tạo hồ sơ", path: "/register" },
-  { label: "Cẩm nang nghề nghiệp", path: "/jobs" },
-  { label: "Đăng tuyển dụng", path: "/register" },
-  { label: "Tìm hồ sơ", path: "/register" },
-  { label: "Giải pháp tuyển dụng", path: "/register" },
-  { label: "Bảng giá", path: "/register/billing" },
-  { label: "Blog", path: "/jobs" },
-  { label: "Hướng dẫn", path: "/register" },
-  { label: "Chính sách bảo mật", path: "/register" },
-  { label: "Điều khoản sử dụng", path: "/register" },
+const urgentJobs = [
+  {
+    id: "fpt-frontend",
+    logo: "/assets/marketing/home/companies/fpt.png",
+    title: "Senior Frontend Developer (ReactJS)",
+    company: "FPT Software",
+    salary: "30 - 45 triệu",
+    location: "Hà Nội",
+    mode: "Hybrid",
+    tags: ["React", "TypeScript", "Next.js"],
+    deadline: "Còn 18 giờ",
+    deadlineTone: "amber",
+    applicants: "28 ứng viên",
+    views: "412 lượt xem",
+    competition: "Cạnh tranh vừa",
+    progress: 58,
+  },
+  {
+    id: "momo-backend",
+    logo: "/assets/marketing/home/companies/momo.png",
+    title: "Backend Engineer (Golang)",
+    company: "MoMo",
+    salary: "35 - 55 triệu",
+    location: "Hồ Chí Minh",
+    mode: "Onsite",
+    tags: ["Go", "gRPC", "Kafka"],
+    deadline: "Còn 6 giờ",
+    deadlineTone: "red",
+    applicants: "54 ứng viên",
+    views: "760 lượt xem",
+    competition: "Cạnh tranh cao",
+    progress: 100,
+  },
+  {
+    id: "viettel-devops-urgent",
+    logo: "/assets/marketing/home/companies/viettel.png",
+    title: "DevOps Engineer (Kubernetes)",
+    company: "Viettel Solutions",
+    salary: "28 - 50 triệu",
+    location: "Đà Nẵng",
+    mode: "Onsite",
+    tags: ["AWS", "Kubernetes", "Terraform"],
+    deadline: "Còn 1 ngày",
+    deadlineTone: "amber",
+    applicants: "12 ứng viên",
+    views: "198 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 30,
+  },
+  {
+    id: "vng-data",
+    logo: "/assets/marketing/home/companies/vng.png",
+    title: "Data Engineer",
+    company: "VNG Corporation",
+    salary: "27 - 45 triệu",
+    location: "Hồ Chí Minh",
+    mode: "Hybrid",
+    tags: ["Python", "Spark", "Airflow"],
+    deadline: "Còn 12 giờ",
+    deadlineTone: "red",
+    applicants: "33 ứng viên",
+    views: "503 lượt xem",
+    competition: "Cạnh tranh vừa",
+    progress: 58,
+  },
 ];
-
-const footerSocials = [
-  { label: "LinkedIn", icon: <Linkedin size={19} />, href: "https://www.linkedin.com/" },
-  { label: "Facebook", icon: <Facebook size={19} />, href: "https://www.facebook.com/" },
-  { label: "GitHub", icon: <Github size={19} />, href: "https://github.com/" },
-  { label: "YouTube", icon: <Youtube size={19} />, href: "https://www.youtube.com/" },
-];
-
-function FlagIcon({ code, label }: { code: Language["code"]; label?: string }) {
-  return (
-    <span
-      className={`marketing-home-lang-flag marketing-home-lang-flag-${code.toLowerCase()}`}
-      aria-label={label}
-      role={label ? "img" : undefined}
-    >
-      {code === "VI" ? (
-        <svg aria-hidden="true" viewBox="0 0 22 16">
-          <rect width="22" height="16" fill="#DA251D" rx="3" />
-          <path
-            fill="#FFDE00"
-            d="m11 3.2 1.13 3.48h3.66l-2.96 2.15 1.13 3.47L11 10.15 8.04 12.3l1.13-3.47-2.96-2.15h3.66L11 3.2Z"
-          />
-        </svg>
-      ) : (
-        <svg aria-hidden="true" viewBox="0 0 22 16">
-          <clipPath id="upnext-en-flag-clip">
-            <rect width="22" height="16" rx="3" />
-          </clipPath>
-          <g clipPath="url(#upnext-en-flag-clip)">
-            <rect width="22" height="16" fill="#012169" />
-            <path stroke="#fff" strokeWidth="3.2" d="m0 0 22 16M22 0 0 16" />
-            <path stroke="#C8102E" strokeWidth="1.8" d="m0 0 22 16M22 0 0 16" />
-            <path stroke="#fff" strokeWidth="5.2" d="M11 0v16M0 8h22" />
-            <path stroke="#C8102E" strokeWidth="3.2" d="M11 0v16M0 8h22" />
-          </g>
-        </svg>
-      )}
-    </span>
-  );
-}
 
 const homeCopy = {
   vi: {
@@ -232,8 +228,6 @@ const homeCopy = {
 } as const;
 
 export function MarketingHomeExperience({ navigate }: MarketingHomeExperienceProps) {
-  const router = useRouter();
-  const pathname = usePathname();
   const locale = useLocale();
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("");
@@ -291,11 +285,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
   function toggleField(field: FieldKey) {
     setOpenField((current) => (current === field ? null : field));
-  }
-
-  function switchLanguage(language: Language) {
-    if (language.locale === locale) return;
-    router.replace(pathname, { locale: language.locale });
   }
 
   return (
@@ -540,6 +529,8 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           </div>
         </section>
 
+        <UrgentJobsSection navigate={navigate} />
+
         <section className="marketing-home-trust-strip">
           <div className="marketing-home-stats">
             <article>
@@ -600,135 +591,98 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         <FeaturedCompanies navigate={navigate} />
         <JobMarket navigate={navigate} />
 
-        <footer id="site-footer" className="marketing-home-footer" aria-label="Footer UpNext">
-          <section
-            className="marketing-home-footer-cta"
-            aria-label="Bắt đầu hành trình sự nghiệp IT"
-          >
-            <span className="marketing-home-footer-cta-icon" aria-hidden="true">
-              <BriefcaseBusiness size={34} />
-            </span>
-            <div className="marketing-home-footer-cta-copy">
-              <h2>
-                Hành trình sự nghiệp IT <span>tốt hơn</span> bắt đầu từ đây
-              </h2>
-              <p>Hàng nghìn cơ hội việc làm IT chất lượng đang chờ bạn khám phá.</p>
-            </div>
-            <div className="marketing-home-footer-cta-actions">
-              <button
-                type="button"
-                className="marketing-home-footer-primary"
-                onClick={() => navigate("/jobs")}
-              >
-                {copy.footerPrimary} <ArrowRight size={19} />
-              </button>
-              <button
-                type="button"
-                className="marketing-home-footer-secondary"
-                onClick={() => navigate("/register")}
-              >
-                {copy.footerSecondary}
-              </button>
-            </div>
-          </section>
-
-          <section className="marketing-home-footer-main">
-            <div className="marketing-home-footer-brand">
-              <button
-                type="button"
-                className="marketing-home-footer-logo"
-                onClick={() => navigate("/")}
-                aria-label="Trang chủ UpNext"
-              >
-                <Image src={upnextLogo.wordmark} alt="UpNext" width={164} height={39} />
-              </button>
-              <p>
-                Nền tảng tuyển dụng IT kết nối ứng viên tài năng với các công ty công nghệ hàng đầu.
-                Cơ hội phù hợp, sự nghiệp bứt phá.
-              </p>
-              <div className="marketing-home-footer-socials">
-                {footerSocials.map((item) => (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={item.label}
-                  >
-                    {item.icon}
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            <nav className="marketing-home-footer-links" aria-label="Liên kết nhanh">
-              <h3>Liên kết nhanh</h3>
-              <div className="marketing-home-footer-link-grid">
-                {footerQuickLinks.map((link) => (
-                  <button key={link.label} type="button" onClick={() => navigate(link.path)}>
-                    <span>{link.label}</span>
-                    <ChevronRight size={17} />
-                  </button>
-                ))}
-              </div>
-            </nav>
-
-            <div className="marketing-home-footer-contact">
-              <h3>Liên hệ / Nhận tin</h3>
-              <p>Nhận thông tin việc làm IT mới nhất và các bài viết hữu ích từ UpNext.</p>
-              <form
-                className="marketing-home-footer-newsletter"
-                onSubmit={(event) => event.preventDefault()}
-              >
-                <input
-                  type="email"
-                  name="footer-email"
-                  placeholder={copy.footerEmailPlaceholder}
-                  aria-label={copy.footerEmailAria}
-                  suppressHydrationWarning
-                />
-                <button type="submit">{copy.footerSubscribe}</button>
-              </form>
-              <ul className="marketing-home-footer-contact-list">
-                <li>
-                  <Mail size={18} />
-                  <span>contact@upnext.works</span>
-                </li>
-                <li>
-                  <Phone size={18} />
-                  <span>028 7303 2468</span>
-                </li>
-                <li>
-                  <MapPin size={18} />
-                  <span>{copy.vietnamLocation}</span>
-                </li>
-              </ul>
-            </div>
-          </section>
-
-          <section className="marketing-home-footer-bottom">
-            <p>{copy.copyright}</p>
-            <div className="marketing-home-footer-bottom-actions">
-              <button type="button" onClick={() => switchLanguage(languages[0]!)}>
-                <FlagIcon code="VI" />
-                {copy.vietnamese}
-                <ChevronDown size={15} />
-              </button>
-              <span aria-hidden="true" />
-              <button type="button" onClick={() => switchLanguage(languages[1]!)}>
-                <FlagIcon code="EN" />
-                {copy.english}
-              </button>
-              <span aria-hidden="true" />
-              <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-                <ArrowUp size={18} />
-                {copy.toTop}
-              </button>
-            </div>
-          </section>
-        </footer>
+        <PublicFooter navigate={navigate} />
       </section>
     </main>
+  );
+}
+
+function UrgentJobsSection({ navigate }: { navigate: (path: string) => void }) {
+  return (
+    <section className="marketing-home-urgent" aria-label="Việc cần tuyển gấp">
+      <header className="marketing-home-urgent-head">
+        <div>
+          <span className="marketing-home-urgent-eyebrow">
+            <Flame size={14} weight="fill" />
+            Tuyển gấp
+          </span>
+          <h2>Việc cần tuyển gấp</h2>
+          <p>Các vị trí đang đóng đơn sớm - nộp hồ sơ ngay để không bỏ lỡ cơ hội.</p>
+        </div>
+        <button
+          type="button"
+          className="marketing-home-urgent-all"
+          onClick={() => navigate("/jobs")}
+        >
+          Xem tất cả <ChevronRight size={16} />
+        </button>
+      </header>
+
+      <div className="marketing-home-urgent-grid">
+        {urgentJobs.map((job) => (
+          <article className="urgent-job-card" key={job.id}>
+            <div className="urgent-job-top">
+              <span className="urgent-job-logo">
+                <Image src={job.logo} alt={`Logo ${job.company}`} width={46} height={46} />
+              </span>
+              <span className={`urgent-job-deadline is-${job.deadlineTone}`}>
+                <Clock size={13} />
+                {job.deadline}
+              </span>
+            </div>
+
+            <h3>{job.title}</h3>
+            <strong className="urgent-job-company">{job.company}</strong>
+
+            <div className="urgent-job-meta">
+              <span className="urgent-job-salary">
+                <Coins size={15} />
+                {job.salary}
+              </span>
+              <span>
+                <MapPin size={15} />
+                {job.location}
+              </span>
+              <span>
+                <Briefcase size={15} />
+                {job.mode}
+              </span>
+            </div>
+
+            <div className="urgent-job-tags">
+              {job.tags.map((tag) => (
+                <i key={tag}>{tag}</i>
+              ))}
+            </div>
+
+            <div className="urgent-job-stats">
+              <span>
+                <UsersRound size={14} />
+                {job.applicants}
+              </span>
+              <span>
+                <Eye size={14} />
+                {job.views}
+              </span>
+            </div>
+
+            <div className="urgent-job-competition">
+              <span>Mức độ cạnh tranh</span>
+              <b>{job.competition}</b>
+              <i style={{ "--urgent-progress": `${job.progress}%` } as CSSProperties} />
+            </div>
+
+            <button
+              type="button"
+              className="urgent-job-apply"
+              onClick={() => navigate("/register")}
+            >
+              Ứng tuyển ngay <ChevronRight size={16} />
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

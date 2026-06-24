@@ -392,7 +392,14 @@ export function PublicHeader({ navigate }: PublicHeaderProps) {
         onClick={() => navigate("/")}
         aria-label={copy.homeLabel}
       >
-        <Image src={upnextLogo.wordmark} alt="UpNext" width={158} height={38} priority />
+        <Image
+          src={upnextLogo.wordmark}
+          alt="UpNext"
+          width={158}
+          height={38}
+          priority
+          style={{ height: "auto", width: "auto" }}
+        />
       </button>
 
       <nav className="marketing-home-nav" aria-label="Điều hướng chính" ref={navRef}>

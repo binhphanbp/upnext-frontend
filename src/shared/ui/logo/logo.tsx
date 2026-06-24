@@ -17,6 +17,7 @@ export function Logo({ href = "/", className, markOnly = false }: LogoProps) {
       height={markOnly ? 36 : 38}
       priority
       src={markOnly ? "/upnext-logo/icon-cropped.png" : "/upnext-logo/wordmark-cropped.png"}
+      style={{ height: "auto", width: markOnly ? 39 : 158 }}
       width={markOnly ? 39 : 158}
     />
   );
