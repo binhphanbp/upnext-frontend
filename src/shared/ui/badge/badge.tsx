@@ -14,6 +14,7 @@ const badgeVariants = cva(
         warning: "bg-warning-muted text-amber-700",
         info: "bg-info-muted text-blue-700",
         neutral: "bg-slate-100 text-slate-700",
+        error: "bg-error-muted text-error",
       },
     },
     defaultVariants: {

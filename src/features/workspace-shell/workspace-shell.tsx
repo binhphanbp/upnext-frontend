@@ -92,7 +92,13 @@ export function WorkspaceShell({
                   ) : null}
                   <div className="mt-2 space-y-1">
                     {group.items.map((item) => {
-                      const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                      const isRootNode =
+                        item.href === "/admin" ||
+                        item.href === "/recruiter" ||
+                        item.href === "/candidate";
+                      const active =
+                        pathname === item.href ||
+                        (!isRootNode && pathname.startsWith(`${item.href}/`));
                       const Icon = item.icon;
                       const link = (
                         <Link
@@ -109,7 +115,7 @@ export function WorkspaceShell({
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
                           ) : null}
                           {!collapsed && item.badge ? (
-                            <Badge tone="neutral">{item.badge}</Badge>
+                            <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
                           ) : null}
                         </Link>
                       );
@@ -131,14 +137,24 @@ export function WorkspaceShell({
             </nav>
           </ScrollArea>
 
-          <div className="border-border border-t p-3">
+          <div className="border-border space-y-2 border-t p-3">
+            {workspaceRole !== "admin" ? (
+              <Button
+                className="w-full justify-start"
+                variant="secondary"
+                size={collapsed ? "icon" : "md"}
+              >
+                <Sparkle />
+                {!collapsed ? "Gói tuyển dụng Pro" : null}
+              </Button>
+            ) : null}
             <Button
-              className="w-full justify-start"
-              variant="secondary"
+              className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50"
+              variant="ghost"
               size={collapsed ? "icon" : "md"}
             >
-              <Sparkle />
-              {!collapsed ? "Gói tuyển dụng Pro" : null}
+              <SignOut />
+              {!collapsed ? "Đăng xuất" : null}
             </Button>
           </div>
         </aside>

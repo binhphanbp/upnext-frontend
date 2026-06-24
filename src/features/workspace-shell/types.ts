@@ -7,6 +7,7 @@ export type WorkspaceNavItem = Readonly<{
   href: string;
   icon: Icon;
   badge?: string;
+  badgeTone?: "brand" | "premium" | "success" | "warning" | "info" | "neutral" | "error";
 }>;
 
 export type WorkspaceNavGroup = Readonly<{
