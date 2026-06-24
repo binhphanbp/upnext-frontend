@@ -5,7 +5,7 @@ import {
   getPopularKeywordsForLocale,
   normalizePopularKeywords,
   type PopularKeyword,
-} from "./popular-keywords";
+} from "@/features/public/home/popular-keywords";
 
 const fallback: PopularKeyword[] = [
   { label: "Frontend", query: "Frontend", locale: "vi", priority: 20, category: "role" },

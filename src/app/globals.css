@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "../features/marketing/home/marketing-home.css";
+@import "../features/public/home/marketing-home.css";
 
 @custom-variant dark (&:is(.dark *));
 

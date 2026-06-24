@@ -1,6 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
 
-import { CompanyDetailRoute } from "@/features/marketing/companies/companies-route";
+import { CompanyDetailRoute } from "@/features/public/companies/companies-route";
 
 type CompanyDetailPageProps = Readonly<{
   params: Promise<{ locale: string }>;

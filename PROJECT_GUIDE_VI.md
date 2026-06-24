@@ -114,7 +114,7 @@ Khi người dùng vào website:
 5. Layout kiểm tra locale hợp lệ. Nếu sai thì `notFound()`.
 6. Layout load font, metadata, `NextIntlClientProvider`, rồi bọc app bằng `Providers`.
 7. Route public nằm trong `src/app/[locale]/(public)`. Trang chủ render bằng `MarketingHomePage`.
-8. `MarketingHomePage` nằm trong `src/features/marketing/home`.
+8. `MarketingHomePage` nằm trong `src/features/public/home`.
 
 Nói ngắn gọn:
 
@@ -125,7 +125,7 @@ request
 -> src/app/[locale]/layout.tsx
 -> src/app/providers.tsx
 -> src/app/[locale]/(public)/page.tsx
--> src/features/marketing/home
+-> src/features/public/home
 ```
 
 ## 5. Đa ngôn ngữ với next-intl
@@ -151,7 +151,7 @@ export function JobsLink() {
 
 Trong Server Component có thể dùng `getTranslations`. Trong Client Component có thể dùng hook của `next-intl`.
 
-Lưu ý hiện tại: một số chuỗi tiếng Việt trong `messages/vi.json` và `src/features/marketing/home/home-page.tsx` đang hiển thị dạng lỗi mã hóa khi đọc bằng terminal. Khi chỉnh copy tiếng Việt, nên kiểm tra trực tiếp trong editor/browser để tránh commit thêm nội dung bị sai encoding.
+Lưu ý hiện tại: một số chuỗi tiếng Việt trong `messages/vi.json` và `src/features/public/home/home-page.tsx` đang hiển thị dạng lỗi mã hóa khi đọc bằng terminal. Khi chỉnh copy tiếng Việt, nên kiểm tra trực tiếp trong editor/browser để tránh commit thêm nội dung bị sai encoding.
 
 ## 6. App Router và Server/Client Component
 
@@ -161,7 +161,7 @@ Quy ước quan trọng:
 - Chỉ thêm `"use client"` khi cần hook React, event handler, browser API, Zustand, TanStack Query ở client, hoặc thư viện client-only.
 - `src/app/[locale]/layout.tsx` là Server Component.
 - `src/app/providers.tsx` là Client Component vì dùng `useEffect`, React Query provider và MSW browser worker.
-- `src/features/marketing/home/home-page.tsx` là Client Component vì có state, event, dropdown, đổi theme, đổi ngôn ngữ, điều hướng client.
+- `src/features/public/home/home-page.tsx` là Client Component vì có state, event, dropdown, đổi theme, đổi ngôn ngữ, điều hướng client.
 
 Ví dụ chọn đúng nơi đặt code:
 
@@ -310,8 +310,8 @@ export function Status({ active }: { active: boolean }) {
 Trang chủ được compose như sau:
 
 - `src/app/[locale]/page.tsx`: gọi `MarketingHomePage`.
-- `src/features/marketing/home/index.ts`: export feature.
-- `src/features/marketing/home/home-page.tsx`: component chính, header, hero, search, footer.
+- `src/features/public/home/index.ts`: export feature.
+- `src/features/public/home/home-page.tsx`: component chính, header, hero, search, footer.
 - `featured-jobs.tsx`: section việc làm nổi bật.
 - `featured-companies.tsx`: section công ty nổi bật.
 - `job-market.tsx`: section dữ liệu thị trường.
@@ -325,7 +325,7 @@ Trang này đang chứa nhiều dữ liệu tĩnh trong component. Khi dữ li�
 Ví dụ hướng tách sau này:
 
 ```txt
-src/features/marketing/home/
+src/features/public/home/
   api/
     marketing-api.ts
   hooks/
@@ -632,7 +632,7 @@ Nếu bạn mới vào dự án, đọc theo thứ tự này:
 6. `src/app/[locale]/layout.tsx`: hiểu app shell.
 7. `src/app/providers.tsx`: hiểu provider client.
 8. `src/app/[locale]/(public)/page.tsx`: hiểu route trang chủ.
-9. `src/features/marketing/home/home-page.tsx`: hiểu feature đang có nhiều UI nhất.
+9. `src/features/public/home/home-page.tsx`: hiểu feature đang có nhiều UI nhất.
 10. `src/shared/api/http.ts`: hiểu cách gọi API.
 11. `src/shared/lib/env.ts`: hiểu env.
 12. `src/shared/ui/button/button.tsx`: hiểu style shared UI.

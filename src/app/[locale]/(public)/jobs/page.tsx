@@ -1,7 +1,7 @@
 import { setRequestLocale } from "next-intl/server";
 import { Suspense } from "react";
 
-import { JobsRoute } from "@/features/marketing/jobs/jobs-route";
+import { JobsRoute } from "@/features/public/jobs/jobs-route";
 
 type JobsPageProps = Readonly<{
   params: Promise<{ locale: string }>;
