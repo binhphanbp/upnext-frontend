@@ -17,7 +17,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
-export function AddEmployerDialog() {
+export function AddRoleDialog() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,39 +25,36 @@ export function AddEmployerDialog() {
       <DialogTrigger asChild>
         <Button variant="primary">
           <Plus className="mr-2" weight="bold" />
-          Thêm nhà tuyển dụng
+          Tạo Vai trò mới
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Thêm Nhà Tuyển Dụng</DialogTitle>
+          <DialogTitle>Tạo Vai Trò Tùy Chỉnh</DialogTitle>
           <DialogDescription>
-            Điền thông tin cơ bản để tạo tài khoản doanh nghiệp mới trên hệ thống.
+            Tạo một Role mới và sau đó bạn có thể cấu hình chi tiết phân quyền (Permissions).
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="companyName">Tên công ty</Label>
-            <Input id="companyName" placeholder="VD: VNG Corporation" />
+            <Label htmlFor="roleName">Tên vai trò</Label>
+            <Input id="roleName" placeholder="VD: Kế toán (Accounting)" />
           </div>
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="representative">Người đại diện</Label>
-            <Input id="representative" placeholder="VD: Nguyễn Văn A" />
+            <Label htmlFor="description">Mô tả ngắn</Label>
+            <Input id="description" placeholder="VD: Chỉ được phép xem lịch sử giao dịch" />
           </div>
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="email">Email liên hệ</Label>
-            <Input id="email" type="email" placeholder="VD: hr@congty.com" />
-          </div>
-          <div className="flex flex-col gap-2.5">
-            <Label htmlFor="plan">Gói dịch vụ mặc định</Label>
-            <Select defaultValue="Free">
+            <Label htmlFor="cloneFrom">Kế thừa quyền từ (Tùy chọn)</Label>
+            <Select defaultValue="none">
               <SelectTrigger>
-                <SelectValue placeholder="Chọn gói dịch vụ" />
+                <SelectValue placeholder="Chọn vai trò mẫu" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Free">Gói Cơ bản (Free)</SelectItem>
-                <SelectItem value="Pro">Gói Nâng cao (Pro)</SelectItem>
-                <SelectItem value="Premium">Gói Cao cấp (Premium)</SelectItem>
+                <SelectItem value="none">-- Tạo quyền trống --</SelectItem>
+                <SelectItem value="moderator">Kế thừa từ: Moderator</SelectItem>
+                <SelectItem value="sales">Kế thừa từ: Sales</SelectItem>
+                <SelectItem value="support">Kế thừa từ: Support</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -67,7 +64,7 @@ export function AddEmployerDialog() {
             Hủy
           </Button>
           <Button variant="primary" onClick={() => setOpen(false)}>
-            Tạo tài khoản
+            Tạo vai trò
           </Button>
         </DialogFooter>
       </DialogContent>
