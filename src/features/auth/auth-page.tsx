@@ -16,7 +16,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { upnextLogo } from "@/features/marketing/home/brand";
+import { upnextLogo } from "@/features/public/home/brand";
 import { useRouter } from "@/i18n/navigation";
 
 import "./auth-page.css";
@@ -30,6 +30,18 @@ import {
 type AuthPageProps = {
   mode: "login" | "register";
 };
+
+const showcaseCards = [
+  { title: "Frontend Engineer", meta: "React · TypeScript", tone: "mint" },
+  { title: "Senior Backend", meta: "Go · PostgreSQL", tone: "indigo" },
+  { title: "Product Designer", meta: "Design System", tone: "sky" },
+  { title: "AI Engineer", meta: "LLM · MLOps", tone: "dark" },
+  { title: "DevOps Lead", meta: "Kubernetes", tone: "amber" },
+  { title: "Data Analyst", meta: "SQL · BI", tone: "rose" },
+  { title: "Mobile Developer", meta: "React Native", tone: "violet" },
+  { title: "QA Automation", meta: "Playwright", tone: "slate" },
+  { title: "Cloud Engineer", meta: "AWS · Terraform", tone: "green" },
+];
 
 export function AuthPage({ mode }: AuthPageProps) {
   return mode === "login" ? <LoginPage /> : <RegisterPage />;
@@ -280,23 +292,38 @@ function AuthShell({ label, children }: { label: string; children: React.ReactNo
           onClick={() => router.push("/")}
           aria-label={t("common.homeLabel")}
         >
-          <Image src={upnextLogo.wordmark} alt="UpNext" width={143} height={34} priority />
+          <Image
+            src={upnextLogo.wordmark}
+            alt="UpNext"
+            width={143}
+            height={34}
+            priority
+            style={{ height: "auto", width: "auto" }}
+          />
         </button>
 
         {children}
       </section>
 
       <section className="login-showcase" aria-hidden="true">
-        <div className="login-board">
-          <Image
-            className="login-board-img"
-            src="/login/showcase.png"
-            alt=""
-            width={1800}
-            height={1200}
-            priority
-            draggable={false}
-          />
+        <div className="login-showcase-copy">
+          <span>UpNext workspace</span>
+          <strong>Curated IT opportunities, shaped for every career move.</strong>
+        </div>
+        <div className="login-gallery">
+          {[0, 1, 2].map((column) => (
+            <div className="login-gallery-column" key={column}>
+              {showcaseCards
+                .filter((_, index) => index % 3 === column)
+                .map((card, index) => (
+                  <article className={`login-gallery-card is-${card.tone}`} key={card.title}>
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <h2>{card.title}</h2>
+                    <p>{card.meta}</p>
+                  </article>
+                ))}
+            </div>
+          ))}
         </div>
       </section>
     </main>

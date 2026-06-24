@@ -42,7 +42,7 @@ Run `pnpm verify` for normal changes. Run `pnpm verify:full` for routes, app she
   - `src/shared`: reusable `api`, `lib`, `ui`, hooks, stores, types.
   - `src/i18n`, `messages`, `src/mocks`, `src/test`, `e2e`.
 - Expected domains when real code exists: `auth`, `jobs`, `companies`, `candidate`, `applications`, `messages`, `notifications`, `employer`, `admin`, `search`.
-- Public marketing pages live under `src/features/marketing/*`; `marketing/jobs` is not the shared/core `jobs` domain.
+- Public discovery pages live under `src/features/public/*`; `public/jobs` is not the shared/core `jobs` domain.
 - Public pages may be personalized for a signed-in candidate, but do not duplicate them under `/candidate`.
 - `/candidate/*` is reserved for the protected candidate workspace: profile, applications, saved jobs, messages, settings.
 - Employer is the canonical hiring-side domain. Use `recruiter` only for member/permission roles inside employer.
