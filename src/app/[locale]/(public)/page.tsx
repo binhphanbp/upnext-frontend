@@ -1,6 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
 
-import { MarketingHomePage } from "@/features/marketing/home";
+import { MarketingHomePage } from "@/features/public/home";
 
 type HomePageProps = Readonly<{
   params: Promise<{

@@ -16,7 +16,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { upnextLogo } from "@/features/marketing/home/brand";
+import { upnextLogo } from "@/features/public/home/brand";
 import { useRouter } from "@/i18n/navigation";
 
 import "./auth-page.css";

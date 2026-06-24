@@ -4,7 +4,7 @@ import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { upnextLogo } from "@/features/marketing/home/brand";
+import { upnextLogo } from "@/features/public/home/brand";
 
 import { AlertsTab } from "./alerts-tab";
 import { AppliedJobsTab } from "./applied-jobs-tab";

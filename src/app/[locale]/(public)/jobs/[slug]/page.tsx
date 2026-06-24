@@ -1,6 +1,6 @@
 import { setRequestLocale } from "next-intl/server";
 
-import { JobDetailRoute } from "@/features/marketing/jobs/jobs-route";
+import { JobDetailRoute } from "@/features/public/jobs/jobs-route";
 
 type JobDetailPageProps = Readonly<{
   params: Promise<{ locale: string; slug: string }>;
