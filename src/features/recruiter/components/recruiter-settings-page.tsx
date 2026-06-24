@@ -7,14 +7,13 @@ import Swal from "sweetalert2";
 
 import {
   getRecruiterAccount,
-  getCompany,
   updateRecruiterProfile,
-  updateCompany,
   changePassword,
   uploadFile,
 } from "@/features/recruiter/api/onboarding";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
+import { FormInput } from "@/shared/ui/input";
 
 function AccountIcon() {
   return (
@@ -118,7 +117,6 @@ export function RecruiterSettingsPage() {
   const [token, setToken] = useState("");
   const [accountId, setAccountId] = useState("");
   const [profileId, setProfileId] = useState("");
-  const [companyId, setCompanyId] = useState("");
 
   // Account State
   const [fullName, setFullName] = useState("");
@@ -126,16 +124,6 @@ export function RecruiterSettingsPage() {
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
-
-  // Company State
-  const [companyName, setCompanyName] = useState("");
-  const [companyAddress, setCompanyAddress] = useState("");
-  const [companyTaxCode, setCompanyTaxCode] = useState("");
-  const [companyEmail, setCompanyEmail] = useState("");
-  const [companyPhone, setCompanyPhone] = useState("");
-  const [companyWebsite, setCompanyWebsite] = useState("");
-  const [companySize, setCompanySize] = useState("");
-  const [companyDescription, setCompanyDescription] = useState("");
 
   // Password State
   const [currentPassword, setCurrentPassword] = useState("");
@@ -164,25 +152,6 @@ export function RecruiterSettingsPage() {
             setGender(accountData.profile.gender || "");
             setPhoneNumber(accountData.profile.phoneNumber || "");
             setAvatarUrl(accountData.profile.avatarUrl || "");
-          }
-          if (accountData.company) {
-            setCompanyId(accountData.company.id);
-            // Fetch full company details to get address and other attributes
-            try {
-              const companyDetails = await getCompany(accountData.company.id, accessToken);
-              if (companyDetails) {
-                setCompanyName(companyDetails.name || "");
-                setCompanyAddress(companyDetails.address || "");
-                setCompanyTaxCode(companyDetails.taxCode || "");
-                setCompanyEmail(companyDetails.email || "");
-                setCompanyPhone(companyDetails.phone || "");
-                setCompanyWebsite(companyDetails.website || "");
-                setCompanySize(companyDetails.companySize || "");
-                setCompanyDescription(companyDetails.description || "");
-              }
-            } catch {
-              setCompanyName(accountData.company.name || "");
-            }
           }
         }
       } catch (error) {
@@ -336,19 +305,6 @@ export function RecruiterSettingsPage() {
         if (phoneNumber.trim()) profilePayload.phoneNumber = phoneNumber.trim();
         if (avatarUrl) profilePayload.avatarUrl = avatarUrl;
         await updateRecruiterProfile(profileId, profilePayload, token);
-      }
-
-      // 2. Save Company Details
-      if (companyId) {
-        const companyPayload: any = { name: companyName.trim() };
-        if (companyAddress.trim()) companyPayload.address = companyAddress.trim();
-        if (companyTaxCode.trim()) companyPayload.taxCode = companyTaxCode.trim();
-        if (companyEmail.trim()) companyPayload.email = companyEmail.trim();
-        if (companyPhone.trim()) companyPayload.phone = companyPhone.trim();
-        if (companyWebsite.trim()) companyPayload.website = companyWebsite.trim();
-        if (companySize.trim()) companyPayload.companySize = companySize.trim();
-        if (companyDescription.trim()) companyPayload.description = companyDescription.trim();
-        await updateCompany(companyId, companyPayload, token);
       }
 
       // 3. Save Password if requested
@@ -564,57 +520,36 @@ export function RecruiterSettingsPage() {
                   </p>
 
                   <div className="mt-5 flex flex-col gap-4">
-                    <div>
-                      <label
-                        className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                        htmlFor="cpwd"
-                      >
-                        Mật khẩu hiện tại
-                      </label>
-                      <input
-                        className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:border-transparent focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                        id="cpwd"
-                        aria-label="Current password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label
-                        className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                        htmlFor="npwd"
-                      >
-                        Mật khẩu mới
-                      </label>
-                      <input
-                        className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:border-transparent focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                        id="npwd"
-                        aria-label="New password"
-                        type="password"
-                        placeholder="Có ít nhất 6 ký tự"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label
-                        className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                        htmlFor="cfpwd"
-                      >
-                        Xác nhận mật khẩu mới
-                      </label>
-                      <input
-                        className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:border-transparent focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                        id="cfpwd"
-                        aria-label="Confirm new password"
-                        type="password"
-                        placeholder="Nhập lại mật khẩu mới"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                      />
-                    </div>
+                    <FormInput
+                      id="cpwd"
+                      label="Mật khẩu hiện tại"
+                      labelClassName="text-xs font-bold text-slate-600 dark:text-slate-300"
+                      className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:border-emerald-600 focus:outline-none focus-visible:border-emerald-600 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
+                      type="password"
+                      placeholder="••••••••"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                    />
+                    <FormInput
+                      id="npwd"
+                      label="Mật khẩu mới"
+                      labelClassName="text-xs font-bold text-slate-600 dark:text-slate-300"
+                      className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:border-emerald-600 focus:outline-none focus-visible:border-emerald-600 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
+                      type="password"
+                      placeholder="Có ít nhất 6 ký tự"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                    <FormInput
+                      id="cfpwd"
+                      label="Xác nhận mật khẩu mới"
+                      labelClassName="text-xs font-bold text-slate-600 dark:text-slate-300"
+                      className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus:border-emerald-600 focus:outline-none focus-visible:border-emerald-600 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
+                      type="password"
+                      placeholder="Nhập lại mật khẩu mới"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
                   </div>
                 </div>
               </div>
@@ -632,23 +567,16 @@ export function RecruiterSettingsPage() {
                   <div className="mt-4 grid grid-cols-12 gap-6">
                     {/* Left Details Grid */}
                     <div className="col-span-12 space-y-4 md:col-span-6">
-                      <div>
-                        <label
-                          className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                          htmlFor="ynm"
-                        >
-                          Họ và tên
-                        </label>
-                        <input
-                          className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                          id="ynm"
-                          aria-label="Full name"
-                          placeholder="Họ và tên"
-                          type="text"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                        />
-                      </div>
+                      <FormInput
+                        id="ynm"
+                        label="Họ và tên"
+                        labelClassName="text-xs font-bold text-slate-600 dark:text-slate-300"
+                        className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
+                        placeholder="Họ và tên"
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
 
                       <div>
                         <span className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300">
@@ -683,229 +611,50 @@ export function RecruiterSettingsPage() {
 
                     {/* Right Details Grid */}
                     <div className="col-span-12 space-y-4 md:col-span-6">
-                      <div>
-                        <label
-                          className="dark:text-slate-355 mb-2 block text-xs font-bold text-slate-600"
-                          htmlFor="em"
-                        >
-                          Email tài khoản
-                        </label>
-                        <input
-                          className="flex h-10 w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-400 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-500"
-                          id="em"
-                          aria-label="Account email"
-                          placeholder="Email đăng nhập"
-                          type="email"
-                          value={email}
-                          disabled
-                        />
-                      </div>
+                      <FormInput
+                        id="em"
+                        label="Email tài khoản"
+                        labelClassName="dark:text-slate-355 text-xs font-bold text-slate-600"
+                        className="flex h-10 w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-400 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950/30 dark:text-slate-500"
+                        placeholder="Email đăng nhập"
+                        type="email"
+                        value={email}
+                        disabled
+                      />
 
-                      <div>
-                        <label
-                          className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                          htmlFor="ph"
-                        >
-                          Số điện thoại cá nhân
-                        </label>
-                        <input
-                          className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                          id="ph"
-                          aria-label="Personal phone number"
-                          placeholder="Số điện thoại liên hệ"
-                          type="text"
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                        />
-                      </div>
+                      <FormInput
+                        id="ph"
+                        label="Số điện thoại cá nhân"
+                        labelClassName="text-xs font-bold text-slate-600 dark:text-slate-300"
+                        className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
+                        placeholder="Số điện thoại liên hệ"
+                        type="text"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                      />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Company Details Card */}
-              <div className="col-span-12">
-                <div className="rounded-xl border border-slate-100 bg-white p-7 text-slate-900">
-                  <h5 className="mb-1 text-base font-bold text-slate-800 dark:text-white">
-                    Thông tin công ty
-                  </h5>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    Chỉnh sửa thông tin chi tiết về doanh nghiệp tuyển dụng của bạn
-                  </p>
-
-                  <div className="mt-4 grid grid-cols-12 gap-6">
-                    {/* Left Details Grid */}
-                    <div className="col-span-12 space-y-4 md:col-span-6">
-                      <div>
-                        <label
-                          className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                          htmlFor="store"
-                        >
-                          Tên doanh nghiệp
-                        </label>
-                        <input
-                          className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                          id="store"
-                          aria-label="Company name"
-                          placeholder="Tên doanh nghiệp / Công ty"
-                          type="text"
-                          value={companyName}
-                          onChange={(e) => setCompanyName(e.target.value)}
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                          htmlFor="comSize"
-                        >
-                          Quy môn nhân sự
-                        </label>
-                        <input
-                          className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                          id="comSize"
-                          aria-label="Company size"
-                          placeholder="Ví dụ: 10-50 nhân viên, 50-200 nhân viên"
-                          type="text"
-                          value={companySize}
-                          onChange={(e) => setCompanySize(e.target.value)}
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                          htmlFor="comPhone"
-                        >
-                          Số điện thoại công ty
-                        </label>
-                        <input
-                          className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                          id="comPhone"
-                          aria-label="Company phone"
-                          placeholder="Số điện thoại hotline công ty"
-                          type="text"
-                          value={companyPhone}
-                          onChange={(e) => setCompanyPhone(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Right Details Grid */}
-                    <div className="col-span-12 space-y-4 md:col-span-6">
-                      <div>
-                        <label
-                          className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                          htmlFor="tax"
-                        >
-                          Mã số thuế
-                        </label>
-                        <input
-                          className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                          id="tax"
-                          aria-label="Tax code"
-                          placeholder="Mã số thuế doanh nghiệp"
-                          type="text"
-                          value={companyTaxCode}
-                          onChange={(e) => setCompanyTaxCode(e.target.value)}
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                          htmlFor="web"
-                        >
-                          Website doanh nghiệp
-                        </label>
-                        <input
-                          className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                          id="web"
-                          aria-label="Company website"
-                          placeholder="https://example.com"
-                          type="text"
-                          value={companyWebsite}
-                          onChange={(e) => setCompanyWebsite(e.target.value)}
-                        />
-                      </div>
-
-                      <div>
-                        <label
-                          className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                          htmlFor="comEmail"
-                        >
-                          Email liên hệ công ty
-                        </label>
-                        <input
-                          className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                          id="comEmail"
-                          aria-label="Company contact email"
-                          placeholder="hr@company.com"
-                          type="email"
-                          value={companyEmail}
-                          onChange={(e) => setCompanyEmail(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Full Width Address */}
-                    <div className="col-span-12">
-                      <label
-                        className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                        htmlFor="add"
-                      >
-                        Địa chỉ trụ sở công ty
-                      </label>
-                      <input
-                        className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                        id="add"
-                        aria-label="Company address"
-                        placeholder="Địa chỉ trụ sở chính"
-                        type="text"
-                        value={companyAddress}
-                        onChange={(e) => setCompanyAddress(e.target.value)}
-                      />
-                    </div>
-
-                    {/* Full Width Description */}
-                    <div className="col-span-12">
-                      <label
-                        className="mb-2 block text-xs font-bold text-slate-600 dark:text-slate-300"
-                        htmlFor="desc"
-                      >
-                        Giới thiệu công ty
-                      </label>
-                      <textarea
-                        className="flex min-h-[80px] w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm transition-all focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:outline-none dark:border-slate-800 dark:bg-slate-950"
-                        id="desc"
-                        aria-label="Company description"
-                        placeholder="Mô tả tóm tắt về công ty..."
-                        value={companyDescription}
-                        onChange={(e) => setCompanyDescription(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Save / Cancel buttons */}
-                  <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-6 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      {saving && <CircleNotch className="h-4 w-4 animate-spin" />}
-                      Lưu thay đổi
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-red-50 px-6 py-2 text-sm font-semibold whitespace-nowrap text-red-600 transition-colors hover:bg-red-100"
-                    >
-                      Hủy bỏ
-                    </button>
-                  </div>
-                </div>
+              {/* Save / Cancel buttons */}
+              <div className="col-span-12 mt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-emerald-600 px-6 py-2 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {saving && <CircleNotch className="h-4 w-4 animate-spin" />}
+                  Lưu thay đổi
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-red-50 px-6 py-2 text-sm font-semibold whitespace-nowrap text-red-600 transition-colors hover:bg-red-100"
+                >
+                  Hủy bỏ
+                </button>
               </div>
             </div>
           </div>
