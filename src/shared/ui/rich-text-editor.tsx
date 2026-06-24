@@ -95,7 +95,7 @@ export function RichTextEditor({ error, onChange, placeholder, value }: RichText
     <div
       className={cn(
         "w-full overflow-hidden rounded-xl border bg-white text-sm font-semibold text-slate-700",
-        "focus-within:border-emerald-300 focus-within:ring-4 focus-within:ring-emerald-100 transition-shadow",
+        "focus-within:border-primary focus-within:ring-1 focus-within:ring-primary focus-within:outline-none",
         error ? "border-rose-300" : "border-slate-200",
       )}
     >

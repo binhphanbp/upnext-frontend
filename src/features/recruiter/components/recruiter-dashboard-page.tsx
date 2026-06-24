@@ -29,8 +29,9 @@ import {
 } from "@/features/recruiter/api/onboarding";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
+import { AddressSelector } from "@/shared/ui/address-selector";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
+import { FormInput, Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 
 type StoredRecruiterUser = Readonly<{
@@ -767,9 +768,9 @@ function RecruiterOnboardingDialog({
 
         <DialogPrimitive.Content
           aria-describedby="recruiter-onboarding-dialog-description"
-          className="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg bg-white p-0 shadow-2xl [--ring:#10a778] focus:outline-none"
+          className="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white p-0 shadow-2xl [--ring:#10a778] focus:outline-none"
         >
-          <div className="bg-header shrink-0 border-b border-slate-200 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="bg-header shrink-0 border-b border-slate-200 px-4 py-6 sm:px-6 sm:py-8">
             <DialogPrimitive.Title className="text-center text-lg font-bold text-white sm:text-xl">
               {t("onboarding.updateProfile")}
             </DialogPrimitive.Title>
@@ -1002,22 +1003,24 @@ function RecruiterOnboardingDialog({
                     />
                   </div>
 
-                  <OnboardingField
-                    id="recruiter-onboarding-address"
-                    label={t("onboarding.labels.address")}
-                    placeholder={t("onboarding.placeholders.address")}
-                    register={form.register("address")}
-                    required
-                  />
+                  <div className="flex flex-col gap-1.5">
+                    <RequiredLabel>{t("onboarding.labels.address")}</RequiredLabel>
+                    <AddressSelector
+                      value={form.watch("address") || ""}
+                      onChange={(value) =>
+                        form.setValue("address", value, { shouldValidate: true })
+                      }
+                    />
+                  </div>
 
-                  <div className="space-y-2">
+                  <div className="flex flex-col gap-1.5">
                     <RequiredLabel htmlFor="recruiter-onboarding-description">
                       {t("onboarding.labels.description")}
                     </RequiredLabel>
 
                     <textarea
                       id="recruiter-onboarding-description"
-                      className="min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-none outline-none placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-50 focus-visible:border-emerald-600 focus-visible:ring-4 focus-visible:ring-emerald-50"
+                      className="upnext-focus min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-none placeholder:text-slate-400"
                       placeholder={t("onboarding.placeholders.description")}
                       {...form.register("description")}
                     />
@@ -1039,7 +1042,7 @@ function RecruiterOnboardingDialog({
 
                     <Input
                       id="recruiter-onboarding-license"
-                      className="mt-2 h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none file:mr-3 file:rounded-md file:border-0 file:bg-emerald-100 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-emerald-800 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-50 focus-visible:border-emerald-600 focus-visible:ring-4 focus-visible:ring-emerald-50"
+                      className="mt-2 h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none file:mr-3 file:rounded-md file:border-0 file:bg-emerald-100 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-emerald-800"
                       type="file"
                       accept=".pdf,.png,.jpg,.jpeg"
                       {...form.register("businessLicense")}
@@ -1106,22 +1109,14 @@ function OnboardingField({
   type?: "email" | "text" | "url";
 }) {
   return (
-    <div className="space-y-2">
-      {required ? (
-        <RequiredLabel htmlFor={id}>{label}</RequiredLabel>
-      ) : (
-        <Label htmlFor={id} className="text-sm font-bold text-slate-700">
-          {label}
-        </Label>
-      )}
-
-      <Input
-        id={id}
-        className="h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-50 focus-visible:border-emerald-600 focus-visible:ring-4 focus-visible:ring-emerald-50"
-        placeholder={placeholder}
-        type={type}
-        {...register}
-      />
-    </div>
+    <FormInput
+      id={id}
+      label={label}
+      required={required}
+      className="h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400"
+      placeholder={placeholder}
+      type={type}
+      {...register}
+    />
   );
 }

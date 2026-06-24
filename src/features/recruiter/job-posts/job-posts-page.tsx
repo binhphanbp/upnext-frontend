@@ -31,7 +31,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Checkbox } from "@/shared/ui/checkbox";
-import { Input } from "@/shared/ui/input";
+import { FormInput } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
@@ -628,18 +628,14 @@ function JobInput({
   type?: "number" | "text";
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id} className="text-sm font-bold text-slate-700">
-        {label}
-      </Label>
-      <Input
-        id={id}
-        className="h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-50"
-        placeholder={placeholder}
-        type={type}
-        {...register}
-      />
-    </div>
+    <FormInput
+      id={id}
+      label={label}
+      className="h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400"
+      placeholder={placeholder}
+      type={type}
+      {...register}
+    />
   );
 }
 
@@ -655,13 +651,13 @@ function JobTextarea({
   register: UseFormRegisterReturn;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-1.5">
       <Label htmlFor={id} className="text-sm font-bold text-slate-700">
         {label}
       </Label>
       <textarea
         id={id}
-        className="min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-none outline-none placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-50"
+        className="upnext-focus min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-none placeholder:text-slate-400"
         placeholder={placeholder}
         {...register}
       />
@@ -683,7 +679,7 @@ function JobSelect({
   value: string;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-1.5">
       <Label className="text-sm font-bold text-slate-700">{label}</Label>
       <Select
         value={value || "none"}
@@ -691,7 +687,7 @@ function JobSelect({
       >
         <SelectTrigger
           aria-label={label}
-          className="h-11 rounded-lg border-slate-200 bg-white shadow-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-50"
+          className="h-11 rounded-lg border-slate-200 bg-white shadow-none"
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>

@@ -242,7 +242,7 @@
 
 @layer utilities {
   .upnext-focus {
-    @apply focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply focus:border-primary focus-visible:border-primary focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none;
   }
 }
 
@@ -254,4 +254,20 @@
   background:
     linear-gradient(180deg, #002b33, rgba(0, 43, 51, 0.25)),
     linear-gradient(90deg, #008060 21.86%, #2bab60 78.13%);
+}
+
+.bg-header-table {
+  background:
+    linear-gradient(180deg, #0d966d, rgba(0, 43, 51, 0.25)),
+    linear-gradient(90deg, #008060 21.86%, #2bab60 78.13%);
+  color: #ffffff;
+  /* border-bottom: 2px solid #008060; */
+}
+
+.upnext-shadow {
+  box-shadow:
+    var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow),
+    var(--tw-ring-shadow), var(--tw-shadow);
+  --tw-shadow: none;
+  border: none;
 }

@@ -22,7 +22,7 @@ import { ApiError } from "@/shared/api/http";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Checkbox } from "@/shared/ui/checkbox";
-import { Input } from "@/shared/ui/input";
+import { FormInput } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Separator } from "@/shared/ui/separator";
 
@@ -507,9 +507,7 @@ function AuthHeader({ title }: { title: string }) {
         />
       </button>
 
-      <h1 className="mt-6 text-xl font-bold tracking-tight text-slate-950 sm:mt-8 sm:text-2xl">
-        {title}
-      </h1>
+      <h1 className="mt-6 text-xl font-bold tracking-tight sm:mt-8 sm:text-2xl">{title}</h1>
     </>
   );
 }
@@ -543,21 +541,17 @@ function AuthDivider({ label }: { label: string }) {
 
 function EmailField({ inputId, register }: { inputId: string; register: UseFormRegisterReturn }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={inputId} className="text-sm font-bold text-slate-700">
-        Địa chỉ Email
-      </Label>
-      <Input
-        id={inputId}
-        className={authInputClassName}
-        type="email"
-        placeholder="Nhập email của bạn"
-        autoComplete="email"
-        {...register}
-        onBlur={(event) => resetAuthInputFocusStyle(event, register)}
-        onFocus={setAuthInputFocusStyle}
-      />
-    </div>
+    <FormInput
+      id={inputId}
+      label="Địa chỉ Email"
+      className={authInputClassName}
+      type="email"
+      placeholder="Nhập email của bạn"
+      autoComplete="email"
+      {...register}
+      onBlur={(event) => resetAuthInputFocusStyle(event, register)}
+      onFocus={setAuthInputFocusStyle}
+    />
   );
 }
 
@@ -583,34 +577,28 @@ function PasswordField({
   const t = useTranslations("Auth");
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <Label htmlFor={inputId} className="text-sm font-bold text-slate-700">
-          {label}
-        </Label>
-        {action}
-      </div>
-      <div className="relative">
-        <Input
-          id={inputId}
-          className={`${authInputClassName} pr-10`}
-          type={visible ? "text" : "password"}
-          placeholder={placeholder}
-          autoComplete={autoComplete}
-          {...register}
-          onBlur={(event) => resetAuthInputFocusStyle(event, register)}
-          onFocus={setAuthInputFocusStyle}
-        />
+    <FormInput
+      id={inputId}
+      label={label}
+      action={action}
+      className={`${authInputClassName} pr-10`}
+      type={visible ? "text" : "password"}
+      placeholder={placeholder}
+      autoComplete={autoComplete}
+      {...register}
+      onBlur={(event) => resetAuthInputFocusStyle(event, register)}
+      onFocus={setAuthInputFocusStyle}
+      suffix={
         <button
           type="button"
-          className="upnext-focus absolute top-1/2 right-3 -translate-y-1/2 rounded text-slate-400 hover:text-slate-700"
+          className="upnext-focus rounded text-slate-400 hover:text-slate-700"
           aria-label={visible ? t("common.hidePassword") : t("common.showPassword")}
           onClick={() => setVisible((value) => !value)}
         >
           {visible ? <EyeSlash size={18} /> : <Eye size={18} />}
         </button>
-      </div>
-    </div>
+      }
+    />
   );
 }
 
