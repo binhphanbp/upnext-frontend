@@ -187,9 +187,18 @@
       },
       "trust": {
         "stats": [
-          { "value": "2.500+", "label": "Việc làm IT đang tuyển" },
-          { "value": "1.000+", "label": "Công ty công nghệ" },
-          { "value": "50.000+", "label": "Ứng viên đã tin tưởng" }
+          {
+            "value": "2.500+",
+            "label": "Việc làm IT đang tuyển"
+          },
+          {
+            "value": "1.000+",
+            "label": "Công ty công nghệ"
+          },
+          {
+            "value": "50.000+",
+            "label": "Ứng viên đã tin tưởng"
+          }
         ],
         "label": "Được tin tưởng bởi các công ty công nghệ hàng đầu",
         "companies": ["FPT Software", "VNG", "Viettel", "Tiki", "MoMo"]
@@ -293,25 +302,64 @@
         "description": "Theo dõi nhu cầu tuyển dụng, mức lương và tốc độ mở vị trí để chọn chiến lược tìm việc phù hợp.",
         "cta": "Xem thị trường việc làm",
         "kpis": [
-          { "value": "2.570", "label": "Việc làm mới 24h gần nhất" },
-          { "value": "56.483", "label": "Việc làm đang tuyển" },
-          { "value": "19.223", "label": "Công ty đang tuyển" }
+          {
+            "value": "2.570",
+            "label": "Việc làm mới 24h gần nhất"
+          },
+          {
+            "value": "56.483",
+            "label": "Việc làm đang tuyển"
+          },
+          {
+            "value": "19.223",
+            "label": "Công ty đang tuyển"
+          }
         ],
         "growthTitle": "Tăng trưởng việc làm",
         "salaryTitle": "Phân bổ mức lương",
         "growth": [
-          { "label": "04/05", "value": 46280 },
-          { "label": "11/05", "value": 50812 },
-          { "label": "18/05", "value": 52945 },
-          { "label": "25/05", "value": 55667 },
-          { "label": "01/06", "value": 56483 }
+          {
+            "label": "04/05",
+            "value": 46280
+          },
+          {
+            "label": "11/05",
+            "value": 50812
+          },
+          {
+            "label": "18/05",
+            "value": 52945
+          },
+          {
+            "label": "25/05",
+            "value": 55667
+          },
+          {
+            "label": "01/06",
+            "value": 56483
+          }
         ],
         "salaries": [
-          { "label": "<10", "value": 2341 },
-          { "label": "10-20", "value": 8752 },
-          { "label": "20-30", "value": 22318 },
-          { "label": "30-50", "value": 15624 },
-          { "label": ">50", "value": 7448 }
+          {
+            "label": "<10",
+            "value": 2341
+          },
+          {
+            "label": "10-20",
+            "value": 8752
+          },
+          {
+            "label": "20-30",
+            "value": 22318
+          },
+          {
+            "label": "30-50",
+            "value": 15624
+          },
+          {
+            "label": ">50",
+            "value": 7448
+          }
         ]
       },
       "footer": {
@@ -323,12 +371,30 @@
         "brandDescription": "UpNext kết nối ứng viên IT với công ty công nghệ uy tín, tập trung vào kỹ năng, dữ liệu thị trường và trải nghiệm tuyển dụng minh bạch.",
         "quickLinksTitle": "Liên kết nhanh",
         "quickLinks": [
-          { "label": "Tìm việc IT", "href": "/jobs" },
-          { "label": "Công ty công nghệ", "href": "/companies" },
-          { "label": "Tạo hồ sơ", "href": "/register" },
-          { "label": "Báo cáo lương", "href": "/jobs" },
-          { "label": "Đăng tuyển dụng", "href": "/register" },
-          { "label": "Giải pháp tuyển dụng", "href": "/register" }
+          {
+            "label": "Tìm việc IT",
+            "href": "/jobs"
+          },
+          {
+            "label": "Công ty công nghệ",
+            "href": "/companies"
+          },
+          {
+            "label": "Tạo hồ sơ",
+            "href": "/register"
+          },
+          {
+            "label": "Báo cáo lương",
+            "href": "/jobs"
+          },
+          {
+            "label": "Đăng tuyển dụng",
+            "href": "/register"
+          },
+          {
+            "label": "Giải pháp tuyển dụng",
+            "href": "/register"
+          }
         ],
         "contactTitle": "Liên hệ / Nhận tin",
         "contactDescription": "Nhận thông tin việc làm IT mới nhất và các bài viết hữu ích từ UpNext.",
@@ -487,6 +553,160 @@
         "conflict": "Mã số thuế hoặc hồ sơ này đã tồn tại trên hệ thống.",
         "serverError": "Hệ thống đang gặp sự cố khi cập nhật hồ sơ. Vui lòng thử lại sau.",
         "unknown": "Không thể hoàn tất cập nhật. Vui lòng thử lại."
+      }
+    }
+  },
+  "WorkspaceShell": {
+    "searchPlaceholder": "Tìm việc, CV, công ty, kỹ năng...",
+    "roles": {
+      "candidate": "Ứng viên"
+    },
+    "groups": {
+      "account": "Tài khoản"
+    },
+    "nav": {
+      "dashboard": "Tổng quan",
+      "profile": "Hồ sơ",
+      "jobs": "Việc làm",
+      "applications": "Việc đã ứng tuyển",
+      "savedJobs": "Việc đã lưu",
+      "messages": "Tin nhắn",
+      "assessments": "Đánh giá năng lực",
+      "interviewPrep": "Luyện phỏng vấn",
+      "resume": "CV của tôi",
+      "settings": "Cài đặt",
+      "notifications": "Thông báo"
+    },
+    "account": {
+      "label": "Tài khoản",
+      "profile": "Hồ sơ",
+      "settings": "Cài đặt",
+      "logout": "Đăng xuất"
+    },
+    "tips": {
+      "title": "Gợi ý hồ sơ",
+      "description": "Bổ sung kỹ năng trọng tâm và CV mới nhất để tăng độ phù hợp với nhà tuyển dụng.",
+      "progress": "3/5 hoàn thành",
+      "improve": "Cải thiện hồ sơ"
+    },
+    "candidateTabsLabel": "Các mục trong không gian ứng viên",
+    "candidateMobileNavLabel": "Điều hướng mobile của ứng viên"
+  },
+  "CandidateProfile": {
+    "content": {
+      "page": {
+        "title": "Hồ sơ của tôi",
+        "description": "Quản lý hồ sơ nghề nghiệp và thông tin tìm việc của bạn.",
+        "previewProfile": "Xem hồ sơ",
+        "saveChanges": "Lưu thay đổi",
+        "save": "Lưu",
+        "mobileStatus": "Hoàn thành 82% · Đang hiển thị với nhà tuyển dụng"
+      },
+      "status": {
+        "title": "Hồ sơ của bạn gần hoàn thiện",
+        "badge": "Cần bổ sung",
+        "description": "Hoàn thiện các mục có tác động cao để tăng khả năng xuất hiện trong tìm kiếm và tạo niềm tin với nhà tuyển dụng.",
+        "completedTitle": "Mục đã hoàn thành",
+        "completedDescription": "Các phần này đã sẵn sàng và không cần lặp lại ở nơi khác.",
+        "completionLabel": "Mức độ hoàn thiện hồ sơ"
+      },
+      "tasks": [
+        {
+          "title": "Thêm 2 kỹ năng nữa",
+          "description": "Độ phủ kỹ năng giúp hệ thống gợi ý chính xác và nhà tuyển dụng lọc hồ sơ nhanh hơn.",
+          "action": "Thêm ngay",
+          "tone": "warning"
+        },
+        {
+          "title": "Tải CV mới nhất",
+          "description": "CV cập nhật giúp nhà tuyển dụng có bản tóm tắt đáng tin cậy để đối chiếu với hồ sơ.",
+          "action": "Tải lên",
+          "tone": "neutral"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Thông tin cá nhân",
+          "status": "Đã cập nhật"
+        },
+        {
+          "label": "Giới thiệu bản thân",
+          "status": "Đã cập nhật"
+        },
+        {
+          "label": "Kinh nghiệm làm việc",
+          "status": "Đã thêm 2 vị trí"
+        },
+        {
+          "label": "Học vấn",
+          "status": "2 mục"
+        }
+      ],
+      "sidebar": {
+        "verifiedProfile": "Hồ sơ đã xác thực",
+        "editPhoto": "Chỉnh ảnh đại diện",
+        "resume": "CV / Resume",
+        "primary": "Chính",
+        "resumeFile": "Alex_Johnson_Resume.pdf",
+        "resumeMeta": "Tải lên 12/05/2024 · 248 KB",
+        "downloadResume": "Tải CV xuống",
+        "uploadResume": "Tải CV mới lên",
+        "resumeHint": "PDF, DOCX tối đa 5MB",
+        "preferencesTitle": "Tóm tắt mong muốn việc làm",
+        "viewPreferences": "Xem toàn bộ mong muốn",
+        "visibilityTitle": "Hiển thị hồ sơ",
+        "visibilityDescription": "Hồ sơ của bạn đang hiển thị với nhà tuyển dụng.",
+        "visibilityEnabled": "Đã bật hiển thị hồ sơ",
+        "manageVisibility": "Quản lý hiển thị hồ sơ"
+      },
+      "labels": {
+        "fullName": "Họ và tên",
+        "headline": "Tiêu đề nghề nghiệp",
+        "email": "Email",
+        "phone": "Số điện thoại",
+        "location": "Địa điểm",
+        "website": "Website",
+        "github": "GitHub",
+        "linkedin": "LinkedIn",
+        "basicInformation": "Thông tin cơ bản",
+        "about": "Giới thiệu bản thân",
+        "skills": "Kỹ năng",
+        "workExperience": "Kinh nghiệm làm việc",
+        "education": "Học vấn",
+        "projects": "Dự án / Portfolio",
+        "certificationsLanguages": "Chứng chỉ & Ngôn ngữ",
+        "certifications": "Chứng chỉ",
+        "languages": "Ngôn ngữ",
+        "jobPreferences": "Mong muốn việc làm"
+      },
+      "actions": {
+        "edit": "Chỉnh sửa",
+        "addSkill": "Thêm kỹ năng",
+        "addExperience": "Thêm kinh nghiệm",
+        "addEducation": "Thêm học vấn",
+        "addProject": "Thêm dự án",
+        "addLanguage": "Thêm ngôn ngữ",
+        "addPreference": "Thêm mong muốn",
+        "missing": "Thiếu"
+      },
+      "about": "Frontend developer giàu đam mê với hơn 5 năm kinh nghiệm xây dựng ứng dụng web responsive, dễ tiếp cận và hiệu năng cao. Tôi thích biến vấn đề phức tạp thành trải nghiệm đơn giản, đẹp và trực quan. Có kinh nghiệm với React, Next.js, TypeScript và tối ưu hiệu năng.",
+      "current": "Hiện tại",
+      "languages": [
+        ["Tiếng Anh", "Bản ngữ"],
+        ["Tiếng Tây Ban Nha", "Chuyên nghiệp"],
+        ["Tiếng Pháp", "Cơ bản"]
+      ],
+      "preferences": [
+        ["Vai trò mong muốn", "Frontend Developer"],
+        ["Hình thức làm việc", "Toàn thời gian"],
+        ["Mức lương", "$100,000 - $140,000"],
+        ["Mô hình làm việc", "Hybrid, Remote"],
+        ["Địa điểm ưu tiên", "San Francisco, CA, USA · Austin, TX, USA"]
+      ],
+      "contact": {
+        "profileDetailsLabel": "Chi tiết hồ sơ",
+        "completedSectionsLabel": "Các phần hồ sơ đã hoàn thành",
+        "bottomNavLabel": "Điều hướng mobile của ứng viên"
       }
     }
   }
