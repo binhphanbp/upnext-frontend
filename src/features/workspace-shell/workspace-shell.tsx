@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  CaretDown,
   SignOut,
   Sparkle,
   List,
@@ -95,7 +94,7 @@ export function WorkspaceShell({
 
   return (
     <TooltipProvider delayDuration={120}>
-      <div className="flex h-screen overflow-hidden bg-[#f4f6fa] font-sans text-[#2a3547] antialiased">
+      <div className="flex h-screen overflow-hidden overscroll-none bg-[#f4f6fa] font-sans text-[#2a3547] antialiased">
         {/* 1. MINI SIDEBAR (Lớp 1 ngoài cùng) */}
         <aside className="relative z-20 flex hidden w-[80px] flex-shrink-0 flex-col items-center border-r border-slate-200 bg-[#f4f6fa] py-5 md:flex">
           <button
@@ -309,9 +308,9 @@ export function WorkspaceShell({
         </aside>
 
         {/* RIGHT CONTENT AREA */}
-        <div className="flex h-screen flex-1 flex-col overflow-hidden bg-white dark:bg-slate-950">
+        <div className="relative flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-[#f4f6fa] dark:bg-slate-950">
           {/* TOP HEADER */}
-          <header className="z-30 flex h-[76px] flex-shrink-0 items-center justify-between bg-white px-8">
+          <header className="relative z-30 flex h-[76px] flex-shrink-0 items-center justify-between bg-white px-8">
             <div className="flex items-center gap-5 text-slate-500">
               {/* Mobile menu trigger */}
               <button
@@ -475,12 +474,12 @@ export function WorkspaceShell({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#10a778] text-white transition hover:opacity-85 focus:outline-none"
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full text-white transition hover:opacity-85 focus:outline-none"
                     aria-label="Select Language"
                     type="button"
                   >
-                    <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-white">
-                      <span className="block size-8">
+                    <span className="flex size-12 items-center justify-center overflow-hidden rounded-full bg-white">
+                      <span className="block size-12 h-auto">
                         {currentLocale === "en" ? <UkFlag /> : <VnFlag />}
                       </span>
                     </span>
@@ -555,7 +554,18 @@ export function WorkspaceShell({
                       className="size-8 rounded-full border border-white/40 bg-white object-cover"
                     />
 
-                    <CaretDown size={12} className="text-white" />
+                    <svg
+                      aria-hidden="true"
+                      className="iconify iconify--solar hover:text-primary dark:text-primary group-hover/menu:text-primary"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="m12.37 15.835l6.43-6.63C19.201 8.79 18.958 8 18.43 8H5.57c-.528 0-.771.79-.37 1.205l6.43 6.63c.213.22.527.22.74 0"
+                      />
+                    </svg>
                   </button>
                 </DropdownMenuTrigger>
 
@@ -638,11 +648,14 @@ export function WorkspaceShell({
             </div>
           </header>
 
+          {/* White square behind top-left corner to maintain the curve illusion */}
+          <div className="absolute top-[76px] left-0 z-0 h-8 w-8 bg-white" aria-hidden="true" />
+
           {/* MAIN DASHBOARD CONTENT AREA */}
           <main
             onScroll={handleScroll}
             className={cn(
-              "flex-1 overflow-y-auto p-4 md:p-8 bg-[#f4f6fa] dark:bg-slate-900 transition-all duration-200",
+              "relative z-10 flex-1 overflow-y-auto min-h-0 overscroll-none p-4 md:p-8 bg-[#f4f6fa] dark:bg-slate-900 transition-all duration-200",
               isScrolled ? "rounded-tl-none" : "rounded-tl-[24px] lg:rounded-tl-[32px]",
             )}
           >

@@ -36,19 +36,19 @@ export function AddEmployerDialog() {
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2.5">
             <Label htmlFor="companyName">Tên công ty</Label>
             <Input id="companyName" placeholder="VD: VNG Corporation" />
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2.5">
             <Label htmlFor="representative">Người đại diện</Label>
             <Input id="representative" placeholder="VD: Nguyễn Văn A" />
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2.5">
             <Label htmlFor="email">Email liên hệ</Label>
             <Input id="email" type="email" placeholder="VD: hr@congty.com" />
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2.5">
             <Label htmlFor="plan">Gói dịch vụ mặc định</Label>
             <Select defaultValue="Free">
               <SelectTrigger>
