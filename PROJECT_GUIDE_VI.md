@@ -56,16 +56,13 @@ src/
     workspace-shell/
     marketing/
       home/
+      jobs/
+      companies/
+      shared/
     auth/
-    jobs/
-    companies/
-    candidates/
-    applications/
-    messages/
-    notifications/
-    employer-dashboard/
+    candidate/
+    employer/
     admin/
-    search/
   i18n/
     routing.ts
     request.ts

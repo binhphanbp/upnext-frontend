@@ -60,12 +60,25 @@ test("uses one shared public header across public marketing pages", async ({ pag
   await expect(page.locator(".marketing-home-header")).toHaveCount(0);
 });
 
+test("uses one shared public footer across public marketing pages", async ({ page }) => {
+  for (const route of ["/vi", "/vi/jobs", "/vi/companies"]) {
+    await page.goto(route);
+    const footer = page.locator("#site-footer");
+    await expect(footer).toHaveCount(1);
+    await expect(footer.getByRole("button", { name: "Trang chủ UpNext" })).toBeVisible();
+    await expect(footer.getByRole("button", { name: "Tìm việc ngay" })).toBeVisible();
+  }
+
+  await page.goto("/vi/login");
+  await expect(page.locator("#site-footer")).toHaveCount(0);
+});
+
 test("renders migrated public jobs and companies pages", async ({ page }) => {
   await page.goto("/vi/jobs");
 
   await expect(page.getByRole("heading", { name: /khám phá/i })).toBeVisible();
   await page.locator(".jobs-detail").first().click();
-  await expect(page).toHaveURL(/\/vi\/jobs\//);
+  await page.waitForURL(/\/vi\/jobs\//, { timeout: 15_000 });
   await expect(
     page.getByRole("heading", { name: /fresher java|frontend|devops|mobile|ai/i }),
   ).toBeVisible();

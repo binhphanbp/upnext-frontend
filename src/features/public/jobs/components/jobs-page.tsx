@@ -6,23 +6,14 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-import { upnextLogo } from "../../home/brand";
 import {
   ArrowRight,
-  ArrowUp,
   Bookmark,
-  BriefcaseBusiness,
   Check,
   ChevronDown,
   ChevronRight,
-  Facebook,
-  Github,
-  Globe,
-  Linkedin,
-  Mail,
   MapPin,
   Monitor,
-  Phone,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -30,8 +21,8 @@ import {
   UsersRound,
   WalletCards,
   X,
-  Youtube,
 } from "../../home/marketing-icons";
+import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
 
 import "../jobs-page.css";
@@ -377,15 +368,6 @@ const filterLabelByValue = new Map(
 );
 
 const locations = ["Tất cả địa điểm", "TP. Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Remote", "Cần Thơ"];
-
-const footerLinks = [
-  { label: "Tìm việc IT", path: "/jobs" },
-  { label: "Công ty công nghệ", path: "/companies" },
-  { label: "Tạo hồ sơ", path: "/register" },
-  { label: "Báo cáo lương", path: "/jobs" },
-  { label: "Đăng tuyển dụng", path: "/register" },
-  { label: "Giải pháp tuyển dụng", path: "/register" },
-];
 
 function salaryValue(job: Job) {
   const values = job.salary.match(/\d+/g)?.map(Number) ?? [];
@@ -941,76 +923,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         </section>
       </section>
 
-      <footer className="jobs-footer" aria-label="Footer UpNext">
-        <section className="jobs-footer-cta">
-          <span>
-            <BriefcaseBusiness size={30} />
-          </span>
-          <div>
-            <h2>Sẵn sàng tìm việc IT tốt hơn?</h2>
-            <p>Tạo hồ sơ miễn phí để theo dõi việc đã lưu và ứng tuyển nhanh hơn.</p>
-          </div>
-          <button type="button" onClick={() => navigate("/register")}>
-            Tạo hồ sơ miễn phí <ArrowRight size={18} />
-          </button>
-        </section>
-
-        <section className="jobs-footer-main">
-          <div className="jobs-footer-brand">
-            <Image src={upnextLogo.wordmark} alt="UpNext" width={154} height={37} />
-            <p>
-              UpNext kết nối ứng viên IT với công ty công nghệ uy tín, tập trung vào thông tin rõ
-              ràng và trải nghiệm tìm việc thực tế.
-            </p>
-            <div>
-              <a href="https://www.linkedin.com/" aria-label="LinkedIn">
-                <Linkedin size={18} />
-              </a>
-              <a href="https://www.facebook.com/" aria-label="Facebook">
-                <Facebook size={18} />
-              </a>
-              <a href="https://github.com/" aria-label="GitHub">
-                <Github size={18} />
-              </a>
-              <a href="https://www.youtube.com/" aria-label="YouTube">
-                <Youtube size={18} />
-              </a>
-            </div>
-          </div>
-
-          <nav className="jobs-footer-links" aria-label="Liên kết nhanh">
-            {footerLinks.map((link) => (
-              <button key={link.label} type="button" onClick={() => navigate(link.path)}>
-                {link.label}
-              </button>
-            ))}
-          </nav>
-
-          <div className="jobs-footer-contact">
-            <h2>Liên hệ</h2>
-            <p>
-              <Mail size={17} />
-              contact@upnext.works
-            </p>
-            <p>
-              <Phone size={17} />
-              028 7303 2468
-            </p>
-            <p>
-              <Globe size={17} />
-              TP. Hồ Chí Minh, Việt Nam
-            </p>
-          </div>
-        </section>
-
-        <section className="jobs-footer-bottom">
-          <p>© 2026 UpNext. Tất cả quyền được bảo lưu.</p>
-          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-            <ArrowUp size={17} />
-            Lên đầu trang
-          </button>
-        </section>
-      </footer>
+      <PublicFooter navigate={navigate} />
     </main>
   );
 }
