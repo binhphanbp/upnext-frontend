@@ -144,6 +144,7 @@ function getJobPostErrorMessage(error: unknown) {
 export function RecruiterJobPostsPage() {
   const router = useRouter();
   const [token, setToken] = useState("");
+  const [accountId, setAccountId] = useState("");
   const [account, setAccount] = useState<RecruiterAccountDetail | null>(null);
   const [catalogs, setCatalogs] = useState<JobPostCatalogs>(emptyCatalogs);
   const [jobs, setJobs] = useState<RecruiterJobPost[]>([]);
@@ -188,19 +189,20 @@ export function RecruiterJobPostsPage() {
     try {
       const parsedUser = JSON.parse(rawUser) as StoredRecruiterUser;
       setToken(accessToken);
+      setAccountId(parsedUser.id);
       void loadPageData(parsedUser.id, accessToken);
     } catch {
       router.replace("/recruiter/login");
     }
   }, [router]);
 
-  async function loadPageData(accountId: string, accessToken: string) {
+  async function loadPageData(accountIdVal: string, accessToken: string) {
     try {
       setLoading(true);
       const [nextAccount, nextCatalogs, nextJobs] = await Promise.all([
-        getRecruiterAccount(accountId, accessToken),
+        getRecruiterAccount(accountIdVal, accessToken),
         getJobPostCatalogs(),
-        getRecruiterJobPosts(accessToken),
+        getRecruiterJobPosts(accessToken, accountIdVal),
       ]);
 
       setAccount(nextAccount);
@@ -214,9 +216,9 @@ export function RecruiterJobPostsPage() {
   }
 
   async function reloadJobs() {
-    if (!token) return;
+    if (!token || !accountId) return;
 
-    setJobs(await getRecruiterJobPosts(token));
+    setJobs(await getRecruiterJobPosts(token, accountId));
   }
 
   async function submit(values: JobPostFormValues) {
