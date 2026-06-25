@@ -11,6 +11,7 @@ WORKDIR /app
 FROM base AS deps
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY scripts/check-package-manager.mjs ./scripts/check-package-manager.mjs
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
