@@ -655,11 +655,11 @@ export function WorkspaceShell({
           <main
             onScroll={handleScroll}
             className={cn(
-              "relative z-10 flex-1 overflow-y-auto min-h-0 overscroll-none p-4 md:p-8 bg-[#f4f6fa] dark:bg-slate-900 transition-all duration-200",
+              "relative z-10 flex-1 overflow-y-auto overflow-x-hidden min-w-0 min-h-0 overscroll-none p-4 md:p-8 bg-[#f4f6fa] dark:bg-slate-900 transition-all duration-200",
               isScrolled ? "rounded-tl-none" : "rounded-tl-[24px] lg:rounded-tl-[32px]",
             )}
           >
-            <div className="mx-auto max-w-[1400px]">{children}</div>
+            <div className="mx-auto w-full max-w-[1400px] min-w-0">{children}</div>
           </main>
         </div>
       </div>

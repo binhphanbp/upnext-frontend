@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Briefcase, CheckCircle, LockKey, Plus, Prohibit, X } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm, type FieldErrors, type UseFormRegisterReturn } from "react-hook-form";
 import Swal, { type SweetAlertIcon } from "sweetalert2";
 import { z } from "zod";
@@ -25,6 +25,7 @@ import {
   publishRecruiterJobPost,
   type RecruiterJobPost,
 } from "@/features/recruiter/job-posts/api";
+import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { Badge } from "@/shared/ui/badge";
@@ -34,12 +35,6 @@ import { Checkbox } from "@/shared/ui/checkbox";
 import { FormInput } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-
-type StoredRecruiterUser = Readonly<{
-  id: string;
-  email: string;
-  role: string;
-}>;
 
 const Toast = Swal.mixin({
   toast: true,
@@ -177,43 +172,45 @@ export function RecruiterJobPostsPage() {
 
   const companyVerified = account?.company?.verificationStatus === "VERIFIED";
 
-  useEffect(() => {
-    const accessToken = localStorage.getItem("upnext.recruiter.accessToken");
-    const rawUser = localStorage.getItem("upnext.recruiter.user");
+  const loadPageData = useCallback(
+    async (accountId: string, accessToken: string) => {
+      try {
+        setLoading(true);
+        const [nextAccount, nextCatalogs, nextJobs] = await Promise.all([
+          getRecruiterAccount(accountId, accessToken),
+          getJobPostCatalogs(),
+          getRecruiterJobPosts(accessToken),
+        ]);
 
-    if (!accessToken || !rawUser) {
+        setAccount(nextAccount);
+        setCatalogs(nextCatalogs);
+        setJobs(nextJobs);
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          clearRecruiterSession();
+          router.replace("/recruiter/login");
+          return;
+        }
+
+        showToast("error", getJobPostErrorMessage(error));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router],
+  );
+
+  useEffect(() => {
+    const session = getRecruiterSession();
+
+    if (!session) {
       router.replace("/recruiter/login");
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(rawUser) as StoredRecruiterUser;
-      setToken(accessToken);
-      setAccountId(parsedUser.id);
-      void loadPageData(parsedUser.id, accessToken);
-    } catch {
-      router.replace("/recruiter/login");
-    }
-  }, [router]);
-
-  async function loadPageData(accountIdVal: string, accessToken: string) {
-    try {
-      setLoading(true);
-      const [nextAccount, nextCatalogs, nextJobs] = await Promise.all([
-        getRecruiterAccount(accountIdVal, accessToken),
-        getJobPostCatalogs(),
-        getRecruiterJobPosts(accessToken, accountIdVal),
-      ]);
-
-      setAccount(nextAccount);
-      setCatalogs(nextCatalogs);
-      setJobs(nextJobs);
-    } catch (error) {
-      showToast("error", getJobPostErrorMessage(error));
-    } finally {
-      setLoading(false);
-    }
-  }
+    setToken(session.accessToken);
+    void loadPageData(session.user.id, session.accessToken);
+  }, [loadPageData, router]);
 
   async function reloadJobs() {
     if (!token || !accountId) return;

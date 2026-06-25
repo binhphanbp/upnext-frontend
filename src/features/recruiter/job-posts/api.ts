@@ -1,3 +1,4 @@
+import { authHeaders, jsonAuthHeaders, removeEmptyFields } from "@/features/recruiter/api/client";
 import { apiRequest } from "@/shared/api/http";
 
 export type JobStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
@@ -91,10 +92,7 @@ export async function getRecruiterJobPosts(token: string, recruiterId?: string) 
 export function createRecruiterJobPost(payload: CreateRecruiterJobPostPayload, token: string) {
   return apiRequest<RecruiterJobPost>("/job-posts", {
     body: JSON.stringify(removeEmptyFields(payload)),
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-    },
+    headers: jsonAuthHeaders(token),
     method: "POST",
   });
 }
@@ -116,10 +114,7 @@ export function closeRecruiterJobPost(jobPostId: string, token: string) {
 export function addSkillToRecruiterJobPost(jobPostId: string, skillId: string, token: string) {
   return apiRequest(`/job-posts/${jobPostId}/skills`, {
     body: JSON.stringify({ skillId }),
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-    },
+    headers: jsonAuthHeaders(token),
     method: "POST",
   });
 }
@@ -131,10 +126,7 @@ export function addLocationToRecruiterJobPost(
 ) {
   return apiRequest(`/job-posts/${jobPostId}/locations`, {
     body: JSON.stringify({ jobLocationId }),
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-    },
+    headers: jsonAuthHeaders(token),
     method: "POST",
   });
 }
@@ -146,10 +138,7 @@ export function addSpecializationToRecruiterJobPost(
 ) {
   return apiRequest(`/job-posts/${jobPostId}/specializations`, {
     body: JSON.stringify({ specializationId, isRequired: true }),
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-    },
+    headers: jsonAuthHeaders(token),
     method: "POST",
   });
 }
@@ -173,16 +162,4 @@ export async function getJobPostCatalogs(): Promise<JobPostCatalogs> {
     skills,
     specializations,
   };
-}
-
-function authHeaders(token: string) {
-  return {
-    Authorization: `Bearer ${token}`,
-  };
-}
-
-function removeEmptyFields<T extends Record<string, unknown>>(payload: T) {
-  return Object.fromEntries(
-    Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""),
-  ) as Partial<T>;
 }

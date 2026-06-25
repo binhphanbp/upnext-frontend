@@ -16,6 +16,7 @@ import {
   uploadCompanyPhoto,
   type CompanyDetail,
 } from "@/features/recruiter/api/onboarding";
+import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { AddressSelector } from "@/shared/ui/address-selector";
@@ -33,11 +34,6 @@ const toast = Swal.mixin({
   timer: 2600,
   timerProgressBar: true,
 });
-
-type StoredRecruiterUser = Readonly<{
-  id: string;
-  email: string;
-}>;
 
 type CompanyForm = {
   name: string;
@@ -146,22 +142,16 @@ export function RecruiterCompanyProfilePage() {
   );
 
   useEffect(() => {
-    const accessToken = localStorage.getItem("upnext.recruiter.accessToken");
-    const rawUser = localStorage.getItem("upnext.recruiter.user");
+    const session = getRecruiterSession();
 
-    if (!accessToken || !rawUser) {
+    if (!session) {
       router.replace("/recruiter/login");
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(rawUser) as StoredRecruiterUser;
-      setToken(accessToken);
-      setAccountId(parsedUser.id);
-      void loadCompany(parsedUser.id, accessToken);
-    } catch {
-      router.replace("/recruiter/login");
-    }
+    setToken(session.accessToken);
+    setAccountId(session.user.id);
+    void loadCompany(session.user.id, session.accessToken);
   }, [loadCompany, router]);
 
   useEffect(() => {
@@ -674,9 +664,7 @@ function getCompanyErrorMessage(error: unknown) {
 
 function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>) {
   if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-    localStorage.removeItem("upnext.recruiter.accessToken");
-    localStorage.removeItem("upnext.recruiter.tokenType");
-    localStorage.removeItem("upnext.recruiter.user");
+    clearRecruiterSession();
     router.replace("/recruiter/login");
     return;
   }

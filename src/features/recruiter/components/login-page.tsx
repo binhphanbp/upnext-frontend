@@ -504,6 +504,7 @@ function AuthHeader({ title }: { title: string }) {
           width={136}
           height={33}
           priority
+          style={{ height: "auto", width: "auto" }}
         />
       </button>
 
