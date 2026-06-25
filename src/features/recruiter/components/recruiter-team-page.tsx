@@ -61,6 +61,15 @@ const PERMISSION_NAMES: Record<string, string> = {
   "billing:manage": "Quản lý thanh toán & gói dịch vụ",
 };
 
+type RoleLike = { code?: string | null; name?: string | null } | null | undefined;
+
+function isOwnerRole(role: RoleLike) {
+  const code = role?.code?.trim().toUpperCase();
+  const name = role?.name?.trim().toUpperCase();
+
+  return code === "OWNER" || name === "OWNER";
+}
+
 export function RecruiterTeamPage() {
   const router = useRouter();
   const [tab, setTab] = useState<TeamTab>("members");
@@ -86,7 +95,7 @@ export function RecruiterTeamPage() {
     () => members.find((m) => m.recruiterAccount?.id === accountId) ?? null,
     [members, accountId],
   );
-  const isOwner = currentMember?.role?.code === "OWNER";
+  const isOwner = isOwnerRole(currentMember?.role);
 
   const loadTeamData = useCallback(
     async (nextAccountId: string, accessToken: string) => {
@@ -341,36 +350,43 @@ function MembersPanel({
   setInviteRoleId: (value: string) => void;
   isOwner: boolean;
 }) {
+  const inviteDisabled = saving || !isOwner;
+
   return (
     <div className="space-y-6">
-      {isOwner && (
-        <div className="grid w-full min-w-0 gap-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4 lg:grid-cols-[minmax(0,1fr)_260px_auto]">
-          <FormInput
-            id="invite-email"
-            label="Email thành viên"
-            type="email"
-            value={inviteEmail}
-            onChange={(event) => setInviteEmail(event.target.value)}
-            placeholder="recruiter@company.com"
-          />
-          <RoleSelect
-            label="Vai trò"
-            roles={roles}
-            value={inviteRoleId}
-            onValueChange={setInviteRoleId}
-          />
-          <div className="flex items-end">
-            <Button
-              className="w-full gap-2 bg-[#11a77a] font-bold hover:bg-[#0d966d]"
-              disabled={saving}
-              onClick={onInvite}
-            >
-              <Plus size={16} />
-              Mời thành viên
-            </Button>
-          </div>
+      <div className="grid w-full min-w-0 gap-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4 lg:grid-cols-[minmax(0,1fr)_260px_auto]">
+        <FormInput
+          id="invite-email"
+          label="Email thành viên"
+          type="email"
+          value={inviteEmail}
+          onChange={(event) => setInviteEmail(event.target.value)}
+          placeholder="recruiter@company.com"
+          disabled={!isOwner}
+        />
+        <RoleSelect
+          label="Vai trò"
+          roles={roles}
+          value={inviteRoleId}
+          onValueChange={setInviteRoleId}
+          disabled={!isOwner}
+        />
+        <div className="flex items-end">
+          <Button
+            className="w-full gap-2 bg-[#11a77a] font-bold hover:bg-[#0d966d]"
+            disabled={inviteDisabled}
+            onClick={onInvite}
+          >
+            <Plus size={16} />
+            Mời thành viên
+          </Button>
         </div>
-      )}
+        {!isOwner ? (
+          <p className="text-xs font-semibold text-amber-700 lg:col-span-3">
+            Chỉ Owner của công ty mới có quyền gửi lời mời thành viên.
+          </p>
+        ) : null}
+      </div>
 
       <DataTable>
         <thead>
@@ -509,7 +525,7 @@ function RolesPanel({
     selectedRole?.rolePermissions?.map(({ recruiterPermission }) => recruiterPermission.id) ?? [],
   );
 
-  const isOwnerRoleSelected = selectedRole?.code === "OWNER";
+  const isOwnerRoleSelected = isOwnerRole(selectedRole);
 
   return (
     <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[390px_minmax(0,1fr)]">
@@ -614,7 +630,7 @@ function RolesPanel({
                   </td>
                   <td className="px-4 py-2 whitespace-normal">
                     <div className="flex max-w-xl flex-wrap gap-1.5">
-                      {role.code === "OWNER" ? (
+                      {isOwnerRole(role) ? (
                         <Badge tone="success">Tất cả quyền</Badge>
                       ) : (
                         role.rolePermissions?.map(({ recruiterPermission }) => (
