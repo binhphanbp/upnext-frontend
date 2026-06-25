@@ -50,6 +50,15 @@
       "passwordMismatch": "Passwords do not match"
     }
   },
+  "AdminAuth": {
+    "title": "UpNext Admin Portal",
+    "subtitle": "Sign in with administrator account",
+    "footerLine2": "Need access support? Contact admin@upnext.works",
+    "footerLine3": "© 2026 UpNext. All rights reserved.",
+    "submit": "Sign in",
+    "emailPlaceholder": "admin@upnext.works",
+    "passwordPlaceholder": "Enter admin password"
+  },
   "HomePage": {
     "content": {
       "header": {

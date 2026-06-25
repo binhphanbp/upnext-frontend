@@ -50,6 +50,15 @@
       "passwordMismatch": "Mật khẩu xác nhận không khớp"
     }
   },
+  "AdminAuth": {
+    "title": "Hệ thống Quản trị UpNext",
+    "subtitle": "Đăng nhập bằng tài khoản quản trị viên",
+    "footerLine2": "Cần hỗ trợ truy cập? Liên hệ admin@upnext.works",
+    "footerLine3": "© 2026 UpNext. Mọi quyền được bảo lưu.",
+    "submit": "Đăng nhập",
+    "emailPlaceholder": "admin@upnext.vn",
+    "passwordPlaceholder": "Nhập mật khẩu quản trị"
+  },
   "HomePage": {
     "content": {
       "header": {
