@@ -1,0 +1,179 @@
+.admin-login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: var(--color-gray-50);
+  font-family: var(--font-sans);
+}
+
+.admin-login-card {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: 48px;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.05),
+    0 2px 4px -2px rgb(0 0 0 / 0.05);
+}
+
+.admin-login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.admin-login-logo {
+  display: inline-flex;
+  margin-bottom: 24px;
+}
+
+.admin-login-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.admin-login-subtitle {
+  font-size: 14px;
+  color: var(--color-gray-500);
+  margin: 0;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-login-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-gray-700);
+}
+
+.admin-login-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 44px;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.admin-login-input-wrapper:hover {
+  border-color: var(--color-gray-400);
+}
+
+.admin-login-input-wrapper:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.admin-login-input-wrapper > svg {
+  margin-left: 12px;
+  color: var(--color-gray-400);
+  flex-shrink: 0;
+}
+
+.admin-login-input {
+  flex-grow: 1;
+  height: 100%;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--color-gray-900);
+  background-color: transparent;
+  border: none;
+  outline: none;
+}
+
+/* Fix browser autofill background color */
+.admin-login-input:-webkit-autofill,
+.admin-login-input:-webkit-autofill:hover,
+.admin-login-input:-webkit-autofill:focus,
+.admin-login-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: var(--color-gray-900) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.admin-login-input::placeholder {
+  color: var(--color-gray-400);
+}
+
+/* Hide native Edge/IE password reveal button */
+.admin-login-input::-ms-reveal,
+.admin-login-input::-ms-clear {
+  display: none;
+}
+
+.admin-login-input-wrapper button.admin-login-eye {
+  padding: 0;
+  margin-right: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gray-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-login-input-wrapper button.admin-login-eye:hover {
+  color: var(--color-gray-600);
+}
+
+.admin-login-error {
+  font-size: 13px;
+  color: var(--color-danger);
+  margin-top: 4px;
+}
+
+.admin-login-submit {
+  height: 44px;
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-white);
+  background-color: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.admin-login-submit:hover {
+  background-color: var(--color-primary);
+  opacity: 0.9;
+}
+
+.admin-login-submit:active {
+  background-color: var(--color-primary);
+  opacity: 0.8;
+}
+
+.admin-login-footer {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.admin-login-contact {
+  font-size: 13px;
+  color: var(--color-gray-500);
+  margin: 0;
+  line-height: 1.5;
+}
