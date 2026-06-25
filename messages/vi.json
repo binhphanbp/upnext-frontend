@@ -428,8 +428,8 @@
       "settings": "Cài đặt"
     },
     "shell": {
-      "loading": "Đang tải không gian nhà tuyển dụng...",
-      "proPackage": "Gói tuyển dụng Pro",
+      "loading": "Đang tải không gian quản trị...",
+      "proPackage": "Tính năng nâng cao",
       "notifications": "Thông báo",
       "allNotifications": "Xem tất cả thông báo",
       "profile": "Hồ sơ",
@@ -581,7 +581,8 @@
       "label": "Tài khoản",
       "profile": "Hồ sơ",
       "settings": "Cài đặt",
-      "logout": "Đăng xuất"
+      "logout": "Đăng xuất",
+      "proPackage": "Gói tuyển dụng Pro"
     },
     "tips": {
       "title": "Gợi ý hồ sơ",
@@ -707,6 +708,629 @@
         "profileDetailsLabel": "Chi tiết hồ sơ",
         "completedSectionsLabel": "Các phần hồ sơ đã hoàn thành",
         "bottomNavLabel": "Điều hướng mobile của ứng viên"
+      }
+    }
+  },
+  "AdminNav": {
+    "overview": {
+      "title": "Tổng quan",
+      "platformStats": "Thống kê nền tảng"
+    },
+    "userManagement": {
+      "title": "Quản lý Người dùng",
+      "employers": "Nhà tuyển dụng",
+      "candidates": "Ứng viên"
+    },
+    "operationsAndContent": {
+      "title": "Vận hành & Nội dung",
+      "jobs": "Quản lý tin đăng",
+      "articles": "Quản lý bài viết",
+      "moderation": "Kiểm duyệt nội dung",
+      "support": "Trung tâm hỗ trợ"
+    },
+    "financeAndBusiness": {
+      "title": "Tài chính & Kinh doanh",
+      "plans": "Gói dịch vụ",
+      "transactions": "Hóa đơn"
+    },
+    "systemAdmin": {
+      "title": "Quản trị Hệ thống",
+      "masterData": "Dữ liệu gốc",
+      "roles": "Phân quyền",
+      "auditLog": "Nhật ký hệ thống"
+    }
+  },
+  "Admin": {
+    "dashboard": {
+      "title": "Thống kê nền tảng",
+      "subtitle": "Tổng quan hiệu suất hoạt động và doanh thu của hệ thống UpNext.",
+      "downloadReport": "Tải báo cáo",
+      "totalRevenue": "Tổng doanh thu",
+      "comparedToLastMonth": "so với tháng trước",
+      "newUsers": "Người dùng mới",
+      "activeJobs": "Tin đang hoạt động",
+      "pendingApprovals": "Chờ kiểm duyệt",
+      "companies": "công ty",
+      "jobs": "tin đăng",
+      "revenueChart": {
+        "title": "Doanh thu",
+        "subtitle": "Doanh thu bán gói dịch vụ và tin đăng trong năm nay."
+      },
+      "recentActivity": {
+        "title": "Cần xử lý & Hoạt động",
+        "subtitle": "Các hoạt động mới nhất trên nền tảng cần quản trị viên xem xét.",
+        "status": {
+          "pending": "Chờ duyệt",
+          "approved": "Đã duyệt",
+          "rejected": "Từ chối"
+        },
+        "time": {
+          "hoursAgo": "{count} giờ trước",
+          "daysAgo": "{count} ngày trước"
+        }
+      }
+    },
+    "shell": {
+      "loading": "Đang tải không gian quản trị...",
+      "proPackage": "Tính năng nâng cao",
+      "notifications": "Thông báo",
+      "allNotifications": "Xem tất cả thông báo",
+      "profile": "Hồ sơ",
+      "subscription": "Gói đăng ký",
+      "invoice": "Hóa đơn của tôi",
+      "settings": "Cài đặt tài khoản",
+      "signOut": "Đăng xuất"
+    },
+    "users": {
+      "employers": {
+        "title": "Nhà tuyển dụng",
+        "subtitle": "Quản lý tài khoản công ty, duyệt hồ sơ KYC và phân quyền gói dịch vụ.",
+        "addEmployer": "Thêm nhà tuyển dụng",
+        "table": {
+          "company": "Công ty",
+          "joined": "Tham gia: {date}",
+          "representative": "Đại diện liên hệ",
+          "plan": "Gói dịch vụ",
+          "status": "Trạng thái",
+          "activeJobs": "Tin tuyển dụng",
+          "actions": "Thao tác",
+          "searchPlaceholder": "Tìm theo tên công ty, email...",
+          "allStatuses": "Tất cả trạng thái",
+          "statusOptions": {
+            "pending": "Chờ duyệt",
+            "verified": "Đã xác thực",
+            "locked": "Bị khóa"
+          },
+          "actionOptions": {
+            "copyId": "Copy ID Công ty",
+            "viewProfile": "Xem hồ sơ công ty",
+            "approve": "Duyệt tài khoản (KYC)",
+            "upgrade": "Nâng cấp gói dịch vụ",
+            "lock": "Khóa tài khoản"
+          }
+        },
+        "dialog": {
+          "title": "Thêm nhà tuyển dụng",
+          "description": "Tạo tài khoản nhà tuyển dụng mới trên hệ thống. Thông tin đăng nhập sẽ được gửi qua email.",
+          "companyName": "Tên công ty",
+          "companyNamePlaceholder": "Ví dụ: UpNext Technologies",
+          "email": "Email liên hệ",
+          "emailPlaceholder": "hr@upnext.com",
+          "plan": "Gói dịch vụ ban đầu",
+          "planPlaceholder": "Chọn gói",
+          "cancel": "Hủy bỏ",
+          "submit": "Tạo tài khoản"
+        }
+      },
+      "candidates": {
+        "title": "Ứng viên",
+        "subtitle": "Quản lý hồ sơ ứng viên, trạng thái tìm việc và hỗ trợ kỹ thuật.",
+        "table": {
+          "candidate": "Ứng viên",
+          "joined": "Tham gia: {date}",
+          "contact": "Thông tin liên hệ",
+          "status": "Trạng thái",
+          "applications": "Đã ứng tuyển",
+          "actions": "Thao tác",
+          "searchPlaceholder": "Tìm theo tên ứng viên, email...",
+          "allStatuses": "Tất cả trạng thái",
+          "statusOptions": {
+            "looking": "Đang tìm việc",
+            "open": "Mở cơ hội",
+            "closed": "Đã có việc",
+            "banned": "Bị cấm"
+          },
+          "actionOptions": {
+            "viewProfile": "Xem hồ sơ ứng viên",
+            "viewApplications": "Lịch sử ứng tuyển",
+            "sendEmail": "Gửi email hỗ trợ",
+            "ban": "Cấm tài khoản",
+            "copyId": "Copy ID Ứng viên"
+          },
+          "specialty": "Chuyên môn",
+          "joinedDate": "Ngày tham gia"
+        }
+      }
+    },
+    "content": {
+      "jobs": {
+        "title": "Tin tuyển dụng",
+        "subtitle": "Kiểm duyệt, quản lý hiển thị và gỡ bỏ các tin đăng tuyển dụng.",
+        "table": {
+          "job": "Công việc",
+          "locationAndType": "Khu vực & Loại hình",
+          "status": "Trạng thái",
+          "applicants": "Ứng tuyển",
+          "postedDate": "Ngày đăng",
+          "actions": "Thao tác",
+          "searchPlaceholder": "Tìm theo tiêu đề, công ty...",
+          "allStatuses": "Tất cả trạng thái",
+          "statusOptions": {
+            "active": "Đang hiển thị",
+            "pending": "Chờ duyệt",
+            "expired": "Hết hạn",
+            "rejected": "Đã từ chối"
+          },
+          "actionOptions": {
+            "viewDetails": "Xem chi tiết tin",
+            "goToCompany": "Chuyển đến công ty",
+            "approve": "Duyệt tin đăng",
+            "reject": "Từ chối (Kèm lý do)",
+            "remove": "Gỡ tin (Ẩn khỏi site)"
+          },
+          "typeOptions": {
+            "fullTime": "Toàn thời gian",
+            "partTime": "Bán thời gian",
+            "internship": "Thực tập",
+            "other": "Khác"
+          }
+        }
+      },
+      "articles": {
+        "title": "Bài viết & Cẩm nang",
+        "subtitle": "Quản lý bài viết blog, chia sẻ kinh nghiệm và hướng dẫn nghề nghiệp.",
+        "addArticle": "Viết bài mới",
+        "table": {
+          "article": "Bài viết",
+          "author": "Tác giả",
+          "views": "Lượt xem",
+          "status": "Trạng thái",
+          "date": "Ngày đăng",
+          "actions": "Thao tác",
+          "searchPlaceholder": "Tìm theo tiêu đề bài viết...",
+          "allStatuses": "Tất cả trạng thái",
+          "statusOptions": {
+            "published": "Đã xuất bản",
+            "draft": "Bản nháp",
+            "archived": "Lưu trữ",
+            "pending": "Đang chờ duyệt"
+          },
+          "actionOptions": {
+            "edit": "Chỉnh sửa bài viết",
+            "viewPreview": "Xem trước (Preview)",
+            "publish": "Xuất bản",
+            "archive": "Đưa vào lưu trữ",
+            "delete": "Xóa bài viết",
+            "approveAndPublish": "Duyệt và xuất bản",
+            "moveToDraft": "Chuyển thành bản nháp"
+          },
+          "categoryOptions": {
+            "career": "Phát triển nghề nghiệp",
+            "technical": "Góc kỹ thuật",
+            "market": "Báo cáo thị trường",
+            "review": "Review công ty",
+            "news": "Tin tức",
+            "blog": "Blog"
+          }
+        }
+      },
+      "moderation": {
+        "title": "Kiểm duyệt nội dung",
+        "subtitle": "Xử lý các báo cáo vi phạm từ người dùng về tin đăng hoặc tài khoản.",
+        "table": {
+          "reportId": "ID Báo cáo",
+          "target": "Đối tượng bị báo cáo",
+          "reason": "Lý do báo cáo",
+          "reporter": "Người báo cáo",
+          "status": "Trạng thái",
+          "actions": "Thao tác",
+          "searchPlaceholder": "Tìm theo ID hoặc đối tượng...",
+          "allStatuses": "Tất cả trạng thái",
+          "statusOptions": {
+            "pending": "Chờ xử lý",
+            "reviewing": "Đang xem xét",
+            "resolved": "Đã giải quyết",
+            "dismissed": "Bỏ qua"
+          },
+          "actionOptions": {
+            "viewDetails": "Xem chi tiết nội dung bị báo cáo",
+            "resolve": "Đánh dấu Đã giải quyết",
+            "dismiss": "Từ chối báo cáo (Bỏ qua)",
+            "banTarget": "Khóa đối tượng vi phạm",
+            "viewReporter": "Xem người báo cáo",
+            "resolveAndRemove": "Giải quyết (Xóa nội dung)"
+          },
+          "contentType": "Loại nội dung",
+          "reportedDate": "Ngày báo cáo",
+          "contentTypeOptions": {
+            "job": "Tin tuyển dụng",
+            "comment": "Bình luận",
+            "review": "Review công ty",
+            "profile": "Hồ sơ"
+          },
+          "reasonOptions": {
+            "spam": "Tin rác, lừa đảo",
+            "hateSpeech": "Ngôn từ thù ghét, lăng mạ",
+            "fakeInfo": "Sử dụng thông tin giả mạo",
+            "suspiciousLink": "Chứa link đáng ngờ",
+            "feeRequired": "Yêu cầu đóng phí",
+            "gambling": "Quảng cáo cá cược",
+            "inappropriateAvatar": "Avatar phản cảm",
+            "defamation": "Bôi nhọ danh dự",
+            "fakeJob": "Việc làm không có thật",
+            "profanity": "Ngôn từ thô tục",
+            "fakeReview": "Review giả mạo",
+            "invalidName": "Tên chứa ký tự lạ",
+            "unknown": "Lý do khác"
+          },
+          "anonymous": "Ẩn danh"
+        }
+      },
+      "support": {
+        "title": "Trung tâm hỗ trợ",
+        "subtitle": "Quản lý và phản hồi các yêu cầu hỗ trợ từ người dùng hệ thống.",
+        "table": {
+          "ticket": "Ticket",
+          "requester": "Người yêu cầu",
+          "category": "Phân loại",
+          "status": "Trạng thái",
+          "updatedAt": "Cập nhật lần cuối",
+          "actions": "Thao tác",
+          "searchPlaceholder": "Tìm theo tiêu đề hoặc người yêu cầu...",
+          "allStatuses": "Tất cả trạng thái",
+          "statusOptions": {
+            "open": "Mở",
+            "inProgress": "Đang xử lý",
+            "waiting": "Chờ phản hồi",
+            "closed": "Đã đóng"
+          },
+          "actionOptions": {
+            "reply": "Phản hồi yêu cầu",
+            "viewHistory": "Xem lịch sử ticket",
+            "close": "Đóng Ticket (Đã xử lý xong)",
+            "viewDetails": "Xem chi tiết Ticket",
+            "viewUser": "Xem thông tin User",
+            "markInProgress": "Chuyển trạng thái: Đang xử lý",
+            "reopen": "Mở lại Ticket"
+          },
+          "subject": "Tiêu đề yêu cầu",
+          "user": "Người dùng",
+          "priority": "Mức độ ưu tiên",
+          "createdDate": "Thời gian tạo",
+          "priorityOptions": {
+            "high": "Cao",
+            "medium": "Trung bình",
+            "low": "Thấp"
+          }
+        }
+      }
+    },
+    "finance": {
+      "plans": {
+        "title": "Gói dịch vụ",
+        "subtitle": "Cấu hình các gói Subscriptions và dịch vụ lẻ cho Nhà tuyển dụng & Ứng viên.",
+        "addPlan": "Thêm gói mới",
+        "table": {
+          "planName": "Tên gói dịch vụ",
+          "targetAudience": "Đối tượng",
+          "price": "Đơn giá",
+          "activeSubscribers": "Người dùng active",
+          "status": "Trạng thái",
+          "actions": "Thao tác",
+          "searchPlaceholder": "Tìm theo tên gói, mã ID...",
+          "allStatuses": "Tất cả trạng thái",
+          "targetAudienceOptions": {
+            "employer": "Nhà tuyển dụng",
+            "candidate": "Ứng viên"
+          },
+          "billingCycleOptions": {
+            "month": "Tháng",
+            "year": "Năm",
+            "oneTime": "Gói tín dụng (One-time)"
+          },
+          "statusOptions": {
+            "active": "Đang bán",
+            "legacy": "Ngừng bán (Legacy)",
+            "draft": "Bản nháp"
+          },
+          "actionOptions": {
+            "edit": "Chỉnh sửa gói",
+            "viewSubscribers": "Xem danh sách người mua",
+            "publish": "Phát hành (Đưa lên bán)",
+            "retire": "Ngừng bán (Legacy)"
+          },
+          "planNames": {
+            "PLAN-EMP-PRO": "Employer Pro",
+            "PLAN-EMP-PREM": "Employer Premium",
+            "PLAN-EMP-CRED": "Gói 5 Tin Tuyển Dụng",
+            "PLAN-CAN-PRO": "Candidate Pro (Nổi bật hồ sơ)",
+            "PLAN-EMP-BASIC-OLD": "Employer Basic (2025)",
+            "PLAN-EMP-LITE": "Employer Lite",
+            "PLAN-CAN-BASIC": "Candidate Basic",
+            "PLAN-EMP-ENT": "Employer Enterprise",
+            "PLAN-EMP-CRED-10": "Gói 10 Tin Tuyển Dụng",
+            "PLAN-CAN-MENTOR": "1:1 Mentorship",
+            "PLAN-EMP-CV": "Gói xem 100 CV"
+          }
+        },
+        "dialog": {
+          "title": "Tạo Gói Dịch Vụ Mới",
+          "description": "Thiết lập thông tin cơ bản cho gói dịch vụ (Subscription/Credit) mới trên hệ thống.",
+          "fields": {
+            "planName": "Tên gói dịch vụ",
+            "planNamePlaceholder": "VD: Employer Premium 2026",
+            "targetAudience": "Đối tượng khách hàng",
+            "targetAudiencePlaceholder": "Chọn đối tượng",
+            "price": "Đơn giá (VNĐ)",
+            "pricePlaceholder": "VD: 2500000",
+            "billingCycle": "Chu kỳ thanh toán",
+            "billingCyclePlaceholder": "Chọn chu kỳ"
+          },
+          "billingCycleOptions": {
+            "monthly": "Hàng tháng (Monthly)",
+            "yearly": "Hàng năm (Yearly)",
+            "oneTime": "Gói tín dụng (One-time)"
+          },
+          "buttons": {
+            "cancel": "Hủy",
+            "createDraft": "Tạo bản nháp"
+          }
+        }
+      },
+      "transactions": {
+        "title": "Lịch sử giao dịch",
+        "subtitle": "Theo dõi doanh thu, lịch sử thanh toán gói dịch vụ của Nhà tuyển dụng và Ứng viên.",
+        "table": {
+          "id": "Mã giao dịch",
+          "client": "Khách hàng",
+          "amount": "Số tiền",
+          "paymentMethod": "Phương thức thanh toán",
+          "status": "Trạng thái",
+          "transactionDate": "Thời gian",
+          "actions": "Thao tác",
+          "searchPlaceholder": "Tìm theo mã GD, khách hàng...",
+          "allStatuses": "Tất cả trạng thái",
+          "statusOptions": {
+            "success": "Thành công",
+            "processing": "Đang xử lý",
+            "failed": "Thất bại",
+            "refunded": "Đã hoàn tiền"
+          },
+          "actionOptions": {
+            "viewInvoice": "Xem hóa đơn (Invoice)",
+            "resendEmail": "Gửi lại biên lai qua Email",
+            "recheckStatus": "Kiểm tra lại trạng thái GD",
+            "refund": "Hoàn tiền (Refund)"
+          },
+          "paymentMethodOptions": {
+            "bankTransfer": "Chuyển khoản",
+            "creditCard": "Thẻ tín dụng",
+            "momo": "MoMo",
+            "vnpay": "VNPAY"
+          },
+          "mockServices": {
+            "Employer Premium (1 Năm)": "Employer Premium (1 Năm)",
+            "Employer Pro (1 Tháng)": "Employer Pro (1 Tháng)",
+            "Gói 5 Tin Tuyển Dụng": "Gói 5 Tin Tuyển Dụng",
+            "Candidate Pro (1 Tháng)": "Candidate Pro (1 Tháng)",
+            "Candidate Pro": "Candidate Pro",
+            "Gói 10 Tin Tuyển Dụng": "Gói 10 Tin Tuyển Dụng",
+            "Employer Enterprise": "Employer Enterprise",
+            "1:1 Mentorship": "1:1 Mentorship",
+            "Gói xem 100 CV": "Gói xem 100 CV"
+          },
+          "mockClients": {
+            "TechCorp Vietnam": "TechCorp Vietnam",
+            "Global Outsource LLC": "Global Outsource LLC",
+            "Startup B": "Startup B",
+            "Nguyễn Lê Anh (Candidate)": "Nguyễn Lê Anh (Ứng viên)",
+            "Scam Company": "Scam Company",
+            "Công ty ABC": "Công ty ABC",
+            "Trần Văn E (Candidate)": "Trần Văn E (Ứng viên)",
+            "ZaloPay HR": "ZaloPay HR",
+            "FPT Software": "FPT Software",
+            "Shopee Vietnam": "Shopee Vietnam",
+            "Phạm F (Candidate)": "Phạm F (Ứng viên)",
+            "Tiki HR": "Tiki HR"
+          }
+        }
+      }
+    },
+    "system": {
+      "masterData": {
+        "title": "Dữ liệu gốc",
+        "subtitle": "Quản lý các danh mục lõi của hệ thống như Ngành nghề, Kỹ năng, Địa điểm, v.v.",
+        "addMasterData": "Thêm danh mục mới",
+        "table": {
+          "name": "Tên tập dữ liệu",
+          "category": "Phân loại",
+          "itemCount": "Số lượng Record",
+          "status": "Trạng thái",
+          "lastUpdated": "Cập nhật lần cuối",
+          "actions": "Thao tác",
+          "searchPlaceholder": "Tìm kiếm theo tên tập dữ liệu...",
+          "allStatuses": "Tất cả trạng thái",
+          "categoryOptions": {
+            "industry": "Ngành nghề",
+            "skill": "Kỹ năng",
+            "location": "Địa điểm",
+            "level": "Cấp bậc",
+            "type": "Loại hình"
+          },
+          "statusOptions": {
+            "active": "Đang hoạt động",
+            "inactive": "Ngừng sử dụng"
+          },
+          "actionOptions": {
+            "edit": "Chỉnh sửa dữ liệu",
+            "export": "Xuất Excel / CSV",
+            "deactivate": "Ngừng sử dụng",
+            "reactivate": "Kích hoạt lại"
+          }
+        },
+        "dialog": {
+          "title": "Tạo Bộ Dữ Liệu Gốc (Master Data)",
+          "description": "Thiết lập danh mục lõi mới để sử dụng trong toàn bộ hệ thống nền tảng.",
+          "fields": {
+            "datasetName": "Tên bộ dữ liệu",
+            "datasetNamePlaceholder": "VD: Danh sách Bằng cấp",
+            "category": "Phân loại (Category)",
+            "categoryPlaceholder": "Chọn phân loại",
+            "dataCode": "Mã tham chiếu (Code)",
+            "dataCodePlaceholder": "VD: DEGREE_LIST",
+            "description": "Mô tả ngắn gọn",
+            "descriptionPlaceholder": "VD: Dùng cho dropdown Bằng cấp ở hồ sơ"
+          },
+          "categoryOptions": {
+            "industry": "Ngành nghề",
+            "skill": "Kỹ năng (Skills)",
+            "location": "Địa điểm",
+            "level": "Cấp bậc",
+            "type": "Loại hình công việc",
+            "other": "Khác"
+          },
+          "buttons": {
+            "cancel": "Hủy",
+            "create": "Khởi tạo dữ liệu"
+          }
+        }
+      },
+      "roles": {
+        "title": "Phân quyền",
+        "subtitle": "Quản lý các nhóm quyền và thiết lập mức độ truy cập cho nhân sự nội bộ.",
+        "addRole": "Tạo vai trò mới",
+        "table": {
+          "name": "Vai trò",
+          "type": "Loại vai trò",
+          "userCount": "Số người dùng",
+          "status": "Trạng thái",
+          "actions": "Thao tác",
+          "searchPlaceholder": "Tìm kiếm theo tên vai trò...",
+          "allStatuses": "Tất cả trạng thái",
+          "typeOptions": {
+            "system": "Hệ thống",
+            "custom": "Tùy chỉnh"
+          },
+          "statusOptions": {
+            "active": "Kích hoạt",
+            "inactive": "Vô hiệu hóa"
+          },
+          "actionOptions": {
+            "editPermissions": "Chỉnh sửa quyền hạn (Permissions)",
+            "viewUsers": "Xem danh sách tài khoản",
+            "deactivate": "Vô hiệu hóa",
+            "reactivate": "Kích hoạt lại",
+            "delete": "Xóa vai trò"
+          },
+          "mockRoles": {
+            "ROLE-ADMIN": {
+              "name": "Quản trị viên cấp cao (Super Admin)",
+              "description": "Toàn quyền truy cập tất cả tính năng của hệ thống."
+            },
+            "ROLE-MODERATOR": {
+              "name": "Người kiểm duyệt (Moderator)",
+              "description": "Kiểm duyệt nội dung, báo cáo, tin tuyển dụng."
+            },
+            "ROLE-SALES": {
+              "name": "Nhân viên Kinh doanh (Sales)",
+              "description": "Quản lý khách hàng, gói dịch vụ và xem báo cáo kinh doanh."
+            },
+            "ROLE-SUPPORT": {
+              "name": "Hỗ trợ Khách hàng (Customer Support)",
+              "description": "Xử lý ticket và hỗ trợ người dùng."
+            },
+            "ROLE-CUSTOM-01": {
+              "name": "Thực tập sinh Marketing",
+              "description": "Chỉ được xem và đăng bài viết PR."
+            },
+            "ROLE-CUSTOM-02": {
+              "name": "Cộng tác viên Nội dung",
+              "description": "Tạo bài viết nháp."
+            },
+            "ROLE-CUSTOM-03": {
+              "name": "Tuyển dụng nội bộ",
+              "description": "Quản lý quy trình tuyển dụng nội bộ."
+            },
+            "ROLE-CUSTOM-04": {
+              "name": "Chuyên viên Phân tích",
+              "description": "Xem báo cáo dữ liệu."
+            },
+            "ROLE-CUSTOM-05": {
+              "name": "Kế toán viên",
+              "description": "Quản lý hóa đơn và thanh toán."
+            },
+            "ROLE-CUSTOM-06": {
+              "name": "Chăm sóc Khách hàng VIP",
+              "description": "Hỗ trợ riêng cho tài khoản doanh nghiệp VIP."
+            },
+            "ROLE-CUSTOM-07": {
+              "name": "Quản trị viên IT",
+              "description": "Bảo trì hệ thống nội bộ."
+            }
+          }
+        },
+        "dialog": {
+          "title": "Tạo Vai Trò Tùy Chỉnh",
+          "description": "Tạo một Role mới và sau đó bạn có thể cấu hình chi tiết phân quyền (Permissions).",
+          "fields": {
+            "roleName": "Tên vai trò",
+            "roleNamePlaceholder": "VD: Kế toán (Accounting)",
+            "description": "Mô tả ngắn",
+            "descriptionPlaceholder": "VD: Chỉ được phép xem lịch sử giao dịch",
+            "cloneFrom": "Kế thừa quyền từ (Tùy chọn)",
+            "cloneFromPlaceholder": "Chọn vai trò mẫu"
+          },
+          "cloneOptions": {
+            "none": "-- Tạo quyền trống --",
+            "moderator": "Kế thừa từ: Moderator",
+            "sales": "Kế thừa từ: Sales",
+            "support": "Kế thừa từ: Support"
+          },
+          "buttons": {
+            "cancel": "Hủy",
+            "create": "Tạo vai trò"
+          }
+        }
+      },
+      "auditLog": {
+        "title": "Nhật ký hệ thống",
+        "subtitle": "Lưu vết mọi thao tác thay đổi dữ liệu của nhân sự nội bộ vì mục đích bảo mật.",
+        "exportLog": "Xuất Log CSV",
+        "table": {
+          "timestamp": "Thời gian",
+          "user": "Người dùng (Actor)",
+          "action": "Loại thao tác",
+          "resource": "Đối tượng (Resource)",
+          "status": "Trạng thái",
+          "actions": "Chi tiết",
+          "searchPlaceholder": "Tìm kiếm theo người dùng hoặc đối tượng...",
+          "allActions": "Tất cả thao tác",
+          "actionOptions": {
+            "create": "Tạo mới",
+            "update": "Cập nhật",
+            "delete": "Xóa",
+            "login": "Đăng nhập",
+            "other": "Khác"
+          },
+          "statusOptions": {
+            "success": "Thành công",
+            "failed": "Thất bại"
+          },
+          "actionMenuOptions": {
+            "viewDetails": "Xem dữ liệu chi tiết (JSON)",
+            "viewHistory": "Xem lịch sử User này"
+          }
+        }
       }
     }
   }

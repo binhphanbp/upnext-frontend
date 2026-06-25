@@ -140,29 +140,93 @@ const data: AdminModerationReport[] = [
   },
 ];
 
-export const columns: ColumnDef<AdminModerationReport>[] = [
+import { useTranslations } from "next-intl";
+
+export const getColumns = (t: any): ColumnDef<AdminModerationReport>[] => [
   {
     accessorKey: "contentType",
-    header: "Loại nội dung",
-    cell: ({ row }) => (
-      <div>
-        <p className="font-medium">{row.original.contentType}</p>
-        <p className="text-muted-foreground text-xs">{row.original.targetName}</p>
-      </div>
-    ),
+    header: t("contentType"),
+    cell: ({ row }) => {
+      const type = row.original.contentType as string;
+      const typeKey =
+        type === "Tin tuyển dụng"
+          ? "job"
+          : type === "Bình luận"
+            ? "comment"
+            : type === "Review công ty"
+              ? "review"
+              : type === "Hồ sơ"
+                ? "profile"
+                : "job"; // fallback
+
+      return (
+        <div>
+          <p className="font-medium">{t(`contentTypeOptions.${typeKey}`)}</p>
+          <p className="text-muted-foreground text-xs">{row.original.targetName}</p>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "reporter",
-    header: "Người báo cáo",
+    header: t("reporter"),
+    cell: ({ row }) => {
+      const reporter = row.original.reporter as string;
+      return <p>{reporter === "Ẩn danh" ? t("anonymous") : reporter}</p>;
+    },
   },
   {
     accessorKey: "reason",
-    header: "Lý do",
-    cell: ({ row }) => <p className="max-w-[200px] truncate">{row.original.reason}</p>,
+    header: t("reason"),
+    cell: ({ row }) => {
+      const reason = row.original.reason as string;
+      let reasonKey = "unknown";
+
+      switch (reason) {
+        case "Tin rác, lừa đảo":
+          reasonKey = "spam";
+          break;
+        case "Ngôn từ thù ghét, lăng mạ":
+          reasonKey = "hateSpeech";
+          break;
+        case "Sử dụng thông tin giả mạo":
+          reasonKey = "fakeInfo";
+          break;
+        case "Chứa link đáng ngờ":
+          reasonKey = "suspiciousLink";
+          break;
+        case "Yêu cầu đóng phí":
+          reasonKey = "feeRequired";
+          break;
+        case "Quảng cáo cá cược":
+          reasonKey = "gambling";
+          break;
+        case "Avatar phản cảm":
+          reasonKey = "inappropriateAvatar";
+          break;
+        case "Bôi nhọ danh dự":
+          reasonKey = "defamation";
+          break;
+        case "Việc làm không có thật":
+          reasonKey = "fakeJob";
+          break;
+        case "Ngôn từ thô tục":
+          reasonKey = "profanity";
+          break;
+        case "Review giả mạo":
+          reasonKey = "fakeReview";
+          break;
+        case "Tên chứa ký tự lạ":
+          reasonKey = "invalidName";
+          break;
+      }
+
+      return <p className="max-w-[200px] truncate">{t(`reasonOptions.${reasonKey}`)}</p>;
+    },
   },
   {
     accessorKey: "status",
-    header: "Trạng thái",
+    header: t("status"),
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const tone =
@@ -171,17 +235,24 @@ export const columns: ColumnDef<AdminModerationReport>[] = [
           : status === "Đang chờ xử lý"
             ? "warning"
             : "neutral";
-      return <Badge tone={tone}>{status}</Badge>;
+
+      const statusKey =
+        status === "Đã giải quyết"
+          ? "resolved"
+          : status === "Đang chờ xử lý"
+            ? "pending"
+            : "dismissed";
+      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "reportedDate",
-    header: "Ngày báo cáo",
+    header: t("reportedDate"),
     cell: ({ row }) => <div>{row.original.reportedDate}</div>,
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Thao tác</div>,
+    header: () => <div className="text-right">{t("actions")}</div>,
     cell: ({ row }) => {
       const report = row.original;
 
@@ -195,20 +266,20 @@ export const columns: ColumnDef<AdminModerationReport>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-              <DropdownMenuItem>Xem chi tiết nội dung bị báo cáo</DropdownMenuItem>
-              <DropdownMenuItem>Xem người báo cáo</DropdownMenuItem>
+              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+              <DropdownMenuItem>{t("actionOptions.viewDetails")}</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.viewReporter")}</DropdownMenuItem>
               <DropdownMenuSeparator />
               {report.status === "Đang chờ xử lý" && (
                 <>
                   <DropdownMenuItem className="text-success">
-                    Giải quyết (Xóa nội dung)
+                    {t("actionOptions.resolveAndRemove")}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-warning">
-                    Khóa tài khoản vi phạm
+                    {t("actionOptions.banTarget")}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-neutral">
-                    Từ chối báo cáo (Bỏ qua)
+                    {t("actionOptions.dismiss")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -222,11 +293,14 @@ export const columns: ColumnDef<AdminModerationReport>[] = [
 
 export function ModerationTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const t = useTranslations("Admin.content.moderation.table");
 
   const filteredData = React.useMemo(() => {
     if (statusFilter === "all") return data;
     return data.filter((item) => item.status === statusFilter);
   }, [statusFilter]);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -236,20 +310,17 @@ export function ModerationTable() {
             className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
             size={18}
           />
-          <Input
-            className="bg-muted h-10 rounded-xl pl-10"
-            placeholder="Tìm theo loại nội dung, mục tiêu..."
-          />
+          <Input className="bg-muted h-10 rounded-xl pl-10" placeholder={t("searchPlaceholder")} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
-            <SelectValue placeholder="Tất cả trạng thái" />
+            <SelectValue placeholder={t("allStatuses")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="Đang chờ xử lý">Đang chờ xử lý</SelectItem>
-            <SelectItem value="Đã giải quyết">Đã giải quyết</SelectItem>
-            <SelectItem value="Đã từ chối">Đã từ chối</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="Đang chờ xử lý">{t("statusOptions.pending")}</SelectItem>
+            <SelectItem value="Đã giải quyết">{t("statusOptions.resolved")}</SelectItem>
+            <SelectItem value="Đã từ chối">{t("statusOptions.dismissed")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

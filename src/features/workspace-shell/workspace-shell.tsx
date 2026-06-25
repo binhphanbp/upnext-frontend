@@ -84,7 +84,9 @@ export function WorkspaceShell({
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setIsScrolled(e.currentTarget.scrollTop > 0);
   };
-  const t = useTranslations("Recruiter");
+  const tNamespace = workspaceRole.charAt(0).toUpperCase() + workspaceRole.slice(1);
+  const t = useTranslations(tNamespace as any);
+  const tShell = useTranslations("WorkspaceShell");
 
   function switchLanguage(nextLocale: "en" | "vi") {
     if (nextLocale === currentLocale) return;
@@ -205,7 +207,7 @@ export function WorkspaceShell({
                 size={collapsed ? "icon" : "md"}
               >
                 <Sparkle />
-                {!collapsed ? "Gói tuyển dụng Pro" : null}
+                {!collapsed ? t("shell.proPackage") : null}
               </Button>
             ) : null}
             <Button
@@ -214,7 +216,7 @@ export function WorkspaceShell({
               size={collapsed ? "icon" : "md"}
             >
               <SignOut />
-              {!collapsed ? "Đăng xuất" : null}
+              {!collapsed ? t("shell.signOut") : null}
             </Button>
           </div>
         </aside>

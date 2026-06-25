@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 
@@ -42,13 +44,13 @@ const recentTasks = [
 ];
 
 export function RecentActivity() {
+  const t = useTranslations("Admin.dashboard");
+
   return (
     <Card className="col-span-1 lg:col-span-3">
       <CardHeader>
-        <CardTitle>Cần xử lý & Hoạt động</CardTitle>
-        <CardDescription>
-          Các hoạt động mới nhất trên nền tảng cần quản trị viên xem xét.
-        </CardDescription>
+        <CardTitle>{t("recentActivity.title")}</CardTitle>
+        <CardDescription>{t("recentActivity.subtitle")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
@@ -69,11 +71,7 @@ export function RecentActivity() {
                           : "error"
                     }
                   >
-                    {task.status === "pending"
-                      ? "Chờ duyệt"
-                      : task.status === "approved"
-                        ? "Đã duyệt"
-                        : "Từ chối"}
+                    {t(`recentActivity.status.${task.status}` as any)}
                   </Badge>
                 </div>
                 <div className="text-muted-foreground hidden min-w-20 text-right text-xs sm:block">

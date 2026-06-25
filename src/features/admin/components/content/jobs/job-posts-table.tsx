@@ -153,10 +153,12 @@ const data: AdminJobPost[] = [
   },
 ];
 
-export const columns: ColumnDef<AdminJobPost>[] = [
+import { useTranslations } from "next-intl";
+
+export const getColumns = (t: any): ColumnDef<AdminJobPost>[] => [
   {
     accessorKey: "title",
-    header: "Công việc",
+    header: t("job"),
     cell: ({ row }) => (
       <div>
         <p className="text-foreground font-bold">{row.original.title}</p>
@@ -166,17 +168,29 @@ export const columns: ColumnDef<AdminJobPost>[] = [
   },
   {
     accessorKey: "location",
-    header: "Khu vực & Loại hình",
-    cell: ({ row }) => (
-      <div>
-        <p className="font-medium">{row.original.location}</p>
-        <p className="text-muted-foreground text-xs">{row.original.type}</p>
-      </div>
-    ),
+    header: t("locationAndType"),
+    cell: ({ row }) => {
+      const type = row.original.type as string;
+      const typeKey =
+        type === "Toàn thời gian"
+          ? "fullTime"
+          : type === "Bán thời gian"
+            ? "partTime"
+            : type === "Thực tập"
+              ? "internship"
+              : "other";
+
+      return (
+        <div>
+          <p className="font-medium">{row.original.location}</p>
+          <p className="text-muted-foreground text-xs">{t(`typeOptions.${typeKey}`)}</p>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "status",
-    header: "Trạng thái",
+    header: t("status"),
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const tone =
@@ -187,24 +201,33 @@ export const columns: ColumnDef<AdminJobPost>[] = [
             : status === "Hết hạn"
               ? "neutral"
               : "error";
-      return <Badge tone={tone}>{status}</Badge>;
+
+      const statusKey =
+        status === "Đang hiển thị"
+          ? "active"
+          : status === "Chờ duyệt"
+            ? "pending"
+            : status === "Hết hạn"
+              ? "expired"
+              : "rejected";
+      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "applicants",
-    header: () => <div className="text-right">Ứng tuyển</div>,
+    header: () => <div className="text-right">{t("applicants")}</div>,
     cell: ({ row }) => {
       return <div className="text-right font-medium">{row.getValue("applicants")}</div>;
     },
   },
   {
     accessorKey: "postedDate",
-    header: "Ngày đăng",
+    header: t("postedDate"),
     cell: ({ row }) => <div>{row.original.postedDate}</div>,
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Thao tác</div>,
+    header: () => <div className="text-right">{t("actions")}</div>,
     cell: ({ row }) => {
       const job = row.original;
 
@@ -218,18 +241,24 @@ export const columns: ColumnDef<AdminJobPost>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-              <DropdownMenuItem>Xem chi tiết tin</DropdownMenuItem>
-              <DropdownMenuItem>Chuyển đến công ty</DropdownMenuItem>
+              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+              <DropdownMenuItem>{t("actionOptions.viewDetails")}</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.goToCompany")}</DropdownMenuItem>
               <DropdownMenuSeparator />
               {job.status === "Chờ duyệt" && (
                 <>
-                  <DropdownMenuItem className="text-success">Duyệt tin đăng</DropdownMenuItem>
-                  <DropdownMenuItem className="text-error">Từ chối (Kèm lý do)</DropdownMenuItem>
+                  <DropdownMenuItem className="text-success">
+                    {t("actionOptions.approve")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-error">
+                    {t("actionOptions.reject")}
+                  </DropdownMenuItem>
                 </>
               )}
               {job.status === "Đang hiển thị" && (
-                <DropdownMenuItem className="text-error">Gỡ tin (Ẩn khỏi site)</DropdownMenuItem>
+                <DropdownMenuItem className="text-error">
+                  {t("actionOptions.remove")}
+                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -241,11 +270,14 @@ export const columns: ColumnDef<AdminJobPost>[] = [
 
 export function JobPostsTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const t = useTranslations("Admin.content.jobs.table");
 
   const filteredData = React.useMemo(() => {
     if (statusFilter === "all") return data;
     return data.filter((item) => item.status === statusFilter);
   }, [statusFilter]);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -255,21 +287,18 @@ export function JobPostsTable() {
             className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
             size={18}
           />
-          <Input
-            className="bg-muted h-10 rounded-xl pl-10"
-            placeholder="Tìm theo tiêu đề, công ty..."
-          />
+          <Input className="bg-muted h-10 rounded-xl pl-10" placeholder={t("searchPlaceholder")} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
-            <SelectValue placeholder="Tất cả trạng thái" />
+            <SelectValue placeholder={t("allStatuses")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="Đang hiển thị">Đang hiển thị</SelectItem>
-            <SelectItem value="Chờ duyệt">Chờ duyệt</SelectItem>
-            <SelectItem value="Hết hạn">Hết hạn</SelectItem>
-            <SelectItem value="Đã từ chối">Đã từ chối</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="Đang hiển thị">{t("statusOptions.active")}</SelectItem>
+            <SelectItem value="Chờ duyệt">{t("statusOptions.pending")}</SelectItem>
+            <SelectItem value="Hết hạn">{t("statusOptions.expired")}</SelectItem>
+            <SelectItem value="Đã từ chối">{t("statusOptions.rejected")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

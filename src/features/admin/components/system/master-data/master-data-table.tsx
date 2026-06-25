@@ -126,10 +126,12 @@ const data: AdminMasterData[] = [
   },
 ];
 
-export const columns: ColumnDef<AdminMasterData>[] = [
+import { useTranslations } from "next-intl";
+
+export const getColumns = (t: any): ColumnDef<AdminMasterData>[] => [
   {
     accessorKey: "name",
-    header: "Tên tập dữ liệu",
+    header: t("name"),
     cell: ({ row }) => (
       <div>
         <p className="text-foreground font-bold">{row.original.name}</p>
@@ -139,7 +141,7 @@ export const columns: ColumnDef<AdminMasterData>[] = [
   },
   {
     accessorKey: "category",
-    header: "Phân loại",
+    header: t("category"),
     cell: ({ row }) => {
       const category = row.getValue("category") as string;
       const tone =
@@ -150,12 +152,23 @@ export const columns: ColumnDef<AdminMasterData>[] = [
             : category === "Địa điểm"
               ? "info"
               : "neutral";
-      return <Badge tone={tone}>{category}</Badge>;
+
+      const categoryKey =
+        category === "Ngành nghề"
+          ? "industry"
+          : category === "Kỹ năng"
+            ? "skill"
+            : category === "Địa điểm"
+              ? "location"
+              : category === "Cấp bậc"
+                ? "level"
+                : "type";
+      return <Badge tone={tone}>{t(`categoryOptions.${categoryKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "itemCount",
-    header: () => <div className="text-right">Số lượng Record</div>,
+    header: () => <div className="text-right">{t("itemCount")}</div>,
     cell: ({ row }) => {
       return (
         <div className="text-right font-medium">
@@ -166,21 +179,23 @@ export const columns: ColumnDef<AdminMasterData>[] = [
   },
   {
     accessorKey: "status",
-    header: "Trạng thái",
+    header: t("status"),
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const tone = status === "Đang hoạt động" ? "success" : "neutral";
-      return <Badge tone={tone}>{status}</Badge>;
+
+      const statusKey = status === "Đang hoạt động" ? "active" : "inactive";
+      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "lastUpdated",
-    header: "Cập nhật lần cuối",
+    header: t("lastUpdated"),
     cell: ({ row }) => <div>{row.original.lastUpdated}</div>,
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Thao tác</div>,
+    header: () => <div className="text-right">{t("actions")}</div>,
     cell: ({ row }) => {
       const record = row.original;
 
@@ -194,15 +209,19 @@ export const columns: ColumnDef<AdminMasterData>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-              <DropdownMenuItem>Chỉnh sửa dữ liệu</DropdownMenuItem>
-              <DropdownMenuItem>Xuất Excel / CSV</DropdownMenuItem>
+              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+              <DropdownMenuItem>{t("actionOptions.edit")}</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.export")}</DropdownMenuItem>
               <DropdownMenuSeparator />
               {record.status === "Đang hoạt động" && (
-                <DropdownMenuItem className="text-warning">Ngừng sử dụng</DropdownMenuItem>
+                <DropdownMenuItem className="text-warning">
+                  {t("actionOptions.deactivate")}
+                </DropdownMenuItem>
               )}
               {record.status === "Ngừng sử dụng" && (
-                <DropdownMenuItem className="text-success">Kích hoạt lại</DropdownMenuItem>
+                <DropdownMenuItem className="text-success">
+                  {t("actionOptions.reactivate")}
+                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -215,6 +234,7 @@ export const columns: ColumnDef<AdminMasterData>[] = [
 export function MasterDataTable() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
+  const t = useTranslations("Admin.system.masterData.table");
 
   const filteredData = React.useMemo(() => {
     return data.filter((item) => {
@@ -223,6 +243,8 @@ export function MasterDataTable() {
       return matchesSearch && matchesStatus;
     });
   }, [searchTerm, statusFilter]);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -233,7 +255,7 @@ export function MasterDataTable() {
             className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
           />
           <Input
-            placeholder="Tìm kiếm theo tên tập dữ liệu..."
+            placeholder={t("searchPlaceholder")}
             className="rounded-xl bg-white pl-10 lg:max-w-md"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -242,12 +264,12 @@ export function MasterDataTable() {
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full rounded-xl bg-white sm:w-[200px]">
-            <SelectValue placeholder="Tất cả trạng thái" />
+            <SelectValue placeholder={t("allStatuses")} />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="Đang hoạt động">Đang hoạt động</SelectItem>
-            <SelectItem value="Ngừng sử dụng">Ngừng sử dụng</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="Đang hoạt động">{t("statusOptions.active")}</SelectItem>
+            <SelectItem value="Ngừng sử dụng">{t("statusOptions.inactive")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

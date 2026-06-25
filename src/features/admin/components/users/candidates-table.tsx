@@ -140,10 +140,12 @@ const data: Candidate[] = [
   },
 ];
 
-export const columns: ColumnDef<Candidate>[] = [
+import { useTranslations } from "next-intl";
+
+export const getColumns = (t: any): ColumnDef<Candidate>[] => [
   {
     accessorKey: "name",
-    header: "Ứng viên",
+    header: t("candidate"),
     cell: ({ row }) => (
       <div>
         <p className="text-foreground font-bold">{row.original.name}</p>
@@ -153,7 +155,7 @@ export const columns: ColumnDef<Candidate>[] = [
   },
   {
     accessorKey: "specialty",
-    header: "Chuyên môn",
+    header: t("specialty"),
     cell: ({ row }) => {
       const specialty = row.getValue("specialty") as string;
       return (
@@ -165,31 +167,34 @@ export const columns: ColumnDef<Candidate>[] = [
   },
   {
     accessorKey: "status",
-    header: "Trạng thái hồ sơ",
+    header: t("status"),
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const tone =
         status === "Đang tìm việc" ? "brand" : status === "Công khai" ? "info" : "neutral";
-      return <Badge tone={tone}>{status}</Badge>;
+
+      const statusKey =
+        status === "Đang tìm việc" ? "looking" : status === "Công khai" ? "open" : "closed";
+      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "applications",
-    header: () => <div className="text-right">Lượt ứng tuyển</div>,
+    header: () => <div className="text-right">{t("applications")}</div>,
     cell: ({ row }) => {
       return <div className="text-right font-medium">{row.getValue("applications")}</div>;
     },
   },
   {
     accessorKey: "joinDate",
-    header: () => <div className="text-right">Ngày tham gia</div>,
+    header: () => <div className="text-right">{t("joinedDate")}</div>,
     cell: ({ row }) => {
       return <div className="text-muted-foreground text-right">{row.getValue("joinDate")}</div>;
     },
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Thao tác</div>,
+    header: () => <div className="text-right">{t("actions")}</div>,
     cell: ({ row }) => {
       const candidate = row.original;
 
@@ -203,15 +208,15 @@ export const columns: ColumnDef<Candidate>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
+              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => navigator.clipboard.writeText(candidate.id)}>
-                Copy ID Ứng viên
+                {t("actionOptions.copyId")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Xem CV / Hồ sơ</DropdownMenuItem>
-              <DropdownMenuItem>Gửi Email nhắc nhở</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.viewProfile")}</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.viewApplications")}</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-error">Khóa tài khoản</DropdownMenuItem>
+              <DropdownMenuItem className="text-error">{t("actionOptions.ban")}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -222,11 +227,14 @@ export const columns: ColumnDef<Candidate>[] = [
 
 export function CandidatesTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const t = useTranslations("Admin.users.candidates.table");
 
   const filteredData = React.useMemo(() => {
     if (statusFilter === "all") return data;
     return data.filter((item) => item.status === statusFilter);
   }, [statusFilter]);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -236,20 +244,17 @@ export function CandidatesTable() {
             className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
             size={18}
           />
-          <Input
-            className="bg-muted h-10 rounded-xl pl-10"
-            placeholder="Tìm theo tên ứng viên, email, kỹ năng..."
-          />
+          <Input className="bg-muted h-10 rounded-xl pl-10" placeholder={t("searchPlaceholder")} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
-            <SelectValue placeholder="Tất cả trạng thái" />
+            <SelectValue placeholder={t("allStatuses")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="Công khai">Công khai</SelectItem>
-            <SelectItem value="Đang tìm việc">Đang tìm việc</SelectItem>
-            <SelectItem value="Đóng">Đóng</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="Công khai">{t("statusOptions.open")}</SelectItem>
+            <SelectItem value="Đang tìm việc">{t("statusOptions.looking")}</SelectItem>
+            <SelectItem value="Đóng">{t("statusOptions.closed")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

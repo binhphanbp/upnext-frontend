@@ -153,20 +153,24 @@ const data: Employer[] = [
   },
 ];
 
-export const columns: ColumnDef<Employer>[] = [
+import { useTranslations } from "next-intl";
+
+export const getColumns = (t: any): ColumnDef<Employer>[] => [
   {
     accessorKey: "companyName",
-    header: "Công ty",
+    header: t("company"),
     cell: ({ row }) => (
       <div>
         <p className="text-foreground font-bold">{row.original.companyName}</p>
-        <p className="text-muted-foreground text-xs">Tham gia: {row.original.joinDate}</p>
+        <p className="text-muted-foreground text-xs">
+          {t("joined", { date: row.original.joinDate })}
+        </p>
       </div>
     ),
   },
   {
     accessorKey: "representative",
-    header: "Đại diện liên hệ",
+    header: t("representative"),
     cell: ({ row }) => (
       <div>
         <p className="font-medium">{row.original.representative}</p>
@@ -176,7 +180,7 @@ export const columns: ColumnDef<Employer>[] = [
   },
   {
     accessorKey: "plan",
-    header: "Gói dịch vụ",
+    header: t("plan"),
     cell: ({ row }) => {
       const plan = row.getValue("plan") as string;
       const tone = plan === "Premium" ? "premium" : plan === "Pro" ? "brand" : "neutral";
@@ -185,24 +189,27 @@ export const columns: ColumnDef<Employer>[] = [
   },
   {
     accessorKey: "status",
-    header: "Trạng thái",
+    header: t("status"),
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const tone =
         status === "Đã xác thực" ? "success" : status === "Chờ duyệt" ? "warning" : "error";
-      return <Badge tone={tone}>{status}</Badge>;
+
+      const statusKey =
+        status === "Đã xác thực" ? "verified" : status === "Chờ duyệt" ? "pending" : "locked";
+      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "activeJobs",
-    header: () => <div className="text-right">Tin tuyển dụng</div>,
+    header: () => <div className="text-right">{t("activeJobs")}</div>,
     cell: ({ row }) => {
       return <div className="text-right font-medium">{row.getValue("activeJobs")}</div>;
     },
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Thao tác</div>,
+    header: () => <div className="text-right">{t("actions")}</div>,
     cell: ({ row }) => {
       const employer = row.original;
 
@@ -216,18 +223,22 @@ export const columns: ColumnDef<Employer>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
+              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => navigator.clipboard.writeText(employer.id)}>
-                Copy ID Công ty
+                {t("actionOptions.copyId")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Xem hồ sơ công ty</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.viewProfile")}</DropdownMenuItem>
               {employer.status === "Chờ duyệt" && (
-                <DropdownMenuItem className="text-success">Duyệt tài khoản (KYC)</DropdownMenuItem>
+                <DropdownMenuItem className="text-success">
+                  {t("actionOptions.approve")}
+                </DropdownMenuItem>
               )}
-              <DropdownMenuItem>Nâng cấp gói dịch vụ</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.upgrade")}</DropdownMenuItem>
               {employer.status !== "Bị khóa" && (
-                <DropdownMenuItem className="text-error">Khóa tài khoản</DropdownMenuItem>
+                <DropdownMenuItem className="text-error">
+                  {t("actionOptions.lock")}
+                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -239,11 +250,14 @@ export const columns: ColumnDef<Employer>[] = [
 
 export function EmployersTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const t = useTranslations("Admin.users.employers.table");
 
   const filteredData = React.useMemo(() => {
     if (statusFilter === "all") return data;
     return data.filter((item) => item.status === statusFilter);
   }, [statusFilter]);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -253,20 +267,17 @@ export function EmployersTable() {
             className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
             size={18}
           />
-          <Input
-            className="bg-muted h-10 rounded-xl pl-10"
-            placeholder="Tìm theo tên công ty, email..."
-          />
+          <Input className="bg-muted h-10 rounded-xl pl-10" placeholder={t("searchPlaceholder")} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
-            <SelectValue placeholder="Tất cả trạng thái" />
+            <SelectValue placeholder={t("allStatuses")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="Chờ duyệt">Chờ duyệt</SelectItem>
-            <SelectItem value="Đã xác thực">Đã xác thực</SelectItem>
-            <SelectItem value="Bị khóa">Bị khóa</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="Chờ duyệt">{t("statusOptions.pending")}</SelectItem>
+            <SelectItem value="Đã xác thực">{t("statusOptions.verified")}</SelectItem>
+            <SelectItem value="Bị khóa">{t("statusOptions.locked")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

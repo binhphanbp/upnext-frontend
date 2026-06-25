@@ -127,10 +127,12 @@ const data: AdminSupportTicket[] = [
   },
 ];
 
-export const columns: ColumnDef<AdminSupportTicket>[] = [
+import { useTranslations } from "next-intl";
+
+export const getColumns = (t: any): ColumnDef<AdminSupportTicket>[] => [
   {
     accessorKey: "subject",
-    header: "Tiêu đề yêu cầu",
+    header: t("subject"),
     cell: ({ row }) => (
       <div>
         <p className="font-medium">{row.original.subject}</p>
@@ -140,34 +142,40 @@ export const columns: ColumnDef<AdminSupportTicket>[] = [
   },
   {
     accessorKey: "user",
-    header: "Người dùng",
+    header: t("user"),
   },
   {
     accessorKey: "priority",
-    header: "Mức độ ưu tiên",
+    header: t("priority"),
     cell: ({ row }) => {
       const priority = row.getValue("priority") as string;
       const tone = priority === "Cao" ? "error" : priority === "Trung bình" ? "warning" : "info";
-      return <Badge tone={tone}>{priority}</Badge>;
+
+      const priorityKey =
+        priority === "Cao" ? "high" : priority === "Trung bình" ? "medium" : "low";
+      return <Badge tone={tone}>{t(`priorityOptions.${priorityKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "status",
-    header: "Trạng thái",
+    header: t("status"),
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const tone = status === "Mở" ? "error" : status === "Đang xử lý" ? "warning" : "success";
-      return <Badge tone={tone}>{status}</Badge>;
+
+      const statusKey =
+        status === "Mở" ? "open" : status === "Đang xử lý" ? "inProgress" : "closed";
+      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "createdDate",
-    header: "Thời gian tạo",
+    header: t("createdDate"),
     cell: ({ row }) => <div>{row.original.createdDate}</div>,
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Thao tác</div>,
+    header: () => <div className="text-right">{t("actions")}</div>,
     cell: ({ row }) => {
       const ticket = row.original;
 
@@ -181,21 +189,23 @@ export const columns: ColumnDef<AdminSupportTicket>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-              <DropdownMenuItem>Xem chi tiết Ticket</DropdownMenuItem>
-              <DropdownMenuItem>Xem thông tin User</DropdownMenuItem>
+              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+              <DropdownMenuItem>{t("actionOptions.viewDetails")}</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.viewUser")}</DropdownMenuItem>
               <DropdownMenuSeparator />
               {ticket.status !== "Đã đóng" && (
                 <>
                   <DropdownMenuItem className="text-brand">
-                    Chuyển trạng thái: Đang xử lý
+                    {t("actionOptions.markInProgress")}
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-success">
-                    Đóng Ticket (Đã xử lý xong)
+                    {t("actionOptions.close")}
                   </DropdownMenuItem>
                 </>
               )}
-              {ticket.status === "Đã đóng" && <DropdownMenuItem>Mở lại Ticket</DropdownMenuItem>}
+              {ticket.status === "Đã đóng" && (
+                <DropdownMenuItem>{t("actionOptions.reopen")}</DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -206,11 +216,14 @@ export const columns: ColumnDef<AdminSupportTicket>[] = [
 
 export function SupportTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const t = useTranslations("Admin.content.support.table");
 
   const filteredData = React.useMemo(() => {
     if (statusFilter === "all") return data;
     return data.filter((item) => item.status === statusFilter);
   }, [statusFilter]);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -220,20 +233,17 @@ export function SupportTable() {
             className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
             size={18}
           />
-          <Input
-            className="bg-muted h-10 rounded-xl pl-10"
-            placeholder="Tìm theo tiêu đề, mã ticket, user..."
-          />
+          <Input className="bg-muted h-10 rounded-xl pl-10" placeholder={t("searchPlaceholder")} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
-            <SelectValue placeholder="Tất cả trạng thái" />
+            <SelectValue placeholder={t("allStatuses")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="Mở">Mở</SelectItem>
-            <SelectItem value="Đang xử lý">Đang xử lý</SelectItem>
-            <SelectItem value="Đã đóng">Đã đóng</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="Mở">{t("statusOptions.open")}</SelectItem>
+            <SelectItem value="Đang xử lý">{t("statusOptions.inProgress")}</SelectItem>
+            <SelectItem value="Đã đóng">{t("statusOptions.closed")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

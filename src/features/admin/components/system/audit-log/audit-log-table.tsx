@@ -129,10 +129,12 @@ const data: AdminAuditLog[] = [
   },
 ];
 
-export const columns: ColumnDef<AdminAuditLog>[] = [
+import { useTranslations } from "next-intl";
+
+export const getColumns = (t: any): ColumnDef<AdminAuditLog>[] => [
   {
     accessorKey: "timestamp",
-    header: "Thời gian",
+    header: t("timestamp"),
     cell: ({ row }) => (
       <div>
         <p className="font-medium">{row.original.timestamp}</p>
@@ -142,7 +144,7 @@ export const columns: ColumnDef<AdminAuditLog>[] = [
   },
   {
     accessorKey: "user",
-    header: "Người dùng (Actor)",
+    header: t("user"),
     cell: ({ row }) => (
       <div>
         <p className="font-medium">{row.original.user}</p>
@@ -152,7 +154,7 @@ export const columns: ColumnDef<AdminAuditLog>[] = [
   },
   {
     accessorKey: "action",
-    header: "Loại thao tác",
+    header: t("action"),
     cell: ({ row }) => {
       const action = row.getValue("action") as string;
       const tone =
@@ -165,25 +167,37 @@ export const columns: ColumnDef<AdminAuditLog>[] = [
               : action === "Đăng nhập"
                 ? "info"
                 : "neutral";
-      return <Badge tone={tone}>{action}</Badge>;
+
+      const actionKey =
+        action === "Tạo mới"
+          ? "create"
+          : action === "Cập nhật"
+            ? "update"
+            : action === "Xóa"
+              ? "delete"
+              : action === "Đăng nhập"
+                ? "login"
+                : "other";
+      return <Badge tone={tone}>{t(`actionOptions.${actionKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "resource",
-    header: "Đối tượng (Resource)",
+    header: t("resource"),
   },
   {
     accessorKey: "status",
-    header: "Trạng thái",
+    header: t("status"),
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const tone = status === "Thành công" ? "success" : "error";
-      return <Badge tone={tone}>{status}</Badge>;
+      const statusKey = status === "Thành công" ? "success" : "failed";
+      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
     },
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Chi tiết</div>,
+    header: () => <div className="text-right">{t("actions")}</div>,
     cell: ({ row }) => {
       return (
         <div className="text-right">
@@ -195,9 +209,9 @@ export const columns: ColumnDef<AdminAuditLog>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-              <DropdownMenuItem>Xem dữ liệu chi tiết (JSON)</DropdownMenuItem>
-              <DropdownMenuItem>Xem lịch sử User này</DropdownMenuItem>
+              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+              <DropdownMenuItem>{t("actionMenuOptions.viewDetails")}</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionMenuOptions.viewHistory")}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -209,6 +223,7 @@ export const columns: ColumnDef<AdminAuditLog>[] = [
 export function AuditLogTable() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [actionFilter, setActionFilter] = React.useState("all");
+  const t = useTranslations("Admin.system.auditLog.table");
 
   const filteredData = React.useMemo(() => {
     return data.filter((item) => {
@@ -220,6 +235,8 @@ export function AuditLogTable() {
     });
   }, [searchTerm, actionFilter]);
 
+  const columns = React.useMemo(() => getColumns(t), [t]);
+
   return (
     <div className="mt-6 space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -229,7 +246,7 @@ export function AuditLogTable() {
             className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
           />
           <Input
-            placeholder="Tìm kiếm theo người dùng hoặc đối tượng..."
+            placeholder={t("searchPlaceholder")}
             className="rounded-xl bg-white pl-10 lg:max-w-md"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -238,15 +255,15 @@ export function AuditLogTable() {
 
         <Select value={actionFilter} onValueChange={setActionFilter}>
           <SelectTrigger className="w-full rounded-xl bg-white sm:w-[200px]">
-            <SelectValue placeholder="Tất cả thao tác" />
+            <SelectValue placeholder={t("allActions")} />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
-            <SelectItem value="all">Tất cả thao tác</SelectItem>
-            <SelectItem value="Tạo mới">Tạo mới</SelectItem>
-            <SelectItem value="Cập nhật">Cập nhật</SelectItem>
-            <SelectItem value="Xóa">Xóa</SelectItem>
-            <SelectItem value="Đăng nhập">Đăng nhập</SelectItem>
-            <SelectItem value="Khác">Khác</SelectItem>
+            <SelectItem value="all">{t("allActions")}</SelectItem>
+            <SelectItem value="Tạo mới">{t("actionOptions.create")}</SelectItem>
+            <SelectItem value="Cập nhật">{t("actionOptions.update")}</SelectItem>
+            <SelectItem value="Xóa">{t("actionOptions.delete")}</SelectItem>
+            <SelectItem value="Đăng nhập">{t("actionOptions.login")}</SelectItem>
+            <SelectItem value="Khác">{t("actionOptions.other")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
