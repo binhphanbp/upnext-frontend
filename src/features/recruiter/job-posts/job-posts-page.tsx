@@ -173,13 +173,15 @@ export function RecruiterJobPostsPage() {
   const companyVerified = account?.company?.verificationStatus === "VERIFIED";
 
   const loadPageData = useCallback(
-    async (accountId: string, accessToken: string) => {
+    async (id: string, token: string) => {
+      setLoading(true);
+      setAccountId(id);
+
       try {
-        setLoading(true);
         const [nextAccount, nextCatalogs, nextJobs] = await Promise.all([
-          getRecruiterAccount(accountId, accessToken),
+          getRecruiterAccount(id, token),
           getJobPostCatalogs(),
-          getRecruiterJobPosts(accessToken),
+          getRecruiterJobPosts(token, id),
         ]);
 
         setAccount(nextAccount);
