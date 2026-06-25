@@ -428,8 +428,8 @@
       "settings": "Settings"
     },
     "shell": {
-      "loading": "Loading recruiter workspace...",
-      "proPackage": "Recruiter Pro",
+      "loading": "Loading admin workspace...",
+      "proPackage": "Pro Admin Features",
       "notifications": "Notifications",
       "allNotifications": "See all notifications",
       "profile": "My Profile",
@@ -581,7 +581,8 @@
       "label": "Account",
       "profile": "Profile",
       "settings": "Settings",
-      "logout": "Log out"
+      "logout": "Log out",
+      "proPackage": "Pro Recruitment Plan"
     },
     "tips": {
       "title": "Profile tips",
@@ -707,6 +708,629 @@
         "profileDetailsLabel": "Profile details",
         "completedSectionsLabel": "Completed profile sections",
         "bottomNavLabel": "Candidate mobile navigation"
+      }
+    }
+  },
+  "AdminNav": {
+    "overview": {
+      "title": "Overview",
+      "platformStats": "Platform Statistics"
+    },
+    "userManagement": {
+      "title": "User Management",
+      "employers": "Employers",
+      "candidates": "Candidates"
+    },
+    "operationsAndContent": {
+      "title": "Operations & Content",
+      "jobs": "Job Posts",
+      "articles": "Articles",
+      "moderation": "Content Moderation",
+      "support": "Support Center"
+    },
+    "financeAndBusiness": {
+      "title": "Finance & Business",
+      "plans": "Service Plans",
+      "transactions": "Invoices"
+    },
+    "systemAdmin": {
+      "title": "System Administration",
+      "masterData": "Master Data",
+      "roles": "Roles & Permissions",
+      "auditLog": "Audit Log"
+    }
+  },
+  "Admin": {
+    "dashboard": {
+      "title": "Platform Statistics",
+      "subtitle": "Overview of UpNext system performance and revenue.",
+      "downloadReport": "Download Report",
+      "totalRevenue": "Total Revenue",
+      "comparedToLastMonth": "vs last month",
+      "newUsers": "New Users",
+      "activeJobs": "Active Jobs",
+      "pendingApprovals": "Pending Approvals",
+      "companies": "companies",
+      "jobs": "jobs",
+      "revenueChart": {
+        "title": "Revenue",
+        "subtitle": "Revenue from service packages and job postings this year."
+      },
+      "recentActivity": {
+        "title": "To Do & Activities",
+        "subtitle": "Latest platform activities requiring admin review.",
+        "status": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "rejected": "Rejected"
+        },
+        "time": {
+          "hoursAgo": "{count} hours ago",
+          "daysAgo": "{count} days ago"
+        }
+      }
+    },
+    "shell": {
+      "loading": "Loading admin workspace...",
+      "proPackage": "Pro Admin Features",
+      "notifications": "Notifications",
+      "allNotifications": "See all notifications",
+      "profile": "My Profile",
+      "subscription": "My Subscription",
+      "invoice": "My Invoice",
+      "settings": "Account Settings",
+      "signOut": "Sign Out"
+    },
+    "users": {
+      "employers": {
+        "title": "Employers",
+        "subtitle": "Manage company accounts, verify KYC profiles and assign service plans.",
+        "addEmployer": "Add Employer",
+        "table": {
+          "company": "Company",
+          "joined": "Joined: {date}",
+          "representative": "Representative",
+          "plan": "Service Plan",
+          "status": "Status",
+          "activeJobs": "Active Jobs",
+          "actions": "Actions",
+          "searchPlaceholder": "Search by company name, email...",
+          "allStatuses": "All Statuses",
+          "statusOptions": {
+            "pending": "Pending",
+            "verified": "Verified",
+            "locked": "Locked"
+          },
+          "actionOptions": {
+            "copyId": "Copy Company ID",
+            "viewProfile": "View Company Profile",
+            "approve": "Approve Account (KYC)",
+            "upgrade": "Upgrade Service Plan",
+            "lock": "Lock Account"
+          }
+        },
+        "dialog": {
+          "title": "Add Employer",
+          "description": "Create a new employer account on the system. Login credentials will be sent via email.",
+          "companyName": "Company Name",
+          "companyNamePlaceholder": "E.g., UpNext Technologies",
+          "email": "Contact Email",
+          "emailPlaceholder": "hr@upnext.com",
+          "plan": "Initial Service Plan",
+          "planPlaceholder": "Select plan",
+          "cancel": "Cancel",
+          "submit": "Create Account"
+        }
+      },
+      "candidates": {
+        "title": "Candidates",
+        "subtitle": "Manage candidate profiles, job search status and provide technical support.",
+        "table": {
+          "candidate": "Candidate",
+          "joined": "Joined: {date}",
+          "contact": "Contact Info",
+          "status": "Status",
+          "applications": "Applications",
+          "actions": "Actions",
+          "searchPlaceholder": "Search by candidate name, email...",
+          "allStatuses": "All Statuses",
+          "statusOptions": {
+            "looking": "Actively Looking",
+            "open": "Open to Offers",
+            "closed": "Not Looking",
+            "banned": "Banned"
+          },
+          "actionOptions": {
+            "viewProfile": "View Candidate Profile",
+            "viewApplications": "Application History",
+            "sendEmail": "Send Support Email",
+            "ban": "Ban Account",
+            "copyId": "Copy Candidate ID"
+          },
+          "specialty": "Specialty",
+          "joinedDate": "Joined Date"
+        }
+      }
+    },
+    "content": {
+      "jobs": {
+        "title": "Job Posts",
+        "subtitle": "Moderate, manage visibility, and remove job postings.",
+        "table": {
+          "job": "Job",
+          "locationAndType": "Location & Type",
+          "status": "Status",
+          "applicants": "Applicants",
+          "postedDate": "Posted Date",
+          "actions": "Actions",
+          "searchPlaceholder": "Search by title, company...",
+          "allStatuses": "All Statuses",
+          "statusOptions": {
+            "active": "Active",
+            "pending": "Pending",
+            "expired": "Expired",
+            "rejected": "Rejected"
+          },
+          "actionOptions": {
+            "viewDetails": "View Job Details",
+            "goToCompany": "Go to Company",
+            "approve": "Approve Job",
+            "reject": "Reject (with reason)",
+            "remove": "Remove (Hide from site)"
+          },
+          "typeOptions": {
+            "fullTime": "Full-time",
+            "partTime": "Part-time",
+            "internship": "Internship",
+            "other": "Other"
+          }
+        }
+      },
+      "articles": {
+        "title": "Articles & Guides",
+        "subtitle": "Manage blog posts, career advice, and guidelines.",
+        "addArticle": "Write New Article",
+        "table": {
+          "article": "Article",
+          "author": "Author",
+          "views": "Views",
+          "status": "Status",
+          "date": "Date",
+          "actions": "Actions",
+          "searchPlaceholder": "Search by article title...",
+          "allStatuses": "All Statuses",
+          "statusOptions": {
+            "published": "Published",
+            "draft": "Draft",
+            "archived": "Archived",
+            "pending": "Pending"
+          },
+          "actionOptions": {
+            "edit": "Edit Article",
+            "viewPreview": "Preview",
+            "publish": "Publish",
+            "archive": "Archive",
+            "delete": "Delete Article",
+            "approveAndPublish": "Approve & Publish",
+            "moveToDraft": "Move to Draft"
+          },
+          "categoryOptions": {
+            "career": "Career Development",
+            "technical": "Technical Corner",
+            "market": "Market Report",
+            "review": "Company Review",
+            "news": "News",
+            "blog": "Blog"
+          }
+        }
+      },
+      "moderation": {
+        "title": "Content Moderation",
+        "subtitle": "Handle violation reports from users regarding job posts or accounts.",
+        "table": {
+          "reportId": "Report ID",
+          "target": "Reported Target",
+          "reason": "Reason",
+          "reporter": "Reporter",
+          "status": "Status",
+          "actions": "Actions",
+          "searchPlaceholder": "Search by ID or target...",
+          "allStatuses": "All Statuses",
+          "statusOptions": {
+            "pending": "Pending",
+            "reviewing": "Under Review",
+            "resolved": "Resolved",
+            "dismissed": "Dismissed"
+          },
+          "actionOptions": {
+            "viewDetails": "View Reported Content Details",
+            "resolve": "Mark as Resolved",
+            "dismiss": "Dismiss Report",
+            "banTarget": "Ban Offending Target",
+            "viewReporter": "View Reporter",
+            "resolveAndRemove": "Resolve (Remove Content)"
+          },
+          "contentType": "Content Type",
+          "reportedDate": "Reported Date",
+          "contentTypeOptions": {
+            "job": "Job Post",
+            "comment": "Comment",
+            "review": "Company Review",
+            "profile": "Profile"
+          },
+          "reasonOptions": {
+            "spam": "Spam, Scam",
+            "hateSpeech": "Hate speech, Harassment",
+            "fakeInfo": "Fake information",
+            "suspiciousLink": "Suspicious link",
+            "feeRequired": "Requires payment fee",
+            "gambling": "Gambling advertisement",
+            "inappropriateAvatar": "Inappropriate avatar",
+            "defamation": "Defamation",
+            "fakeJob": "Fake job",
+            "profanity": "Profanity",
+            "fakeReview": "Fake review",
+            "invalidName": "Name contains invalid characters",
+            "unknown": "Other reason"
+          },
+          "anonymous": "Anonymous"
+        }
+      },
+      "support": {
+        "title": "Support Center",
+        "subtitle": "Manage and respond to support requests from system users.",
+        "table": {
+          "ticket": "Ticket",
+          "requester": "Requester",
+          "category": "Category",
+          "status": "Status",
+          "updatedAt": "Last Updated",
+          "actions": "Actions",
+          "searchPlaceholder": "Search by title or requester...",
+          "allStatuses": "All Statuses",
+          "statusOptions": {
+            "open": "Open",
+            "inProgress": "In Progress",
+            "waiting": "Waiting on User",
+            "closed": "Closed"
+          },
+          "actionOptions": {
+            "reply": "Reply to Request",
+            "viewHistory": "View Ticket History",
+            "close": "Close Ticket (Resolved)",
+            "viewDetails": "View Ticket Details",
+            "viewUser": "View User Info",
+            "markInProgress": "Mark as In Progress",
+            "reopen": "Reopen Ticket"
+          },
+          "subject": "Subject",
+          "user": "User",
+          "priority": "Priority",
+          "createdDate": "Created Date",
+          "priorityOptions": {
+            "high": "High",
+            "medium": "Medium",
+            "low": "Low"
+          }
+        }
+      }
+    },
+    "finance": {
+      "plans": {
+        "title": "Service Plans",
+        "subtitle": "Configure Subscriptions and individual services for Employers & Candidates.",
+        "addPlan": "Add New Plan",
+        "table": {
+          "planName": "Plan Name",
+          "targetAudience": "Audience",
+          "price": "Price",
+          "activeSubscribers": "Active Subscribers",
+          "status": "Status",
+          "actions": "Actions",
+          "searchPlaceholder": "Search by plan name, ID...",
+          "allStatuses": "All Statuses",
+          "targetAudienceOptions": {
+            "employer": "Employer",
+            "candidate": "Candidate"
+          },
+          "billingCycleOptions": {
+            "month": "Month",
+            "year": "Year",
+            "oneTime": "One-time"
+          },
+          "statusOptions": {
+            "active": "Active",
+            "legacy": "Legacy (Retired)",
+            "draft": "Draft"
+          },
+          "actionOptions": {
+            "edit": "Edit Plan",
+            "viewSubscribers": "View Subscribers",
+            "publish": "Publish",
+            "retire": "Retire Plan"
+          },
+          "planNames": {
+            "PLAN-EMP-PRO": "Employer Pro",
+            "PLAN-EMP-PREM": "Employer Premium",
+            "PLAN-EMP-CRED": "5 Job Posts Credit",
+            "PLAN-CAN-PRO": "Candidate Pro (Featured Profile)",
+            "PLAN-EMP-BASIC-OLD": "Employer Basic (2025)",
+            "PLAN-EMP-LITE": "Employer Lite",
+            "PLAN-CAN-BASIC": "Candidate Basic",
+            "PLAN-EMP-ENT": "Employer Enterprise",
+            "PLAN-EMP-CRED-10": "10 Job Posts Credit",
+            "PLAN-CAN-MENTOR": "1:1 Mentorship",
+            "PLAN-EMP-CV": "View 100 CVs Credit"
+          }
+        },
+        "dialog": {
+          "title": "Create New Service Plan",
+          "description": "Set up basic information for a new service plan (Subscription/Credit) on the system.",
+          "fields": {
+            "planName": "Plan Name",
+            "planNamePlaceholder": "Ex: Employer Premium 2026",
+            "targetAudience": "Target Audience",
+            "targetAudiencePlaceholder": "Select audience",
+            "price": "Price (VND)",
+            "pricePlaceholder": "Ex: 2500000",
+            "billingCycle": "Billing Cycle",
+            "billingCyclePlaceholder": "Select billing cycle"
+          },
+          "billingCycleOptions": {
+            "monthly": "Monthly",
+            "yearly": "Yearly",
+            "oneTime": "One-time Credit"
+          },
+          "buttons": {
+            "cancel": "Cancel",
+            "createDraft": "Create Draft"
+          }
+        }
+      },
+      "transactions": {
+        "title": "Transaction History",
+        "subtitle": "Monitor revenue and payment history for Employer and Candidate services.",
+        "table": {
+          "id": "Transaction ID",
+          "client": "Client",
+          "amount": "Amount",
+          "paymentMethod": "Payment Method",
+          "status": "Status",
+          "transactionDate": "Date",
+          "actions": "Actions",
+          "searchPlaceholder": "Search by transaction ID, client...",
+          "allStatuses": "All Statuses",
+          "statusOptions": {
+            "success": "Success",
+            "processing": "Processing",
+            "failed": "Failed",
+            "refunded": "Refunded"
+          },
+          "actionOptions": {
+            "viewInvoice": "View Invoice",
+            "resendEmail": "Resend Receipt",
+            "recheckStatus": "Recheck Status",
+            "refund": "Refund"
+          },
+          "paymentMethodOptions": {
+            "bankTransfer": "Bank Transfer",
+            "creditCard": "Credit Card",
+            "momo": "MoMo",
+            "vnpay": "VNPAY"
+          },
+          "mockServices": {
+            "Employer Premium (1 Năm)": "Employer Premium (1 Year)",
+            "Employer Pro (1 Tháng)": "Employer Pro (1 Month)",
+            "Gói 5 Tin Tuyển Dụng": "5 Job Posts Credit",
+            "Candidate Pro (1 Tháng)": "Candidate Pro (1 Month)",
+            "Candidate Pro": "Candidate Pro",
+            "Gói 10 Tin Tuyển Dụng": "10 Job Posts Credit",
+            "Employer Enterprise": "Employer Enterprise",
+            "1:1 Mentorship": "1:1 Mentorship",
+            "Gói xem 100 CV": "View 100 CVs Credit"
+          },
+          "mockClients": {
+            "TechCorp Vietnam": "TechCorp Vietnam",
+            "Global Outsource LLC": "Global Outsource LLC",
+            "Startup B": "Startup B",
+            "Nguyễn Lê Anh (Candidate)": "Nguyễn Lê Anh (Candidate)",
+            "Scam Company": "Scam Company",
+            "Công ty ABC": "ABC Company",
+            "Trần Văn E (Candidate)": "Trần Văn E (Candidate)",
+            "ZaloPay HR": "ZaloPay HR",
+            "FPT Software": "FPT Software",
+            "Shopee Vietnam": "Shopee Vietnam",
+            "Phạm F (Candidate)": "Phạm F (Candidate)",
+            "Tiki HR": "Tiki HR"
+          }
+        }
+      }
+    },
+    "system": {
+      "masterData": {
+        "title": "Master Data",
+        "subtitle": "Manage core system categories such as Industries, Skills, Locations, etc.",
+        "addMasterData": "Add New Category",
+        "table": {
+          "name": "Dataset Name",
+          "category": "Category",
+          "itemCount": "Record Count",
+          "status": "Status",
+          "lastUpdated": "Last Updated",
+          "actions": "Actions",
+          "searchPlaceholder": "Search by dataset name...",
+          "allStatuses": "All Statuses",
+          "categoryOptions": {
+            "industry": "Industry",
+            "skill": "Skill",
+            "location": "Location",
+            "level": "Level",
+            "type": "Type"
+          },
+          "statusOptions": {
+            "active": "Active",
+            "inactive": "Inactive"
+          },
+          "actionOptions": {
+            "edit": "Edit Data",
+            "export": "Export Excel / CSV",
+            "deactivate": "Deactivate",
+            "reactivate": "Reactivate"
+          }
+        },
+        "dialog": {
+          "title": "Create Master Dataset",
+          "description": "Configure a new core category for use across the platform.",
+          "fields": {
+            "datasetName": "Dataset Name",
+            "datasetNamePlaceholder": "Ex: Degree List",
+            "category": "Category",
+            "categoryPlaceholder": "Select category",
+            "dataCode": "Reference Code",
+            "dataCodePlaceholder": "Ex: DEGREE_LIST",
+            "description": "Short Description",
+            "descriptionPlaceholder": "Ex: Used for Degree dropdown in profile"
+          },
+          "categoryOptions": {
+            "industry": "Industry",
+            "skill": "Skills",
+            "location": "Location",
+            "level": "Level",
+            "type": "Work Type",
+            "other": "Other"
+          },
+          "buttons": {
+            "cancel": "Cancel",
+            "create": "Initialize Data"
+          }
+        }
+      },
+      "roles": {
+        "title": "Roles & Permissions",
+        "subtitle": "Manage permission groups and set access levels for internal staff.",
+        "addRole": "Create New Role",
+        "table": {
+          "name": "Role",
+          "type": "Role Type",
+          "userCount": "User Count",
+          "status": "Status",
+          "actions": "Actions",
+          "searchPlaceholder": "Search by role name...",
+          "allStatuses": "All Statuses",
+          "typeOptions": {
+            "system": "System",
+            "custom": "Custom"
+          },
+          "statusOptions": {
+            "active": "Active",
+            "inactive": "Inactive"
+          },
+          "actionOptions": {
+            "editPermissions": "Edit Permissions",
+            "viewUsers": "View User List",
+            "deactivate": "Deactivate",
+            "reactivate": "Reactivate",
+            "delete": "Delete Role"
+          },
+          "mockRoles": {
+            "ROLE-ADMIN": {
+              "name": "Super Administrator",
+              "description": "Full access to all system features."
+            },
+            "ROLE-MODERATOR": {
+              "name": "Moderator",
+              "description": "Moderate content, reports, and job posts."
+            },
+            "ROLE-SALES": {
+              "name": "Sales Representative",
+              "description": "Manage clients, service plans, and view sales reports."
+            },
+            "ROLE-SUPPORT": {
+              "name": "Customer Support",
+              "description": "Handle tickets and support users."
+            },
+            "ROLE-CUSTOM-01": {
+              "name": "Marketing Intern",
+              "description": "Can only view and publish PR articles."
+            },
+            "ROLE-CUSTOM-02": {
+              "name": "Content Contributor",
+              "description": "Create draft articles."
+            },
+            "ROLE-CUSTOM-03": {
+              "name": "Internal Recruiter",
+              "description": "Manage internal recruitment processes."
+            },
+            "ROLE-CUSTOM-04": {
+              "name": "Data Analyst",
+              "description": "View data reports."
+            },
+            "ROLE-CUSTOM-05": {
+              "name": "Accountant",
+              "description": "Manage invoices and payments."
+            },
+            "ROLE-CUSTOM-06": {
+              "name": "VIP Account Manager",
+              "description": "Exclusive support for VIP enterprise accounts."
+            },
+            "ROLE-CUSTOM-07": {
+              "name": "IT Administrator",
+              "description": "Maintain internal systems."
+            }
+          }
+        },
+        "dialog": {
+          "title": "Create Custom Role",
+          "description": "Create a new Role and then you can configure detailed permissions.",
+          "fields": {
+            "roleName": "Role Name",
+            "roleNamePlaceholder": "Ex: Accounting",
+            "description": "Short Description",
+            "descriptionPlaceholder": "Ex: Can only view transaction history",
+            "cloneFrom": "Clone permissions from (Optional)",
+            "cloneFromPlaceholder": "Select template role"
+          },
+          "cloneOptions": {
+            "none": "-- Create empty permissions --",
+            "moderator": "Clone from: Moderator",
+            "sales": "Clone from: Sales",
+            "support": "Clone from: Support"
+          },
+          "buttons": {
+            "cancel": "Cancel",
+            "create": "Create Role"
+          }
+        }
+      },
+      "auditLog": {
+        "title": "Audit Log",
+        "subtitle": "Track all data modification actions by internal staff for security purposes.",
+        "exportLog": "Export CSV Log",
+        "table": {
+          "timestamp": "Timestamp",
+          "user": "User (Actor)",
+          "action": "Action Type",
+          "resource": "Resource",
+          "status": "Status",
+          "actions": "Details",
+          "searchPlaceholder": "Search by user or resource...",
+          "allActions": "All Actions",
+          "actionOptions": {
+            "create": "Create",
+            "update": "Update",
+            "delete": "Delete",
+            "login": "Login",
+            "other": "Other"
+          },
+          "statusOptions": {
+            "success": "Success",
+            "failed": "Failed"
+          },
+          "actionMenuOptions": {
+            "viewDetails": "View Details (JSON)",
+            "viewHistory": "View User History"
+          }
+        }
       }
     }
   }

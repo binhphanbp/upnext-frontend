@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "@phosphor-icons/react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Button } from "@/shared/ui/button";
@@ -19,40 +20,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export function AddEmployerDialog() {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("Admin.users.employers");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="primary">
           <Plus className="mr-2" weight="bold" />
-          Thêm nhà tuyển dụng
+          {t("addEmployer")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Thêm Nhà Tuyển Dụng</DialogTitle>
-          <DialogDescription>
-            Điền thông tin cơ bản để tạo tài khoản doanh nghiệp mới trên hệ thống.
-          </DialogDescription>
+          <DialogTitle>{t("dialog.title")}</DialogTitle>
+          <DialogDescription>{t("dialog.description")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="companyName">Tên công ty</Label>
-            <Input id="companyName" placeholder="VD: VNG Corporation" />
+            <Label htmlFor="companyName">{t("dialog.companyName")}</Label>
+            <Input id="companyName" placeholder={t("dialog.companyNamePlaceholder")} />
           </div>
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="representative">Người đại diện</Label>
+            <Label htmlFor="representative">{t("table.representative")}</Label>
             <Input id="representative" placeholder="VD: Nguyễn Văn A" />
           </div>
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="email">Email liên hệ</Label>
-            <Input id="email" type="email" placeholder="VD: hr@congty.com" />
+            <Label htmlFor="email">{t("dialog.email")}</Label>
+            <Input id="email" type="email" placeholder={t("dialog.emailPlaceholder")} />
           </div>
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="plan">Gói dịch vụ mặc định</Label>
+            <Label htmlFor="plan">{t("dialog.plan")}</Label>
             <Select defaultValue="Free">
               <SelectTrigger>
-                <SelectValue placeholder="Chọn gói dịch vụ" />
+                <SelectValue placeholder={t("dialog.planPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Free">Gói Cơ bản (Free)</SelectItem>
@@ -64,10 +64,10 @@ export function AddEmployerDialog() {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Hủy
+            {t("dialog.cancel")}
           </Button>
           <Button variant="primary" onClick={() => setOpen(false)}>
-            Tạo tài khoản
+            {t("dialog.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>

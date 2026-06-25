@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "@phosphor-icons/react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Button } from "@/shared/ui/button";
@@ -19,58 +20,58 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export function AddMasterDataDialog() {
   const [open, setOpen] = useState(false);
+  const tMaster = useTranslations("Admin.system.masterData");
+  const t = useTranslations("Admin.system.masterData.dialog");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="primary">
           <Plus className="mr-2" weight="bold" />
-          Tạo bộ dữ liệu mới
+          {tMaster("addMasterData")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Tạo Bộ Dữ Liệu Gốc (Master Data)</DialogTitle>
-          <DialogDescription>
-            Thiết lập danh mục lõi mới để sử dụng trong toàn bộ hệ thống nền tảng.
-          </DialogDescription>
+          <DialogTitle>{t("title")}</DialogTitle>
+          <DialogDescription>{t("description")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="datasetName">Tên bộ dữ liệu</Label>
-            <Input id="datasetName" placeholder="VD: Danh sách Bằng cấp" />
+            <Label htmlFor="datasetName">{t("fields.datasetName")}</Label>
+            <Input id="datasetName" placeholder={t("fields.datasetNamePlaceholder")} />
           </div>
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="category">Phân loại (Category)</Label>
+            <Label htmlFor="category">{t("fields.category")}</Label>
             <Select defaultValue="nganh_nghe">
               <SelectTrigger>
-                <SelectValue placeholder="Chọn phân loại" />
+                <SelectValue placeholder={t("fields.categoryPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="nganh_nghe">Ngành nghề</SelectItem>
-                <SelectItem value="ky_nang">Kỹ năng (Skills)</SelectItem>
-                <SelectItem value="dia_diem">Địa điểm</SelectItem>
-                <SelectItem value="cap_bac">Cấp bậc</SelectItem>
-                <SelectItem value="loai_hinh">Loại hình công việc</SelectItem>
-                <SelectItem value="khac">Khác</SelectItem>
+                <SelectItem value="nganh_nghe">{t("categoryOptions.industry")}</SelectItem>
+                <SelectItem value="ky_nang">{t("categoryOptions.skill")}</SelectItem>
+                <SelectItem value="dia_diem">{t("categoryOptions.location")}</SelectItem>
+                <SelectItem value="cap_bac">{t("categoryOptions.level")}</SelectItem>
+                <SelectItem value="loai_hinh">{t("categoryOptions.type")}</SelectItem>
+                <SelectItem value="khac">{t("categoryOptions.other")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="dataCode">Mã tham chiếu (Code)</Label>
-            <Input id="dataCode" placeholder="VD: DEGREE_LIST" />
+            <Label htmlFor="dataCode">{t("fields.dataCode")}</Label>
+            <Input id="dataCode" placeholder={t("fields.dataCodePlaceholder")} />
           </div>
           <div className="flex flex-col gap-2.5">
-            <Label htmlFor="description">Mô tả ngắn gọn</Label>
-            <Input id="description" placeholder="VD: Dùng cho dropdown Bằng cấp ở hồ sơ" />
+            <Label htmlFor="description">{t("fields.description")}</Label>
+            <Input id="description" placeholder={t("fields.descriptionPlaceholder")} />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Hủy
+            {t("buttons.cancel")}
           </Button>
           <Button variant="primary" onClick={() => setOpen(false)}>
-            Khởi tạo dữ liệu
+            {t("buttons.create")}
           </Button>
         </DialogFooter>
       </DialogContent>
