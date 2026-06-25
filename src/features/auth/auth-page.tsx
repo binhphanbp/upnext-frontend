@@ -31,6 +31,14 @@ type AuthPageProps = {
   mode: "login" | "register";
 };
 
+const demoAuthStorageKey = "upnext.demo.auth";
+const demoAuthChangeEvent = "upnext-demo-auth-change";
+
+function rememberCandidateSession() {
+  window.localStorage.setItem(demoAuthStorageKey, "candidate");
+  window.dispatchEvent(new Event(demoAuthChangeEvent));
+}
+
 const showcaseCards = [
   { title: "Frontend Engineer", meta: "React · TypeScript", tone: "mint" },
   { title: "Senior Backend", meta: "Go · PostgreSQL", tone: "indigo" },
@@ -71,7 +79,8 @@ function LoginPage() {
   });
 
   function submit() {
-    router.push("/jobs");
+    rememberCandidateSession();
+    router.push("/candidate/profile");
   }
 
   return (
@@ -79,7 +88,12 @@ function LoginPage() {
       <div className="login-auth-inner">
         <h1 className="login-title">{t("login.title")}</h1>
 
-        <SocialButtons onSuccess={() => router.push("/jobs")} />
+        <SocialButtons
+          onSuccess={() => {
+            rememberCandidateSession();
+            router.push("/candidate/profile");
+          }}
+        />
 
         <div className="login-divider">
           <span>{t("common.or")}</span>
@@ -162,7 +176,8 @@ function RegisterPage() {
   });
 
   function submit() {
-    router.push("/jobs");
+    rememberCandidateSession();
+    router.push("/candidate/profile");
   }
 
   return (
@@ -170,7 +185,12 @@ function RegisterPage() {
       <div className="login-auth-inner">
         <h1 className="login-title">{t("register.title")}</h1>
 
-        <SocialButtons onSuccess={() => router.push("/jobs")} />
+        <SocialButtons
+          onSuccess={() => {
+            rememberCandidateSession();
+            router.push("/candidate/profile");
+          }}
+        />
 
         <div className="login-divider">
           <span>{t("common.or")}</span>

@@ -502,20 +502,260 @@
   background: #eafaf2;
 }
 
-/* Light / dark mode toggle. */
-.marketing-home-theme {
-  width: 38px;
-  height: 38px;
+.marketing-home-auth {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.marketing-home-auth-icon {
+  position: relative;
   display: grid;
   place-items: center;
-  color: #475569;
-  border: 1px solid #e5e9f0;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   background: #ffffff;
 }
 
-.marketing-home-theme svg {
-  transition: transform 400ms cubic-bezier(0.32, 0.72, 0, 1);
+.marketing-home-auth-badge {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #10a778;
+}
+
+.marketing-home-account {
+  position: relative;
+}
+
+.marketing-home-account-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 4px 12px 4px 5px;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.marketing-home-account-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 999px;
+  background: #10a778;
+}
+
+.marketing-home-account-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.marketing-home-account-copy b,
+.marketing-home-account-copy small {
+  max-width: 136px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marketing-home-account-copy b {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.marketing-home-account-copy small {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.marketing-home-account-trigger > svg:last-child {
+  color: #94a3b8;
+  transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-account.is-open .marketing-home-account-trigger {
+  border-color: #c8ecdc;
+  background: #fbfefd;
+}
+
+.marketing-home-account.is-open .marketing-home-account-trigger > svg:last-child {
+  transform: rotate(180deg);
+}
+
+.marketing-home-account-menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 292px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #eceff3;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 20px 44px rgba(15, 23, 42, 0.12),
+    0 2px 6px rgba(15, 23, 42, 0.04);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top right;
+  transition:
+    opacity 180ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 180ms;
+}
+
+.marketing-home-account.is-open .marketing-home-account-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.marketing-home-account-menu-profile {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #edf1f6;
+}
+
+.marketing-home-account-menu-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 999px;
+  background: #10a778;
+}
+
+.marketing-home-account-menu-identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.marketing-home-account-menu-identity b,
+.marketing-home-account-menu-identity small {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marketing-home-account-menu-identity b {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.marketing-home-account-menu-identity small {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.marketing-home-account-menu-identity button {
+  min-height: 0;
+  width: auto;
+  margin-top: 6px;
+  padding: 0;
+  color: #0a9f6f;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 0;
+}
+
+.marketing-home-account-menu-group {
+  padding: 10px 8px;
+  border-bottom: 1px solid #edf1f6;
+}
+
+.marketing-home-account-menu-group:last-of-type {
+  border-bottom: 0;
+}
+
+.marketing-home-account-menu-label {
+  display: block;
+  padding: 0 10px 7px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.marketing-home-account-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 10px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  border-radius: 9px;
+}
+
+.marketing-home-account-menu button.is-active {
+  color: #0b7f5f;
+  background: #eafaf2;
+}
+
+.marketing-home-account-menu button.is-danger {
+  margin: 8px;
+  width: calc(100% - 16px);
+  color: #dc2626;
+}
+
+.marketing-home-account-menu-sep {
+  display: block;
+  height: 1px;
+  margin: 0;
+  background: #edf1f6;
+}
+
+.marketing-home-logo:focus-visible,
+.marketing-home-nav button:focus-visible,
+.marketing-home-header-actions button:focus-visible {
+  outline: 2px solid rgba(16, 167, 120, 0.35);
+  outline-offset: 3px;
 }
 
 .marketing-home-header-actions .marketing-home-login,
@@ -3736,15 +3976,21 @@ button.marketing-home-control {
     background: #f4f7fb;
   }
 
-  /* Theme toggle: icon spins as it brightens. */
-  .marketing-home-theme:hover {
-    color: #0aa56f;
+  .marketing-home-auth-icon:hover,
+  .marketing-home-account-trigger:hover {
+    color: #0b7f5f;
     border-color: #c8ecdc;
-    background: #f3fdf8;
+    background: #fbfefd;
   }
 
-  .marketing-home-theme:hover svg {
-    transform: rotate(45deg);
+  .marketing-home-account-menu button:hover {
+    color: #0f172a;
+    background: #f4f7fb;
+  }
+
+  .marketing-home-account-menu button.is-danger:hover {
+    color: #b91c1c;
+    background: #fef2f2;
   }
 
   /* Login (secondary): border + text adopt the brand, tight focus ring. */
@@ -4178,6 +4424,35 @@ button.marketing-home-control {
 
   .marketing-home-header-actions {
     gap: 8px;
+  }
+
+  .marketing-home-auth {
+    gap: 6px;
+  }
+
+  .marketing-home-auth-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+  }
+
+  .marketing-home-account-trigger {
+    min-height: 40px;
+    padding: 3px;
+  }
+
+  .marketing-home-account-copy,
+  .marketing-home-account-trigger > svg:last-child {
+    display: none;
+  }
+
+  .marketing-home-account-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .marketing-home-account-menu {
+    right: -2px;
   }
 
   .marketing-home-header-actions .marketing-home-register {

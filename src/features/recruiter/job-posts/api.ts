@@ -1,7 +1,5 @@
 import { apiRequest } from "@/shared/api/http";
 
-const apiBaseUrl = "http://localhost:3636/api/v1";
-
 export type JobStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
 export type ModerationStatus = "PENDING" | "APPROVED" | "REJECTED";
 
@@ -82,13 +80,13 @@ export type JobPostCatalogs = Readonly<{
 }>;
 
 export async function getRecruiterJobPosts(token: string) {
-  return apiRequest<RecruiterJobPost[]>(`${apiBaseUrl}/recruiter/job-posts`, {
+  return apiRequest<RecruiterJobPost[]>("/recruiter/job-posts", {
     headers: authHeaders(token),
   });
 }
 
 export function createRecruiterJobPost(payload: CreateRecruiterJobPostPayload, token: string) {
-  return apiRequest<RecruiterJobPost>(`${apiBaseUrl}/job-posts`, {
+  return apiRequest<RecruiterJobPost>("/job-posts", {
     body: JSON.stringify(removeEmptyFields(payload)),
     headers: {
       ...authHeaders(token),
@@ -99,21 +97,21 @@ export function createRecruiterJobPost(payload: CreateRecruiterJobPostPayload, t
 }
 
 export function publishRecruiterJobPost(jobPostId: string, token: string) {
-  return apiRequest<RecruiterJobPost>(`${apiBaseUrl}/job-posts/${jobPostId}/publish`, {
+  return apiRequest<RecruiterJobPost>(`/job-posts/${jobPostId}/publish`, {
     headers: authHeaders(token),
     method: "PATCH",
   });
 }
 
 export function closeRecruiterJobPost(jobPostId: string, token: string) {
-  return apiRequest<RecruiterJobPost>(`${apiBaseUrl}/job-posts/${jobPostId}/close`, {
+  return apiRequest<RecruiterJobPost>(`/job-posts/${jobPostId}/close`, {
     headers: authHeaders(token),
     method: "PATCH",
   });
 }
 
 export function addSkillToRecruiterJobPost(jobPostId: string, skillId: string, token: string) {
-  return apiRequest(`${apiBaseUrl}/job-posts/${jobPostId}/skills`, {
+  return apiRequest(`/job-posts/${jobPostId}/skills`, {
     body: JSON.stringify({ skillId }),
     headers: {
       ...authHeaders(token),
@@ -128,7 +126,7 @@ export function addLocationToRecruiterJobPost(
   jobLocationId: string,
   token: string,
 ) {
-  return apiRequest(`${apiBaseUrl}/job-posts/${jobPostId}/locations`, {
+  return apiRequest(`/job-posts/${jobPostId}/locations`, {
     body: JSON.stringify({ jobLocationId }),
     headers: {
       ...authHeaders(token),
@@ -143,7 +141,7 @@ export function addSpecializationToRecruiterJobPost(
   specializationId: string,
   token: string,
 ) {
-  return apiRequest(`${apiBaseUrl}/job-posts/${jobPostId}/specializations`, {
+  return apiRequest(`/job-posts/${jobPostId}/specializations`, {
     body: JSON.stringify({ specializationId, isRequired: true }),
     headers: {
       ...authHeaders(token),
@@ -156,12 +154,12 @@ export function addSpecializationToRecruiterJobPost(
 export async function getJobPostCatalogs(): Promise<JobPostCatalogs> {
   const [categories, employmentTypes, experienceLevels, locations, skills, specializations] =
     await Promise.all([
-      apiRequest<JobOption[]>(`${apiBaseUrl}/job-categories`),
-      apiRequest<JobOption[]>(`${apiBaseUrl}/employment-types`),
-      apiRequest<JobOption[]>(`${apiBaseUrl}/experience-levels`),
-      apiRequest<JobLocationOption[]>(`${apiBaseUrl}/job-locations`),
-      apiRequest<JobOption[]>(`${apiBaseUrl}/skills`),
-      apiRequest<JobOption[]>(`${apiBaseUrl}/specializations`),
+      apiRequest<JobOption[]>("/job-categories"),
+      apiRequest<JobOption[]>("/employment-types"),
+      apiRequest<JobOption[]>("/experience-levels"),
+      apiRequest<JobLocationOption[]>("/job-locations"),
+      apiRequest<JobOption[]>("/skills"),
+      apiRequest<JobOption[]>("/specializations"),
     ]);
 
   return {
