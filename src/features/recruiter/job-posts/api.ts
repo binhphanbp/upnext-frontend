@@ -80,8 +80,11 @@ export type JobPostCatalogs = Readonly<{
   specializations: JobOption[];
 }>;
 
-export async function getRecruiterJobPosts(token: string) {
-  return apiRequest<RecruiterJobPost[]>("/recruiter/job-posts", {
+export async function getRecruiterJobPosts(token: string, recruiterId?: string) {
+  const url = recruiterId
+    ? `/recruiter/job-posts?recruiterId=${recruiterId}`
+    : "/recruiter/job-posts";
+  return apiRequest<RecruiterJobPost[]>(url, {
     headers: authHeaders(token),
   });
 }

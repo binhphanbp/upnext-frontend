@@ -139,6 +139,7 @@ function getJobPostErrorMessage(error: unknown) {
 export function RecruiterJobPostsPage() {
   const router = useRouter();
   const [token, setToken] = useState("");
+  const [accountId, setAccountId] = useState("");
   const [account, setAccount] = useState<RecruiterAccountDetail | null>(null);
   const [catalogs, setCatalogs] = useState<JobPostCatalogs>(emptyCatalogs);
   const [jobs, setJobs] = useState<RecruiterJobPost[]>([]);
@@ -212,9 +213,9 @@ export function RecruiterJobPostsPage() {
   }, [loadPageData, router]);
 
   async function reloadJobs() {
-    if (!token) return;
+    if (!token || !accountId) return;
 
-    setJobs(await getRecruiterJobPosts(token));
+    setJobs(await getRecruiterJobPosts(token, accountId));
   }
 
   async function submit(values: JobPostFormValues) {
