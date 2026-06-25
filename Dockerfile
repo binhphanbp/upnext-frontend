@@ -4,7 +4,9 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV LEFTHOOK=0
 
-RUN corepack enable && corepack prepare pnpm@11.5.2 --activate
+RUN apk add --no-cache git \
+  && corepack enable \
+  && corepack prepare pnpm@11.5.2 --activate
 
 WORKDIR /app
 
