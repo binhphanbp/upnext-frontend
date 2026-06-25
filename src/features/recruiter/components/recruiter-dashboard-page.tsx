@@ -27,18 +27,17 @@ import {
   uploadCompanyBusinessLicense,
   uploadFile,
 } from "@/features/recruiter/api/onboarding";
+import {
+  clearRecruiterSession,
+  getRecruiterSession,
+  type RecruiterSessionUser,
+} from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { AddressSelector } from "@/shared/ui/address-selector";
 import { Button } from "@/shared/ui/button";
 import { FormInput, Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-
-type StoredRecruiterUser = Readonly<{
-  id: string;
-  email: string;
-  role: string;
-}>;
 
 const Toast = Swal.mixin({
   toast: true,
@@ -178,7 +177,7 @@ export function RecruiterDashboardPage() {
   const router = useRouter();
   const t = useTranslations("Recruiter");
   const [token, setToken] = useState("");
-  const [user, setUser] = useState<StoredRecruiterUser | null>(null);
+  const [user, setUser] = useState<RecruiterSessionUser | null>(null);
   const [account, setAccount] = useState<RecruiterAccountDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<{ totalJobPosts: number; totalCandidates: number } | null>(
@@ -220,9 +219,7 @@ export function RecruiterDashboardPage() {
         showToast("error", getOnboardingErrorMessage(error, t));
 
         if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-          localStorage.removeItem("upnext.recruiter.accessToken");
-          localStorage.removeItem("upnext.recruiter.tokenType");
-          localStorage.removeItem("upnext.recruiter.user");
+          clearRecruiterSession();
           router.replace("/recruiter/login");
         }
       } finally {
@@ -233,27 +230,16 @@ export function RecruiterDashboardPage() {
   );
 
   useEffect(() => {
-    const accessToken = localStorage.getItem("upnext.recruiter.accessToken");
-    const rawUser = localStorage.getItem("upnext.recruiter.user");
+    const session = getRecruiterSession();
 
-    if (!accessToken || !rawUser) {
+    if (!session) {
       router.replace("/recruiter/login");
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(rawUser) as StoredRecruiterUser;
-
-      setToken(accessToken);
-      setUser(parsedUser);
-
-      void loadAccount(parsedUser.id, accessToken);
-    } catch {
-      localStorage.removeItem("upnext.recruiter.accessToken");
-      localStorage.removeItem("upnext.recruiter.tokenType");
-      localStorage.removeItem("upnext.recruiter.user");
-      router.replace("/recruiter/login");
-    }
+    setToken(session.accessToken);
+    setUser(session.user);
+    void loadAccount(session.user.id, session.accessToken);
   }, [loadAccount, router]);
 
   if (loading) {

@@ -267,7 +267,7 @@
 .upnext-shadow {
   box-shadow:
     var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow),
-    var(--tw-ring-shadow), var(--tw-shadow);
-  --tw-shadow: none;
-  border: none;
+    var(--tw-ring-shadow), var(--tw-shadow) !important;
+  --tw-shadow: none !important;
+  border: none !important;
 }

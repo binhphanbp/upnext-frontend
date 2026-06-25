@@ -6,11 +6,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 
 import {
+  changePassword,
   getRecruiterAccount,
   updateRecruiterProfile,
-  changePassword,
   uploadFile,
+  type UpdateRecruiterProfilePayload,
 } from "@/features/recruiter/api/onboarding";
+import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { FormInput } from "@/shared/ui/input";
@@ -156,9 +158,7 @@ export function RecruiterSettingsPage() {
         }
       } catch (error) {
         if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-          localStorage.removeItem("upnext.recruiter.accessToken");
-          localStorage.removeItem("upnext.recruiter.tokenType");
-          localStorage.removeItem("upnext.recruiter.user");
+          clearRecruiterSession();
           router.replace("/recruiter/login");
         } else {
           void Swal.fire({
@@ -175,22 +175,16 @@ export function RecruiterSettingsPage() {
   );
 
   useEffect(() => {
-    const accessToken = localStorage.getItem("upnext.recruiter.accessToken");
-    const rawUser = localStorage.getItem("upnext.recruiter.user");
+    const session = getRecruiterSession();
 
-    if (!accessToken || !rawUser) {
+    if (!session) {
       router.replace("/recruiter/login");
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(rawUser);
-      setToken(accessToken);
-      setAccountId(parsedUser.id);
-      void fetchDetails(parsedUser.id, accessToken);
-    } catch {
-      router.replace("/recruiter/login");
-    }
+    setToken(session.accessToken);
+    setAccountId(session.user.id);
+    void fetchDetails(session.user.id, session.accessToken);
   }, [fetchDetails, router]);
 
   const handleAvatarClick = () => {
@@ -254,8 +248,6 @@ export function RecruiterSettingsPage() {
   };
 
   const handleSave = async () => {
-    setSaving(false);
-
     // Validations
     if (!fullName.trim()) {
       void Swal.fire({
@@ -300,10 +292,10 @@ export function RecruiterSettingsPage() {
 
       // 1. Save Profile Details
       if (profileId) {
-        const profilePayload: any = { fullName: fullName.trim() };
+        const profilePayload: UpdateRecruiterProfilePayload = { fullName: fullName.trim() };
         if (gender) profilePayload.gender = gender;
         if (phoneNumber.trim()) profilePayload.phoneNumber = phoneNumber.trim();
-        if (avatarUrl) profilePayload.avatarUrl = avatarUrl;
+        profilePayload.avatarUrl = avatarUrl || null;
         await updateRecruiterProfile(profileId, profilePayload, token);
       }
 
@@ -333,13 +325,13 @@ export function RecruiterSettingsPage() {
 
       // Reload
       void fetchDetails(accountId, token);
-    } catch (err: any) {
+    } catch (err: unknown) {
       let msg = "Không thể lưu thay đổi vào lúc này.";
       if (err instanceof ApiError) {
         if (err.status === 400) {
           msg = "Dữ liệu nhập vào không hợp lệ hoặc mật khẩu hiện tại sai.";
         }
-      } else if (err?.message) {
+      } else if (err instanceof Error) {
         msg = err.message;
       }
       void Swal.fire({
