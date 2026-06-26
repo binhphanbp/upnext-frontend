@@ -7,11 +7,14 @@ import {
   UploadSimple,
   User,
   SquaresFour,
+  Sparkle,
+  Lightning,
+  CircleNotch,
 } from "@phosphor-icons/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useForm, type FieldErrors, type UseFormRegisterReturn } from "react-hook-form";
 import Swal, { type SweetAlertIcon } from "sweetalert2";
 import { z } from "zod";
@@ -26,6 +29,8 @@ import {
   updateRecruiterProfile,
   uploadCompanyBusinessLicense,
   uploadFile,
+  scanCompanyBusinessLicense,
+  updateCompany,
 } from "@/features/recruiter/api/onboarding";
 import {
   clearRecruiterSession,
@@ -184,6 +189,83 @@ export function RecruiterDashboardPage() {
     null,
   );
 
+  const [scanning, setScanning] = useState(false);
+  const [aiLicenseFile, setAiLicenseFile] = useState<File | null>(null);
+  const aiLicenseInputRef = useRef<HTMLInputElement>(null);
+
+  const handleScanLicense = async () => {
+    if (!aiLicenseFile || !account?.company?.id) {
+      void Swal.fire({
+        icon: "warning",
+        title: "Chưa chọn file",
+        text: "Vui lòng chọn Giấy phép đăng ký kinh doanh.",
+      });
+      return;
+    }
+
+    try {
+      setScanning(true);
+      const data = await scanCompanyBusinessLicense(account.company.id, aiLicenseFile, token);
+
+      const result = await Swal.fire({
+        title: "Quét thành công!",
+        html: `
+          <div class="text-left space-y-2 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <p class="break-words"><strong>Tên công ty:</strong> ${data.name || "Không tìm thấy"}</p>
+            <p class="break-words"><strong>Mã số thuế:</strong> ${data.taxCode || "Không tìm thấy"}</p>
+            <p class="break-words"><strong>Địa chỉ:</strong> ${data.address || "Không tìm thấy"}</p>
+            ${data.email ? `<p class="break-words"><strong>Email:</strong> ${data.email}</p>` : ""}
+            ${data.phone ? `<p class="break-words"><strong>SĐT:</strong> ${data.phone}</p>` : ""}
+            ${data.website ? `<p class="break-words"><strong>Website:</strong> ${data.website}</p>` : ""}
+          </div>
+          <p class="mt-4 text-center font-bold text-slate-700">Bạn có muốn cập nhật thông tin công ty bằng kết quả này?</p>
+        `,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Đồng ý",
+        cancelButtonText: "Bỏ qua",
+        confirmButtonColor: "#10a778",
+      });
+
+      if (result.isConfirmed) {
+        await updateCompany(
+          account.company.id,
+          {
+            name: data.name || account.company.name,
+            ...(data.taxCode ? { taxCode: data.taxCode } : {}),
+            ...(data.address ? { address: data.address } : {}),
+            ...(data.email ? { email: data.email } : {}),
+            ...(data.phone ? { phone: data.phone } : {}),
+            ...(data.website ? { website: data.website } : {}),
+          },
+          token,
+        );
+
+        await uploadCompanyBusinessLicense(account.company.id, aiLicenseFile, token);
+
+        const nextAccount = await getRecruiterAccount(account.id, token);
+        setAccount(nextAccount);
+        setAiLicenseFile(null);
+
+        void Swal.fire({
+          icon: "success",
+          title: "Đã cập nhật!",
+          text: "Thông tin công ty đã được cập nhật thành công.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    } catch (error) {
+      void Swal.fire({
+        icon: "error",
+        title: "Lỗi quét AI",
+        text: getOnboardingErrorMessage(error, t),
+      });
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const onboardingRequired = useMemo(() => {
     if (!account) return false;
 
@@ -266,6 +348,91 @@ export function RecruiterDashboardPage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         {/* Left: Welcome Banner + Mini Cards (Chiếm 5 cột) */}
         <div className="flex flex-col gap-6 xl:col-span-5">
+          {/* AI Scanner Banner */}
+          <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 p-6 shadow-xs transition-all duration-300">
+            {/* Ambient background glows */}
+            <div className="pointer-events-none absolute -top-12 -right-12 size-32 rounded-full bg-emerald-400/15 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-12 -left-12 size-32 rounded-full bg-teal-400/10 blur-2xl" />
+
+            <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="animate-pulse-slow flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20">
+                  <Sparkle size={22} weight="fill" className="animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="flex items-center gap-2 text-sm font-black text-slate-800 sm:text-base">
+                    Tự động điền thông tin nhanh bằng AI
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black tracking-wider text-emerald-800 uppercase">
+                      Mới
+                    </span>
+                  </h4>
+                  <p className="hidden max-w-xl text-xs leading-relaxed font-semibold text-slate-500 sm:block">
+                    Tiết kiệm thời gian nhập liệu! Tải lên Giấy đăng ký kinh doanh (GPKD), hệ thống
+                    AI của UpNext sẽ tự động phân tích và điền nhanh các thông tin như Tên công ty,
+                    Mã số thuế, Địa chỉ, SĐT, Email...
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-3 self-end sm:self-center">
+                {!aiLicenseFile ? (
+                  <button
+                    type="button"
+                    onClick={() => aiLicenseInputRef.current?.click()}
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-2.5 text-xs font-black tracking-wider text-white uppercase shadow-md shadow-emerald-600/15 transition-all duration-300 hover:from-emerald-700 hover:to-teal-700 hover:shadow-lg hover:shadow-emerald-600/25 active:scale-95"
+                  >
+                    Tải lên GPKD để quét
+                    <Lightning size={14} weight="fill" className="animate-bounce text-yellow-300" />
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2.5">
+                    <span className="max-w-[150px] truncate rounded-xl border border-slate-200 bg-white/80 px-3.5 py-2 text-xs font-bold text-slate-600 shadow-2xs backdrop-blur-xs sm:max-w-xs">
+                      📎 {aiLicenseFile.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void handleScanLicense()}
+                      disabled={scanning}
+                      className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-black tracking-wider text-white uppercase shadow-md shadow-blue-600/15 transition-all duration-300 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-blue-600/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {scanning ? (
+                        <>
+                          <CircleNotch className="size-3.5 animate-spin" />
+                          Đang quét bằng AI...
+                        </>
+                      ) : (
+                        <>
+                          Bắt đầu quét AI
+                          <Lightning size={12} weight="fill" className="text-yellow-300" />
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiLicenseFile(null)}
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-500 shadow-2xs transition-all duration-300 hover:bg-slate-50 hover:text-slate-800"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <input
+              ref={aiLicenseInputRef}
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg"
+              className="hidden"
+              aria-label="Tải lên GPKD để quét"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setAiLicenseFile(file);
+                }
+              }}
+            />
+          </div>
+
           {/* Welcome Card (Có 3D bia phi tiêu) */}
           <div className="bg-primary relative flex min-h-[200px] justify-between overflow-hidden rounded-2xl p-7 text-white">
             <div className="relative z-10 flex h-full flex-col justify-between">
@@ -630,6 +797,100 @@ function RecruiterOnboardingDialog({
   const selectedGender = form.watch("gender");
   const [avatarPreview, setAvatarPreview] = useState(profile?.avatarUrl ?? "");
 
+  const [onboardingCompanyId, setOnboardingCompanyId] = useState(account.company?.id || "");
+  const [scanning, setScanning] = useState(false);
+  const [aiLicenseFile, setAiLicenseFile] = useState<File | null>(null);
+  const aiLicenseInputRef = useRef<HTMLInputElement>(null);
+
+  const handleScanLicense = async () => {
+    if (!aiLicenseFile) {
+      void Swal.fire({
+        icon: "warning",
+        title: t("onboarding.companyProfile.errors.noFileSelected") || "Chưa chọn file",
+        text:
+          t("onboarding.companyProfile.errors.noFileSelectedText") ||
+          "Vui lòng chọn Giấy phép đăng ký kinh doanh.",
+      });
+      return;
+    }
+
+    let currentCompanyId = onboardingCompanyId;
+    try {
+      setScanning(true);
+      if (!currentCompanyId) {
+        // Create draft company first
+        const draftCompany = await createCompany({ name: "Draft Company" }, token);
+        currentCompanyId = draftCompany.id;
+        setOnboardingCompanyId(currentCompanyId);
+        await attachRecruiterCompany(account.id, currentCompanyId, token);
+      }
+
+      const data = await scanCompanyBusinessLicense(currentCompanyId, aiLicenseFile, token);
+
+      const result = await Swal.fire({
+        title:
+          t("onboarding.companyProfile.messages.scanSuccessTitle") || "Quét thông tin thành công!",
+        html: `
+          <div class="text-left space-y-2 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100 font-sans">
+            <p class="break-words"><strong>${t("onboarding.companyProfile.messages.scanFields.name") || "Tên công ty"}:</strong> ${data.name || "Không tìm thấy"}</p>
+            <p class="break-words"><strong>${t("onboarding.companyProfile.messages.scanFields.taxCode") || "Mã số thuế"}:</strong> ${data.taxCode || "Không tìm thấy"}</p>
+            <p class="break-words"><strong>${t("onboarding.companyProfile.messages.scanFields.address") || "Địa chỉ"}:</strong> ${data.address || "Không tìm thấy"}</p>
+            ${data.email ? `<p class="break-words"><strong>Email:</strong> ${data.email}</p>` : ""}
+            ${data.phone ? `<p class="break-words"><strong>SĐT:</strong> ${data.phone}</p>` : ""}
+            ${data.website ? `<p class="break-words"><strong>Website:</strong> ${data.website}</p>` : ""}
+          </div>
+          <p class="mt-4 text-center font-bold text-slate-700 font-sans">${t("onboarding.companyProfile.messages.scanSuccessConfirmText") || "Bạn có muốn tự động điền các thông tin này?"}</p>
+        `,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: t("onboarding.companyProfile.messages.agree") || "Đồng ý",
+        cancelButtonText: t("onboarding.companyProfile.messages.ignore") || "Bỏ qua",
+        confirmButtonColor: "#10a778",
+      });
+
+      if (result.isConfirmed) {
+        if (data.name)
+          form.setValue("companyName", data.name, { shouldValidate: true, shouldDirty: true });
+        if (data.taxCode)
+          form.setValue("taxCode", data.taxCode, { shouldValidate: true, shouldDirty: true });
+        if (data.address)
+          form.setValue("address", data.address, { shouldValidate: true, shouldDirty: true });
+        if (data.email)
+          form.setValue("companyEmail", data.email, { shouldValidate: true, shouldDirty: true });
+        if (data.phone)
+          form.setValue("companyPhone", data.phone, { shouldValidate: true, shouldDirty: true });
+        if (data.website)
+          form.setValue("website", data.website, { shouldValidate: true, shouldDirty: true });
+
+        // Programmatically populate the businessLicense field in step 3 using DataTransfer
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(aiLicenseFile);
+        form.setValue("businessLicense", dataTransfer.files, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true,
+        });
+
+        setAiLicenseFile(null);
+
+        void Swal.fire({
+          icon: "success",
+          title: t("onboarding.companyProfile.messages.autofillSuccess") || "Đã điền tự động!",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    } catch (error) {
+      void Swal.fire({
+        icon: "error",
+        title: t("onboarding.companyProfile.errors.scanError") || "Lỗi quét AI",
+        text: getOnboardingErrorMessage(error, t),
+      });
+    } finally {
+      setScanning(false);
+    }
+  };
+
   useEffect(() => {
     const avatarFile = watchedAvatar?.item(0);
 
@@ -683,23 +944,41 @@ function RecruiterOnboardingDialog({
         avatarUrl = uploadResult.file.publicUrl;
       }
 
-      const companyId =
-        account.company?.id ??
-        (
-          await createCompany(
-            {
-              address: values.address,
-              companySize: values.companySize,
-              description: values.description,
-              email: values.companyEmail,
-              name: values.companyName,
-              phone: values.companyPhone,
-              taxCode: values.taxCode,
-              website: values.website ?? "",
-            },
-            token,
-          )
-        ).id;
+      const currentCompanyId = onboardingCompanyId || account.company?.id;
+
+      let companyId: string;
+      if (currentCompanyId) {
+        await updateCompany(
+          currentCompanyId,
+          {
+            address: values.address,
+            companySize: values.companySize,
+            description: values.description,
+            email: values.companyEmail,
+            name: values.companyName,
+            phone: values.companyPhone,
+            taxCode: values.taxCode,
+            website: values.website ?? "",
+          },
+          token,
+        );
+        companyId = currentCompanyId;
+      } else {
+        const newCompany = await createCompany(
+          {
+            address: values.address,
+            companySize: values.companySize,
+            description: values.description,
+            email: values.companyEmail,
+            name: values.companyName,
+            phone: values.companyPhone,
+            taxCode: values.taxCode,
+            website: values.website ?? "",
+          },
+          token,
+        );
+        companyId = newCompany.id;
+      }
 
       if (!account.company) {
         await attachRecruiterCompany(account.id, companyId, token);
@@ -938,6 +1217,96 @@ function RecruiterOnboardingDialog({
 
               {step === 1 ? (
                 <section className="space-y-4">
+                  {/* AI Scanner Banner */}
+                  <div className="relative mb-4 overflow-hidden rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 p-4 shadow-xs">
+                    <div className="pointer-events-none absolute -top-12 -right-12 size-24 rounded-full bg-emerald-400/10 blur-xl" />
+                    <div className="pointer-events-none absolute -bottom-12 -left-12 size-24 rounded-full bg-teal-400/10 blur-xl" />
+
+                    <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm">
+                          <Sparkle size={18} weight="fill" className="animate-pulse" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <h4 className="flex items-center gap-2 text-xs font-bold text-slate-800 sm:text-sm">
+                            {t("onboarding.companyProfile.aiScan.title") ||
+                              "Tự động điền thông tin nhanh bằng AI"}
+                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-black tracking-wider text-emerald-800 uppercase">
+                              {t("onboarding.companyProfile.aiScan.badgeNew") || "Mới"}
+                            </span>
+                          </h4>
+                          <p className="hidden max-w-xl text-[11px] leading-normal font-semibold text-slate-500 sm:block">
+                            {t("onboarding.companyProfile.aiScan.helpText") ||
+                              "Tải lên GPKD để điền nhanh thông tin."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2 self-end sm:self-center">
+                        {!aiLicenseFile ? (
+                          <button
+                            type="button"
+                            onClick={() => aiLicenseInputRef.current?.click()}
+                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all duration-300 hover:from-emerald-700 hover:to-teal-700 hover:shadow-md active:scale-95"
+                          >
+                            {t("onboarding.companyProfile.aiScan.uploadBtn") ||
+                              "Tải lên GPKD để quét"}
+                            <Lightning
+                              size={12}
+                              weight="fill"
+                              className="animate-bounce text-yellow-300"
+                            />
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="max-w-[120px] truncate rounded-lg border border-slate-200 bg-white/80 px-2.5 py-1.5 text-xs font-bold text-slate-600 shadow-2xs backdrop-blur-xs">
+                              📎 {aiLicenseFile.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => void handleScanLicense()}
+                              disabled={scanning}
+                              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all duration-300 hover:from-blue-700 hover:to-indigo-700 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {scanning ? (
+                                <>
+                                  <CircleNotch className="size-3 animate-spin" />
+                                  {t("onboarding.companyProfile.aiScan.scanning") || "Đang quét..."}
+                                </>
+                              ) : (
+                                <>
+                                  {t("onboarding.companyProfile.aiScan.startBtn") ||
+                                    "Bắt đầu quét AI"}
+                                  <Lightning size={10} weight="fill" className="text-yellow-300" />
+                                </>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAiLicenseFile(null)}
+                              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-bold text-slate-500 shadow-2xs transition-all duration-300 hover:bg-slate-50 hover:text-slate-800"
+                            >
+                              {t("onboarding.companyProfile.aiScan.cancelBtn") || "Hủy"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      ref={aiLicenseInputRef}
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      className="hidden"
+                      aria-label="Tải lên GPKD để quét"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setAiLicenseFile(file);
+                        }
+                      }}
+                    />
+                  </div>
+
                   <div className="grid gap-4 sm:grid-cols-2">
                     <OnboardingField
                       id="recruiter-onboarding-company-name"
@@ -1037,6 +1406,40 @@ function RecruiterOnboardingDialog({
                     <p className="mt-2 text-xs leading-5 text-slate-500">
                       {t("onboarding.upload.helpText")}
                     </p>
+
+                    {(() => {
+                      const watchedLicense = form.watch("businessLicense");
+                      const selectedLicenseFile = watchedLicense?.item?.(0) || null;
+                      if (!selectedLicenseFile) return null;
+                      return (
+                        <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-100 bg-white p-3 shadow-xs">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-emerald-600">📎</span>
+                            <div className="flex flex-col">
+                              <span className="max-w-[250px] truncate text-sm font-bold text-slate-700 sm:max-w-[400px]">
+                                {selectedLicenseFile.name}
+                              </span>
+                              <span className="text-xs text-slate-400">
+                                {(selectedLicenseFile.size / 1024 / 1024).toFixed(2)} MB
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              form.setValue("businessLicense", undefined as any, {
+                                shouldDirty: true,
+                                shouldTouch: true,
+                                shouldValidate: true,
+                              });
+                            }}
+                            className="text-xs font-bold text-red-500 transition-colors hover:text-red-700"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </section>
               ) : null}
