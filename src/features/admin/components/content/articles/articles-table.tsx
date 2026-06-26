@@ -140,34 +140,55 @@ const data: AdminArticle[] = [
   },
 ];
 
-export const columns: ColumnDef<AdminArticle>[] = [
+import { useTranslations } from "next-intl";
+
+export const getColumns = (t: any): ColumnDef<AdminArticle>[] => [
   {
     accessorKey: "title",
-    header: "Tiêu đề",
-    cell: ({ row }) => (
-      <div>
-        <p className="text-foreground font-bold">{row.original.title}</p>
-        <p className="text-muted-foreground text-xs">{row.original.category}</p>
-      </div>
-    ),
+    header: t("article"),
+    cell: ({ row }) => {
+      const category = row.original.category as string;
+      const categoryKey =
+        category === "Phát triển nghề nghiệp"
+          ? "career"
+          : category === "Góc kỹ thuật"
+            ? "technical"
+            : category === "Báo cáo thị trường"
+              ? "market"
+              : category === "Review công ty"
+                ? "review"
+                : category === "Tin tức"
+                  ? "news"
+                  : "blog";
+
+      return (
+        <div>
+          <p className="text-foreground font-bold">{row.original.title}</p>
+          <p className="text-muted-foreground text-xs">{t(`categoryOptions.${categoryKey}`)}</p>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "author",
-    header: "Tác giả",
+    header: t("author"),
   },
   {
     accessorKey: "status",
-    header: "Trạng thái",
+    header: t("status"),
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const tone =
         status === "Đã xuất bản" ? "success" : status === "Đang chờ duyệt" ? "warning" : "neutral";
-      return <Badge tone={tone}>{status}</Badge>;
+
+      const statusKey =
+        status === "Đã xuất bản" ? "published" : status === "Đang chờ duyệt" ? "pending" : "draft";
+      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "views",
-    header: () => <div className="text-right">Lượt xem</div>,
+    header: () => <div className="text-right">{t("views")}</div>,
     cell: ({ row }) => {
       return (
         <div className="text-right font-medium">
@@ -178,12 +199,12 @@ export const columns: ColumnDef<AdminArticle>[] = [
   },
   {
     accessorKey: "publishedDate",
-    header: "Ngày xuất bản",
+    header: t("date"),
     cell: ({ row }) => <div>{row.original.publishedDate || "—"}</div>,
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Thao tác</div>,
+    header: () => <div className="text-right">{t("actions")}</div>,
     cell: ({ row }) => {
       const article = row.original;
 
@@ -197,17 +218,21 @@ export const columns: ColumnDef<AdminArticle>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-              <DropdownMenuItem>Chỉnh sửa bài viết</DropdownMenuItem>
-              <DropdownMenuItem>Xem trước</DropdownMenuItem>
+              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+              <DropdownMenuItem>{t("actionOptions.edit")}</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.viewPreview")}</DropdownMenuItem>
               <DropdownMenuSeparator />
               {article.status === "Đang chờ duyệt" && (
-                <DropdownMenuItem className="text-success">Duyệt và xuất bản</DropdownMenuItem>
+                <DropdownMenuItem className="text-success">
+                  {t("actionOptions.approveAndPublish")}
+                </DropdownMenuItem>
               )}
               {article.status === "Đã xuất bản" && (
-                <DropdownMenuItem>Chuyển thành bản nháp</DropdownMenuItem>
+                <DropdownMenuItem>{t("actionOptions.moveToDraft")}</DropdownMenuItem>
               )}
-              <DropdownMenuItem className="text-error">Xóa bài viết</DropdownMenuItem>
+              <DropdownMenuItem className="text-error">
+                {t("actionOptions.delete")}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -218,11 +243,14 @@ export const columns: ColumnDef<AdminArticle>[] = [
 
 export function ArticlesTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const t = useTranslations("Admin.content.articles.table");
 
   const filteredData = React.useMemo(() => {
     if (statusFilter === "all") return data;
     return data.filter((item) => item.status === statusFilter);
   }, [statusFilter]);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -232,20 +260,17 @@ export function ArticlesTable() {
             className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
             size={18}
           />
-          <Input
-            className="bg-muted h-10 rounded-xl pl-10"
-            placeholder="Tìm theo tiêu đề, tác giả..."
-          />
+          <Input className="bg-muted h-10 rounded-xl pl-10" placeholder={t("searchPlaceholder")} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
-            <SelectValue placeholder="Tất cả trạng thái" />
+            <SelectValue placeholder={t("allStatuses")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="Đã xuất bản">Đã xuất bản</SelectItem>
-            <SelectItem value="Đang chờ duyệt">Đang chờ duyệt</SelectItem>
-            <SelectItem value="Bản nháp">Bản nháp</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="Đã xuất bản">{t("statusOptions.published")}</SelectItem>
+            <SelectItem value="Đang chờ duyệt">{t("statusOptions.pending")}</SelectItem>
+            <SelectItem value="Bản nháp">{t("statusOptions.draft")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

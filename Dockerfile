@@ -2,16 +2,18 @@ FROM node:24.11.1-alpine AS base
 
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
-RUN corepack enable
+RUN corepack enable && corepack prepare pnpm@11.5.2 --activate
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 FROM base AS builder
+ARG NEXT_PUBLIC_API_URL=https://api.upnext.works
 ARG NEXT_PUBLIC_API_BASE_URL=https://api.upnext.works
 ARG NEXT_PUBLIC_API_MOCKING=disabled
 ARG NEXT_PUBLIC_RECRUITER_COMPANY_ID=76445328-62fc-4f74-b4e8-9398a8ad7a3a
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_MOCKING=$NEXT_PUBLIC_API_MOCKING
 ENV NEXT_PUBLIC_RECRUITER_COMPANY_ID=$NEXT_PUBLIC_RECRUITER_COMPANY_ID

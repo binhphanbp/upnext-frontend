@@ -1,3 +1,4 @@
+import { authHeaders, jsonAuthHeaders, removeEmptyFields } from "@/features/recruiter/api/client";
 import { apiRequest } from "@/shared/api/http";
 
 export type RecruiterAccountDetail = Readonly<{
@@ -27,6 +28,13 @@ export type CreateRecruiterProfilePayload = Readonly<{
   gender?: "MALE" | "FEMALE" | undefined;
   avatarUrl?: string | undefined;
 }>;
+
+export type UpdateRecruiterProfilePayload = {
+  fullName?: string | undefined;
+  phoneNumber?: string | undefined;
+  gender?: "MALE" | "FEMALE" | undefined;
+  avatarUrl?: string | null | undefined;
+};
 
 export type CreateCompanyPayload = Readonly<{
   name: string;
@@ -81,25 +89,19 @@ export function getRecruiterAccount(accountId: string, token: string) {
 export function createRecruiterProfile(payload: CreateRecruiterProfilePayload, token: string) {
   return apiRequest("/recruiter-profiles", {
     body: JSON.stringify(removeEmptyFields(payload)),
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-    },
+    headers: jsonAuthHeaders(token),
     method: "POST",
   });
 }
 
 export function updateRecruiterProfile(
   profileId: string,
-  payload: Partial<Omit<CreateRecruiterProfilePayload, "recruiterAccountId">>,
+  payload: UpdateRecruiterProfilePayload,
   token: string,
 ) {
   return apiRequest(`/recruiter-profiles/${profileId}`, {
     body: JSON.stringify(removeEmptyFields(payload)),
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-    },
+    headers: jsonAuthHeaders(token),
     method: "PATCH",
   });
 }
@@ -132,10 +134,7 @@ export function uploadFile(file: File, purpose: string, visibility: string, toke
 export function createCompany(payload: CreateCompanyPayload, token: string) {
   return apiRequest<CompanyResponse>("/companies", {
     body: JSON.stringify(removeEmptyFields(payload)),
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-    },
+    headers: jsonAuthHeaders(token),
     method: "POST",
   });
 }
@@ -143,10 +142,7 @@ export function createCompany(payload: CreateCompanyPayload, token: string) {
 export function attachRecruiterCompany(accountId: string, companyId: string, token: string) {
   return apiRequest(`/recruiter-accounts/${accountId}`, {
     body: JSON.stringify({ companyId }),
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-    },
+    headers: jsonAuthHeaders(token),
     method: "PATCH",
   });
 }
@@ -202,10 +198,7 @@ export function getRecruiterStats(accountId: string, token: string) {
 export function changePassword(accountId: string, payload: Record<string, string>, token: string) {
   return apiRequest(`/recruiter-accounts/${accountId}/change-password`, {
     body: JSON.stringify(payload),
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-    },
+    headers: jsonAuthHeaders(token),
     method: "POST",
   });
 }
@@ -213,10 +206,7 @@ export function changePassword(accountId: string, payload: Record<string, string
 export function updateCompany(companyId: string, payload: CreateCompanyPayload, token: string) {
   return apiRequest(`/companies/${companyId}`, {
     body: JSON.stringify(removeEmptyFields(payload)),
-    headers: {
-      ...authHeaders(token),
-      "Content-Type": "application/json",
-    },
+    headers: jsonAuthHeaders(token),
     method: "PATCH",
   });
 }
@@ -243,16 +233,4 @@ export function deleteCompanyPhoto(companyId: string, photoId: string, token: st
     headers: authHeaders(token),
     method: "DELETE",
   });
-}
-
-function authHeaders(token: string) {
-  return {
-    Authorization: `Bearer ${token}`,
-  };
-}
-
-function removeEmptyFields<T extends Record<string, unknown>>(payload: T) {
-  return Object.fromEntries(
-    Object.entries(payload).filter(([, value]) => value !== undefined && value !== ""),
-  ) as Partial<T>;
 }

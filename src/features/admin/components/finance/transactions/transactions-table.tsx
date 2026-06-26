@@ -140,25 +140,53 @@ const data: AdminTransaction[] = [
   },
 ];
 
-export const columns: ColumnDef<AdminTransaction>[] = [
+import { useTranslations } from "next-intl";
+
+export const getColumns = (t: any): ColumnDef<AdminTransaction>[] => [
   {
     accessorKey: "id",
-    header: "Mã giao dịch",
+    header: t("id"),
     cell: ({ row }) => <p className="font-mono text-sm font-medium">{row.original.id}</p>,
   },
   {
     accessorKey: "client",
-    header: "Khách hàng",
-    cell: ({ row }) => (
-      <div>
-        <p className="text-foreground font-bold">{row.original.client}</p>
-        <p className="text-muted-foreground text-xs">{row.original.service}</p>
-      </div>
-    ),
+    header: t("client"),
+    cell: ({ row }) => {
+      const clientStr = row.original.client as string;
+      const serviceStr = row.original.service as string;
+
+      let client = clientStr;
+      if (clientStr === "Nguyễn Lê Anh (Candidate)")
+        client = t("mockClients.Nguyễn Lê Anh (Candidate)");
+      else if (clientStr === "Công ty ABC") client = t("mockClients.Công ty ABC");
+      else if (clientStr === "Trần Văn E (Candidate)")
+        client = t("mockClients.Trần Văn E (Candidate)");
+      else if (clientStr === "Phạm F (Candidate)") client = t("mockClients.Phạm F (Candidate)");
+
+      let service = serviceStr;
+      if (serviceStr === "Employer Premium (1 Năm)")
+        service = t("mockServices.Employer Premium (1 Năm)");
+      else if (serviceStr === "Employer Pro (1 Tháng)")
+        service = t("mockServices.Employer Pro (1 Tháng)");
+      else if (serviceStr === "Gói 5 Tin Tuyển Dụng")
+        service = t("mockServices.Gói 5 Tin Tuyển Dụng");
+      else if (serviceStr === "Candidate Pro (1 Tháng)")
+        service = t("mockServices.Candidate Pro (1 Tháng)");
+      else if (serviceStr === "Gói 10 Tin Tuyển Dụng")
+        service = t("mockServices.Gói 10 Tin Tuyển Dụng");
+      else if (serviceStr === "Gói xem 100 CV") service = t("mockServices.Gói xem 100 CV");
+
+      return (
+        <div>
+          <p className="text-foreground font-bold">{client}</p>
+          <p className="text-muted-foreground text-xs">{service}</p>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "amount",
-    header: () => <div className="text-right">Số tiền</div>,
+    header: () => <div className="text-right">{t("amount")}</div>,
     cell: ({ row }) => {
       return (
         <div className="text-brand text-right font-medium">
@@ -171,11 +199,23 @@ export const columns: ColumnDef<AdminTransaction>[] = [
   },
   {
     accessorKey: "paymentMethod",
-    header: "Phương thức thanh toán",
+    header: t("paymentMethod"),
+    cell: ({ row }) => {
+      const method = row.original.paymentMethod;
+      const methodKey =
+        method === "Chuyển khoản"
+          ? "bankTransfer"
+          : method === "Thẻ tín dụng"
+            ? "creditCard"
+            : method === "MoMo"
+              ? "momo"
+              : "vnpay";
+      return <div>{t(`paymentMethodOptions.${methodKey}`)}</div>;
+    },
   },
   {
     accessorKey: "status",
-    header: "Trạng thái",
+    header: t("status"),
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const tone =
@@ -186,17 +226,26 @@ export const columns: ColumnDef<AdminTransaction>[] = [
             : status === "Thất bại"
               ? "error"
               : "neutral";
-      return <Badge tone={tone}>{status}</Badge>;
+
+      const statusKey =
+        status === "Thành công"
+          ? "success"
+          : status === "Đang xử lý"
+            ? "processing"
+            : status === "Thất bại"
+              ? "failed"
+              : "refunded";
+      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "transactionDate",
-    header: "Thời gian",
+    header: t("transactionDate"),
     cell: ({ row }) => <div>{row.original.transactionDate}</div>,
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Thao tác</div>,
+    header: () => <div className="text-right">{t("actions")}</div>,
     cell: ({ row }) => {
       const transaction = row.original;
 
@@ -210,17 +259,19 @@ export const columns: ColumnDef<AdminTransaction>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-              <DropdownMenuItem>Xem hóa đơn (Invoice)</DropdownMenuItem>
-              <DropdownMenuItem>Gửi lại biên lai qua Email</DropdownMenuItem>
+              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+              <DropdownMenuItem>{t("actionOptions.viewInvoice")}</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.resendEmail")}</DropdownMenuItem>
               <DropdownMenuSeparator />
               {transaction.status === "Thất bại" && (
                 <DropdownMenuItem className="text-brand">
-                  Kiểm tra lại trạng thái GD
+                  {t("actionOptions.recheckStatus")}
                 </DropdownMenuItem>
               )}
               {transaction.status === "Thành công" && (
-                <DropdownMenuItem className="text-error">Hoàn tiền (Refund)</DropdownMenuItem>
+                <DropdownMenuItem className="text-error">
+                  {t("actionOptions.refund")}
+                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -232,11 +283,14 @@ export const columns: ColumnDef<AdminTransaction>[] = [
 
 export function TransactionsTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const t = useTranslations("Admin.finance.transactions.table");
 
   const filteredData = React.useMemo(() => {
     if (statusFilter === "all") return data;
     return data.filter((item) => item.status === statusFilter);
   }, [statusFilter]);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -246,21 +300,18 @@ export function TransactionsTable() {
             className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
             size={18}
           />
-          <Input
-            className="bg-muted h-10 rounded-xl pl-10"
-            placeholder="Tìm theo mã GD, khách hàng..."
-          />
+          <Input className="bg-muted h-10 rounded-xl pl-10" placeholder={t("searchPlaceholder")} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
-            <SelectValue placeholder="Tất cả trạng thái" />
+            <SelectValue placeholder={t("allStatuses")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="Thành công">Thành công</SelectItem>
-            <SelectItem value="Đang xử lý">Đang xử lý</SelectItem>
-            <SelectItem value="Thất bại">Thất bại</SelectItem>
-            <SelectItem value="Đã hoàn tiền">Đã hoàn tiền</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="Thành công">{t("statusOptions.success")}</SelectItem>
+            <SelectItem value="Đang xử lý">{t("statusOptions.processing")}</SelectItem>
+            <SelectItem value="Thất bại">{t("statusOptions.failed")}</SelectItem>
+            <SelectItem value="Đã hoàn tiền">{t("statusOptions.refunded")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

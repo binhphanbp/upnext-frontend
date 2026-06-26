@@ -1,30 +1,33 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 
 const data = [
-  { name: "Thg 1", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 2", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 3", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 4", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 5", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 6", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 7", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 8", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 9", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 10", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 11", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "Thg 12", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "1", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "2", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "3", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "4", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "5", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "6", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "7", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "8", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "9", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "10", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "11", total: Math.floor(Math.random() * 200) + 50 },
+  { name: "12", total: Math.floor(Math.random() * 200) + 50 },
 ];
 
 export function RevenueChart() {
+  const t = useTranslations("Admin.dashboard");
+
   return (
     <Card className="col-span-1 lg:col-span-4">
       <CardHeader>
-        <CardTitle>Doanh thu</CardTitle>
-        <CardDescription>Doanh thu bán gói dịch vụ và tin đăng trong năm nay.</CardDescription>
+        <CardTitle>{t("revenueChart.title")}</CardTitle>
+        <CardDescription>{t("revenueChart.subtitle")}</CardDescription>
       </CardHeader>
       <CardContent className="pl-2">
         <div className="h-[350px] w-full">
@@ -55,7 +58,7 @@ export function RevenueChart() {
                   color: "var(--color-foreground)",
                   fontWeight: "bold",
                 }}
-                formatter={(value: any) => [`${value} Triệu VNĐ`, "Doanh thu"]}
+                formatter={(value: any) => [`${value}M`, t("revenueChart.title")]}
               />
               <Bar
                 dataKey="total"

@@ -48,42 +48,46 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
 
 export const adminNavGroups: WorkspaceNavGroup[] = [
   {
-    label: "Tổng quan",
-    items: [{ label: "Thống kê nền tảng", href: "/admin", icon: Gauge }],
+    label: "overview.title",
+    items: [{ label: "overview.platformStats", href: "/admin", icon: Gauge }],
   },
   {
-    label: "Quản lý Người dùng",
+    label: "userManagement.title",
     items: [
-      { label: "Nhà tuyển dụng", href: "/admin/users/employers", icon: Buildings },
-      { label: "Ứng viên", href: "/admin/users/candidates", icon: Users },
+      { label: "userManagement.employers", href: "/admin/users/employers", icon: Buildings },
+      { label: "userManagement.candidates", href: "/admin/users/candidates", icon: Users },
     ],
   },
   {
-    label: "Vận hành & Nội dung",
+    label: "operationsAndContent.title",
     items: [
-      { label: "Quản lý tin đăng", href: "/admin/content/jobs", icon: Briefcase },
-      { label: "Quản lý bài viết", href: "/admin/content/articles", icon: Article },
+      { label: "operationsAndContent.jobs", href: "/admin/content/jobs", icon: Briefcase },
+      { label: "operationsAndContent.articles", href: "/admin/content/articles", icon: Article },
       {
-        label: "Kiểm duyệt nội dung",
+        label: "operationsAndContent.moderation",
         href: "/admin/content/moderation",
         icon: ShieldCheck,
       },
-      { label: "Trung tâm hỗ trợ", href: "/admin/content/support", icon: Headset },
+      { label: "operationsAndContent.support", href: "/admin/content/support", icon: Headset },
     ],
   },
   {
-    label: "Tài chính & Kinh doanh",
+    label: "financeAndBusiness.title",
     items: [
-      { label: "Gói dịch vụ", href: "/admin/finance/plans", icon: Package },
-      { label: "Hóa đơn", href: "/admin/finance/transactions", icon: Receipt },
+      { label: "financeAndBusiness.plans", href: "/admin/finance/plans", icon: Package },
+      {
+        label: "financeAndBusiness.transactions",
+        href: "/admin/finance/transactions",
+        icon: Receipt,
+      },
     ],
   },
   {
-    label: "Quản trị Hệ thống",
+    label: "systemAdmin.title",
     items: [
-      { label: "Dữ liệu gốc", href: "/admin/system/master-data", icon: Database },
-      { label: "Phân quyền", href: "/admin/system/roles", icon: IdentificationBadge },
-      { label: "Nhật ký hệ thống", href: "/admin/system/audit-log", icon: ListChecks },
+      { label: "systemAdmin.masterData", href: "/admin/system/master-data", icon: Database },
+      { label: "systemAdmin.roles", href: "/admin/system/roles", icon: IdentificationBadge },
+      { label: "systemAdmin.auditLog", href: "/admin/system/audit-log", icon: ListChecks },
     ],
   },
 ];

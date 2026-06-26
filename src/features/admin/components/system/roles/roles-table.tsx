@@ -118,29 +118,40 @@ const data: AdminRole[] = [
   },
 ];
 
-export const columns: ColumnDef<AdminRole>[] = [
+import { useTranslations } from "next-intl";
+
+export const getColumns = (t: any): ColumnDef<AdminRole>[] => [
   {
     accessorKey: "name",
-    header: "Vai trò",
-    cell: ({ row }) => (
-      <div>
-        <p className="text-foreground font-bold">{row.original.name}</p>
-        <p className="text-muted-foreground text-xs">{row.original.description}</p>
-      </div>
-    ),
+    header: t("name"),
+    cell: ({ row }) => {
+      const id = row.original.id;
+      // In case the id is not found in mockRoles, it'll fallback to the key string
+      const name = t(`mockRoles.${id}.name`);
+      const description = t(`mockRoles.${id}.description`);
+
+      return (
+        <div>
+          <p className="text-foreground font-bold">{name}</p>
+          <p className="text-muted-foreground text-xs">{description}</p>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "type",
-    header: "Loại vai trò",
+    header: t("type"),
     cell: ({ row }) => {
       const type = row.getValue("type") as string;
       const tone = type === "Hệ thống" ? "info" : "neutral";
-      return <Badge tone={tone}>{type}</Badge>;
+
+      const typeKey = type === "Hệ thống" ? "system" : "custom";
+      return <Badge tone={tone}>{t(`typeOptions.${typeKey}`)}</Badge>;
     },
   },
   {
     accessorKey: "userCount",
-    header: () => <div className="text-right">Số người dùng</div>,
+    header: () => <div className="text-right">{t("userCount")}</div>,
     cell: ({ row }) => {
       return (
         <div className="text-right font-medium">
@@ -151,16 +162,18 @@ export const columns: ColumnDef<AdminRole>[] = [
   },
   {
     accessorKey: "status",
-    header: "Trạng thái",
+    header: t("status"),
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const tone = status === "Kích hoạt" ? "success" : "error";
-      return <Badge tone={tone}>{status}</Badge>;
+
+      const statusKey = status === "Kích hoạt" ? "active" : "inactive";
+      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
     },
   },
   {
     id: "actions",
-    header: () => <div className="text-right">Thao tác</div>,
+    header: () => <div className="text-right">{t("actions")}</div>,
     cell: ({ row }) => {
       const role = row.original;
 
@@ -174,18 +187,24 @@ export const columns: ColumnDef<AdminRole>[] = [
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Hành động</DropdownMenuLabel>
-              <DropdownMenuItem>Chỉnh sửa quyền hạn (Permissions)</DropdownMenuItem>
-              <DropdownMenuItem>Xem danh sách tài khoản</DropdownMenuItem>
+              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+              <DropdownMenuItem>{t("actionOptions.editPermissions")}</DropdownMenuItem>
+              <DropdownMenuItem>{t("actionOptions.viewUsers")}</DropdownMenuItem>
               <DropdownMenuSeparator />
               {role.type === "Tùy chỉnh" && (
                 <>
                   {role.status === "Kích hoạt" ? (
-                    <DropdownMenuItem className="text-warning">Vô hiệu hóa</DropdownMenuItem>
+                    <DropdownMenuItem className="text-warning">
+                      {t("actionOptions.deactivate")}
+                    </DropdownMenuItem>
                   ) : (
-                    <DropdownMenuItem className="text-success">Kích hoạt lại</DropdownMenuItem>
+                    <DropdownMenuItem className="text-success">
+                      {t("actionOptions.reactivate")}
+                    </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem className="text-error">Xóa vai trò</DropdownMenuItem>
+                  <DropdownMenuItem className="text-error">
+                    {t("actionOptions.delete")}
+                  </DropdownMenuItem>
                 </>
               )}
             </DropdownMenuContent>
@@ -199,6 +218,7 @@ export const columns: ColumnDef<AdminRole>[] = [
 export function RolesTable() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
+  const t = useTranslations("Admin.system.roles.table");
 
   const filteredData = React.useMemo(() => {
     return data.filter((item) => {
@@ -207,6 +227,8 @@ export function RolesTable() {
       return matchesSearch && matchesStatus;
     });
   }, [searchTerm, statusFilter]);
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
 
   return (
     <div className="mt-6 space-y-4">
@@ -217,7 +239,7 @@ export function RolesTable() {
             className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
           />
           <Input
-            placeholder="Tìm kiếm theo tên vai trò..."
+            placeholder={t("searchPlaceholder")}
             className="rounded-xl bg-white pl-10 lg:max-w-md"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -226,12 +248,12 @@ export function RolesTable() {
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full rounded-xl bg-white sm:w-[200px]">
-            <SelectValue placeholder="Tất cả trạng thái" />
+            <SelectValue placeholder={t("allStatuses")} />
           </SelectTrigger>
           <SelectContent className="rounded-xl">
-            <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="Kích hoạt">Kích hoạt</SelectItem>
-            <SelectItem value="Vô hiệu hóa">Vô hiệu hóa</SelectItem>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="Kích hoạt">{t("statusOptions.active")}</SelectItem>
+            <SelectItem value="Vô hiệu hóa">{t("statusOptions.inactive")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

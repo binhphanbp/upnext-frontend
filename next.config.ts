@@ -3,6 +3,22 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.seed-home-test.local",
+        port: "",
+        pathname: "/**",
+      },
+    ],
+  },
 };
 
 const withNextIntl = createNextIntlPlugin();
