@@ -189,83 +189,6 @@ export function RecruiterDashboardPage() {
     null,
   );
 
-  const [scanning, setScanning] = useState(false);
-  const [aiLicenseFile, setAiLicenseFile] = useState<File | null>(null);
-  const aiLicenseInputRef = useRef<HTMLInputElement>(null);
-
-  const handleScanLicense = async () => {
-    if (!aiLicenseFile || !account?.company?.id) {
-      void Swal.fire({
-        icon: "warning",
-        title: "Chưa chọn file",
-        text: "Vui lòng chọn Giấy phép đăng ký kinh doanh.",
-      });
-      return;
-    }
-
-    try {
-      setScanning(true);
-      const data = await scanCompanyBusinessLicense(account.company.id, aiLicenseFile, token);
-
-      const result = await Swal.fire({
-        title: "Quét thành công!",
-        html: `
-          <div class="text-left space-y-2 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
-            <p class="break-words"><strong>Tên công ty:</strong> ${data.name || "Không tìm thấy"}</p>
-            <p class="break-words"><strong>Mã số thuế:</strong> ${data.taxCode || "Không tìm thấy"}</p>
-            <p class="break-words"><strong>Địa chỉ:</strong> ${data.address || "Không tìm thấy"}</p>
-            ${data.email ? `<p class="break-words"><strong>Email:</strong> ${data.email}</p>` : ""}
-            ${data.phone ? `<p class="break-words"><strong>SĐT:</strong> ${data.phone}</p>` : ""}
-            ${data.website ? `<p class="break-words"><strong>Website:</strong> ${data.website}</p>` : ""}
-          </div>
-          <p class="mt-4 text-center font-bold text-slate-700">Bạn có muốn cập nhật thông tin công ty bằng kết quả này?</p>
-        `,
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Đồng ý",
-        cancelButtonText: "Bỏ qua",
-        confirmButtonColor: "#10a778",
-      });
-
-      if (result.isConfirmed) {
-        await updateCompany(
-          account.company.id,
-          {
-            name: data.name || account.company.name,
-            ...(data.taxCode ? { taxCode: data.taxCode } : {}),
-            ...(data.address ? { address: data.address } : {}),
-            ...(data.email ? { email: data.email } : {}),
-            ...(data.phone ? { phone: data.phone } : {}),
-            ...(data.website ? { website: data.website } : {}),
-          },
-          token,
-        );
-
-        await uploadCompanyBusinessLicense(account.company.id, aiLicenseFile, token);
-
-        const nextAccount = await getRecruiterAccount(account.id, token);
-        setAccount(nextAccount);
-        setAiLicenseFile(null);
-
-        void Swal.fire({
-          icon: "success",
-          title: "Đã cập nhật!",
-          text: "Thông tin công ty đã được cập nhật thành công.",
-          timer: 2000,
-          showConfirmButton: false,
-        });
-      }
-    } catch (error) {
-      void Swal.fire({
-        icon: "error",
-        title: "Lỗi quét AI",
-        text: getOnboardingErrorMessage(error, t),
-      });
-    } finally {
-      setScanning(false);
-    }
-  };
-
   const [skippedOnboarding, setSkippedOnboarding] = useState(false);
 
   useEffect(() => {
@@ -360,91 +283,6 @@ export function RecruiterDashboardPage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         {/* Left: Welcome Banner + Mini Cards (Chiếm 5 cột) */}
         <div className="flex flex-col gap-6 xl:col-span-5">
-          {/* AI Scanner Banner */}
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 p-6 shadow-xs transition-all duration-300">
-            {/* Ambient background glows */}
-            <div className="pointer-events-none absolute -top-12 -right-12 size-32 rounded-full bg-emerald-400/15 blur-2xl" />
-            <div className="pointer-events-none absolute -bottom-12 -left-12 size-32 rounded-full bg-teal-400/10 blur-2xl" />
-
-            <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-4">
-                <div className="animate-pulse-slow flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20">
-                  <Sparkle size={22} weight="fill" className="animate-pulse" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="flex items-center gap-2 text-sm font-black text-slate-800 sm:text-base">
-                    Tự động điền thông tin nhanh bằng AI
-                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black tracking-wider text-emerald-800 uppercase">
-                      Mới
-                    </span>
-                  </h4>
-                  <p className="hidden max-w-xl text-xs leading-relaxed font-semibold text-slate-500 sm:block">
-                    Tiết kiệm thời gian nhập liệu! Tải lên Giấy đăng ký kinh doanh (GPKD), hệ thống
-                    AI của UpNext sẽ tự động phân tích và điền nhanh các thông tin như Tên công ty,
-                    Mã số thuế, Địa chỉ, SĐT, Email...
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-3 self-end sm:self-center">
-                {!aiLicenseFile ? (
-                  <button
-                    type="button"
-                    onClick={() => aiLicenseInputRef.current?.click()}
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-2.5 text-xs font-black tracking-wider text-white uppercase shadow-md shadow-emerald-600/15 transition-all duration-300 hover:from-emerald-700 hover:to-teal-700 hover:shadow-lg hover:shadow-emerald-600/25 active:scale-95"
-                  >
-                    Tải lên GPKD để quét
-                    <Lightning size={14} weight="fill" className="animate-bounce text-yellow-300" />
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-2.5">
-                    <span className="max-w-[150px] truncate rounded-xl border border-slate-200 bg-white/80 px-3.5 py-2 text-xs font-bold text-slate-600 shadow-2xs backdrop-blur-xs sm:max-w-xs">
-                      📎 {aiLicenseFile.name}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => void handleScanLicense()}
-                      disabled={scanning}
-                      className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-black tracking-wider text-white uppercase shadow-md shadow-blue-600/15 transition-all duration-300 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-blue-600/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {scanning ? (
-                        <>
-                          <CircleNotch className="size-3.5 animate-spin" />
-                          Đang quét bằng AI...
-                        </>
-                      ) : (
-                        <>
-                          Bắt đầu quét AI
-                          <Lightning size={12} weight="fill" className="text-yellow-300" />
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAiLicenseFile(null)}
-                      className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-500 shadow-2xs transition-all duration-300 hover:bg-slate-50 hover:text-slate-800"
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-            <input
-              ref={aiLicenseInputRef}
-              type="file"
-              accept=".pdf,.png,.jpg,.jpeg"
-              className="hidden"
-              aria-label="Tải lên GPKD để quét"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setAiLicenseFile(file);
-                }
-              }}
-            />
-          </div>
-
           {/* Welcome Card (Có 3D bia phi tiêu) */}
           <div className="bg-primary relative flex min-h-[200px] justify-between overflow-hidden rounded-2xl p-7 text-white">
             <div className="relative z-10 flex h-full flex-col justify-between">
@@ -1055,65 +893,84 @@ function RecruiterOnboardingDialog({
           aria-describedby="recruiter-onboarding-dialog-description"
           className="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white p-0 shadow-2xl [--ring:#10a778] focus:outline-none"
         >
-          <div className="bg-header shrink-0 border-b border-slate-200 px-4 py-6 sm:px-6 sm:py-8">
-            <DialogPrimitive.Title className="text-center text-lg font-bold text-white sm:text-xl">
-              {t("onboarding.updateProfile")}
-            </DialogPrimitive.Title>
+          <div className="bg-header relative shrink-0 overflow-hidden border-b border-slate-200 px-4 py-6 sm:px-6 sm:py-8">
+            {/* Grid pattern overlay */}
+            <div
+              className="pointer-events-none absolute inset-0 opacity-15"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255, 255, 255, 0.2) 1px, transparent 1px)
+                `,
+                backgroundSize: "20px 20px",
+              }}
+            />
+            {/* Glow blobs */}
+            <div className="pointer-events-none absolute -top-10 -left-10 size-40 rounded-full bg-emerald-400/20 blur-2xl" />
+            <div className="pointer-events-none absolute -right-10 -bottom-10 size-40 rounded-full bg-teal-300/15 blur-2xl" />
 
-            <DialogPrimitive.Description
-              id="recruiter-onboarding-dialog-description"
-              className="sr-only"
-            >
-              {t("onboarding.dialogDescription")}
-            </DialogPrimitive.Description>
+            <div className="relative z-10">
+              <DialogPrimitive.Title className="text-center text-lg font-bold text-white sm:text-xl">
+                {t("onboarding.updateProfile")}
+              </DialogPrimitive.Title>
 
-            <div className="mt-6 w-full">
-              <div className="relative mx-auto grid w-full grid-cols-3 items-start px-2 sm:px-8">
-                <div className="absolute top-4 right-[16.666%] left-[16.666%] h-0.5 bg-slate-200" />
+              <DialogPrimitive.Description
+                id="recruiter-onboarding-dialog-description"
+                className="sr-only"
+              >
+                {t("onboarding.dialogDescription")}
+              </DialogPrimitive.Description>
 
-                <div
-                  className={[
-                    "absolute left-[16.666%] top-4 h-0.5 bg-emerald-600 transition-all",
-                    step === 0 ? "w-0" : "",
-                    step === 1 ? "w-[33.333%]" : "",
-                    step === 2 ? "w-[66.666%]" : "",
-                  ].join(" ")}
-                />
+              <div className="mt-6 w-full">
+                <div className="relative mx-auto grid w-full grid-cols-3 items-start px-2 sm:px-8">
+                  {/* Background track line */}
+                  <div className="absolute top-4 right-[16.666%] left-[16.666%] h-0.5 bg-white/20" />
 
-                {onboardingSteps.map((item, index) => {
-                  const active = index === step;
-                  const completed = index < step;
-                  const reached = active || completed;
+                  {/* Active progress line */}
+                  <div
+                    className={[
+                      "absolute left-[16.666%] top-4 h-0.5 bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-500",
+                      step === 0 ? "w-0" : "",
+                      step === 1 ? "w-[33.333%]" : "",
+                      step === 2 ? "w-[66.666%]" : "",
+                    ].join(" ")}
+                  />
 
-                  return (
-                    <div
-                      key={item}
-                      className="relative z-10 flex flex-col items-center text-center"
-                    >
+                  {onboardingSteps.map((item, index) => {
+                    const active = index === step;
+                    const completed = index < step;
+                    const reached = active || completed;
+
+                    return (
                       <div
-                        className={[
-                          "flex size-9 items-center justify-center rounded-full border-2 bg-white text-sm font-extrabold transition-colors",
-                          completed
-                            ? "border-emerald-600 bg-primary text-white"
-                            : active
-                              ? "border-emerald-600 text-emerald-700"
-                              : "border-slate-300 text-slate-400",
-                        ].join(" ")}
+                        key={item}
+                        className="relative z-10 flex flex-col items-center text-center"
                       >
-                        {completed ? "✓" : index + 1}
-                      </div>
+                        <div
+                          className={[
+                            "flex size-9 items-center justify-center rounded-full border-2 text-sm font-black transition-all duration-300",
+                            completed
+                              ? "border-emerald-400 bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                              : active
+                                ? "border-emerald-400 bg-white text-emerald-600 shadow-lg shadow-emerald-400/30 scale-110"
+                                : "border-white/20 bg-white/10 text-white/50",
+                          ].join(" ")}
+                        >
+                          {completed ? "✓" : index + 1}
+                        </div>
 
-                      <p
-                        className={[
-                          "mt-2 text-center text-[12px] sm:text-xs font-bold leading-4 sm:leading-5",
-                          reached ? "text-white" : "text-slate-500",
-                        ].join(" ")}
-                      >
-                        {item}
-                      </p>
-                    </div>
-                  );
-                })}
+                        <p
+                          className={[
+                            "mt-2 text-center text-[12px] sm:text-xs leading-4 sm:leading-5 transition-colors duration-300",
+                            reached ? "text-white font-extrabold" : "text-white/60 font-semibold",
+                          ].join(" ")}
+                        >
+                          {item}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

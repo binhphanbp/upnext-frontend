@@ -627,7 +627,7 @@
         "aiScan": {
           "title": "Tự động điền thông tin nhanh bằng AI",
           "badgeNew": "Mới",
-          "helpText": "Tiết kiệm thời gian nhập liệu! Tải lên Giấy đăng ký kinh doanh (GPKD), hệ thống AI của UpNext sẽ tự động phân tích và điền nhanh các thông tin như Tên công ty, Mã số thuế, Địa chỉ, SĐT, Email...",
+          "helpText": "Tải lên Giấy đăng ký kinh doanh (GPKD), hệ thống AI của UpNext sẽ tự động phân tích và điền nhanh các thông tin như Tên công ty, Mã số thuế, Địa chỉ, SĐT, Email...",
           "uploadBtn": "Tải lên GPKD để quét",
           "scanning": "Đang quét bằng AI...",
           "startBtn": "Bắt đầu quét AI",
