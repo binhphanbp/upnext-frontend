@@ -266,11 +266,23 @@ export function RecruiterDashboardPage() {
     }
   };
 
+  const [skippedOnboarding, setSkippedOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      const isSkipped = sessionStorage.getItem(`skippedOnboarding_${user.id}`) === "true";
+      setSkippedOnboarding(isSkipped);
+    } else {
+      setSkippedOnboarding(false);
+    }
+  }, [user?.id]);
+
   const onboardingRequired = useMemo(() => {
     if (!account) return false;
+    if (skippedOnboarding) return false;
 
     return !account.profile || !account.company || !account.company.businessLicenseFileId;
-  }, [account]);
+  }, [account, skippedOnboarding]);
 
   const progressPercentage = useMemo(() => {
     if (account?.company?.verificationStatus === "PENDING") {
@@ -735,6 +747,12 @@ export function RecruiterDashboardPage() {
           onCompleted={(nextAccount) => setAccount(nextAccount)}
           open={onboardingRequired}
           token={token}
+          onSkip={() => {
+            if (user?.id) {
+              sessionStorage.setItem(`skippedOnboarding_${user.id}`, "true");
+            }
+            setSkippedOnboarding(true);
+          }}
         />
       ) : null}
     </div>
@@ -746,11 +764,13 @@ function RecruiterOnboardingDialog({
   onCompleted,
   open,
   token,
+  onSkip,
 }: {
   account: RecruiterAccountDetail;
   onCompleted: (account: RecruiterAccountDetail) => void;
   open: boolean;
   token: string;
+  onSkip: () => void;
 }) {
   const t = useTranslations("Recruiter");
   const [step, setStep] = useState<OnboardingStep>(0);
@@ -1446,14 +1466,25 @@ function RecruiterOnboardingDialog({
             </div>
 
             <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isFirstStep || form.formState.isSubmitting}
-                onClick={goBack}
-              >
-                {t("onboarding.buttons.back")}
-              </Button>
+              {isFirstStep ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 rounded-lg border-slate-200 text-sm font-bold shadow-none hover:bg-slate-50"
+                  onClick={onSkip}
+                >
+                  {t("onboarding.buttons.skip")}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={form.formState.isSubmitting}
+                  onClick={goBack}
+                >
+                  {t("onboarding.buttons.back")}
+                </Button>
+              )}
 
               {isLastStep ? (
                 <Button
