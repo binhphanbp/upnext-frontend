@@ -1,6 +1,15 @@
 "use client";
 
-import { CircleNotch, IdentificationBadge, Plus, Trash, UsersThree } from "@phosphor-icons/react";
+import {
+  CaretDown,
+  CircleNotch,
+  IdentificationBadge,
+  Plus,
+  ShieldCheck,
+  Trash,
+  UsersThree,
+  X,
+} from "@phosphor-icons/react";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
@@ -15,6 +24,8 @@ const getAvatarStyle = (char: string) => {
   if (code >= 80 && code <= 84) return "bg-emerald-50 text-emerald-700 border border-emerald-100";
   return "bg-rose-50 text-rose-700 border border-rose-100";
 };
+
+import { useTranslations } from "next-intl";
 
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
@@ -50,17 +61,6 @@ const toast = Swal.mixin({
 
 type TeamTab = "members" | "roles" | "permissions";
 
-const PERMISSION_NAMES: Record<string, string> = {
-  "jobs:manage": "Quản lý tin tuyển dụng",
-  "applications:manage": "Quản lý tất cả hồ sơ ứng viên & pipeline",
-  "applications:review_assigned": "Đánh giá ứng viên được phân công",
-  "interviews:manage": "Quản lý lịch phỏng vấn",
-  "interviews:review_assigned": "Đánh giá phỏng vấn được phân công",
-  "company:manage": "Quản lý thông tin công ty",
-  "members:manage": "Quản lý thành viên & phân quyền",
-  "billing:manage": "Quản lý thanh toán & gói dịch vụ",
-};
-
 type RoleLike = { code?: string | null; name?: string | null } | null | undefined;
 
 function isOwnerRole(role: RoleLike) {
@@ -72,6 +72,8 @@ function isOwnerRole(role: RoleLike) {
 
 export function RecruiterTeamPage() {
   const router = useRouter();
+  const t = useTranslations("Recruiter");
+
   const [tab, setTab] = useState<TeamTab>("members");
   const [token, setToken] = useState("");
   const [accountId, setAccountId] = useState("");
@@ -91,6 +93,18 @@ export function RecruiterTeamPage() {
     [assignRoleId, roles],
   );
 
+  const getPermissionName = useCallback(
+    (code: string) => {
+      const key = `team.permissionNames.${code.replace(":", "_")}` as any;
+      try {
+        return t(key);
+      } catch {
+        return code;
+      }
+    },
+    [t],
+  );
+
   const currentMember = useMemo(
     () => members.find((m) => m.recruiterAccount?.id === accountId) ?? null,
     [members, accountId],
@@ -106,8 +120,8 @@ export function RecruiterTeamPage() {
         if (!account.company?.id) {
           void Swal.fire({
             icon: "warning",
-            title: "Chưa có công ty",
-            text: "Tài khoản cần gắn với công ty trước khi quản lý đội ngũ.",
+            title: t("companyProfile.errors.noProfileTitle"),
+            text: t("companyProfile.errors.noProfileText"),
           });
           router.replace("/recruiter");
           return;
@@ -163,7 +177,7 @@ export function RecruiterTeamPage() {
         setLoading(false);
       }
     },
-    [router],
+    [router, t],
   );
 
   useEffect(() => {
@@ -185,7 +199,7 @@ export function RecruiterTeamPage() {
 
   async function inviteMember() {
     if (!inviteEmail.trim()) {
-      void Swal.fire({ icon: "error", title: "Vui lòng nhập email thành viên." });
+      void Swal.fire({ icon: "error", title: t("team.inviteDialog.emailLabel") });
       return;
     }
 
@@ -195,9 +209,9 @@ export function RecruiterTeamPage() {
       setInviteEmail("");
       setInviteRoleId("");
       await reload();
-      void toast.fire({ icon: "success", title: "Đã gửi lời mời thành viên." });
+      void toast.fire({ icon: "success", title: t("team.messages.inviteSuccess") });
     } catch (error) {
-      showActionError(error);
+      showActionError(error, t);
     } finally {
       setSaving(false);
     }
@@ -207,20 +221,20 @@ export function RecruiterTeamPage() {
     try {
       await updateCompanyMemberRole(memberId, roleId, token);
       await reload();
-      void toast.fire({ icon: "success", title: "Đã cập nhật vai trò thành viên." });
+      void toast.fire({ icon: "success", title: t("team.messages.roleSaveSuccess") });
     } catch (error) {
-      showActionError(error);
+      showActionError(error, t);
     }
   }
 
   async function deleteMember(memberId: string) {
     const result = await Swal.fire({
       icon: "warning",
-      title: "Xóa thành viên?",
-      text: "Thành viên sẽ bị gỡ khỏi công ty.",
+      title: t("team.messages.deleteMemberConfirm"),
+      text: t("team.messages.deleteMemberWarning"),
       showCancelButton: true,
-      confirmButtonText: "Xóa",
-      cancelButtonText: "Hủy",
+      confirmButtonText: t("team.actions.delete"),
+      cancelButtonText: t("team.actions.cancel"),
     });
 
     if (!result.isConfirmed) return;
@@ -228,15 +242,15 @@ export function RecruiterTeamPage() {
     try {
       await removeCompanyMember(memberId, token);
       await reload();
-      void toast.fire({ icon: "success", title: "Đã xóa thành viên." });
+      void toast.fire({ icon: "success", title: t("team.messages.deleteMemberSuccess") });
     } catch (error) {
-      showActionError(error);
+      showActionError(error, t);
     }
   }
 
   async function assignPermissions() {
     if (!assignRoleId || selectedPermissionIds.length === 0) {
-      void Swal.fire({ icon: "error", title: "Chọn vai trò và ít nhất một quyền." });
+      void Swal.fire({ icon: "error", title: t("team.roleDialog.selectRoleFirst") });
       return;
     }
 
@@ -245,9 +259,9 @@ export function RecruiterTeamPage() {
       await assignRecruiterRolePermissions(assignRoleId, selectedPermissionIds, token);
       setSelectedPermissionIds([]);
       await reload();
-      void toast.fire({ icon: "success", title: "Đã gán quyền cho vai trò." });
+      void toast.fire({ icon: "success", title: t("team.messages.roleSaveSuccess") });
     } catch (error) {
-      showActionError(error);
+      showActionError(error, t);
     } finally {
       setSaving(false);
     }
@@ -257,21 +271,30 @@ export function RecruiterTeamPage() {
     return (
       <div className="flex h-80 items-center justify-center text-sm font-bold text-slate-500">
         <CircleNotch className="mr-2 size-5 animate-spin text-emerald-600" />
-        Đang tải đội ngũ và phân quyền...
+        {t("shell.loading")}
       </div>
     );
   }
 
   return (
     <div className="w-full min-w-0 space-y-6">
-      <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="mt-1 text-2xl font-extrabold text-slate-950">Đội ngũ & quyền</h1>
+          <h1 className="text-2xl font-extrabold text-slate-950">{t("team.title")}</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge tone="neutral">{members.length} thành viên</Badge>
-          <Badge tone="neutral">{roles.length} vai trò</Badge>
-          <Badge tone="neutral">{permissions.length} quyền</Badge>
+        <div className="flex flex-wrap gap-2.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-100 bg-teal-50/60 px-4 py-2 text-sm font-bold text-teal-800">
+            <UsersThree size={16} className="text-teal-600" />
+            {t("team.membersBadge", { count: members.length })}
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50/60 px-4 py-2 text-sm font-bold text-indigo-800">
+            <IdentificationBadge size={16} className="text-indigo-600" />
+            {t("team.rolesBadge", { count: roles.length })}
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50/60 px-4 py-2 text-sm font-bold text-amber-800">
+            <ShieldCheck size={16} className="text-amber-600" />
+            {t("team.permissionsBadge", { count: permissions.length })}
+          </span>
         </div>
       </header>
 
@@ -282,14 +305,14 @@ export function RecruiterTeamPage() {
             icon={<UsersThree size={18} />}
             onClick={() => setTab("members")}
           >
-            Thành viên công ty
+            {t("team.tabs.members")}
           </TabButton>
           <TabButton
             active={tab === "roles"}
             icon={<IdentificationBadge size={18} />}
             onClick={() => setTab("roles")}
           >
-            Vai trò
+            {t("team.tabs.roles")}
           </TabButton>
         </div>
 
@@ -308,6 +331,7 @@ export function RecruiterTeamPage() {
               onRoleChange={(memberId, roleId) => void changeMemberRole(memberId, roleId)}
               isOwner={isOwner}
               accountId={accountId}
+              t={t}
             />
           ) : null}
           {tab === "roles" ? (
@@ -322,6 +346,8 @@ export function RecruiterTeamPage() {
               setSelectedPermissionIds={setSelectedPermissionIds}
               onAssign={() => void assignPermissions()}
               isOwner={isOwner}
+              t={t}
+              getPermissionName={getPermissionName}
             />
           ) : null}
         </div>
@@ -372,6 +398,7 @@ function MembersPanel({
   setInviteRoleId,
   isOwner,
   accountId,
+  t,
 }: {
   inviteEmail: string;
   inviteRoleId: string;
@@ -385,6 +412,7 @@ function MembersPanel({
   setInviteRoleId: (value: string) => void;
   isOwner: boolean;
   accountId: string;
+  t: any;
 }) {
   const inviteDisabled = saving || !isOwner;
 
@@ -393,7 +421,7 @@ function MembersPanel({
       <div className="grid w-full min-w-0 gap-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4 lg:grid-cols-[minmax(0,1fr)_260px_auto]">
         <FormInput
           id="invite-email"
-          label="Email thành viên"
+          label={t("team.inviteDialog.emailLabel")}
           type="email"
           value={inviteEmail}
           onChange={(event) => setInviteEmail(event.target.value)}
@@ -401,11 +429,12 @@ function MembersPanel({
           disabled={!isOwner}
         />
         <RoleSelect
-          label="Vai trò"
+          label={t("team.inviteDialog.roleLabel")}
           roles={roles}
           value={inviteRoleId}
           onValueChange={setInviteRoleId}
           disabled={!isOwner}
+          t={t}
         />
         <div className="flex items-end">
           <Button
@@ -414,23 +443,31 @@ function MembersPanel({
             onClick={onInvite}
           >
             <Plus size={16} />
-            Mời thành viên
+            {t("team.actions.inviteMember")}
           </Button>
         </div>
         {!isOwner ? (
           <p className="text-xs font-semibold text-amber-700 lg:col-span-3">
-            Chỉ Owner của công ty mới có quyền gửi lời mời thành viên.
+            {t("team.alerts.inviteOwnerOnly")}
           </p>
         ) : null}
       </div>
 
       <DataTable>
         <thead>
-          <tr className="border-b border-slate-200">
-            <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Thành viên</th>
-            <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Trạng thái</th>
-            <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Vai trò</th>
-            <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">Thao tác</th>
+          <tr className="border-b border-slate-200 bg-gray-100">
+            <th className="px-4 py-2 text-left text-sm font-bold text-black">
+              {t("team.table.member")}
+            </th>
+            <th className="px-4 py-2 text-left text-sm font-bold text-black">
+              {t("team.table.status")}
+            </th>
+            <th className="px-4 py-2 text-left text-sm font-bold text-black">
+              {t("team.table.role")}
+            </th>
+            <th className="px-4 py-2 text-right text-sm font-bold text-black">
+              {t("team.table.actions")}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -447,7 +484,7 @@ function MembersPanel({
                     style={{ height: "auto", width: "auto" }}
                     className="opacity-90"
                   />
-                  <span className="font-medium text-slate-500">Không tìm thấy thành viên nào.</span>
+                  <span className="font-medium text-slate-500">{t("team.table.emptyMembers")}</span>
                 </div>
               </td>
             </tr>
@@ -496,18 +533,21 @@ function MembersPanel({
                   </td>
                   <td className="px-4 py-2">
                     <Badge tone={member.status === "ACTIVE" ? "success" : "warning"}>
-                      {member.status === "ACTIVE" ? "Hoạt động" : "Đang mời"}
+                      {member.status === "ACTIVE"
+                        ? t("team.status.active")
+                        : t("team.status.pending")}
                     </Badge>
                   </td>
                   <td className="px-4 py-2">
                     <RoleSelect
-                      label={`Vai trò của ${email}`}
+                      label={`${t("team.table.role")} ${email}`}
                       hideLabel
                       roles={roles}
                       value={member.role?.id ?? ""}
                       onValueChange={(roleId) => onRoleChange(member.id, roleId)}
                       size="sm"
                       disabled={disableActions}
+                      t={t}
                     />
                   </td>
                   <td className="px-4 py-2 text-right">
@@ -521,10 +561,12 @@ function MembersPanel({
                           : "opacity-50 cursor-not-allowed",
                       )}
                       disabled={disableActions}
-                      aria-label={`Xóa thành viên ${name}`}
+                      aria-label={`${t("team.actions.delete")} ${name}`}
                       onClick={() => onRemove(member.id)}
                     >
-                      <span className="sr-only">Xóa thành viên {name}</span>
+                      <span className="sr-only">
+                        {t("team.actions.delete")} {name}
+                      </span>
                       <Trash size={15} />
                     </Button>
                   </td>
@@ -549,6 +591,8 @@ function RolesPanel({
   setAssignRoleId,
   setSelectedPermissionIds,
   isOwner,
+  t,
+  getPermissionName,
 }: {
   assignRoleId: string;
   onAssign: () => void;
@@ -560,67 +604,157 @@ function RolesPanel({
   setAssignRoleId: (value: string) => void;
   setSelectedPermissionIds: React.Dispatch<React.SetStateAction<string[]>>;
   isOwner: boolean;
+  t: any;
+  getPermissionName: (code: string) => string;
 }) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   const assignedIds = new Set(
     selectedRole?.rolePermissions?.map(({ recruiterPermission }) => recruiterPermission.id) ?? [],
   );
 
   const isOwnerRoleSelected = isOwnerRole(selectedRole);
+  const isDropdownDisabled = !isOwner || isOwnerRoleSelected || !assignRoleId;
+
+  // Clear selections when role changes
+  useEffect(() => {
+    setSelectedPermissionIds([]);
+  }, [assignRoleId, setSelectedPermissionIds]);
 
   return (
     <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[390px_minmax(0,1fr)]">
       <div className="space-y-5">
-        <FormCard title="Gán quyền cho vai trò">
+        <FormCard title={t("team.roleDialog.permissionsLabel")}>
           <RoleSelect
-            label="Vai trò"
+            label={t("team.table.role")}
             roles={roles}
             value={assignRoleId}
             onValueChange={setAssignRoleId}
             disabled={!isOwner}
+            t={t}
           />
-          <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
-            {isOwnerRoleSelected ? (
-              <div className="p-4 text-center text-sm font-semibold text-slate-600">
-                Vai trò Owner mặc định sở hữu toàn bộ các quyền hạn trong hệ thống và không thể thay
-                đổi.
-              </div>
-            ) : (
-              permissions.map((permission) => (
-                <label
-                  key={permission.id}
-                  htmlFor={`assign-permission-${permission.id}`}
-                  className="flex items-start gap-2 rounded-md p-2 hover:bg-slate-50"
-                >
-                  <Checkbox
-                    id={`assign-permission-${permission.id}`}
-                    checked={selectedPermissionIds.includes(permission.id)}
-                    disabled={assignedIds.has(permission.id) || !isOwner || isOwnerRoleSelected}
-                    onCheckedChange={(checked) =>
-                      setSelectedPermissionIds((current) =>
-                        checked === true
-                          ? Array.from(new Set([...current, permission.id]))
-                          : current.filter((id) => id !== permission.id),
-                      )
-                    }
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm font-bold text-slate-700">
+              {t("team.table.permissions")}
+            </Label>
+            <div className="relative">
+              <button
+                type="button"
+                disabled={isDropdownDisabled}
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className={cn(
+                  "flex h-10 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-none transition-all hover:bg-slate-50 focus:border-emerald-500 focus:ring-emerald-500/20 disabled:opacity-50 disabled:bg-slate-50 disabled:cursor-not-allowed",
+                  isDropdownOpen && "border-emerald-500 ring-1 ring-emerald-500/20",
+                )}
+              >
+                <span className="truncate font-medium">
+                  {!assignRoleId
+                    ? t("team.roleDialog.selectRoleFirst")
+                    : isOwnerRoleSelected
+                      ? t("team.roleDialog.ownerDefault")
+                      : selectedPermissionIds.length === 0
+                        ? t("team.roleDialog.selectPermissions")
+                        : t("team.permissionsBadge", { count: selectedPermissionIds.length })}
+                </span>
+                <CaretDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </button>
+
+              {isDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    role="presentation"
+                    onClick={() => setIsDropdownOpen(false)}
                   />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-bold text-slate-800">
-                      {PERMISSION_NAMES[permission.code] || permission.code}
-                    </span>
-                    <span className="block text-xs text-slate-500">
-                      {assignedIds.has(permission.id) ? "Đã gán" : permission.code}
-                    </span>
-                  </span>
-                </label>
-              ))
-            )}
+                  <div className="absolute right-0 left-0 z-20 mt-1.5 max-h-60 space-y-1.5 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
+                    {permissions.map((permission) => {
+                      const isAlreadyAssigned = assignedIds.has(permission.id);
+                      return (
+                        <label
+                          key={permission.id}
+                          htmlFor={`assign-permission-${permission.id}`}
+                          className={cn(
+                            "flex items-start gap-2.5 rounded-md p-2 hover:bg-slate-50 cursor-pointer select-none",
+                            isAlreadyAssigned && "opacity-60 cursor-not-allowed hover:bg-white",
+                          )}
+                        >
+                          <Checkbox
+                            id={`assign-permission-${permission.id}`}
+                            checked={
+                              selectedPermissionIds.includes(permission.id) || isAlreadyAssigned
+                            }
+                            disabled={isAlreadyAssigned}
+                            onCheckedChange={(checked) =>
+                              setSelectedPermissionIds((current) =>
+                                checked === true
+                                  ? Array.from(new Set([...current, permission.id]))
+                                  : current.filter((id) => id !== permission.id),
+                              )
+                            }
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm leading-tight font-bold text-slate-800">
+                              {getPermissionName(permission.code)}
+                            </span>
+                            <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">
+                              {isAlreadyAssigned
+                                ? t("team.roleDialog.alreadyAssigned")
+                                : permission.code}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
+
+          {selectedPermissionIds.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-500">
+                Quyền hạn chuẩn bị gán:
+              </Label>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedPermissionIds.map((id) => {
+                  const perm = permissions.find((p) => p.id === id);
+                  if (!perm) return null;
+                  return (
+                    <Badge
+                      key={id}
+                      tone="info"
+                      className="flex items-center gap-1.5 py-0.5 pr-1 text-xs"
+                    >
+                      {getPermissionName(perm.code)}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedPermissionIds((curr) => curr.filter((x) => x !== id))
+                        }
+                        className="cursor-pointer rounded-full p-0.5 transition-colors hover:bg-sky-100 hover:text-sky-800"
+                      >
+                        <X size={10} />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <Button
             className="w-full bg-[#11a77a] font-bold hover:bg-[#0d966d]"
-            disabled={saving || !isOwner || isOwnerRoleSelected}
-            onClick={onAssign}
+            disabled={
+              saving || !isOwner || isOwnerRoleSelected || selectedPermissionIds.length === 0
+            }
+            onClick={() => {
+              onAssign();
+              setIsDropdownOpen(false);
+            }}
           >
-            {isOwnerRoleSelected ? "Quyền Owner mặc định" : "Gán quyền"}
+            {isOwnerRoleSelected ? t("team.roleDialog.ownerDefault") : t("team.roleDialog.submit")}
           </Button>
         </FormCard>
       </div>
@@ -630,10 +764,10 @@ function RolesPanel({
           <thead>
             <tr className="border-b border-slate-200">
               <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700" scope="col">
-                Vai trò
+                {t("team.table.role")}
               </th>
               <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700" scope="col">
-                Quyền
+                {t("team.table.permissions")}
               </th>
             </tr>
           </thead>
@@ -651,7 +785,7 @@ function RolesPanel({
                       style={{ height: "auto", width: "auto" }}
                       className="opacity-90"
                     />
-                    <span className="font-medium text-slate-500">Không tìm thấy vai trò nào.</span>
+                    <span className="font-medium text-slate-500">{t("team.table.emptyRoles")}</span>
                   </div>
                 </td>
               </tr>
@@ -663,7 +797,6 @@ function RolesPanel({
                 >
                   <td className="px-4 py-2">
                     <p className="leading-none font-bold text-slate-900">{role.name}</p>
-                    {/* <p className="mt-1 text-xs font-semibold text-emerald-700">{role.code}</p> */}
                     <p className="mt-1.5 min-w-[200px] text-xs leading-relaxed whitespace-normal text-slate-500">
                       {role.description}
                     </p>
@@ -671,11 +804,11 @@ function RolesPanel({
                   <td className="px-4 py-2 whitespace-normal">
                     <div className="flex max-w-xl flex-wrap gap-1.5">
                       {isOwnerRole(role) ? (
-                        <Badge tone="success">Tất cả quyền</Badge>
+                        <Badge tone="success">{t("team.table.allPermissions")}</Badge>
                       ) : (
                         role.rolePermissions?.map(({ recruiterPermission }) => (
                           <Badge key={recruiterPermission.id} tone="info">
-                            {PERMISSION_NAMES[recruiterPermission.code] || recruiterPermission.code}
+                            {getPermissionName(recruiterPermission.code)}
                           </Badge>
                         ))
                       )}
@@ -699,6 +832,7 @@ function RoleSelect({
   value,
   size = "default",
   disabled,
+  t,
 }: {
   hideLabel?: boolean;
   label: string;
@@ -707,6 +841,7 @@ function RoleSelect({
   value: string;
   size?: "default" | "sm";
   disabled?: boolean;
+  t: any;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -723,10 +858,10 @@ function RoleSelect({
             size === "sm" ? "h-8 text-xs px-2.5 w-[140px]" : "h-10 text-sm px-3",
           )}
         >
-          <SelectValue placeholder="Chọn vai trò" />
+          <SelectValue placeholder={t("team.table.role")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">Chưa chọn</SelectItem>
+          <SelectItem value="none">{t("team.roleDialog.selectRoleFirst")}</SelectItem>
           {roles.map((role) => (
             <SelectItem key={role.id} value={role.id}>
               {role.name}
@@ -757,24 +892,37 @@ function DataTable({ children }: { children: React.ReactNode }) {
   );
 }
 
-function showActionError(error: unknown) {
+function showActionError(error: unknown, t: any) {
   void Swal.fire({
     icon: "error",
-    title: "Không thể xử lý",
-    text: getTeamErrorMessage(error),
+    title: t("team.messages.errorTitle"),
+    text: getTeamErrorMessage(error, t),
   });
 }
 
-function getTeamErrorMessage(error: unknown) {
+function getTeamErrorMessage(error: unknown, t: any) {
   if (error instanceof ApiError) {
-    if (error.status === 400) return "Dữ liệu chưa hợp lệ. Vui lòng kiểm tra lại.";
-    if (error.status === 401) return "Phiên đăng nhập đã hết hạn.";
-    if (error.status === 403) return "Bạn không có quyền thực hiện thao tác này.";
-    if (error.status === 404) return "Không tìm thấy dữ liệu cần thao tác.";
-    if (error.status === 409) return "Dữ liệu đã tồn tại hoặc đang bị ràng buộc.";
+    const payload = error.payload as any;
+    if (payload && typeof payload === "object") {
+      if (Array.isArray(payload.message)) {
+        return payload.message.join(", ");
+      }
+      if (typeof payload.message === "string") {
+        return payload.message;
+      }
+    }
+    if (error.message && !error.message.startsWith("Request failed with status")) {
+      return error.message;
+    }
+
+    if (error.status === 400) return t("onboarding.companyProfile.errors.badData");
+    if (error.status === 401) return t("onboarding.companyProfile.errors.sessionExpired");
+    if (error.status === 403) return t("onboarding.companyProfile.errors.forbidden");
+    if (error.status === 404) return t("onboarding.companyProfile.errors.notFound");
+    if (error.status === 409) return t("onboarding.companyProfile.errors.unknown");
   }
 
-  return "Hệ thống chưa thể xử lý yêu cầu. Vui lòng thử lại.";
+  return t("onboarding.companyProfile.errors.unknown");
 }
 
 function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>) {
@@ -784,5 +932,10 @@ function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>) {
     return;
   }
 
-  showActionError(error);
+  // Fallback to static error handler title if router isn't available
+  void Swal.fire({
+    icon: "error",
+    title: "Lỗi hệ thống",
+    text: "Hệ thống gặp sự cố. Vui lòng thử lại sau.",
+  });
 }

@@ -10,6 +10,7 @@ import {
   Sparkle,
   Lightning,
   CircleNotch,
+  ArrowRight,
 } from "@phosphor-icons/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useTranslations } from "next-intl";
@@ -885,15 +886,15 @@ function RecruiterOnboardingDialog({
   }
 
   return (
-    <DialogPrimitive.Root open={open}>
+    <DialogPrimitive.Root open={open} modal={false}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm" />
+        <DialogPrimitive.Overlay className="animate-dialog-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm" />
 
         <DialogPrimitive.Content
           aria-describedby="recruiter-onboarding-dialog-description"
-          className="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-white p-0 shadow-2xl [--ring:#10a778] focus:outline-none"
+          className="animate-dialog-unfold fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-4xl flex-col overflow-hidden rounded-3xl bg-white p-0 shadow-2xl [--ring:#10a778] focus:outline-none"
         >
-          <div className="bg-header relative shrink-0 overflow-hidden border-b border-slate-200 px-4 py-6 sm:px-6 sm:py-8">
+          <div className="bg-header relative shrink-0 overflow-hidden border-t-[3px] border-b border-slate-200 border-t-white px-4 py-6 sm:px-6 sm:py-8">
             {/* Grid pattern overlay */}
             <div
               className="pointer-events-none absolute inset-0 opacity-15"
@@ -1324,14 +1325,14 @@ function RecruiterOnboardingDialog({
 
             <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
               {isFirstStep ? (
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  className="h-11 rounded-lg border-slate-200 text-sm font-bold shadow-none hover:bg-slate-50"
+                  className="upnext-focus inline-flex cursor-pointer items-center gap-1.5 border-b border-b-transparent px-1 py-0.5 text-sm font-bold text-slate-500 transition-all hover:border-b-[#10a778] hover:text-[#10a778]"
                   onClick={onSkip}
                 >
                   {t("onboarding.buttons.skip")}
-                </Button>
+                  <ArrowRight size={16} />
+                </button>
               ) : (
                 <Button
                   type="button"
