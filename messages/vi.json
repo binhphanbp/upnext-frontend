@@ -746,7 +746,8 @@
       "title": "Quản trị Hệ thống",
       "masterData": "Dữ liệu gốc",
       "roles": "Phân quyền",
-      "auditLog": "Nhật ký hệ thống"
+      "auditLog": "Nhật ký hệ thống",
+      "searchKeywords": "Phân tích từ khóa"
     }
   },
   "Admin": {

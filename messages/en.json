@@ -746,7 +746,8 @@
       "title": "System Administration",
       "masterData": "Master Data",
       "roles": "Roles & Permissions",
-      "auditLog": "Audit Log"
+      "auditLog": "Audit Log",
+      "searchKeywords": "Search Keywords"
     }
   },
   "Admin": {
