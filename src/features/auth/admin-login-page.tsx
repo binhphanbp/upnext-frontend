@@ -7,16 +7,24 @@ import Image from "next/image";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { loginAdmin } from "@/features/admin/api/auth";
 import { upnextLogo } from "@/features/public/home/brand";
-import { useRouter } from "@/i18n/navigation";
 
 import "./admin-login-page.css";
+import { useRouter } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
+
 import { createAdminLoginSchema, type AdminLoginValues } from "./schemas/admin-auth-schema";
 
 const demoAuthStorageKey = "upnext.demo.auth";
 const demoAuthChangeEvent = "upnext-demo-auth-change";
 
-function rememberAdminSession() {
+function setAdminSession(accessToken: string, tokenType: string, user: unknown) {
+  window.localStorage.setItem("upnext.admin.accessToken", accessToken);
+  window.localStorage.setItem("upnext.admin.tokenType", tokenType);
+  window.localStorage.setItem("upnext.admin.user", JSON.stringify(user));
+
+  // Keep the demo event for backward compatibility if any component relies on it
   window.localStorage.setItem(demoAuthStorageKey, "admin");
   window.dispatchEvent(new Event(demoAuthChangeEvent));
 }
@@ -32,14 +40,27 @@ export function AdminLoginPage() {
     passwordRequired: tAuth("validation.passwordRequired"),
   };
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const form = useForm<AdminLoginValues>({
     resolver: zodResolver(createAdminLoginSchema(validationMessages)),
     defaultValues: { email: "", password: "" },
   });
 
-  function submit() {
-    rememberAdminSession();
-    router.push("/admin");
+  async function submit(values: AdminLoginValues) {
+    setErrorMsg(null);
+    try {
+      const response = await loginAdmin(values);
+      setAdminSession(response.accessToken, response.tokenType, response.user);
+      router.push("/admin");
+    } catch (error) {
+      console.error("[Admin Login Error]", error);
+      if (error instanceof ApiError && error.status === 401) {
+        setErrorMsg("Email hoặc mật khẩu không hợp lệ");
+      } else {
+        setErrorMsg("Không thể đăng nhập. Vui lòng thử lại sau.");
+      }
+    }
   }
 
   return (
@@ -67,6 +88,11 @@ export function AdminLoginPage() {
         </div>
 
         <form className="admin-login-form" onSubmit={form.handleSubmit(submit)}>
+          {errorMsg && (
+            <div className="admin-login-error" style={{ marginBottom: 16, textAlign: "center" }}>
+              {errorMsg}
+            </div>
+          )}
           <div className="admin-login-field">
             <label className="admin-login-label" htmlFor="admin-email">
               {tAuth("fields.email")}
@@ -117,8 +143,12 @@ export function AdminLoginPage() {
             )}
           </div>
 
-          <button type="submit" className="admin-login-submit">
-            {t("submit")}
+          <button
+            type="submit"
+            className="admin-login-submit"
+            disabled={form.formState.isSubmitting}
+          >
+            {form.formState.isSubmitting ? "Đang xử lý..." : t("submit")}
           </button>
         </form>
 
