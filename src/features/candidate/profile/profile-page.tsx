@@ -1066,9 +1066,9 @@ export function CandidateProfilePage() {
     async (currentSession: NonNullable<ReturnType<typeof getCandidateSession>>) => {
       const [profile, cvs, applications, savedJobs] = await Promise.all([
         getMyCandidateProfile(currentSession.accessToken),
-        getMyCandidateCvs(currentSession.user.id),
-        getMyCandidateApplications(currentSession.user.id),
-        getMySavedJobs(currentSession.user.id),
+        getMyCandidateCvs(currentSession.accessToken, currentSession.user.id),
+        getMyCandidateApplications(currentSession.accessToken, currentSession.user.id),
+        getMySavedJobs(currentSession.accessToken, currentSession.user.id),
       ]);
 
       setApiProfileViewModel(
