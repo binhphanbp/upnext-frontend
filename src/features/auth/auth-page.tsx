@@ -12,7 +12,8 @@ import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 
 import "./auth-page.css";
-import { loginCandidate, registerCandidate } from "./api/candidate-auth";
+import { loginCandidate, registerCandidate } from "../candidate/api/auth";
+import { saveCandidateSession } from "../candidate/session";
 import {
   createLoginSchema,
   createRegisterSchema,
@@ -61,10 +62,8 @@ function LoginPage() {
 
   async function submit(values: LoginValues) {
     try {
-      const response = await loginCandidate(values);
-      localStorage.setItem("upnext.candidate.accessToken", response.accessToken);
-      localStorage.setItem("upnext.candidate.tokenType", response.tokenType);
-      localStorage.setItem("upnext.candidate.user", JSON.stringify(response.user));
+      const session = await loginCandidate(values);
+      saveCandidateSession(session);
       rememberCandidateSession();
       router.push("/candidate/profile");
     } catch (error) {
@@ -159,6 +158,7 @@ function LoginPage() {
           <button type="submit" className="login-submit">
             {t("login.submit")}
           </button>
+          <FieldError message={form.formState.errors.root?.message} />
         </form>
 
         <p className="login-signup">
@@ -185,10 +185,12 @@ function RegisterPage() {
 
   async function submit(values: RegisterValues) {
     try {
-      const response = await registerCandidate(values);
-      localStorage.setItem("upnext.candidate.accessToken", response.accessToken);
-      localStorage.setItem("upnext.candidate.tokenType", response.tokenType);
-      localStorage.setItem("upnext.candidate.user", JSON.stringify(response.user));
+      const session = await registerCandidate({
+        email: values.email,
+        fullName: values.fullName,
+        password: values.password,
+      });
+      saveCandidateSession(session);
       rememberCandidateSession();
       router.push("/candidate/profile");
     } catch (error) {
@@ -321,6 +323,7 @@ function RegisterPage() {
           <button type="submit" className="login-submit">
             {t("register.submit")}
           </button>
+          <FieldError message={form.formState.errors.root?.message} />
         </form>
 
         <p className="login-signup">

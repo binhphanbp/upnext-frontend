@@ -27,13 +27,44 @@ import {
   UploadSimple,
 } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
+import Swal from "sweetalert2";
 
+import {
+  createCandidateEducation,
+  createCandidateExperience,
+  createCandidateSkill,
+  createSkillOption,
+  getMyCandidateApplications,
+  getMyCandidateCvs,
+  getMyCandidateProfile,
+  getMySavedJobs,
+  searchSkills,
+  type CandidateCvApi,
+  type CandidateProfileApi,
+  updateCandidateJobPreference,
+  updateMyCandidateProfile,
+  setCandidateCvDefault,
+  deleteCandidateCv,
+  uploadCandidateCvFile,
+  createCandidateCv,
+} from "@/features/candidate/api/profile";
+import { getCandidateSession } from "@/features/candidate/session";
 import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Skeleton } from "@/shared/ui/skeleton";
 
 type IconComponent = ComponentType<{
   className?: string;
@@ -67,7 +98,78 @@ type CandidateProfileCopy = Readonly<{
   current: string;
 }>;
 
-const candidate = {
+type CandidateSummary = {
+  name: string;
+  title: string;
+  location: string;
+  website: string;
+  email: string;
+  phone: string;
+  linkedin: string;
+  github: string;
+  completion: number;
+  savedJobs: number;
+  applications: number;
+  profileViews: number;
+};
+
+type EducationRecord = {
+  mark: string;
+  school: string;
+  degree: string;
+  period: string;
+  location: string;
+  note: string;
+};
+
+type ResumeRow = {
+  id: string;
+  name: string;
+  meta: string;
+  tags: string[];
+  primary: boolean;
+  publicUrl?: string | null | undefined;
+};
+
+type ExperienceRow = {
+  title: string;
+  company: string;
+  period: string;
+  location: string;
+  current: boolean;
+  bullets: string[];
+  tags: string[];
+};
+
+type TechnicalSkill = [name: string, level: string, dots: number];
+type LanguageRow = [code: string, name: string, level: string, dots: number];
+type PreferenceCard = [label: string, value: string];
+
+type CandidateProfileViewModel = {
+  candidate: CandidateSummary;
+  skillPills: string[];
+  educationRecords: EducationRecord[];
+  resumeRows: ResumeRow[];
+  experienceRows: ExperienceRow[];
+  technicalSkills: TechnicalSkill[];
+  softSkills: string[];
+  languageRows: LanguageRow[];
+  preferenceCards: PreferenceCard[];
+  aboutText: string;
+};
+
+type CandidateProfileActions = {
+  onAddEducation: () => void;
+  onAddExperience: () => void;
+  onAddSkill: () => void;
+  onEditPreferences: () => void;
+  onEditProfile: () => void;
+  onSetCvDefault: (cvId: string) => void;
+  onDeleteCv: (cvId: string) => void;
+  onUploadCv: (file: File) => void;
+};
+
+const candidate: CandidateSummary = {
   name: "Nguyễn Quốc Vương",
   title: "Backend Developer",
   location: "Hà Nội, Việt Nam",
@@ -103,7 +205,7 @@ const profileTabs = [
 
 type ProfileTabKey = (typeof profileTabs)[number]["key"];
 
-const educationRecords = [
+const educationRecords: EducationRecord[] = [
   {
     mark: "PT",
     school: "Hanoi University of Science and Technology",
@@ -128,30 +230,36 @@ const educationRecords = [
     location: "Online",
     note: "Algorithms · System Design · Database",
   },
-] as const;
+];
 
-const resumeRows = [
+const resumeRows: ResumeRow[] = [
   {
+    id: "mock-1",
     name: "CV_NguyenQuocVuong_Backend.pdf",
     meta: "Updated 10 May 2025 · 356 KB",
     tags: ["Backend Developer", "Full-time", "Java", "Spring Boot", "+3"],
     primary: true,
+    publicUrl: null,
   },
   {
+    id: "mock-2",
     name: "CV_NguyenQuocVuong_Internship.pdf",
     meta: "Updated 28 Apr 2025 · 298 KB",
     tags: ["Internship", "Part-time", "Student"],
     primary: false,
+    publicUrl: null,
   },
   {
+    id: "mock-3",
     name: "CV_Product_Designer.pdf",
     meta: "Updated 12 Mar 2025 · 410 KB",
     tags: ["UI/UX Designer", "Full-time", "Figma", "Design System", "+2"],
     primary: false,
+    publicUrl: null,
   },
-] as const;
+];
 
-const experienceRows = [
+const experienceRows: ExperienceRow[] = [
   {
     title: "Backend Developer",
     company: "SIS Train",
@@ -191,9 +299,9 @@ const experienceRows = [
     ],
     tags: ["Node.js", "Express", "MongoDB", "REST API"],
   },
-] as const;
+];
 
-const technicalSkills = [
+const technicalSkills: TechnicalSkill[] = [
   ["Java", "Advanced", 5],
   ["Spring Boot", "Advanced", 5],
   ["JavaScript", "Advanced", 4],
@@ -203,7 +311,7 @@ const technicalSkills = [
   ["REST API", "Advanced", 4],
   ["Docker", "Intermediate", 4],
   ["Git", "Advanced", 4],
-] as const;
+];
 
 const softSkills = [
   "Problem Solving",
@@ -212,9 +320,9 @@ const softSkills = [
   "Time Management",
   "Adaptability",
   "Critical Thinking",
-] as const;
+] satisfies string[];
 
-const preferenceCards = [
+const preferenceCards: PreferenceCard[] = [
   ["Desired Role", "Backend Developer"],
   ["Seniority", "Intern · Fresher · Junior"],
   ["Employment Type", "Full-time"],
@@ -227,7 +335,12 @@ const preferenceCards = [
   ["Open to Relocation", "No"],
   ["Job Search Status", "Actively looking"],
   ["Email Job Alerts", "On"],
-] as const;
+];
+
+const languageRows: LanguageRow[] = [
+  ["VI", "Vietnamese", "Native", 5],
+  ["EN", "English", "Professional", 3],
+];
 
 const copyByLocale = {
   vi: {
@@ -595,36 +708,1101 @@ const copyByLocale = {
   },
 } as const;
 
+function createFallbackProfileViewModel(copy: (typeof copyByLocale)["vi" | "en"]) {
+  return {
+    aboutText: copy.aboutText,
+    candidate,
+    educationRecords,
+    experienceRows,
+    languageRows,
+    preferenceCards,
+    resumeRows,
+    skillPills: skills,
+    softSkills,
+    technicalSkills,
+  } satisfies CandidateProfileViewModel;
+}
+
+function createProfileViewModel(
+  profile: CandidateProfileApi,
+  cvs: CandidateCvApi[],
+  applicationCount: number,
+  savedJobCount: number,
+  copy: (typeof copyByLocale)["vi" | "en"],
+  locale: string,
+) {
+  const links = normalizeProfileLinks(profile);
+  const profileExperiences = profile.experiences ?? [];
+  const profileSkills = profile.skills ?? [];
+  const nextCandidate: CandidateSummary = {
+    ...candidate,
+    applications: applicationCount,
+    email: profile.account.email,
+    github: links.github ?? candidate.github,
+    linkedin: links.linkedin ?? candidate.linkedin,
+    location: profile.address ?? candidate.location,
+    name: profile.account.fullName,
+    phone: profile.phoneNumber ?? candidate.phone,
+    profileViews: candidate.profileViews,
+    savedJobs: savedJobCount,
+    website: links.website ?? candidate.website,
+    completion: getProfileCompletion(profile, cvs.length),
+  };
+
+  return {
+    aboutText: profile.description || copy.aboutText,
+    candidate: nextCandidate,
+    educationRecords: profile.educations.length
+      ? profile.educations.map((item) => ({
+          degree: item.degree ?? item.major ?? "Education",
+          location: profile.address ?? candidate.location,
+          mark: getRecordMark(item.schoolName),
+          note: item.gpa ? `GPA ${item.gpa}` : (item.description ?? ""),
+          period: formatPeriod(item.startDate, item.endDate, item.isCurrent, locale),
+          school: item.schoolName,
+        }))
+      : educationRecords,
+    experienceRows: profileExperiences.map((item) =>
+      toExperienceRow(item, profile.address, locale),
+    ),
+    languageRows: profile.languages.length
+      ? profile.languages.map((item) => [
+          getRecordMark(item.language),
+          item.language,
+          item.proficiency,
+          getLanguageDots(item.proficiency),
+        ])
+      : languageRows,
+    preferenceCards: profile.jobPreference
+      ? createPreferenceCardsFromApi(profile.jobPreference, locale)
+      : preferenceCards,
+    resumeRows: cvs.length ? cvs.map((item) => toResumeRow(item, locale)) : resumeRows,
+    skillPills: profileSkills.length
+      ? profileSkills.slice(0, 6).map((item) => item.skill.name)
+      : skills,
+    softSkills,
+    technicalSkills: profileSkills.length
+      ? profileSkills.map((item) => [
+          item.skill.name,
+          formatProficiencyLabel(item.proficiencyLevel),
+          getSkillDots(item.proficiencyLevel),
+        ])
+      : technicalSkills,
+  } satisfies CandidateProfileViewModel;
+}
+
+function createPreferenceCardsFromApi(
+  preference: NonNullable<CandidateProfileApi["jobPreference"]>,
+  locale: string,
+) {
+  const salaryMin = Number(preference.desiredSalaryMin ?? 0);
+  const salaryMax = Number(preference.desiredSalaryMax ?? 0);
+  const salary =
+    salaryMin || salaryMax
+      ? `${salaryMin ? formatMoneyCompact(salaryMin) : "0"} - ${
+          salaryMax ? formatMoneyCompact(salaryMax) : "?"
+        } ${preference.salaryCurrency}`
+      : locale === "en"
+        ? "Not updated"
+        : "Chưa cập nhật";
+
+  return [
+    [locale === "en" ? "Desired Role" : "Vai trò mong muốn", preference.desiredPosition ?? "-"],
+    [locale === "en" ? "Seniority" : "Cấp bậc", preference.desiredLevel?.name ?? "-"],
+    [locale === "en" ? "Employment Type" : "Hình thức", "-"],
+    [locale === "en" ? "Work Mode" : "Mô hình", preference.workingModel ?? "-"],
+    [locale === "en" ? "Salary Range" : "Mức lương", salary],
+    [locale === "en" ? "Preferred Locations" : "Địa điểm", "-"],
+    [locale === "en" ? "Preferred Industries" : "Ngành nghề", "-"],
+    [locale === "en" ? "Tech Stack Focus" : "Tech stack", "-"],
+    [
+      locale === "en" ? "Availability" : "Thời gian bắt đầu",
+      preference.noticePeriodDays
+        ? `${preference.noticePeriodDays} ${locale === "en" ? "days" : "ngày"}`
+        : "-",
+    ],
+    [
+      locale === "en" ? "Open to Relocation" : "Sẵn sàng relocation",
+      preference.isRelocate ? "Yes" : "No",
+    ],
+    [locale === "en" ? "Job Search Status" : "Trạng thái tìm việc", "-"],
+    [locale === "en" ? "Email Job Alerts" : "Email job alerts", "-"],
+  ] satisfies PreferenceCard[];
+}
+
+function formatMoneyCompact(value: number) {
+  if (value >= 1_000_000) return `${Math.round(value / 1_000_000)}M`;
+  return String(value);
+}
+
+function formatProficiencyLabel(level: string) {
+  return level
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getSkillDots(level: string) {
+  if (level === "EXPERT") return 5;
+  if (level === "ADVANCED") return 4;
+  if (level === "INTERMEDIATE") return 3;
+  return 2;
+}
+
+function normalizeProfileLinks(profile: CandidateProfileApi) {
+  return profile.links.reduce(
+    (result, link) => {
+      const type = link.type.toLowerCase();
+      const url = stripProtocol(link.url);
+
+      if (type.includes("linkedin")) result.linkedin = url;
+      else if (type.includes("github")) result.github = url;
+      else if (type.includes("website") || type.includes("portfolio")) result.website = url;
+
+      return result;
+    },
+    {} as { github?: string; linkedin?: string; website?: string },
+  );
+}
+
+function stripProtocol(url: string) {
+  return url.replace(/^https?:\/\//u, "").replace(/\/$/u, "");
+}
+
+function getRecordMark(value: string) {
+  return value
+    .split(/\s|-/u)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+}
+
+function formatPeriod(
+  startDate: string | null,
+  endDate: string | null,
+  isCurrent: boolean,
+  locale: string,
+) {
+  const start = formatProfileDate(startDate, locale);
+  const end = isCurrent
+    ? locale === "en"
+      ? "Present"
+      : "Hiện tại"
+    : formatProfileDate(endDate, locale);
+
+  return (
+    [start, end].filter(Boolean).join(" - ") || (locale === "en" ? "Not updated" : "Chưa cập nhật")
+  );
+}
+
+function formatProfileDate(date: string | null, locale: string) {
+  if (!date) return "";
+
+  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "vi-VN", {
+    month: "short",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
+function toResumeRow(cv: CandidateCvApi, locale: string) {
+  const latestVersion = cv.versions[0];
+  const fileName = latestVersion?.sourceFile?.originalName ?? cv.title;
+  const updatedLabel = locale === "en" ? "Updated" : "Cập nhật";
+  const publicUrl = latestVersion?.sourceFile?.publicUrl;
+
+  return {
+    id: cv.id,
+    name: fileName,
+    meta: `${updatedLabel} ${formatProfileDate(cv.updatedAt, locale)} · ${cv.status}`,
+    primary: cv.isDefault,
+    tags: [cv.source, cv.status].filter(Boolean),
+    publicUrl,
+  } satisfies ResumeRow;
+}
+
+function toExperienceRow(
+  experience: CandidateProfileApi["experiences"][number],
+  fallbackLocation: string | null,
+  locale: string,
+) {
+  const bullets = splitExperienceDescription(experience.description);
+  const tags = splitTechnologyTags(experience.technologies);
+
+  return {
+    title: experience.positionTitle,
+    company: experience.companyName,
+    period: formatPeriod(experience.startDate, experience.endDate, experience.isCurrent, locale),
+    location: fallbackLocation ?? (locale === "en" ? "Not updated" : "Chưa cập nhật"),
+    current: experience.isCurrent,
+    bullets: bullets.length
+      ? bullets
+      : [
+          locale === "en"
+            ? "Experience details have not been updated yet."
+            : "Chi tiết kinh nghiệm chưa được cập nhật.",
+        ],
+    tags,
+  } satisfies ExperienceRow;
+}
+
+function splitExperienceDescription(description: string | null) {
+  if (!description) return [];
+
+  return description
+    .split(/\r?\n|[•]/u)
+    .map((item) => item.replace(/^[-*]\s*/u, "").trim())
+    .filter(Boolean);
+}
+
+function splitTechnologyTags(technologies: string | null) {
+  if (!technologies) return [];
+
+  return technologies
+    .split(/[,;|]/u)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
+function getLanguageDots(proficiency: string) {
+  const normalized = proficiency.toLowerCase();
+  if (normalized.includes("native") || normalized.includes("bản ngữ")) return 5;
+  if (normalized.includes("professional") || normalized.includes("advanced")) return 4;
+  if (normalized.includes("intermediate")) return 3;
+  if (normalized.includes("beginner")) return 2;
+  return 3;
+}
+
+function getProfileCompletion(profile: CandidateProfileApi, cvCount: number) {
+  const checks = [
+    Boolean(profile.account.fullName),
+    Boolean(profile.phoneNumber),
+    Boolean(profile.address),
+    Boolean(profile.description),
+    profile.educations.length > 0,
+    (profile.experiences ?? []).length > 0,
+    profile.languages.length > 0,
+    profile.links.length > 0,
+    cvCount > 0,
+  ];
+
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+}
+
+function parseOptionalNumber(value: string) {
+  const normalized = value.trim().replace(/[.,\s]/gu, "");
+  if (!normalized) return undefined;
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function normalizeWorkingModel(value: string) {
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "ONSITE" || normalized === "REMOTE" || normalized === "HYBRID") {
+    return normalized;
+  }
+
+  return "HYBRID";
+}
+
+const toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+});
+
 export function CandidateProfilePage() {
   const t = useTranslations("CandidateProfile");
   const locale = useLocale();
   const [activeTab, setActiveTab] = useState<ProfileTabKey>("overview");
+  const [apiProfileViewModel, setApiProfileViewModel] = useState<CandidateProfileViewModel | null>(
+    null,
+  );
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [activeModal, setActiveModal] = useState<
+    "edit-profile" | "add-experience" | "add-education" | "add-skill" | "edit-preferences" | null
+  >(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Edit Profile fields
+  const [profileDescription, setProfileDescription] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [profileAddress, setProfileAddress] = useState("");
+
+  // Add Experience fields
+  const [expPosition, setExpPosition] = useState("");
+  const [expCompany, setExpCompany] = useState("");
+  const [expTech, setExpTech] = useState("");
+  const [expDescription, setExpDescription] = useState("");
+
+  // Add Education fields
+  const [eduSchool, setEduSchool] = useState("");
+  const [eduDegree, setEduDegree] = useState("");
+  const [eduMajor, setEduMajor] = useState("");
+  const [eduDescription, setEduDescription] = useState("");
+
+  // Add Skill fields
+  const [newSkillName, setNewSkillName] = useState("");
+
+  // Edit Preferences fields
+  const [prefPosition, setPrefPosition] = useState("");
+  const [prefSalaryMin, setPrefSalaryMin] = useState("");
+  const [prefSalaryMax, setPrefSalaryMax] = useState("");
+  const [prefWorkingModel, setPrefWorkingModel] = useState<"ONSITE" | "REMOTE" | "HYBRID">(
+    "HYBRID",
+  );
+
   const productCopy = t.raw("content") as CandidateProfileCopy;
   const copy = locale === "en" ? copyByLocale.en : copyByLocale.vi;
+  const fallbackProfileViewModel = useMemo(() => createFallbackProfileViewModel(copy), [copy]);
+  const profileViewModel = apiProfileViewModel ?? fallbackProfileViewModel;
+
+  const loadProfileFromSession = useCallback(
+    async (currentSession: NonNullable<ReturnType<typeof getCandidateSession>>) => {
+      const [profile, cvs, applications, savedJobs] = await Promise.all([
+        getMyCandidateProfile(currentSession.accessToken),
+        getMyCandidateCvs(currentSession.user.id),
+        getMyCandidateApplications(currentSession.user.id),
+        getMySavedJobs(currentSession.user.id),
+      ]);
+
+      setApiProfileViewModel(
+        createProfileViewModel(
+          profile,
+          cvs.items,
+          applications.length,
+          savedJobs.length,
+          copy,
+          locale,
+        ),
+      );
+    },
+    [copy, locale],
+  );
+
+  useEffect(() => {
+    const session = getCandidateSession();
+
+    if (!session) {
+      setApiProfileViewModel(null);
+      setProfileLoading(false);
+      return;
+    }
+
+    const currentSession = session;
+    let ignore = false;
+    setProfileLoading(true);
+
+    async function loadProfile() {
+      try {
+        await loadProfileFromSession(currentSession);
+      } catch {
+        if (!ignore) setApiProfileViewModel(null);
+      } finally {
+        if (!ignore) setProfileLoading(false);
+      }
+    }
+
+    void loadProfile();
+
+    return () => {
+      ignore = true;
+    };
+  }, [loadProfileFromSession]);
+
+  async function runProfileAction(action: (token: string) => Promise<void>) {
+    const session = getCandidateSession();
+
+    if (!session) {
+      void Swal.fire({
+        icon: "warning",
+        title: "Thông báo",
+        text: "Bạn cần đăng nhập candidate để cập nhật hồ sơ.",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await action(session.accessToken);
+      await loadProfileFromSession(session);
+      void toast.fire({
+        icon: "success",
+        title: "Cập nhật hồ sơ thành công.",
+      });
+      setActiveModal(null);
+    } catch (error) {
+      void Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: error instanceof Error ? error.message : "Không thể cập nhật hồ sơ.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function handleEditProfile() {
+    setProfileDescription(profileViewModel.aboutText || "");
+    setProfilePhone(profileViewModel.candidate.phone || "");
+    setProfileAddress(profileViewModel.candidate.location || "");
+    setActiveModal("edit-profile");
+  }
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runProfileAction((token) =>
+      updateMyCandidateProfile(token, {
+        address: profileAddress.trim(),
+        description: profileDescription.trim(),
+        phoneNumber: profilePhone.trim(),
+      }).then(() => undefined),
+    );
+  };
+
+  function handleAddExperience() {
+    setExpPosition("");
+    setExpCompany("");
+    setExpTech("");
+    setExpDescription("");
+    setActiveModal("add-experience");
+  }
+
+  const handleSaveExperience = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runProfileAction((token) =>
+      createCandidateExperience(token, {
+        companyName: expCompany.trim(),
+        description: expDescription.trim(),
+        employmentType: "Full-time",
+        isCurrent: true,
+        positionTitle: expPosition.trim(),
+        technologies: expTech.trim(),
+      }).then(() => undefined),
+    );
+  };
+
+  function handleAddEducation() {
+    setEduSchool("");
+    setEduDegree("");
+    setEduMajor("");
+    setEduDescription("");
+    setActiveModal("add-education");
+  }
+
+  const handleSaveEducation = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runProfileAction((token) =>
+      createCandidateEducation(token, {
+        degree: eduDegree.trim(),
+        description: eduDescription.trim(),
+        major: eduMajor.trim(),
+        schoolName: eduSchool.trim(),
+      }).then(() => undefined),
+    );
+  };
+
+  function handleAddSkill() {
+    setNewSkillName("");
+    setActiveModal("add-skill");
+  }
+
+  const handleSaveSkill = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runProfileAction(async (token) => {
+      const normalizedName = newSkillName.trim();
+      const foundSkills = await searchSkills(normalizedName);
+      const exactSkill =
+        foundSkills.find((item) => item.name.toLowerCase() === normalizedName.toLowerCase()) ??
+        (foundSkills[0] ? undefined : await createSkillOption(normalizedName));
+      const selectedSkill = exactSkill ?? foundSkills[0];
+
+      if (!selectedSkill) throw new Error("Không tìm thấy kỹ năng phù hợp.");
+
+      await createCandidateSkill(token, {
+        proficiencyLevel: "INTERMEDIATE",
+        skillId: selectedSkill.id,
+      });
+    });
+  };
+
+  function handleEditPreferences() {
+    setPrefPosition(profileViewModel.candidate.title || "");
+    setPrefSalaryMin("");
+    setPrefSalaryMax("");
+    setPrefWorkingModel("HYBRID");
+    setActiveModal("edit-preferences");
+  }
+
+  const handleSavePreferences = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runProfileAction((token) =>
+      updateCandidateJobPreference(token, {
+        desiredPosition: prefPosition.trim(),
+        desiredSalaryMax: parseOptionalNumber(prefSalaryMax),
+        desiredSalaryMin: parseOptionalNumber(prefSalaryMin),
+        salaryCurrency: "VND",
+        workingModel: normalizeWorkingModel(prefWorkingModel),
+      }).then(() => undefined),
+    );
+  };
+
+  function handleSetCvDefault(cvId: string) {
+    void runProfileAction((token) => setCandidateCvDefault(token, cvId).then(() => undefined));
+  }
+
+  async function handleDeleteCv(cvId: string) {
+    const result = await Swal.fire({
+      title: "Xác nhận xóa?",
+      text: "Bạn có chắc chắn muốn xóa CV này? Hành động này không thể hoàn tác.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+    });
+
+    if (result.isConfirmed) {
+      void runProfileAction((token) => deleteCandidateCv(token, cvId));
+    }
+  }
+
+  async function handleUploadCv(file: File) {
+    const session = getCandidateSession();
+    if (!session) {
+      void Swal.fire({
+        icon: "warning",
+        title: "Thông báo",
+        text: "Bạn cần đăng nhập candidate để tải CV lên.",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const uploadRes = await uploadCandidateCvFile(file, session.accessToken);
+      const fileId = uploadRes.file.id;
+
+      await createCandidateCv(session.accessToken, session.user.id, {
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        source: "UPLOAD",
+        isDefault: false,
+        sourceFileId: fileId,
+      });
+
+      await loadProfileFromSession(session);
+
+      void toast.fire({
+        icon: "success",
+        title: "Tải CV lên thành công.",
+      });
+    } catch (error) {
+      void Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: error instanceof Error ? error.message : "Không thể tải CV lên.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const profileActions: CandidateProfileActions = {
+    onAddEducation: handleAddEducation,
+    onAddExperience: handleAddExperience,
+    onAddSkill: handleAddSkill,
+    onEditPreferences: handleEditPreferences,
+    onEditProfile: handleEditProfile,
+    onSetCvDefault: handleSetCvDefault,
+    onDeleteCv: handleDeleteCv,
+    onUploadCv: handleUploadCv,
+  };
+
+  if (profileLoading) {
+    return (
+      <div className="space-y-4 sm:space-y-5">
+        <ProfileHeroSkeleton />
+        <ProfileTabs activeTab={activeTab} copy={copy} onTabChange={setActiveTab} />
+        <ProfileContentSkeleton activeTab={activeTab} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <ProfileHero copy={copy} productCopy={productCopy} />
+      <ProfileHero
+        copy={copy}
+        onEditProfile={profileActions.onEditProfile}
+        productCopy={productCopy}
+        viewModel={profileViewModel}
+      />
       <ProfileTabs activeTab={activeTab} copy={copy} onTabChange={setActiveTab} />
-      <ProfileTabPanel activeTab={activeTab} copy={copy} productCopy={productCopy} />
+      <ProfileTabPanel
+        actions={profileActions}
+        activeTab={activeTab}
+        copy={copy}
+        onTabChange={setActiveTab}
+        productCopy={productCopy}
+        viewModel={profileViewModel}
+      />
+
+      {/* Modals for Candidate Data Input */}
+
+      {/* 1. Edit Profile Modal */}
+      <Dialog
+        open={activeModal === "edit-profile"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa thông tin cá nhân</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveProfile} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="profileDescription">Giới thiệu bản thân</Label>
+              <textarea
+                id="profileDescription"
+                className="upnext-focus min-h-[100px] w-full resize-y rounded-xl border border-slate-200 p-3 text-sm"
+                placeholder="Ví dụ: Tôi là lập trình viên Backend có kinh nghiệm..."
+                value={profileDescription}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setProfileDescription(e.target.value)
+                }
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="profilePhone">Số điện thoại</Label>
+              <Input
+                id="profilePhone"
+                type="text"
+                placeholder="Nhập số điện thoại"
+                value={profilePhone}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setProfilePhone(e.target.value)
+                }
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="profileAddress">Địa chỉ</Label>
+              <Input
+                id="profileAddress"
+                type="text"
+                placeholder="Ví dụ: Hà Nội, Việt Nam"
+                value={profileAddress}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setProfileAddress(e.target.value)
+                }
+                required
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveModal(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. Add Experience Modal */}
+      <Dialog
+        open={activeModal === "add-experience"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Thêm kinh nghiệm làm việc</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveExperience} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="expPosition">Chức danh</Label>
+              <Input
+                id="expPosition"
+                type="text"
+                placeholder="Ví dụ: Lập trình viên Node.js"
+                value={expPosition}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setExpPosition(e.target.value)
+                }
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="expCompany">Tên công ty</Label>
+              <Input
+                id="expCompany"
+                type="text"
+                placeholder="Ví dụ: ABC Technology"
+                value={expCompany}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExpCompany(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="expTech">Công nghệ / Kỹ năng (cách nhau bằng dấu phẩy)</Label>
+              <Input
+                id="expTech"
+                type="text"
+                placeholder="Ví dụ: React, Node.js, Spring Boot"
+                value={expTech}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExpTech(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="expDescription">Mô tả công việc</Label>
+              <textarea
+                id="expDescription"
+                className="upnext-focus min-h-[100px] w-full resize-y rounded-xl border border-slate-200 p-3 text-sm"
+                placeholder="Mô tả trách nhiệm hoặc dự án đã thực hiện..."
+                value={expDescription}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setExpDescription(e.target.value)
+                }
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveModal(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Add Education Modal */}
+      <Dialog
+        open={activeModal === "add-education"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Thêm học vấn</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveEducation} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="eduSchool">Tên trường</Label>
+              <Input
+                id="eduSchool"
+                type="text"
+                placeholder="Ví dụ: Đại học Bách Khoa Hà Nội"
+                value={eduSchool}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEduSchool(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="eduDegree">Bằng cấp / Chương trình</Label>
+              <Input
+                id="eduDegree"
+                type="text"
+                placeholder="Ví dụ: Cử nhân"
+                value={eduDegree}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEduDegree(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="eduMajor">Chuyên ngành</Label>
+              <Input
+                id="eduMajor"
+                type="text"
+                placeholder="Ví dụ: Công nghệ thông tin"
+                value={eduMajor}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEduMajor(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="eduDescription">Ghi chú / GPA</Label>
+              <textarea
+                id="eduDescription"
+                className="upnext-focus min-h-[80px] w-full resize-y rounded-xl border border-slate-200 p-3 text-sm"
+                placeholder="Ví dụ: GPA 3.5/4.0..."
+                value={eduDescription}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setEduDescription(e.target.value)
+                }
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveModal(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 4. Add Skill Modal */}
+      <Dialog
+        open={activeModal === "add-skill"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Thêm kỹ năng</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveSkill} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="newSkillName">Tên kỹ năng</Label>
+              <Input
+                id="newSkillName"
+                type="text"
+                placeholder="Ví dụ: Git, Docker, Next.js"
+                value={newSkillName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setNewSkillName(e.target.value)
+                }
+                required
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveModal(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 5. Edit Preferences Modal */}
+      <Dialog
+        open={activeModal === "edit-preferences"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Thay đổi mong muốn công việc</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSavePreferences} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="prefPosition">Vai trò mong muốn</Label>
+              <Input
+                id="prefPosition"
+                type="text"
+                placeholder="Ví dụ: Backend Developer"
+                value={prefPosition}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setPrefPosition(e.target.value)
+                }
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="prefSalaryMin">Lương tối thiểu (VND)</Label>
+                <Input
+                  id="prefSalaryMin"
+                  type="number"
+                  placeholder="Ví dụ: 15000000"
+                  value={prefSalaryMin}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setPrefSalaryMin(e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="prefSalaryMax">Lương tối đa (VND)</Label>
+                <Input
+                  id="prefSalaryMax"
+                  type="number"
+                  placeholder="Ví dụ: 30000000"
+                  value={prefSalaryMax}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setPrefSalaryMax(e.target.value)
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="prefWorkingModel">Mô hình làm việc</Label>
+              <select
+                id="prefWorkingModel"
+                className="upnext-focus w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                value={prefWorkingModel}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setPrefWorkingModel(e.target.value as any)
+                }
+                required
+              >
+                <option value="HYBRID">Hybrid (Kết hợp)</option>
+                <option value="REMOTE">Remote (Từ xa)</option>
+                <option value="ONSITE">Onsite (Tại văn phòng)</option>
+              </select>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveModal(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function ProfileHeroSkeleton() {
+  return (
+    <Card className="overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
+      <CardContent className="p-5 sm:p-6 lg:p-7">
+        <div className="grid gap-6 lg:grid-cols-[auto_minmax(0,1fr)_300px] lg:items-center">
+          <Skeleton className="size-28 rounded-full bg-slate-100 sm:size-36" />
+          <div className="min-w-0 space-y-4">
+            <Skeleton className="h-7 w-32 rounded-full bg-emerald-50" />
+            <div className="space-y-2">
+              <Skeleton className="h-9 w-72 max-w-full bg-slate-100" />
+              <Skeleton className="h-5 w-44 bg-slate-100" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[90, 120, 78, 105, 84].map((width) => (
+                <Skeleton
+                  key={width}
+                  className="h-7 rounded-full bg-emerald-50"
+                  style={{ width }}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <div className="flex justify-between gap-3">
+                <Skeleton className="h-4 w-36 bg-slate-100" />
+                <Skeleton className="h-4 w-10 bg-slate-100" />
+              </div>
+              <Skeleton className="h-2 w-full rounded-full bg-slate-100" />
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
+              <Skeleton className="h-11 flex-1 rounded-lg bg-slate-100" />
+              <Skeleton className="h-11 flex-1 rounded-lg bg-slate-100" />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProfileContentSkeleton({ activeTab }: Readonly<{ activeTab: ProfileTabKey }>) {
+  const rowCount = activeTab === "overview" ? 2 : activeTab === "experience" ? 3 : 4;
+
+  return (
+    <section id={`profile-panel-${activeTab}`} role="tabpanel">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <main className="space-y-4">
+          <SectionSkeleton rows={rowCount} />
+          {activeTab === "overview" ? <SectionSkeleton rows={2} /> : null}
+        </main>
+        <aside className="space-y-4 lg:sticky lg:top-40 lg:self-start">
+          <AsideSkeleton />
+          <AsideSkeleton compact />
+          <AsideSkeleton compact />
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function SectionSkeleton({ rows }: Readonly<{ rows: number }>) {
+  return (
+    <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+      <CardHeader className="flex-row items-center gap-3 space-y-0 p-5 pb-3">
+        <Skeleton className="size-6 rounded-lg bg-slate-100" />
+        <Skeleton className="h-6 w-44 bg-slate-100" />
+      </CardHeader>
+      <CardContent className="space-y-4 p-5 pt-2">
+        {Array.from({ length: rows }).map((_, index) => (
+          <div key={index} className="space-y-2 rounded-xl border border-slate-100 p-4">
+            <Skeleton className="h-5 w-2/5 bg-slate-100" />
+            <Skeleton className="h-4 w-4/5 bg-slate-100" />
+            <Skeleton className="h-4 w-3/5 bg-slate-100" />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AsideSkeleton({ compact = false }: Readonly<{ compact?: boolean }>) {
+  return (
+    <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+      <CardContent className="space-y-3 p-5">
+        <Skeleton className="h-5 w-40 bg-slate-100" />
+        <Skeleton className={cn("bg-slate-100", compact ? "h-12" : "h-20")} />
+        <Skeleton className="h-4 w-2/3 bg-slate-100" />
+      </CardContent>
+    </Card>
   );
 }
 
 function ProfileHero({
   copy,
+  onEditProfile,
   productCopy,
+  viewModel,
 }: Readonly<{
   copy: (typeof copyByLocale)["vi" | "en"];
+  onEditProfile: () => void;
   productCopy: CandidateProfileCopy;
+  viewModel: CandidateProfileViewModel;
 }>) {
+  const { candidate: profileCandidate, skillPills } = viewModel;
+
   return (
     <Card className="overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
       <CardContent className="p-5 sm:p-6 lg:p-7">
         <div className="grid gap-6 lg:grid-cols-[auto_minmax(0,1fr)_300px] lg:items-center">
           <div className="relative w-fit">
             <div className="grid size-28 place-items-center rounded-full bg-slate-900 text-3xl font-extrabold text-white ring-4 ring-slate-100 sm:size-36 sm:text-4xl">
-              V
+              {profileCandidate.name.charAt(0).toUpperCase()}
             </div>
             <button
               type="button"
@@ -643,29 +1821,29 @@ function ProfileHero({
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-                {candidate.name}
+                {profileCandidate.name}
               </h1>
               <SealCheck className="text-brand" size={22} weight="fill" />
             </div>
-            <p className="mt-1 text-base font-semibold text-slate-700">{candidate.title}</p>
+            <p className="mt-1 text-base font-semibold text-slate-700">{profileCandidate.title}</p>
 
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-slate-500">
               <span className="inline-flex items-center gap-1.5">
                 <MapPin size={17} />
-                {candidate.location}
+                {profileCandidate.location}
               </span>
               <span className="hidden h-4 w-px bg-slate-200 sm:inline-block" />
               <a
                 className="upnext-focus text-brand inline-flex items-center gap-1 rounded-md"
-                href={`https://${candidate.website}`}
+                href={`https://${profileCandidate.website}`}
               >
                 <LinkSimple size={17} />
-                {candidate.website}
+                {profileCandidate.website}
               </a>
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              {skills.map((skill) => (
+              {skillPills.map((skill) => (
                 <span
                   key={skill}
                   className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-slate-700"
@@ -680,17 +1858,20 @@ function ProfileHero({
             <div>
               <div className="mb-3 flex items-center justify-between gap-3 text-sm font-extrabold">
                 <span className="text-slate-800">Profile completion</span>
-                <span className="text-brand">{candidate.completion}%</span>
+                <span className="text-brand">{profileCandidate.completion}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                 <span
                   className="bg-brand block h-full rounded-full"
-                  style={{ width: `${candidate.completion}%` }}
+                  style={{ width: `${profileCandidate.completion}%` }}
                 />
               </div>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
-              <Button className="bg-brand h-11 rounded-lg px-5 font-extrabold shadow-none hover:bg-emerald-700">
+              <Button
+                className="bg-brand h-11 rounded-lg px-5 font-extrabold shadow-none hover:bg-emerald-700"
+                onClick={onEditProfile}
+              >
                 <PencilSimple />
                 {copy.editProfile}
               </Button>
@@ -755,27 +1936,58 @@ function ProfileTabs({
 }
 
 function ProfileTabPanel({
+  actions,
   activeTab,
   copy,
+  onTabChange,
   productCopy,
+  viewModel,
 }: Readonly<{
+  actions: CandidateProfileActions;
   activeTab: ProfileTabKey;
   copy: (typeof copyByLocale)["vi" | "en"];
+  onTabChange: (tab: ProfileTabKey) => void;
   productCopy: CandidateProfileCopy;
+  viewModel: CandidateProfileViewModel;
 }>) {
   const panelContent: Record<ProfileTabKey, ReactNode> = {
     overview: (
       <>
-        <AboutContactCard copy={copy} />
-        <ExperienceSnapshotCard copy={copy} productCopy={productCopy} />
-        <PreferencesCard copy={copy} productCopy={productCopy} compact />
+        <AboutContactCard copy={copy} viewModel={viewModel} />
+        <ExperienceSnapshotCard
+          copy={copy}
+          onAddExperience={actions.onAddExperience}
+          onViewAllExperience={() => onTabChange("experience")}
+          productCopy={productCopy}
+          viewModel={viewModel}
+        />
+        <PreferencesCard copy={copy} productCopy={productCopy} viewModel={viewModel} compact />
       </>
     ),
-    resume: <ResumeCard copy={copy} productCopy={productCopy} />,
-    experience: <ExperienceSnapshotCard copy={copy} productCopy={productCopy} detailed />,
-    education: <EducationCard copy={copy} />,
-    skills: <SkillsCard copy={copy} />,
-    preferences: <PreferencesCard copy={copy} productCopy={productCopy} />,
+    resume: (
+      <ResumeCard copy={copy} productCopy={productCopy} viewModel={viewModel} actions={actions} />
+    ),
+    experience: (
+      <ExperienceSnapshotCard
+        copy={copy}
+        onAddExperience={actions.onAddExperience}
+        productCopy={productCopy}
+        viewModel={viewModel}
+        detailed
+      />
+    ),
+    education: (
+      <EducationCard copy={copy} onAddEducation={actions.onAddEducation} viewModel={viewModel} />
+    ),
+    skills: <SkillsCard copy={copy} onAddSkill={actions.onAddSkill} viewModel={viewModel} />,
+    preferences: (
+      <PreferencesCard
+        copy={copy}
+        onEditPreferences={actions.onEditPreferences}
+        productCopy={productCopy}
+        viewModel={viewModel}
+      />
+    ),
   };
 
   return (
@@ -786,24 +1998,36 @@ function ProfileTabPanel({
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <main className="space-y-4">{panelContent[activeTab]}</main>
-        <SharedProfileAside activeTab={activeTab} copy={copy} productCopy={productCopy} />
+        <SharedProfileAside
+          activeTab={activeTab}
+          copy={copy}
+          productCopy={productCopy}
+          viewModel={viewModel}
+        />
       </div>
     </section>
   );
 }
 
-function AboutContactCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" | "en"] }>) {
+function AboutContactCard({
+  copy,
+  viewModel,
+}: Readonly<{
+  copy: (typeof copyByLocale)["vi" | "en"];
+  viewModel: CandidateProfileViewModel;
+}>) {
+  const { candidate: profileCandidate } = viewModel;
   const contacts = [
-    [EnvelopeSimple, candidate.email],
-    [Phone, candidate.phone],
-    [LinkedinLogo, candidate.linkedin],
-    [LinkSimple, candidate.github],
+    [EnvelopeSimple, profileCandidate.email],
+    [Phone, profileCandidate.phone],
+    [LinkedinLogo, profileCandidate.linkedin],
+    [LinkSimple, profileCandidate.github],
   ] as const;
 
   return (
     <SectionCard id="overview" title={copy.contactTitle} icon={SealCheck}>
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.75fr)]">
-        <p className="text-sm leading-7 font-medium text-slate-600">{copy.aboutText}</p>
+        <p className="text-sm leading-7 font-medium text-slate-600">{viewModel.aboutText}</p>
         <div className="space-y-3 border-slate-200 md:border-l md:pl-8">
           {contacts.map(([Icon, text]) => (
             <InfoRow key={text} icon={Icon}>
@@ -819,10 +2043,27 @@ function AboutContactCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" 
 function ResumeCard({
   copy,
   productCopy,
+  viewModel,
+  actions,
 }: Readonly<{
   copy: (typeof copyByLocale)["vi" | "en"];
   productCopy: CandidateProfileCopy;
+  viewModel: CandidateProfileViewModel;
+  actions: CandidateProfileActions;
 }>) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      actions.onUploadCv(file);
+    }
+  };
+
   return (
     <SectionCard
       id="resume"
@@ -830,10 +2071,20 @@ function ResumeCard({
       icon={FilePdf}
       action={
         <div className="flex items-center gap-2">
-          <Button className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700">
+          <Button
+            className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700"
+            onClick={handleUploadClick}
+          >
             <UploadSimple />
             {productCopy.sidebar.uploadResume}
           </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept=".pdf,.doc,.docx"
+            onChange={handleFileChange}
+          />
           <button
             type="button"
             className="upnext-focus grid size-10 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-950"
@@ -875,17 +2126,15 @@ function ResumeCard({
         <Button
           variant="outline"
           className="h-10 rounded-lg border-emerald-200 bg-white font-extrabold text-emerald-700 shadow-none hover:bg-emerald-50 hover:text-emerald-800"
+          onClick={handleUploadClick}
         >
           <ArrowRight />
           {copy.change}
         </Button>
       </div>
       <div className="divide-y divide-slate-200 rounded-xl border border-slate-200">
-        {resumeRows.map((resume) => (
-          <article
-            key={resume.name}
-            className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center"
-          >
+        {viewModel.resumeRows.map((resume) => (
+          <article key={resume.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
             <span className="grid size-16 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-xs font-extrabold text-red-500">
               PDF
             </span>
@@ -914,18 +2163,41 @@ function ResumeCard({
               <Button
                 variant="outline"
                 className="h-10 rounded-lg border-slate-200 bg-white shadow-none hover:bg-slate-50 hover:text-slate-950"
+                onClick={() => resume.publicUrl && window.open(resume.publicUrl, "_blank")}
+                disabled={!resume.publicUrl}
               >
                 <Eye />
                 {copy.preview}
               </Button>
-              <button className="upnext-focus grid size-10 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">
-                <DotsThreeVertical size={20} />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="upnext-focus grid size-10 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">
+                    <DotsThreeVertical size={20} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => actions.onSetCvDefault(resume.id)}
+                    disabled={resume.primary}
+                  >
+                    Đặt làm chính
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-red-600 focus:bg-red-50 focus:text-red-700"
+                    onClick={() => actions.onDeleteCv(resume.id)}
+                  >
+                    Xóa CV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </article>
         ))}
       </div>
-      <div className="mt-4 flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 p-6 text-center sm:flex-row sm:gap-4">
+      <div
+        className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 p-6 text-center transition-colors hover:bg-slate-50 sm:flex-row sm:gap-4"
+        onClick={handleUploadClick}
+      >
         <UploadSimple className="text-slate-500" size={34} />
         <p className="text-sm font-semibold text-slate-600">
           {copy.dragResume}
@@ -940,12 +2212,28 @@ function ResumeCard({
 function ExperienceSnapshotCard({
   copy,
   detailed = false,
+  onAddExperience,
+  onViewAllExperience,
   productCopy,
+  viewModel,
 }: Readonly<{
   copy: (typeof copyByLocale)["vi" | "en"];
   detailed?: boolean;
+  onAddExperience: () => void;
+  onViewAllExperience?: () => void;
   productCopy: CandidateProfileCopy;
+  viewModel: CandidateProfileViewModel;
 }>) {
+  const highlightedRole = viewModel.experienceRows[0];
+  const emptyExperienceTitle =
+    copy.viewAllExperience === "View all experience"
+      ? "No experience added yet"
+      : "Chưa có kinh nghiệm";
+  const emptyExperienceDescription =
+    copy.viewAllExperience === "View all experience"
+      ? "Add your work history so recruiters can understand your background."
+      : "Thêm kinh nghiệm làm việc để nhà tuyển dụng hiểu rõ hơn về hồ sơ của bạn.";
+
   return (
     <SectionCard
       id="experience"
@@ -953,16 +2241,27 @@ function ExperienceSnapshotCard({
       icon={Briefcase}
       action={
         detailed ? (
-          <Button className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700">
+          <Button
+            className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700"
+            onClick={onAddExperience}
+          >
             <Plus />
             {copy.addExperience}
           </Button>
         ) : null
       }
     >
-      {detailed ? (
+      {!highlightedRole ? (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
+          <Briefcase className="mx-auto text-slate-400" size={34} />
+          <p className="mt-3 text-sm font-extrabold text-slate-900">{emptyExperienceTitle}</p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 font-medium text-slate-500">
+            {emptyExperienceDescription}
+          </p>
+        </div>
+      ) : detailed ? (
         <div className="divide-y divide-slate-200 rounded-xl border border-slate-200">
-          {experienceRows.map((role, index) => (
+          {viewModel.experienceRows.map((role, index) => (
             <article
               key={`${role.title}-${role.period}`}
               className="grid gap-4 p-5 md:grid-cols-[40px_minmax(0,1fr)_auto]"
@@ -974,7 +2273,7 @@ function ExperienceSnapshotCard({
                     index === 0 ? "bg-brand" : "bg-slate-300",
                   )}
                 />
-                {index < experienceRows.length - 1 ? (
+                {index < viewModel.experienceRows.length - 1 ? (
                   <span className="absolute top-6 bottom-[-1.25rem] w-px bg-slate-200" />
                 ) : null}
               </div>
@@ -1029,12 +2328,14 @@ function ExperienceSnapshotCard({
         <>
           <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
             <div>
-              <p className="text-brand text-sm font-extrabold">{copy.currentRole}</p>
-              <p className="mt-1 text-sm font-bold text-slate-700">{copy.company}</p>
-              <p className="mt-1 text-sm font-medium text-slate-500">{copy.period}</p>
+              <p className="text-brand text-sm font-extrabold">{highlightedRole.title}</p>
+              <p className="mt-1 text-sm font-bold text-slate-700">{highlightedRole.company}</p>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                {highlightedRole.period} · {highlightedRole.location}
+              </p>
             </div>
             <ul className="space-y-2">
-              {copy.bullets.map((bullet) => (
+              {highlightedRole.bullets.map((bullet) => (
                 <li
                   key={bullet}
                   className="flex gap-3 text-sm leading-6 font-medium text-slate-600"
@@ -1045,7 +2346,11 @@ function ExperienceSnapshotCard({
               ))}
             </ul>
           </div>
-          <InlineAction>{copy.viewAllExperience}</InlineAction>
+          {onViewAllExperience ? (
+            <InlineAction onClick={onViewAllExperience}>{copy.viewAllExperience}</InlineAction>
+          ) : (
+            <InlineAction>{copy.viewAllExperience}</InlineAction>
+          )}
         </>
       )}
       <span className="sr-only">{productCopy.labels.workExperience}</span>
@@ -1053,14 +2358,25 @@ function ExperienceSnapshotCard({
   );
 }
 
-function EducationCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" | "en"] }>) {
+function EducationCard({
+  copy,
+  onAddEducation,
+  viewModel,
+}: Readonly<{
+  copy: (typeof copyByLocale)["vi" | "en"];
+  onAddEducation: () => void;
+  viewModel: CandidateProfileViewModel;
+}>) {
   return (
     <SectionCard
       id="education"
       title={copy.educationTitle}
       icon={GraduationCap}
       action={
-        <Button className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700">
+        <Button
+          className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700"
+          onClick={onAddEducation}
+        >
           <Plus />
           {copy.addEducation}
         </Button>
@@ -1068,7 +2384,7 @@ function EducationCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" | "
     >
       <p className="-mt-2 mb-5 text-sm font-medium text-slate-500">{copy.educationDescription}</p>
       <div className="space-y-3">
-        {educationRecords.map((item) => (
+        {viewModel.educationRecords.map((item) => (
           <article
             key={item.degree}
             className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-start"
@@ -1106,14 +2422,25 @@ function EducationCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" | "
   );
 }
 
-function SkillsCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" | "en"] }>) {
+function SkillsCard({
+  copy,
+  onAddSkill,
+  viewModel,
+}: Readonly<{
+  copy: (typeof copyByLocale)["vi" | "en"];
+  onAddSkill: () => void;
+  viewModel: CandidateProfileViewModel;
+}>) {
   return (
     <SectionCard
       id="skills"
       title={copy.skillsTitle}
       icon={Code}
       action={
-        <Button className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700">
+        <Button
+          className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700"
+          onClick={onAddSkill}
+        >
           <Plus />
           {copy.addSkill}
         </Button>
@@ -1124,33 +2451,18 @@ function SkillsCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" | "en"
       <div className="space-y-7">
         <div>
           <h3 className="mb-3 text-sm font-extrabold text-slate-950">{copy.technicalSkills}</h3>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {technicalSkills.map(([name, level, dots]) => (
-              <article
+          <div className="flex flex-wrap gap-3">
+            {viewModel.technicalSkills.map(([name, level]) => (
+              <span
                 key={name}
-                className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700"
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-extrabold text-slate-950">{name}</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="flex gap-1">
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <span
-                          key={index}
-                          className={cn(
-                            "size-2 rounded-full",
-                            index < dots ? "bg-brand" : "bg-slate-200",
-                          )}
-                        />
-                      ))}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">{level}</span>
-                  </div>
-                </div>
-                <button className="upnext-focus grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-50">
-                  <DotsThreeVertical size={18} />
-                </button>
-              </article>
+                <span className="bg-brand size-2 rounded-full" />
+                <span>{name}</span>
+                {level ? (
+                  <span className="text-xs font-semibold text-slate-400">({level})</span>
+                ) : null}
+              </span>
             ))}
           </div>
         </div>
@@ -1158,7 +2470,7 @@ function SkillsCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" | "en"
         <div>
           <h3 className="mb-3 text-sm font-extrabold text-slate-950">{copy.softSkills}</h3>
           <div className="flex flex-wrap gap-3">
-            {softSkills.map((skill) => (
+            {viewModel.softSkills.map((skill) => (
               <span
                 key={skill}
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700"
@@ -1173,10 +2485,7 @@ function SkillsCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" | "en"
         <div>
           <h3 className="mb-3 text-sm font-extrabold text-slate-950">{copy.languages}</h3>
           <div className="grid gap-3 sm:grid-cols-2">
-            {[
-              ["VI", "Vietnamese", "Native", 5],
-              ["EN", "English", "Professional", 3],
-            ].map(([code, name, level, dots]) => (
+            {viewModel.languageRows.map(([code, name, level, dots]) => (
               <article
                 key={name}
                 className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4"
@@ -1213,11 +2522,15 @@ function SkillsCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" | "en"
 function PreferencesCard({
   compact = false,
   copy,
+  onEditPreferences,
   productCopy,
+  viewModel,
 }: Readonly<{
   compact?: boolean;
   copy: (typeof copyByLocale)["vi" | "en"];
+  onEditPreferences?: () => void;
   productCopy: CandidateProfileCopy;
+  viewModel: CandidateProfileViewModel;
 }>) {
   const compactIcons = [Briefcase, Briefcase, TrendUp, MapPin, GearSix] as const;
   const icons = [
@@ -1264,7 +2577,10 @@ function PreferencesCard({
       title={copy.preferencesTitle}
       icon={Briefcase}
       action={
-        <Button className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700">
+        <Button
+          className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700"
+          onClick={onEditPreferences}
+        >
           <PencilSimple />
           {copy.editPreferences}
         </Button>
@@ -1272,7 +2588,7 @@ function PreferencesCard({
     >
       <p className="-mt-2 mb-5 text-sm font-medium text-slate-500">{copy.preferencesDescription}</p>
       <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {preferenceCards.map(([label, value], index) => {
+        {viewModel.preferenceCards.map(([label, value], index) => {
           const Icon = icons[index] ?? Briefcase;
           return (
             <div key={label} className="rounded-xl border border-slate-200 bg-white p-4">
@@ -1308,17 +2624,19 @@ function SharedProfileAside({
   activeTab,
   copy,
   productCopy,
+  viewModel,
 }: Readonly<{
   activeTab: ProfileTabKey;
   copy: (typeof copyByLocale)["vi" | "en"];
   productCopy: CandidateProfileCopy;
+  viewModel: CandidateProfileViewModel;
 }>) {
   return (
     <aside className="space-y-4 lg:sticky lg:top-40 lg:self-start">
-      <CompletionCard copy={copy} productCopy={productCopy} />
+      <CompletionCard copy={copy} productCopy={productCopy} viewModel={viewModel} />
       <NextActionCard activeTab={activeTab} copy={copy} />
       <ProfileVisibilityCard copy={copy} />
-      <QuickStatsCard copy={copy} />
+      <QuickStatsCard copy={copy} viewModel={viewModel} />
     </aside>
   );
 }
@@ -1382,10 +2700,42 @@ function ProfileVisibilityCard({ copy }: Readonly<{ copy: (typeof copyByLocale)[
 function CompletionCard({
   copy,
   productCopy,
+  viewModel,
 }: Readonly<{
   copy: (typeof copyByLocale)["vi" | "en"];
   productCopy: CandidateProfileCopy;
+  viewModel: CandidateProfileViewModel;
 }>) {
+  const dynamicCompletionItems = [
+    {
+      key: "personal",
+      done: Boolean(
+        viewModel.candidate.name && viewModel.candidate.phone && viewModel.candidate.location,
+      ),
+    },
+    {
+      key: "experience",
+      done: viewModel.experienceRows.length > 0,
+    },
+    {
+      key: "education",
+      done: viewModel.educationRecords.length > 0,
+    },
+    {
+      key: "skills",
+      done: viewModel.technicalSkills.length > 0 || viewModel.skillPills.length > 0,
+    },
+    {
+      key: "about",
+      done: Boolean(viewModel.aboutText && viewModel.aboutText.trim()),
+    },
+  ] as const;
+
+  const completionPercentage = Math.round(
+    (dynamicCompletionItems.filter((item) => item.done).length / dynamicCompletionItems.length) *
+      100,
+  );
+
   return (
     <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
       <CardHeader className="flex-row items-center gap-3 space-y-0 p-5 pb-3">
@@ -1397,8 +2747,8 @@ function CompletionCard({
       <CardContent className="p-5 pt-2">
         <div className="flex gap-4">
           <ProgressRing
-            value={candidate.completion}
-            label={`${candidate.completion}%`}
+            value={completionPercentage}
+            label={`${completionPercentage}%`}
             ariaLabel={productCopy.status.completionLabel}
           />
           <p className="pt-2 text-sm leading-6 font-medium text-slate-600">
@@ -1407,7 +2757,7 @@ function CompletionCard({
         </div>
 
         <ul className="mt-5 space-y-3">
-          {completionItems.map((item) => (
+          {dynamicCompletionItems.map((item) => (
             <li key={item.key} className="flex items-center gap-2 text-sm font-semibold">
               <span
                 className={cn(
@@ -1432,11 +2782,18 @@ function CompletionCard({
   );
 }
 
-function QuickStatsCard({ copy }: Readonly<{ copy: (typeof copyByLocale)["vi" | "en"] }>) {
+function QuickStatsCard({
+  copy,
+  viewModel,
+}: Readonly<{
+  copy: (typeof copyByLocale)["vi" | "en"];
+  viewModel: CandidateProfileViewModel;
+}>) {
+  const { candidate: profileCandidate } = viewModel;
   const stats = [
-    [BookmarkSimple, copy.savedJobs, candidate.savedJobs],
-    [Briefcase, copy.applications, candidate.applications],
-    [Eye, copy.profileViews, candidate.profileViews],
+    [BookmarkSimple, copy.savedJobs, profileCandidate.savedJobs],
+    [Briefcase, copy.applications, profileCandidate.applications],
+    [Eye, copy.profileViews, profileCandidate.profileViews],
   ] as const;
 
   return (
@@ -1505,10 +2862,14 @@ function InfoRow({ icon: Icon, children }: Readonly<{ icon: IconComponent; child
   );
 }
 
-function InlineAction({ children }: Readonly<{ children: ReactNode }>) {
+function InlineAction({
+  children,
+  onClick,
+}: Readonly<{ children: ReactNode; onClick?: () => void }>) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="upnext-focus text-brand mt-5 inline-flex items-center gap-2 rounded-lg text-sm font-extrabold"
     >
       {children}

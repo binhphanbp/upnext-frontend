@@ -4,8 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+
+import { getCandidateSession } from "@/features/candidate/session";
+import { apiRequest } from "@/shared/api/http";
 
 import { formatRelativeTime } from "@/shared/lib/date";
 
@@ -159,7 +162,7 @@ const staticJobs: Job[] = [
     applicants: 71,
     tags: ["SQL", "Python", "Tableau", "A/B Testing"],
     description:
-      "Phân tích hành vi người dùng, thiết kế dashboard kinh doanh và hỗ trợ team vận hành ra quyết định bằng dữ liệu.",
+      "Phần tích hành vi người dùng, thiết kế dashboard kinh doanh và hỗ trợ team vận hành ra quyết định bằng dữ liệu.",
     categories: ["data-ai", "hybrid"],
   },
   {
@@ -468,6 +471,547 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 7;
+  const lastLoggedKeywordRef = useRef<string>("");
+
+  const logKeyword = async (term: string, count: number) => {
+    const normalizedTerm = term.trim();
+    if (normalizedTerm.length < 2) return;
+    if (lastLoggedKeywordRef.current === normalizedTerm) return;
+    lastLoggedKeywordRef.current = normalizedTerm;
+
+    try {
+      const session = getCandidateSession();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (session?.accessToken) {
+        headers["Authorization"] = `Bearer ${session.accessToken}`;
+      }
+
+      await apiRequest("/search-keywords/log", {
+        method: "POST",
+        body: JSON.stringify({
+          keyword: normalizedTerm,
+          source: "main_search",
+          resultCount: count,
+        }),
+        headers,
+      });
+    } catch (err) {
+      console.warn("Failed to log search keyword", err);
+    }
+  };
+
+  const { data: apiJobsData } = useQuery({
+    queryKey: ["public-jobs"],
+    queryFn: getPublicJobs,
+  });
+
+  const jobs = useMemo(() => {
+    if (!apiJobsData) return staticJobs;
+
+    const mapped: Job[] = apiJobsData.map((job) => {
+      const isRemote =
+        job.employmentType?.name.toLowerCase().includes("remote") ||
+        job.title.toLowerCase().includes("remote");
+      const isHighSalary =
+        (job.salaryMin && job.salaryMin >= 30000000) ||
+        (job.salaryMax && job.salaryMax >= 30000000);
+
+      const categories: string[] = [];
+      if (isRemote) categories.push("remote");
+      if (isHighSalary) categories.push("high-salary");
+      const categoryCode = job.jobCategory?.name.toLowerCase() || "";
+      if (categoryCode.includes("frontend")) categories.push("frontend");
+      if (categoryCode.includes("backend")) categories.push("backend");
+      if (categoryCode.includes("mobile")) categories.push("mobile");
+      if (categoryCode.includes("data") || categoryCode.includes("ai")) {
+        categories.push("data-ai");
+      }
+      if (categoryCode.includes("devops")) categories.push("devops");
+      if (categoryCode.includes("qa") || categoryCode.includes("test")) {
+        categories.push("qa");
+      }
+
+      return {
+        id: job.id,
+        title: job.title,
+        company: job.company?.name || "UpNext Partner",
+        logo: job.company?.logoUrl || "",
+        logoColor: "#10b981",
+        verified: true,
+        salary:
+          job.salaryIsVisible && job.salaryMin && job.salaryMax
+            ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu/tháng`
+            : "Thỏa thuận",
+        location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
+        mode: job.employmentType?.name || "Full-time",
+        level: job.experienceLevel?.name || "Middle",
+        type: job.employmentType?.name || "Full-time",
+        posted: job.publishedAt ? formatRelativeTime(job.publishedAt, locale as any) : "Mới đăng",
+        applicants: 12,
+        tags: [job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+          Boolean,
+        ) as string[],
+        description: job.description || "",
+        categories,
+      };
+    });
+
+    return [...mapped, ...staticJobs];
+  }, [apiJobsData, locale]);
+
+  const salaryRangesList = useMemo(() => {
+    return salaryRanges.map((range) => {
+      let count = 0;
+      if (range.value === "sal-0-15") {
+        count = jobs.filter((j) => {
+          const { min } = parseSalaryRange(j);
+          return min > 0 && min <= 15;
+        }).length;
+      } else if (range.value === "sal-15-25") {
+        count = jobs.filter((j) => {
+          const { min, max } = parseSalaryRange(j);
+          return !(max < 15 || min > 25);
+        }).length;
+      } else if (range.value === "sal-25-40") {
+        count = jobs.filter((j) => {
+          const { min, max } = parseSalaryRange(j);
+          return !(max < 25 || min > 40);
+        }).length;
+      } else if (range.value === "sal-40-60") {
+        count = jobs.filter((j) => {
+          const { min, max } = parseSalaryRange(j);
+          return !(max < 40 || min > 60);
+        }).length;
+      } else if (range.value === "sal-60") {
+        count = jobs.filter((j) => {
+          const { max } = parseSalaryRange(j);
+          return max >= 60;
+        }).length;
+      }
+      return { ...range, count };
+    });
+  }, [jobs]);
+
+  const experienceOptionsList = useMemo(() => {
+    return experienceOptions.map((opt) => {
+      let count = 0;
+      const val = opt.value;
+      if (val === "exp-0-1") {
+        count = jobs.filter((j) => {
+          const lvl = j.level.toLowerCase();
+          return lvl.includes("fresher") || lvl.includes("intern") || lvl.includes("dưới 1 năm");
+        }).length;
+      } else if (val === "exp-1-2") {
+        count = jobs.filter((j) => {
+          const lvl = j.level.toLowerCase();
+          return lvl.includes("junior") || lvl.includes("1 - 2 năm") || lvl.includes("1-2");
+        }).length;
+      } else if (val === "exp-2-4") {
+        count = jobs.filter((j) => {
+          const lvl = j.level.toLowerCase();
+          return (
+            lvl.includes("middle") ||
+            lvl.includes("mid") ||
+            lvl.includes("2 - 4 năm") ||
+            lvl.includes("2-4")
+          );
+        }).length;
+      } else if (val === "exp-4-6") {
+        count = jobs.filter((j) => {
+          const lvl = j.level.toLowerCase();
+          return lvl.includes("senior") || lvl.includes("4 - 6 năm") || lvl.includes("4-6");
+        }).length;
+      } else if (val === "exp-6") {
+        count = jobs.filter((j) => {
+          const lvl = j.level.toLowerCase();
+          return (
+            lvl.includes("lead") ||
+            lvl.includes("manager") ||
+            lvl.includes("trên 6 năm") ||
+            lvl.includes("6+")
+          );
+        }).length;
+      }
+      return { ...opt, count };
+    });
+  }, [jobs]);
+
+  const categories = useMemo(() => {
+    return [
+      { key: "all", label: "Tất cả", count: jobs.length },
+      {
+        key: "frontend",
+        label: "Frontend",
+        count: jobs.filter((j) => j.categories.includes("frontend")).length,
+      },
+      {
+        key: "backend",
+        label: "Backend",
+        count: jobs.filter((j) => j.categories.includes("backend")).length,
+      },
+      {
+        key: "mobile",
+        label: "Mobile",
+        count: jobs.filter((j) => j.categories.includes("mobile")).length,
+      },
+      {
+        key: "data-ai",
+        label: "Data / AI",
+        count: jobs.filter((j) => j.categories.includes("data-ai")).length,
+      },
+      {
+        key: "devops",
+        label: "DevOps",
+        count: jobs.filter((j) => j.categories.includes("devops")).length,
+      },
+      {
+        key: "remote",
+        label: "Remote",
+        count: jobs.filter((j) => j.categories.includes("remote")).length,
+      },
+      {
+        key: "high-salary",
+        label: "Lương cao",
+        count: jobs.filter((j) => j.categories.includes("high-salary")).length,
+      },
+    ];
+  }, [jobs]);
+
+  const filterGroups = useMemo(() => {
+    return [
+      {
+        title: "Hình thức làm việc",
+        items: [
+          {
+            label: "Hybrid",
+            value: "hybrid",
+            count: jobs.filter((j) => j.categories.includes("hybrid")).length,
+          },
+          {
+            label: "Remote",
+            value: "remote",
+            count: jobs.filter((j) => j.categories.includes("remote")).length,
+          },
+          {
+            label: "Onsite",
+            value: "onsite",
+            count: jobs.filter((j) => j.categories.includes("onsite")).length,
+          },
+        ],
+      },
+      {
+        title: "Cấp bậc",
+        items: [
+          {
+            label: "Fresher / Junior",
+            value: "fresher",
+            count: jobs.filter(
+              (j) =>
+                j.level.toLowerCase().includes("fresher") ||
+                j.level.toLowerCase().includes("junior"),
+            ).length,
+          },
+          {
+            label: "Middle",
+            value: "middle",
+            count: jobs.filter((j) => j.level.toLowerCase().includes("middle")).length,
+          },
+          {
+            label: "Senior",
+            value: "senior",
+            count: jobs.filter((j) => j.level.toLowerCase().includes("senior")).length,
+          },
+        ],
+      },
+      {
+        title: "Chuyên môn",
+        items: [
+          {
+            label: "Frontend",
+            value: "frontend",
+            count: jobs.filter((j) => j.categories.includes("frontend")).length,
+          },
+          {
+            label: "Backend",
+            value: "backend",
+            count: jobs.filter((j) => j.categories.includes("backend")).length,
+          },
+          {
+            label: "Data / AI",
+            value: "data-ai",
+            count: jobs.filter((j) => j.categories.includes("data-ai")).length,
+          },
+          {
+            label: "DevOps",
+            value: "devops",
+            count: jobs.filter((j) => j.categories.includes("devops")).length,
+          },
+          {
+            label: "QA Automation",
+            value: "qa",
+            count: jobs.filter((j) => j.categories.includes("qa")).length,
+          },
+        ],
+      },
+    ];
+  }, [jobs]);
+  const { data: apiJobsData } = useQuery({
+    queryKey: ["public-jobs"],
+    queryFn: getPublicJobs,
+  });
+
+  const jobs = useMemo(() => {
+    if (!apiJobsData) return staticJobs;
+
+    const mapped: Job[] = apiJobsData.map((job) => {
+      const isRemote =
+        job.employmentType?.name.toLowerCase().includes("remote") ||
+        job.title.toLowerCase().includes("remote");
+      const isHighSalary =
+        (job.salaryMin && job.salaryMin >= 30000000) ||
+        (job.salaryMax && job.salaryMax >= 30000000);
+
+      const categories: string[] = [];
+      if (isRemote) categories.push("remote");
+      if (isHighSalary) categories.push("high-salary");
+      const categoryCode = job.jobCategory?.name.toLowerCase() || "";
+      if (categoryCode.includes("frontend")) categories.push("frontend");
+      if (categoryCode.includes("backend")) categories.push("backend");
+      if (categoryCode.includes("mobile")) categories.push("mobile");
+      if (categoryCode.includes("data") || categoryCode.includes("ai")) {
+        categories.push("data-ai");
+      }
+      if (categoryCode.includes("devops")) categories.push("devops");
+      if (categoryCode.includes("qa") || categoryCode.includes("test")) {
+        categories.push("qa");
+      }
+
+      return {
+        id: job.id,
+        title: job.title,
+        company: job.company?.name || "UpNext Partner",
+        logo: job.company?.logoUrl || "",
+        logoColor: "#10b981",
+        verified: true,
+        salary:
+          job.salaryIsVisible && job.salaryMin && job.salaryMax
+            ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu/tháng`
+            : "Thỏa thuận",
+        location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
+        mode: job.employmentType?.name || "Full-time",
+        level: job.experienceLevel?.name || "Middle",
+        type: job.employmentType?.name || "Full-time",
+        posted: job.publishedAt ? formatRelativeTime(job.publishedAt, locale as any) : "Mới đăng",
+        applicants: 12,
+        tags: [job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+          Boolean,
+        ) as string[],
+        description: job.description || "",
+        categories,
+      };
+    });
+
+    return [...mapped, ...staticJobs];
+  }, [apiJobsData, locale]);
+
+  const salaryRangesList = useMemo(() => {
+    return salaryRanges.map((range) => {
+      let count = 0;
+      if (range.value === "sal-0-15") {
+        count = jobs.filter((j) => {
+          const { min } = parseSalaryRange(j);
+          return min > 0 && min <= 15;
+        }).length;
+      } else if (range.value === "sal-15-25") {
+        count = jobs.filter((j) => {
+          const { min, max } = parseSalaryRange(j);
+          return !(max < 15 || min > 25);
+        }).length;
+      } else if (range.value === "sal-25-40") {
+        count = jobs.filter((j) => {
+          const { min, max } = parseSalaryRange(j);
+          return !(max < 25 || min > 40);
+        }).length;
+      } else if (range.value === "sal-40-60") {
+        count = jobs.filter((j) => {
+          const { min, max } = parseSalaryRange(j);
+          return !(max < 40 || min > 60);
+        }).length;
+      } else if (range.value === "sal-60") {
+        count = jobs.filter((j) => {
+          const { max } = parseSalaryRange(j);
+          return max >= 60;
+        }).length;
+      }
+      return { ...range, count };
+    });
+  }, [jobs]);
+
+  const experienceOptionsList = useMemo(() => {
+    return experienceOptions.map((opt) => {
+      let count = 0;
+      const val = opt.value;
+      if (val === "exp-0-1") {
+        count = jobs.filter((j) => {
+          const lvl = j.level.toLowerCase();
+          return lvl.includes("fresher") || lvl.includes("intern") || lvl.includes("dưới 1 năm");
+        }).length;
+      } else if (val === "exp-1-2") {
+        count = jobs.filter((j) => {
+          const lvl = j.level.toLowerCase();
+          return lvl.includes("junior") || lvl.includes("1 - 2 năm") || lvl.includes("1-2");
+        }).length;
+      } else if (val === "exp-2-4") {
+        count = jobs.filter((j) => {
+          const lvl = j.level.toLowerCase();
+          return (
+            lvl.includes("middle") ||
+            lvl.includes("mid") ||
+            lvl.includes("2 - 4 năm") ||
+            lvl.includes("2-4")
+          );
+        }).length;
+      } else if (val === "exp-4-6") {
+        count = jobs.filter((j) => {
+          const lvl = j.level.toLowerCase();
+          return lvl.includes("senior") || lvl.includes("4 - 6 năm") || lvl.includes("4-6");
+        }).length;
+      } else if (val === "exp-6") {
+        count = jobs.filter((j) => {
+          const lvl = j.level.toLowerCase();
+          return (
+            lvl.includes("lead") ||
+            lvl.includes("manager") ||
+            lvl.includes("trên 6 năm") ||
+            lvl.includes("6+")
+          );
+        }).length;
+      }
+      return { ...opt, count };
+    });
+  }, [jobs]);
+
+  const categories = useMemo(() => {
+    return [
+      { key: "all", label: "Tất cả", count: jobs.length },
+      {
+        key: "frontend",
+        label: "Frontend",
+        count: jobs.filter((j) => j.categories.includes("frontend")).length,
+      },
+      {
+        key: "backend",
+        label: "Backend",
+        count: jobs.filter((j) => j.categories.includes("backend")).length,
+      },
+      {
+        key: "mobile",
+        label: "Mobile",
+        count: jobs.filter((j) => j.categories.includes("mobile")).length,
+      },
+      {
+        key: "data-ai",
+        label: "Data / AI",
+        count: jobs.filter((j) => j.categories.includes("data-ai")).length,
+      },
+      {
+        key: "devops",
+        label: "DevOps",
+        count: jobs.filter((j) => j.categories.includes("devops")).length,
+      },
+      {
+        key: "remote",
+        label: "Remote",
+        count: jobs.filter((j) => j.categories.includes("remote")).length,
+      },
+      {
+        key: "high-salary",
+        label: "Lương cao",
+        count: jobs.filter((j) => j.categories.includes("high-salary")).length,
+      },
+    ];
+  }, [jobs]);
+
+  const filterGroups = useMemo(() => {
+    return [
+      {
+        title: "Hình thức làm việc",
+        items: [
+          {
+            label: "Hybrid",
+            value: "hybrid",
+            count: jobs.filter((j) => j.categories.includes("hybrid")).length,
+          },
+          {
+            label: "Remote",
+            value: "remote",
+            count: jobs.filter((j) => j.categories.includes("remote")).length,
+          },
+          {
+            label: "Onsite",
+            value: "onsite",
+            count: jobs.filter((j) => j.categories.includes("onsite")).length,
+          },
+        ],
+      },
+      {
+        title: "Cấp bậc",
+        items: [
+          {
+            label: "Fresher / Junior",
+            value: "fresher",
+            count: jobs.filter(
+              (j) =>
+                j.level.toLowerCase().includes("fresher") ||
+                j.level.toLowerCase().includes("junior"),
+            ).length,
+          },
+          {
+            label: "Middle",
+            value: "middle",
+            count: jobs.filter((j) => j.level.toLowerCase().includes("middle")).length,
+          },
+          {
+            label: "Senior",
+            value: "senior",
+            count: jobs.filter((j) => j.level.toLowerCase().includes("senior")).length,
+          },
+        ],
+      },
+      {
+        title: "Chuyên môn",
+        items: [
+          {
+            label: "Frontend",
+            value: "frontend",
+            count: jobs.filter((j) => j.categories.includes("frontend")).length,
+          },
+          {
+            label: "Backend",
+            value: "backend",
+            count: jobs.filter((j) => j.categories.includes("backend")).length,
+          },
+          {
+            label: "Data / AI",
+            value: "data-ai",
+            count: jobs.filter((j) => j.categories.includes("data-ai")).length,
+          },
+          {
+            label: "DevOps",
+            value: "devops",
+            count: jobs.filter((j) => j.categories.includes("devops")).length,
+          },
+          {
+            label: "QA Automation",
+            value: "qa",
+            count: jobs.filter((j) => j.categories.includes("qa")).length,
+          },
+        ],
+      },
+    ];
+  }, [jobs]);
 
   const { data: apiJobsData } = useQuery({
     queryKey: ["public-jobs"],
@@ -854,6 +1398,12 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     sort,
     techFilters,
   ]);
+  useEffect(() => {
+    const term = params.get("keyword") ?? params.get("position") ?? "";
+    if (term.trim().length >= 2) {
+      logKeyword(term, filteredJobs.length);
+    }
+  }, [params, filteredJobs.length]);
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -888,6 +1438,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   function runSearch(event?: React.FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     setPage(1);
+    logKeyword(keyword, filteredJobs.length);
   }
 
   function resetFilters() {
