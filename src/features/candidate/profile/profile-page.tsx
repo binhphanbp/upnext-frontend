@@ -2451,33 +2451,18 @@ function SkillsCard({
       <div className="space-y-7">
         <div>
           <h3 className="mb-3 text-sm font-extrabold text-slate-950">{copy.technicalSkills}</h3>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {viewModel.technicalSkills.map(([name, level, dots]) => (
-              <article
+          <div className="flex flex-wrap gap-3">
+            {viewModel.technicalSkills.map(([name, level]) => (
+              <span
                 key={name}
-                className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700"
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-extrabold text-slate-950">{name}</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="flex gap-1">
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <span
-                          key={index}
-                          className={cn(
-                            "size-2 rounded-full",
-                            index < dots ? "bg-brand" : "bg-slate-200",
-                          )}
-                        />
-                      ))}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">{level}</span>
-                  </div>
-                </div>
-                <button className="upnext-focus grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-50">
-                  <DotsThreeVertical size={18} />
-                </button>
-              </article>
+                <span className="bg-brand size-2 rounded-full" />
+                <span>{name}</span>
+                {level ? (
+                  <span className="text-xs font-semibold text-slate-400">({level})</span>
+                ) : null}
+              </span>
             ))}
           </div>
         </div>
