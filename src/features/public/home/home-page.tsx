@@ -525,8 +525,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           </div>
         </section>
 
-        <UrgentJobsSection navigate={navigate} />
-
         <section className="marketing-home-trust-strip">
           <div className="marketing-home-stats">
             <article>
@@ -582,6 +580,8 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             </div>
           </div>
         </section>
+
+        <UrgentJobsSection navigate={navigate} />
 
         <FeaturedJobs navigate={navigate} />
         <FeaturedCompanies navigate={navigate} />
