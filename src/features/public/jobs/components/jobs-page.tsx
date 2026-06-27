@@ -9,7 +9,6 @@ import type { ReactNode } from "react";
 
 import { getCandidateSession } from "@/features/candidate/session";
 import { apiRequest } from "@/shared/api/http";
-
 import { formatRelativeTime } from "@/shared/lib/date";
 
 import { getPublicJobs } from "../../home/api";
@@ -502,7 +501,6 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     }
   };
 
-
   const { data: apiJobsData } = useQuery({
     queryKey: ["public-jobs"],
     queryFn: getPublicJobs,
@@ -729,8 +727,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
             value: "lead",
             count: jobs.filter(
               (j) =>
-                j.level.toLowerCase().includes("lead") ||
-                j.level.toLowerCase().includes("manager"),
+                j.level.toLowerCase().includes("lead") || j.level.toLowerCase().includes("manager"),
             ).length,
           },
         ],
