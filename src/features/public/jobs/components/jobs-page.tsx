@@ -757,9 +757,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     ];
   }, [jobs]);
 
-  const filteredJobs = useMemo(() => {
-    const term = keyword.trim().toLowerCase();
-    const selectedFilters = new Set(activeFilters);
+  const logKeyword = async (term: string, count: number) => {
+    const normalizedTerm = term.trim();
+    if (normalizedTerm.length < 2) return;
+    if (lastLoggedKeywordRef.current === normalizedTerm) return;
+    lastLoggedKeywordRef.current = normalizedTerm;
 
     return jobs
       .filter((job) => {
