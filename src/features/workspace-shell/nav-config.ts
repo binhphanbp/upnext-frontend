@@ -10,6 +10,7 @@ import {
   Headset,
   IdentificationBadge,
   ListChecks,
+  MagnifyingGlass,
   Package,
   Receipt,
   ShieldCheck,
@@ -88,6 +89,11 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
       { label: "systemAdmin.masterData", href: "/admin/system/master-data", icon: Database },
       { label: "systemAdmin.roles", href: "/admin/system/roles", icon: IdentificationBadge },
       { label: "systemAdmin.auditLog", href: "/admin/system/audit-log", icon: ListChecks },
+      {
+        label: "systemAdmin.searchKeywords",
+        href: "/admin/system/search-keywords",
+        icon: MagnifyingGlass,
+      },
     ],
   },
 ];

@@ -20,6 +20,8 @@ import { upnextLogo } from "@/features/public/home/brand";
 import { useRouter } from "@/i18n/navigation";
 
 import "./auth-page.css";
+import { loginCandidate, registerCandidate } from "../candidate/api/auth";
+import { saveCandidateSession } from "../candidate/session";
 import {
   createLoginSchema,
   createRegisterSchema,
@@ -78,9 +80,17 @@ function LoginPage() {
     defaultValues: { email: "", password: "" },
   });
 
-  function submit() {
-    rememberCandidateSession();
-    router.push("/candidate/profile");
+  async function submit(values: LoginValues) {
+    try {
+      const session = await loginCandidate(values);
+      saveCandidateSession(session);
+      rememberCandidateSession();
+      router.push("/candidate/profile");
+    } catch {
+      form.setError("root", {
+        message: "Không thể đăng nhập. Vui lòng kiểm tra email hoặc mật khẩu.",
+      });
+    }
   }
 
   return (
@@ -149,6 +159,7 @@ function LoginPage() {
           <button type="submit" className="login-submit">
             {t("login.submit")}
           </button>
+          <FieldError message={form.formState.errors.root?.message} />
         </form>
 
         <p className="login-signup">
@@ -175,9 +186,21 @@ function RegisterPage() {
     defaultValues: { fullName: "", email: "", password: "", confirm: "" },
   });
 
-  function submit() {
-    rememberCandidateSession();
-    router.push("/candidate/profile");
+  async function submit(values: RegisterValues) {
+    try {
+      const session = await registerCandidate({
+        email: values.email,
+        fullName: values.fullName,
+        password: values.password,
+      });
+      saveCandidateSession(session);
+      rememberCandidateSession();
+      router.push("/candidate/profile");
+    } catch {
+      form.setError("root", {
+        message: "Không thể đăng ký. Email có thể đã tồn tại hoặc dữ liệu chưa hợp lệ.",
+      });
+    }
   }
 
   return (
@@ -284,6 +307,7 @@ function RegisterPage() {
           <button type="submit" className="login-submit">
             {t("register.submit")}
           </button>
+          <FieldError message={form.formState.errors.root?.message} />
         </form>
 
         <p className="login-signup">
