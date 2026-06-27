@@ -1193,7 +1193,6 @@ export function CandidateProfilePage() {
       });
     }
   };
-
   function handleEditProfile() {
     setProfileDescription(profileViewModel.aboutText || "");
     setProfilePhone(profileViewModel.candidate.phone || "");

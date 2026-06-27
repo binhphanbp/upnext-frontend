@@ -713,14 +713,22 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
             ).length,
           },
           {
-            label: "Middle",
+            label: "Middle / Senior",
             value: "middle",
-            count: jobs.filter((j) => j.level.toLowerCase().includes("middle")).length,
+            count: jobs.filter(
+              (j) =>
+                j.level.toLowerCase().includes("middle") ||
+                j.level.toLowerCase().includes("mid") ||
+                j.level.toLowerCase().includes("senior"),
+            ).length,
           },
           {
-            label: "Senior",
-            value: "senior",
-            count: jobs.filter((j) => j.level.toLowerCase().includes("senior")).length,
+            label: "Lead / Manager",
+            value: "lead",
+            count: jobs.filter(
+              (j) =>
+                j.level.toLowerCase().includes("lead") || j.level.toLowerCase().includes("manager"),
+            ).length,
           },
         ],
       },
