@@ -532,7 +532,8 @@
         "back": "Quay lại",
         "next": "Tiếp tục",
         "finish": "Hoàn tất cập nhật",
-        "submitting": "Đang gửi hồ sơ..."
+        "submitting": "Đang gửi hồ sơ...",
+        "skip": "Bỏ qua"
       },
       "messages": {
         "success": "Cập nhật thông tin thành công!",
@@ -562,6 +563,121 @@
         "conflict": "Mã số thuế hoặc hồ sơ này đã tồn tại trên hệ thống.",
         "serverError": "Hệ thống đang gặp sự cố khi cập nhật hồ sơ. Vui lòng thử lại sau.",
         "unknown": "Không thể hoàn tất cập nhật. Vui lòng thử lại."
+      },
+      "companyProfile": {
+        "errors": {
+          "noProfileTitle": "Chưa có hồ sơ công ty",
+          "noProfileText": "Vui lòng hoàn tất onboarding trước khi chỉnh sửa hồ sơ công ty.",
+          "invalidTitle": "Thông tin chưa hợp lệ",
+          "nameMin": "Tên công ty phải có tối thiểu 2 ký tự.",
+          "taxCodeMin": "Mã số thuế phải có tối thiểu 8 ký tự.",
+          "emailInvalid": "Email liên hệ không đúng định dạng.",
+          "phoneMin": "Số điện thoại phải có tối thiểu 4 ký tự.",
+          "sizeRequired": "Vui lòng chọn quy mô công ty.",
+          "addressMin": "Địa chỉ công ty phải có tối thiểu 6 ký tự.",
+          "descMin": "Giới thiệu công ty phải có tối thiểu 20 ký tự.",
+          "saveErrorTitle": "Không thể lưu hồ sơ",
+          "popupBlockedTitle": "Popup bị chặn",
+          "popupBlockedText": "Vui lòng cho phép hiển thị popup để xem file minh chứng.",
+          "openLicenseError": "Không thể mở minh chứng",
+          "noFileSelected": "Chưa chọn file",
+          "noFileSelectedText": "Vui lòng chọn một file giấy phép kinh doanh trước khi thực hiện quét.",
+          "scanError": "Không thể quét thông tin",
+          "loadError": "Không thể tải dữ liệu",
+          "badData": "Dữ liệu chưa hợp lệ hoặc file không đúng định dạng.",
+          "sessionExpired": "Phiên đăng nhập đã hết hạn.",
+          "forbidden": "Bạn không có quyền quản lý công ty này.",
+          "notFound": "Không tìm thấy công ty.",
+          "unknown": "Hệ thống chưa thể xử lý yêu cầu. Vui lòng thử lại."
+        },
+        "messages": {
+          "saveSuccess": "Đã lưu hồ sơ công ty.",
+          "autofillSuccess": "Đã tự động điền thông tin doanh nghiệp.",
+          "scanSuccessTitle": "Quét thông tin thành công!",
+          "scanSuccessConfirmText": "Bạn có muốn tự động điền các thông tin này vào form không?",
+          "agree": "Đồng ý",
+          "ignore": "Bỏ qua",
+          "scanFields": {
+            "name": "Tên công ty",
+            "taxCode": "Mã số thuế",
+            "address": "Địa chỉ",
+            "email": "Email",
+            "phone": "Điện thoại",
+            "website": "Website"
+          }
+        },
+        "loading": "Đang tải hồ sơ công ty...",
+        "cardTitle": "Thông tin doanh nghiệp",
+        "status": {
+          "verified": "Đã xác thực",
+          "pending": "Chờ xác thực",
+          "rejected": "Bị từ chối",
+          "unverified": "Chưa xác thực"
+        },
+        "logo": {
+          "uploadBtn": "Tải logo",
+          "title": "Logo thương hiệu",
+          "helpText": "Hiển thị trên tin tuyển dụng & trang hồ sơ.\nĐịnh dạng JPG, PNG, tối đa 2MB."
+        },
+        "cover": {
+          "uploadBtn": "Tải ảnh bìa",
+          "title": "Ảnh bìa doanh nghiệp",
+          "helpText": "Hiển thị trên trang chi tiết công ty.\nĐịnh dạng JPG, PNG, tỷ lệ 16:9."
+        },
+        "aiScan": {
+          "title": "Tự động điền thông tin nhanh bằng AI",
+          "badgeNew": "Mới",
+          "helpText": "Tải lên Giấy đăng ký kinh doanh (GPKD), hệ thống AI của UpNext sẽ tự động phân tích và điền nhanh các thông tin như Tên công ty, Mã số thuế, Địa chỉ, SĐT, Email...",
+          "uploadBtn": "Tải lên GPKD để quét",
+          "scanning": "Đang quét bằng AI...",
+          "startBtn": "Bắt đầu quét AI",
+          "cancelBtn": "Hủy"
+        },
+        "fields": {
+          "name": "Tên công ty",
+          "namePlaceholder": "Ví dụ: Công ty cổ phần UpNext",
+          "taxCode": "Mã số thuế",
+          "taxCodePlaceholder": "Ví dụ: 0312345678",
+          "email": "Email liên hệ",
+          "emailPlaceholder": "Ví dụ: hr@company.com",
+          "phone": "Số điện thoại",
+          "phonePlaceholder": "Ví dụ: 02812345678",
+          "website": "Website",
+          "websitePlaceholder": "Ví dụ: https://company.com",
+          "companySize": "Quy mô công ty",
+          "companySizePlaceholder": "Ví dụ: 51-200 nhân sự",
+          "description": "Giới thiệu công ty",
+          "descriptionPlaceholder": "Giới thiệu chi tiết về công ty...",
+          "license": "Minh chứng doanh nghiệp"
+        },
+        "licenseSection": {
+          "selected": "Đã chọn: {filename}",
+          "uploaded": "Đã tải lên giấy phép kinh doanh.",
+          "none": "Chưa có file minh chứng",
+          "helpText": "Chấp nhận PDF, JPG, PNG tối đa 5MB.",
+          "chooseBtn": "Chọn file",
+          "scanning": "Đang quét...",
+          "scanBtn": "Quét AI & Tự động điền",
+          "viewBtn": "Xem file đã tải"
+        },
+        "actions": {
+          "cancel": "Hủy bỏ",
+          "save": "Lưu thay đổi",
+          "saving": "Đang lưu..."
+        },
+        "album": {
+          "title": "Album ảnh công ty",
+          "description": "Tải lên hình ảnh về văn phòng, hoạt động hoặc sản phẩm. Nhấn lưu thay đổi để cập nhật.",
+          "addBtn": "Thêm ảnh",
+          "photoAlt": "Ảnh công ty",
+          "deleteLabel": "Xóa ảnh"
+        },
+        "ariaLabels": {
+          "logoInput": "Tải logo công ty",
+          "coverInput": "Tải ảnh bìa công ty",
+          "licenseInput": "Tải minh chứng doanh nghiệp",
+          "photosInput": "Tải ảnh công ty"
+        }
       }
     }
   },
