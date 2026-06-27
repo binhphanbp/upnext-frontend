@@ -18,6 +18,8 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { getMyCandidateProfile } from "@/features/candidate/api/profile";
+import { clearCandidateSession, getCandidateSession } from "@/features/candidate/session";
 import { usePathname, useRouter } from "@/i18n/navigation";
 
 import { upnextLogo } from "../home/brand";
@@ -104,6 +106,7 @@ type PublicHeaderProps = {
 };
 
 export type PublicHeaderViewer = {
+  email?: string | undefined;
   initials: string;
   name: string;
   roleLabel: string;
@@ -397,10 +400,28 @@ function FlagIcon({ code, label }: { code: Language["code"]; label?: string }) {
   );
 }
 
-function createCandidateViewer(locale: "vi" | "en"): PublicHeaderViewer {
+type CandidateViewerSource = Readonly<{
+  email?: string | undefined;
+  fullName?: string | undefined;
+}>;
+
+function getCandidateInitials(source: CandidateViewerSource) {
+  const nameParts = source.fullName?.trim().split(/\s+/u).filter(Boolean) ?? [];
+  const fallback = source.email?.charAt(0) ?? "C";
+
+  return (nameParts.at(-1)?.charAt(0) ?? fallback).toUpperCase();
+}
+
+function createCandidateViewer(
+  locale: "vi" | "en",
+  source: CandidateViewerSource = {},
+): PublicHeaderViewer {
+  const name = source.fullName || source.email || (locale === "en" ? "Candidate" : "Ứng viên");
+
   return {
-    initials: "AJ",
-    name: "Alex Johnson",
+    email: source.email,
+    initials: getCandidateInitials(source),
+    name,
     roleLabel: locale === "en" ? "Candidate" : "Ứng viên",
     workspaceHref: "/candidate/profile",
     unreadMessages: 2,
@@ -487,16 +508,45 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
 
   useEffect(() => {
     if (viewer !== undefined) return undefined;
+    let ignore = false;
 
-    function syncViewer() {
+    async function syncViewer() {
       const role = window.localStorage.getItem(demoAuthStorageKey);
-      setStoredViewer(role === "candidate" ? createCandidateViewer(currentLocale) : null);
+      const session = getCandidateSession();
+
+      if (role !== "candidate" && !session) {
+        setStoredViewer(null);
+        return;
+      }
+
+      const fallbackViewer = createCandidateViewer(currentLocale, {
+        email: session?.user.email,
+      });
+
+      setStoredViewer(fallbackViewer);
+
+      if (!session) return;
+
+      try {
+        const profile = await getMyCandidateProfile(session.accessToken);
+        if (ignore) return;
+
+        setStoredViewer(
+          createCandidateViewer(currentLocale, {
+            email: profile.account.email,
+            fullName: profile.account.fullName,
+          }),
+        );
+      } catch {
+        if (!ignore) setStoredViewer(fallbackViewer);
+      }
     }
 
-    syncViewer();
+    void syncViewer();
     window.addEventListener("storage", syncViewer);
     window.addEventListener(demoAuthChangeEvent, syncViewer);
     return () => {
+      ignore = true;
       window.removeEventListener("storage", syncViewer);
       window.removeEventListener(demoAuthChangeEvent, syncViewer);
     };
@@ -684,11 +734,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   </span>
                   <span className="marketing-home-account-menu-identity">
                     <b>{effectiveViewer.name}</b>
-                    <small>
-                      {effectiveViewer.name === "Nguyễn Quốc Vương"
-                        ? "vuong.nguyenquoc.sis..."
-                        : "alex.johnson@email.com"}
-                    </small>
+                    <small>{effectiveViewer.email ?? effectiveViewer.name}</small>
                     <button
                       type="button"
                       onClick={() => {
@@ -810,6 +856,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   className="is-danger"
                   onClick={() => {
                     setAccountOpen(false);
+                    clearCandidateSession();
                     window.localStorage.removeItem(demoAuthStorageKey);
                     window.dispatchEvent(new Event(demoAuthChangeEvent));
                     navigate("/");

@@ -4,8 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+
+import { getCandidateSession } from "@/features/candidate/session";
+import { apiRequest } from "@/shared/api/http";
 
 import { formatRelativeTime } from "@/shared/lib/date";
 
@@ -469,6 +472,36 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const [page, setPage] = useState(1);
   const pageSize = 7;
 
+  const lastLoggedKeywordRef = useRef<string>("");
+
+  const logKeyword = async (term: string, count: number) => {
+    const normalizedTerm = term.trim();
+    if (normalizedTerm.length < 2) return;
+    if (lastLoggedKeywordRef.current === normalizedTerm) return;
+    lastLoggedKeywordRef.current = normalizedTerm;
+
+    try {
+      const session = getCandidateSession();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (session?.accessToken) {
+        headers["Authorization"] = `Bearer ${session.accessToken}`;
+      }
+
+      await apiRequest("/search-keywords/log", {
+        method: "POST",
+        body: JSON.stringify({
+          keyword: normalizedTerm,
+          source: "main_search",
+          resultCount: count,
+        }),
+        headers,
+      });
+    } catch (err) {
+      console.warn("Failed to log search keyword", err);
+    }
+  };
   const { data: apiJobsData } = useQuery({
     queryKey: ["public-jobs"],
     queryFn: getPublicJobs,
@@ -855,6 +888,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     techFilters,
   ]);
 
+  useEffect(() => {
+    const term = params.get("keyword") ?? params.get("position") ?? "";
+    if (term.trim().length >= 2) {
+      logKeyword(term, filteredJobs.length);
+    }
+  }, [params, filteredJobs.length]);
+
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const shownJobs = filteredJobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -888,6 +928,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   function runSearch(event?: React.FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     setPage(1);
+    logKeyword(keyword, filteredJobs.length);
   }
 
   function resetFilters() {
