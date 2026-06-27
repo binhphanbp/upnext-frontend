@@ -51,6 +51,7 @@ import {
   createCandidateCv,
 } from "@/features/candidate/api/profile";
 import { getCandidateSession } from "@/features/candidate/session";
+import { createApiUrl } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -129,6 +130,8 @@ type ResumeRow = {
   tags: string[];
   primary: boolean;
   publicUrl?: string | null | undefined;
+  versionId?: string | undefined;
+  source?: string;
 };
 
 type ExperienceRow = {
@@ -167,6 +170,7 @@ type CandidateProfileActions = {
   onSetCvDefault: (cvId: string) => void;
   onDeleteCv: (cvId: string) => void;
   onUploadCv: (file: File) => void;
+  onPreviewCv: (versionId: string, source: string) => void;
 };
 
 const candidate: CandidateSummary = {
@@ -919,6 +923,8 @@ function toResumeRow(cv: CandidateCvApi, locale: string) {
     primary: cv.isDefault,
     tags: [cv.source, cv.status].filter(Boolean),
     publicUrl,
+    versionId: latestVersion?.id,
+    source: cv.source,
   } satisfies ResumeRow;
 }
 
@@ -1147,6 +1153,46 @@ export function CandidateProfilePage() {
     }
   }
 
+  const handlePreviewCv = async (versionId: string, source: string) => {
+    try {
+      const session = getCandidateSession();
+      if (!session) return;
+
+      const endpoint =
+        source === "BUILDER" ? `/cv-versions/${versionId}` : `/cv-versions/${versionId}/download`;
+
+      const response = await fetch(createApiUrl(endpoint), {
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          source === "BUILDER" ? "Không thể tải dữ liệu CV" : "Không thể tải file CV",
+        );
+      }
+
+      let fileURL: string;
+      if (source === "BUILDER") {
+        const json = await response.json();
+        const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+        fileURL = URL.createObjectURL(blob);
+      } else {
+        const blob = await response.blob();
+        fileURL = URL.createObjectURL(blob);
+      }
+
+      window.open(fileURL, "_blank");
+    } catch (error) {
+      console.error("Preview error:", error);
+      void Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Không thể xem trước CV này. Vui lòng thử lại sau.",
+      });
+    }
+  };
   function handleEditProfile() {
     setProfileDescription(profileViewModel.aboutText || "");
     setProfilePhone(profileViewModel.candidate.phone || "");
@@ -1322,6 +1368,7 @@ export function CandidateProfilePage() {
     onSetCvDefault: handleSetCvDefault,
     onDeleteCv: handleDeleteCv,
     onUploadCv: handleUploadCv,
+    onPreviewCv: handlePreviewCv,
   };
 
   if (profileLoading) {
@@ -2163,8 +2210,14 @@ function ResumeCard({
               <Button
                 variant="outline"
                 className="h-10 rounded-lg border-slate-200 bg-white shadow-none hover:bg-slate-50 hover:text-slate-950"
-                onClick={() => resume.publicUrl && window.open(resume.publicUrl, "_blank")}
-                disabled={!resume.publicUrl}
+                onClick={() => {
+                  if (resume.publicUrl) {
+                    window.open(resume.publicUrl, "_blank");
+                  } else if (resume.versionId) {
+                    void actions.onPreviewCv(resume.versionId, resume.source || "UPLOAD");
+                  }
+                }}
+                disabled={!resume.publicUrl && !resume.versionId}
               >
                 <Eye />
                 {copy.preview}

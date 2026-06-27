@@ -533,7 +533,7 @@
         "next": "Tiếp tục",
         "finish": "Hoàn tất cập nhật",
         "submitting": "Đang gửi hồ sơ...",
-        "skip": "Bỏ qua"
+        "skip": "Tạm thời bỏ qua"
       },
       "messages": {
         "success": "Cập nhật thông tin thành công!",
@@ -678,6 +678,124 @@
           "licenseInput": "Tải minh chứng doanh nghiệp",
           "photosInput": "Tải ảnh công ty"
         }
+      }
+    },
+    "team": {
+      "title": "Đội ngũ & quyền",
+      "membersBadge": "{count} thành viên",
+      "rolesBadge": "{count} vai trò",
+      "permissionsBadge": "{count} quyền",
+      "tabs": {
+        "members": "Thành viên",
+        "roles": "Vai trò"
+      },
+      "actions": {
+        "inviteMember": "Mời thành viên",
+        "addRole": "Thêm vai trò",
+        "cancel": "Hủy",
+        "save": "Lưu",
+        "saving": "Đang lưu...",
+        "delete": "Xóa",
+        "edit": "Chỉnh sửa",
+        "search": "Tìm kiếm..."
+      },
+      "alerts": {
+        "inviteOwnerOnly": "Chỉ Owner của công ty mới có quyền gửi lời mời thành viên.",
+        "roleOwnerOnly": "Chỉ Owner của công ty mới có quyền thêm hoặc chỉnh sửa vai trò."
+      },
+      "table": {
+        "member": "Thành viên",
+        "status": "Trạng thái",
+        "role": "Vai trò",
+        "actions": "Thao tác",
+        "assignedCount": "Số người gán",
+        "permissions": "Quyền hạn",
+        "emptyMembers": "Chưa có thành viên nào.",
+        "emptyRoles": "Chưa có vai trò nào.",
+        "allPermissions": "Tất cả quyền"
+      },
+      "status": {
+        "active": "Hoạt động",
+        "pending": "Đang chờ"
+      },
+      "inviteDialog": {
+        "title": "Mời thành viên mới",
+        "description": "Nhập email thành viên bạn muốn mời vào đội ngũ tuyển dụng.",
+        "emailLabel": "Địa chỉ email",
+        "roleLabel": "Vai trò tuyển dụng",
+        "submit": "Gửi lời mời",
+        "submitting": "Đang gửi..."
+      },
+      "roleDialog": {
+        "createTitle": "Thêm vai trò mới",
+        "editTitle": "Chỉnh sửa vai trò",
+        "description": "Đặt tên và chọn các quyền hạn chi tiết cho vai trò này.",
+        "nameLabel": "Tên vai trò",
+        "namePlaceholder": "Ví dụ: Trưởng nhóm tuyển dụng",
+        "descLabel": "Mô tả vai trò",
+        "descPlaceholder": "Ví dụ: Quản lý đăng tin và liên hệ ứng viên",
+        "permissionsLabel": "Gán quyền hạn",
+        "selectPermissions": "Chọn quyền hạn",
+        "selectRoleFirst": "Chọn vai trò trước",
+        "ownerDefault": "Quyền Owner mặc định",
+        "alreadyAssigned": "Đã có quyền này",
+        "submit": "Lưu vai trò"
+      },
+      "messages": {
+        "inviteSuccess": "Gửi lời mời thành công!",
+        "inviteSuccessTitle": "Đã mời",
+        "roleSaveSuccess": "Lưu vai trò thành công!",
+        "roleSaveSuccessTitle": "Đã lưu",
+        "deleteRoleConfirm": "Bạn có chắc chắn muốn xóa vai trò này?",
+        "deleteRoleWarning": "Thao tác này sẽ ảnh hưởng đến các thành viên đang giữ vai trò này.",
+        "deleteRoleSuccess": "Xóa vai trò thành công!",
+        "deleteMemberConfirm": "Bạn có chắc chắn muốn xóa thành viên này?",
+        "deleteMemberWarning": "Họ sẽ mất quyền truy cập vào không gian làm việc của bạn.",
+        "deleteMemberSuccess": "Xóa thành viên thành công!",
+        "roleAlreadyAssigned": "Vai trò này đã tồn tại. Vui lòng chọn tên khác.",
+        "errorTitle": "Không thể xử lý"
+      },
+      "permissionNames": {
+        "jobs_manage": "Quản lý tin tuyển dụng",
+        "applications_manage": "Quản lý tất cả hồ sơ ứng viên & pipeline",
+        "applications_review_assigned": "Đánh giá ứng viên được phân công",
+        "interviews_manage": "Quản lý lịch phỏng vấn",
+        "interviews_review_assigned": "Đánh giá phỏng vấn được phân công",
+        "company_manage": "Quản lý thông tin công ty",
+        "members_manage": "Quản lý thành viên & phân quyền",
+        "billing_manage": "Quản lý thanh toán & gói dịch vụ"
+      }
+    },
+    "candidates": {
+      "title": "Quản lý ứng viên",
+      "subtitle": "Quản lý tất cả hồ sơ ứng viên đã nộp vào các tin tuyển dụng của công ty.",
+      "filters": {
+        "searchPlaceholder": "Tìm kiếm theo tên, email...",
+        "allJobs": "Tất cả tin tuyển dụng",
+        "allStatuses": "Tất cả trạng thái",
+        "clear": "Xóa bộ lọc"
+      },
+      "table": {
+        "candidate": "Ứng viên",
+        "jobPost": "Tin tuyển dụng",
+        "submittedAt": "Ngày nộp",
+        "cv": "Hồ sơ CV",
+        "status": "Trạng thái",
+        "actions": "Thao tác",
+        "empty": "Không tìm thấy ứng viên nào."
+      },
+      "status": {
+        "SUBMITTED": "Mới nộp",
+        "VIEWED": "Đã xem",
+        "SHORTLISTED": "Phù hợp",
+        "INTERVIEWING": "Đang phỏng vấn",
+        "OFFERED": "Đã gửi offer",
+        "HIRED": "Đã tuyển dụng",
+        "REJECTED": "Từ chối",
+        "WITHDRAWN": "Đã rút hồ sơ"
+      },
+      "messages": {
+        "statusUpdateSuccess": "Cập nhật trạng thái ứng tuyển thành công!"
       }
     }
   },

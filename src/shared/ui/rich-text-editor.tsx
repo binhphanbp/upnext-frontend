@@ -18,7 +18,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/shared/lib/cn";
@@ -31,9 +31,8 @@ export interface RichTextEditorProps {
 }
 
 export function RichTextEditor({ error, onChange, placeholder, value }: RichTextEditorProps) {
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
+  const extensions = useMemo(
+    () => [
       StarterKit.configure({
         heading: {
           levels: [2, 3, 4],
@@ -52,6 +51,12 @@ export function RichTextEditor({ error, onChange, placeholder, value }: RichText
           "before:content-[attr(data-placeholder)] before:text-slate-400 before:float-left before:pointer-events-none before:h-0",
       }),
     ],
+    [placeholder],
+  );
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions,
     content: value,
     onUpdate: ({ editor: e }) => {
       onChange(e.getHTML());
