@@ -9,7 +9,6 @@ import type { ReactNode } from "react";
 
 import { getCandidateSession } from "@/features/candidate/session";
 import { apiRequest } from "@/shared/api/http";
-
 import { formatRelativeTime } from "@/shared/lib/date";
 
 import { getPublicJobs } from "../../home/api";

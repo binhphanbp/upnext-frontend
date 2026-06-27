@@ -679,6 +679,124 @@
           "photosInput": "Upload company photo"
         }
       }
+    },
+    "team": {
+      "title": "Team & Permissions",
+      "membersBadge": "{count} members",
+      "rolesBadge": "{count} roles",
+      "permissionsBadge": "{count} permissions",
+      "tabs": {
+        "members": "Members",
+        "roles": "Roles"
+      },
+      "actions": {
+        "inviteMember": "Invite Member",
+        "addRole": "Add Role",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving...",
+        "delete": "Delete",
+        "edit": "Edit",
+        "search": "Search..."
+      },
+      "alerts": {
+        "inviteOwnerOnly": "Only the company Owner has permission to invite members.",
+        "roleOwnerOnly": "Only the company Owner has permission to add or edit roles."
+      },
+      "table": {
+        "member": "Member",
+        "status": "Status",
+        "role": "Role",
+        "actions": "Actions",
+        "assignedCount": "Assigned Count",
+        "permissions": "Permissions",
+        "emptyMembers": "No members found.",
+        "emptyRoles": "No roles found.",
+        "allPermissions": "All permissions"
+      },
+      "status": {
+        "active": "Active",
+        "pending": "Pending"
+      },
+      "inviteDialog": {
+        "title": "Invite New Member",
+        "description": "Enter the email of the member you want to invite to your recruitment team.",
+        "emailLabel": "Email Address",
+        "roleLabel": "Recruitment Role",
+        "submit": "Send Invitation",
+        "submitting": "Sending..."
+      },
+      "roleDialog": {
+        "createTitle": "Add New Role",
+        "editTitle": "Edit Role",
+        "description": "Set a name and select detailed permissions for this role.",
+        "nameLabel": "Role Name",
+        "namePlaceholder": "E.g. Recruitment Lead",
+        "descLabel": "Role Description",
+        "descPlaceholder": "E.g. Manages job posts and contacts candidates",
+        "permissionsLabel": "Assign Permissions",
+        "selectPermissions": "Select permissions",
+        "selectRoleFirst": "Select role first",
+        "ownerDefault": "Default Owner permissions",
+        "alreadyAssigned": "Already assigned",
+        "submit": "Save Role"
+      },
+      "messages": {
+        "inviteSuccess": "Invitation sent successfully!",
+        "inviteSuccessTitle": "Invited",
+        "roleSaveSuccess": "Role saved successfully!",
+        "roleSaveSuccessTitle": "Saved",
+        "deleteRoleConfirm": "Are you sure you want to delete this role?",
+        "deleteRoleWarning": "This will affect members currently holding this role.",
+        "deleteRoleSuccess": "Role deleted successfully!",
+        "deleteMemberConfirm": "Are you sure you want to remove this member?",
+        "deleteMemberWarning": "They will lose access to your recruiter workspace.",
+        "deleteMemberSuccess": "Member removed successfully!",
+        "roleAlreadyAssigned": "This role is already assigned. Please choose another name.",
+        "errorTitle": "Action Failed"
+      },
+      "permissionNames": {
+        "jobs_manage": "Manage job posts",
+        "applications_manage": "Manage all candidate profiles & pipeline",
+        "applications_review_assigned": "Review assigned candidates",
+        "interviews_manage": "Manage interview schedules",
+        "interviews_review_assigned": "Review assigned interviews",
+        "company_manage": "Manage company profile",
+        "members_manage": "Manage members & permissions",
+        "billing_manage": "Manage billing & service plans"
+      }
+    },
+    "candidates": {
+      "title": "Candidate Management",
+      "subtitle": "Manage all candidates who have applied to your company's job postings.",
+      "filters": {
+        "searchPlaceholder": "Search by name, email...",
+        "allJobs": "All Job Posts",
+        "allStatuses": "All Statuses",
+        "clear": "Clear Filters"
+      },
+      "table": {
+        "candidate": "Candidate",
+        "jobPost": "Job Post",
+        "submittedAt": "Applied Date",
+        "cv": "CV Resume",
+        "status": "Status",
+        "actions": "Actions",
+        "empty": "No candidates found."
+      },
+      "status": {
+        "SUBMITTED": "Submitted",
+        "VIEWED": "Viewed",
+        "SHORTLISTED": "Shortlisted",
+        "INTERVIEWING": "Interviewing",
+        "OFFERED": "Offered",
+        "HIRED": "Hired",
+        "REJECTED": "Rejected",
+        "WITHDRAWN": "Withdrawn"
+      },
+      "messages": {
+        "statusUpdateSuccess": "Application status updated successfully!"
+      }
     }
   },
   "WorkspaceShell": {
