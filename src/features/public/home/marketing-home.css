@@ -3501,185 +3501,31 @@ button.marketing-home-control {
    Marketing homepage footer
    ============================================================ */
 .marketing-home-footer {
-  position: relative;
   width: 100vw;
-  margin-top: 74px;
+  margin-top: 72px;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
-  padding: 46px 0 30px;
-  border-top: 1px solid #dfe7ef;
-  border-bottom: 1px solid #e8eef5;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(16, 185, 129, 0.08), transparent 28%),
-    radial-gradient(circle at 78% 5%, rgba(99, 102, 241, 0.08), transparent 24%), #ffffff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 -24px 80px rgba(15, 23, 42, 0.035);
-  overflow: hidden;
+  padding: 60px 0 28px;
+  border-top: 1px solid #e5e9f0;
+  background: #ffffff;
 }
 
-.marketing-home-footer::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(
-      circle at 9% 18%,
-      transparent 0 48px,
-      rgba(16, 185, 129, 0.16) 49px 50px,
-      transparent 51px 72px
-    ),
-    radial-gradient(
-      circle at 92% 10%,
-      transparent 0 56px,
-      rgba(16, 185, 129, 0.14) 57px 58px,
-      transparent 59px 86px
-    );
-  opacity: 0.8;
-}
-
-.marketing-home-footer-cta,
 .marketing-home-footer-main,
 .marketing-home-footer-bottom {
-  position: relative;
-  z-index: 1;
   box-sizing: border-box;
   width: min(1280px, calc(100vw - 96px));
   margin-left: auto;
   margin-right: auto;
 }
 
-.marketing-home-footer-cta {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 30px;
-  min-height: 148px;
-  padding: 30px 40px;
-  border: 1px solid #dbe8ef;
-  border-radius: 22px;
-  background:
-    linear-gradient(115deg, rgba(255, 255, 255, 0.92), rgba(244, 253, 248, 0.9)),
-    radial-gradient(circle at 58% 45%, rgba(16, 185, 129, 0.1), transparent 30%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 18px 44px rgba(15, 23, 42, 0.05);
-  overflow: hidden;
-}
-
-.marketing-home-footer-cta::before,
-.marketing-home-footer-cta::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-}
-
-.marketing-home-footer-cta::before {
-  width: 170px;
-  height: 170px;
-  right: -48px;
-  top: -70px;
-  border: 1px dashed rgba(16, 185, 129, 0.28);
-  border-radius: 50%;
-}
-
-.marketing-home-footer-cta::after {
-  width: 9px;
-  height: 9px;
-  right: 28px;
-  top: 106px;
-  color: #7c3aed;
-  background: currentColor;
-  border-radius: 2px;
-  transform: rotate(45deg);
-}
-
-.marketing-home-footer-cta-icon {
-  display: grid;
-  place-items: center;
-  width: 78px;
-  height: 78px;
-  color: #ffffff;
-  border: 1px solid rgba(16, 185, 129, 0.18);
-  border-radius: 50%;
-  background: linear-gradient(145deg, #0aa56f, #34d399), #10b981;
-  box-shadow:
-    0 0 0 18px rgba(16, 185, 129, 0.08),
-    0 20px 42px rgba(16, 185, 129, 0.26);
-}
-
-.marketing-home-footer-cta-copy h2 {
-  margin: 0;
-  color: #111827;
-  font-size: clamp(23px, 1.75vw, 28px);
-  font-weight: 800;
-  line-height: 1.18;
-  letter-spacing: -0.02em;
-}
-
-.marketing-home-footer-cta-copy h2 span {
-  color: #0aa56f;
-}
-
-.marketing-home-footer-cta-copy p {
-  margin: 12px 0 0;
-  color: #64748b;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 1.6;
-}
-
-.marketing-home-footer-cta-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 18px;
-}
-
-.marketing-home-footer-primary,
-.marketing-home-footer-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 56px;
-  padding: 0 28px;
-  font-size: 16px;
-  font-weight: 800;
-  white-space: nowrap;
-  border-radius: 12px;
-  cursor: pointer;
-  transition:
-    transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
-    border-color 220ms ease,
-    background 220ms ease,
-    box-shadow 220ms ease;
-}
-
-.marketing-home-footer-primary {
-  gap: 10px;
-  min-width: 178px;
-  color: #ffffff;
-  border: 1px solid #0a9f6f;
-  background: linear-gradient(135deg, #0b7f5f 0%, #10b981 100%);
-  box-shadow: 0 16px 30px rgba(10, 159, 111, 0.26);
-}
-
-.marketing-home-footer-secondary {
-  min-width: 204px;
-  color: #0b7f5f;
-  border: 1px solid #10a778;
-  background: rgba(255, 255, 255, 0.72);
-}
-
 .marketing-home-footer-main {
   display: grid;
   grid-template-columns:
-    minmax(250px, 0.9fr)
-    minmax(430px, 1.45fr)
-    minmax(320px, 1fr);
-  gap: 64px;
-  padding: 64px 8px 50px;
+    minmax(210px, 0.85fr)
+    minmax(520px, 1.65fr)
+    minmax(280px, 0.9fr);
+  gap: 56px;
+  align-items: start;
 }
 
 .marketing-home-footer-logo {
@@ -3693,41 +3539,38 @@ button.marketing-home-control {
 }
 
 .marketing-home-footer-logo img {
-  width: 164px;
+  width: 154px;
   height: auto;
   display: block;
 }
 
 .marketing-home-footer-brand p,
 .marketing-home-footer-contact p {
-  margin: 28px 0 0;
+  margin: 24px 0 0;
   color: #64748b;
-  font-size: 15.5px;
+  font-size: 14.5px;
   font-weight: 500;
-  line-height: 1.75;
+  line-height: 1.7;
 }
 
 .marketing-home-footer-socials {
   display: flex;
-  gap: 14px;
-  margin-top: 36px;
+  flex-wrap: wrap;
+  gap: 13px;
+  margin-top: 28px;
 }
 
 .marketing-home-footer-socials a {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  color: #0a9f6f;
-  border: 1px solid #dfe7ef;
-  border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+  width: 36px;
+  height: 36px;
+  color: #94a3b8;
+  border-radius: 50%;
   transition:
-    transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
-    border-color 220ms ease,
+    color 180ms ease,
     background 220ms ease,
-    box-shadow 220ms ease;
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .marketing-home-footer-links,
@@ -3737,134 +3580,97 @@ button.marketing-home-control {
 
 .marketing-home-footer-links h3,
 .marketing-home-footer-contact h3 {
-  margin: 0 0 28px;
+  margin: 0 0 16px;
   color: #111827;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 800;
+  line-height: 1.4;
 }
 
 .marketing-home-footer-links {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 32px;
 }
 
-.marketing-home-footer-link-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 34px;
+.marketing-home-footer-link-column {
+  min-width: 0;
+}
+
+.marketing-home-footer-link-column ul {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .marketing-home-footer-links button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  width: 100%;
-  min-height: 42px;
+  display: inline-flex;
+  max-width: 100%;
   padding: 0;
   color: #64748b;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.45;
   text-align: left;
   border: 0;
   background: transparent;
   cursor: pointer;
   transition:
-    color 200ms ease,
-    transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.marketing-home-footer-links button span {
-  min-width: 0;
-}
-
-.marketing-home-footer-links button svg {
-  flex: 0 0 auto;
-  color: #0aa56f;
-  opacity: 0.95;
-  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+    color 180ms ease,
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .marketing-home-footer-newsletter {
   display: flex;
   min-width: 0;
-  margin-top: 26px;
-  border: 1px solid #dfe7ef;
-  border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
-  overflow: hidden;
+  gap: 8px;
+  max-width: 390px;
+  margin-top: 18px;
 }
 
 .marketing-home-footer-newsletter input {
   min-width: 0;
   flex: 1 1 auto;
-  height: 54px;
-  padding: 0 18px;
+  height: 42px;
+  padding: 0 14px;
   color: #111827;
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 600;
-  border: 0;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
   outline: 0;
-  background: transparent;
+  background: #ffffff;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .marketing-home-footer-newsletter input::placeholder {
   color: #94a3b8;
 }
 
+.marketing-home-footer-newsletter input:focus {
+  border-color: #0b7f5f;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
 .marketing-home-footer-newsletter button {
   flex: 0 0 auto;
-  min-width: 90px;
-  padding: 0 20px;
+  min-height: 42px;
+  padding: 0 16px;
   color: #ffffff;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   border: 0;
-  background: linear-gradient(135deg, #0a9f6f, #10b981);
+  border-radius: 8px;
+  background: #111827;
   cursor: pointer;
-}
-
-.marketing-home-footer .marketing-home-footer-primary {
-  color: #ffffff;
-  border: 1px solid #0a9f6f;
-  background: linear-gradient(135deg, #0b7f5f 0%, #10b981 100%);
-}
-
-.marketing-home-footer .marketing-home-footer-secondary {
-  color: #0b7f5f;
-  border: 1px solid #10a778;
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.marketing-home-footer .marketing-home-footer-newsletter button {
-  color: #ffffff;
-  border: 0;
-  background: linear-gradient(135deg, #0a9f6f, #10b981);
-}
-
-.marketing-home-footer-contact-list {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin: 30px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.marketing-home-footer-contact-list li {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-  color: #64748b;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.marketing-home-footer-contact-list svg {
-  flex: 0 0 auto;
-  color: #0aa56f;
+  transition:
+    background 180ms ease,
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .marketing-home-footer-bottom {
@@ -3872,42 +3678,46 @@ button.marketing-home-control {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 28px 8px 2px;
-  border-top: 1px solid #dfe7ef;
+  margin-top: 56px;
+  padding-top: 26px;
+  border-top: 1px solid #eef2f6;
 }
 
 .marketing-home-footer-bottom p {
   margin: 0;
-  color: #64748b;
-  font-size: 14.5px;
+  color: #94a3b8;
+  font-size: 12.5px;
   font-weight: 600;
 }
 
 .marketing-home-footer-bottom-actions {
   display: flex;
   align-items: center;
-  gap: 22px;
-}
-
-.marketing-home-footer-bottom-actions > span {
-  width: 1px;
-  height: 28px;
-  background: #dfe7ef;
+  gap: 18px;
 }
 
 .marketing-home-footer-bottom-actions button {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-height: 36px;
+  min-height: 32px;
   padding: 0;
-  color: #475569;
-  font-size: 14.5px;
+  color: #94a3b8;
+  font-size: 12.5px;
   font-weight: 700;
   border: 0;
   background: transparent;
   cursor: pointer;
   transition: color 200ms ease;
+}
+
+.marketing-home-footer-logo:focus-visible,
+.marketing-home-footer-socials a:focus-visible,
+.marketing-home-footer-links button:focus-visible,
+.marketing-home-footer-newsletter input:focus-visible,
+.marketing-home-footer-newsletter button:focus-visible,
+.marketing-home-footer-bottom-actions button:focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.2);
+  outline-offset: 3px;
 }
 
 @media (hover: hover) {
@@ -4182,28 +3992,10 @@ button.marketing-home-control {
   }
 
   /* Footer */
-  .marketing-home-footer-primary:hover,
-  .marketing-home-footer-secondary:hover,
   .marketing-home-footer-socials a:hover {
+    color: #111827;
+    background: #f1f5f9;
     transform: translateY(-2px);
-  }
-
-  .marketing-home-footer-primary:hover {
-    background: linear-gradient(135deg, #087456 0%, #0aa56f 100%);
-    box-shadow: 0 18px 36px rgba(10, 159, 111, 0.3);
-  }
-
-  .marketing-home-footer-secondary:hover {
-    color: #087456;
-    border-color: #0aa56f;
-    background: #f3fdf8;
-    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.06);
-  }
-
-  .marketing-home-footer-socials a:hover {
-    border-color: #10b981;
-    background: #e9faf3;
-    box-shadow: 0 14px 30px rgba(10, 159, 111, 0.12);
   }
 
   .marketing-home-footer-links button:hover {
@@ -4211,16 +4003,13 @@ button.marketing-home-control {
     transform: translateX(2px);
   }
 
-  .marketing-home-footer-links button:hover svg {
-    transform: translateX(3px);
-  }
-
   .marketing-home-footer-newsletter button:hover {
-    background: linear-gradient(135deg, #087456, #0aa56f);
+    background: #0b7f5f;
+    transform: translateY(-1px);
   }
 
   .marketing-home-footer-bottom-actions button:hover {
-    color: #0b7f5f;
+    color: #111827;
   }
 }
 
@@ -4363,33 +4152,19 @@ button.marketing-home-control {
     padding: 38px 0 26px;
   }
 
-  .marketing-home-footer-cta,
   .marketing-home-footer-main,
   .marketing-home-footer-bottom {
     width: min(100%, calc(100vw - 60px));
   }
 
-  .marketing-home-footer-cta {
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 24px;
-    padding: 28px;
-  }
-
-  .marketing-home-footer-cta-actions {
-    grid-column: 2;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
   .marketing-home-footer-main {
     grid-template-columns: 1fr;
-    gap: 38px;
-    padding: 48px 4px 42px;
+    gap: 36px;
   }
 
-  .marketing-home-footer-link-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px 24px;
+  .marketing-home-footer-links {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 26px;
   }
 
   .marketing-home-footer-bottom {
@@ -4760,69 +4535,17 @@ button.marketing-home-control {
 
   .marketing-home-footer {
     margin-top: 52px;
-    padding: 34px 0 24px;
+    padding: 42px 0 24px;
   }
 
-  .marketing-home-footer-cta,
   .marketing-home-footer-main,
   .marketing-home-footer-bottom {
     width: min(100%, calc(100vw - 32px));
   }
 
-  .marketing-home-footer-cta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 20px;
-    min-height: auto;
-    padding: 24px;
-    border-radius: 18px;
-  }
-
-  .marketing-home-footer-cta::after {
-    display: none;
-  }
-
-  .marketing-home-footer-cta-icon {
-    width: 64px;
-    height: 64px;
-    box-shadow:
-      0 0 0 12px rgba(16, 185, 129, 0.08),
-      0 16px 34px rgba(16, 185, 129, 0.2);
-  }
-
-  .marketing-home-footer-cta-copy h2 {
-    font-size: 24px;
-  }
-
-  .marketing-home-footer-cta-copy p {
-    font-size: 14.5px;
-  }
-
-  .marketing-home-footer-cta-actions {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .marketing-home-footer-primary,
-  .marketing-home-footer-secondary {
-    width: 100%;
-    min-width: 0;
-    min-height: 50px;
-    padding: 0 18px;
-    font-size: 14.5px;
-  }
-
   .marketing-home-footer-main {
     grid-template-columns: 1fr;
-    gap: 32px;
-    padding: 38px 4px 34px;
-  }
-
-  .marketing-home-footer-contact {
-    grid-column: auto;
+    gap: 30px;
   }
 
   .marketing-home-footer-brand p,
@@ -4840,14 +4563,13 @@ button.marketing-home-control {
     margin-bottom: 14px;
   }
 
-  .marketing-home-footer-link-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
+  .marketing-home-footer-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 22px;
   }
 
   .marketing-home-footer-newsletter {
     flex-direction: column;
-    border-radius: 12px;
   }
 
   .marketing-home-footer-newsletter button {
@@ -4863,15 +4585,27 @@ button.marketing-home-control {
     gap: 12px 16px;
   }
 
-  .marketing-home-footer-bottom-actions > span {
-    display: none;
-  }
-
   .marketing-home-footer-bottom-actions button {
     min-height: 38px;
     padding: 0 10px;
     border: 1px solid #dfe7ef;
     border-radius: 999px;
     background: #ffffff;
+  }
+}
+
+@media (max-width: 480px) {
+  .marketing-home-footer-links {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .marketing-home-footer-bottom-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .marketing-home-footer-bottom-actions button {
+    justify-content: center;
   }
 }

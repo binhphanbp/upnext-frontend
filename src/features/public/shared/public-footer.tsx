@@ -1,240 +1,218 @@
 "use client";
 
+import { FacebookLogo, GithubLogo, LinkedinLogo, XLogo, YoutubeLogo } from "@phosphor-icons/react";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 
-import { usePathname, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 
 import { upnextLogo } from "../home/brand";
-import {
-  ArrowRight,
-  ArrowUp,
-  BriefcaseBusiness,
-  ChevronDown,
-  ChevronRight,
-  Facebook,
-  Github,
-  Linkedin,
-  Mail,
-  MapPin,
-  Phone,
-  Youtube,
-} from "../home/marketing-icons";
 
 type PublicFooterProps = {
   navigate: (path: string) => void;
 };
 
-type FooterCopy = {
-  ctaAria: string;
-  ctaTitlePrefix: string;
-  ctaHighlight: string;
-  ctaTitleSuffix: string;
-  ctaDescription: string;
-  primary: string;
-  secondary: string;
-  brandDescription: string;
-  quickLinks: string;
-  contactTitle: string;
-  contactDescription: string;
-  emailPlaceholder: string;
-  emailAria: string;
-  subscribe: string;
-  location: string;
-  copyright: string;
-  vietnamese: string;
-  english: string;
-  toTop: string;
-  homeLabel: string;
+type FooterLink = {
+  label: string;
+  path: string;
 };
 
-const footerLinks = [
-  { key: "jobs", vi: "Tìm việc IT", en: "IT jobs", path: "/jobs" },
-  { key: "companies", vi: "Công ty công nghệ", en: "Tech companies", path: "/companies" },
-  { key: "profile", vi: "Tạo hồ sơ", en: "Create profile", path: "/register" },
-  { key: "career", vi: "Cẩm nang nghề nghiệp", en: "Career guide", path: "/jobs" },
-  { key: "post", vi: "Đăng tuyển dụng", en: "Post a job", path: "/register" },
-  { key: "talent", vi: "Tìm hồ sơ", en: "Find talent", path: "/register" },
-  { key: "solutions", vi: "Giải pháp tuyển dụng", en: "Hiring solutions", path: "/register" },
-  { key: "pricing", vi: "Bảng giá", en: "Pricing", path: "/register" },
-  { key: "blog", vi: "Blog", en: "Blog", path: "/jobs" },
-  { key: "help", vi: "Hướng dẫn", en: "Help center", path: "/register" },
-  { key: "privacy", vi: "Chính sách bảo mật", en: "Privacy", path: "/register" },
-  { key: "terms", vi: "Điều khoản sử dụng", en: "Terms", path: "/register" },
-];
+type FooterColumn = {
+  title: string;
+  links: FooterLink[];
+};
 
-const footerSocials = [
-  { label: "LinkedIn", icon: <Linkedin size={19} />, href: "https://www.linkedin.com/" },
-  { label: "Facebook", icon: <Facebook size={19} />, href: "https://www.facebook.com/" },
-  { label: "GitHub", icon: <Github size={19} />, href: "https://github.com/" },
-  { label: "YouTube", icon: <Youtube size={19} />, href: "https://www.youtube.com/" },
-];
+type FooterCopy = {
+  description: string;
+  newsletterTitle: string;
+  newsletterPlaceholder: string;
+  newsletterAria: string;
+  subscribe: string;
+  copyright: string;
+  terms: string;
+  privacy: string;
+  homeLabel: string;
+  columns: FooterColumn[];
+};
+
+const socialLinks = [
+  { label: "X", icon: XLogo, href: "https://x.com/" },
+  { label: "LinkedIn", icon: LinkedinLogo, href: "https://www.linkedin.com/" },
+  { label: "Facebook", icon: FacebookLogo, href: "https://www.facebook.com/" },
+  { label: "GitHub", icon: GithubLogo, href: "https://github.com/" },
+  { label: "YouTube", icon: YoutubeLogo, href: "https://www.youtube.com/" },
+] as const;
 
 const copyByLocale: Record<"vi" | "en", FooterCopy> = {
   vi: {
-    ctaAria: "Bắt đầu hành trình sự nghiệp IT",
-    ctaTitlePrefix: "Hành trình sự nghiệp IT",
-    ctaHighlight: "tốt hơn",
-    ctaTitleSuffix: "bắt đầu từ đây",
-    ctaDescription: "Hàng nghìn cơ hội việc làm IT chất lượng đang chờ bạn khám phá.",
-    primary: "Tìm việc ngay",
-    secondary: "Tạo hồ sơ miễn phí",
-    brandDescription:
-      "Nền tảng tuyển dụng IT kết nối ứng viên tài năng với các công ty công nghệ hàng đầu. Cơ hội phù hợp, sự nghiệp bứt phá.",
-    quickLinks: "Liên kết nhanh",
-    contactTitle: "Liên hệ / Nhận tin",
-    contactDescription: "Nhận thông tin việc làm IT mới nhất và các bài viết hữu ích từ UpNext.",
-    emailPlaceholder: "Nhập email của bạn",
-    emailAria: "Email nhận tin",
+    description:
+      "Nền tảng tuyển dụng IT giúp ứng viên tìm đúng cơ hội và doanh nghiệp tiếp cận đúng nhân tài.",
+    newsletterTitle: "Nhận mẹo nghề nghiệp IT mỗi tháng.",
+    newsletterPlaceholder: "Nhập email của bạn",
+    newsletterAria: "Email nhận bản tin UpNext",
     subscribe: "Đăng ký",
-    location: "TP. Hồ Chí Minh, Việt Nam",
     copyright: "© 2026 UpNext. Tất cả quyền được bảo lưu.",
-    vietnamese: "Tiếng Việt",
-    english: "English",
-    toTop: "Lên đầu trang",
+    terms: "Điều khoản sử dụng",
+    privacy: "Chính sách bảo mật",
     homeLabel: "Trang chủ UpNext",
+    columns: [
+      {
+        title: "Sản phẩm",
+        links: [
+          { label: "Tìm việc IT", path: "/jobs" },
+          { label: "Công ty IT", path: "/companies" },
+          { label: "Hồ sơ ứng viên", path: "/candidate/profile" },
+          { label: "Việc đã ứng tuyển", path: "/candidate/applications" },
+        ],
+      },
+      {
+        title: "Giải pháp",
+        links: [
+          { label: "Dành cho ứng viên", path: "/jobs" },
+          { label: "Dành cho nhà tuyển dụng", path: "/portal-access" },
+          { label: "Đăng tuyển dụng", path: "/recruiter/register" },
+          { label: "Quản lý tuyển dụng", path: "/recruiter" },
+        ],
+      },
+      {
+        title: "Tài nguyên",
+        links: [
+          { label: "Bài viết nghề nghiệp", path: "/jobs" },
+          { label: "Chuẩn bị phỏng vấn", path: "/jobs" },
+          { label: "Mức lương IT", path: "/jobs" },
+          { label: "Trung tâm hỗ trợ", path: "/portal-access" },
+        ],
+      },
+      {
+        title: "Công ty",
+        links: [
+          { label: "Về UpNext", path: "/" },
+          { label: "Liên hệ", path: "/portal-access" },
+          { label: "Bảo mật", path: "/register" },
+          { label: "Điều khoản", path: "/register" },
+        ],
+      },
+    ],
   },
   en: {
-    ctaAria: "Start your IT career journey",
-    ctaTitlePrefix: "A",
-    ctaHighlight: "better",
-    ctaTitleSuffix: "IT career journey starts here",
-    ctaDescription: "Thousands of quality IT jobs are ready for you to explore.",
-    primary: "Find jobs now",
-    secondary: "Create free profile",
-    brandDescription:
-      "UpNext connects IT talent with trusted technology companies. Better fit, faster moves, stronger careers.",
-    quickLinks: "Quick links",
-    contactTitle: "Contact / Newsletter",
-    contactDescription: "Get the latest IT jobs and useful career insights from UpNext.",
-    emailPlaceholder: "Enter your email",
-    emailAria: "Newsletter email",
+    description:
+      "The IT recruitment platform helping candidates find better-fit roles and companies reach stronger talent.",
+    newsletterTitle: "Get IT career tips, once a month.",
+    newsletterPlaceholder: "Enter your email",
+    newsletterAria: "UpNext newsletter email",
     subscribe: "Subscribe",
-    location: "Ho Chi Minh City, Vietnam",
     copyright: "© 2026 UpNext. All rights reserved.",
-    vietnamese: "Tiếng Việt",
-    english: "English",
-    toTop: "Back to top",
+    terms: "Terms of Service",
+    privacy: "Privacy Policy",
     homeLabel: "UpNext homepage",
+    columns: [
+      {
+        title: "Product",
+        links: [
+          { label: "IT Jobs", path: "/jobs" },
+          { label: "Companies", path: "/companies" },
+          { label: "Candidate Profile", path: "/candidate/profile" },
+          { label: "Applications", path: "/candidate/applications" },
+        ],
+      },
+      {
+        title: "Solutions",
+        links: [
+          { label: "For IT Candidates", path: "/jobs" },
+          { label: "For Employers", path: "/portal-access" },
+          { label: "Post a Job", path: "/recruiter/register" },
+          { label: "Hiring Workspace", path: "/recruiter" },
+        ],
+      },
+      {
+        title: "Resources",
+        links: [
+          { label: "Career Advice", path: "/jobs" },
+          { label: "Interview Prep", path: "/jobs" },
+          { label: "IT Salary Guide", path: "/jobs" },
+          { label: "Help Center", path: "/portal-access" },
+        ],
+      },
+      {
+        title: "Company",
+        links: [
+          { label: "About UpNext", path: "/" },
+          { label: "Contact", path: "/portal-access" },
+          { label: "Privacy", path: "/register" },
+          { label: "Terms", path: "/register" },
+        ],
+      },
+    ],
   },
 };
 
-function FlagIcon({ code }: { code: "VI" | "EN" }) {
-  return (
-    <span className={`marketing-home-lang-flag marketing-home-lang-flag-${code.toLowerCase()}`}>
-      {code === "VI" ? (
-        <svg aria-hidden="true" viewBox="0 0 22 16">
-          <rect width="22" height="16" fill="#DA251D" rx="3" />
-          <path
-            fill="#FFDE00"
-            d="m11 3.2 1.13 3.48h3.66l-2.96 2.15 1.13 3.47L11 10.15 8.04 12.3l1.13-3.47-2.96-2.15h3.66L11 3.2Z"
-          />
-        </svg>
-      ) : (
-        <svg aria-hidden="true" viewBox="0 0 22 16">
-          <clipPath id="upnext-footer-en-flag-clip">
-            <rect width="22" height="16" rx="3" />
-          </clipPath>
-          <g clipPath="url(#upnext-footer-en-flag-clip)">
-            <rect width="22" height="16" fill="#012169" />
-            <path stroke="#fff" strokeWidth="3.2" d="m0 0 22 16M22 0 0 16" />
-            <path stroke="#C8102E" strokeWidth="1.8" d="m0 0 22 16M22 0 0 16" />
-            <path stroke="#fff" strokeWidth="5.2" d="M11 0v16M0 8h22" />
-            <path stroke="#C8102E" strokeWidth="3.2" d="M11 0v16M0 8h22" />
-          </g>
-        </svg>
-      )}
-    </span>
-  );
-}
-
 export function PublicFooter({ navigate }: PublicFooterProps) {
-  const locale = useLocale() as "vi" | "en";
-  const pathname = usePathname();
+  const locale = useLocale() === "en" ? "en" : "vi";
   const router = useRouter();
   const copy = copyByLocale[locale];
 
-  function switchLanguage(nextLocale: "vi" | "en") {
-    router.replace(pathname, { locale: nextLocale });
+  function goTo(path: string) {
+    router.prefetch(path);
+    navigate(path);
   }
 
   return (
     <footer id="site-footer" className="marketing-home-footer" aria-label="Footer UpNext">
-      <section className="marketing-home-footer-cta" aria-label={copy.ctaAria}>
-        <span className="marketing-home-footer-cta-icon" aria-hidden="true">
-          <BriefcaseBusiness size={34} />
-        </span>
-        <div className="marketing-home-footer-cta-copy">
-          <h2>
-            {copy.ctaTitlePrefix} <span>{copy.ctaHighlight}</span> {copy.ctaTitleSuffix}
-          </h2>
-          <p>{copy.ctaDescription}</p>
-        </div>
-        <div className="marketing-home-footer-cta-actions">
-          <button
-            type="button"
-            className="marketing-home-footer-primary"
-            onClick={() => navigate("/jobs")}
-          >
-            {copy.primary} <ArrowRight size={19} />
-          </button>
-          <button
-            type="button"
-            className="marketing-home-footer-secondary"
-            onClick={() => navigate("/register")}
-          >
-            {copy.secondary}
-          </button>
-        </div>
-      </section>
-
       <section className="marketing-home-footer-main">
         <div className="marketing-home-footer-brand">
           <button
             type="button"
             className="marketing-home-footer-logo"
-            onClick={() => navigate("/")}
+            onClick={() => goTo("/")}
             aria-label={copy.homeLabel}
           >
             <Image
               src={upnextLogo.wordmark}
               alt="UpNext"
-              width={164}
-              height={39}
+              width={154}
+              height={37}
               style={{ height: "auto", width: "auto" }}
             />
           </button>
-          <p>{copy.brandDescription}</p>
+          <p>{copy.description}</p>
           <div className="marketing-home-footer-socials">
-            {footerSocials.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={item.label}
-              >
-                {item.icon}
-              </a>
-            ))}
+            {socialLinks.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={item.label}
+                >
+                  <Icon size={20} weight="fill" />
+                </a>
+              );
+            })}
           </div>
         </div>
 
-        <nav className="marketing-home-footer-links" aria-label={copy.quickLinks}>
-          <h3>{copy.quickLinks}</h3>
-          <div className="marketing-home-footer-link-grid">
-            {footerLinks.map((link) => (
-              <button key={link.key} type="button" onClick={() => navigate(link.path)}>
-                <span>{link[locale]}</span>
-                <ChevronRight size={17} />
-              </button>
-            ))}
-          </div>
+        <nav className="marketing-home-footer-links" aria-label="Footer navigation">
+          {copy.columns.map((column) => (
+            <div key={column.title} className="marketing-home-footer-link-column">
+              <h3>{column.title}</h3>
+              <ul>
+                {column.links.map((link) => (
+                  <li key={`${column.title}-${link.label}`}>
+                    <button type="button" onClick={() => goTo(link.path)}>
+                      {link.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         <div className="marketing-home-footer-contact">
-          <h3>{copy.contactTitle}</h3>
-          <p>{copy.contactDescription}</p>
+          <h3>{copy.newsletterTitle}</h3>
           <form
             className="marketing-home-footer-newsletter"
             onSubmit={(event) => event.preventDefault()}
@@ -242,46 +220,23 @@ export function PublicFooter({ navigate }: PublicFooterProps) {
             <input
               type="email"
               name="footer-email"
-              placeholder={copy.emailPlaceholder}
-              aria-label={copy.emailAria}
+              placeholder={copy.newsletterPlaceholder}
+              aria-label={copy.newsletterAria}
               suppressHydrationWarning
             />
             <button type="submit">{copy.subscribe}</button>
           </form>
-          <ul className="marketing-home-footer-contact-list">
-            <li>
-              <Mail size={18} />
-              <span>contact@upnext.works</span>
-            </li>
-            <li>
-              <Phone size={18} />
-              <span>028 7303 2468</span>
-            </li>
-            <li>
-              <MapPin size={18} />
-              <span>{copy.location}</span>
-            </li>
-          </ul>
         </div>
       </section>
 
       <section className="marketing-home-footer-bottom">
         <p>{copy.copyright}</p>
         <div className="marketing-home-footer-bottom-actions">
-          <button type="button" onClick={() => switchLanguage("vi")}>
-            <FlagIcon code="VI" />
-            {copy.vietnamese}
-            <ChevronDown size={15} />
+          <button type="button" onClick={() => goTo("/register")}>
+            {copy.terms}
           </button>
-          <span aria-hidden="true" />
-          <button type="button" onClick={() => switchLanguage("en")}>
-            <FlagIcon code="EN" />
-            {copy.english}
-          </button>
-          <span aria-hidden="true" />
-          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-            <ArrowUp size={18} />
-            {copy.toTop}
+          <button type="button" onClick={() => goTo("/register")}>
+            {copy.privacy}
           </button>
         </div>
       </section>
