@@ -894,6 +894,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     sort,
     techFilters,
   ]);
+
   useEffect(() => {
     const term = params.get("keyword") ?? params.get("position") ?? "";
     if (term.trim().length >= 2) {
