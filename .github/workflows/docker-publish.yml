@@ -26,6 +26,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -91,6 +94,7 @@ jobs:
           else
             ssh-keyscan -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
           fi
+          chmod 644 ~/.ssh/known_hosts
 
       - name: Deploy frontend to VPS
         run: |
@@ -103,3 +107,73 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 -p "${{ secrets.VPS_PORT }}" \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "/opt/upnext/scripts/deploy/deploy.sh $ENVIRONMENT frontend"
+
+      - name: Notify Telegram success
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram secrets are not configured. Skip notification."
+            exit 0
+          fi
+
+          SHORT_SHA="${GITHUB_SHA::12}"
+
+          if [ "${{ github.ref_name }}" = "develop" ]; then
+            ENVIRONMENT="staging"
+            URL="https://staging.upnext.works"
+          else
+            ENVIRONMENT="production"
+            URL="https://upnext.works"
+          fi
+
+          MESSAGE=$(cat <<EOF
+          ✅ UpNext FE deploy success
+
+          Environment: ${ENVIRONMENT}
+          Branch: ${{ github.ref_name }}
+          Commit: ${SHORT_SHA}
+          URL: ${URL}
+          Actor: ${{ github.actor }}
+          EOF
+          )
+
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            --data-urlencode text="${MESSAGE}" || true
+
+      - name: Notify Telegram failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram secrets are not configured. Skip notification."
+            exit 0
+          fi
+
+          SHORT_SHA="${GITHUB_SHA::12}"
+
+          if [ "${{ github.ref_name }}" = "develop" ]; then
+            ENVIRONMENT="staging"
+          else
+            ENVIRONMENT="production"
+          fi
+
+          MESSAGE=$(cat <<EOF
+          ❌ UpNext FE deploy failed
+
+          Environment: ${ENVIRONMENT}
+          Branch: ${{ github.ref_name }}
+          Commit: ${SHORT_SHA}
+          Actor: ${{ github.actor }}
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EOF
+          )
+
+          curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            --data-urlencode text="${MESSAGE}" || true
