@@ -1,9 +1,11 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
+import { getPublicJobs, type PublicJob } from "./api";
 import {
   ArrowRight,
   BadgeCheck,
@@ -370,7 +372,52 @@ function buildJobs(): JobCard[] {
   return [...curatedJobs, ...generated];
 }
 
-const jobs = buildJobs();
+const staticJobs = buildJobs();
+
+function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
+  const isRemote =
+    job.employmentType?.name.toLowerCase().includes("remote") ||
+    job.title.toLowerCase().includes("remote");
+  const isHighSalary =
+    (job.salaryMin && job.salaryMin >= 30000000) || (job.salaryMax && job.salaryMax >= 30000000);
+
+  const filters: FilterKey[] = [];
+  if (isRemote) filters.push("remote");
+  if (isHighSalary) filters.push("high-salary");
+  filters.push("newest");
+
+  const tones: BadgeTone[] = ["featured", "new", "urgent", "remote", "salary"];
+  const tone = tones[index % tones.length]!;
+  const labelMap: Record<BadgeTone, string> = {
+    featured: "Nổi bật",
+    new: "Mới đăng",
+    urgent: "Tuyển gấp",
+    remote: "Remote",
+    salary: "Lương tốt",
+  };
+
+  return {
+    id: job.id,
+    badge: { label: labelMap[tone], tone },
+    company: job.company?.name || "UpNext Partner",
+    verified: true,
+    logo: job.company?.logoUrl || "",
+    logoColor: "#10b981",
+    title: job.title,
+    salary:
+      job.salaryIsVisible && job.salaryMin && job.salaryMax
+        ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu`
+        : "Thỏa thuận",
+    location: "Việt Nam",
+    mode: job.employmentType?.name || "Full-time",
+    experience: job.experienceLevel?.name || "1 - 3 năm",
+    tags: [job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+      Boolean,
+    ) as string[],
+    deadline: "Còn 30 ngày để nộp",
+    filters: Array.from(new Set(filters)),
+  };
+}
 
 const tabs = [
   { key: "all", label: "Tất cả", icon: <LayoutGrid size={16} /> },
@@ -388,10 +435,21 @@ export function FeaturedJobs({ navigate }: FeaturedJobsProps) {
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [paused, setPaused] = useState(false);
 
+  const { data: apiJobsData } = useQuery({
+    queryKey: ["public-jobs"],
+    queryFn: getPublicJobs,
+  });
+
+  const jobs = useMemo(() => {
+    if (!apiJobsData || apiJobsData.length === 0) return staticJobs;
+    const mapped = apiJobsData.map((job, idx) => mapPublicJobToJobCard(job, idx));
+    return [...mapped, ...staticJobs];
+  }, [apiJobsData]);
+
   const filtered = useMemo(() => {
     if (activeTab === "all") return jobs;
     return jobs.filter((job) => job.filters.includes(activeTab));
-  }, [activeTab]);
+  }, [activeTab, jobs]);
 
   // Split into pages of PAGE_SIZE, then append a clone of page 1 at the end so
   // the loop from last → first slides FORWARD seamlessly instead of rewinding.

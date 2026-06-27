@@ -32,6 +32,7 @@ export interface RichTextEditorProps {
 
 export function RichTextEditor({ error, onChange, placeholder, value }: RichTextEditorProps) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: {
