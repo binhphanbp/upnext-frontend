@@ -10,6 +10,7 @@ import {
   Lightning,
 } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 
@@ -716,7 +717,14 @@ function CompanyBrandSection({
           aria-label={t("ariaLabels.logoInput")}
         >
           {displayLogoUrl ? (
-            <img src={displayLogoUrl} alt={t("logo.title")} className="size-full object-cover" />
+            <Image
+              src={displayLogoUrl}
+              alt={t("logo.title")}
+              width={96}
+              height={96}
+              unoptimized
+              className="size-full object-cover"
+            />
           ) : (
             <div className="flex flex-col items-center text-slate-400 transition-colors group-hover:text-emerald-600">
               <ImageSquare size={28} />
@@ -758,7 +766,14 @@ function CompanyBrandSection({
           aria-label={t("ariaLabels.coverInput")}
         >
           {displayCoverUrl ? (
-            <img src={displayCoverUrl} alt={t("cover.title")} className="size-full object-cover" />
+            <Image
+              src={displayCoverUrl}
+              alt={t("cover.title")}
+              width={160}
+              height={96}
+              unoptimized
+              className="size-full object-cover"
+            />
           ) : (
             <div className="flex flex-col items-center text-slate-400 transition-colors group-hover:text-emerald-600">
               <ImageSquare size={28} />
@@ -1035,9 +1050,12 @@ function CompanyAlbumSection({
                 key={photo.id}
                 className="relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-none transition-all duration-200 hover:border-slate-300"
               >
-                <img
+                <Image
                   src={photo.publicUrl}
                   alt={t("album.photoAlt")}
+                  width={200}
+                  height={200}
+                  unoptimized
                   className="size-full object-cover"
                 />
                 <button

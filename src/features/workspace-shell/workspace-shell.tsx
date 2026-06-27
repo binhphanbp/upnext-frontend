@@ -86,7 +86,6 @@ export function WorkspaceShell({
   };
   const tNamespace = workspaceRole.charAt(0).toUpperCase() + workspaceRole.slice(1);
   const t = useTranslations(tNamespace as any);
-  const tShell = useTranslations("WorkspaceShell");
 
   function switchLanguage(nextLocale: "en" | "vi") {
     if (nextLocale === currentLocale) return;

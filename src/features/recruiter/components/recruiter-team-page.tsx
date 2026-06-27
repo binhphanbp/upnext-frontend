@@ -435,6 +435,7 @@ function MembersPanel({
         </thead>
         <tbody>
           {members.length === 0 ? (
+            /* eslint-disable-next-line jsx-a11y/control-has-associated-label */
             <tr>
               <td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">
                 <div className="flex flex-col items-center justify-center gap-3">
@@ -639,6 +640,7 @@ function RolesPanel({
           </thead>
           <tbody>
             {roles.length === 0 ? (
+              /* eslint-disable-next-line jsx-a11y/control-has-associated-label */
               <tr>
                 <td colSpan={2} className="px-4 py-12 text-center text-sm text-slate-500">
                   <div className="flex flex-col items-center justify-center gap-3">
