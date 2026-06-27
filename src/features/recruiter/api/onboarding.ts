@@ -158,6 +158,24 @@ export function uploadCompanyBusinessLicense(companyId: string, file: File, toke
   });
 }
 
+export function scanCompanyBusinessLicense(companyId: string, file: File, token: string) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiRequest<{
+    name: string;
+    taxCode: string;
+    address: string;
+    email: string | null;
+    phone: string | null;
+    website: string | null;
+  }>(`/companies/${companyId}/scan-license`, {
+    body: formData,
+    headers: authHeaders(token),
+    method: "POST",
+  });
+}
+
 export function uploadCompanyLogo(companyId: string, file: File, token: string) {
   const formData = new FormData();
   formData.append("file", file);

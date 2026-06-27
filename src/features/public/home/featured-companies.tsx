@@ -1,8 +1,10 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
+import { getPublicCompanies } from "./api";
 import {
   ArrowRight,
   Briefcase,
@@ -43,7 +45,7 @@ type CompanyPage = {
 
 // Each "page" = one featured spotlight + 9 cards (the featured also appears as
 // the first card, matching the reference). Arrows page between sets.
-const pages: CompanyPage[] = [
+const staticPages: CompanyPage[] = [
   {
     featured: {
       id: "fpt",
@@ -332,7 +334,52 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
   const [following, setFollowing] = useState<Record<string, boolean>>({});
   const visibleCount = useVisibleCount();
 
-  const page = pages[pageIndex]!;
+  const { data: apiCosData } = useQuery({
+    queryKey: ["public-companies"],
+    queryFn: getPublicCompanies,
+  });
+
+  const pages = useMemo(() => {
+    if (!apiCosData || !apiCosData.items || apiCosData.items.length === 0) {
+      return staticPages;
+    }
+
+    const mapped = apiCosData.items.map((co) => ({
+      id: co.id,
+      name: co.name,
+      category: co.type || "Technology",
+      jobs: 12,
+      logo: co.logoUrl || "",
+      logoColor: "#10b981",
+    }));
+
+    const result: CompanyPage[] = [];
+    const PAGE_SIZE = 10;
+    for (let i = 0; i < mapped.length; i += PAGE_SIZE) {
+      const chunk = mapped.slice(i, i + PAGE_SIZE);
+      const first = apiCosData.items[i]!;
+      const featured: FeaturedCompany = {
+        id: first.id,
+        name: first.name,
+        category: first.type || "Technology",
+        jobs: 12,
+        logo: first.logoUrl || "",
+        logoColor: "#10b981",
+        cover: "",
+        tags: [first.type || "Technology", "Partner"],
+        description: first.description || "Công ty công nghệ đối tác tiêu biểu.",
+      };
+
+      result.push({
+        featured,
+        companies: chunk,
+      });
+    }
+
+    return [...result, ...staticPages];
+  }, [apiCosData]);
+
+  const page = pages[pageIndex] || staticPages[0]!;
   const totalPages = pages.length;
 
   const cards = useMemo(() => page.companies.slice(0, visibleCount), [page, visibleCount]);
