@@ -120,6 +120,39 @@ export function RecruiterTeamPage() {
           getRecruiterPermissions(accessToken),
         ]);
 
+        // Synthetically prepend the company creator/owner if not already in the members list
+        const currentMemberExists = nextMembers.some((m) => m.recruiterAccount?.id === account.id);
+        if (!currentMemberExists) {
+          const ownerRole = nextRoles.find((r) => r.code === "OWNER") ?? {
+            id: "owner-role-id",
+            code: "OWNER",
+            name: "Owner",
+          };
+          const ownerMember: CompanyMember = {
+            id: `owner-${account.id}`,
+            invitedEmail: account.email,
+            status: "ACTIVE",
+            joinedAt: new Date().toISOString(),
+            recruiterAccount: {
+              id: account.id,
+              email: account.email,
+              status: "ACTIVE",
+              profile: account.profile
+                ? {
+                    fullName: account.profile.fullName,
+                    avatarUrl: account.profile.avatarUrl,
+                  }
+                : null,
+            },
+            role: {
+              id: ownerRole.id,
+              code: ownerRole.code,
+              name: ownerRole.name,
+            },
+          };
+          nextMembers.unshift(ownerMember);
+        }
+
         setCompanyId(nextCompanyId);
         setMembers(nextMembers);
         setRoles(nextRoles);
@@ -274,6 +307,7 @@ export function RecruiterTeamPage() {
               onRemove={(memberId) => void deleteMember(memberId)}
               onRoleChange={(memberId, roleId) => void changeMemberRole(memberId, roleId)}
               isOwner={isOwner}
+              accountId={accountId}
             />
           ) : null}
           {tab === "roles" ? (
@@ -337,6 +371,7 @@ function MembersPanel({
   setInviteEmail,
   setInviteRoleId,
   isOwner,
+  accountId,
 }: {
   inviteEmail: string;
   inviteRoleId: string;
@@ -349,6 +384,7 @@ function MembersPanel({
   setInviteEmail: (value: string) => void;
   setInviteRoleId: (value: string) => void;
   isOwner: boolean;
+  accountId: string;
 }) {
   const inviteDisabled = saving || !isOwner;
 
@@ -421,6 +457,10 @@ function MembersPanel({
               const name = member.recruiterAccount?.profile?.fullName ?? email;
               const avatarUrl = member.recruiterAccount?.profile?.avatarUrl;
 
+              const isSelf = member.recruiterAccount?.id === accountId;
+              const isMemberOwner = isOwnerRole(member.role);
+              const disableActions = !isOwner || isSelf || isMemberOwner;
+
               return (
                 <tr
                   key={member.id}
@@ -467,7 +507,7 @@ function MembersPanel({
                       value={member.role?.id ?? ""}
                       onValueChange={(roleId) => onRoleChange(member.id, roleId)}
                       size="sm"
-                      disabled={!isOwner}
+                      disabled={disableActions}
                     />
                   </td>
                   <td className="px-4 py-2 text-right">
@@ -476,11 +516,11 @@ function MembersPanel({
                       size="icon"
                       className={cn(
                         "size-8 rounded-lg border-slate-200 text-slate-400 shadow-none transition-all",
-                        isOwner
+                        !disableActions
                           ? "hover:border-red-200 hover:bg-red-50 hover:text-red-600"
                           : "opacity-50 cursor-not-allowed",
                       )}
-                      disabled={!isOwner}
+                      disabled={disableActions}
                       aria-label={`Xóa thành viên ${name}`}
                       onClick={() => onRemove(member.id)}
                     >

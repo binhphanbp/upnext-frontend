@@ -1,37 +1,58 @@
 import { apiRequest } from "@/shared/api/http";
 
-export type PublicJobPostApi = {
+export interface PublicJob {
   id: string;
   title: string;
   description: string;
-  publishedAt: string | null;
+  requirements: string | null;
+  benefits: string | null;
   salaryMin: number | null;
   salaryMax: number | null;
+  salaryCurrency: string;
+  salaryIsNegotiable: boolean;
   salaryIsVisible: boolean;
-  company?: {
+  publishedAt: string | null;
+  createdAt: string;
+  company: {
     id: string;
     name: string;
-    logoUrl: string | null;
+    logoUrl?: string | null;
   } | null;
-  employmentType?: {
-    id: string;
-    name: string;
-  } | null;
-  experienceLevel?: {
-    id: string;
-    name: string;
-  } | null;
-  jobCategory?: {
-    id: string;
-    name: string;
-  } | null;
+  jobCategory?: { name: string } | null;
+  employmentType?: { name: string } | null;
+  experienceLevel?: { name: string } | null;
   jobPostLocations?: Array<{
-    jobLocation?: {
+    jobLocation: {
       city: string;
-    } | null;
+      address?: string | null;
+    };
   }>;
-};
+}
+
+export interface PublicCompany {
+  id: string;
+  name: string;
+  type: string;
+  logoUrl?: string | null;
+  website?: string | null;
+  address?: string | null;
+  description?: string | null;
+}
+
+export interface PublicCompanyListResponse {
+  items: PublicCompany[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
 
 export function getPublicJobs() {
-  return apiRequest<PublicJobPostApi[]>("/job-posts");
+  return apiRequest<PublicJob[]>("/job-posts");
+}
+
+export function getPublicCompanies() {
+  return apiRequest<PublicCompanyListResponse>("/companies");
 }

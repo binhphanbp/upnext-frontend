@@ -532,7 +532,8 @@
         "back": "Back",
         "next": "Continue",
         "finish": "Finish Update",
-        "submitting": "Submitting profile..."
+        "submitting": "Submitting profile...",
+        "skip": "Skip for now"
       },
       "messages": {
         "success": "Information updated successfully!",
@@ -562,6 +563,121 @@
         "conflict": "Tax code or profile already exists in the system.",
         "serverError": "Server encountered an error while updating profile. Please try again later.",
         "unknown": "Failed to complete update. Please try again."
+      },
+      "companyProfile": {
+        "errors": {
+          "noProfileTitle": "No Company Profile",
+          "noProfileText": "Please complete onboarding before editing company profile.",
+          "invalidTitle": "Invalid Information",
+          "nameMin": "Company name must be at least 2 characters.",
+          "taxCodeMin": "Tax code must be at least 8 characters.",
+          "emailInvalid": "Contact email format is invalid.",
+          "phoneMin": "Phone number must be at least 4 characters.",
+          "sizeRequired": "Please select company size.",
+          "addressMin": "Company address must be at least 6 characters.",
+          "descMin": "Company introduction must be at least 20 characters.",
+          "saveErrorTitle": "Cannot Save Profile",
+          "popupBlockedTitle": "Popup Blocked",
+          "popupBlockedText": "Please allow popups to view the license document.",
+          "openLicenseError": "Cannot Open Document",
+          "noFileSelected": "No File Selected",
+          "noFileSelectedText": "Please select a business license file before scanning.",
+          "scanError": "Cannot Scan Information",
+          "loadError": "Cannot Load Data",
+          "badData": "Invalid data or file format.",
+          "sessionExpired": "Session expired.",
+          "forbidden": "You do not have permission to manage this company.",
+          "notFound": "Company not found.",
+          "unknown": "The system cannot process the request. Please try again."
+        },
+        "messages": {
+          "saveSuccess": "Company profile saved.",
+          "autofillSuccess": "Company information auto-filled.",
+          "scanSuccessTitle": "Information Scanned Successfully!",
+          "scanSuccessConfirmText": "Do you want to auto-fill this information into the form?",
+          "agree": "Agree",
+          "ignore": "Ignore",
+          "scanFields": {
+            "name": "Company Name",
+            "taxCode": "Tax Code",
+            "address": "Address",
+            "email": "Email",
+            "phone": "Phone",
+            "website": "Website"
+          }
+        },
+        "loading": "Loading company profile...",
+        "cardTitle": "Company Information",
+        "status": {
+          "verified": "Verified",
+          "pending": "Pending",
+          "rejected": "Rejected",
+          "unverified": "Unverified"
+        },
+        "logo": {
+          "uploadBtn": "Upload logo",
+          "title": "Brand Logo",
+          "helpText": "Displayed on job posts & profile page.\nJPG, PNG format, max 2MB."
+        },
+        "cover": {
+          "uploadBtn": "Upload cover",
+          "title": "Company Cover",
+          "helpText": "Displayed on company detail page.\nJPG, PNG format, 16:9 ratio."
+        },
+        "aiScan": {
+          "title": "Quick Auto-fill with AI",
+          "badgeNew": "New",
+          "helpText": "Save time! Upload your Business License (GPKD), and UpNext's AI will automatically analyze and quickly fill in fields like Company Name, Tax Code, Address, Phone, Email...",
+          "uploadBtn": "Upload GPKD to scan",
+          "scanning": "Scanning with AI...",
+          "startBtn": "Start AI Scan",
+          "cancelBtn": "Cancel"
+        },
+        "fields": {
+          "name": "Company Name",
+          "namePlaceholder": "e.g. UpNext Joint Stock Company",
+          "taxCode": "Tax Code",
+          "taxCodePlaceholder": "e.g. 0312345678",
+          "email": "Contact Email",
+          "emailPlaceholder": "e.g. hr@company.com",
+          "phone": "Phone Number",
+          "phonePlaceholder": "e.g. 02812345678",
+          "website": "Website",
+          "websitePlaceholder": "e.g. https://company.com",
+          "companySize": "Company Size",
+          "companySizePlaceholder": "e.g. 51-200 employees",
+          "description": "Company Introduction",
+          "descriptionPlaceholder": "Detailed company introduction...",
+          "license": "Business License"
+        },
+        "licenseSection": {
+          "selected": "Selected: {filename}",
+          "uploaded": "Business license uploaded.",
+          "none": "No license document",
+          "helpText": "Accepts PDF, JPG, PNG, max 5MB.",
+          "chooseBtn": "Choose file",
+          "scanning": "Scanning...",
+          "scanBtn": "AI Scan & Autofill",
+          "viewBtn": "View uploaded file"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "save": "Save changes",
+          "saving": "Saving..."
+        },
+        "album": {
+          "title": "Company Album",
+          "description": "Upload images of your office, activities, or products. Click save changes to update.",
+          "addBtn": "Add image",
+          "photoAlt": "Company photo",
+          "deleteLabel": "Delete photo"
+        },
+        "ariaLabels": {
+          "logoInput": "Upload company logo",
+          "coverInput": "Upload company cover",
+          "licenseInput": "Upload business license",
+          "photosInput": "Upload company photo"
+        }
       }
     }
   },

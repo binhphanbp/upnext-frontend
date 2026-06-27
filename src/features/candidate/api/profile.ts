@@ -289,26 +289,32 @@ export function createSkillOption(name: string) {
   });
 }
 
-export function getMyCandidateCvs(candidateAccountId: string) {
+export function getMyCandidateCvs(token: string, candidateAccountId: string) {
   const params = new URLSearchParams({
     candidateAccountId,
     limit: "20",
     page: "1",
   });
 
-  return apiRequest<PaginatedResponse<CandidateCvApi>>(`/cvs/me?${params.toString()}`);
+  return apiRequest<PaginatedResponse<CandidateCvApi>>(`/cvs/me?${params.toString()}`, {
+    headers: authHeaders(token),
+  });
 }
 
-export function getMyCandidateApplications(candidateAccountId: string) {
+export function getMyCandidateApplications(token: string, candidateAccountId: string) {
   const params = new URLSearchParams({ candidateAccountId });
 
-  return apiRequest<CandidateApplicationApi[]>(`/applications/me?${params.toString()}`);
+  return apiRequest<CandidateApplicationApi[]>(`/applications/me?${params.toString()}`, {
+    headers: authHeaders(token),
+  });
 }
 
-export function getMySavedJobs(candidateAccountId: string) {
+export function getMySavedJobs(token: string, candidateAccountId: string) {
   const params = new URLSearchParams({ candidateAccountId });
 
-  return apiRequest<SavedJobApi[]>(`/saved-jobs?${params.toString()}`);
+  return apiRequest<SavedJobApi[]>(`/saved-jobs?${params.toString()}`, {
+    headers: authHeaders(token),
+  });
 }
 
 export function setCandidateCvDefault(token: string, cvId: string) {
