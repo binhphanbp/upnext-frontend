@@ -1,6 +1,5 @@
 import { apiRequest } from "@/shared/api/http";
 
-
 export interface PublicJob {
   id: string;
   title: string;
