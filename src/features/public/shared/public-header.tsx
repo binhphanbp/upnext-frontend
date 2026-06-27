@@ -423,6 +423,8 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
   const lang: Language["code"] = currentLocale === "en" ? "EN" : "VI";
   const copy = copyByLocale[currentLocale];
   const effectiveViewer = viewer === undefined ? storedViewer : viewer;
+  const isCandidatePathActive = (path: string) =>
+    pathname === path || pathname.startsWith(`${path}/`);
 
   useEffect(() => {
     if (!openMenu) return undefined;
@@ -703,7 +705,10 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<House size={18} aria-hidden="true" />}
                     label={copy.overviewLabel}
-                    active
+                    active={
+                      pathname === effectiveViewer.workspaceHref &&
+                      effectiveViewer.workspaceHref !== "/candidate/profile"
+                    }
                     onClick={() => {
                       setAccountOpen(false);
                       navigate(effectiveViewer.workspaceHref);
@@ -712,6 +717,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<UserCircle size={18} aria-hidden="true" />}
                     label={copy.profileLabel}
+                    active={isCandidatePathActive("/candidate/profile")}
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/profile");
@@ -720,6 +726,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<FileTextIcon size={18} aria-hidden="true" />}
                     label={copy.resumesLabel}
+                    active={isCandidatePathActive("/candidate/resume")}
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/resume");
@@ -728,6 +735,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<GearSix size={18} aria-hidden="true" />}
                     label={copy.jobPreferencesLabel}
+                    active={isCandidatePathActive("/candidate/settings")}
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/settings");
@@ -739,6 +747,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<PaperPlaneTilt size={18} aria-hidden="true" />}
                     label={copy.applicationsLabel}
+                    active={isCandidatePathActive("/candidate/applications")}
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/applications");
@@ -747,6 +756,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<BookmarkSimple size={18} aria-hidden="true" />}
                     label={copy.savedJobsLabel}
+                    active={isCandidatePathActive("/candidate/saved-jobs")}
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/saved-jobs");
@@ -755,6 +765,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<Eye size={18} aria-hidden="true" />}
                     label={copy.profileViewsLabel}
+                    active={isCandidatePathActive("/candidate/profile-views")}
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/profile-views");
@@ -766,6 +777,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<GearSix size={18} aria-hidden="true" />}
                     label={copy.accountSettingsLabel}
+                    active={isCandidatePathActive("/candidate/settings")}
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/settings");
@@ -774,6 +786,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<Bell size={18} aria-hidden="true" />}
                     label={copy.notificationsLabel}
+                    active={isCandidatePathActive("/candidate/notifications")}
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/notifications");
@@ -782,6 +795,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<ShieldCheckIcon size={18} aria-hidden="true" />}
                     label={copy.privacyLabel}
+                    active={isCandidatePathActive("/candidate/privacy")}
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/privacy");
