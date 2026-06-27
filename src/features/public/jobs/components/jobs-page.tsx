@@ -713,14 +713,22 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
             ).length,
           },
           {
-            label: "Middle",
+            label: "Middle / Senior",
             value: "middle",
-            count: jobs.filter((j) => j.level.toLowerCase().includes("middle")).length,
+            count: jobs.filter(
+              (j) =>
+                j.level.toLowerCase().includes("middle") ||
+                j.level.toLowerCase().includes("mid") ||
+                j.level.toLowerCase().includes("senior"),
+            ).length,
           },
           {
-            label: "Senior",
-            value: "senior",
-            count: jobs.filter((j) => j.level.toLowerCase().includes("senior")).length,
+            label: "Lead / Manager",
+            value: "lead",
+            count: jobs.filter(
+              (j) =>
+                j.level.toLowerCase().includes("lead") || j.level.toLowerCase().includes("manager"),
+            ).length,
           },
         ],
       },
@@ -757,11 +765,9 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     ];
   }, [jobs]);
 
-  const logKeyword = async (term: string, count: number) => {
-    const normalizedTerm = term.trim();
-    if (normalizedTerm.length < 2) return;
-    if (lastLoggedKeywordRef.current === normalizedTerm) return;
-    lastLoggedKeywordRef.current = normalizedTerm;
+  const filteredJobs = useMemo(() => {
+    const term = keyword.trim().toLowerCase();
+    const selectedFilters = new Set(activeFilters);
 
     return jobs
       .filter((job) => {
@@ -888,7 +894,6 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     sort,
     techFilters,
   ]);
-
   useEffect(() => {
     const term = params.get("keyword") ?? params.get("position") ?? "";
     if (term.trim().length >= 2) {

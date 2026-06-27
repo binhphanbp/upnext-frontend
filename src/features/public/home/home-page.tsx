@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -9,6 +10,7 @@ import { useRouter } from "@/i18n/navigation";
 
 import { PublicFooter } from "../shared/public-footer";
 import { PublicHeader } from "../shared/public-header";
+import { getPublicJobs } from "./api";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
 import { JobMarket } from "./job-market";
@@ -240,6 +242,44 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   );
 
   const searchCardRef = useRef<HTMLElement | null>(null);
+
+  const { data: apiJobsData } = useQuery({
+    queryKey: ["public-jobs"],
+    queryFn: getPublicJobs,
+  });
+
+  const urgentJobsList = useMemo(() => {
+    if (!apiJobsData || apiJobsData.length === 0) return urgentJobs;
+    const mapped = apiJobsData.slice(0, 4).map((job, index) => {
+      const isUrgent = index % 2 === 0;
+      return {
+        id: job.id,
+        logo: job.company?.logoUrl || "",
+        title: job.title,
+        company: job.company?.name || "UpNext Partner",
+        salary:
+          job.salaryIsVisible && job.salaryMin && job.salaryMax
+            ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu`
+            : "Thỏa thuận",
+        location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
+        mode: job.employmentType?.name || "Full-time",
+        tags: [job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+          Boolean,
+        ) as string[],
+        deadline: "Còn 15 ngày",
+        deadlineTone: isUrgent ? "red" : "amber",
+        applicants: "12 ứng viên",
+        views: "185 lượt xem",
+        competition: "Mới mở · ít ứng viên",
+        progress: 25,
+      };
+    });
+
+    if (mapped.length < 4) {
+      return [...mapped, ...urgentJobs.slice(0, 4 - mapped.length)];
+    }
+    return mapped;
+  }, [apiJobsData]);
 
   useEffect(() => {
     if (!openField) return undefined;
@@ -525,7 +565,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           </div>
         </section>
 
-        <UrgentJobsSection navigate={navigate} />
+        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} />
 
         <section className="marketing-home-trust-strip">
           <div className="marketing-home-stats">
@@ -593,7 +633,28 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   );
 }
 
-function UrgentJobsSection({ navigate }: { navigate: (path: string) => void }) {
+function UrgentJobsSection({
+  navigate,
+  urgentJobs,
+}: {
+  navigate: (path: string) => void;
+  urgentJobs: Array<{
+    id: string;
+    logo: string;
+    title: string;
+    company: string;
+    salary: string;
+    location: string;
+    mode: string;
+    tags: string[];
+    deadline: string;
+    deadlineTone: string;
+    applicants: string;
+    views: string;
+    competition: string;
+    progress: number;
+  }>;
+}) {
   return (
     <section className="marketing-home-urgent" aria-label="Việc cần tuyển gấp">
       <header className="marketing-home-urgent-head">
@@ -619,7 +680,13 @@ function UrgentJobsSection({ navigate }: { navigate: (path: string) => void }) {
           <article className="urgent-job-card" key={job.id}>
             <div className="urgent-job-top">
               <span className="urgent-job-logo">
-                <Image src={job.logo} alt={`Logo ${job.company}`} width={46} height={46} />
+                {job.logo ? (
+                  <Image src={job.logo} alt={`Logo ${job.company}`} width={46} height={46} />
+                ) : (
+                  <span className="flex size-full items-center justify-center rounded-lg bg-emerald-600 text-lg font-bold text-white">
+                    {job.company.charAt(0)}
+                  </span>
+                )}
               </span>
               <span className={`urgent-job-deadline is-${job.deadlineTone}`}>
                 <Clock size={13} />
