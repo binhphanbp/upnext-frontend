@@ -50,6 +50,9 @@ import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 type IconComponent = ComponentType<{
@@ -988,6 +991,39 @@ export function CandidateProfilePage() {
     null,
   );
   const [profileLoading, setProfileLoading] = useState(true);
+  const [activeModal, setActiveModal] = useState<
+    "edit-profile" | "add-experience" | "add-education" | "add-skill" | "edit-preferences" | null
+  >(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Edit Profile fields
+  const [profileDescription, setProfileDescription] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
+  const [profileAddress, setProfileAddress] = useState("");
+
+  // Add Experience fields
+  const [expPosition, setExpPosition] = useState("");
+  const [expCompany, setExpCompany] = useState("");
+  const [expTech, setExpTech] = useState("");
+  const [expDescription, setExpDescription] = useState("");
+
+  // Add Education fields
+  const [eduSchool, setEduSchool] = useState("");
+  const [eduDegree, setEduDegree] = useState("");
+  const [eduMajor, setEduMajor] = useState("");
+  const [eduDescription, setEduDescription] = useState("");
+
+  // Add Skill fields
+  const [newSkillName, setNewSkillName] = useState("");
+
+  // Edit Preferences fields
+  const [prefPosition, setPrefPosition] = useState("");
+  const [prefSalaryMin, setPrefSalaryMin] = useState("");
+  const [prefSalaryMax, setPrefSalaryMax] = useState("");
+  const [prefWorkingModel, setPrefWorkingModel] = useState<"ONSITE" | "REMOTE" | "HYBRID">(
+    "HYBRID",
+  );
+
   const productCopy = t.raw("content") as CandidateProfileCopy;
   const copy = locale === "en" ? copyByLocale.en : copyByLocale.vi;
   const fallbackProfileViewModel = useMemo(() => createFallbackProfileViewModel(copy), [copy]);
@@ -1054,88 +1090,88 @@ export function CandidateProfilePage() {
       return;
     }
 
+    setSubmitting(true);
     try {
       await action(session.accessToken);
       await loadProfileFromSession(session);
       window.alert("Cập nhật hồ sơ thành công.");
+      setActiveModal(null);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Không thể cập nhật hồ sơ.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
   function handleEditProfile() {
-    const description = window.prompt("Giới thiệu bản thân", profileViewModel.aboutText);
-    if (description === null) return;
+    setProfileDescription(profileViewModel.aboutText || "");
+    setProfilePhone(profileViewModel.candidate.phone || "");
+    setProfileAddress(profileViewModel.candidate.location || "");
+    setActiveModal("edit-profile");
+  }
 
-    const phoneNumber = window.prompt("Số điện thoại", profileViewModel.candidate.phone);
-    if (phoneNumber === null) return;
-
-    const address = window.prompt("Địa chỉ", profileViewModel.candidate.location);
-    if (address === null) return;
-
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
     void runProfileAction((token) =>
       updateMyCandidateProfile(token, {
-        address: address.trim(),
-        description: description.trim(),
-        phoneNumber: phoneNumber.trim(),
+        address: profileAddress.trim(),
+        description: profileDescription.trim(),
+        phoneNumber: profilePhone.trim(),
       }).then(() => undefined),
     );
-  }
+  };
 
   function handleAddExperience() {
-    const positionTitle = window.prompt("Chức danh");
-    if (!positionTitle?.trim()) return;
+    setExpPosition("");
+    setExpCompany("");
+    setExpTech("");
+    setExpDescription("");
+    setActiveModal("add-experience");
+  }
 
-    const companyName = window.prompt("Công ty");
-    if (!companyName?.trim()) return;
-
-    const technologies = window.prompt("Công nghệ, cách nhau bằng dấu phẩy", "");
-    if (technologies === null) return;
-
-    const description = window.prompt("Mô tả kinh nghiệm", "");
-    if (description === null) return;
-
+  const handleSaveExperience = (e: React.FormEvent) => {
+    e.preventDefault();
     void runProfileAction((token) =>
       createCandidateExperience(token, {
-        companyName: companyName.trim(),
-        description: description.trim(),
+        companyName: expCompany.trim(),
+        description: expDescription.trim(),
         employmentType: "Full-time",
         isCurrent: true,
-        positionTitle: positionTitle.trim(),
-        technologies: technologies.trim(),
+        positionTitle: expPosition.trim(),
+        technologies: expTech.trim(),
       }).then(() => undefined),
     );
-  }
+  };
 
   function handleAddEducation() {
-    const schoolName = window.prompt("Tên trường");
-    if (!schoolName?.trim()) return;
-
-    const degree = window.prompt("Bằng cấp / chương trình", "");
-    if (degree === null) return;
-
-    const major = window.prompt("Chuyên ngành", "");
-    if (major === null) return;
-
-    const description = window.prompt("Ghi chú", "");
-    if (description === null) return;
-
-    void runProfileAction((token) =>
-      createCandidateEducation(token, {
-        degree: degree.trim(),
-        description: description.trim(),
-        major: major.trim(),
-        schoolName: schoolName.trim(),
-      }).then(() => undefined),
-    );
+    setEduSchool("");
+    setEduDegree("");
+    setEduMajor("");
+    setEduDescription("");
+    setActiveModal("add-education");
   }
 
-  function handleAddSkill() {
-    const skillName = window.prompt("Tên kỹ năng");
-    if (!skillName?.trim()) return;
+  const handleSaveEducation = (e: React.FormEvent) => {
+    e.preventDefault();
+    void runProfileAction((token) =>
+      createCandidateEducation(token, {
+        degree: eduDegree.trim(),
+        description: eduDescription.trim(),
+        major: eduMajor.trim(),
+        schoolName: eduSchool.trim(),
+      }).then(() => undefined),
+    );
+  };
 
+  function handleAddSkill() {
+    setNewSkillName("");
+    setActiveModal("add-skill");
+  }
+
+  const handleSaveSkill = (e: React.FormEvent) => {
+    e.preventDefault();
     void runProfileAction(async (token) => {
-      const normalizedName = skillName.trim();
+      const normalizedName = newSkillName.trim();
       const foundSkills = await searchSkills(normalizedName);
       const exactSkill =
         foundSkills.find((item) => item.name.toLowerCase() === normalizedName.toLowerCase()) ??
@@ -1149,31 +1185,28 @@ export function CandidateProfilePage() {
         skillId: selectedSkill.id,
       });
     });
-  }
+  };
 
   function handleEditPreferences() {
-    const desiredPosition = window.prompt("Vai trò mong muốn", profileViewModel.candidate.title);
-    if (desiredPosition === null) return;
+    setPrefPosition(profileViewModel.candidate.title || "");
+    setPrefSalaryMin("");
+    setPrefSalaryMax("");
+    setPrefWorkingModel("HYBRID");
+    setActiveModal("edit-preferences");
+  }
 
-    const salaryMin = window.prompt("Lương tối thiểu (VND)", "");
-    if (salaryMin === null) return;
-
-    const salaryMax = window.prompt("Lương tối đa (VND)", "");
-    if (salaryMax === null) return;
-
-    const workingModel = window.prompt("Mô hình làm việc: ONSITE / REMOTE / HYBRID", "HYBRID");
-    if (workingModel === null) return;
-
+  const handleSavePreferences = (e: React.FormEvent) => {
+    e.preventDefault();
     void runProfileAction((token) =>
       updateCandidateJobPreference(token, {
-        desiredPosition: desiredPosition.trim(),
-        desiredSalaryMax: parseOptionalNumber(salaryMax),
-        desiredSalaryMin: parseOptionalNumber(salaryMin),
+        desiredPosition: prefPosition.trim(),
+        desiredSalaryMax: parseOptionalNumber(prefSalaryMax),
+        desiredSalaryMin: parseOptionalNumber(prefSalaryMin),
         salaryCurrency: "VND",
-        workingModel: normalizeWorkingModel(workingModel),
+        workingModel: normalizeWorkingModel(prefWorkingModel),
       }).then(() => undefined),
     );
-  }
+  };
 
   const profileActions: CandidateProfileActions = {
     onAddEducation: handleAddEducation,
@@ -1210,6 +1243,341 @@ export function CandidateProfilePage() {
         productCopy={productCopy}
         viewModel={profileViewModel}
       />
+
+      {/* Modals for Candidate Data Input */}
+
+      {/* 1. Edit Profile Modal */}
+      <Dialog
+        open={activeModal === "edit-profile"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa thông tin cá nhân</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveProfile} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="profileDescription">Giới thiệu bản thân</Label>
+              <textarea
+                id="profileDescription"
+                className="upnext-focus min-h-[100px] w-full resize-y rounded-xl border border-slate-200 p-3 text-sm"
+                placeholder="Ví dụ: Tôi là lập trình viên Backend có kinh nghiệm..."
+                value={profileDescription}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setProfileDescription(e.target.value)
+                }
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="profilePhone">Số điện thoại</Label>
+              <Input
+                id="profilePhone"
+                type="text"
+                placeholder="Nhập số điện thoại"
+                value={profilePhone}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setProfilePhone(e.target.value)
+                }
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="profileAddress">Địa chỉ</Label>
+              <Input
+                id="profileAddress"
+                type="text"
+                placeholder="Ví dụ: Hà Nội, Việt Nam"
+                value={profileAddress}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setProfileAddress(e.target.value)
+                }
+                required
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveModal(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. Add Experience Modal */}
+      <Dialog
+        open={activeModal === "add-experience"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Thêm kinh nghiệm làm việc</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveExperience} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="expPosition">Chức danh</Label>
+              <Input
+                id="expPosition"
+                type="text"
+                placeholder="Ví dụ: Lập trình viên Node.js"
+                value={expPosition}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setExpPosition(e.target.value)
+                }
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="expCompany">Tên công ty</Label>
+              <Input
+                id="expCompany"
+                type="text"
+                placeholder="Ví dụ: ABC Technology"
+                value={expCompany}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExpCompany(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="expTech">Công nghệ / Kỹ năng (cách nhau bằng dấu phẩy)</Label>
+              <Input
+                id="expTech"
+                type="text"
+                placeholder="Ví dụ: React, Node.js, Spring Boot"
+                value={expTech}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExpTech(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="expDescription">Mô tả công việc</Label>
+              <textarea
+                id="expDescription"
+                className="upnext-focus min-h-[100px] w-full resize-y rounded-xl border border-slate-200 p-3 text-sm"
+                placeholder="Mô tả trách nhiệm hoặc dự án đã thực hiện..."
+                value={expDescription}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setExpDescription(e.target.value)
+                }
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveModal(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Add Education Modal */}
+      <Dialog
+        open={activeModal === "add-education"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Thêm học vấn</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveEducation} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="eduSchool">Tên trường</Label>
+              <Input
+                id="eduSchool"
+                type="text"
+                placeholder="Ví dụ: Đại học Bách Khoa Hà Nội"
+                value={eduSchool}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEduSchool(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="eduDegree">Bằng cấp / Chương trình</Label>
+              <Input
+                id="eduDegree"
+                type="text"
+                placeholder="Ví dụ: Cử nhân"
+                value={eduDegree}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEduDegree(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="eduMajor">Chuyên ngành</Label>
+              <Input
+                id="eduMajor"
+                type="text"
+                placeholder="Ví dụ: Công nghệ thông tin"
+                value={eduMajor}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEduMajor(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="eduDescription">Ghi chú / GPA</Label>
+              <textarea
+                id="eduDescription"
+                className="upnext-focus min-h-[80px] w-full resize-y rounded-xl border border-slate-200 p-3 text-sm"
+                placeholder="Ví dụ: GPA 3.5/4.0..."
+                value={eduDescription}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setEduDescription(e.target.value)
+                }
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveModal(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 4. Add Skill Modal */}
+      <Dialog
+        open={activeModal === "add-skill"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Thêm kỹ năng</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveSkill} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="newSkillName">Tên kỹ năng</Label>
+              <Input
+                id="newSkillName"
+                type="text"
+                placeholder="Ví dụ: Git, Docker, Next.js"
+                value={newSkillName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setNewSkillName(e.target.value)
+                }
+                required
+              />
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveModal(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 5. Edit Preferences Modal */}
+      <Dialog
+        open={activeModal === "edit-preferences"}
+        onOpenChange={(open) => !open && setActiveModal(null)}
+      >
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Thay đổi mong muốn công việc</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSavePreferences} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="prefPosition">Vai trò mong muốn</Label>
+              <Input
+                id="prefPosition"
+                type="text"
+                placeholder="Ví dụ: Backend Developer"
+                value={prefPosition}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setPrefPosition(e.target.value)
+                }
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="prefSalaryMin">Lương tối thiểu (VND)</Label>
+                <Input
+                  id="prefSalaryMin"
+                  type="number"
+                  placeholder="Ví dụ: 15000000"
+                  value={prefSalaryMin}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setPrefSalaryMin(e.target.value)
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="prefSalaryMax">Lương tối đa (VND)</Label>
+                <Input
+                  id="prefSalaryMax"
+                  type="number"
+                  placeholder="Ví dụ: 30000000"
+                  value={prefSalaryMax}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setPrefSalaryMax(e.target.value)
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="prefWorkingModel">Mô hình làm việc</Label>
+              <select
+                id="prefWorkingModel"
+                className="upnext-focus w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                value={prefWorkingModel}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setPrefWorkingModel(e.target.value as any)
+                }
+                required
+              >
+                <option value="HYBRID">Hybrid (Kết hợp)</option>
+                <option value="REMOTE">Remote (Từ xa)</option>
+                <option value="ONSITE">Onsite (Tại văn phòng)</option>
+              </select>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActiveModal(null)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
