@@ -1291,7 +1291,7 @@ export function CandidateProfilePage() {
 
       await createCandidateCv(session.accessToken, session.user.id, {
         title: file.name.replace(/\.[^/.]+$/, ""),
-        source: "UPLOADED",
+        source: "UPLOAD",
         isDefault: false,
         sourceFileId: fileId,
       });

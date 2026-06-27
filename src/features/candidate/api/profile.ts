@@ -351,7 +351,7 @@ export function createCandidateCv(
   candidateAccountId: string,
   payload: {
     title: string;
-    source: "UPLOADED" | "BUILDER";
+    source: "UPLOAD" | "BUILDER";
     isDefault?: boolean;
     sourceFileId?: string;
   },
