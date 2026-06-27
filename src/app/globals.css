@@ -271,3 +271,33 @@
   --tw-shadow: none !important;
   border: none !important;
 }
+
+@utility animate-dialog-overlay {
+  animation: dialogOverlayShow 200ms ease-out forwards;
+}
+
+@utility animate-dialog-unfold {
+  animation: dialogUnfold 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dialogOverlayShow {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes dialogUnfold {
+  from {
+    opacity: 0;
+    transform: translate3d(-50%, -46%, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) scale(1);
+  }
+}

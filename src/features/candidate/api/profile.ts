@@ -289,24 +289,86 @@ export function createSkillOption(name: string) {
   });
 }
 
-export function getMyCandidateCvs(candidateAccountId: string) {
+export function getMyCandidateCvs(token: string, candidateAccountId: string) {
   const params = new URLSearchParams({
     candidateAccountId,
     limit: "20",
     page: "1",
   });
 
-  return apiRequest<PaginatedResponse<CandidateCvApi>>(`/cvs/me?${params.toString()}`);
+  return apiRequest<PaginatedResponse<CandidateCvApi>>(`/cvs/me?${params.toString()}`, {
+    headers: authHeaders(token),
+  });
 }
 
-export function getMyCandidateApplications(candidateAccountId: string) {
+export function getMyCandidateApplications(token: string, candidateAccountId: string) {
   const params = new URLSearchParams({ candidateAccountId });
 
-  return apiRequest<CandidateApplicationApi[]>(`/applications/me?${params.toString()}`);
+  return apiRequest<CandidateApplicationApi[]>(`/applications/me?${params.toString()}`, {
+    headers: authHeaders(token),
+  });
 }
 
-export function getMySavedJobs(candidateAccountId: string) {
+export function getMySavedJobs(token: string, candidateAccountId: string) {
   const params = new URLSearchParams({ candidateAccountId });
 
-  return apiRequest<SavedJobApi[]>(`/saved-jobs?${params.toString()}`);
+  return apiRequest<SavedJobApi[]>(`/saved-jobs?${params.toString()}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function setCandidateCvDefault(token: string, cvId: string) {
+  return apiRequest<CandidateCvApi>(`/cvs/${cvId}/default`, {
+    headers: authHeaders(token),
+    method: "PATCH",
+  });
+}
+
+export function deleteCandidateCv(token: string, cvId: string) {
+  return apiRequest<void>(`/cvs/${cvId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
+export function uploadCandidateCvFile(file: File, token: string) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("purpose", "CV");
+  formData.append("visibility", "PRIVATE");
+
+  return apiRequest<{
+    file: {
+      id: string;
+      originalName: string;
+      mimeType: string;
+      publicUrl: string;
+      sizeBytes: string;
+    };
+  }>("/files/upload", {
+    body: formData,
+    headers: authHeaders(token),
+    method: "POST",
+  });
+}
+
+export function createCandidateCv(
+  token: string,
+  candidateAccountId: string,
+  payload: {
+    title: string;
+    source: "UPLOAD" | "BUILDER";
+    isDefault?: boolean;
+    sourceFileId?: string;
+  },
+) {
+  const params = new URLSearchParams({ candidateAccountId });
+  return apiRequest<CandidateCvApi>(`/cvs?${params.toString()}`, {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
 }

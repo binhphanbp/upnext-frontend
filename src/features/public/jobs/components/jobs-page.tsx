@@ -9,7 +9,6 @@ import type { ReactNode } from "react";
 
 import { getCandidateSession } from "@/features/candidate/session";
 import { apiRequest } from "@/shared/api/http";
-
 import { formatRelativeTime } from "@/shared/lib/date";
 
 import { getPublicJobs } from "../../home/api";
@@ -162,7 +161,7 @@ const staticJobs: Job[] = [
     applicants: 71,
     tags: ["SQL", "Python", "Tableau", "A/B Testing"],
     description:
-      "Phân tích hành vi người dùng, thiết kế dashboard kinh doanh và hỗ trợ team vận hành ra quyết định bằng dữ liệu.",
+      "Phần tích hành vi người dùng, thiết kế dashboard kinh doanh và hỗ trợ team vận hành ra quyết định bằng dữ liệu.",
     categories: ["data-ai", "hybrid"],
   },
   {
@@ -471,7 +470,6 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 7;
-
   const lastLoggedKeywordRef = useRef<string>("");
 
   const logKeyword = async (term: string, count: number) => {
@@ -502,6 +500,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
       console.warn("Failed to log search keyword", err);
     }
   };
+
   const { data: apiJobsData } = useQuery({
     queryKey: ["public-jobs"],
     queryFn: getPublicJobs,
@@ -714,14 +713,22 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
             ).length,
           },
           {
-            label: "Middle",
+            label: "Middle / Senior",
             value: "middle",
-            count: jobs.filter((j) => j.level.toLowerCase().includes("middle")).length,
+            count: jobs.filter(
+              (j) =>
+                j.level.toLowerCase().includes("middle") ||
+                j.level.toLowerCase().includes("mid") ||
+                j.level.toLowerCase().includes("senior"),
+            ).length,
           },
           {
-            label: "Senior",
-            value: "senior",
-            count: jobs.filter((j) => j.level.toLowerCase().includes("senior")).length,
+            label: "Lead / Manager",
+            value: "lead",
+            count: jobs.filter(
+              (j) =>
+                j.level.toLowerCase().includes("lead") || j.level.toLowerCase().includes("manager"),
+            ).length,
           },
         ],
       },

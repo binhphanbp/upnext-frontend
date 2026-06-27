@@ -27,7 +27,7 @@ import {
   UploadSimple,
 } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import Swal from "sweetalert2";
 
@@ -45,13 +45,24 @@ import {
   type CandidateProfileApi,
   updateCandidateJobPreference,
   updateMyCandidateProfile,
+  setCandidateCvDefault,
+  deleteCandidateCv,
+  uploadCandidateCvFile,
+  createCandidateCv,
 } from "@/features/candidate/api/profile";
 import { getCandidateSession } from "@/features/candidate/session";
+import { createApiUrl } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -113,10 +124,14 @@ type EducationRecord = {
 };
 
 type ResumeRow = {
+  id: string;
   name: string;
   meta: string;
   tags: string[];
   primary: boolean;
+  publicUrl?: string | null | undefined;
+  versionId?: string | undefined;
+  source?: string;
 };
 
 type ExperienceRow = {
@@ -152,6 +167,10 @@ type CandidateProfileActions = {
   onAddSkill: () => void;
   onEditPreferences: () => void;
   onEditProfile: () => void;
+  onSetCvDefault: (cvId: string) => void;
+  onDeleteCv: (cvId: string) => void;
+  onUploadCv: (file: File) => void;
+  onPreviewCv: (versionId: string, source: string) => void;
 };
 
 const candidate: CandidateSummary = {
@@ -219,22 +238,28 @@ const educationRecords: EducationRecord[] = [
 
 const resumeRows: ResumeRow[] = [
   {
+    id: "mock-1",
     name: "CV_NguyenQuocVuong_Backend.pdf",
     meta: "Updated 10 May 2025 · 356 KB",
     tags: ["Backend Developer", "Full-time", "Java", "Spring Boot", "+3"],
     primary: true,
+    publicUrl: null,
   },
   {
+    id: "mock-2",
     name: "CV_NguyenQuocVuong_Internship.pdf",
     meta: "Updated 28 Apr 2025 · 298 KB",
     tags: ["Internship", "Part-time", "Student"],
     primary: false,
+    publicUrl: null,
   },
   {
+    id: "mock-3",
     name: "CV_Product_Designer.pdf",
     meta: "Updated 12 Mar 2025 · 410 KB",
     tags: ["UI/UX Designer", "Full-time", "Figma", "Design System", "+2"],
     primary: false,
+    publicUrl: null,
   },
 ];
 
@@ -889,12 +914,17 @@ function toResumeRow(cv: CandidateCvApi, locale: string) {
   const latestVersion = cv.versions[0];
   const fileName = latestVersion?.sourceFile?.originalName ?? cv.title;
   const updatedLabel = locale === "en" ? "Updated" : "Cập nhật";
+  const publicUrl = latestVersion?.sourceFile?.publicUrl;
 
   return {
+    id: cv.id,
     name: fileName,
     meta: `${updatedLabel} ${formatProfileDate(cv.updatedAt, locale)} · ${cv.status}`,
     primary: cv.isDefault,
     tags: [cv.source, cv.status].filter(Boolean),
+    publicUrl,
+    versionId: latestVersion?.id,
+    source: cv.source,
   } satisfies ResumeRow;
 }
 
@@ -1042,9 +1072,9 @@ export function CandidateProfilePage() {
     async (currentSession: NonNullable<ReturnType<typeof getCandidateSession>>) => {
       const [profile, cvs, applications, savedJobs] = await Promise.all([
         getMyCandidateProfile(currentSession.accessToken),
-        getMyCandidateCvs(currentSession.user.id),
-        getMyCandidateApplications(currentSession.user.id),
-        getMySavedJobs(currentSession.user.id),
+        getMyCandidateCvs(currentSession.accessToken, currentSession.user.id),
+        getMyCandidateApplications(currentSession.accessToken, currentSession.user.id),
+        getMySavedJobs(currentSession.accessToken, currentSession.user.id),
       ]);
 
       setApiProfileViewModel(
@@ -1123,6 +1153,46 @@ export function CandidateProfilePage() {
     }
   }
 
+  const handlePreviewCv = async (versionId: string, source: string) => {
+    try {
+      const session = getCandidateSession();
+      if (!session) return;
+
+      const endpoint =
+        source === "BUILDER" ? `/cv-versions/${versionId}` : `/cv-versions/${versionId}/download`;
+
+      const response = await fetch(createApiUrl(endpoint), {
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          source === "BUILDER" ? "Không thể tải dữ liệu CV" : "Không thể tải file CV",
+        );
+      }
+
+      let fileURL: string;
+      if (source === "BUILDER") {
+        const json = await response.json();
+        const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+        fileURL = URL.createObjectURL(blob);
+      } else {
+        const blob = await response.blob();
+        fileURL = URL.createObjectURL(blob);
+      }
+
+      window.open(fileURL, "_blank");
+    } catch (error) {
+      console.error("Preview error:", error);
+      void Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Không thể xem trước CV này. Vui lòng thử lại sau.",
+      });
+    }
+  };
   function handleEditProfile() {
     setProfileDescription(profileViewModel.aboutText || "");
     setProfilePhone(profileViewModel.candidate.phone || "");
@@ -1228,12 +1298,77 @@ export function CandidateProfilePage() {
     );
   };
 
+  function handleSetCvDefault(cvId: string) {
+    void runProfileAction((token) => setCandidateCvDefault(token, cvId).then(() => undefined));
+  }
+
+  async function handleDeleteCv(cvId: string) {
+    const result = await Swal.fire({
+      title: "Xác nhận xóa?",
+      text: "Bạn có chắc chắn muốn xóa CV này? Hành động này không thể hoàn tác.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+    });
+
+    if (result.isConfirmed) {
+      void runProfileAction((token) => deleteCandidateCv(token, cvId));
+    }
+  }
+
+  async function handleUploadCv(file: File) {
+    const session = getCandidateSession();
+    if (!session) {
+      void Swal.fire({
+        icon: "warning",
+        title: "Thông báo",
+        text: "Bạn cần đăng nhập candidate để tải CV lên.",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const uploadRes = await uploadCandidateCvFile(file, session.accessToken);
+      const fileId = uploadRes.file.id;
+
+      await createCandidateCv(session.accessToken, session.user.id, {
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        source: "UPLOAD",
+        isDefault: false,
+        sourceFileId: fileId,
+      });
+
+      await loadProfileFromSession(session);
+
+      void toast.fire({
+        icon: "success",
+        title: "Tải CV lên thành công.",
+      });
+    } catch (error) {
+      void Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: error instanceof Error ? error.message : "Không thể tải CV lên.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   const profileActions: CandidateProfileActions = {
     onAddEducation: handleAddEducation,
     onAddExperience: handleAddExperience,
     onAddSkill: handleAddSkill,
     onEditPreferences: handleEditPreferences,
     onEditProfile: handleEditProfile,
+    onSetCvDefault: handleSetCvDefault,
+    onDeleteCv: handleDeleteCv,
+    onUploadCv: handleUploadCv,
+    onPreviewCv: handlePreviewCv,
   };
 
   if (profileLoading) {
@@ -1876,7 +2011,9 @@ function ProfileTabPanel({
         <PreferencesCard copy={copy} productCopy={productCopy} viewModel={viewModel} compact />
       </>
     ),
-    resume: <ResumeCard copy={copy} productCopy={productCopy} viewModel={viewModel} />,
+    resume: (
+      <ResumeCard copy={copy} productCopy={productCopy} viewModel={viewModel} actions={actions} />
+    ),
     experience: (
       <ExperienceSnapshotCard
         copy={copy}
@@ -1954,11 +2091,26 @@ function ResumeCard({
   copy,
   productCopy,
   viewModel,
+  actions,
 }: Readonly<{
   copy: (typeof copyByLocale)["vi" | "en"];
   productCopy: CandidateProfileCopy;
   viewModel: CandidateProfileViewModel;
+  actions: CandidateProfileActions;
 }>) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      actions.onUploadCv(file);
+    }
+  };
+
   return (
     <SectionCard
       id="resume"
@@ -1966,10 +2118,20 @@ function ResumeCard({
       icon={FilePdf}
       action={
         <div className="flex items-center gap-2">
-          <Button className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700">
+          <Button
+            className="bg-brand h-10 rounded-lg px-4 font-extrabold shadow-none hover:bg-emerald-700"
+            onClick={handleUploadClick}
+          >
             <UploadSimple />
             {productCopy.sidebar.uploadResume}
           </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept=".pdf,.doc,.docx"
+            onChange={handleFileChange}
+          />
           <button
             type="button"
             className="upnext-focus grid size-10 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-950"
@@ -2011,6 +2173,7 @@ function ResumeCard({
         <Button
           variant="outline"
           className="h-10 rounded-lg border-emerald-200 bg-white font-extrabold text-emerald-700 shadow-none hover:bg-emerald-50 hover:text-emerald-800"
+          onClick={handleUploadClick}
         >
           <ArrowRight />
           {copy.change}
@@ -2018,10 +2181,7 @@ function ResumeCard({
       </div>
       <div className="divide-y divide-slate-200 rounded-xl border border-slate-200">
         {viewModel.resumeRows.map((resume) => (
-          <article
-            key={resume.name}
-            className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center"
-          >
+          <article key={resume.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
             <span className="grid size-16 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-xs font-extrabold text-red-500">
               PDF
             </span>
@@ -2050,18 +2210,47 @@ function ResumeCard({
               <Button
                 variant="outline"
                 className="h-10 rounded-lg border-slate-200 bg-white shadow-none hover:bg-slate-50 hover:text-slate-950"
+                onClick={() => {
+                  if (resume.publicUrl) {
+                    window.open(resume.publicUrl, "_blank");
+                  } else if (resume.versionId) {
+                    void actions.onPreviewCv(resume.versionId, resume.source || "UPLOAD");
+                  }
+                }}
+                disabled={!resume.publicUrl && !resume.versionId}
               >
                 <Eye />
                 {copy.preview}
               </Button>
-              <button className="upnext-focus grid size-10 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">
-                <DotsThreeVertical size={20} />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="upnext-focus grid size-10 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">
+                    <DotsThreeVertical size={20} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => actions.onSetCvDefault(resume.id)}
+                    disabled={resume.primary}
+                  >
+                    Đặt làm chính
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-red-600 focus:bg-red-50 focus:text-red-700"
+                    onClick={() => actions.onDeleteCv(resume.id)}
+                  >
+                    Xóa CV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </article>
         ))}
       </div>
-      <div className="mt-4 flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 p-6 text-center sm:flex-row sm:gap-4">
+      <div
+        className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 p-6 text-center transition-colors hover:bg-slate-50 sm:flex-row sm:gap-4"
+        onClick={handleUploadClick}
+      >
         <UploadSimple className="text-slate-500" size={34} />
         <p className="text-sm font-semibold text-slate-600">
           {copy.dragResume}
@@ -2315,33 +2504,18 @@ function SkillsCard({
       <div className="space-y-7">
         <div>
           <h3 className="mb-3 text-sm font-extrabold text-slate-950">{copy.technicalSkills}</h3>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {viewModel.technicalSkills.map(([name, level, dots]) => (
-              <article
+          <div className="flex flex-wrap gap-3">
+            {viewModel.technicalSkills.map(([name, level]) => (
+              <span
                 key={name}
-                className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700"
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-extrabold text-slate-950">{name}</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="flex gap-1">
-                      {Array.from({ length: 5 }).map((_, index) => (
-                        <span
-                          key={index}
-                          className={cn(
-                            "size-2 rounded-full",
-                            index < dots ? "bg-brand" : "bg-slate-200",
-                          )}
-                        />
-                      ))}
-                    </span>
-                    <span className="text-xs font-bold text-slate-500">{level}</span>
-                  </div>
-                </div>
-                <button className="upnext-focus grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-50">
-                  <DotsThreeVertical size={18} />
-                </button>
-              </article>
+                <span className="bg-brand size-2 rounded-full" />
+                <span>{name}</span>
+                {level ? (
+                  <span className="text-xs font-semibold text-slate-400">({level})</span>
+                ) : null}
+              </span>
             ))}
           </div>
         </div>
@@ -2585,7 +2759,35 @@ function CompletionCard({
   productCopy: CandidateProfileCopy;
   viewModel: CandidateProfileViewModel;
 }>) {
-  const { candidate: profileCandidate } = viewModel;
+  const dynamicCompletionItems = [
+    {
+      key: "personal",
+      done: Boolean(
+        viewModel.candidate.name && viewModel.candidate.phone && viewModel.candidate.location,
+      ),
+    },
+    {
+      key: "experience",
+      done: viewModel.experienceRows.length > 0,
+    },
+    {
+      key: "education",
+      done: viewModel.educationRecords.length > 0,
+    },
+    {
+      key: "skills",
+      done: viewModel.technicalSkills.length > 0 || viewModel.skillPills.length > 0,
+    },
+    {
+      key: "about",
+      done: Boolean(viewModel.aboutText && viewModel.aboutText.trim()),
+    },
+  ] as const;
+
+  const completionPercentage = Math.round(
+    (dynamicCompletionItems.filter((item) => item.done).length / dynamicCompletionItems.length) *
+      100,
+  );
 
   return (
     <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
@@ -2598,8 +2800,8 @@ function CompletionCard({
       <CardContent className="p-5 pt-2">
         <div className="flex gap-4">
           <ProgressRing
-            value={profileCandidate.completion}
-            label={`${profileCandidate.completion}%`}
+            value={completionPercentage}
+            label={`${completionPercentage}%`}
             ariaLabel={productCopy.status.completionLabel}
           />
           <p className="pt-2 text-sm leading-6 font-medium text-slate-600">
@@ -2608,7 +2810,7 @@ function CompletionCard({
         </div>
 
         <ul className="mt-5 space-y-3">
-          {completionItems.map((item) => (
+          {dynamicCompletionItems.map((item) => (
             <li key={item.key} className="flex items-center gap-2 text-sm font-semibold">
               <span
                 className={cn(
