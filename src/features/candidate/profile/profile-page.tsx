@@ -29,6 +29,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
+import Swal from "sweetalert2";
 
 import {
   createCandidateEducation,
@@ -983,6 +984,14 @@ function normalizeWorkingModel(value: string) {
   return "HYBRID";
 }
 
+const toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+});
+
 export function CandidateProfilePage() {
   const t = useTranslations("CandidateProfile");
   const locale = useLocale();
@@ -1086,7 +1095,11 @@ export function CandidateProfilePage() {
     const session = getCandidateSession();
 
     if (!session) {
-      window.alert("Bạn cần đăng nhập candidate để cập nhật hồ sơ.");
+      void Swal.fire({
+        icon: "warning",
+        title: "Thông báo",
+        text: "Bạn cần đăng nhập candidate để cập nhật hồ sơ.",
+      });
       return;
     }
 
@@ -1094,10 +1107,17 @@ export function CandidateProfilePage() {
     try {
       await action(session.accessToken);
       await loadProfileFromSession(session);
-      window.alert("Cập nhật hồ sơ thành công.");
+      void toast.fire({
+        icon: "success",
+        title: "Cập nhật hồ sơ thành công.",
+      });
       setActiveModal(null);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "Không thể cập nhật hồ sơ.");
+      void Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: error instanceof Error ? error.message : "Không thể cập nhật hồ sơ.",
+      });
     } finally {
       setSubmitting(false);
     }
