@@ -1,9 +1,15 @@
 "use client";
 
 import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import * as React from "react";
 
+import { getAdminEmployers, type AdminCompanyResponse } from "@/features/admin/api/employers";
+import { getAdminSession, clearAdminSession } from "@/features/admin/session";
+import { useRouter } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
+import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { DataTable } from "@/shared/ui/data-table";
@@ -17,6 +23,7 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { Skeleton } from "@/shared/ui/skeleton";
 
 export type Employer = {
   id: string;
@@ -29,129 +36,29 @@ export type Employer = {
   joinDate: string;
 };
 
-const data: Employer[] = [
-  {
-    id: "1",
-    companyName: "VNG Corporation",
-    representative: "Nguyễn Văn A",
-    email: "hr@vng.com.vn",
-    plan: "Premium",
-    status: "Đã xác thực",
-    activeJobs: 15,
-    joinDate: "12/05/2025",
-  },
-  {
-    id: "2",
-    companyName: "FPT Software",
-    representative: "Trần Thị B",
-    email: "tuyendung@fsoft.com.vn",
-    plan: "Pro",
-    status: "Đã xác thực",
-    activeJobs: 42,
-    joinDate: "01/03/2024",
-  },
-  {
-    id: "3",
-    companyName: "Tech Startup X",
-    representative: "Lê Văn C",
-    email: "contact@startupx.io",
-    plan: "Free",
-    status: "Chờ duyệt",
-    activeJobs: 2,
-    joinDate: "24/06/2026",
-  },
-  {
-    id: "4",
-    companyName: "Shopee Vietnam",
-    representative: "Phạm D",
-    email: "careers@shopee.vn",
-    plan: "Premium",
-    status: "Đã xác thực",
-    activeJobs: 8,
-    joinDate: "15/11/2023",
-  },
-  {
-    id: "5",
-    companyName: "Crypto Scam Co",
-    representative: "John Doe",
-    email: "admin@cryptoscam.net",
-    plan: "Free",
-    status: "Bị khóa",
-    activeJobs: 0,
-    joinDate: "20/06/2026",
-  },
-  // Add 10 more mock employers for pagination testing
-  {
-    id: "6",
-    companyName: "Momo",
-    representative: "Lê E",
-    email: "hr@momo.vn",
-    plan: "Premium",
-    status: "Đã xác thực",
-    activeJobs: 20,
-    joinDate: "01/02/2025",
-  },
-  {
-    id: "7",
-    companyName: "ZaloPay",
-    representative: "Trần F",
-    email: "jobs@zalopay.vn",
-    plan: "Pro",
-    status: "Đã xác thực",
-    activeJobs: 12,
-    joinDate: "15/04/2025",
-  },
-  {
-    id: "8",
-    companyName: "Tiki",
-    representative: "Phạm G",
-    email: "tuyendung@tiki.vn",
-    plan: "Pro",
-    status: "Chờ duyệt",
-    activeJobs: 5,
-    joinDate: "10/06/2026",
-  },
-  {
-    id: "9",
-    companyName: "Be Group",
-    representative: "Nguyễn H",
-    email: "hr@be.com.vn",
-    plan: "Free",
-    status: "Đã xác thực",
-    activeJobs: 3,
-    joinDate: "22/07/2025",
-  },
-  {
-    id: "10",
-    companyName: "Grab Vietnam",
-    representative: "Lý K",
-    email: "careers@grab.com",
-    plan: "Premium",
-    status: "Đã xác thực",
-    activeJobs: 30,
-    joinDate: "05/01/2024",
-  },
-  {
-    id: "11",
-    companyName: "Gojek Vietnam",
-    representative: "Đặng L",
-    email: "jobs@gojek.com",
-    plan: "Pro",
-    status: "Bị khóa",
-    activeJobs: 0,
-    joinDate: "12/08/2025",
-  },
-  {
-    id: "12",
-    companyName: "VinAI",
-    representative: "Hoàng M",
-    email: "hr@vinai.io",
-    plan: "Premium",
-    status: "Đã xác thực",
-    activeJobs: 18,
-    joinDate: "09/09/2024",
-  },
-];
+function mapToEmployer(apiCompany: AdminCompanyResponse): Employer {
+  let mappedStatus: Employer["status"] = "Đã xác thực";
+  if (apiCompany.status === "LOCKED") {
+    mappedStatus = "Bị khóa";
+  } else if (apiCompany.verificationStatus === "PENDING") {
+    mappedStatus = "Chờ duyệt";
+  } else if (apiCompany.verificationStatus === "UNVERIFIED") {
+    mappedStatus = "Chờ duyệt";
+  } else if (apiCompany.verificationStatus === "REJECTED") {
+    mappedStatus = "Bị khóa";
+  }
+
+  return {
+    id: apiCompany.id,
+    companyName: apiCompany.name,
+    representative: "Chưa cập nhật", // Fallback: API doesn't provide this yet
+    email: apiCompany.email || "Chưa cập nhật",
+    plan: "Free", // Fallback: API doesn't provide this yet
+    status: mappedStatus,
+    activeJobs: 0, // Fallback: API doesn't provide this yet
+    joinDate: formatAppDate(apiCompany.createdAt),
+  };
+}
 
 import { useTranslations } from "next-intl";
 
@@ -251,13 +158,57 @@ export const getColumns = (t: any): ColumnDef<Employer>[] => [
 export function EmployersTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const t = useTranslations("Admin.users.employers.table");
+  const router = useRouter();
+
+  const {
+    data: apiCompanies = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["adminEmployers"],
+    queryFn: async () => {
+      const session = getAdminSession();
+      if (!session) {
+        throw new Error("No session");
+      }
+      return getAdminEmployers(session.accessToken);
+    },
+    retry: false,
+  });
+
+  React.useEffect(() => {
+    if (error) {
+      if (error instanceof Error && error.message === "No session") {
+        router.replace("/admin/login");
+      } else if (error instanceof ApiError && error.status === 401) {
+        clearAdminSession();
+        router.replace("/admin/login");
+      }
+    }
+  }, [error, router]);
+
+  const data = React.useMemo(() => {
+    return apiCompanies.map(mapToEmployer);
+  }, [apiCompanies]);
 
   const filteredData = React.useMemo(() => {
     if (statusFilter === "all") return data;
     return data.filter((item) => item.status === statusFilter);
-  }, [statusFilter]);
+  }, [statusFilter, data]);
 
   const columns = React.useMemo(() => getColumns(t), [t]);
+
+  if (isLoading) {
+    return (
+      <div className="mt-6 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Skeleton className="h-10 w-full rounded-xl sm:w-[350px]" />
+          <Skeleton className="h-10 w-full rounded-xl sm:w-[180px]" />
+        </div>
+        <Skeleton className="h-[400px] w-full rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="mt-6 space-y-4">

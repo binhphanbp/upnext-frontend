@@ -83,7 +83,7 @@ export function DataTable<TData, TValue = unknown>({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-full"
+            className="hover:text-brand h-8 w-8 rounded-full transition-all hover:scale-110 hover:bg-slate-200 active:scale-95"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
@@ -96,7 +96,11 @@ export function DataTable<TData, TValue = unknown>({
               key={i}
               variant={table.getState().pagination.pageIndex === i ? "primary" : "ghost"}
               size="icon"
-              className="h-8 w-8 rounded-full"
+              className={cn(
+                "h-8 w-8 rounded-full transition-all hover:scale-110 active:scale-95",
+                table.getState().pagination.pageIndex !== i &&
+                  "hover:bg-slate-200 hover:text-brand",
+              )}
               onClick={() => table.setPageIndex(i)}
             >
               {i + 1}
@@ -106,7 +110,7 @@ export function DataTable<TData, TValue = unknown>({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-full"
+            className="hover:text-brand h-8 w-8 rounded-full transition-all hover:scale-110 hover:bg-slate-200 active:scale-95"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
