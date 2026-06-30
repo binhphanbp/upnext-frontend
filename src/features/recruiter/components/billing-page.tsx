@@ -30,6 +30,8 @@ import { ApiError } from "@/shared/api/http";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 
+import { RecruiterTableLayout } from "./recruiter-table-layout";
+
 const Toast = Swal.mixin({
   toast: true,
   position: "top-end",
@@ -270,7 +272,7 @@ export function RecruiterBillingPage() {
         <p className="text-xs font-bold tracking-[0.16em] text-emerald-700 uppercase">
           Tài chính & Gói dịch vụ
         </p>
-        <h1 className="mt-1 text-2xl font-extrabold text-slate-950">Thanh toán & Gói dịch vụ</h1>
+        <h1 className="mt-1 text-2xl font-bold text-slate-950">Thanh toán & Gói dịch vụ</h1>
         <p className="mt-1 text-sm text-slate-500">
           Quản lý gói tuyển dụng hiện tại, nâng cấp dịch vụ và theo dõi lịch sử giao dịch.
         </p>
@@ -473,103 +475,98 @@ export function RecruiterBillingPage() {
       {/* 3. LỊCH SỬ HÓA ĐƠN (Invoices Table) */}
       <section aria-label="Lịch sử hóa đơn">
         <h2 className="text-lg font-bold text-slate-900">Lịch sử hóa đơn</h2>
-        <div className="mt-3 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-100 text-sm">
-              <thead className="bg-slate-50/75 text-left text-xs font-bold tracking-wide text-slate-500 uppercase">
+        <div className="mt-3">
+          <RecruiterTableLayout loading={false}>
+            <thead className="bg-slate-50/75 text-left text-xs font-bold tracking-wide text-slate-500 uppercase">
+              <tr>
+                <th className="px-5 py-3.5" scope="col">
+                  Mã hóa đơn
+                </th>
+                <th className="px-5 py-3.5" scope="col">
+                  Gói dịch vụ
+                </th>
+                <th className="px-5 py-3.5 text-right" scope="col">
+                  Số tiền
+                </th>
+                <th className="px-5 py-3.5" scope="col">
+                  Phương thức
+                </th>
+                <th className="px-5 py-3.5" scope="col">
+                  Trạng thái
+                </th>
+                <th className="px-5 py-3.5" scope="col">
+                  Ngày tạo
+                </th>
+                <th className="px-5 py-3.5 text-center" scope="col">
+                  Hành động
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {paginatedInvoices.length === 0 ? (
                 <tr>
-                  <th className="px-5 py-3.5" scope="col">
-                    Mã hóa đơn
-                  </th>
-                  <th className="px-5 py-3.5" scope="col">
-                    Gói dịch vụ
-                  </th>
-                  <th className="px-5 py-3.5 text-right" scope="col">
-                    Số tiền
-                  </th>
-                  <th className="px-5 py-3.5" scope="col">
-                    Phương thức
-                  </th>
-                  <th className="px-5 py-3.5" scope="col">
-                    Trạng thái
-                  </th>
-                  <th className="px-5 py-3.5" scope="col">
-                    Ngày tạo
-                  </th>
-                  <th className="px-5 py-3.5 text-center" scope="col">
-                    Hành động
-                  </th>
+                  <td colSpan={7} className="p-8 text-center text-xs font-semibold text-slate-400">
+                    Chưa có hóa đơn nào được tạo.
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {paginatedInvoices.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="p-8 text-center text-xs font-semibold text-slate-400"
-                    >
-                      Chưa có hóa đơn nào được tạo.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedInvoices.map((inv) => {
-                    const isPending = inv.paymentStatus === "pending";
-                    return (
-                      <tr key={inv.id} className="hover:bg-slate-50/50">
-                        <td className="px-5 py-4 font-mono text-xs font-bold text-slate-600">
-                          {inv.invoiceCode}
-                        </td>
-                        <td className="px-5 py-4 font-bold text-slate-800">
-                          {inv.subscriptionPlan?.subscriptionName}
-                        </td>
-                        <td className="px-5 py-4 text-right font-semibold text-slate-700">
-                          {formatCurrency(inv.amount)}
-                        </td>
-                        <td className="px-5 py-4 text-xs font-bold text-slate-500 uppercase">
-                          {inv.paymentMethod ?? "—"}
-                        </td>
-                        <td className="px-5 py-4">
-                          <Badge
-                            tone={
-                              inv.paymentStatus === "paid"
-                                ? "success"
-                                : inv.paymentStatus === "pending"
-                                  ? "warning"
-                                  : "error"
-                            }
-                          >
-                            {inv.paymentStatus === "paid"
-                              ? "Đã thanh toán"
+              ) : (
+                paginatedInvoices.map((inv) => {
+                  const isPending = inv.paymentStatus === "pending";
+                  return (
+                    <tr key={inv.id} className="hover:bg-slate-50/50">
+                      <td className="px-5 py-4 font-mono text-xs font-bold text-slate-600">
+                        {inv.invoiceCode}
+                      </td>
+                      <td className="px-5 py-4 font-bold text-slate-800">
+                        {inv.subscriptionPlan?.subscriptionName}
+                      </td>
+                      <td className="px-5 py-4 text-right font-semibold text-slate-700">
+                        {formatCurrency(inv.amount)}
+                      </td>
+                      <td className="px-5 py-4 text-xs font-bold text-slate-500 uppercase">
+                        {inv.paymentMethod ?? "—"}
+                      </td>
+                      <td className="px-5 py-4">
+                        <Badge
+                          tone={
+                            inv.paymentStatus === "paid"
+                              ? "success"
                               : inv.paymentStatus === "pending"
-                                ? "Chờ thanh toán"
-                                : "Thất bại"}
-                          </Badge>
-                        </td>
-                        <td className="px-5 py-4 text-xs text-slate-400">
-                          {formatDateTime(inv.createdAt)}
-                        </td>
-                        <td className="px-5 py-4 text-center">
-                          {isPending ? (
-                            <Button
-                              className="h-8 bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700"
-                              onClick={() => {
-                                setCheckoutInvoice(inv);
-                                setPaymentMethod("SEPAY");
-                              }}
-                            >
-                              Thanh toán
-                            </Button>
-                          ) : (
-                            <span className="text-xs font-semibold text-slate-400">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                                ? "warning"
+                                : "error"
+                          }
+                        >
+                          {inv.paymentStatus === "paid"
+                            ? "Đã thanh toán"
+                            : inv.paymentStatus === "pending"
+                              ? "Chờ thanh toán"
+                              : "Thất bại"}
+                        </Badge>
+                      </td>
+                      <td className="px-5 py-4 text-xs text-slate-400">
+                        {formatDateTime(inv.createdAt)}
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        {isPending ? (
+                          <Button
+                            className="h-8 bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700"
+                            onClick={() => {
+                              setCheckoutInvoice(inv);
+                              setPaymentMethod("SEPAY");
+                            }}
+                          >
+                            Thanh toán
+                          </Button>
+                        ) : (
+                          <span className="text-xs font-semibold text-slate-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </RecruiterTableLayout>
 
           {totalInvoices > 0 && (
             <div className="flex items-center justify-between border-t border-slate-100 bg-white p-5">
@@ -628,359 +625,363 @@ export function RecruiterBillingPage() {
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm" />
 
-          <DialogPrimitive.Content
-            aria-describedby="checkout-dialog-description"
-            className="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white p-0 shadow-2xl focus:outline-none"
-          >
-            {/* Modal Header */}
-            <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-5">
-              <DialogPrimitive.Title className="text-lg font-black text-slate-900">
-                Thanh toán hóa đơn tuyển dụng
-              </DialogPrimitive.Title>
-              <DialogPrimitive.Description
-                id="checkout-dialog-description"
-                className="mt-1 text-xs font-medium text-slate-500"
-              >
-                Vui lòng chọn phương thức thanh toán và thực hiện chuyển khoản để kích hoạt gói dịch
-                vụ.
-              </DialogPrimitive.Description>
-            </div>
+          <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
+            <DialogPrimitive.Content
+              aria-describedby="checkout-dialog-description"
+              className="pointer-events-auto relative flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-0 shadow-2xl focus:outline-none"
+            >
+              {/* Modal Header */}
+              <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-5">
+                <DialogPrimitive.Title className="text-lg font-black text-slate-900">
+                  Thanh toán hóa đơn tuyển dụng
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Description
+                  id="checkout-dialog-description"
+                  className="mt-1 text-xs font-medium text-slate-500"
+                >
+                  Vui lòng chọn phương thức thanh toán và thực hiện chuyển khoản để kích hoạt gói
+                  dịch vụ.
+                </DialogPrimitive.Description>
+              </div>
 
-            {/* Modal Body */}
-            <div className="flex-1 space-y-6 overflow-y-auto p-6">
-              {invoice && (
-                <>
-                  {/* Summary Box */}
-                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 font-semibold text-slate-700">
-                    <div className="grid grid-cols-2 gap-y-2 text-xs">
-                      <span>Mã hóa đơn:</span>
-                      <span className="text-right font-mono text-slate-900">
-                        {invoice.invoiceCode}
-                      </span>
-                      <span>Gói đăng ký:</span>
-                      <span className="text-right text-slate-900">
-                        {invoice.subscriptionPlan?.subscriptionName}
-                      </span>
-                      <span>Số tiền thanh toán:</span>
-                      <span className="text-right text-lg font-black text-emerald-600">
-                        {formatCurrency(invoice.amount)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Payment Method Tabs */}
-                  <div>
-                    <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                      Chọn phương thức thanh toán
-                    </span>
-                    <div className="mt-2.5 grid grid-cols-3 gap-3">
-                      {/* Bank Transfer Tab Button */}
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod("SEPAY")}
-                        className={[
-                          "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all cursor-pointer",
-                          paymentMethod === "SEPAY"
-                            ? "border-emerald-600 bg-emerald-50/40 text-emerald-700"
-                            : "border-slate-200 text-slate-500 hover:bg-slate-50",
-                        ].join(" ")}
-                      >
-                        <Bank size={24} weight="bold" />
-                        <span className="text-xs font-bold">Chuyển khoản (VietQR)</span>
-                      </button>
-
-                      {/* Momo Tab Button */}
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod("MOMO")}
-                        className={[
-                          "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all cursor-pointer",
-                          paymentMethod === "MOMO"
-                            ? "border-emerald-600 bg-emerald-50/40 text-emerald-700"
-                            : "border-slate-200 text-slate-500 hover:bg-slate-50",
-                        ].join(" ")}
-                      >
-                        <Wallet size={24} weight="bold" />
-                        <span className="text-xs font-bold">Ví điện tử MoMo</span>
-                      </button>
-
-                      {/* Stripe Tab Button */}
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod("STRIPE")}
-                        className={[
-                          "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all cursor-pointer",
-                          paymentMethod === "STRIPE"
-                            ? "border-emerald-600 bg-emerald-50/40 text-emerald-700"
-                            : "border-slate-200 text-slate-500 hover:bg-slate-50",
-                        ].join(" ")}
-                      >
-                        <CreditCard size={24} weight="bold" />
-                        <span className="text-xs font-bold">Thẻ Quốc tế (Stripe)</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Payment Details Container */}
-                  <div className="rounded-xl border border-slate-100 bg-white p-5">
-                    {paymentMethod === "SEPAY" && (
-                      <div className="flex flex-col gap-5 md:flex-row md:items-center">
-                        <div className="flex flex-1 flex-col gap-2.5 text-xs text-slate-600">
-                          <h4 className="text-sm font-bold text-slate-800">
-                            Thông tin chuyển khoản
-                          </h4>
-                          <div className="grid grid-cols-[100px_1fr] gap-y-2">
-                            <span>Ngân hàng:</span>
-                            <span className="font-bold text-slate-800">Vietcombank (VCB)</span>
-                            <span>Chủ tài khoản:</span>
-                            <span className="font-bold text-slate-800 uppercase">
-                              CÔNG TY CỔ PHẦN UPNEXT
-                            </span>
-                            <span>Số tài khoản:</span>
-                            <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
-                              999988888
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText("999988888", "Số tài khoản")}
-                                className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
-                              >
-                                <Copy size={10} /> Sao chép
-                              </button>
-                            </span>
-                            <span>Số tiền:</span>
-                            <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
-                              {invoiceAmountInt}
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText(invoiceAmountInt, "Số tiền")}
-                                className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
-                              >
-                                <Copy size={10} /> Sao chép
-                              </button>
-                            </span>
-                            <span>Nội dung CK:</span>
-                            <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
-                              <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-800">
-                                {invoice.invoiceCode}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleCopyText(invoice.invoiceCode, "Nội dung chuyển khoản")
-                                }
-                                className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
-                              >
-                                <Copy size={10} /> Sao chép
-                              </button>
-                            </span>
-                          </div>
-                          <p className="mt-1 text-[11px] text-slate-400 italic">
-                            * Vui lòng chuyển khoản đúng số tiền và nội dung chuyển khoản để hệ
-                            thống tự động quét và duyệt gói dịch vụ ngay lập tức.
-                          </p>
-                        </div>
-                        {/* VietQR Dynamic Code */}
-                        <div className="flex shrink-0 flex-col items-center justify-center">
-                          <div className="relative rounded-lg border border-slate-100 bg-white p-2.5 shadow-sm">
-                            <Image
-                              src={`https://img.vietqr.io/image/vietcombank-999988888-compact.png?amount=${invoiceAmountInt}&addInfo=${invoice.invoiceCode}&accountName=CONG%20TY%20CO%20PHAN%20UPNEXT`}
-                              alt="VietQR code"
-                              width={144}
-                              height={144}
-                              className="size-36 object-contain"
-                            />
-                          </div>
-                          <span className="mt-2 flex items-center gap-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                            <QrCode size={12} /> Quét mã để trả nhanh
-                          </span>
-                        </div>
+              {/* Modal Body */}
+              <div className="flex-1 space-y-6 overflow-y-auto p-6">
+                {invoice && (
+                  <>
+                    {/* Summary Box */}
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 font-semibold text-slate-700">
+                      <div className="grid grid-cols-2 gap-y-2 text-xs">
+                        <span>Mã hóa đơn:</span>
+                        <span className="text-right font-mono text-slate-900">
+                          {invoice.invoiceCode}
+                        </span>
+                        <span>Gói đăng ký:</span>
+                        <span className="text-right text-slate-900">
+                          {invoice.subscriptionPlan?.subscriptionName}
+                        </span>
+                        <span>Số tiền thanh toán:</span>
+                        <span className="text-right text-lg font-black text-emerald-600">
+                          {formatCurrency(invoice.amount)}
+                        </span>
                       </div>
-                    )}
+                    </div>
 
-                    {paymentMethod === "MOMO" && (
-                      <div className="flex flex-col gap-5 md:flex-row md:items-center">
-                        <div className="flex flex-1 flex-col gap-2.5 text-xs text-slate-600">
-                          <h4 className="text-sm font-bold text-slate-800">
-                            Thanh toán qua ví MoMo
-                          </h4>
-                          <div className="grid grid-cols-[100px_1fr] gap-y-2">
-                            <span>Số điện thoại:</span>
-                            <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
-                              0987654321
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText("0987654321", "Số điện thoại Momo")}
-                                className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
-                              >
-                                <Copy size={10} /> Sao chép
-                              </button>
-                            </span>
-                            <span>Chủ tài khoản:</span>
-                            <span className="font-bold text-slate-800 uppercase">
-                              NGUYỄN VĂN A (UPNEXT FINANCE)
-                            </span>
-                            <span>Lời nhắn CK:</span>
-                            <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
-                              <span className="rounded bg-pink-50 px-2 py-0.5 text-pink-800">
-                                {invoice.invoiceCode}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText(invoice.invoiceCode, "Lời nhắn MoMo")}
-                                className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
-                              >
-                                <Copy size={10} /> Sao chép
-                              </button>
-                            </span>
-                          </div>
-                          <p className="mt-1 text-[11px] text-slate-400 italic">
-                            * Quét mã QR bên cạnh hoặc chuyển khoản theo số điện thoại Momo với nội
-                            dung chuyển khoản là mã hóa đơn.
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 flex-col items-center justify-center">
-                          <div className="rounded-lg border border-slate-100 bg-white p-1.5 shadow-sm">
-                            <Image
-                              src="/assets/momo-qr.png"
-                              alt="Momo QR code"
-                              width={144}
-                              height={144}
-                              className="size-36 rounded object-cover"
-                            />
-                          </div>
-                          <span className="mt-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                            Quét ví MoMo
-                          </span>
-                        </div>
+                    {/* Payment Method Tabs */}
+                    <div>
+                      <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+                        Chọn phương thức thanh toán
+                      </span>
+                      <div className="mt-2.5 grid grid-cols-3 gap-3">
+                        {/* Bank Transfer Tab Button */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("SEPAY")}
+                          className={[
+                            "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all cursor-pointer",
+                            paymentMethod === "SEPAY"
+                              ? "border-emerald-600 bg-emerald-50/40 text-emerald-700"
+                              : "border-slate-200 text-slate-500 hover:bg-slate-50",
+                          ].join(" ")}
+                        >
+                          <Bank size={24} weight="bold" />
+                          <span className="text-xs font-bold">Chuyển khoản (VietQR)</span>
+                        </button>
+
+                        {/* Momo Tab Button */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("MOMO")}
+                          className={[
+                            "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all cursor-pointer",
+                            paymentMethod === "MOMO"
+                              ? "border-emerald-600 bg-emerald-50/40 text-emerald-700"
+                              : "border-slate-200 text-slate-500 hover:bg-slate-50",
+                          ].join(" ")}
+                        >
+                          <Wallet size={24} weight="bold" />
+                          <span className="text-xs font-bold">Ví điện tử MoMo</span>
+                        </button>
+
+                        {/* Stripe Tab Button */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod("STRIPE")}
+                          className={[
+                            "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all cursor-pointer",
+                            paymentMethod === "STRIPE"
+                              ? "border-emerald-600 bg-emerald-50/40 text-emerald-700"
+                              : "border-slate-200 text-slate-500 hover:bg-slate-50",
+                          ].join(" ")}
+                        >
+                          <CreditCard size={24} weight="bold" />
+                          <span className="text-xs font-bold">Thẻ Quốc tế (Stripe)</span>
+                        </button>
                       </div>
-                    )}
+                    </div>
 
-                    {paymentMethod === "STRIPE" && (
-                      <div className="space-y-5">
-                        <div className="flex justify-center">
-                          <Image
-                            src="/assets/stripe-card.png"
-                            alt="Stripe credit card"
-                            width={320}
-                            height={200}
-                            className="h-44 w-72 rounded-xl object-cover shadow-md"
-                          />
-                        </div>
-                        <div className="space-y-4">
-                          <h4 className="text-sm font-bold text-slate-800">
-                            Thông tin thẻ tín dụng
-                          </h4>
-                          <div className="space-y-3.5">
-                            <div className="flex flex-col gap-1.5">
-                              <label
-                                className="text-xs font-bold text-slate-600"
-                                htmlFor="stripe-card-number"
-                              >
-                                Số thẻ (Card Number)
-                              </label>
-                              <input
-                                aria-label="Số thẻ"
-                                id="stripe-card-number"
-                                type="text"
-                                maxLength={19}
-                                value={cardNumber}
-                                onChange={(e) =>
-                                  setCardNumber(
-                                    e.target.value
-                                      .replace(/\D/g, "")
-                                      .replace(/(.{4})/g, "$1 ")
-                                      .trim(),
-                                  )
-                                }
-                                placeholder="4111 2222 3333 4444"
-                                className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm placeholder:text-slate-300 focus:border-emerald-600 focus:outline-none"
+                    {/* Payment Details Container */}
+                    <div className="rounded-xl border border-slate-100 bg-white p-5">
+                      {paymentMethod === "SEPAY" && (
+                        <div className="flex flex-col gap-5 md:flex-row md:items-center">
+                          <div className="flex flex-1 flex-col gap-2.5 text-xs text-slate-600">
+                            <h4 className="text-sm font-bold text-slate-800">
+                              Thông tin chuyển khoản
+                            </h4>
+                            <div className="grid grid-cols-[100px_1fr] gap-y-2">
+                              <span>Ngân hàng:</span>
+                              <span className="font-bold text-slate-800">Vietcombank (VCB)</span>
+                              <span>Chủ tài khoản:</span>
+                              <span className="font-bold text-slate-800 uppercase">
+                                CÔNG TY CỔ PHẦN UPNEXT
+                              </span>
+                              <span>Số tài khoản:</span>
+                              <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
+                                999988888
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyText("999988888", "Số tài khoản")}
+                                  className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
+                                >
+                                  <Copy size={10} /> Sao chép
+                                </button>
+                              </span>
+                              <span>Số tiền:</span>
+                              <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
+                                {invoiceAmountInt}
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyText(invoiceAmountInt, "Số tiền")}
+                                  className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
+                                >
+                                  <Copy size={10} /> Sao chép
+                                </button>
+                              </span>
+                              <span>Nội dung CK:</span>
+                              <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
+                                <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-800">
+                                  {invoice.invoiceCode}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleCopyText(invoice.invoiceCode, "Nội dung chuyển khoản")
+                                  }
+                                  className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
+                                >
+                                  <Copy size={10} /> Sao chép
+                                </button>
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[11px] text-slate-400 italic">
+                              * Vui lòng chuyển khoản đúng số tiền và nội dung chuyển khoản để hệ
+                              thống tự động quét và duyệt gói dịch vụ ngay lập tức.
+                            </p>
+                          </div>
+                          {/* VietQR Dynamic Code */}
+                          <div className="flex shrink-0 flex-col items-center justify-center">
+                            <div className="relative rounded-lg border border-slate-100 bg-white p-2.5 shadow-sm">
+                              <Image
+                                src={`https://img.vietqr.io/image/vietcombank-999988888-compact.png?amount=${invoiceAmountInt}&addInfo=${invoice.invoiceCode}&accountName=CONG%20TY%20CO%20PHAN%20UPNEXT`}
+                                alt="VietQR code"
+                                width={144}
+                                height={144}
+                                className="size-36 object-contain"
                               />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <span className="mt-2 flex items-center gap-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                              <QrCode size={12} /> Quét mã để trả nhanh
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {paymentMethod === "MOMO" && (
+                        <div className="flex flex-col gap-5 md:flex-row md:items-center">
+                          <div className="flex flex-1 flex-col gap-2.5 text-xs text-slate-600">
+                            <h4 className="text-sm font-bold text-slate-800">
+                              Thanh toán qua ví MoMo
+                            </h4>
+                            <div className="grid grid-cols-[100px_1fr] gap-y-2">
+                              <span>Số điện thoại:</span>
+                              <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
+                                0987654321
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyText("0987654321", "Số điện thoại Momo")}
+                                  className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
+                                >
+                                  <Copy size={10} /> Sao chép
+                                </button>
+                              </span>
+                              <span>Chủ tài khoản:</span>
+                              <span className="font-bold text-slate-800 uppercase">
+                                NGUYỄN VĂN A (UPNEXT FINANCE)
+                              </span>
+                              <span>Lời nhắn CK:</span>
+                              <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
+                                <span className="rounded bg-pink-50 px-2 py-0.5 text-pink-800">
+                                  {invoice.invoiceCode}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleCopyText(invoice.invoiceCode, "Lời nhắn MoMo")
+                                  }
+                                  className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
+                                >
+                                  <Copy size={10} /> Sao chép
+                                </button>
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[11px] text-slate-400 italic">
+                              * Quét mã QR bên cạnh hoặc chuyển khoản theo số điện thoại Momo với
+                              nội dung chuyển khoản là mã hóa đơn.
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 flex-col items-center justify-center">
+                            <div className="rounded-lg border border-slate-100 bg-white p-1.5 shadow-sm">
+                              <Image
+                                src="/assets/momo-qr.png"
+                                alt="Momo QR code"
+                                width={144}
+                                height={144}
+                                className="size-36 rounded object-cover"
+                              />
+                            </div>
+                            <span className="mt-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                              Quét ví MoMo
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {paymentMethod === "STRIPE" && (
+                        <div className="space-y-5">
+                          <div className="flex justify-center">
+                            <Image
+                              src="/assets/stripe-card.png"
+                              alt="Stripe credit card"
+                              width={320}
+                              height={200}
+                              className="h-44 w-72 rounded-xl object-cover shadow-md"
+                            />
+                          </div>
+                          <div className="space-y-4">
+                            <h4 className="text-sm font-bold text-slate-800">
+                              Thông tin thẻ tín dụng
+                            </h4>
+                            <div className="space-y-3.5">
                               <div className="flex flex-col gap-1.5">
                                 <label
                                   className="text-xs font-bold text-slate-600"
-                                  htmlFor="stripe-card-expiry"
+                                  htmlFor="stripe-card-number"
                                 >
-                                  Hết hạn (MM/YY)
+                                  Số thẻ (Card Number)
                                 </label>
                                 <input
-                                  aria-label="Ngày hết hạn"
-                                  id="stripe-card-expiry"
+                                  aria-label="Số thẻ"
+                                  id="stripe-card-number"
                                   type="text"
-                                  maxLength={5}
-                                  value={cardExpiry}
+                                  maxLength={19}
+                                  value={cardNumber}
                                   onChange={(e) =>
-                                    setCardExpiry(
+                                    setCardNumber(
                                       e.target.value
                                         .replace(/\D/g, "")
-                                        .replace(/(.{2})/, "$1/")
+                                        .replace(/(.{4})/g, "$1 ")
                                         .trim(),
                                     )
                                   }
-                                  placeholder="12/28"
+                                  placeholder="4111 2222 3333 4444"
                                   className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm placeholder:text-slate-300 focus:border-emerald-600 focus:outline-none"
                                 />
                               </div>
-                              <div className="flex flex-col gap-1.5">
-                                <label
-                                  className="text-xs font-bold text-slate-600"
-                                  htmlFor="stripe-card-cvc"
-                                >
-                                  Mã bảo mật (CVC)
-                                </label>
-                                <input
-                                  aria-label="Mã bảo mật CVC"
-                                  id="stripe-card-cvc"
-                                  type="password"
-                                  maxLength={3}
-                                  value={cardCvc}
-                                  onChange={(e) =>
-                                    setCardCvc(e.target.value.replace(/\D/g, "").trim())
-                                  }
-                                  placeholder="***"
-                                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm placeholder:text-slate-300 focus:border-emerald-600 focus:outline-none"
-                                />
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                  <label
+                                    className="text-xs font-bold text-slate-600"
+                                    htmlFor="stripe-card-expiry"
+                                  >
+                                    Hết hạn (MM/YY)
+                                  </label>
+                                  <input
+                                    aria-label="Ngày hết hạn"
+                                    id="stripe-card-expiry"
+                                    type="text"
+                                    maxLength={5}
+                                    value={cardExpiry}
+                                    onChange={(e) =>
+                                      setCardExpiry(
+                                        e.target.value
+                                          .replace(/\D/g, "")
+                                          .replace(/(.{2})/, "$1/")
+                                          .trim(),
+                                      )
+                                    }
+                                    placeholder="12/28"
+                                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm placeholder:text-slate-300 focus:border-emerald-600 focus:outline-none"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label
+                                    className="text-xs font-bold text-slate-600"
+                                    htmlFor="stripe-card-cvc"
+                                  >
+                                    Mã bảo mật (CVC)
+                                  </label>
+                                  <input
+                                    aria-label="Mã bảo mật CVC"
+                                    id="stripe-card-cvc"
+                                    type="password"
+                                    maxLength={3}
+                                    value={cardCvc}
+                                    onChange={(e) =>
+                                      setCardCvc(e.target.value.replace(/\D/g, "").trim())
+                                    }
+                                    placeholder="***"
+                                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm placeholder:text-slate-300 focus:border-emerald-600 focus:outline-none"
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
-              <Button
-                variant="ghost"
-                className="h-10 cursor-pointer border border-slate-200 px-4 text-xs font-bold text-slate-600 hover:bg-slate-100"
-                onClick={() => setCheckoutInvoice(null)}
-                disabled={paying}
-              >
-                Hủy bỏ
-              </Button>
-              <Button
-                className="flex h-10 cursor-pointer items-center gap-1.5 bg-emerald-600 px-5 text-xs font-bold text-white hover:bg-emerald-700"
-                onClick={() => void handleConfirmPayment()}
-                disabled={paying}
-              >
-                {paying ? (
-                  <>
-                    <Spinner className="size-4 animate-spin" />
-                    Đang kích hoạt...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle size={16} weight="bold" />
-                    Xác nhận đã thanh toán
+                      )}
+                    </div>
                   </>
                 )}
-              </Button>
-            </div>
-          </DialogPrimitive.Content>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+                <Button
+                  variant="ghost"
+                  className="h-10 cursor-pointer border border-slate-200 px-4 text-xs font-bold text-slate-600 hover:bg-slate-100"
+                  onClick={() => setCheckoutInvoice(null)}
+                  disabled={paying}
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  className="flex h-10 cursor-pointer items-center gap-1.5 bg-emerald-600 px-5 text-xs font-bold text-white hover:bg-emerald-700"
+                  onClick={() => void handleConfirmPayment()}
+                  disabled={paying}
+                >
+                  {paying ? (
+                    <>
+                      <Spinner className="size-4 animate-spin" />
+                      Đang kích hoạt...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={16} weight="bold" />
+                      Xác nhận đã thanh toán
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogPrimitive.Content>
+          </div>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
     </div>

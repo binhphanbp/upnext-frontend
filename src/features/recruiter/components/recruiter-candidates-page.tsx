@@ -335,7 +335,7 @@ export function RecruiterCandidatesPage() {
     <div className="w-full min-w-0 space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-950">{t("candidates.title")}</h1>
+          <h1 className="text-2xl font-bold text-slate-950">{t("candidates.title")}</h1>
           <p className="mt-1 text-sm text-slate-500">{t("candidates.subtitle")}</p>
         </div>
         <div>
@@ -554,19 +554,19 @@ export function RecruiterCandidatesPage() {
                 aria-label="Select all candidates on this page"
               />
             </th>
-            <th className="w-[220px] min-w-[200px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold tracking-wider text-slate-900 uppercase last:border-r-0">
+            <th className="w-[220px] min-w-[200px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {t("candidates.table.candidate")}
             </th>
-            <th className="min-w-[320px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold tracking-wider text-slate-900 uppercase last:border-r-0">
+            <th className="min-w-[320px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {t("candidates.table.jobPost")}
             </th>
-            <th className="w-[170px] min-w-[170px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold tracking-wider text-slate-900 uppercase last:border-r-0">
+            <th className="w-[170px] min-w-[170px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {t("candidates.table.submittedAt")}
             </th>
-            <th className="w-[180px] min-w-[180px] border-r border-slate-300 px-4 py-3 text-center text-xs font-bold tracking-wider text-slate-900 uppercase last:border-r-0">
+            <th className="w-[180px] min-w-[180px] border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
               {t("candidates.table.cv")}
             </th>
-            <th className="w-[155px] min-w-[155px] px-4 py-3 text-left text-xs font-bold tracking-wider text-slate-900 uppercase">
+            <th className="w-[155px] min-w-[155px] px-4 py-3 text-left text-xs font-bold text-slate-900">
               {t("candidates.table.status")}
             </th>
           </tr>
@@ -575,12 +575,12 @@ export function RecruiterCandidatesPage() {
           {candidates.length === 0 ? (
             <tr>
               <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500">
-                <div className="flex flex-col items-center justify-center gap-3">
+                <div className="flex flex-col items-center justify-center">
                   <Image
-                    src="/assets/icons/empty.png"
+                    src="/assets/icons/empty-state.png"
                     alt="Empty"
-                    width={100}
-                    height={100}
+                    width={120}
+                    height={120}
                     priority
                     style={{ height: "auto", width: "auto" }}
                     className="opacity-90"

@@ -36,6 +36,8 @@ import { FormInput } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
+import { RecruiterTableLayout } from "../components/recruiter-table-layout";
+
 const Toast = Swal.mixin({
   toast: true,
   position: "top-end",
@@ -167,7 +169,11 @@ export function RecruiterJobPostsPage() {
   const onboardingBlocked = useMemo(() => {
     if (!account) return true;
 
-    return !account.profile || !account.company || !account.company.businessLicenseFileId;
+    const isCompanyOnboarded =
+      account.company &&
+      (account.company.verificationStatus === "VERIFIED" || account.company.businessLicenseFileId);
+
+    return !account.profile || !isCompanyOnboarded;
   }, [account]);
 
   const companyVerified = account?.company?.verificationStatus === "VERIFIED";
@@ -302,6 +308,20 @@ export function RecruiterJobPostsPage() {
               Tài khoản cần có hồ sơ recruiter, công ty và minh chứng doanh nghiệp trước khi tạo tin
               tuyển dụng.
             </p>
+            <div className="mt-4 space-y-1 rounded-lg border border-amber-200 bg-white/80 p-3 font-mono text-xs text-slate-700">
+              <div>Email: {account?.email}</div>
+              <div>Profile: {account?.profile ? "Hoàn thành" : "Chưa hoàn thành (null)"}</div>
+              <div>Company: {account?.company ? account.company.name : "Chưa liên kết (null)"}</div>
+              {account?.company && (
+                <>
+                  <div>Company Verification: {account.company.verificationStatus}</div>
+                  <div>
+                    Company License ID:{" "}
+                    {account.company.businessLicenseFileId ? "Đã upload" : "Chưa upload (null)"}
+                  </div>
+                </>
+              )}
+            </div>
             <Button
               className="mt-4 bg-[#11a77a] hover:bg-[#0d966d]"
               onClick={() => router.push("/recruiter")}
@@ -479,7 +499,7 @@ export function RecruiterJobPostsPage() {
           </form>
         </Card>
 
-        <Card className="rounded-lg border-slate-200 bg-white p-0 shadow-sm">
+        <div className="rounded-lg border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-200 p-5">
             <div className="flex items-center gap-2">
               <Briefcase size={19} className="text-emerald-700" />
@@ -487,45 +507,43 @@ export function RecruiterJobPostsPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-xs font-extrabold tracking-wide text-slate-500 uppercase">
-                <tr>
-                  <th className="px-5 py-3" scope="col">
-                    Tin tuyển dụng
-                  </th>
-                  <th className="px-5 py-3" scope="col">
-                    Trạng thái
-                  </th>
-                  <th className="px-5 py-3" scope="col">
-                    Ứng viên
-                  </th>
-                  <th className="px-5 py-3 text-right" scope="col">
-                    Thao tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {jobs.map((job) => (
-                  <JobRow
-                    actionJobId={actionJobId}
-                    companyVerified={companyVerified}
-                    job={job}
-                    key={job.id}
-                    onClose={close}
-                    onPublish={publish}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <RecruiterTableLayout loading={false}>
+            <thead className="bg-slate-50 text-left text-xs font-extrabold tracking-wide text-slate-500 uppercase">
+              <tr>
+                <th className="px-5 py-3" scope="col">
+                  Tin tuyển dụng
+                </th>
+                <th className="px-5 py-3" scope="col">
+                  Trạng thái
+                </th>
+                <th className="px-5 py-3" scope="col">
+                  Ứng viên
+                </th>
+                <th className="px-5 py-3 text-right" scope="col">
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {jobs.map((job) => (
+                <JobRow
+                  actionJobId={actionJobId}
+                  companyVerified={companyVerified}
+                  job={job}
+                  key={job.id}
+                  onClose={close}
+                  onPublish={publish}
+                />
+              ))}
+            </tbody>
+          </RecruiterTableLayout>
 
           {jobs.length === 0 ? (
             <div className="p-8 text-center text-sm font-semibold text-slate-500">
               Chưa có tin tuyển dụng.
             </div>
           ) : null}
-        </Card>
+        </div>
       </section>
     </div>
   );
