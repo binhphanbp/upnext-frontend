@@ -44,7 +44,7 @@ jobs:
 
           if [ "${GITHUB_REF_NAME}" = "main" ]; then
             {
-              echo "api_url=https://api.upnext.works"
+              echo "api_url=https://api.upnext.works/api/v1"
               echo "tags<<EOF"
               echo "${IMAGE_NAME}:production"
               echo "${IMAGE_NAME}:sha-${SHORT_SHA}"
@@ -52,7 +52,7 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           elif [ "${GITHUB_REF_NAME}" = "develop" ]; then
             {
-              echo "api_url=https://api-staging.upnext.works"
+              echo "api_url=https://api-staging.upnext.works/api/v1"
               echo "tags<<EOF"
               echo "${IMAGE_NAME}:staging"
               echo "${IMAGE_NAME}:develop"
