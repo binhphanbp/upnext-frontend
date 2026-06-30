@@ -19,6 +19,8 @@ import { ApiError } from "@/shared/api/http";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 
+import { RecruiterTableLayout } from "./recruiter-table-layout";
+
 type JobStatusKey = "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
 
 const STATUS_LABELS: Record<JobStatusKey, string> = {
@@ -231,66 +233,64 @@ function JobPostsTable({ jobPosts }: { jobPosts: RecruiterJobPost[] }) {
   const showStart = totalItems === 0 ? 0 : startIndex + 1;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+    <div>
       <div className="border-b border-slate-100 p-5">
         <h3 className="text-base font-bold text-slate-800">Chi tiết hiệu quả từng tin</h3>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-100 text-sm">
-          <thead className="bg-slate-50/75 text-left text-xs font-bold tracking-wide text-slate-500 uppercase">
+      <RecruiterTableLayout loading={false}>
+        <thead className="bg-slate-50/75 text-left text-xs font-bold tracking-wide text-slate-500 uppercase">
+          <tr>
+            <th className="px-5 py-3" scope="col">
+              Tin tuyển dụng
+            </th>
+            <th className="px-5 py-3" scope="col">
+              Trạng thái
+            </th>
+            <th className="px-5 py-3" scope="col">
+              Kiểm duyệt
+            </th>
+            <th className="px-5 py-3 text-right" scope="col">
+              Ứng viên
+            </th>
+            <th className="px-5 py-3 text-right" scope="col">
+              Lượt xem
+            </th>
+            <th className="px-5 py-3 text-right" scope="col">
+              Ngày đăng
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {paginatedJobPosts.length === 0 ? (
             <tr>
-              <th className="px-5 py-3" scope="col">
-                Tin tuyển dụng
-              </th>
-              <th className="px-5 py-3" scope="col">
-                Trạng thái
-              </th>
-              <th className="px-5 py-3" scope="col">
-                Kiểm duyệt
-              </th>
-              <th className="px-5 py-3 text-right" scope="col">
-                Ứng viên
-              </th>
-              <th className="px-5 py-3 text-right" scope="col">
-                Lượt xem
-              </th>
-              <th className="px-5 py-3 text-right" scope="col">
-                Ngày đăng
-              </th>
+              <td colSpan={6} className="p-8 text-center text-xs font-semibold text-slate-400">
+                Chưa có tin tuyển dụng nào được tạo
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {paginatedJobPosts.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-8 text-center text-xs font-semibold text-slate-400">
-                  Chưa có tin tuyển dụng nào được tạo
+          ) : (
+            paginatedJobPosts.map((jp) => (
+              <tr key={jp.id} className="hover:bg-slate-50/50">
+                <td className="px-5 py-4 font-bold text-slate-800">{jp.title}</td>
+                <td className="px-5 py-4">
+                  <StatusBadge status={jp.status} />
+                </td>
+                <td className="px-5 py-4">
+                  <ModerationBadge status={jp.moderationStatus} />
+                </td>
+                <td className="px-5 py-4 text-right font-semibold text-slate-700">
+                  {jp._count?.applications ?? 0}
+                </td>
+                <td className="px-5 py-4 text-right font-semibold text-slate-700">
+                  {jp._count?.views ?? 0}
+                </td>
+                <td className="px-5 py-4 text-right text-xs text-slate-400">
+                  {jp.publishedAt ? formatDate(jp.publishedAt) : formatDate(jp.createdAt)}
                 </td>
               </tr>
-            ) : (
-              paginatedJobPosts.map((jp) => (
-                <tr key={jp.id} className="hover:bg-slate-50/50">
-                  <td className="px-5 py-4 font-bold text-slate-800">{jp.title}</td>
-                  <td className="px-5 py-4">
-                    <StatusBadge status={jp.status} />
-                  </td>
-                  <td className="px-5 py-4">
-                    <ModerationBadge status={jp.moderationStatus} />
-                  </td>
-                  <td className="px-5 py-4 text-right font-semibold text-slate-700">
-                    {jp._count?.applications ?? 0}
-                  </td>
-                  <td className="px-5 py-4 text-right font-semibold text-slate-700">
-                    {jp._count?.views ?? 0}
-                  </td>
-                  <td className="px-5 py-4 text-right text-xs text-slate-400">
-                    {jp.publishedAt ? formatDate(jp.publishedAt) : formatDate(jp.createdAt)}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+            ))
+          )}
+        </tbody>
+      </RecruiterTableLayout>
 
       {totalItems > 0 && (
         <div className="flex items-center justify-between border-t border-slate-100 bg-white p-5">

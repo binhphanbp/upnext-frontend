@@ -1,9 +1,16 @@
 "use client";
 
 import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
+import { useTranslations } from "next-intl";
 import * as React from "react";
 
+import { getAdminJobPosts, type AdminJobPostResponse } from "@/features/admin/api/job-posts";
+import { getAdminSession, clearAdminSession } from "@/features/admin/session";
+import { useRouter } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
+import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { DataTable } from "@/shared/ui/data-table";
@@ -17,6 +24,7 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { Skeleton } from "@/shared/ui/skeleton";
 
 export type AdminJobPost = {
   id: string;
@@ -29,131 +37,41 @@ export type AdminJobPost = {
   applicants: number;
 };
 
-const data: AdminJobPost[] = [
-  {
-    id: "JOB-1029",
-    title: "Senior Frontend Engineer (React/Next.js)",
-    employer: "VNG Corporation",
-    location: "Hồ Chí Minh",
-    type: "Toàn thời gian",
-    status: "Đang hiển thị",
-    postedDate: "24/06/2026",
-    applicants: 45,
-  },
-  {
-    id: "JOB-1030",
-    title: "Blockchain Smart Contract Developer",
-    employer: "Crypto Scam Co",
-    location: "Remote",
-    type: "Toàn thời gian",
-    status: "Chờ duyệt",
-    postedDate: "24/06/2026",
-    applicants: 0,
-  },
-  {
-    id: "JOB-1025",
-    title: "Product Designer (UI/UX)",
-    employer: "FPT Software",
-    location: "Hà Nội",
-    type: "Toàn thời gian",
-    status: "Đang hiển thị",
-    postedDate: "20/06/2026",
-    applicants: 12,
-  },
-  {
-    id: "JOB-0980",
-    title: "Data Analyst",
-    employer: "Shopee Vietnam",
-    location: "Hồ Chí Minh",
-    type: "Bán thời gian",
-    status: "Hết hạn",
-    postedDate: "01/05/2026",
-    applicants: 120,
-  },
-  {
-    id: "JOB-1028",
-    title: "Spam Job Posting Demo",
-    employer: "Spammer Inc",
-    location: "Đà Nẵng",
-    type: "Khác",
-    status: "Đã từ chối",
-    postedDate: "23/06/2026",
-    applicants: 0,
-  },
-  // Add more items for pagination
-  {
-    id: "JOB-1031",
-    title: "Backend Engineer (Go)",
-    employer: "Momo",
-    location: "Hồ Chí Minh",
-    type: "Toàn thời gian",
-    status: "Đang hiển thị",
-    postedDate: "25/06/2026",
-    applicants: 15,
-  },
-  {
-    id: "JOB-1032",
-    title: "QA Automation Engineer",
-    employer: "Tiki",
-    location: "Hà Nội",
-    type: "Toàn thời gian",
-    status: "Đang hiển thị",
-    postedDate: "26/06/2026",
-    applicants: 8,
-  },
-  {
-    id: "JOB-1033",
-    title: "System Administrator",
-    employer: "Viettel",
-    location: "Hà Nội",
-    type: "Toàn thời gian",
-    status: "Chờ duyệt",
-    postedDate: "27/06/2026",
-    applicants: 2,
-  },
-  {
-    id: "JOB-1034",
-    title: "DevOps Engineer",
-    employer: "VNG Corporation",
-    location: "Hồ Chí Minh",
-    type: "Toàn thời gian",
-    status: "Đang hiển thị",
-    postedDate: "28/06/2026",
-    applicants: 22,
-  },
-  {
-    id: "JOB-1035",
-    title: "React Native Developer",
-    employer: "FPT Software",
-    location: "Đà Nẵng",
-    type: "Toàn thời gian",
-    status: "Hết hạn",
-    postedDate: "01/06/2026",
-    applicants: 50,
-  },
-  {
-    id: "JOB-1036",
-    title: "Fake Job Scam",
-    employer: "Scam Co",
-    location: "Remote",
-    type: "Thực tập",
-    status: "Đã từ chối",
-    postedDate: "29/06/2026",
-    applicants: 0,
-  },
-  {
-    id: "JOB-1037",
-    title: "UI/UX Designer",
-    employer: "Zalo",
-    location: "Hồ Chí Minh",
-    type: "Toàn thời gian",
-    status: "Đang hiển thị",
-    postedDate: "30/06/2026",
-    applicants: 10,
-  },
-];
+function mapToAdminJobPost(apiPost: AdminJobPostResponse): AdminJobPost {
+  // Determine status mapping based on typical combinations of status & moderationStatus
+  let mappedStatus: AdminJobPost["status"] = "Đang hiển thị";
+  if (apiPost.moderationStatus === "PENDING" || apiPost.status === "DRAFT") {
+    mappedStatus = "Chờ duyệt";
+  } else if (apiPost.moderationStatus === "REJECTED") {
+    mappedStatus = "Đã từ chối";
+  } else if (apiPost.status === "CLOSED" || apiPost.status === "ARCHIVED") {
+    mappedStatus = "Hết hạn";
+  }
 
-import { useTranslations } from "next-intl";
+  // Handle employment types mapped from strings
+  let mappedType = "Khác";
+  const rawType = apiPost.employmentType?.name || apiPost.type || "";
+  if (rawType.includes("Toàn thời gian") || rawType.toLowerCase().includes("full"))
+    mappedType = "Toàn thời gian";
+  else if (rawType.includes("Bán thời gian") || rawType.toLowerCase().includes("part"))
+    mappedType = "Bán thời gian";
+  else if (rawType.includes("Thực tập") || rawType.toLowerCase().includes("intern"))
+    mappedType = "Thực tập";
+
+  return {
+    id: apiPost.id,
+    title: apiPost.title,
+    employer: apiPost.company?.name || "Chưa cập nhật",
+    location:
+      apiPost.jobPostLocations?.[0]?.jobLocation?.city || apiPost.location || "Chưa cập nhật",
+    type: mappedType,
+    status: mappedStatus,
+    postedDate: apiPost.publishedAt
+      ? formatAppDate(apiPost.publishedAt)
+      : formatAppDate(apiPost.createdAt),
+    applicants: apiPost._count?.applications || apiPost.applicants || 0,
+  };
+}
 
 export const getColumns = (t: any): ColumnDef<AdminJobPost>[] => [
   {
@@ -271,13 +189,57 @@ export const getColumns = (t: any): ColumnDef<AdminJobPost>[] => [
 export function JobPostsTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const t = useTranslations("Admin.content.jobs.table");
+  const router = useRouter();
+
+  const {
+    data: apiJobs = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["adminJobPosts"],
+    queryFn: async () => {
+      const session = getAdminSession();
+      if (!session) {
+        throw new Error("No session");
+      }
+      return getAdminJobPosts(session.accessToken);
+    },
+    retry: false,
+  });
+
+  React.useEffect(() => {
+    if (error) {
+      if (error instanceof Error && error.message === "No session") {
+        router.replace("/admin/login");
+      } else if (error instanceof ApiError && error.status === 401) {
+        clearAdminSession();
+        router.replace("/admin/login");
+      }
+    }
+  }, [error, router]);
+
+  const data = React.useMemo(() => {
+    return apiJobs.map(mapToAdminJobPost);
+  }, [apiJobs]);
 
   const filteredData = React.useMemo(() => {
     if (statusFilter === "all") return data;
     return data.filter((item) => item.status === statusFilter);
-  }, [statusFilter]);
+  }, [statusFilter, data]);
 
   const columns = React.useMemo(() => getColumns(t), [t]);
+
+  if (isLoading) {
+    return (
+      <div className="mt-6 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Skeleton className="h-10 w-full rounded-xl sm:w-[350px]" />
+          <Skeleton className="h-10 w-full rounded-xl sm:w-[180px]" />
+        </div>
+        <Skeleton className="h-[400px] w-full rounded-xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="mt-6 space-y-4">

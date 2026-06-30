@@ -12,10 +12,11 @@ import {
   ChartBar,
   GridFour,
   Shield,
+  CaretDown,
 } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
@@ -79,7 +80,46 @@ export function WorkspaceShell({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const currentLocale = locale === "en" ? "en" : "vi";
+
+  // Auto-expand menu if sub-menu child is active on mount / route change
+  useEffect(() => {
+    const initialOpen: Record<string, boolean> = {};
+    navGroups.forEach((group) => {
+      group.items.forEach((item) => {
+        if (item.children?.some((child) => pathname === child.href)) {
+          initialOpen[item.label] = true;
+        }
+      });
+    });
+    setOpenMenus((prev) => ({ ...prev, ...initialOpen }));
+  }, [pathname, navGroups]);
+
+  // Load initial collapsed state on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("workspace_sidebar_collapsed");
+    if (saved !== null) {
+      setCollapsed(JSON.parse(saved));
+    }
+  }, []);
+
+  // Reset hover state when navigating to close the temporary hover overlay
+  useEffect(() => {
+    setIsHovered(false);
+  }, [pathname]);
+
+  const handleToggleCollapse = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("workspace_sidebar_collapsed", JSON.stringify(next));
+      if (next) {
+        setIsHovered(false);
+      }
+      return next;
+    });
+  };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setIsScrolled(e.currentTarget.scrollTop > 0);
@@ -97,129 +137,201 @@ export function WorkspaceShell({
   return (
     <TooltipProvider delayDuration={120}>
       <div className="flex h-screen overflow-hidden overscroll-none bg-[#f4f6fa] font-sans text-[#2a3547] antialiased">
-        {/* 1. MINI SIDEBAR (Lớp 1 ngoài cùng) */}
-        <aside className="relative z-20 flex hidden w-[80px] flex-shrink-0 flex-col items-center border-r border-slate-200 bg-[#f4f6fa] py-5 md:flex">
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="hover:text-primary mb-8 text-slate-800 transition"
-            aria-label="Toggle Sidebar"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-              className="iconify iconify--solar"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-            >
-              <g fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5">
-                <path d="M20 7H4"></path>
-                <path d="M20 12H4" opacity=".5"></path>
-                <path d="M20 17H4"></path>
-              </g>
-            </svg>
-          </button>
-
-          <nav className="flex flex-col gap-4">
-            <button className="bg-primary flex h-12 w-12 items-center justify-center rounded-xl text-white">
-              <DiamondsFour size={24} />
-            </button>
-            <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
-              <Browser size={24} />
-            </button>
-            <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
-              <ChatCircleDots size={24} />
-            </button>
-            <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
-              <Sliders size={24} />
-            </button>
-            <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
-              <ChartBar size={24} />
-            </button>
-            <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
-              <GridFour size={24} />
-            </button>
-            <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
-              <Shield size={24} />
-            </button>
-          </nav>
-        </aside>
-
-        {/* 2. MAIN SIDEBAR (Lớp 2 màu trắng) */}
-        <aside
-          className={cn(
-            "w-[260px] bg-white flex flex-col flex-shrink-0 z-10 transition-all duration-200",
-            collapsed ? "hidden md:hidden lg:hidden" : "hidden lg:flex",
-          )}
+        {/* Sidebars Hover Wrapper */}
+        <div
+          className="relative z-20 flex h-full flex-shrink-0"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
-          <div className="flex h-[76px] items-center border-b border-transparent px-6">
-            <Logo className="w-[67%]" />
-          </div>
-          <ScrollArea className="flex-1 space-y-1 px-4 py-4">
-            <nav className="space-y-6" aria-label={`Điều hướng ${workspaceRole}`}>
-              {navGroups.map((group, groupIdx) => (
-                <section key={group.label} className={groupIdx > 0 ? "mt-6" : "mt-2"}>
-                  <h2 className="mb-2 px-4 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-                    {group.label}
-                  </h2>
-                  <div className="space-y-1">
-                    {group.items.map((item) => {
-                      const isRootNode =
-                        item.href === "/admin" ||
-                        item.href === "/recruiter" ||
-                        item.href === "/candidate";
-                      const active =
-                        pathname === item.href ||
-                        (!isRootNode && pathname.startsWith(`${item.href}/`));
-                      const Icon = item.icon;
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={cn(
-                            "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
-                            active
-                              ? "bg-primary text-white"
-                              : "text-slate-700 hover:bg-slate-50 hover:text-primary",
-                          )}
-                        >
-                          <Icon size={20} />
-                          {!collapsed ? (
-                            <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                          ) : null}
-                          {!collapsed && item.badge ? (
-                            <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
-                          ) : null}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </section>
-              ))}
-            </nav>
-          </ScrollArea>
-
-          <div className="border-border space-y-2 border-t p-3">
-            {workspaceRole !== "admin" ? (
-              <Button
-                className="w-full justify-start"
-                variant="secondary"
-                size={collapsed ? "icon" : "md"}
-              >
-                <Sparkle />
-                {!collapsed ? t("shell.proPackage") : null}
-              </Button>
-            ) : null}
-            <Button
-              className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50"
-              variant="ghost"
-              size={collapsed ? "icon" : "md"}
+          {/* 1. MINI SIDEBAR (Lớp 1 ngoài cùng) */}
+          <aside
+            className={cn(
+              "relative z-20 flex hidden w-[80px] flex-shrink-0 flex-col items-center border-r border-slate-200 py-5 md:flex transition-colors duration-300",
+              collapsed ? "bg-white" : "bg-[#f4f6fa]",
+            )}
+          >
+            <button
+              onClick={handleToggleCollapse}
+              className="hover:text-primary mb-8 text-slate-800 transition"
+              aria-label="Toggle Sidebar"
             >
-              <SignOut />
-              {!collapsed ? t("shell.signOut") : null}
-            </Button>
-          </div>
-        </aside>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+                className="iconify iconify--solar"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+              >
+                <g fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5">
+                  <path d="M20 7H4"></path>
+                  <path d="M20 12H4" opacity=".5"></path>
+                  <path d="M20 17H4"></path>
+                </g>
+              </svg>
+            </button>
+
+            <nav className="flex flex-col gap-4">
+              <button className="bg-primary flex h-12 w-12 items-center justify-center rounded-xl text-white">
+                <DiamondsFour size={24} />
+              </button>
+              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+                <Browser size={24} />
+              </button>
+              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+                <ChatCircleDots size={24} />
+              </button>
+              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+                <Sliders size={24} />
+              </button>
+              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+                <ChartBar size={24} />
+              </button>
+              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+                <GridFour size={24} />
+              </button>
+              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+                <Shield size={24} />
+              </button>
+            </nav>
+          </aside>
+
+          {/* 2. MAIN SIDEBAR (Lớp 2 màu trắng) */}
+          <aside
+            className={cn(
+              "bg-white flex-shrink-0 transition-[width,opacity] duration-300 ease-in-out h-full relative z-10 hidden lg:flex",
+              !collapsed || isHovered
+                ? "w-[260px] opacity-100 border-slate-100"
+                : "w-0 opacity-0 overflow-hidden border-r-0 lg:w-0 lg:border-r-0",
+            )}
+          >
+            <div className="flex h-full w-[260px] flex-shrink-0 flex-col">
+              <div className="flex h-[76px] items-center border-b border-transparent px-6">
+                <Logo className="w-[67%]" />
+              </div>
+              <ScrollArea className="flex-1 space-y-1 px-4 py-4">
+                <nav className="space-y-6" aria-label={`Điều hướng ${workspaceRole}`}>
+                  {navGroups.map((group, groupIdx) => (
+                    <section key={group.label} className={groupIdx > 0 ? "mt-6" : "mt-2"}>
+                      <h2 className="mb-2 px-4 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+                        {group.label}
+                      </h2>
+                      <div className="space-y-1">
+                        {group.items.map((item) => {
+                          const hasChildren = item.children && item.children.length > 0;
+
+                          if (hasChildren) {
+                            const isMenuOpen = !!openMenus[item.label];
+                            const isAnyChildActive = item.children?.some(
+                              (child) => pathname === child.href,
+                            );
+                            const Icon = item.icon;
+
+                            return (
+                              <div key={item.label} className="space-y-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenus((prev) => ({
+                                      ...prev,
+                                      [item.label]: !prev[item.label],
+                                    }));
+                                  }}
+                                  className={cn(
+                                    "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
+                                    isAnyChildActive
+                                      ? "bg-slate-50 text-primary font-semibold"
+                                      : "text-slate-700 hover:bg-slate-50 hover:text-primary",
+                                  )}
+                                >
+                                  <Icon size={20} />
+                                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                                  <CaretDown
+                                    size={16}
+                                    className={cn(
+                                      "text-slate-400 transition-transform duration-200",
+                                      isMenuOpen && "rotate-180",
+                                    )}
+                                  />
+                                </button>
+
+                                {isMenuOpen && (
+                                  <div className="space-y-1 pl-9 transition-all">
+                                    {item.children?.map((child) => {
+                                      const active = pathname === child.href;
+                                      return (
+                                        <Link
+                                          key={child.href}
+                                          href={child.href}
+                                          className={cn(
+                                            "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
+                                            active
+                                              ? "text-primary bg-emerald-50/50 font-semibold"
+                                              : "text-slate-600 hover:text-primary hover:bg-slate-50/50",
+                                          )}
+                                        >
+                                          <span className="truncate">{child.label}</span>
+                                        </Link>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          const isRootNode =
+                            item.href === "/admin" ||
+                            item.href === "/recruiter" ||
+                            item.href === "/candidate";
+                          const active =
+                            pathname === item.href ||
+                            (!isRootNode && pathname.startsWith(`${item.href}/`));
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              className={cn(
+                                "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
+                                active
+                                  ? "bg-primary text-white"
+                                  : "text-slate-700 hover:bg-slate-50 hover:text-primary",
+                              )}
+                            >
+                              <Icon size={20} />
+                              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                              {item.badge ? (
+                                <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
+                              ) : null}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
+                </nav>
+              </ScrollArea>
+
+              <div className="border-border space-y-2 border-t p-3">
+                {workspaceRole !== "admin" ? (
+                  <Button className="w-full justify-start" variant="secondary" size="md">
+                    <Sparkle />
+                    {t("shell.proPackage")}
+                  </Button>
+                ) : null}
+                <Button
+                  className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50"
+                  variant="ghost"
+                  size="md"
+                >
+                  <SignOut />
+                  {t("shell.signOut")}
+                </Button>
+              </div>
+            </div>
+          </aside>
+        </div>
 
         {/* 3. MOBILE SIDEBAR DRAWER OVERLAY */}
         {mobileOpen && (
@@ -255,6 +367,75 @@ export function WorkspaceShell({
                   </h2>
                   <div className="space-y-1">
                     {group.items.map((item) => {
+                      const hasChildren = item.children && item.children.length > 0;
+
+                      if (hasChildren) {
+                        const isMenuOpen = !!openMenus[item.label];
+                        const isAnyChildActive = item.children?.some(
+                          (child) => pathname === child.href,
+                        );
+                        const Icon = item.icon;
+
+                        return (
+                          <div key={item.label} className="space-y-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenMenus((prev) => ({
+                                  ...prev,
+                                  [item.label]: !prev[item.label],
+                                }));
+                              }}
+                              className={cn(
+                                "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
+                                isAnyChildActive
+                                  ? "bg-slate-50 text-primary font-semibold"
+                                  : "text-slate-700 hover:bg-slate-50 hover:text-primary",
+                              )}
+                            >
+                              <Icon
+                                size={18}
+                                className={cn(
+                                  "flex-shrink-0",
+                                  isAnyChildActive ? "text-primary" : "text-slate-400",
+                                )}
+                              />
+                              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                              <CaretDown
+                                size={14}
+                                className={cn(
+                                  "text-slate-400 transition-transform duration-200",
+                                  isMenuOpen && "rotate-180",
+                                )}
+                              />
+                            </button>
+
+                            {isMenuOpen && (
+                              <div className="space-y-1 pl-9 transition-all">
+                                {item.children?.map((child) => {
+                                  const active = pathname === child.href;
+                                  return (
+                                    <Link
+                                      key={child.href}
+                                      href={child.href}
+                                      onClick={() => setMobileOpen(false)}
+                                      className={cn(
+                                        "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
+                                        active
+                                          ? "text-primary bg-emerald-50/50 font-semibold"
+                                          : "text-slate-600 hover:text-primary hover:bg-slate-50/50",
+                                      )}
+                                    >
+                                      <span className="truncate">{child.label}</span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
                       const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                       const Icon = item.icon;
                       return (

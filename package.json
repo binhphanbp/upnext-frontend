@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "proxy": "vite",
     "build": "next build",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit --pretty false",
@@ -78,6 +79,7 @@
     "postcss": "^8.5.15",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^8.1.0",
     "vitest": "^4.1.8"
   },
   "engines": {

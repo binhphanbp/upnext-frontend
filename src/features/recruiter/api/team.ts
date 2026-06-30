@@ -14,6 +14,7 @@ export type RecruiterRole = Readonly<{
   code: string;
   name: string;
   description: string | null;
+  companyId?: string | null;
   rolePermissions?: {
     recruiterPermission: RecruiterPermission;
   }[];
@@ -41,7 +42,7 @@ export type CompanyMember = Readonly<{
 }>;
 
 export type RolePayload = Readonly<{
-  code: string;
+  code?: string;
   name: string;
   description?: string;
 }>;
@@ -101,6 +102,20 @@ export function createRecruiterRole(payload: RolePayload, token: string) {
   });
 }
 
+export async function createRecruiterRoleWithPermissions(
+  payload: RolePayload,
+  permissionIds: string[],
+  token: string,
+) {
+  const role = await createRecruiterRole(payload, token);
+
+  if (permissionIds.length === 0) {
+    return role;
+  }
+
+  return assignRecruiterRolePermissions(role.id, permissionIds, token);
+}
+
 export function updateRecruiterRole(roleId: string, payload: RolePayload, token: string) {
   return apiRequest<RecruiterRole>(`/recruiter-roles/${roleId}`, {
     body: JSON.stringify(removeEmptyFields(payload)),
@@ -158,5 +173,70 @@ export function deleteRecruiterPermission(permissionId: string, token: string) {
   return apiRequest<void>(`/recruiter-permissions/${permissionId}`, {
     headers: authHeaders(token),
     method: "DELETE",
+  });
+}
+
+export type Application = Readonly<{
+  id: string;
+  submittedAt: string;
+  status:
+    | "SUBMITTED"
+    | "REVIEWING"
+    | "INTERVIEWING"
+    | "OFFERED"
+    | "ACCEPTED"
+    | "REJECTED"
+    | "WITHDRAWN";
+  coverLetter: string | null;
+  candidateProfile: {
+    id: string;
+    account: {
+      id: string;
+      fullName: string | null;
+      email: string;
+    };
+  };
+  jobPost: {
+    id: string;
+    title: string;
+  };
+  cvVersion: {
+    id: string;
+    fileName: string;
+    fileUrl: string;
+  };
+}>;
+
+export function getCompanyApplications(
+  token: string,
+  params?: {
+    jobPostId?: string;
+    status?: string;
+    search?: string;
+  },
+) {
+  const query = new URLSearchParams();
+  if (params?.jobPostId) query.set("jobPostId", params.jobPostId);
+  if (params?.status) query.set("status", params.status);
+  if (params?.search) query.set("search", params.search);
+
+  const queryString = query.toString();
+  const url = `/recruiter/company-applications${queryString ? `?${queryString}` : ""}`;
+
+  return apiRequest<Application[]>(url, {
+    headers: authHeaders(token),
+  });
+}
+
+export function updateApplicationStatus(
+  applicationId: string,
+  status: string,
+  token: string,
+  note?: string,
+) {
+  return apiRequest<Application>(`/applications/${applicationId}/status`, {
+    body: JSON.stringify({ status, note }),
+    headers: jsonAuthHeaders(token),
+    method: "PATCH",
   });
 }

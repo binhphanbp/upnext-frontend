@@ -3,6 +3,11 @@
     "title": "UpNext - IT recruitment platform",
     "description": "UpNext connects IT talent with trusted technology companies through skill-first matching, market data, and a modern hiring experience."
   },
+  "NotFound": {
+    "title": "Page not found",
+    "description": "Sorry, the page you are looking for does not exist or has been removed.",
+    "goHome": "Go back home"
+  },
   "Auth": {
     "common": {
       "or": "or",
@@ -574,8 +579,10 @@
           "emailInvalid": "Contact email format is invalid.",
           "phoneMin": "Phone number must be at least 4 characters.",
           "sizeRequired": "Please select company size.",
+          "cityRequired": "Please select a province/city.",
           "addressMin": "Company address must be at least 6 characters.",
           "descMin": "Company introduction must be at least 20 characters.",
+          "benefitsMin": "Employee benefits must be at least 20 characters.",
           "saveErrorTitle": "Cannot Save Profile",
           "popupBlockedTitle": "Popup Blocked",
           "popupBlockedText": "Please allow popups to view the license document.",
@@ -648,7 +655,26 @@
           "companySizePlaceholder": "e.g. 51-200 employees",
           "description": "Company Introduction",
           "descriptionPlaceholder": "Detailed company introduction...",
-          "license": "Business License"
+          "benefits": "Employee Benefits",
+          "benefitsPlaceholder": "Enter employee benefits...",
+          "license": "Business License",
+          "city": "Province/City",
+          "cityPlaceholder": "Select province/city",
+          "address": "Company Address",
+          "addressPlaceholder": "Enter company address"
+        },
+        "companySizes": {
+          "placeholder": "Please select",
+          "lessThan10": "Less than 10",
+          "10to24": "10-24",
+          "25to99": "25-99",
+          "100to499": "100-499",
+          "500to999": "500-999",
+          "1000to4999": "1,000-4,999",
+          "5000to9999": "5,000-9,999",
+          "10000to19999": "10,000-19,999",
+          "20000to49999": "20,000-49,999",
+          "moreThan50000": "More than 50,000"
         },
         "licenseSection": {
           "selected": "Selected: {filename}",
@@ -678,6 +704,177 @@
           "licenseInput": "Upload business license",
           "photosInput": "Upload company photo"
         }
+      },
+      "companyAddresses": {
+        "title": "Create Work Location",
+        "description": "Manage the list of offices, branches, and headquarters of your company.",
+        "addBtn": "Create Work Location",
+        "editBtn": "Edit",
+        "deleteBtn": "Delete",
+        "saveBtn": "Save Address",
+        "cancelBtn": "Cancel",
+        "saving": "Saving...",
+        "deleting": "Deleting...",
+        "workingModel": "Working Model",
+        "officeName": "Office Name",
+        "officeNamePlaceholder": "E.g. District 1 Office, Main Headquarters",
+        "city": "Province/City",
+        "cityPlaceholder": "Select Province/City",
+        "address": "Address",
+        "addressPlaceholder": "E.g. 123 Nguyen Hue Street, District 1, Ho Chi Minh City",
+        "workingModels": {
+          "ONSITE": "On-site",
+          "HYBRID": "Hybrid",
+          "REMOTE": "Remote"
+        },
+        "errors": {
+          "loadError": "Failed to load company addresses.",
+          "saveError": "Failed to save address information.",
+          "deleteError": "Failed to delete address.",
+          "requiredFields": "Please fill in the office name, province/city and address."
+        },
+        "success": {
+          "created": "New address added successfully.",
+          "updated": "Address details updated successfully.",
+          "deleted": "Address deleted successfully."
+        },
+        "confirmDelete": {
+          "title": "Delete this address?",
+          "text": "This action will permanently delete the selected address and cannot be undone.",
+          "confirm": "Yes, delete",
+          "cancel": "Cancel"
+        },
+        "actions": "Actions",
+        "locationsCount": "{count} locations",
+        "emptyState": {
+          "title": "No work locations yet",
+          "description": "Please add office or branch locations so candidates can get the correct information."
+        },
+        "dialogTitleEdit": "Edit Work Location",
+        "dialogTitleAdd": "Create Work Location",
+        "charLimit": "{count}/{max} characters",
+        "save": "Save",
+        "create": "Create"
+      }
+    },
+    "team": {
+      "title": "Team & Permissions",
+      "membersBadge": "{count} members",
+      "rolesBadge": "{count} roles",
+      "permissionsBadge": "{count} permissions",
+      "tabs": {
+        "members": "Members",
+        "roles": "Roles"
+      },
+      "actions": {
+        "inviteMember": "Invite Member",
+        "addRole": "Add Role",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving...",
+        "delete": "Delete",
+        "edit": "Edit",
+        "search": "Search..."
+      },
+      "alerts": {
+        "inviteOwnerOnly": "Only the company Owner has permission to invite members.",
+        "roleOwnerOnly": "Only the company Owner has permission to add or edit roles."
+      },
+      "table": {
+        "member": "Member",
+        "status": "Status",
+        "role": "Role",
+        "actions": "Actions",
+        "assignedCount": "Assigned Count",
+        "permissions": "Permissions",
+        "emptyMembers": "No members found.",
+        "emptyRoles": "No roles found.",
+        "allPermissions": "All permissions"
+      },
+      "status": {
+        "active": "Active",
+        "pending": "Pending"
+      },
+      "inviteDialog": {
+        "title": "Invite New Member",
+        "description": "Enter the email of the member you want to invite to your recruitment team.",
+        "emailLabel": "Email Address",
+        "roleLabel": "Recruitment Role",
+        "submit": "Send Invitation",
+        "submitting": "Sending..."
+      },
+      "roleDialog": {
+        "createTitle": "Add New Role",
+        "editTitle": "Edit Role",
+        "description": "Set a name and select detailed permissions for this role.",
+        "nameLabel": "Role Name",
+        "namePlaceholder": "E.g. Recruitment Lead",
+        "descLabel": "Role Description",
+        "descPlaceholder": "E.g. Manages job posts and contacts candidates",
+        "permissionsLabel": "Assign Permissions",
+        "selectPermissions": "Select permissions",
+        "selectRoleFirst": "Select role first",
+        "ownerDefault": "Default Owner permissions",
+        "alreadyAssigned": "Already assigned",
+        "submit": "Save Role",
+        "createSubmit": "Add Role",
+        "roleNameRequired": "Please enter a role name and select at least one permission."
+      },
+      "messages": {
+        "inviteSuccess": "Invitation sent successfully!",
+        "inviteSuccessTitle": "Invited",
+        "roleSaveSuccess": "Role saved successfully!",
+        "roleSaveSuccessTitle": "Saved",
+        "deleteRoleConfirm": "Are you sure you want to delete this role?",
+        "deleteRoleWarning": "This will affect members currently holding this role.",
+        "deleteRoleSuccess": "Role deleted successfully!",
+        "deleteMemberConfirm": "Are you sure you want to remove this member?",
+        "deleteMemberWarning": "They will lose access to your recruiter workspace.",
+        "deleteMemberSuccess": "Member removed successfully!",
+        "roleAlreadyAssigned": "This role is already assigned. Please choose another name.",
+        "errorTitle": "Action Failed"
+      },
+      "permissionNames": {
+        "jobs_manage": "Manage job posts",
+        "applications_manage": "Manage all candidate profiles & pipeline",
+        "applications_review_assigned": "Review assigned candidates",
+        "interviews_manage": "Manage interview schedules",
+        "interviews_review_assigned": "Review assigned interviews",
+        "company_manage": "Manage company profile",
+        "members_manage": "Manage members & permissions",
+        "billing_manage": "Manage billing & service plans"
+      }
+    },
+    "candidates": {
+      "title": "Candidate Management",
+      "subtitle": "Manage all candidates who have applied to your company's job postings.",
+      "filters": {
+        "searchPlaceholder": "Search by name, email...",
+        "allJobs": "All Job Posts",
+        "allStatuses": "All Statuses",
+        "clear": "Clear Filters"
+      },
+      "table": {
+        "candidate": "Candidate",
+        "jobPost": "Job Post",
+        "submittedAt": "Applied Date",
+        "cv": "CV Resume",
+        "status": "Status",
+        "actions": "Actions",
+        "empty": "No candidates found."
+      },
+      "status": {
+        "SUBMITTED": "Submitted",
+        "VIEWED": "Viewed",
+        "SHORTLISTED": "Shortlisted",
+        "INTERVIEWING": "Interviewing",
+        "OFFERED": "Offered",
+        "HIRED": "Hired",
+        "REJECTED": "Rejected",
+        "WITHDRAWN": "Withdrawn"
+      },
+      "messages": {
+        "statusUpdateSuccess": "Application status updated successfully!"
       }
     }
   },
