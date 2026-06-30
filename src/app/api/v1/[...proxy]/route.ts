@@ -1,9 +1,11 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
+
+import { createApiUrl } from "@/shared/api/http";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ proxy: string[] }> }) {
   const { proxy } = await params;
   const slug = proxy.join("/");
-  const url = `https://api-staging.upnext.works/api/v1/${slug}`;
+  const url = createApiUrl(`/${slug}`);
 
   // Clone the request body
   const body = await req.text();
@@ -32,10 +34,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
         "Content-Type": response.headers.get("Content-Type") || "application/json",
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[Proxy Error]", err);
-    return new Response(JSON.stringify({ error: err.message, type: "PROXY_ERROR" }), {
-      status: 500,
-    });
+    const message = err instanceof Error ? err.message : "Unexpected proxy error";
+
+    return new Response(JSON.stringify({ error: message, type: "PROXY_ERROR" }), { status: 500 });
   }
 }

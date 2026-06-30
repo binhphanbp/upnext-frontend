@@ -817,8 +817,8 @@
         "ownerDefault": "Quyền Owner mặc định",
         "alreadyAssigned": "Đã có quyền này",
         "submit": "Lưu vai trò",
-        "createSubmit": "Th?m vai tr?",
-        "roleNameRequired": "Vui l?ng nh?p t?n vai tr? v? ch?n ?t nh?t m?t quy?n."
+        "createSubmit": "Thêm vai trò",
+        "roleNameRequired": "Vui lòng nhập tên vai trò và chọn ít nhất một quyền."
       },
       "messages": {
         "inviteSuccess": "Gửi lời mời thành công!",
