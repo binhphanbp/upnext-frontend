@@ -32,7 +32,21 @@ import {
   uploadFile,
   scanCompanyBusinessLicense,
   updateCompany,
+  createCompanyLocation,
+  getCompanyLocations,
+  updateCompanyLocation,
 } from "@/features/recruiter/api/onboarding";
+import {
+  extractProvinceFromAddress,
+  normalizeProvinceName,
+  normalizeWebsite,
+  stripProvinceFromAddress,
+} from "@/features/recruiter/constants/company-autofill";
+import {
+  DRAFT_COMPANY_NAME,
+  PRIMARY_COMPANY_LOCATION_NAME,
+  VIETNAM_PROVINCES,
+} from "@/features/recruiter/constants/vietnam-provinces";
 import {
   clearRecruiterSession,
   getRecruiterSession,
@@ -40,10 +54,18 @@ import {
 } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
-import { AddressSelector } from "@/shared/ui/address-selector";
 import { Button } from "@/shared/ui/button";
 import { FormInput, Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+
+function isValidPhoneNumber(phone: string): boolean {
+  const cleanPhone = phone.trim().replace(/[\s.-]/g, "");
+  // Matches:
+  // - 0 followed by 9 or 10 digits (e.g. 0912345678, 02812345678)
+  // - +84 or 84 followed by 9 or 10 digits
+  const phoneRegex = /^(?:\+?84|0)[235789]\d{8,9}$/;
+  return phoneRegex.test(cleanPhone);
+}
 
 const Toast = Swal.mixin({
   toast: true,
@@ -60,7 +82,12 @@ const createOnboardingSchema = (
 ) =>
   z.object({
     fullName: z.string().trim().min(2, t("onboarding.validation.fullNameMin")),
-    phoneNumber: z.string().trim().min(8, t("onboarding.validation.phoneNumberMin")),
+    phoneNumber: z
+      .string()
+      .trim()
+      .refine((val) => isValidPhoneNumber(val), {
+        message: t("onboarding.validation.phoneNumberMin") || "Số điện thoại chưa hợp lệ.",
+      }),
     gender: z.enum(["MALE", "FEMALE"], {
       message: t("onboarding.validation.genderRequired"),
     }),
@@ -77,8 +104,20 @@ const createOnboardingSchema = (
     companyName: z.string().trim().min(2, t("onboarding.validation.companyNameMin")),
     taxCode: z.string().trim().min(8, t("onboarding.validation.taxCodeMin")),
     address: z.string().trim().min(6, t("onboarding.validation.addressMin")),
+    city: z
+      .string()
+      .trim()
+      .min(
+        1,
+        t("onboarding.companyProfile.errors.cityRequired") || "Vui lòng chọn tỉnh/thành phố.",
+      ),
     companyEmail: z.email(t("onboarding.validation.companyEmailInvalid")),
-    companyPhone: z.string().trim().min(8, t("onboarding.validation.companyPhoneMin")),
+    companyPhone: z
+      .string()
+      .trim()
+      .refine((val) => isValidPhoneNumber(val), {
+        message: t("onboarding.validation.companyPhoneMin") || "Số điện thoại công ty chưa hợp lệ.",
+      }),
     website: z
       .string()
       .trim()
@@ -89,6 +128,7 @@ const createOnboardingSchema = (
       }),
     companySize: z.string().trim().min(1, t("onboarding.validation.companySizeMin")),
     description: z.string().trim().min(20, t("onboarding.validation.descriptionMin")),
+    benefits: z.string().trim().optional(),
     businessLicense: z.custom<FileList>().refine(
       (files) => {
         if (hasCompanyLicense) return true;
@@ -111,11 +151,13 @@ const stepFields: Record<OnboardingStep, Array<keyof OnboardingValues>> = {
     "companyName",
     "taxCode",
     "address",
+    "city",
     "companyEmail",
     "companyPhone",
     "website",
     "companySize",
     "description",
+    "benefits",
   ],
   2: ["businessLicense"],
 };
@@ -205,7 +247,11 @@ export function RecruiterDashboardPage() {
     if (!account) return false;
     if (skippedOnboarding) return false;
 
-    return !account.profile || !account.company || !account.company.businessLicenseFileId;
+    const isCompanyOnboarded =
+      account.company &&
+      (account.company.verificationStatus === "VERIFIED" || account.company.businessLicenseFileId);
+
+    return !account.profile || !isCompanyOnboarded;
   }, [account, skippedOnboarding]);
 
   const progressPercentage = useMemo(() => {
@@ -614,6 +660,20 @@ function RecruiterOnboardingDialog({
   const t = useTranslations("Recruiter");
   const [step, setStep] = useState<OnboardingStep>(0);
 
+  const companySizeOptions = [
+    { value: "", label: t("onboarding.companyProfile.companySizes.placeholder") },
+    { value: "1", label: t("onboarding.companyProfile.companySizes.lessThan10") },
+    { value: "2", label: t("onboarding.companyProfile.companySizes.10to24") },
+    { value: "3", label: t("onboarding.companyProfile.companySizes.25to99") },
+    { value: "4", label: t("onboarding.companyProfile.companySizes.100to499") },
+    { value: "5", label: t("onboarding.companyProfile.companySizes.500to999") },
+    { value: "6", label: t("onboarding.companyProfile.companySizes.1000to4999") },
+    { value: "7", label: t("onboarding.companyProfile.companySizes.5000to9999") },
+    { value: "8", label: t("onboarding.companyProfile.companySizes.10000to19999") },
+    { value: "9", label: t("onboarding.companyProfile.companySizes.20000to49999") },
+    { value: "10", label: t("onboarding.companyProfile.companySizes.moreThan50000") },
+  ];
+
   const profile = account.profile as {
     id: string;
     fullName: string;
@@ -641,14 +701,17 @@ function RecruiterOnboardingDialog({
       fullName: profile?.fullName ?? "",
       phoneNumber: profile?.phoneNumber ?? "",
       gender: (profile?.gender as "MALE" | "FEMALE") ?? undefined,
-      companyName: account.company?.name ?? "",
+      companyName:
+        account.company?.name === DRAFT_COMPANY_NAME ? "" : (account.company?.name ?? ""),
       taxCode: "",
       address: "",
+      city: "",
       companyEmail: account.email,
       companyPhone: "",
       website: "",
       companySize: "",
       description: "",
+      benefits: "",
     },
   });
 
@@ -678,13 +741,17 @@ function RecruiterOnboardingDialog({
       setScanning(true);
       if (!currentCompanyId) {
         // Create draft company first
-        const draftCompany = await createCompany({ name: "Draft Company" }, token);
+        const draftCompany = await createCompany({ name: DRAFT_COMPANY_NAME }, token);
         currentCompanyId = draftCompany.id;
         setOnboardingCompanyId(currentCompanyId);
         await attachRecruiterCompany(account.id, currentCompanyId, token);
       }
 
       const data = await scanCompanyBusinessLicense(currentCompanyId, aiLicenseFile, token);
+      const normalizedCity =
+        normalizeProvinceName(data.city) || extractProvinceFromAddress(data.address);
+      const normalizedAddress = stripProvinceFromAddress(data.address, normalizedCity);
+      const normalizedWebsite = normalizeWebsite(data.website);
 
       const result = await Swal.fire({
         title:
@@ -693,10 +760,11 @@ function RecruiterOnboardingDialog({
           <div class="text-left space-y-2 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100 font-sans">
             <p class="break-words"><strong>${t("onboarding.companyProfile.messages.scanFields.name") || "Tên công ty"}:</strong> ${data.name || "Không tìm thấy"}</p>
             <p class="break-words"><strong>${t("onboarding.companyProfile.messages.scanFields.taxCode") || "Mã số thuế"}:</strong> ${data.taxCode || "Không tìm thấy"}</p>
-            <p class="break-words"><strong>${t("onboarding.companyProfile.messages.scanFields.address") || "Địa chỉ"}:</strong> ${data.address || "Không tìm thấy"}</p>
+            <p class="break-words"><strong>${t("onboarding.companyProfile.fields.city") || "Tỉnh/Thành phố"}:</strong> ${normalizedCity || "Không tìm thấy"}</p>
+            <p class="break-words"><strong>${t("onboarding.companyProfile.messages.scanFields.address") || "Địa chỉ"}:</strong> ${normalizedAddress || "Không tìm thấy"}</p>
             ${data.email ? `<p class="break-words"><strong>Email:</strong> ${data.email}</p>` : ""}
             ${data.phone ? `<p class="break-words"><strong>SĐT:</strong> ${data.phone}</p>` : ""}
-            ${data.website ? `<p class="break-words"><strong>Website:</strong> ${data.website}</p>` : ""}
+            ${normalizedWebsite ? `<p class="break-words"><strong>Website:</strong> ${normalizedWebsite}</p>` : ""}
           </div>
           <p class="mt-4 text-center font-bold text-slate-700 font-sans">${t("onboarding.companyProfile.messages.scanSuccessConfirmText") || "Bạn có muốn tự động điền các thông tin này?"}</p>
         `,
@@ -712,14 +780,16 @@ function RecruiterOnboardingDialog({
           form.setValue("companyName", data.name, { shouldValidate: true, shouldDirty: true });
         if (data.taxCode)
           form.setValue("taxCode", data.taxCode, { shouldValidate: true, shouldDirty: true });
-        if (data.address)
-          form.setValue("address", data.address, { shouldValidate: true, shouldDirty: true });
+        if (normalizedCity)
+          form.setValue("city", normalizedCity, { shouldValidate: true, shouldDirty: true });
+        if (normalizedAddress)
+          form.setValue("address", normalizedAddress, { shouldValidate: true, shouldDirty: true });
         if (data.email)
           form.setValue("companyEmail", data.email, { shouldValidate: true, shouldDirty: true });
         if (data.phone)
           form.setValue("companyPhone", data.phone, { shouldValidate: true, shouldDirty: true });
-        if (data.website)
-          form.setValue("website", data.website, { shouldValidate: true, shouldDirty: true });
+        if (normalizedWebsite)
+          form.setValue("website", normalizedWebsite, { shouldValidate: true, shouldDirty: true });
 
         // Programmatically populate the businessLicense field in step 3 using DataTransfer
         const dataTransfer = new DataTransfer();
@@ -813,6 +883,7 @@ function RecruiterOnboardingDialog({
             address: values.address,
             companySize: values.companySize,
             description: values.description,
+            benefits: values.benefits ?? "",
             email: values.companyEmail,
             name: values.companyName,
             phone: values.companyPhone,
@@ -821,6 +892,12 @@ function RecruiterOnboardingDialog({
           },
           token,
         );
+        await syncPrimaryCompanyLocation(
+          currentCompanyId,
+          token,
+          values.city.trim(),
+          values.address.trim(),
+        );
         companyId = currentCompanyId;
       } else {
         const newCompany = await createCompany(
@@ -828,6 +905,7 @@ function RecruiterOnboardingDialog({
             address: values.address,
             companySize: values.companySize,
             description: values.description,
+            benefits: values.benefits ?? "",
             email: values.companyEmail,
             name: values.companyName,
             phone: values.companyPhone,
@@ -837,6 +915,12 @@ function RecruiterOnboardingDialog({
           token,
         );
         companyId = newCompany.id;
+        await syncPrimaryCompanyLocation(
+          companyId,
+          token,
+          values.city.trim(),
+          values.address.trim(),
+        );
       }
 
       if (!account.company) {
@@ -888,484 +972,545 @@ function RecruiterOnboardingDialog({
   return (
     <DialogPrimitive.Root open={open} modal={false}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="animate-dialog-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm" />
+        <div className="animate-dialog-overlay fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm" />
 
-        <DialogPrimitive.Content
-          aria-describedby="recruiter-onboarding-dialog-description"
-          className="animate-dialog-unfold fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-4xl flex-col overflow-hidden rounded-3xl bg-white p-0 shadow-2xl [--ring:#10a778] focus:outline-none"
-        >
-          <div className="bg-header relative shrink-0 overflow-hidden border-t-[3px] border-b border-slate-200 border-t-white px-4 py-6 sm:px-6 sm:py-8">
-            {/* Grid pattern overlay */}
-            <div
-              className="pointer-events-none absolute inset-0 opacity-15"
-              style={{
-                backgroundImage: `
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
+          <DialogPrimitive.Content
+            aria-describedby="recruiter-onboarding-dialog-description"
+            className="animate-dialog-unfold pointer-events-auto relative flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white p-0 shadow-2xl [--ring:#10a778] focus:outline-none"
+          >
+            <div className="bg-header relative shrink-0 overflow-hidden border-t-[3px] border-b border-slate-200 border-t-white px-4 py-6 sm:px-6 sm:py-8">
+              {/* Grid pattern overlay */}
+              <div
+                className="pointer-events-none absolute inset-0 opacity-15"
+                style={{
+                  backgroundImage: `
                   linear-gradient(to right, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
                   linear-gradient(to bottom, rgba(255, 255, 255, 0.2) 1px, transparent 1px)
                 `,
-                backgroundSize: "20px 20px",
-              }}
-            />
-            {/* Glow blobs */}
-            <div className="pointer-events-none absolute -top-10 -left-10 size-40 rounded-full bg-emerald-400/20 blur-2xl" />
-            <div className="pointer-events-none absolute -right-10 -bottom-10 size-40 rounded-full bg-teal-300/15 blur-2xl" />
+                  backgroundSize: "20px 20px",
+                }}
+              />
+              {/* Glow blobs */}
+              <div className="pointer-events-none absolute -top-10 -left-10 size-40 rounded-full bg-emerald-400/20 blur-2xl" />
+              <div className="pointer-events-none absolute -right-10 -bottom-10 size-40 rounded-full bg-teal-300/15 blur-2xl" />
 
-            <div className="relative z-10">
-              <DialogPrimitive.Title className="text-center text-lg font-bold text-white sm:text-xl">
-                {t("onboarding.updateProfile")}
-              </DialogPrimitive.Title>
+              <div className="relative z-10">
+                <DialogPrimitive.Title className="text-center text-lg font-bold text-white sm:text-xl">
+                  {t("onboarding.updateProfile")}
+                </DialogPrimitive.Title>
 
-              <DialogPrimitive.Description
-                id="recruiter-onboarding-dialog-description"
-                className="sr-only"
-              >
-                {t("onboarding.dialogDescription")}
-              </DialogPrimitive.Description>
+                <DialogPrimitive.Description
+                  id="recruiter-onboarding-dialog-description"
+                  className="sr-only"
+                >
+                  {t("onboarding.dialogDescription")}
+                </DialogPrimitive.Description>
 
-              <div className="mt-6 w-full">
-                <div className="relative mx-auto grid w-full grid-cols-3 items-start px-2 sm:px-8">
-                  {/* Background track line */}
-                  <div className="absolute top-4 right-[16.666%] left-[16.666%] h-0.5 bg-white/20" />
+                <div className="mt-6 w-full">
+                  <div className="relative mx-auto grid w-full grid-cols-3 items-start px-2 sm:px-8">
+                    {/* Background track line */}
+                    <div className="absolute top-4 right-[16.666%] left-[16.666%] h-0.5 bg-white/20" />
 
-                  {/* Active progress line */}
-                  <div
-                    className={[
-                      "absolute left-[16.666%] top-4 h-0.5 bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-500",
-                      step === 0 ? "w-0" : "",
-                      step === 1 ? "w-[33.333%]" : "",
-                      step === 2 ? "w-[66.666%]" : "",
-                    ].join(" ")}
-                  />
+                    {/* Active progress line */}
+                    <div
+                      className={[
+                        "absolute left-[16.666%] top-4 h-0.5 bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-500",
+                        step === 0 ? "w-0" : "",
+                        step === 1 ? "w-[33.333%]" : "",
+                        step === 2 ? "w-[66.666%]" : "",
+                      ].join(" ")}
+                    />
 
-                  {onboardingSteps.map((item, index) => {
-                    const active = index === step;
-                    const completed = index < step;
-                    const reached = active || completed;
+                    {onboardingSteps.map((item, index) => {
+                      const active = index === step;
+                      const completed = index < step;
+                      const reached = active || completed;
 
-                    return (
-                      <div
-                        key={item}
-                        className="relative z-10 flex flex-col items-center text-center"
-                      >
+                      return (
                         <div
-                          className={[
-                            "flex size-9 items-center justify-center rounded-full border-2 text-sm font-black transition-all duration-300",
-                            completed
-                              ? "border-emerald-400 bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                              : active
-                                ? "border-emerald-400 bg-white text-emerald-600 shadow-lg shadow-emerald-400/30 scale-110"
-                                : "border-white/20 bg-white/10 text-white/50",
-                          ].join(" ")}
+                          key={item}
+                          className="relative z-10 flex flex-col items-center text-center"
                         >
-                          {completed ? "✓" : index + 1}
-                        </div>
+                          <div
+                            className={[
+                              "flex size-9 items-center justify-center rounded-full border-2 text-sm font-black transition-all duration-300",
+                              completed
+                                ? "border-emerald-400 bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                                : active
+                                  ? "border-emerald-400 bg-white text-emerald-600 shadow-lg shadow-emerald-400/30 scale-110"
+                                  : "border-white/20 bg-white/10 text-white/50",
+                            ].join(" ")}
+                          >
+                            {completed ? "✓" : index + 1}
+                          </div>
 
-                        <p
-                          className={[
-                            "mt-2 text-center text-[12px] sm:text-xs leading-4 sm:leading-5 transition-colors duration-300",
-                            reached ? "text-white font-extrabold" : "text-white/60 font-semibold",
-                          ].join(" ")}
-                        >
-                          {item}
-                        </p>
-                      </div>
-                    );
-                  })}
+                          <p
+                            className={[
+                              "mt-2 text-center text-[12px] sm:text-xs leading-4 sm:leading-5 transition-colors duration-300",
+                              reached ? "text-white font-extrabold" : "text-white/60 font-semibold",
+                            ].join(" ")}
+                          >
+                            {item}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <form
-            className="flex min-h-0 flex-1 flex-col"
-            onSubmit={form.handleSubmit(submit, (errors) =>
-              showToast("error", getFirstErrorMessage(errors, t)),
-            )}
-            noValidate
-          >
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-              {step === 0 ? (
-                <section className="space-y-5">
-                  <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                    <div className="w-full shrink-0 sm:w-40">
-                      <RequiredLabel htmlFor="recruiter-onboarding-avatar">
-                        {t("onboarding.labels.avatar")}
-                      </RequiredLabel>
+            <form
+              className="flex min-h-0 flex-1 flex-col"
+              onSubmit={form.handleSubmit(submit, (errors) =>
+                showToast("error", getFirstErrorMessage(errors, t)),
+              )}
+              noValidate
+            >
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+                {step === 0 ? (
+                  <section className="space-y-5">
+                    <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+                      <div className="w-full shrink-0 sm:w-40">
+                        <RequiredLabel htmlFor="recruiter-onboarding-avatar">
+                          {t("onboarding.labels.avatar")}
+                        </RequiredLabel>
 
-                      <label
-                        htmlFor="recruiter-onboarding-avatar"
-                        className="group mt-2 block w-fit cursor-pointer"
-                      >
-                        <input
-                          id="recruiter-onboarding-avatar"
-                          className="hidden"
-                          type="file"
-                          accept=".png,.jpg,.jpeg"
-                          {...form.register("avatar")}
-                        />
+                        <label
+                          htmlFor="recruiter-onboarding-avatar"
+                          className="group mt-2 block w-fit cursor-pointer"
+                        >
+                          <input
+                            id="recruiter-onboarding-avatar"
+                            className="hidden"
+                            type="file"
+                            accept=".png,.jpg,.jpeg"
+                            {...form.register("avatar")}
+                          />
 
-                        <div className="relative size-20 overflow-hidden rounded-full bg-slate-100">
-                          {avatarPreview ? (
-                            <Image
-                              src={avatarPreview}
-                              alt="Avatar"
-                              width={80}
-                              height={80}
-                              unoptimized
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-xl font-extrabold text-slate-300">
-                              +
-                            </div>
-                          )}
+                          <div className="relative size-20 overflow-hidden rounded-full bg-slate-100">
+                            {avatarPreview ? (
+                              <Image
+                                src={avatarPreview}
+                                alt="Avatar"
+                                width={80}
+                                height={80}
+                                unoptimized
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-xl font-extrabold text-slate-300">
+                                +
+                              </div>
+                            )}
 
-                          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/20 transition-colors group-hover:bg-slate-950/35">
-                            <div className="flex size-8 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm">
-                              <UploadSimple size={16} weight="bold" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/20 transition-colors group-hover:bg-slate-950/35">
+                              <div className="flex size-8 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm">
+                                <UploadSimple size={16} weight="bold" />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </label>
+                        </label>
 
-                      <p className="mt-2 text-xs leading-4 text-slate-500">PNG, JPG, JPEG.</p>
+                        <p className="mt-2 text-xs leading-4 text-slate-500">PNG, JPG, JPEG.</p>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <RequiredLabel>{t("onboarding.labels.gender")}</RequiredLabel>
+
+                        <div className="mt-3 flex flex-wrap gap-5">
+                          {[
+                            { label: t("onboarding.gender.male"), value: "MALE" },
+                            { label: t("onboarding.gender.female"), value: "FEMALE" },
+                          ].map((option) => {
+                            const selected = selectedGender === option.value;
+
+                            return (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() =>
+                                  form.setValue("gender", option.value as "MALE" | "FEMALE", {
+                                    shouldDirty: true,
+                                    shouldTouch: true,
+                                    shouldValidate: true,
+                                  })
+                                }
+                                className="flex items-center gap-2 text-sm font-semibold text-slate-700"
+                              >
+                                <span
+                                  className={[
+                                    "flex size-4 items-center justify-center rounded-full border",
+                                    selected ? "border-emerald-600" : "border-slate-300",
+                                  ].join(" ")}
+                                >
+                                  {selected ? (
+                                    <span className="size-2 rounded-full bg-emerald-600" />
+                                  ) : null}
+                                </span>
+
+                                {option.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <RequiredLabel>{t("onboarding.labels.gender")}</RequiredLabel>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <OnboardingField
+                        id="recruiter-onboarding-full-name"
+                        label={t("onboarding.labels.fullName")}
+                        placeholder={t("onboarding.placeholders.fullName")}
+                        register={form.register("fullName")}
+                        required
+                      />
 
-                      <div className="mt-3 flex flex-wrap gap-5">
-                        {[
-                          { label: t("onboarding.gender.male"), value: "MALE" },
-                          { label: t("onboarding.gender.female"), value: "FEMALE" },
-                        ].map((option) => {
-                          const selected = selectedGender === option.value;
+                      <OnboardingField
+                        id="recruiter-onboarding-phone"
+                        label={t("onboarding.labels.phone")}
+                        placeholder={t("onboarding.placeholders.phone")}
+                        register={form.register("phoneNumber", {
+                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                            e.target.value = e.target.value.replace(/[^0-9+]/g, "");
+                          },
+                        })}
+                        required
+                      />
+                    </div>
+                  </section>
+                ) : null}
 
-                          return (
+                {step === 1 ? (
+                  <section className="space-y-4">
+                    {/* AI Scanner Banner */}
+                    <div className="relative mb-4 overflow-hidden rounded-xl border border-dashed border-emerald-500/40 bg-emerald-50/30 p-4 transition-all duration-300 lg:col-span-2">
+                      <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        {/* Info */}
+                        <div className="flex items-start gap-3">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm shadow-emerald-600/10">
+                            <Sparkle size={18} weight="fill" className="animate-pulse" />
+                          </div>
+                          <div className="space-y-0.5">
+                            <h4 className="flex items-center gap-1.5 text-xs font-bold text-slate-800 sm:text-sm">
+                              {t("onboarding.companyProfile.aiScan.title") ||
+                                "Tự động điền thông tin nhanh bằng AI"}
+                              <span className="py-0.2 rounded-full bg-emerald-100 px-1.5 text-[8px] font-black text-emerald-800 uppercase">
+                                {t("onboarding.companyProfile.aiScan.badgeNew") || "Mới"}
+                              </span>
+                            </h4>
+                            <p className="max-w-xl text-[11px] leading-relaxed font-medium text-slate-500">
+                              {t("onboarding.companyProfile.aiScan.helpText") ||
+                                "Tải lên Giấy đăng ký kinh doanh (GPKD), hệ thống AI của UpNext sẽ tự động phân tích và điền nhanh các thông tin như Tên công ty, Mã số thuế, Địa chỉ, SĐT, Email..."}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Action */}
+                        <div
+                          className={[
+                            "flex shrink-0 items-center gap-2 self-end sm:self-center",
+                            aiLicenseFile ? "w-full grid grid-cols-2 sm:w-[320px]" : "",
+                          ].join(" ")}
+                        >
+                          {!aiLicenseFile ? (
                             <button
-                              key={option.value}
                               type="button"
-                              onClick={() =>
-                                form.setValue("gender", option.value as "MALE" | "FEMALE", {
+                              onClick={() => aiLicenseInputRef.current?.click()}
+                              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-98"
+                            >
+                              <UploadSimple size={14} weight="bold" />
+                              <span>
+                                {t("onboarding.companyProfile.aiScan.uploadBtn") ||
+                                  "Tải lên GPKD để quét"}
+                              </span>
+                            </button>
+                          ) : (
+                            <>
+                              <span
+                                onClick={() => aiLicenseInputRef.current?.click()}
+                                title="Nhấn để chọn tệp khác"
+                                className="flex h-9 min-w-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-600 shadow-2xs transition-colors hover:bg-slate-50"
+                              >
+                                <span className="truncate">📎 {aiLicenseFile.name}</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => void handleScanLicense()}
+                                disabled={scanning}
+                                className="flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-50"
+                              >
+                                {scanning ? (
+                                  <>
+                                    <CircleNotch className="size-3 animate-spin" />
+                                    <span>
+                                      {t("onboarding.companyProfile.aiScan.scanning") ||
+                                        "Đang quét..."}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>
+                                      {t("onboarding.companyProfile.aiScan.startBtn") ||
+                                        "Bắt đầu quét AI"}
+                                    </span>
+                                    <Lightning
+                                      size={12}
+                                      weight="fill"
+                                      className="animate-pulse text-yellow-300"
+                                    />
+                                  </>
+                                )}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <input
+                        ref={aiLicenseInputRef}
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        className="hidden"
+                        aria-label="Tải lên GPKD để quét"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setAiLicenseFile(file);
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <OnboardingField
+                        id="recruiter-onboarding-company-name"
+                        label={t("onboarding.labels.companyName")}
+                        placeholder={t("onboarding.placeholders.companyName")}
+                        register={form.register("companyName")}
+                        required
+                      />
+
+                      <OnboardingField
+                        id="recruiter-onboarding-tax-code"
+                        label={t("onboarding.labels.taxCode")}
+                        placeholder={t("onboarding.placeholders.taxCode")}
+                        register={form.register("taxCode")}
+                        required
+                      />
+
+                      <OnboardingField
+                        id="recruiter-onboarding-company-email"
+                        label={t("onboarding.labels.companyEmail")}
+                        placeholder={t("onboarding.placeholders.companyEmail")}
+                        register={form.register("companyEmail")}
+                        type="email"
+                        required
+                      />
+
+                      <OnboardingField
+                        id="recruiter-onboarding-company-phone"
+                        label={t("onboarding.labels.companyPhone")}
+                        placeholder={t("onboarding.placeholders.companyPhone")}
+                        register={form.register("companyPhone", {
+                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                            e.target.value = e.target.value.replace(/[^0-9+]/g, "");
+                          },
+                        })}
+                        required
+                      />
+
+                      <OnboardingField
+                        id="recruiter-onboarding-website"
+                        label={t("onboarding.labels.website")}
+                        placeholder={t("onboarding.placeholders.website")}
+                        register={form.register("website")}
+                        type="url"
+                      />
+
+                      <div className="flex flex-col gap-1.5">
+                        <RequiredLabel htmlFor="recruiter-onboarding-company-size">
+                          {t("onboarding.labels.companySize")}
+                        </RequiredLabel>
+                        <select
+                          id="recruiter-onboarding-company-size"
+                          {...form.register("companySize")}
+                          className="upnext-focus flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors focus:border-emerald-600 focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {companySizeOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <OnboardingField
+                        id="recruiter-onboarding-address"
+                        label={t("onboarding.companyProfile.fields.address")}
+                        placeholder={t("onboarding.companyProfile.fields.addressPlaceholder")}
+                        register={form.register("address")}
+                        required
+                      />
+
+                      <div className="flex flex-col gap-1.5">
+                        <RequiredLabel htmlFor="recruiter-onboarding-city">
+                          {t("onboarding.companyProfile.fields.city")}
+                        </RequiredLabel>
+                        <select
+                          id="recruiter-onboarding-city"
+                          {...form.register("city")}
+                          className="upnext-focus flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors focus:border-emerald-600 focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">
+                            {t("onboarding.companyProfile.fields.cityPlaceholder")}
+                          </option>
+                          {VIETNAM_PROVINCES.map((province) => (
+                            <option key={province.name} value={province.name}>
+                              {province.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <RequiredLabel htmlFor="recruiter-onboarding-description">
+                        {t("onboarding.labels.description")}
+                      </RequiredLabel>
+
+                      <textarea
+                        id="recruiter-onboarding-description"
+                        className="upnext-focus min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-none placeholder:text-slate-400"
+                        placeholder={t("onboarding.placeholders.description")}
+                        {...form.register("description")}
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <Label
+                        htmlFor="recruiter-onboarding-benefits"
+                        className="text-sm font-bold text-slate-700"
+                      >
+                        {t("onboarding.companyProfile.fields.benefits")}
+                      </Label>
+
+                      <textarea
+                        id="recruiter-onboarding-benefits"
+                        className="upnext-focus min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-none placeholder:text-slate-400"
+                        placeholder={t("onboarding.companyProfile.fields.benefitsPlaceholder")}
+                        {...form.register("benefits")}
+                      />
+                    </div>
+                  </section>
+                ) : null}
+
+                {step === 2 ? (
+                  <section className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-extrabold text-slate-950">
+                      <UploadSimple size={18} />
+                      {t("onboarding.step2")}
+                    </div>
+
+                    <div className="rounded-lg border border-dashed border-emerald-300 bg-emerald-50/50 p-4">
+                      <RequiredLabel htmlFor="recruiter-onboarding-license">
+                        {t("onboarding.labels.businessLicense")}
+                      </RequiredLabel>
+
+                      <Input
+                        id="recruiter-onboarding-license"
+                        className="mt-2 h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none file:mr-3 file:rounded-md file:border-0 file:bg-emerald-100 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-emerald-800"
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        {...form.register("businessLicense")}
+                      />
+
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        {t("onboarding.upload.helpText")}
+                      </p>
+
+                      {(() => {
+                        const watchedLicense = form.watch("businessLicense");
+                        const selectedLicenseFile = watchedLicense?.item?.(0) || null;
+                        if (!selectedLicenseFile) return null;
+                        return (
+                          <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-100 bg-white p-3 shadow-xs">
+                            <div className="flex items-center gap-2.5">
+                              <span className="text-emerald-600">📎</span>
+                              <div className="flex flex-col">
+                                <span className="max-w-[250px] truncate text-sm font-bold text-slate-700 sm:max-w-[400px]">
+                                  {selectedLicenseFile.name}
+                                </span>
+                                <span className="text-xs text-slate-400">
+                                  {(selectedLicenseFile.size / 1024 / 1024).toFixed(2)} MB
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                form.setValue("businessLicense", undefined as any, {
                                   shouldDirty: true,
                                   shouldTouch: true,
                                   shouldValidate: true,
-                                })
-                              }
-                              className="flex items-center gap-2 text-sm font-semibold text-slate-700"
+                                });
+                              }}
+                              className="text-xs font-bold text-red-500 transition-colors hover:text-red-700"
                             >
-                              <span
-                                className={[
-                                  "flex size-4 items-center justify-center rounded-full border",
-                                  selected ? "border-emerald-600" : "border-slate-300",
-                                ].join(" ")}
-                              >
-                                {selected ? (
-                                  <span className="size-2 rounded-full bg-emerald-600" />
-                                ) : null}
-                              </span>
-
-                              {option.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <OnboardingField
-                      id="recruiter-onboarding-full-name"
-                      label={t("onboarding.labels.fullName")}
-                      placeholder={t("onboarding.placeholders.fullName")}
-                      register={form.register("fullName")}
-                      required
-                    />
-
-                    <OnboardingField
-                      id="recruiter-onboarding-phone"
-                      label={t("onboarding.labels.phone")}
-                      placeholder={t("onboarding.placeholders.phone")}
-                      register={form.register("phoneNumber")}
-                      required
-                    />
-                  </div>
-                </section>
-              ) : null}
-
-              {step === 1 ? (
-                <section className="space-y-4">
-                  {/* AI Scanner Banner */}
-                  <div className="relative mb-4 overflow-hidden rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 p-4 shadow-xs">
-                    <div className="pointer-events-none absolute -top-12 -right-12 size-24 rounded-full bg-emerald-400/10 blur-xl" />
-                    <div className="pointer-events-none absolute -bottom-12 -left-12 size-24 rounded-full bg-teal-400/10 blur-xl" />
-
-                    <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm">
-                          <Sparkle size={18} weight="fill" className="animate-pulse" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <h4 className="flex items-center gap-2 text-xs font-bold text-slate-800 sm:text-sm">
-                            {t("onboarding.companyProfile.aiScan.title") ||
-                              "Tự động điền thông tin nhanh bằng AI"}
-                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-black tracking-wider text-emerald-800 uppercase">
-                              {t("onboarding.companyProfile.aiScan.badgeNew") || "Mới"}
-                            </span>
-                          </h4>
-                          <p className="hidden max-w-xl text-[11px] leading-normal font-semibold text-slate-500 sm:block">
-                            {t("onboarding.companyProfile.aiScan.helpText") ||
-                              "Tải lên GPKD để điền nhanh thông tin."}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex shrink-0 items-center gap-2 self-end sm:self-center">
-                        {!aiLicenseFile ? (
-                          <button
-                            type="button"
-                            onClick={() => aiLicenseInputRef.current?.click()}
-                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all duration-300 hover:from-emerald-700 hover:to-teal-700 hover:shadow-md active:scale-95"
-                          >
-                            {t("onboarding.companyProfile.aiScan.uploadBtn") ||
-                              "Tải lên GPKD để quét"}
-                            <Lightning
-                              size={12}
-                              weight="fill"
-                              className="animate-bounce text-yellow-300"
-                            />
-                          </button>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="max-w-[120px] truncate rounded-lg border border-slate-200 bg-white/80 px-2.5 py-1.5 text-xs font-bold text-slate-600 shadow-2xs backdrop-blur-xs">
-                              📎 {aiLicenseFile.name}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => void handleScanLicense()}
-                              disabled={scanning}
-                              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all duration-300 hover:from-blue-700 hover:to-indigo-700 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {scanning ? (
-                                <>
-                                  <CircleNotch className="size-3 animate-spin" />
-                                  {t("onboarding.companyProfile.aiScan.scanning") || "Đang quét..."}
-                                </>
-                              ) : (
-                                <>
-                                  {t("onboarding.companyProfile.aiScan.startBtn") ||
-                                    "Bắt đầu quét AI"}
-                                  <Lightning size={10} weight="fill" className="text-yellow-300" />
-                                </>
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setAiLicenseFile(null)}
-                              className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-bold text-slate-500 shadow-2xs transition-all duration-300 hover:bg-slate-50 hover:text-slate-800"
-                            >
-                              {t("onboarding.companyProfile.aiScan.cancelBtn") || "Hủy"}
+                              Xóa
                             </button>
                           </div>
-                        )}
-                      </div>
+                        );
+                      })()}
                     </div>
-                    <input
-                      ref={aiLicenseInputRef}
-                      type="file"
-                      accept=".pdf,.png,.jpg,.jpeg"
-                      className="hidden"
-                      aria-label="Tải lên GPKD để quét"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setAiLicenseFile(file);
-                        }
-                      }}
-                    />
-                  </div>
+                  </section>
+                ) : null}
+              </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <OnboardingField
-                      id="recruiter-onboarding-company-name"
-                      label={t("onboarding.labels.companyName")}
-                      placeholder={t("onboarding.placeholders.companyName")}
-                      register={form.register("companyName")}
-                      required
-                    />
+              <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
+                {isFirstStep ? (
+                  <button
+                    type="button"
+                    className="upnext-focus inline-flex cursor-pointer items-center gap-1.5 border-b border-b-transparent px-1 py-0.5 text-sm font-bold text-slate-500 transition-all hover:border-b-[#10a778] hover:text-[#10a778]"
+                    onClick={onSkip}
+                  >
+                    {t("onboarding.buttons.skip")}
+                    <ArrowRight size={16} />
+                  </button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={form.formState.isSubmitting}
+                    onClick={goBack}
+                  >
+                    {t("onboarding.buttons.back")}
+                  </Button>
+                )}
 
-                    <OnboardingField
-                      id="recruiter-onboarding-tax-code"
-                      label={t("onboarding.labels.taxCode")}
-                      placeholder={t("onboarding.placeholders.taxCode")}
-                      register={form.register("taxCode")}
-                      required
-                    />
-
-                    <OnboardingField
-                      id="recruiter-onboarding-company-email"
-                      label={t("onboarding.labels.companyEmail")}
-                      placeholder={t("onboarding.placeholders.companyEmail")}
-                      register={form.register("companyEmail")}
-                      type="email"
-                      required
-                    />
-
-                    <OnboardingField
-                      id="recruiter-onboarding-company-phone"
-                      label={t("onboarding.labels.companyPhone")}
-                      placeholder={t("onboarding.placeholders.companyPhone")}
-                      register={form.register("companyPhone")}
-                      required
-                    />
-
-                    <OnboardingField
-                      id="recruiter-onboarding-company-size"
-                      label={t("onboarding.labels.companySize")}
-                      placeholder={t("onboarding.placeholders.companySize")}
-                      register={form.register("companySize")}
-                      required
-                    />
-
-                    <OnboardingField
-                      id="recruiter-onboarding-website"
-                      label={t("onboarding.labels.website")}
-                      placeholder={t("onboarding.placeholders.website")}
-                      register={form.register("website")}
-                      type="url"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <RequiredLabel>{t("onboarding.labels.address")}</RequiredLabel>
-                    <AddressSelector
-                      value={form.watch("address") || ""}
-                      onChange={(value) =>
-                        form.setValue("address", value, { shouldValidate: true })
-                      }
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <RequiredLabel htmlFor="recruiter-onboarding-description">
-                      {t("onboarding.labels.description")}
-                    </RequiredLabel>
-
-                    <textarea
-                      id="recruiter-onboarding-description"
-                      className="upnext-focus min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-none placeholder:text-slate-400"
-                      placeholder={t("onboarding.placeholders.description")}
-                      {...form.register("description")}
-                    />
-                  </div>
-                </section>
-              ) : null}
-
-              {step === 2 ? (
-                <section className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-extrabold text-slate-950">
-                    <UploadSimple size={18} />
-                    {t("onboarding.step2")}
-                  </div>
-
-                  <div className="rounded-lg border border-dashed border-emerald-300 bg-emerald-50/50 p-4">
-                    <RequiredLabel htmlFor="recruiter-onboarding-license">
-                      {t("onboarding.labels.businessLicense")}
-                    </RequiredLabel>
-
-                    <Input
-                      id="recruiter-onboarding-license"
-                      className="mt-2 h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none file:mr-3 file:rounded-md file:border-0 file:bg-emerald-100 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-emerald-800"
-                      type="file"
-                      accept=".pdf,.png,.jpg,.jpeg"
-                      {...form.register("businessLicense")}
-                    />
-
-                    <p className="mt-2 text-xs leading-5 text-slate-500">
-                      {t("onboarding.upload.helpText")}
-                    </p>
-
-                    {(() => {
-                      const watchedLicense = form.watch("businessLicense");
-                      const selectedLicenseFile = watchedLicense?.item?.(0) || null;
-                      if (!selectedLicenseFile) return null;
-                      return (
-                        <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-100 bg-white p-3 shadow-xs">
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-emerald-600">📎</span>
-                            <div className="flex flex-col">
-                              <span className="max-w-[250px] truncate text-sm font-bold text-slate-700 sm:max-w-[400px]">
-                                {selectedLicenseFile.name}
-                              </span>
-                              <span className="text-xs text-slate-400">
-                                {(selectedLicenseFile.size / 1024 / 1024).toFixed(2)} MB
-                              </span>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              form.setValue("businessLicense", undefined as any, {
-                                shouldDirty: true,
-                                shouldTouch: true,
-                                shouldValidate: true,
-                              });
-                            }}
-                            className="text-xs font-bold text-red-500 transition-colors hover:text-red-700"
-                          >
-                            Xóa
-                          </button>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </section>
-              ) : null}
-            </div>
-
-            <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
-              {isFirstStep ? (
-                <button
-                  type="button"
-                  className="upnext-focus inline-flex cursor-pointer items-center gap-1.5 border-b border-b-transparent px-1 py-0.5 text-sm font-bold text-slate-500 transition-all hover:border-b-[#10a778] hover:text-[#10a778]"
-                  onClick={onSkip}
-                >
-                  {t("onboarding.buttons.skip")}
-                  <ArrowRight size={16} />
-                </button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={form.formState.isSubmitting}
-                  onClick={goBack}
-                >
-                  {t("onboarding.buttons.back")}
-                </Button>
-              )}
-
-              {isLastStep ? (
-                <Button
-                  type="submit"
-                  disabled={form.formState.isSubmitting}
-                  className="h-11 rounded-lg bg-[#11a77a] px-6 text-sm font-extrabold hover:bg-[#0d966d]"
-                >
-                  {form.formState.isSubmitting
-                    ? t("onboarding.buttons.submitting")
-                    : t("onboarding.buttons.finish")}
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  className="h-11 rounded-lg bg-[#11a77a] px-6 text-sm font-extrabold hover:bg-[#0d966d]"
-                  onClick={goNext}
-                >
-                  {t("onboarding.buttons.next")}
-                </Button>
-              )}
-            </div>
-          </form>
-        </DialogPrimitive.Content>
+                {isLastStep ? (
+                  <Button
+                    type="submit"
+                    disabled={form.formState.isSubmitting}
+                    className="h-11 rounded-lg bg-[#11a77a] px-6 text-sm font-extrabold hover:bg-[#0d966d]"
+                  >
+                    {form.formState.isSubmitting
+                      ? t("onboarding.buttons.submitting")
+                      : t("onboarding.buttons.finish")}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    className="h-11 rounded-lg bg-[#11a77a] px-6 text-sm font-extrabold hover:bg-[#0d966d]"
+                    onClick={goNext}
+                  >
+                    {t("onboarding.buttons.next")}
+                  </Button>
+                )}
+              </div>
+            </form>
+          </DialogPrimitive.Content>
+        </div>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );
@@ -1397,4 +1542,29 @@ function OnboardingField({
       {...register}
     />
   );
+}
+
+async function syncPrimaryCompanyLocation(
+  companyId: string,
+  token: string,
+  city: string,
+  address: string,
+) {
+  const locations = await getCompanyLocations(companyId, token);
+  const primaryLocation =
+    locations.find((location) => location.name === PRIMARY_COMPANY_LOCATION_NAME) ??
+    locations.find((location) => location.address === address);
+  const payload = {
+    name: PRIMARY_COMPANY_LOCATION_NAME,
+    workingModel: "ONSITE" as const,
+    city,
+    address,
+  };
+
+  if (primaryLocation) {
+    await updateCompanyLocation(companyId, primaryLocation.id, payload, token);
+    return;
+  }
+
+  await createCompanyLocation(companyId, payload, token);
 }

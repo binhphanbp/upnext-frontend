@@ -153,7 +153,7 @@ export function RecruiterTableLayout({
         )}
 
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-full border-collapse text-sm whitespace-nowrap">
+          <table className="w-full min-w-full border-collapse text-sm whitespace-nowrap [&_tbody_tr]:border-b [&_tbody_tr]:border-slate-200 hover:[&_tbody_tr]:bg-slate-50/40 [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-sm [&_th]:font-bold [&_th]:text-slate-800 [&_thead_tr]:border-b [&_thead_tr]:border-slate-300 [&_thead_tr]:bg-slate-200">
             {children}
           </table>
         </div>

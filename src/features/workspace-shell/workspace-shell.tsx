@@ -12,6 +12,7 @@ import {
   ChartBar,
   GridFour,
   Shield,
+  CaretDown,
 } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
@@ -80,7 +81,21 @@ export function WorkspaceShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const currentLocale = locale === "en" ? "en" : "vi";
+
+  // Auto-expand menu if sub-menu child is active on mount / route change
+  useEffect(() => {
+    const initialOpen: Record<string, boolean> = {};
+    navGroups.forEach((group) => {
+      group.items.forEach((item) => {
+        if (item.children?.some((child) => pathname === child.href)) {
+          initialOpen[item.label] = true;
+        }
+      });
+    });
+    setOpenMenus((prev) => ({ ...prev, ...initialOpen }));
+  }, [pathname, navGroups]);
 
   // Load initial collapsed state on mount
   useEffect(() => {
@@ -186,7 +201,7 @@ export function WorkspaceShell({
             className={cn(
               "bg-white flex-shrink-0 transition-[width,opacity] duration-300 ease-in-out h-full relative z-10 hidden lg:flex",
               !collapsed || isHovered
-                ? "w-[260px] opacity-100 border-r border-slate-100"
+                ? "w-[260px] opacity-100 border-slate-100"
                 : "w-0 opacity-0 overflow-hidden border-r-0 lg:w-0 lg:border-r-0",
             )}
           >
@@ -203,6 +218,68 @@ export function WorkspaceShell({
                       </h2>
                       <div className="space-y-1">
                         {group.items.map((item) => {
+                          const hasChildren = item.children && item.children.length > 0;
+
+                          if (hasChildren) {
+                            const isMenuOpen = !!openMenus[item.label];
+                            const isAnyChildActive = item.children?.some(
+                              (child) => pathname === child.href,
+                            );
+                            const Icon = item.icon;
+
+                            return (
+                              <div key={item.label} className="space-y-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenus((prev) => ({
+                                      ...prev,
+                                      [item.label]: !prev[item.label],
+                                    }));
+                                  }}
+                                  className={cn(
+                                    "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
+                                    isAnyChildActive
+                                      ? "bg-slate-50 text-primary font-semibold"
+                                      : "text-slate-700 hover:bg-slate-50 hover:text-primary",
+                                  )}
+                                >
+                                  <Icon size={20} />
+                                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                                  <CaretDown
+                                    size={16}
+                                    className={cn(
+                                      "text-slate-400 transition-transform duration-200",
+                                      isMenuOpen && "rotate-180",
+                                    )}
+                                  />
+                                </button>
+
+                                {isMenuOpen && (
+                                  <div className="space-y-1 pl-9 transition-all">
+                                    {item.children?.map((child) => {
+                                      const active = pathname === child.href;
+                                      return (
+                                        <Link
+                                          key={child.href}
+                                          href={child.href}
+                                          className={cn(
+                                            "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
+                                            active
+                                              ? "text-primary bg-emerald-50/50 font-semibold"
+                                              : "text-slate-600 hover:text-primary hover:bg-slate-50/50",
+                                          )}
+                                        >
+                                          <span className="truncate">{child.label}</span>
+                                        </Link>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+
                           const isRootNode =
                             item.href === "/admin" ||
                             item.href === "/recruiter" ||
@@ -290,6 +367,75 @@ export function WorkspaceShell({
                   </h2>
                   <div className="space-y-1">
                     {group.items.map((item) => {
+                      const hasChildren = item.children && item.children.length > 0;
+
+                      if (hasChildren) {
+                        const isMenuOpen = !!openMenus[item.label];
+                        const isAnyChildActive = item.children?.some(
+                          (child) => pathname === child.href,
+                        );
+                        const Icon = item.icon;
+
+                        return (
+                          <div key={item.label} className="space-y-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenMenus((prev) => ({
+                                  ...prev,
+                                  [item.label]: !prev[item.label],
+                                }));
+                              }}
+                              className={cn(
+                                "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
+                                isAnyChildActive
+                                  ? "bg-slate-50 text-primary font-semibold"
+                                  : "text-slate-700 hover:bg-slate-50 hover:text-primary",
+                              )}
+                            >
+                              <Icon
+                                size={18}
+                                className={cn(
+                                  "flex-shrink-0",
+                                  isAnyChildActive ? "text-primary" : "text-slate-400",
+                                )}
+                              />
+                              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                              <CaretDown
+                                size={14}
+                                className={cn(
+                                  "text-slate-400 transition-transform duration-200",
+                                  isMenuOpen && "rotate-180",
+                                )}
+                              />
+                            </button>
+
+                            {isMenuOpen && (
+                              <div className="space-y-1 pl-9 transition-all">
+                                {item.children?.map((child) => {
+                                  const active = pathname === child.href;
+                                  return (
+                                    <Link
+                                      key={child.href}
+                                      href={child.href}
+                                      onClick={() => setMobileOpen(false)}
+                                      className={cn(
+                                        "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
+                                        active
+                                          ? "text-primary bg-emerald-50/50 font-semibold"
+                                          : "text-slate-600 hover:text-primary hover:bg-slate-50/50",
+                                      )}
+                                    >
+                                      <span className="truncate">{child.label}</span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
                       const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                       const Icon = item.icon;
                       return (
