@@ -45,6 +45,7 @@ export type CreateCompanyPayload = Readonly<{
   website?: string;
   description?: string;
   companySize?: string;
+  benefits?: string;
 }>;
 
 export type CompanyResponse = Readonly<{
@@ -62,6 +63,7 @@ export type CompanyDetail = Readonly<{
   website: string | null;
   description: string | null;
   companySize: string | null;
+  benefits: string | null;
   status: string;
   verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
   businessLicenseFileId: string | null;
@@ -165,6 +167,7 @@ export function scanCompanyBusinessLicense(companyId: string, file: File, token:
   return apiRequest<{
     name: string;
     taxCode: string;
+    city: string | null;
     address: string;
     email: string | null;
     phone: string | null;
@@ -248,6 +251,70 @@ export function uploadCompanyPhoto(companyId: string, file: File, token: string)
 
 export function deleteCompanyPhoto(companyId: string, photoId: string, token: string) {
   return apiRequest(`/companies/${companyId}/photos/${photoId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
+export interface CompanyLocation {
+  id: string;
+  companyId: string;
+  name: string | null;
+  country: string;
+  workingModel: "ONSITE" | "HYBRID" | "REMOTE";
+  city: string | null;
+  district: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLocationPayload {
+  name?: string;
+  country?: string;
+  workingModel: "ONSITE" | "HYBRID" | "REMOTE";
+  city?: string;
+  district?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export function getCompanyLocations(companyId: string, token: string) {
+  return apiRequest<CompanyLocation[]>(`/companies/${companyId}/locations`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function createCompanyLocation(
+  companyId: string,
+  payload: CreateLocationPayload,
+  token: string,
+) {
+  return apiRequest<CompanyLocation>(`/companies/${companyId}/locations`, {
+    body: JSON.stringify(payload),
+    headers: jsonAuthHeaders(token),
+    method: "POST",
+  });
+}
+
+export function updateCompanyLocation(
+  companyId: string,
+  locationId: string,
+  payload: Partial<CreateLocationPayload>,
+  token: string,
+) {
+  return apiRequest<CompanyLocation>(`/companies/${companyId}/locations/${locationId}`, {
+    body: JSON.stringify(payload),
+    headers: jsonAuthHeaders(token),
+    method: "PATCH",
+  });
+}
+
+export function deleteCompanyLocation(companyId: string, locationId: string, token: string) {
+  return apiRequest<void>(`/companies/${companyId}/locations/${locationId}`, {
     headers: authHeaders(token),
     method: "DELETE",
   });

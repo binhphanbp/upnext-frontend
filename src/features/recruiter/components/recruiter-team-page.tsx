@@ -29,7 +29,7 @@ import { useTranslations } from "next-intl";
 
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
-  assignRecruiterRolePermissions,
+  createRecruiterRoleWithPermissions,
   getCompanyMembers,
   getRecruiterPermissions,
   getRecruiterRoles,
@@ -50,6 +50,8 @@ import { Checkbox } from "@/shared/ui/checkbox";
 import { FormInput } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+
+import { RecruiterTableLayout } from "./recruiter-table-layout";
 
 const toast = Swal.mixin({
   toast: true,
@@ -78,6 +80,7 @@ export function RecruiterTeamPage() {
   const [token, setToken] = useState("");
   const [accountId, setAccountId] = useState("");
   const [companyId, setCompanyId] = useState("");
+  const [verificationStatus, setVerificationStatus] = useState<string>("UNVERIFIED");
   const [members, setMembers] = useState<CompanyMember[]>([]);
   const [roles, setRoles] = useState<RecruiterRole[]>([]);
   const [permissions, setPermissions] = useState<RecruiterPermission[]>([]);
@@ -85,13 +88,8 @@ export function RecruiterTeamPage() {
   const [saving, setSaving] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRoleId, setInviteRoleId] = useState("");
-  const [assignRoleId, setAssignRoleId] = useState("");
-  const [selectedPermissionIds, setSelectedPermissionIds] = useState<string[]>([]);
-
-  const selectedRole = useMemo(
-    () => roles.find((role) => role.id === assignRoleId) ?? null,
-    [assignRoleId, roles],
-  );
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRolePermissionIds, setNewRolePermissionIds] = useState<string[]>([]);
 
   const getPermissionName = useCallback(
     (code: string) => {
@@ -168,6 +166,7 @@ export function RecruiterTeamPage() {
         }
 
         setCompanyId(nextCompanyId);
+        setVerificationStatus(account.company.verificationStatus);
         setMembers(nextMembers);
         setRoles(nextRoles);
         setPermissions(nextPermissions);
@@ -248,16 +247,19 @@ export function RecruiterTeamPage() {
     }
   }
 
-  async function assignPermissions() {
-    if (!assignRoleId || selectedPermissionIds.length === 0) {
-      void Swal.fire({ icon: "error", title: t("team.roleDialog.selectRoleFirst") });
+  async function createRole() {
+    const roleName = newRoleName.trim();
+
+    if (!roleName || newRolePermissionIds.length === 0) {
+      void Swal.fire({ icon: "error", title: t("team.roleDialog.roleNameRequired") });
       return;
     }
 
     try {
       setSaving(true);
-      await assignRecruiterRolePermissions(assignRoleId, selectedPermissionIds, token);
-      setSelectedPermissionIds([]);
+      await createRecruiterRoleWithPermissions({ name: roleName }, newRolePermissionIds, token);
+      setNewRoleName("");
+      setNewRolePermissionIds([]);
       await reload();
       void toast.fire({ icon: "success", title: t("team.messages.roleSaveSuccess") });
     } catch (error) {
@@ -280,7 +282,7 @@ export function RecruiterTeamPage() {
     <div className="w-full min-w-0 space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-950">{t("team.title")}</h1>
+          <h1 className="text-2xl font-bold text-slate-950">{t("team.title")}</h1>
         </div>
         <div className="flex flex-wrap gap-2.5">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-100 bg-teal-50/60 px-4 py-2 text-sm font-bold text-teal-800">
@@ -319,6 +321,8 @@ export function RecruiterTeamPage() {
         <div className="w-full min-w-0 p-5">
           {tab === "members" ? (
             <MembersPanel
+              isCompanyVerified={verificationStatus === "VERIFIED"}
+              verificationStatus={verificationStatus}
               inviteEmail={inviteEmail}
               inviteRoleId={inviteRoleId}
               members={members}
@@ -336,15 +340,14 @@ export function RecruiterTeamPage() {
           ) : null}
           {tab === "roles" ? (
             <RolesPanel
-              assignRoleId={assignRoleId}
               permissions={permissions}
               roles={roles}
               saving={saving}
-              selectedPermissionIds={selectedPermissionIds}
-              selectedRole={selectedRole}
-              setAssignRoleId={setAssignRoleId}
-              setSelectedPermissionIds={setSelectedPermissionIds}
-              onAssign={() => void assignPermissions()}
+              newRoleName={newRoleName}
+              selectedPermissionIds={newRolePermissionIds}
+              setNewRoleName={setNewRoleName}
+              setSelectedPermissionIds={setNewRolePermissionIds}
+              onCreateRole={() => void createRole()}
               isOwner={isOwner}
               t={t}
               getPermissionName={getPermissionName}
@@ -386,6 +389,8 @@ function TabButton({
 }
 
 function MembersPanel({
+  isCompanyVerified,
+  verificationStatus,
   inviteEmail,
   inviteRoleId,
   members,
@@ -400,6 +405,8 @@ function MembersPanel({
   accountId,
   t,
 }: {
+  isCompanyVerified: boolean;
+  verificationStatus: string;
   inviteEmail: string;
   inviteRoleId: string;
   members: CompanyMember[];
@@ -414,67 +421,70 @@ function MembersPanel({
   accountId: string;
   t: any;
 }) {
-  const inviteDisabled = saving || !isOwner;
+  const inviteDisabled = saving || !isOwner || !isCompanyVerified;
 
   return (
     <div className="space-y-6">
-      <div className="grid w-full min-w-0 gap-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4 lg:grid-cols-[minmax(0,1fr)_260px_auto]">
-        <FormInput
-          id="invite-email"
-          label={t("team.inviteDialog.emailLabel")}
-          type="email"
-          value={inviteEmail}
-          onChange={(event) => setInviteEmail(event.target.value)}
-          placeholder="recruiter@company.com"
-          disabled={!isOwner}
-        />
-        <RoleSelect
-          label={t("team.inviteDialog.roleLabel")}
-          roles={roles}
-          value={inviteRoleId}
-          onValueChange={setInviteRoleId}
-          disabled={!isOwner}
-          t={t}
-        />
-        <div className="flex items-end">
-          <Button
-            className="w-full gap-2 bg-[#11a77a] font-bold hover:bg-[#0d966d]"
-            disabled={inviteDisabled}
-            onClick={onInvite}
-          >
-            <Plus size={16} />
-            {t("team.actions.inviteMember")}
-          </Button>
-        </div>
-        {!isOwner ? (
-          <p className="text-xs font-semibold text-amber-700 lg:col-span-3">
-            {t("team.alerts.inviteOwnerOnly")}
+      {!isCompanyVerified ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-amber-200 bg-amber-50/40 p-6 text-center">
+          <ShieldCheck size={32} className="mb-2 text-amber-500" />
+          <p className="text-sm font-semibold text-amber-800">
+            {verificationStatus === "PENDING"
+              ? "Hồ sơ công ty của bạn đang chờ phê duyệt. Bạn chỉ có thể mời thành viên sau khi được quản trị viên xác thực."
+              : "Công ty của bạn chưa được xác thực. Vui lòng hoàn tất hồ sơ và chờ quản trị viên phê duyệt trước khi thêm thành viên."}
           </p>
-        ) : null}
-      </div>
+        </div>
+      ) : (
+        <div className="grid w-full min-w-0 gap-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4 lg:grid-cols-[minmax(0,1fr)_260px_auto]">
+          <FormInput
+            id="invite-email"
+            label={t("team.inviteDialog.emailLabel")}
+            type="email"
+            value={inviteEmail}
+            onChange={(event) => setInviteEmail(event.target.value)}
+            placeholder="recruiter@company.com"
+            disabled={!isOwner}
+          />
+          <RoleSelect
+            label={t("team.inviteDialog.roleLabel")}
+            roles={roles}
+            value={inviteRoleId}
+            onValueChange={setInviteRoleId}
+            disabled={!isOwner}
+            t={t}
+          />
+          <div className="flex items-end">
+            <Button
+              className="w-full gap-2 bg-[#11a77a] font-bold hover:bg-[#0d966d]"
+              disabled={inviteDisabled}
+              onClick={onInvite}
+            >
+              <Plus size={16} />
+              {t("team.actions.inviteMember")}
+            </Button>
+          </div>
+          {!isOwner ? (
+            <p className="text-xs font-semibold text-amber-700 lg:col-span-3">
+              {t("team.alerts.inviteOwnerOnly")}
+            </p>
+          ) : null}
+        </div>
+      )}
 
-      <DataTable>
+      <RecruiterTableLayout loading={false}>
         <thead>
-          <tr className="border-b border-slate-200 bg-gray-100">
-            <th className="px-4 py-2 text-left text-sm font-bold text-black">
-              {t("team.table.member")}
-            </th>
-            <th className="px-4 py-2 text-left text-sm font-bold text-black">
-              {t("team.table.status")}
-            </th>
-            <th className="px-4 py-2 text-left text-sm font-bold text-black">
-              {t("team.table.role")}
-            </th>
-            <th className="px-4 py-2 text-right text-sm font-bold text-black">
-              {t("team.table.actions")}
-            </th>
+          <tr>
+            <th>{t("team.table.member")}</th>
+            <th>{t("team.table.status")}</th>
+            <th>{t("team.table.role")}</th>
+            <th className="text-right">{t("team.table.actions")}</th>
           </tr>
         </thead>
         <tbody>
           {members.length === 0 ? (
             <tr>
-              <td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">
-                <div className="flex flex-col items-center justify-center gap-3">
+              <td colSpan={4} className="text-center">
+                <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-500">
                   <Image
                     src="/assets/icons/empty.png"
                     alt="Empty"
@@ -484,7 +494,7 @@ function MembersPanel({
                     style={{ height: "auto", width: "auto" }}
                     className="opacity-90"
                   />
-                  <span className="font-medium text-slate-500">{t("team.table.emptyMembers")}</span>
+                  <span className="font-medium">{t("team.table.emptyMembers")}</span>
                 </div>
               </td>
             </tr>
@@ -499,11 +509,8 @@ function MembersPanel({
               const disableActions = !isOwner || isSelf || isMemberOwner;
 
               return (
-                <tr
-                  key={member.id}
-                  className="border-b border-slate-200 bg-white transition-colors last:border-b-0 hover:bg-slate-50/40"
-                >
-                  <td className="min-w-[180px] px-4 py-2">
+                <tr key={member.id}>
+                  <td className="min-w-[180px]">
                     <div className="flex w-full flex-nowrap items-center gap-2">
                       {avatarUrl ? (
                         <span className="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-100">
@@ -531,14 +538,14 @@ function MembersPanel({
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-2">
+                  <td>
                     <Badge tone={member.status === "ACTIVE" ? "success" : "warning"}>
                       {member.status === "ACTIVE"
                         ? t("team.status.active")
                         : t("team.status.pending")}
                     </Badge>
                   </td>
-                  <td className="px-4 py-2">
+                  <td>
                     <RoleSelect
                       label={`${t("team.table.role")} ${email}`}
                       hideLabel
@@ -550,7 +557,7 @@ function MembersPanel({
                       t={t}
                     />
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="text-right">
                     <Button
                       variant="outline"
                       size="icon"
@@ -575,63 +582,50 @@ function MembersPanel({
             })
           )}
         </tbody>
-      </DataTable>
+      </RecruiterTableLayout>
     </div>
   );
 }
 
 function RolesPanel({
-  assignRoleId,
-  onAssign,
+  newRoleName,
+  onCreateRole,
   permissions,
   roles,
   saving,
   selectedPermissionIds,
-  selectedRole,
-  setAssignRoleId,
+  setNewRoleName,
   setSelectedPermissionIds,
   isOwner,
   t,
   getPermissionName,
 }: {
-  assignRoleId: string;
-  onAssign: () => void;
+  newRoleName: string;
+  onCreateRole: () => void;
   permissions: RecruiterPermission[];
   roles: RecruiterRole[];
   saving: boolean;
   selectedPermissionIds: string[];
-  selectedRole: RecruiterRole | null;
-  setAssignRoleId: (value: string) => void;
+  setNewRoleName: (value: string) => void;
   setSelectedPermissionIds: React.Dispatch<React.SetStateAction<string[]>>;
   isOwner: boolean;
   t: any;
   getPermissionName: (code: string) => string;
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const assignedIds = new Set(
-    selectedRole?.rolePermissions?.map(({ recruiterPermission }) => recruiterPermission.id) ?? [],
-  );
-
-  const isOwnerRoleSelected = isOwnerRole(selectedRole);
-  const isDropdownDisabled = !isOwner || isOwnerRoleSelected || !assignRoleId;
-
-  // Clear selections when role changes
-  useEffect(() => {
-    setSelectedPermissionIds([]);
-  }, [assignRoleId, setSelectedPermissionIds]);
+  const isDropdownDisabled = !isOwner;
 
   return (
     <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[390px_minmax(0,1fr)]">
       <div className="space-y-5">
-        <FormCard title={t("team.roleDialog.permissionsLabel")}>
-          <RoleSelect
-            label={t("team.table.role")}
-            roles={roles}
-            value={assignRoleId}
-            onValueChange={setAssignRoleId}
+        <FormCard title={t("team.roleDialog.createTitle")}>
+          <FormInput
+            id="recruiter-role-name"
+            label={t("team.roleDialog.nameLabel")}
+            value={newRoleName}
+            onChange={(event) => setNewRoleName(event.target.value)}
+            placeholder={t("team.roleDialog.namePlaceholder")}
             disabled={!isOwner}
-            t={t}
           />
 
           <div className="flex flex-col gap-1.5">
@@ -649,13 +643,9 @@ function RolesPanel({
                 )}
               >
                 <span className="truncate font-medium">
-                  {!assignRoleId
-                    ? t("team.roleDialog.selectRoleFirst")
-                    : isOwnerRoleSelected
-                      ? t("team.roleDialog.ownerDefault")
-                      : selectedPermissionIds.length === 0
-                        ? t("team.roleDialog.selectPermissions")
-                        : t("team.permissionsBadge", { count: selectedPermissionIds.length })}
+                  {selectedPermissionIds.length === 0
+                    ? t("team.roleDialog.selectPermissions")
+                    : t("team.permissionsBadge", { count: selectedPermissionIds.length })}
                 </span>
                 <CaretDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </button>
@@ -669,22 +659,15 @@ function RolesPanel({
                   />
                   <div className="absolute right-0 left-0 z-20 mt-1.5 max-h-60 space-y-1.5 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
                     {permissions.map((permission) => {
-                      const isAlreadyAssigned = assignedIds.has(permission.id);
                       return (
                         <label
                           key={permission.id}
                           htmlFor={`assign-permission-${permission.id}`}
-                          className={cn(
-                            "flex items-start gap-2.5 rounded-md p-2 hover:bg-slate-50 cursor-pointer select-none",
-                            isAlreadyAssigned && "opacity-60 cursor-not-allowed hover:bg-white",
-                          )}
+                          className="flex cursor-pointer items-start gap-2.5 rounded-md p-2 select-none hover:bg-slate-50"
                         >
                           <Checkbox
                             id={`assign-permission-${permission.id}`}
-                            checked={
-                              selectedPermissionIds.includes(permission.id) || isAlreadyAssigned
-                            }
-                            disabled={isAlreadyAssigned}
+                            checked={selectedPermissionIds.includes(permission.id)}
                             onCheckedChange={(checked) =>
                               setSelectedPermissionIds((current) =>
                                 checked === true
@@ -698,9 +681,7 @@ function RolesPanel({
                               {getPermissionName(permission.code)}
                             </span>
                             <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">
-                              {isAlreadyAssigned
-                                ? t("team.roleDialog.alreadyAssigned")
-                                : permission.code}
+                              {permission.code}
                             </span>
                           </span>
                         </label>
@@ -747,35 +728,34 @@ function RolesPanel({
           <Button
             className="w-full bg-[#11a77a] font-bold hover:bg-[#0d966d]"
             disabled={
-              saving || !isOwner || isOwnerRoleSelected || selectedPermissionIds.length === 0
+              saving || !isOwner || !newRoleName.trim() || selectedPermissionIds.length === 0
             }
             onClick={() => {
-              onAssign();
+              onCreateRole();
               setIsDropdownOpen(false);
             }}
           >
-            {isOwnerRoleSelected ? t("team.roleDialog.ownerDefault") : t("team.roleDialog.submit")}
+            {saving ? t("team.actions.saving") : t("team.roleDialog.createSubmit")}
           </Button>
+          {!isOwner ? (
+            <p className="text-xs font-semibold text-amber-700">{t("team.alerts.roleOwnerOnly")}</p>
+          ) : null}
         </FormCard>
       </div>
 
       <div className="min-w-0">
-        <DataTable>
+        <RecruiterTableLayout loading={false}>
           <thead>
-            <tr className="border-b border-slate-200">
-              <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700" scope="col">
-                {t("team.table.role")}
-              </th>
-              <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700" scope="col">
-                {t("team.table.permissions")}
-              </th>
+            <tr>
+              <th scope="col">{t("team.table.role")}</th>
+              <th scope="col">{t("team.table.permissions")}</th>
             </tr>
           </thead>
           <tbody>
             {roles.length === 0 ? (
               <tr>
-                <td colSpan={2} className="px-4 py-12 text-center text-sm text-slate-500">
-                  <div className="flex flex-col items-center justify-center gap-3">
+                <td colSpan={2} className="text-center">
+                  <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-500">
                     <Image
                       src="/assets/icons/empty.png"
                       alt="Empty"
@@ -785,23 +765,20 @@ function RolesPanel({
                       style={{ height: "auto", width: "auto" }}
                       className="opacity-90"
                     />
-                    <span className="font-medium text-slate-500">{t("team.table.emptyRoles")}</span>
+                    <span className="font-medium">{t("team.table.emptyRoles")}</span>
                   </div>
                 </td>
               </tr>
             ) : (
               roles.map((role) => (
-                <tr
-                  key={role.id}
-                  className="border-b border-slate-200 bg-white align-top transition-colors last:border-b-0 hover:bg-slate-50/40"
-                >
-                  <td className="px-4 py-2">
+                <tr key={role.id} className="align-top">
+                  <td>
                     <p className="leading-none font-bold text-slate-900">{role.name}</p>
                     <p className="mt-1.5 min-w-[200px] text-xs leading-relaxed whitespace-normal text-slate-500">
                       {role.description}
                     </p>
                   </td>
-                  <td className="px-4 py-2 whitespace-normal">
+                  <td className="whitespace-normal">
                     <div className="flex max-w-xl flex-wrap gap-1.5">
                       {isOwnerRole(role) ? (
                         <Badge tone="success">{t("team.table.allPermissions")}</Badge>
@@ -818,7 +795,7 @@ function RolesPanel({
               ))
             )}
           </tbody>
-        </DataTable>
+        </RecruiterTableLayout>
       </div>
     </div>
   );
@@ -879,16 +856,6 @@ function FormCard({ children, title }: { children: React.ReactNode; title: strin
       <h2 className="text-base font-extrabold text-slate-950">{title}</h2>
       {children}
     </Card>
-  );
-}
-
-function DataTable({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="w-full overflow-x-auto rounded-md border border-slate-200 bg-white">
-      <table className="w-full min-w-full border-collapse text-sm whitespace-nowrap">
-        {children}
-      </table>
-    </div>
   );
 }
 

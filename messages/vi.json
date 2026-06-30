@@ -3,6 +3,11 @@
     "title": "UpNext - Nền tảng tuyển dụng nhân sự IT",
     "description": "UpNext kết nối ứng viên IT với công ty công nghệ uy tín, tập trung vào kỹ năng, dữ liệu thị trường và trải nghiệm tuyển dụng hiện đại."
   },
+  "NotFound": {
+    "title": "Không tìm thấy trang",
+    "description": "Rất tiếc, trang bạn đang tìm kiếm không tồn tại hoặc đã bị gỡ bỏ.",
+    "goHome": "Về trang chủ"
+  },
   "Auth": {
     "common": {
       "or": "hoặc",
@@ -574,8 +579,10 @@
           "emailInvalid": "Email liên hệ không đúng định dạng.",
           "phoneMin": "Số điện thoại phải có tối thiểu 4 ký tự.",
           "sizeRequired": "Vui lòng chọn quy mô công ty.",
+          "cityRequired": "Vui lòng chọn tỉnh/thành phố.",
           "addressMin": "Địa chỉ công ty phải có tối thiểu 6 ký tự.",
           "descMin": "Giới thiệu công ty phải có tối thiểu 20 ký tự.",
+          "benefitsMin": "Phúc lợi nhân viên phải có tối thiểu 20 ký tự.",
           "saveErrorTitle": "Không thể lưu hồ sơ",
           "popupBlockedTitle": "Popup bị chặn",
           "popupBlockedText": "Vui lòng cho phép hiển thị popup để xem file minh chứng.",
@@ -616,12 +623,12 @@
         },
         "logo": {
           "uploadBtn": "Tải logo",
-          "title": "Logo thương hiệu",
+          "title": "Logo công ty",
           "helpText": "Hiển thị trên tin tuyển dụng & trang hồ sơ.\nĐịnh dạng JPG, PNG, tối đa 2MB."
         },
         "cover": {
           "uploadBtn": "Tải ảnh bìa",
-          "title": "Ảnh bìa doanh nghiệp",
+          "title": "Banner công ty",
           "helpText": "Hiển thị trên trang chi tiết công ty.\nĐịnh dạng JPG, PNG, tỷ lệ 16:9."
         },
         "aiScan": {
@@ -648,7 +655,26 @@
           "companySizePlaceholder": "Ví dụ: 51-200 nhân sự",
           "description": "Giới thiệu công ty",
           "descriptionPlaceholder": "Giới thiệu chi tiết về công ty...",
-          "license": "Minh chứng doanh nghiệp"
+          "benefits": "Phúc lợi nhân viên",
+          "benefitsPlaceholder": "Nhập các phúc lợi dành cho nhân viên...",
+          "license": "Minh chứng doanh nghiệp",
+          "city": "Tỉnh/Thành phố",
+          "cityPlaceholder": "Chọn tỉnh/thành phố",
+          "address": "Địa chỉ công ty",
+          "addressPlaceholder": "Nhập địa chỉ công ty"
+        },
+        "companySizes": {
+          "placeholder": "Vui lòng chọn",
+          "lessThan10": "Ít hơn 10",
+          "10to24": "10-24",
+          "25to99": "25-99",
+          "100to499": "100-499",
+          "500to999": "500-999",
+          "1000to4999": "1.000-4.999",
+          "5000to9999": "5.000-9.999",
+          "10000to19999": "10.000-19.999",
+          "20000to49999": "20.000-49.999",
+          "moreThan50000": "Hơn 50.000"
         },
         "licenseSection": {
           "selected": "Đã chọn: {filename}",
@@ -678,6 +704,57 @@
           "licenseInput": "Tải minh chứng doanh nghiệp",
           "photosInput": "Tải ảnh công ty"
         }
+      },
+      "companyAddresses": {
+        "title": "Địa điểm làm việc",
+        "description": "Quản lý danh sách các văn phòng, chi nhánh và trụ sở làm việc của doanh nghiệp.",
+        "addBtn": "Thêm địa điểm làm việc",
+        "editBtn": "Chỉnh sửa",
+        "deleteBtn": "Xóa",
+        "saveBtn": "Lưu địa chỉ",
+        "cancelBtn": "Hủy",
+        "saving": "Đang lưu...",
+        "deleting": "Đang xóa...",
+        "workingModel": "Hình thức làm việc",
+        "officeName": "Tên văn phòng",
+        "officeNamePlaceholder": "Ví dụ: Văn phòng Quận 1, Trụ sở chính",
+        "city": "Tỉnh thành",
+        "cityPlaceholder": "Chọn Tỉnh / Thành phố",
+        "address": "Địa chỉ",
+        "addressPlaceholder": "Ví dụ: 123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh",
+        "workingModels": {
+          "ONSITE": "Lên văn phòng (On-site)",
+          "HYBRID": "Kết hợp (Hybrid)",
+          "REMOTE": "Làm việc từ xa (Remote)"
+        },
+        "errors": {
+          "loadError": "Không thể tải danh sách địa chỉ.",
+          "saveError": "Không thể lưu thông tin địa chỉ.",
+          "deleteError": "Không thể xóa địa chỉ.",
+          "requiredFields": "Vui lòng điền đầy đủ tên văn phòng, tỉnh thành và địa chỉ."
+        },
+        "success": {
+          "created": "Đã thêm địa chỉ mới thành công.",
+          "updated": "Đã cập nhật thông tin địa chỉ thành công.",
+          "deleted": "Đã xóa địa chỉ thành công."
+        },
+        "confirmDelete": {
+          "title": "Xóa địa chỉ này?",
+          "text": "Hành động này sẽ xóa vĩnh viễn địa chỉ đã chọn và không thể hoàn tác.",
+          "confirm": "Đồng ý xóa",
+          "cancel": "Bỏ qua"
+        },
+        "actions": "Thao tác",
+        "locationsCount": "{count} địa điểm",
+        "emptyState": {
+          "title": "Chưa có địa điểm làm việc nào",
+          "description": "Vui lòng thêm địa điểm văn phòng, chi nhánh làm việc để ứng viên nắm được thông tin chính xác."
+        },
+        "dialogTitleEdit": "Cập nhật địa điểm làm việc",
+        "dialogTitleAdd": "Tạo địa điểm làm việc",
+        "charLimit": "{count}/{max} kí tự",
+        "save": "Lưu",
+        "create": "Tạo"
       }
     },
     "team": {
@@ -739,7 +816,9 @@
         "selectRoleFirst": "Chọn vai trò trước",
         "ownerDefault": "Quyền Owner mặc định",
         "alreadyAssigned": "Đã có quyền này",
-        "submit": "Lưu vai trò"
+        "submit": "Lưu vai trò",
+        "createSubmit": "Th?m vai tr?",
+        "roleNameRequired": "Vui l?ng nh?p t?n vai tr? v? ch?n ?t nh?t m?t quy?n."
       },
       "messages": {
         "inviteSuccess": "Gửi lời mời thành công!",

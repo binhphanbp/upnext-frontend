@@ -8,6 +8,7 @@ import {
   Sparkle,
   Trash,
   Lightning,
+  UploadSimple,
 } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -15,23 +16,37 @@ import Swal from "sweetalert2";
 
 import {
   attachRecruiterCompany,
+  createCompanyLocation,
   createCompany,
   deleteCompanyPhoto,
   getCompany,
   getCompanyBusinessLicenseUrl,
+  getCompanyLocations,
   getRecruiterAccount,
   scanCompanyBusinessLicense,
   updateCompany,
+  updateCompanyLocation,
   uploadCompanyBusinessLicense,
   uploadCompanyCover,
   uploadCompanyLogo,
   uploadCompanyPhoto,
   type CompanyDetail,
 } from "@/features/recruiter/api/onboarding";
+import {
+  extractProvinceFromAddress,
+  normalizeProvinceName,
+  normalizeWebsite,
+  stripProvinceFromAddress,
+} from "@/features/recruiter/constants/company-autofill";
+import {
+  DRAFT_COMPANY_NAME,
+  PRIMARY_COMPANY_LOCATION_NAME,
+  VIETNAM_PROVINCES,
+} from "@/features/recruiter/constants/vietnam-provinces";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
-import { AddressSelector } from "@/shared/ui/address-selector";
+import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
@@ -50,23 +65,27 @@ const toast = Swal.mixin({
 type CompanyForm = {
   name: string;
   taxCode: string;
+  city: string;
   address: string;
   email: string;
   phone: string;
   website: string;
   companySize: string;
   description: string;
+  benefits: string;
 };
 
 const emptyForm: CompanyForm = {
   name: "",
   taxCode: "",
+  city: "",
   address: "",
   email: "",
   phone: "",
   website: "",
   companySize: "",
   description: "",
+  benefits: "",
 };
 
 type TempPhoto = {
@@ -95,6 +114,20 @@ export function RecruiterCompanyProfilePage() {
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string>("");
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
 
+  const companySizeOptions = [
+    { value: "", label: t("companySizes.placeholder") },
+    { value: "1", label: t("companySizes.lessThan10") },
+    { value: "2", label: t("companySizes.10to24") },
+    { value: "3", label: t("companySizes.25to99") },
+    { value: "4", label: t("companySizes.100to499") },
+    { value: "5", label: t("companySizes.500to999") },
+    { value: "6", label: t("companySizes.1000to4999") },
+    { value: "7", label: t("companySizes.5000to9999") },
+    { value: "8", label: t("companySizes.10000to19999") },
+    { value: "9", label: t("companySizes.20000to49999") },
+    { value: "10", label: t("companySizes.moreThan50000") },
+  ];
+
   const displayLogoUrl = logoPreviewUrl || company?.logoFile?.publicUrl || "";
   const displayCoverUrl = coverPreviewUrl || company?.coverFile?.publicUrl || "";
 
@@ -108,7 +141,7 @@ export function RecruiterCompanyProfilePage() {
 
         if (!currentCompanyId) {
           try {
-            const draftResult = await createCompany({ name: "Draft Company" }, accessToken);
+            const draftResult = await createCompany({ name: DRAFT_COMPANY_NAME }, accessToken);
             currentCompanyId = draftResult.id;
             await attachRecruiterCompany(nextAccountId, currentCompanyId, accessToken);
           } catch (createErr) {
@@ -123,7 +156,13 @@ export function RecruiterCompanyProfilePage() {
           }
         }
 
-        const nextCompany = await getCompany(currentCompanyId, accessToken);
+        const [nextCompany, companyLocations] = await Promise.all([
+          getCompany(currentCompanyId, accessToken),
+          getCompanyLocations(currentCompanyId, accessToken),
+        ]);
+        const primaryLocation =
+          companyLocations.find((location) => location.name === PRIMARY_COMPANY_LOCATION_NAME) ??
+          companyLocations.find((location) => location.address === nextCompany.address);
         setCompanyId(nextCompany.id);
         setCompany(nextCompany);
         setLogoFile(null);
@@ -132,14 +171,16 @@ export function RecruiterCompanyProfilePage() {
         setCoverPreviewUrl("");
         setLicenseFile(null);
         setForm({
-          name: nextCompany.name === "Draft Company" ? "" : nextCompany.name || "",
+          name: nextCompany.name === DRAFT_COMPANY_NAME ? "" : nextCompany.name || "",
           taxCode: nextCompany.taxCode || "",
+          city: primaryLocation?.city || "",
           address: nextCompany.address || "",
           email: nextCompany.email || "",
           phone: nextCompany.phone || "",
           website: nextCompany.website || "",
-          companySize: nextCompany.companySize || "",
+          companySize: parseDbCompanySize(nextCompany.companySize),
           description: nextCompany.description || "",
+          benefits: nextCompany.benefits || "",
         });
         setTempPhotos((current) => {
           current.forEach((p) => {
@@ -190,6 +231,7 @@ export function RecruiterCompanyProfilePage() {
     const trimmedTaxCode = form.taxCode.trim();
     const trimmedEmail = form.email.trim();
     const trimmedPhone = form.phone.trim();
+    const trimmedCity = form.city.trim();
     const trimmedAddress = form.address.trim();
     const trimmedCompanySize = form.companySize.trim();
     let trimmedWebsite = form.website.trim();
@@ -245,7 +287,17 @@ export function RecruiterCompanyProfilePage() {
       return;
     }
 
-    // 6. Validate Address
+    // 6. Validate Province / City
+    if (!trimmedCity) {
+      void Swal.fire({
+        icon: "error",
+        title: t("errors.invalidTitle"),
+        text: t("errors.cityRequired"),
+      });
+      return;
+    }
+
+    // 7. Validate Address
     if (!trimmedAddress || trimmedAddress.length < 6) {
       void Swal.fire({
         icon: "error",
@@ -271,8 +323,9 @@ export function RecruiterCompanyProfilePage() {
       trimmedWebsite = `https://${trimmedWebsite}`;
     }
 
+    const { city: _city, ...companyForm } = form;
     const payload = {
-      ...form,
+      ...companyForm,
       name: trimmedName,
       taxCode: trimmedTaxCode,
       email: trimmedEmail,
@@ -286,6 +339,7 @@ export function RecruiterCompanyProfilePage() {
       setSaving(true);
       // 1. Lưu thông tin cơ bản
       await updateCompany(companyId, payload, token);
+      await syncPrimaryCompanyLocation(companyId, token, trimmedCity, trimmedAddress);
 
       // Upload Logo if selected
       if (logoFile) {
@@ -413,6 +467,10 @@ export function RecruiterCompanyProfilePage() {
     try {
       setScanning(true);
       const data = await scanCompanyBusinessLicense(companyId, licenseFile, token);
+      const normalizedCity =
+        normalizeProvinceName(data.city) || extractProvinceFromAddress(data.address);
+      const normalizedAddress = stripProvinceFromAddress(data.address, normalizedCity);
+      const normalizedWebsite = normalizeWebsite(data.website);
 
       const result = await Swal.fire({
         title: t("messages.scanSuccessTitle"),
@@ -420,10 +478,11 @@ export function RecruiterCompanyProfilePage() {
           <div class="text-left space-y-2 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
             <p class="break-words"><strong>${t("messages.scanFields.name")}:</strong> ${data.name || t("errors.notFound")}</p>
             <p class="break-words"><strong>${t("messages.scanFields.taxCode")}:</strong> ${data.taxCode || t("errors.notFound")}</p>
-            <p class="break-words"><strong>${t("messages.scanFields.address")}:</strong> ${data.address || t("errors.notFound")}</p>
+            <p class="break-words"><strong>${t("fields.city")}:</strong> ${normalizedCity || t("errors.notFound")}</p>
+            <p class="break-words"><strong>${t("messages.scanFields.address")}:</strong> ${normalizedAddress || t("errors.notFound")}</p>
             ${data.email ? `<p class="break-words"><strong>${t("messages.scanFields.email")}:</strong> ${data.email}</p>` : ""}
             ${data.phone ? `<p class="break-words"><strong>${t("messages.scanFields.phone")}:</strong> ${data.phone}</p>` : ""}
-            ${data.website ? `<p class="break-words"><strong>${t("messages.scanFields.website")}:</strong> ${data.website}</p>` : ""}
+            ${normalizedWebsite ? `<p class="break-words"><strong>${t("messages.scanFields.website")}:</strong> ${normalizedWebsite}</p>` : ""}
           </div>
           <p class="mt-4 text-center font-bold text-slate-700">${t("messages.scanSuccessConfirmText")}</p>
         `,
@@ -439,10 +498,11 @@ export function RecruiterCompanyProfilePage() {
           ...current,
           name: data.name || current.name,
           taxCode: data.taxCode || current.taxCode,
-          address: data.address || current.address,
+          city: normalizedCity || current.city,
+          address: normalizedAddress || current.address,
           email: data.email || current.email,
           phone: data.phone || current.phone,
-          website: data.website || current.website,
+          website: normalizedWebsite || current.website,
         }));
         void toast.fire({ icon: "success", title: t("messages.autofillSuccess") });
       }
@@ -471,7 +531,7 @@ export function RecruiterCompanyProfilePage() {
         <div className="border-b border-slate-100 p-5">
           <div className="flex items-center gap-2">
             <Buildings size={20} className="text-emerald-700" />
-            <h2 className="text-lg font-extrabold">{t("cardTitle")}</h2>
+            <h2 className="text-lg font-bold">{t("cardTitle")}</h2>
             <Badge tone={company?.verificationStatus === "VERIFIED" ? "success" : "warning"}>
               {formatVerificationStatus(company?.verificationStatus, t)}
             </Badge>
@@ -539,20 +599,36 @@ export function RecruiterCompanyProfilePage() {
             value={form.website}
             onChange={(value) => setForm((current) => ({ ...current, website: value }))}
           />
-          <CompanyField
+          <CompanySelectField
             id="company-size"
             label={t("fields.companySize")}
-            placeholder={t("fields.companySizePlaceholder")}
             required
             value={form.companySize}
             onChange={(value) => setForm((current) => ({ ...current, companySize: value }))}
+            options={companySizeOptions}
           />
-          <div className="lg:col-span-2">
-            <AddressSelector
-              value={form.address}
-              onChange={(value) => setForm((current) => ({ ...current, address: value }))}
-            />
-          </div>
+          <CompanyField
+            id="company-address"
+            label={t("fields.address")}
+            placeholder={t("fields.addressPlaceholder")}
+            required
+            value={form.address}
+            onChange={(value) => setForm((current) => ({ ...current, address: value }))}
+          />
+          <CompanySelectField
+            id="company-city"
+            label={t("fields.city")}
+            required
+            value={form.city}
+            onChange={(value) => setForm((current) => ({ ...current, city: value }))}
+            options={[
+              { value: "", label: t("fields.cityPlaceholder") },
+              ...VIETNAM_PROVINCES.map((province) => ({
+                value: province.name,
+                label: province.name,
+              })),
+            ]}
+          />
           <div className="flex flex-col gap-1.5 lg:col-span-2">
             <Label className="text-sm font-bold text-slate-700">
               {t("fields.description")} <span className="ml-1 text-red-500">*</span>
@@ -561,6 +637,14 @@ export function RecruiterCompanyProfilePage() {
               value={form.description}
               onChange={(value) => setForm((current) => ({ ...current, description: value }))}
               placeholder={t("fields.descriptionPlaceholder")}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 lg:col-span-2">
+            <Label className="text-sm font-bold text-slate-700">{t("fields.benefits")}</Label>
+            <RichTextEditor
+              value={form.benefits}
+              onChange={(value) => setForm((current) => ({ ...current, benefits: value }))}
+              placeholder={t("fields.benefitsPlaceholder")}
             />
           </div>
           <CompanyLicenseSection
@@ -601,9 +685,113 @@ export function RecruiterCompanyProfilePage() {
         className="hidden"
         type="file"
         accept=".pdf,.jpg,.jpeg,.png"
-        aria-label="Tải minh chứng doanh nghiệp"
+        aria-label={t("ariaLabels.licenseInput")}
         onChange={(event) => setLicenseFile(event.target.files?.[0] || null)}
       />
+    </div>
+  );
+}
+
+function parseDbCompanySize(size: string | null | undefined): string {
+  if (!size) return "";
+  const val = size.trim().toLowerCase();
+
+  if (val === "1" || val.includes("ít hơn 10") || val.includes("less than 10")) return "1";
+  if (val === "2" || val === "10-24") return "2";
+  if (
+    val === "3" ||
+    val === "25-99" ||
+    val === "50-99" ||
+    val.includes("51-150") ||
+    val.includes("1-50")
+  )
+    return "3";
+  if (
+    val === "4" ||
+    val === "100-499" ||
+    val === "100-199" ||
+    val === "200-499" ||
+    val.includes("151-300") ||
+    val.includes("301-500")
+  )
+    return "4";
+  if (val === "5" || val === "500-999" || val.includes("501-1000")) return "5";
+  if (val === "6" || val.includes("1000") || val.includes("1.000-4.999") || val.includes("1000+"))
+    return "6";
+  if (val === "7" || val === "5.000-9.999") return "7";
+  if (val === "8" || val === "10.000-19.999") return "8";
+  if (val === "9" || val === "20.000-49.999") return "9";
+  if (
+    val === "10" ||
+    val.includes("50.000") ||
+    val.includes("50000") ||
+    val.includes("more than 50000")
+  )
+    return "10";
+
+  return size;
+}
+
+async function syncPrimaryCompanyLocation(
+  companyId: string,
+  token: string,
+  city: string,
+  address: string,
+) {
+  const locations = await getCompanyLocations(companyId, token);
+  const primaryLocation =
+    locations.find((location) => location.name === PRIMARY_COMPANY_LOCATION_NAME) ??
+    locations.find((location) => location.address === address);
+  const payload = {
+    name: PRIMARY_COMPANY_LOCATION_NAME,
+    workingModel: "ONSITE" as const,
+    city,
+    address,
+  };
+
+  if (primaryLocation) {
+    await updateCompanyLocation(companyId, primaryLocation.id, payload, token);
+    return;
+  }
+
+  await createCompanyLocation(companyId, payload, token);
+}
+
+function CompanySelectField({
+  id,
+  label,
+  value,
+  onChange,
+  required,
+  options,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id} className="text-sm font-bold text-slate-700">
+        {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
+      </Label>
+      <div className="relative flex w-full items-center">
+        <select
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="upnext-focus text-foreground placeholder:text-muted-foreground flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium shadow-none transition-colors focus:border-emerald-600 focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
@@ -794,7 +982,7 @@ function CompanyBrandSection({
         className="hidden"
         type="file"
         accept="image/*"
-        aria-label="Tải logo công ty"
+        aria-label={t("ariaLabels.logoInput")}
         onChange={(event) => onSelectLogo(event.target.files?.[0])}
       />
       <input
@@ -802,7 +990,7 @@ function CompanyBrandSection({
         className="hidden"
         type="file"
         accept="image/*"
-        aria-label="Tải ảnh bìa công ty"
+        aria-label={t("ariaLabels.coverInput")}
         onChange={(event) => onSelectCover(event.target.files?.[0])}
       />
     </div>
@@ -827,70 +1015,70 @@ function CompanyScannerBanner({
   onCancelSelection,
 }: CompanyScannerBannerProps) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/30 p-6 shadow-xs transition-all duration-300 lg:col-span-2">
-      {/* Ambient background glows */}
-      <div className="pointer-events-none absolute -top-12 -right-12 size-32 rounded-full bg-emerald-400/15 blur-2xl" />
-      <div className="pointer-events-none absolute -bottom-12 -left-12 size-32 rounded-full bg-teal-400/10 blur-2xl" />
-
+    <div className="relative overflow-hidden rounded-xl border border-dashed border-emerald-500/40 bg-emerald-50/30 p-4 transition-all duration-300 lg:col-span-2">
       <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-4">
-          <div className="animate-pulse-slow flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20">
-            <Sparkle size={22} weight="fill" className="animate-pulse" />
+        {/* Info */}
+        <div className="flex items-center gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm shadow-emerald-600/10">
+            <Sparkle size={18} weight="fill" className="animate-pulse" />
           </div>
-          <div className="space-y-1">
-            <h4 className="flex items-center gap-2 text-sm font-black text-slate-800 sm:text-base">
+          <div className="space-y-0.5">
+            <h4 className="flex items-center gap-1.5 text-xs font-bold text-slate-800 sm:text-sm">
               {t("aiScan.title")}
-              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black tracking-wider text-emerald-800 uppercase">
+              <span className="py-0.2 rounded-full bg-emerald-100 px-1.5 text-[8px] font-black text-emerald-800 uppercase">
                 {t("aiScan.badgeNew")}
               </span>
             </h4>
-            <p className="hidden max-w-xl text-xs leading-relaxed font-semibold text-slate-500 sm:block">
+            <p className="max-w-lg text-[11px] leading-relaxed font-medium text-slate-500">
               {t("aiScan.helpText")}
             </p>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3 self-end sm:self-center">
+        {/* Action */}
+        <div
+          className={cn(
+            "flex shrink-0 items-center gap-2 self-end sm:self-center",
+            licenseFile ? "w-full grid grid-cols-2 sm:w-[320px]" : "",
+          )}
+        >
           {!licenseFile ? (
             <button
               type="button"
               onClick={triggerSelect}
-              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-2.5 text-xs font-black tracking-wider text-white uppercase shadow-md shadow-emerald-600/15 transition-all duration-300 hover:from-emerald-700 hover:to-teal-700 hover:shadow-lg hover:shadow-emerald-600/25 active:scale-95"
+              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-98"
             >
-              {t("aiScan.uploadBtn")}
-              <Lightning size={14} weight="fill" className="animate-bounce text-yellow-300" />
+              <UploadSimple size={14} weight="bold" />
+              <span>{t("aiScan.uploadBtn")}</span>
             </button>
           ) : (
-            <div className="flex items-center gap-2.5">
-              <span className="max-w-[150px] truncate rounded-xl border border-slate-200 bg-white/80 px-3.5 py-2 text-xs font-bold text-slate-600 shadow-2xs backdrop-blur-xs sm:max-w-xs">
-                📎 {licenseFile.name}
+            <>
+              <span
+                onClick={triggerSelect}
+                title="Nhấn để chọn tệp khác"
+                className="flex h-9 min-w-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-600 shadow-2xs transition-colors hover:bg-slate-50"
+              >
+                <span className="truncate">📎 {licenseFile.name}</span>
               </span>
               <button
                 type="button"
                 onClick={onScanLicense}
                 disabled={scanning}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-black tracking-wider text-white uppercase shadow-md shadow-blue-600/15 transition-all duration-300 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:shadow-blue-600/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-50"
               >
                 {scanning ? (
                   <>
-                    <CircleNotch className="size-3.5 animate-spin" />
-                    {t("aiScan.scanning")}
+                    <CircleNotch className="size-3 animate-spin" />
+                    <span>{t("aiScan.scanning")}</span>
                   </>
                 ) : (
                   <>
-                    {t("aiScan.startBtn")}
-                    <Lightning size={12} weight="fill" className="text-yellow-300" />
+                    <span>{t("aiScan.startBtn")}</span>
+                    <Lightning size={12} weight="fill" className="animate-pulse text-yellow-300" />
                   </>
                 )}
               </button>
-              <button
-                type="button"
-                onClick={onCancelSelection}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-500 shadow-2xs transition-all duration-300 hover:bg-slate-50 hover:text-slate-800"
-              >
-                {t("aiScan.cancelBtn")}
-              </button>
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -1006,9 +1194,7 @@ function CompanyAlbumSection({
           </div>
 
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-extrabold tracking-tight text-slate-800">
-              {t("album.title")}
-            </h3>
+            <h3 className="text-base font-bold text-slate-800">{t("album.title")}</h3>
             <p className="mt-1 text-sm leading-relaxed font-medium text-slate-500">
               {t("album.description")}
             </p>

@@ -8,14 +8,18 @@ import Swal from "sweetalert2";
 import {
   changePassword,
   getRecruiterAccount,
+  createRecruiterProfile,
   updateRecruiterProfile,
   uploadFile,
   type UpdateRecruiterProfilePayload,
+  type CreateRecruiterProfilePayload,
 } from "@/features/recruiter/api/onboarding";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { FormInput } from "@/shared/ui/input";
+
+import { RecruiterTableLayout } from "./recruiter-table-layout";
 
 function AccountIcon() {
   return (
@@ -297,6 +301,15 @@ export function RecruiterSettingsPage() {
         if (phoneNumber.trim()) profilePayload.phoneNumber = phoneNumber.trim();
         profilePayload.avatarUrl = avatarUrl || null;
         await updateRecruiterProfile(profileId, profilePayload, token);
+      } else {
+        const profilePayload: CreateRecruiterProfilePayload = {
+          recruiterAccountId: accountId,
+          fullName: fullName.trim(),
+          gender: gender ? (gender as "MALE" | "FEMALE") : undefined,
+          phoneNumber: phoneNumber.trim() ? phoneNumber.trim() : undefined,
+          avatarUrl: avatarUrl || undefined,
+        };
+        await createRecruiterProfile(profilePayload, token);
       }
 
       // 3. Save Password if requested
@@ -789,51 +802,49 @@ export function RecruiterSettingsPage() {
               <h6 className="mb-3 text-sm font-bold text-slate-800 dark:text-white">
                 Lịch sử giao dịch
               </h6>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-sm">
-                  <thead>
-                    <tr className="dark:border-slate-850 border-b border-slate-100 font-bold text-slate-400">
-                      <th className="px-4 py-3">Mã giao dịch</th>
-                      <th className="px-4 py-3">Ngày giao dịch</th>
-                      <th className="px-4 py-3">Gói dịch vụ</th>
-                      <th className="px-4 py-3">Số tiền</th>
-                      <th className="px-4 py-3 text-right">Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-slate-50 transition hover:bg-slate-50/50 dark:border-slate-900 dark:hover:bg-slate-950/50">
-                      <td className="px-4 py-3 font-mono font-medium text-slate-600 dark:text-slate-300">
-                        INV-84920
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">24/06/2026</td>
-                      <td className="px-4 py-3 font-semibold">Recruiter Pro (1 Tháng)</td>
-                      <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">
-                        1,200,000 VND
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="rounded bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-700">
-                          Thành công
-                        </span>
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-50 transition hover:bg-slate-50/50 dark:border-slate-900 dark:hover:bg-slate-950/50">
-                      <td className="px-4 py-3 font-mono font-medium text-slate-600 dark:text-slate-300">
-                        INV-83021
-                      </td>
-                      <td className="px-4 py-3 text-slate-500">24/05/2026</td>
-                      <td className="px-4 py-3 font-semibold">Recruiter Pro (1 Tháng)</td>
-                      <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">
-                        1,200,000 VND
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="rounded bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-700">
-                          Thành công
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              <RecruiterTableLayout loading={false}>
+                <thead>
+                  <tr className="dark:border-slate-850 border-b border-slate-100 font-bold text-slate-400">
+                    <th className="px-4 py-3">Mã giao dịch</th>
+                    <th className="px-4 py-3">Ngày giao dịch</th>
+                    <th className="px-4 py-3">Gói dịch vụ</th>
+                    <th className="px-4 py-3">Số tiền</th>
+                    <th className="px-4 py-3 text-right">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-slate-50 transition hover:bg-slate-50/50 dark:border-slate-900 dark:hover:bg-slate-950/50">
+                    <td className="px-4 py-3 font-mono font-medium text-slate-600 dark:text-slate-300">
+                      INV-84920
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">24/06/2026</td>
+                    <td className="px-4 py-3 font-semibold">Recruiter Pro (1 Tháng)</td>
+                    <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">
+                      1,200,000 VND
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="rounded bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-700">
+                        Thành công
+                      </span>
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-50 transition hover:bg-slate-50/50 dark:border-slate-900 dark:hover:bg-slate-950/50">
+                    <td className="px-4 py-3 font-mono font-medium text-slate-600 dark:text-slate-300">
+                      INV-83021
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">24/05/2026</td>
+                    <td className="px-4 py-3 font-semibold">Recruiter Pro (1 Tháng)</td>
+                    <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">
+                      1,200,000 VND
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="rounded bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-700">
+                        Thành công
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </RecruiterTableLayout>
             </div>
           </div>
         )}

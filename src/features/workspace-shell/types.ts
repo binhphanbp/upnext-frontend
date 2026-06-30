@@ -8,6 +8,10 @@ export type WorkspaceNavItem = Readonly<{
   icon: Icon;
   badge?: string;
   badgeTone?: "brand" | "premium" | "success" | "warning" | "info" | "neutral" | "error";
+  children?: ReadonlyArray<{
+    label: string;
+    href: string;
+  }>;
 }>;
 
 export type WorkspaceNavGroup = Readonly<{

@@ -14,6 +14,7 @@ export type RecruiterRole = Readonly<{
   code: string;
   name: string;
   description: string | null;
+  companyId?: string | null;
   rolePermissions?: {
     recruiterPermission: RecruiterPermission;
   }[];
@@ -41,7 +42,7 @@ export type CompanyMember = Readonly<{
 }>;
 
 export type RolePayload = Readonly<{
-  code: string;
+  code?: string;
   name: string;
   description?: string;
 }>;
@@ -99,6 +100,20 @@ export function createRecruiterRole(payload: RolePayload, token: string) {
     headers: jsonAuthHeaders(token),
     method: "POST",
   });
+}
+
+export async function createRecruiterRoleWithPermissions(
+  payload: RolePayload,
+  permissionIds: string[],
+  token: string,
+) {
+  const role = await createRecruiterRole(payload, token);
+
+  if (permissionIds.length === 0) {
+    return role;
+  }
+
+  return assignRecruiterRolePermissions(role.id, permissionIds, token);
 }
 
 export function updateRecruiterRole(roleId: string, payload: RolePayload, token: string) {
