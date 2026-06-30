@@ -66,7 +66,7 @@ test("uses one shared public footer across public marketing pages", async ({ pag
     const footer = page.locator("#site-footer");
     await expect(footer).toHaveCount(1);
     await expect(footer.getByRole("button", { name: "Trang chủ UpNext" })).toBeVisible();
-    await expect(footer.getByRole("button", { name: "Tìm việc ngay" })).toBeVisible();
+    await expect(footer.getByRole("button", { name: "Tìm việc IT" })).toBeVisible();
   }
 
   await page.goto("/vi/login");
