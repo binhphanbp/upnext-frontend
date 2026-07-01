@@ -7,6 +7,8 @@ import {
   getPaginationRowModel,
   useReactTable,
   type ColumnDef,
+  type OnChangeFn,
+  type RowSelectionState,
 } from "@tanstack/react-table";
 
 import { cn } from "@/shared/lib/cn";
@@ -17,6 +19,9 @@ type DataTableProps<TData, TValue = unknown> = Readonly<{
   data: TData[];
   emptyMessage?: string;
   className?: string;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+  getRowId?: (row: TData) => string;
 }>;
 
 export function DataTable<TData, TValue = unknown>({
@@ -24,13 +29,31 @@ export function DataTable<TData, TValue = unknown>({
   data,
   emptyMessage = "No results.",
   className,
+  rowSelection,
+  onRowSelectionChange,
+  getRowId,
 }: DataTableProps<TData, TValue>) {
-  const table = useReactTable({
+  const state: any = {};
+  if (rowSelection !== undefined) {
+    state.rowSelection = rowSelection;
+  }
+
+  const options: any = {
     columns,
     data,
+    state,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-  });
+  };
+
+  if (onRowSelectionChange !== undefined) {
+    options.onRowSelectionChange = onRowSelectionChange;
+  }
+  if (getRowId !== undefined) {
+    options.getRowId = getRowId;
+  }
+
+  const table = useReactTable(options);
 
   return (
     <div className="space-y-4">

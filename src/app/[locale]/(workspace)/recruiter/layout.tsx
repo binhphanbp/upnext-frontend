@@ -44,7 +44,22 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
           else if (item.label === "Phân tích") itemLabel = t("nav.analytics");
           else if (item.label === "Thanh toán") itemLabel = t("nav.billing");
 
-          return { ...item, label: itemLabel };
+          const resultItem: any = {
+            ...item,
+            label: itemLabel,
+          };
+          if (item.children) {
+            resultItem.children = item.children.map((child) => {
+              let childLabel = child.label;
+              if (child.label === "Thông tin chung") childLabel = t("nav.generalInfo");
+              else if (child.label === "Địa chỉ làm việc") childLabel = t("nav.companyAddresses");
+              else if (child.label === "Mời người dùng") childLabel = t("nav.inviteUsers");
+              else if (child.label === "Vai trò") childLabel = t("nav.rolesSub");
+
+              return { ...child, label: childLabel };
+            });
+          }
+          return resultItem;
         }),
       };
     });
@@ -54,7 +69,9 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
     pathname.includes("/login") ||
     pathname.includes("/register") ||
     pathname.includes("/forgot-password") ||
-    pathname.includes("/reset-password");
+    pathname.includes("/reset-password") ||
+    pathname.includes("/email-verification") ||
+    pathname.includes("/auth/callback");
 
   useEffect(() => {
     if (isAuthPage) {
@@ -111,6 +128,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
           }
         })
         .catch((error) => {
+          console.error("getRecruiterAccount error in layout:", error);
           if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
             localStorage.removeItem("upnext.recruiter.accessToken");
             localStorage.removeItem("upnext.recruiter.tokenType");
@@ -118,7 +136,8 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
             router.replace("/recruiter/login");
           }
         });
-    } catch {
+    } catch (e) {
+      console.error("Error in recruiter layout try-catch:", e);
       localStorage.removeItem("upnext.recruiter.accessToken");
       localStorage.removeItem("upnext.recruiter.tokenType");
       localStorage.removeItem("upnext.recruiter.user");

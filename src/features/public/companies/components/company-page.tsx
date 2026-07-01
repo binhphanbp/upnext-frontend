@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import {
   ArrowRight,
@@ -11,28 +11,24 @@ import {
   Briefcase,
   Building2,
   Calendar,
+  ChevronDown,
   ChevronRight,
   Coins,
   Facebook,
   Github,
-  Globe,
-  GraduationCap,
   Heart,
-  IdentificationCard,
   Linkedin,
   MapPin,
   MapTrifold,
   Medal,
   PaperPlaneTilt,
   Plus,
-  Scales,
-  Sparkles,
   Star,
   TrendingUp,
   UsersRound,
+  X,
   Youtube,
 } from "../../home/marketing-icons";
-import { jobs } from "../../jobs/components/jobs-page";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
 
@@ -51,7 +47,7 @@ const company = {
   industry: "Công nghệ thông tin & Dịch vụ phần mềm",
   type: "Công ty cổ phần",
   website: "https://fptsoftware.com",
-  websiteLabel: "fptsoftware.com",
+  websiteLabel: "https://fptsoftware.com",
   email: "recruitment@fpt.com",
   phone: "(024) 7300 7300",
   legalName: "Công ty Cổ phần FPT",
@@ -69,38 +65,25 @@ const stats = [
   { icon: <TrendingUp size={20} />, value: "97%", label: "Tỷ lệ phản hồi" },
 ];
 
-const reasons = [
-  {
-    icon: <Globe size={22} />,
-    title: "Cơ hội phát triển toàn cầu",
-    desc: "Làm việc với khách hàng quốc tế, dự án đa dạng.",
-  },
-  {
-    icon: <GraduationCap size={22} />,
-    title: "Học tập không giới hạn",
-    desc: "Ngân sách đào tạo lên đến 10+ ngày/năm.",
-  },
-  {
-    icon: <Coins size={22} />,
-    title: "Thu nhập cạnh tranh",
-    desc: "Phúc lợi hấp dẫn, thưởng hiệu quả & dự án.",
-  },
-  {
-    icon: <Sparkles size={22} />,
-    title: "Môi trường mở",
-    desc: "Văn hóa tôn trọng, sáng tạo và đề cao con người.",
-  },
-  {
-    icon: <Scales size={22} />,
-    title: "Cân bằng cuộc sống",
-    desc: "Linh hoạt thời gian, chăm sóc sức khỏe toàn diện.",
-  },
-];
-
 const cultureImages = [
   "/assets/marketing/home/covers/fpt.jpg",
   "/assets/marketing/home/covers/vnpay.jpg",
   "/assets/marketing/home/covers/fpt.jpg",
+  "/assets/marketing/home/covers/vnpay.jpg",
+  "/assets/marketing/home/covers/fpt.jpg",
+  "/assets/marketing/home/covers/vnpay.jpg",
+  "/assets/marketing/home/covers/fpt.jpg",
+  "/assets/marketing/home/covers/vnpay.jpg",
+  "/assets/marketing/home/covers/fpt.jpg",
+  "/assets/marketing/home/covers/vnpay.jpg",
+  "/assets/marketing/home/covers/fpt.jpg",
+  "/assets/marketing/home/covers/vnpay.jpg",
+  "/assets/marketing/home/covers/fpt.jpg",
+  "/assets/marketing/home/covers/vnpay.jpg",
+  "/assets/marketing/home/covers/fpt.jpg",
+  "/assets/marketing/home/covers/vnpay.jpg",
+  "/assets/marketing/home/covers/fpt.jpg",
+  "/assets/marketing/home/covers/vnpay.jpg",
 ];
 
 const techStack = [
@@ -127,34 +110,77 @@ const techStack = [
 ];
 
 const officeLocations = ["Hà Nội", "Đà Nẵng", "TP. Hồ Chí Minh", "Cần Thơ", "Quy Nhơn"];
-
 const fields = ["Phần mềm", "Chuyển đổi số", "Cloud", "AI/ML", "Tư vấn công nghệ"];
 
+const openJobs = [
+  {
+    id: "senior-backend-java",
+    title: "Senior Backend Developer (Java)",
+    salary: "20 - 40 triệu",
+    location: "Hà Nội",
+    tags: ["Java", "Spring Boot", "AWS"],
+    posted: "1 giờ trước",
+    hot: true,
+  },
+  {
+    id: "frontend-react",
+    title: "Frontend Developer (React)",
+    salary: "18 - 32 triệu",
+    location: "TP. Hồ Chí Minh",
+    tags: ["React", "TypeScript", "Tailwind"],
+    posted: "2 giờ trước",
+  },
+  {
+    id: "devops-engineer",
+    title: "DevOps Engineer",
+    salary: "25 - 45 triệu",
+    location: "Hà Nội",
+    tags: ["AWS", "Docker", "Kubernetes"],
+    posted: "3 giờ trước",
+  },
+  {
+    id: "ai-engineer-nlp",
+    title: "AI Engineer (NLP)",
+    salary: "30 - 50 triệu",
+    location: "Đà Nẵng",
+    tags: ["Python", "PyTorch", "NLP"],
+    posted: "5 giờ trước",
+  },
+];
+
 const socials = [
-  { icon: <Linkedin size={18} />, href: "https://www.linkedin.com/" },
-  { icon: <Facebook size={18} />, href: "https://www.facebook.com/" },
-  { icon: <Youtube size={18} />, href: "https://www.youtube.com/" },
-  { icon: <Github size={18} />, href: "https://github.com/" },
-  { icon: <Globe size={18} />, href: "https://fptsoftware.com" },
+  { icon: <Linkedin size={18} />, href: "https://www.linkedin.com/", label: "LinkedIn" },
+  { icon: <Facebook size={18} />, href: "https://www.facebook.com/", label: "Facebook" },
+  { icon: <Youtube size={18} />, href: "https://www.youtube.com/", label: "YouTube" },
+  { icon: <Github size={18} />, href: "https://github.com/", label: "GitHub" },
+];
+
+const companyIntroParagraphs = [
+  "FPT Software là công ty công nghệ hàng đầu thuộc Tập đoàn FPT, cung cấp các dịch vụ, giải pháp và sản phẩm công nghệ cho hơn 1.100 khách hàng tại 30 quốc gia. Chúng tôi đồng hành cùng các doanh nghiệp toàn cầu trong hành trình chuyển đổi số với năng lực vượt trội về kỹ thuật, tư duy đổi mới và cam kết chất lượng.",
+  "Đội ngũ của FPT Software tập trung vào các lĩnh vực như cloud, AI, data engineering, automotive, low-code, enterprise platforms và các giải pháp vận hành số quy mô lớn. Môi trường làm việc khuyến khích mỗi cá nhân học hỏi liên tục, chủ động giải quyết vấn đề và tạo ra tác động thực tế cho khách hàng.",
+  "Công ty xây dựng văn hóa cởi mở, minh bạch và tôn trọng sự khác biệt. Nhân viên được hỗ trợ phát triển qua chương trình đào tạo nội bộ, cơ hội tham gia dự án quốc tế, lộ trình nghề nghiệp rõ ràng và hệ sinh thái chuyên gia công nghệ rộng khắp.",
+  "Với định hướng phát triển bền vững, FPT Software tiếp tục mở rộng quy mô tại Việt Nam và nhiều thị trường quốc tế, đồng thời đầu tư mạnh vào năng lực tư vấn, nghiên cứu công nghệ mới và các chương trình nâng cao trải nghiệm nhân viên.",
 ];
 
 function CompanyLogo({ size = "normal" }: { size?: "normal" | "large" }) {
   const [failed, setFailed] = useState(false);
   const cls = `company-logo${size === "large" ? " is-large" : ""}`;
+
   if (!company.logo || failed) {
     return (
       <span className={`${cls} is-fallback`} style={{ color: company.logoColor }}>
-        {company.name.charAt(0)}
+        FPT
       </span>
     );
   }
+
   return (
     <span className={cls}>
       <Image
         src={company.logo}
         alt={`Logo ${company.name}`}
-        width={size === "large" ? 72 : 48}
-        height={size === "large" ? 72 : 48}
+        width={size === "large" ? 96 : 48}
+        height={size === "large" ? 96 : 48}
         onError={() => setFailed(true)}
       />
     </span>
@@ -163,7 +189,50 @@ function CompanyLogo({ size = "normal" }: { size?: "normal" | "large" }) {
 
 export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
   const [following, setFollowing] = useState(false);
-  const openJobs = jobs.slice(0, 4);
+  const [activeCultureImage, setActiveCultureImage] = useState<number | null>(null);
+  const visibleCultureImages = cultureImages.slice(0, 3);
+  const hiddenCultureImageCount = Math.max(cultureImages.length - visibleCultureImages.length, 0);
+
+  useEffect(() => {
+    if (activeCultureImage === null) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setActiveCultureImage(null);
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        setActiveCultureImage((current) =>
+          current === null ? current : (current - 1 + cultureImages.length) % cultureImages.length,
+        );
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        setActiveCultureImage((current) =>
+          current === null ? current : (current + 1) % cultureImages.length,
+        );
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [activeCultureImage]);
+
+  function showPreviousCultureImage() {
+    setActiveCultureImage((current) =>
+      current === null ? current : (current - 1 + cultureImages.length) % cultureImages.length,
+    );
+  }
+
+  function showNextCultureImage() {
+    setActiveCultureImage((current) =>
+      current === null ? current : (current + 1) % cultureImages.length,
+    );
+  }
 
   return (
     <main className="company-page">
@@ -174,11 +243,11 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
           <button type="button" onClick={() => navigate("/")}>
             Trang chủ
           </button>
-          <ChevronRight size={14} />
+          <ChevronRight size={13} />
           <button type="button" onClick={() => navigate("/companies")}>
             Công ty
           </button>
-          <ChevronRight size={14} />
+          <ChevronRight size={13} />
           <span>{company.name}</span>
         </nav>
 
@@ -189,49 +258,54 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
           </div>
 
           <div className="company-banner-body">
-            <CompanyLogo size="large" />
+            <div className="company-banner-main">
+              <CompanyLogo size="large" />
 
-            <div className="company-banner-info">
-              <h1>
-                {company.name}
-                <BadgeCheck size={26} weight="fill" className="company-verified" />
-              </h1>
-              <p className="company-tagline">{company.tagline}</p>
-              <div className="company-banner-meta">
-                <span>
-                  <Building2 size={16} /> {company.industry}
-                </span>
-                <span>
-                  <IdentificationCard size={16} /> {company.type}
-                </span>
-              </div>
-              <div className="company-banner-actions">
-                <button
-                  type="button"
-                  className={`company-follow${following ? " is-following" : ""}`}
-                  onClick={() => setFollowing((value) => !value)}
-                >
-                  {following ? <Heart size={18} weight="fill" /> : <Plus size={18} />}
-                  {following ? "Đang theo dõi" : "Theo dõi công ty"}
-                </button>
-                <a
-                  className="company-website"
-                  href={company.website}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Xem website <ArrowUpRight size={16} />
-                </a>
+              <div className="company-banner-info">
+                <h1>
+                  {company.name}
+                  <BadgeCheck size={26} weight="fill" className="company-verified" />
+                </h1>
+                <p className="company-tagline">{company.tagline}</p>
+                <div className="company-banner-meta">
+                  <span>
+                    <Briefcase size={16} /> {company.industry}
+                  </span>
+                  <i aria-hidden="true" />
+                  <span>
+                    <Building2 size={16} /> {company.type}
+                  </span>
+                </div>
+                <div className="company-banner-actions">
+                  <button
+                    type="button"
+                    className={`company-follow${following ? " is-following" : ""}`}
+                    onClick={() => setFollowing((value) => !value)}
+                  >
+                    {following ? <Heart size={18} weight="fill" /> : <Plus size={18} />}
+                    {following ? "Đang theo dõi" : "Theo dõi công ty"}
+                  </button>
+                  <a
+                    className="company-website"
+                    href={company.website}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Xem website <ArrowUpRight size={16} />
+                  </a>
+                </div>
               </div>
             </div>
 
             <aside className="company-banner-badge">
               <span className="company-banner-badge-icon">
-                <Medal size={22} weight="fill" />
+                <Star size={24} weight="fill" />
               </span>
               <div>
                 <strong>Nhà tuyển dụng được yêu thích</strong>
-                <small>Top 5% công ty được theo dõi nhiều trên UpNext</small>
+                <small>
+                  <b>Top 5%</b> công ty được theo dõi nhiều trên UpNext
+                </small>
               </div>
             </aside>
           </div>
@@ -251,89 +325,70 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
 
         <div className="company-layout">
           <div className="company-main">
-            <Card title="Giới thiệu công ty">
-              <p className="company-intro">
-                FPT Software là công ty công nghệ hàng đầu thuộc Tập đoàn FPT, cung cấp các dịch vụ,
-                giải pháp và sản phẩm công nghệ cho hơn 1.100 khách hàng tại 30 quốc gia. Chúng tôi
-                đồng hành cùng các doanh nghiệp toàn cầu trong hành trình chuyển đổi số với năng lực
-                vượt trội về kỹ thuật, tư duy đổi mới và cam kết chất lượng.
-              </p>
-              <p className="company-intro">
-                Đội ngũ hơn 30.000 kỹ sư làm việc tại 5 quốc gia, tập trung vào các lĩnh vực chuyển
-                đổi số, Cloud, AI/Machine Learning và phát triển phần mềm cho khách hàng doanh
-                nghiệp toàn cầu. Tại đây, mỗi kỹ sư đều có lộ trình phát triển rõ ràng cùng cơ hội
-                tham gia các dự án quy mô quốc tế.
-              </p>
-            </Card>
+            <section className="company-profile-panel">
+              <CompanySection title="Giới thiệu công ty">
+                <ExpandableCompanyIntro paragraphs={companyIntroParagraphs} />
+              </CompanySection>
 
-            <Card title="Vì sao nên làm việc tại đây">
-              <div className="company-reasons">
-                {reasons.map((reason) => (
-                  <div className="company-reason" key={reason.title}>
-                    <span>{reason.icon}</span>
-                    <strong>{reason.title}</strong>
-                    <small>{reason.desc}</small>
-                  </div>
-                ))}
-              </div>
-            </Card>
+              <CompanySection
+                title="Văn hóa & môi trường làm việc"
+                subtitle="Chúng tôi xây dựng môi trường làm việc cởi mở, minh bạch, nơi mỗi người được trao quyền để sáng tạo, dám nghĩ lớn và tạo ra giá trị khác biệt."
+              >
+                <div className={`company-gallery is-count-${Math.min(cultureImages.length, 3)}`}>
+                  {visibleCultureImages.map((src, index) => (
+                    <button
+                      key={`${src}-${index}`}
+                      type="button"
+                      className="company-gallery-item"
+                      onClick={() => setActiveCultureImage(index)}
+                      aria-label={`Xem ảnh môi trường làm việc ${index + 1}`}
+                    >
+                      <Image
+                        src={src}
+                        alt={`Môi trường làm việc ${index + 1}`}
+                        width={420}
+                        height={260}
+                      />
+                      {index === 2 && hiddenCultureImageCount > 0 && (
+                        <span className="company-gallery-more">+{hiddenCultureImageCount} ảnh</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </CompanySection>
 
-            <Card
-              title="Văn hóa & môi trường làm việc"
-              subtitle="Chúng tôi xây dựng môi trường làm việc cởi mở, minh bạch, nơi mỗi người được trao quyền để sáng tạo, dám nghĩ lớn và tạo ra giá trị khác biệt."
-            >
-              <div className="company-gallery">
-                {cultureImages.map((src, index) => (
-                  <span key={index} className="company-gallery-item">
-                    <Image
-                      src={src}
-                      alt={`Môi trường làm việc ${index + 1}`}
-                      width={480}
-                      height={320}
-                    />
-                  </span>
-                ))}
-              </div>
-            </Card>
+              <CompanySection title="Công nghệ & kỹ năng nổi bật">
+                <ExpandableTagList tags={techStack} />
+              </CompanySection>
 
-            <Card title="Công nghệ & kỹ năng nổi bật">
-              <div className="company-tags">
-                {techStack.map((tech) => (
-                  <span key={tech}>{tech}</span>
-                ))}
-              </div>
-            </Card>
+              <CompanySection
+                title="Văn phòng / địa điểm làm việc"
+                action={
+                  <button type="button" className="company-map-btn">
+                    Xem bản đồ <MapTrifold size={15} />
+                  </button>
+                }
+                isLast
+              >
+                <div className="company-offices">
+                  {officeLocations.map((place, index) => (
+                    <span key={place}>
+                      {index < 3 && <MapPin size={15} weight={index === 0 ? "fill" : "regular"} />}
+                      {place}
+                    </span>
+                  ))}
+                  <span className="company-offices-more">+ 3 địa điểm khác</span>
+                </div>
+              </CompanySection>
+            </section>
 
-            <Card
-              title="Văn phòng / địa điểm làm việc"
-              action={
-                <button type="button" className="company-map-btn">
-                  <MapTrifold size={16} /> Xem bản đồ
+            <section className="company-jobs-section">
+              <div className="company-jobs-head">
+                <h2>Việc làm đang tuyển</h2>
+                <button type="button" onClick={() => navigate("/jobs")}>
+                  Xem tất cả (128) <ArrowRight size={14} weight="bold" />
                 </button>
-              }
-            >
-              <div className="company-offices">
-                {officeLocations.map((place) => (
-                  <span key={place}>
-                    <MapPin size={15} /> {place}
-                  </span>
-                ))}
-                <span className="company-offices-more">+ 3 địa điểm khác</span>
               </div>
-            </Card>
-
-            <Card
-              title="Việc làm đang tuyển"
-              action={
-                <button
-                  type="button"
-                  className="company-link company-link-inline"
-                  onClick={() => navigate("/jobs")}
-                >
-                  Xem tất cả (128) <ArrowRight size={15} />
-                </button>
-              }
-            >
               <div className="company-jobs">
                 {openJobs.map((job) => (
                   <button
@@ -342,22 +397,15 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
                     className="company-job"
                     onClick={() => navigate(`/jobs/${job.id}`)}
                   >
-                    <div className="company-job-head">
-                      {job.featured && (
-                        <span className="company-job-badge">
-                          <Star size={12} weight="fill" /> Hot
-                        </span>
-                      )}
-                      <h3>{job.title}</h3>
-                    </div>
+                    <h3>{job.title}</h3>
                     <span className="company-job-salary">
-                      <Coins size={15} /> {job.salary}
+                      <Coins size={15} weight="fill" /> {job.salary}
                     </span>
                     <span className="company-job-loc">
-                      <MapPin size={15} /> {job.location}
+                      <MapPin size={14} /> {job.location}
                     </span>
                     <div className="company-job-tags">
-                      {job.tags.slice(0, 3).map((tag) => (
+                      {job.tags.map((tag) => (
                         <i key={tag}>{tag}</i>
                       ))}
                     </div>
@@ -365,11 +413,11 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
                   </button>
                 ))}
               </div>
-            </Card>
+            </section>
           </div>
 
           <aside className="company-aside">
-            <Card title="Thông tin nhanh" compact>
+            <SidebarCard title="Thông tin nhanh">
               <dl className="company-info">
                 <InfoRow label="Tên công ty" value={company.legalName} />
                 <InfoRow label="Mã số thuế" value={company.taxCode} />
@@ -389,9 +437,9 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
                 <InfoRow label="Điện thoại" value={company.phone} />
                 <InfoRow label="Quy mô" value={company.size} />
               </dl>
-            </Card>
+            </SidebarCard>
 
-            <Card title="Quy mô & ngành nghề" compact>
+            <SidebarCard title="Quy mô & ngành nghề">
               <div className="company-field">
                 <small>Ngành nghề chính</small>
                 <strong>{company.industry}</strong>
@@ -404,41 +452,51 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
                   ))}
                 </div>
               </div>
-              <div className="company-field">
+              <div className="company-field is-inline">
                 <small>Quy mô công ty</small>
                 <strong>{company.size}</strong>
               </div>
-              <div className="company-field">
+              <div className="company-field is-inline">
                 <small>Văn phòng</small>
                 <strong>{company.offices}</strong>
               </div>
-            </Card>
+            </SidebarCard>
 
-            <Card title="Kết nối với chúng tôi" compact>
+            <SidebarCard title="Kết nối với chúng tôi">
               <div className="company-socials">
-                {socials.map((social, index) => (
-                  <a key={index} href={social.href} target="_blank" rel="noreferrer">
+                {socials.map((social) => (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={social.label}
+                  >
                     {social.icon}
                   </a>
                 ))}
               </div>
-            </Card>
+            </SidebarCard>
 
             <section className="company-cta-card">
+              <div>
+                <h3>Không bỏ lỡ cơ hội từ {company.name}</h3>
+                <p>
+                  Theo dõi công ty để nhận thông báo về việc làm mới nhất và tin tức tuyển dụng.
+                </p>
+                <button
+                  type="button"
+                  className={`company-follow${following ? " is-following" : ""}`}
+                  onClick={() => setFollowing((value) => !value)}
+                >
+                  {following ? <Heart size={17} weight="fill" /> : <Plus size={17} weight="bold" />}
+                  {following ? "Đang theo dõi" : "Theo dõi công ty"}
+                </button>
+                <span className="company-followers">12.3K người đã theo dõi</span>
+              </div>
               <span className="company-cta-art" aria-hidden="true">
-                <PaperPlaneTilt size={26} />
+                <Medal size={84} weight="fill" />
               </span>
-              <h3>Không bỏ lỡ cơ hội từ {company.name}</h3>
-              <p>Theo dõi công ty để nhận thông báo về việc làm mới nhất và tin tức tuyển dụng.</p>
-              <button
-                type="button"
-                className={`company-follow${following ? " is-following" : ""}`}
-                onClick={() => setFollowing((value) => !value)}
-              >
-                {following ? <Heart size={18} weight="fill" /> : <Plus size={18} />}
-                {following ? "Đang theo dõi" : "Theo dõi công ty"}
-              </button>
-              <span className="company-followers">12.3K người đã theo dõi</span>
             </section>
           </aside>
         </div>
@@ -447,11 +505,11 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
       <section className="company-banner-strip">
         <div className="company-strip-inner">
           <span className="company-strip-icon">
-            <PaperPlaneTilt size={26} />
+            <PaperPlaneTilt size={26} weight="fill" />
           </span>
           <div>
             <strong>Ứng tuyển nhanh hơn với hồ sơ UpNext</strong>
-            <p>Tạo hồ sơ một lần · Ứng tuyển dễ dàng · Nổi bật với nhà tuyển dụng</p>
+            <p>Tạo hồ sơ một lần – Ứng tuyển dễ dàng – Nổi bật với nhà tuyển dụng</p>
           </div>
           <div className="company-strip-actions">
             <button
@@ -472,31 +530,285 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
         </div>
       </section>
 
+      {activeCultureImage !== null && (
+        <dialog open className="company-gallery-lightbox" aria-label="Ảnh môi trường làm việc">
+          <button
+            type="button"
+            className="company-gallery-lightbox-backdrop"
+            aria-label="Đóng bộ sưu tập ảnh"
+            onClick={() => setActiveCultureImage(null)}
+          />
+          <div className="company-gallery-lightbox-panel">
+            <div className="company-gallery-lightbox-head">
+              <span className="company-gallery-lightbox-count">
+                {activeCultureImage + 1}/{cultureImages.length}
+              </span>
+              <button
+                type="button"
+                className="company-gallery-lightbox-close"
+                aria-label="Đóng bộ sưu tập ảnh"
+                onClick={() => setActiveCultureImage(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="company-gallery-lightbox-stage">
+              <button
+                type="button"
+                className="company-gallery-lightbox-nav is-prev"
+                aria-label="Xem ảnh trước"
+                onClick={showPreviousCultureImage}
+              >
+                <ChevronRight size={22} />
+              </button>
+              <Image
+                src={cultureImages[activeCultureImage]!}
+                alt={`Môi trường làm việc ${activeCultureImage + 1}`}
+                width={1120}
+                height={700}
+                priority
+              />
+              <button
+                type="button"
+                className="company-gallery-lightbox-nav"
+                aria-label="Xem ảnh tiếp theo"
+                onClick={showNextCultureImage}
+              >
+                <ChevronRight size={22} />
+              </button>
+            </div>
+            <div className="company-gallery-lightbox-thumbs" aria-label="Danh sách ảnh">
+              {cultureImages.map((src, index) => (
+                <button
+                  key={`${src}-thumb-${index}`}
+                  type="button"
+                  className={index === activeCultureImage ? "is-active" : ""}
+                  onClick={() => setActiveCultureImage(index)}
+                  aria-label={`Chọn ảnh ${index + 1}`}
+                  aria-current={index === activeCultureImage ? "true" : undefined}
+                >
+                  <Image src={src} alt="" width={120} height={80} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </dialog>
+      )}
+
       <PublicFooter navigate={navigate} />
     </main>
   );
 }
 
-function Card({
+function CompanySection({
   title,
   subtitle,
   action,
-  compact,
+  isLast,
   children,
 }: {
   title: string;
   subtitle?: string;
   action?: ReactNode;
-  compact?: boolean;
+  isLast?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section className={`company-card${compact ? " is-compact" : ""}`}>
-      <div className="company-card-head">
+    <section className={`company-profile-section${isLast ? " is-last" : ""}`}>
+      <div className="company-section-head">
         <h2>{title}</h2>
         {action}
       </div>
       {subtitle && <p className="company-card-sub">{subtitle}</p>}
+      {children}
+    </section>
+  );
+}
+
+function ExpandableCompanyIntro({ paragraphs }: { paragraphs: string[] }) {
+  const initialVisibleLines = 6;
+  const lineStep = 6;
+  const copyRef = useRef<HTMLDivElement>(null);
+  const [visibleLines, setVisibleLines] = useState(initialVisibleLines);
+  const [introMeasure, setIntroMeasure] = useState({
+    contentHeight: 0,
+    lineHeight: 0,
+  });
+  const collapsedHeight = introMeasure.lineHeight * initialVisibleLines;
+  const currentMaxHeight = introMeasure.lineHeight * visibleLines;
+  const hasOverflow = introMeasure.contentHeight > collapsedHeight + 2;
+  const canShowMore = hasOverflow && introMeasure.contentHeight > currentMaxHeight + 2;
+  const canCollapse = hasOverflow && visibleLines > initialVisibleLines;
+
+  useEffect(() => {
+    const element = copyRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    const currentElement = element;
+
+    function measureIntro() {
+      const computedStyle = window.getComputedStyle(currentElement);
+      const parsedLineHeight = Number.parseFloat(computedStyle.lineHeight);
+      const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : 24;
+
+      setIntroMeasure({
+        contentHeight: currentElement.scrollHeight,
+        lineHeight,
+      });
+    }
+
+    measureIntro();
+    window.addEventListener("resize", measureIntro);
+
+    return () => window.removeEventListener("resize", measureIntro);
+  }, [paragraphs]);
+
+  return (
+    <div className={`company-intro-block${canShowMore ? " has-more" : ""}`}>
+      <div
+        ref={copyRef}
+        className="company-intro-copy"
+        style={{ "--company-intro-lines": visibleLines } as CSSProperties}
+      >
+        {paragraphs.map((paragraph) => (
+          <p key={paragraph} className="company-intro">
+            {paragraph}
+          </p>
+        ))}
+      </div>
+      {hasOverflow && (
+        <div className="company-intro-actions">
+          {canShowMore && (
+            <button
+              type="button"
+              className="company-intro-more-btn"
+              onClick={() => setVisibleLines((lines) => lines + lineStep)}
+            >
+              Xem thêm <ChevronDown size={14} weight="bold" />
+            </button>
+          )}
+          {canCollapse && (
+            <button
+              type="button"
+              className="company-intro-more-btn is-collapse"
+              onClick={() => setVisibleLines(initialVisibleLines)}
+            >
+              Thu gọn <ChevronDown size={14} weight="bold" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExpandableTagList({ tags }: { tags: string[] }) {
+  const featuredTagCount = 12;
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const featuredTags = tags.slice(0, featuredTagCount);
+  const hiddenTagCount = Math.max(tags.length - featuredTags.length, 0);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredTags = normalizedQuery
+    ? tags.filter((tag) => tag.toLowerCase().includes(normalizedQuery))
+    : tags;
+
+  useEffect(() => {
+    if (!isPanelOpen) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsPanelOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isPanelOpen]);
+
+  return (
+    <div className="company-tags-block">
+      <div className="company-tags-summary">
+        <div className="company-tags">
+          {featuredTags.map((tech) => (
+            <span key={tech}>{tech}</span>
+          ))}
+          {hiddenTagCount > 0 && (
+            <button
+              type="button"
+              className="company-tags-more-chip"
+              onClick={() => setIsPanelOpen(true)}
+              aria-haspopup="dialog"
+            >
+              +{hiddenTagCount} kỹ năng
+            </button>
+          )}
+        </div>
+        <p>Các công nghệ thường gặp trong dự án và vị trí tuyển dụng tại {company.name}.</p>
+      </div>
+
+      {isPanelOpen && (
+        <dialog open className="company-skills-dialog" aria-label="Tất cả công nghệ và kỹ năng">
+          <button
+            type="button"
+            className="company-skills-backdrop"
+            aria-label="Đóng danh sách kỹ năng"
+            onClick={() => setIsPanelOpen(false)}
+          />
+          <section className="company-skills-panel">
+            <header className="company-skills-head">
+              <div>
+                <span>{tags.length} kỹ năng</span>
+                <h3>Công nghệ & kỹ năng nổi bật</h3>
+              </div>
+              <button
+                type="button"
+                className="company-skills-close"
+                aria-label="Đóng danh sách kỹ năng"
+                onClick={() => setIsPanelOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </header>
+
+            <label className="company-skills-search">
+              <span>Tìm kỹ năng</span>
+              <input
+                aria-label="Tìm kỹ năng"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Tìm Java, React, Cloud..."
+                autoFocus
+              />
+            </label>
+
+            <div className="company-skills-grid">
+              {filteredTags.map((tech) => (
+                <span key={tech}>{tech}</span>
+              ))}
+            </div>
+            {filteredTags.length === 0 && (
+              <p className="company-skills-empty">Không tìm thấy kỹ năng phù hợp.</p>
+            )}
+          </section>
+        </dialog>
+      )}
+    </div>
+  );
+}
+
+function SidebarCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="company-card is-compact">
+      <div className="company-card-head">
+        <h2>{title}</h2>
+      </div>
       {children}
     </section>
   );

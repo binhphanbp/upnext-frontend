@@ -2,10 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CaretLeft, CaretRight, Eye, EyeSlash } from "@phosphor-icons/react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useState, type FocusEvent } from "react";
+import { useState, useEffect, type FocusEvent } from "react";
 import { useForm, type FieldErrors, type UseFormRegisterReturn } from "react-hook-form";
 import Swal, { type SweetAlertIcon } from "sweetalert2";
 import { z } from "zod";
@@ -17,8 +17,9 @@ import {
   registerRecruiter,
   requestRecruiterPasswordReset,
 } from "@/features/recruiter/api/auth";
-import { useRouter } from "@/i18n/navigation";
+import { useRouter, usePathname } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
+import { env } from "@/shared/lib/env";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Checkbox } from "@/shared/ui/checkbox";
@@ -46,15 +47,6 @@ type ResetPasswordValues = {
 const authInputClassName =
   "recruiter-auth-input h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400";
 
-const passwordResetMessages = {
-  invalidEmail: "Email không hợp lệ",
-  passwordMin: "Mật khẩu tối thiểu 8 ký tự",
-  passwordRequired: "Vui lòng nhập mật khẩu",
-  confirmRequired: "Vui lòng nhập lại mật khẩu",
-  passwordMismatch: "Mật khẩu nhập lại không khớp",
-  tokenRequired: "Link đặt lại mật khẩu không hợp lệ hoặc thiếu token.",
-};
-
 const Toast = Swal.mixin({
   toast: true,
   position: "top-end",
@@ -70,33 +62,38 @@ function showToast(icon: SweetAlertIcon, title: string) {
 function getAuthErrorMessage(
   error: unknown,
   context: "login" | "register" | "forgot-password" | "reset-password",
+  t: any,
 ) {
   if (!(error instanceof ApiError)) {
-    return "Không thể kết nối đến hệ thống. Vui lòng thử lại sau.";
+    return t("errors.default");
   }
 
   if (error.status === 400) {
-    return "Thông tin chưa hợp lệ. Vui lòng kiểm tra lại.";
+    return t("errors.invalidData");
   }
 
   if (error.status === 401) {
     return context === "reset-password"
-      ? "Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn."
-      : "Email hoặc mật khẩu không đúng.";
+      ? t("errors.resetTokenInvalid")
+      : t("errors.invalidCredentials");
+  }
+
+  if (error.status === 403) {
+    return error.message || t("errors.emailNotVerified");
   }
 
   if (error.status === 409) {
-    return "Email này đã được dùng cho tài khoản nhà tuyển dụng.";
+    return t("errors.emailAlreadyRegistered");
   }
 
   if (error.status >= 500) {
-    return "Hệ thống đang gặp sự cố. Vui lòng thử lại sau ít phút.";
+    return t("errors.systemError");
   }
 
-  return "Không thể xử lý yêu cầu. Vui lòng thử lại.";
+  return t("errors.processFailed");
 }
 
-function getFirstErrorMessage(errors: FieldErrors): string {
+function getFirstErrorMessage(errors: FieldErrors, t: any): string {
   for (const error of Object.values(errors)) {
     if (!error) continue;
 
@@ -105,13 +102,13 @@ function getFirstErrorMessage(errors: FieldErrors): string {
     }
 
     if (typeof error === "object") {
-      const nested: string = getFirstErrorMessage(error as FieldErrors);
+      const nested: string = getFirstErrorMessage(error as FieldErrors, t);
 
       if (nested) return nested;
     }
   }
 
-  return "Vui lòng kiểm tra lại thông tin.";
+  return t("errors.invalidForm");
 }
 
 function setAuthInputFocusStyle(event: FocusEvent<HTMLInputElement>) {
@@ -128,17 +125,18 @@ function resetAuthInputFocusStyle(
 
 export function RecruiterLoginPage() {
   const router = useRouter();
-  const t = useTranslations("Auth");
+  const tAuth = useTranslations("Auth");
+  const t = useTranslations("RecruiterAuth");
   const [showPassword, setShowPassword] = useState(false);
   const form = useForm<LoginValues>({
     resolver: zodResolver(
       createLoginSchema({
-        invalidEmail: t("validation.invalidEmail"),
-        passwordRequired: t("validation.passwordRequired"),
-        fullNameMin: t("validation.fullNameMin"),
-        passwordMin: t("validation.passwordMin"),
-        confirmRequired: t("validation.confirmRequired"),
-        passwordMismatch: t("validation.passwordMismatch"),
+        invalidEmail: tAuth("validation.invalidEmail"),
+        passwordRequired: tAuth("validation.passwordRequired"),
+        fullNameMin: tAuth("validation.fullNameMin"),
+        passwordMin: tAuth("validation.passwordMin"),
+        confirmRequired: tAuth("validation.confirmRequired"),
+        passwordMismatch: tAuth("validation.passwordMismatch"),
       }),
     ),
     defaultValues: { email: "", password: "" },
@@ -151,23 +149,28 @@ export function RecruiterLoginPage() {
       localStorage.setItem("upnext.recruiter.accessToken", response.accessToken);
       localStorage.setItem("upnext.recruiter.tokenType", response.tokenType);
       localStorage.setItem("upnext.recruiter.user", JSON.stringify(response.user));
-      showToast("success", "Đăng nhập thành công.");
+      showToast("success", t("login.success"));
       router.push("/recruiter");
     } catch (error) {
-      showToast("error", getAuthErrorMessage(error, "login"));
+      if (error instanceof ApiError && error.status === 403) {
+        showToast("warning", t("login.emailVerificationRequired"));
+        router.push(`/recruiter/register/success?email=${encodeURIComponent(values.email)}`);
+        return;
+      }
+      showToast("error", getAuthErrorMessage(error, "login", t));
     }
   }
 
   return (
     <RecruiterAuthShell>
-      <AuthHeader title="Chào mừng bạn đã quay trở lại" />
+      <AuthHeader title={t("login.title")} />
       <SocialButtons mode="login" />
-      <AuthDivider label="Hoặc đăng nhập bằng email" />
+      <AuthDivider label={t("login.orDivider")} />
 
       <form
         className="mt-8 space-y-5"
         onSubmit={form.handleSubmit(submit, (errors) =>
-          showToast("error", getFirstErrorMessage(errors)),
+          showToast("error", getFirstErrorMessage(errors, t)),
         )}
         noValidate
       >
@@ -176,8 +179,8 @@ export function RecruiterLoginPage() {
         <PasswordField
           autoComplete="current-password"
           inputId="recruiter-password"
-          label="Mật khẩu"
-          placeholder="Nhập mật khẩu của bạn"
+          label={t("login.passwordLabel")}
+          placeholder={t("login.passwordPlaceholder")}
           setVisible={setShowPassword}
           visible={showPassword}
           register={form.register("password")}
@@ -187,7 +190,7 @@ export function RecruiterLoginPage() {
               className="upnext-focus rounded text-xs font-bold text-emerald-700 hover:text-emerald-800"
               onClick={() => router.push("/recruiter/forgot-password")}
             >
-              Quên mật khẩu?
+              {t("login.forgotPassword")}
             </button>
           }
         />
@@ -202,23 +205,23 @@ export function RecruiterLoginPage() {
             htmlFor="remember-recruiter"
             className="cursor-pointer text-sm font-medium text-slate-600"
           >
-            Duy trì đăng nhập
+            {t("login.rememberMe")}
           </Label>
         </div>
 
-        <SubmitButton pending={form.formState.isSubmitting} pendingLabel="Đang đăng nhập...">
-          Đăng nhập
+        <SubmitButton pending={form.formState.isSubmitting} pendingLabel={t("login.submitting")}>
+          {t("login.submit")}
         </SubmitButton>
       </form>
 
       <p className="mt-6 text-sm text-slate-600">
-        Chưa có tài khoản?{" "}
+        {t("login.signupPrompt")}{" "}
         <button
           type="button"
           className="upnext-focus ml-1 rounded font-extrabold text-emerald-700 hover:text-emerald-800"
           onClick={() => router.push("/recruiter/register")}
         >
-          Đăng ký ngay
+          {t("login.signupLink")}
         </button>
       </p>
     </RecruiterAuthShell>
@@ -227,18 +230,20 @@ export function RecruiterLoginPage() {
 
 export function RecruiterRegisterPage() {
   const router = useRouter();
+  const tAuth = useTranslations("Auth");
+  const t = useTranslations("RecruiterAuth");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const form = useForm<RecruiterRegisterValues>({
     resolver: zodResolver(
       z
         .object({
-          email: z.email(passwordResetMessages.invalidEmail),
-          password: z.string().min(8, passwordResetMessages.passwordMin),
-          confirm: z.string().min(1, passwordResetMessages.confirmRequired),
+          email: z.string().email(tAuth("validation.invalidEmail")),
+          password: z.string().min(8, tAuth("validation.passwordMin")),
+          confirm: z.string().min(1, tAuth("validation.confirmRequired")),
         })
         .refine((values) => values.password === values.confirm, {
-          message: passwordResetMessages.passwordMismatch,
+          message: tAuth("validation.passwordMismatch"),
           path: ["confirm"],
         }),
     ),
@@ -247,31 +252,28 @@ export function RecruiterRegisterPage() {
 
   async function submit(values: RecruiterRegisterValues) {
     try {
-      const response = await registerRecruiter({
+      await registerRecruiter({
         email: values.email,
         password: values.password,
       });
 
-      localStorage.setItem("upnext.recruiter.accessToken", response.accessToken);
-      localStorage.setItem("upnext.recruiter.tokenType", response.tokenType);
-      localStorage.setItem("upnext.recruiter.user", JSON.stringify(response.user));
-      showToast("success", "Đăng ký thành công.");
-      router.push("/recruiter");
+      showToast("success", t("register.success"));
+      router.push(`/recruiter/register/success?email=${encodeURIComponent(values.email)}`);
     } catch (error) {
-      showToast("error", getAuthErrorMessage(error, "register"));
+      showToast("error", getAuthErrorMessage(error, "register", t));
     }
   }
 
   return (
     <RecruiterAuthShell>
-      <AuthHeader title="Tạo tài khoản nhà tuyển dụng" />
+      <AuthHeader title={t("register.title")} />
       <SocialButtons mode="register" />
-      <AuthDivider label="Hoặc đăng ký bằng email" />
+      <AuthDivider label={t("register.orDivider")} />
 
       <form
         className="mt-8 space-y-5"
         onSubmit={form.handleSubmit(submit, (errors) =>
-          showToast("error", getFirstErrorMessage(errors)),
+          showToast("error", getFirstErrorMessage(errors, t)),
         )}
         noValidate
       >
@@ -280,8 +282,8 @@ export function RecruiterRegisterPage() {
         <PasswordField
           autoComplete="new-password"
           inputId="recruiter-register-password"
-          label="Mật khẩu"
-          placeholder="Nhập mật khẩu của bạn"
+          label={t("register.passwordLabel")}
+          placeholder={t("register.passwordPlaceholder")}
           setVisible={setShowPassword}
           visible={showPassword}
           register={form.register("password")}
@@ -290,26 +292,26 @@ export function RecruiterRegisterPage() {
         <PasswordField
           autoComplete="new-password"
           inputId="recruiter-register-confirm"
-          label="Nhập lại mật khẩu"
-          placeholder="Nhập lại mật khẩu của bạn"
+          label={t("register.confirmLabel")}
+          placeholder={t("register.confirmPlaceholder")}
           setVisible={setShowConfirm}
           visible={showConfirm}
           register={form.register("confirm")}
         />
 
-        <SubmitButton pending={form.formState.isSubmitting} pendingLabel="Đang đăng ký...">
-          Đăng ký
+        <SubmitButton pending={form.formState.isSubmitting} pendingLabel={t("register.submitting")}>
+          {t("register.submit")}
         </SubmitButton>
       </form>
 
       <p className="mt-6 text-sm text-slate-600">
-        Đã có tài khoản?{" "}
+        {tAuth("register.loginPrompt")}{" "}
         <button
           type="button"
           className="upnext-focus ml-1 rounded font-extrabold text-emerald-700 hover:text-emerald-800"
           onClick={() => router.push("/recruiter/login")}
         >
-          Đăng nhập
+          {tAuth("register.loginLink")}
         </button>
       </p>
     </RecruiterAuthShell>
@@ -318,10 +320,13 @@ export function RecruiterRegisterPage() {
 
 export function RecruiterForgotPasswordPage() {
   const router = useRouter();
+  const locale = useLocale();
+  const tAuth = useTranslations("Auth");
+  const t = useTranslations("RecruiterAuth");
   const form = useForm<ForgotPasswordValues>({
     resolver: zodResolver(
       z.object({
-        email: z.email(passwordResetMessages.invalidEmail),
+        email: z.string().email(tAuth("validation.invalidEmail")),
       }),
     ),
     defaultValues: { email: "" },
@@ -329,45 +334,46 @@ export function RecruiterForgotPasswordPage() {
 
   async function submit(values: ForgotPasswordValues) {
     try {
-      const response = await requestRecruiterPasswordReset(values.email);
+      const response = await requestRecruiterPasswordReset(values.email, locale);
 
       showToast("success", response.message);
       router.push("/recruiter/login");
     } catch (error) {
-      showToast("error", getAuthErrorMessage(error, "forgot-password"));
+      showToast("error", getAuthErrorMessage(error, "forgot-password", t));
     }
   }
 
   return (
-    <RecruiterAuthShell>
-      <AuthHeader title="Quên mật khẩu" />
-      <p className="mt-2 text-sm leading-6 text-slate-500">
-        Nhập email của bạn để nhận link đặt lại mật khẩu.
-      </p>
-      <AuthDivider label="Khôi phục bằng email" />
+    <RecruiterAuthShell basic>
+      <AuthHeader title={t("forgotPassword.title")} />
+      <p className="mt-2 text-sm leading-6 text-slate-500">{t("forgotPassword.description")}</p>
+      <AuthDivider label={t("forgotPassword.orDivider")} />
 
       <form
         className="mt-8 space-y-5"
         onSubmit={form.handleSubmit(submit, (errors) =>
-          showToast("error", getFirstErrorMessage(errors)),
+          showToast("error", getFirstErrorMessage(errors, t)),
         )}
         noValidate
       >
         <EmailField inputId="recruiter-forgot-email" register={form.register("email")} />
 
-        <SubmitButton pending={form.formState.isSubmitting} pendingLabel="Đang gửi...">
-          Gửi link đặt lại mật khẩu
+        <SubmitButton
+          pending={form.formState.isSubmitting}
+          pendingLabel={t("forgotPassword.submitting")}
+        >
+          {t("forgotPassword.submit")}
         </SubmitButton>
       </form>
 
       <p className="mt-6 text-sm text-slate-600">
-        Đã nhớ mật khẩu?{" "}
+        {tAuth("register.loginPrompt")}{" "}
         <button
           type="button"
           className="upnext-focus ml-1 rounded font-extrabold text-emerald-700 hover:text-emerald-800"
           onClick={() => router.push("/recruiter/login")}
         >
-          Đăng nhập
+          {tAuth("register.loginLink")}
         </button>
       </p>
     </RecruiterAuthShell>
@@ -378,17 +384,19 @@ export function RecruiterResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
+  const tAuth = useTranslations("Auth");
+  const t = useTranslations("RecruiterAuth");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const form = useForm<ResetPasswordValues>({
     resolver: zodResolver(
       z
         .object({
-          password: z.string().min(8, passwordResetMessages.passwordMin),
-          confirm: z.string().min(1, passwordResetMessages.confirmRequired),
+          password: z.string().min(8, tAuth("validation.passwordMin")),
+          confirm: z.string().min(1, tAuth("validation.confirmRequired")),
         })
         .refine((values) => values.password === values.confirm, {
-          message: passwordResetMessages.passwordMismatch,
+          message: tAuth("validation.passwordMismatch"),
           path: ["confirm"],
         }),
     ),
@@ -397,7 +405,7 @@ export function RecruiterResetPasswordPage() {
 
   async function submit(values: ResetPasswordValues) {
     if (!token) {
-      showToast("error", passwordResetMessages.tokenRequired);
+      showToast("error", t("errors.resetTokenInvalid"));
       return;
     }
 
@@ -410,30 +418,28 @@ export function RecruiterResetPasswordPage() {
       showToast("success", response.message);
       router.push("/recruiter/login");
     } catch (error) {
-      showToast("error", getAuthErrorMessage(error, "reset-password"));
+      showToast("error", getAuthErrorMessage(error, "reset-password", t));
     }
   }
 
   return (
-    <RecruiterAuthShell>
-      <AuthHeader title="Đặt lại mật khẩu" />
-      <p className="mt-4 text-sm leading-6 text-slate-500">
-        Tạo mật khẩu mới cho tài khoản nhà tuyển dụng của bạn.
-      </p>
-      <AuthDivider label="Mật khẩu mới" />
+    <RecruiterAuthShell basic>
+      <AuthHeader title={t("resetPassword.title")} />
+      <p className="mt-4 text-sm leading-6 text-slate-500">{t("resetPassword.description")}</p>
+      <AuthDivider label={t("resetPassword.orDivider")} />
 
       <form
         className="mt-8 space-y-5"
         onSubmit={form.handleSubmit(submit, (errors) =>
-          showToast("error", getFirstErrorMessage(errors)),
+          showToast("error", getFirstErrorMessage(errors, t)),
         )}
         noValidate
       >
         <PasswordField
           autoComplete="new-password"
           inputId="recruiter-reset-password"
-          label="Mật khẩu mới"
-          placeholder="Nhập mật khẩu mới"
+          label={t("resetPassword.passwordLabel")}
+          placeholder={t("resetPassword.passwordPlaceholder")}
           setVisible={setShowPassword}
           visible={showPassword}
           register={form.register("password")}
@@ -442,33 +448,59 @@ export function RecruiterResetPasswordPage() {
         <PasswordField
           autoComplete="new-password"
           inputId="recruiter-reset-confirm"
-          label="Nhập lại mật khẩu"
-          placeholder="Nhập lại mật khẩu mới"
+          label={t("resetPassword.confirmLabel")}
+          placeholder={t("resetPassword.confirmPlaceholder")}
           setVisible={setShowConfirm}
           visible={showConfirm}
           register={form.register("confirm")}
         />
 
-        <SubmitButton pending={form.formState.isSubmitting} pendingLabel="Đang đặt lại...">
-          Đặt lại mật khẩu
+        <SubmitButton
+          pending={form.formState.isSubmitting}
+          pendingLabel={t("resetPassword.submitting")}
+        >
+          {t("resetPassword.submit")}
         </SubmitButton>
       </form>
 
       <p className="mt-6 text-sm text-slate-600">
-        Quay lại{" "}
+        {tAuth("register.loginPrompt")}{" "}
         <button
           type="button"
           className="upnext-focus ml-1 rounded font-extrabold text-emerald-700 hover:text-emerald-800"
           onClick={() => router.push("/recruiter/login")}
         >
-          đăng nhập
+          {tAuth("register.loginLink")}
         </button>
       </p>
     </RecruiterAuthShell>
   );
 }
 
-function RecruiterAuthShell({ children }: { children: React.ReactNode }) {
+export function RecruiterAuthShell({
+  children,
+  basic = false,
+}: {
+  children: React.ReactNode;
+  basic?: boolean;
+}) {
+  if (basic) {
+    return (
+      <main className="text-foreground relative grid min-h-screen place-items-center overflow-hidden bg-[linear-gradient(180deg,#003b3b_0%,#006347_52%,#15915d_100%)] px-4 py-10 [font-family:var(--font-sans)]">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 left-0 h-[520px] w-[420px] -translate-x-24 bg-[linear-gradient(135deg,rgba(255,255,255,0.10),rgba(255,255,255,0)_58%)] [clip-path:polygon(0_0,55%_0,100%_38%,54%_75%,0_18%)]" />
+          <div className="absolute top-[170px] left-10 h-[410px] w-[220px] border border-white/10 bg-white/5 [clip-path:polygon(0_0,64%_50%,0_100%,24%_100%,88%_50%,24%_0)]" />
+          <div className="absolute right-0 bottom-8 h-[470px] w-[340px] translate-x-16 rotate-180 bg-[linear-gradient(135deg,rgba(255,255,255,0.10),rgba(255,255,255,0)_62%)] [clip-path:polygon(0_0,55%_0,100%_38%,54%_75%,0_18%)]" />
+          <div className="absolute right-8 bottom-[210px] h-[360px] w-[190px] rotate-180 border border-white/10 bg-white/5 [clip-path:polygon(0_0,64%_50%,0_100%,24%_100%,88%_50%,24%_0)]" />
+        </div>
+
+        <Card className="relative z-10 w-full max-w-[480px] overflow-hidden rounded-xl border-0 bg-white px-6 py-8 shadow-[0_28px_90px_rgba(0,28,22,0.28)] sm:px-10 sm:py-10">
+          {children}
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="text-foreground relative grid min-h-screen place-items-center overflow-hidden bg-[linear-gradient(180deg,#003b3b_0%,#006347_52%,#15915d_100%)] px-4 py-10 [font-family:var(--font-sans)]">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -486,27 +518,79 @@ function RecruiterAuthShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AuthHeader({ title }: { title: string }) {
+function FlagIcon({ code }: { code: "VI" | "EN" }) {
+  return (
+    <span className="inline-flex h-3.5 w-5 overflow-hidden rounded-[2px]">
+      {code === "VI" ? (
+        <svg aria-hidden="true" viewBox="0 0 22 16" className="h-full w-full">
+          <rect width="22" height="16" fill="#DA251D" />
+          <path
+            fill="#FFDE00"
+            d="m11 3.2 1.13 3.48h3.66l-2.96 2.15 1.13 3.47L11 10.15 8.04 12.3l1.13-3.47-2.96-2.15h3.66L11 3.2Z"
+          />
+        </svg>
+      ) : (
+        <svg aria-hidden="true" viewBox="0 0 22 16" className="h-full w-full">
+          <rect width="22" height="16" fill="#012169" />
+          <path stroke="#fff" strokeWidth="3.2" d="m0 0 22 16M22 0 0 16" />
+          <path stroke="#C8102E" strokeWidth="1.8" d="m0 0 22 16M22 0 0 16" />
+          <path stroke="#fff" strokeWidth="5.2" d="M11 0v16M0 8h22" />
+          <path stroke="#C8102E" strokeWidth="3.2" d="M11 0v16M0 8h22" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
+export function AuthHeader({ title }: { title: string }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = useLocale();
   const t = useTranslations("Auth");
+
+  const toggleLocale = () => {
+    const nextLocale = locale === "vi" ? "en" : "vi";
+    router.replace(pathname, { locale: nextLocale });
+  };
 
   return (
     <>
-      <button
-        type="button"
-        className="upnext-focus inline-flex rounded-md"
-        onClick={() => router.push("/")}
-        aria-label={t("common.homeLabel")}
-      >
-        <Image
-          alt="UpNext"
-          src="/upnext-logo/wordmark-cropped.png"
-          width={136}
-          height={33}
-          priority
-          style={{ height: "auto", width: "auto" }}
-        />
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          className="upnext-focus inline-flex rounded-md"
+          onClick={() => router.push("/")}
+          aria-label={t("common.homeLabel")}
+        >
+          <Image
+            alt="UpNext"
+            src="/upnext-logo/wordmark-cropped.png"
+            width={105}
+            height={25}
+            priority
+            style={{ height: "auto", width: "auto" }}
+          />
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleLocale}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-950"
+          aria-label="Đổi ngôn ngữ / Change language"
+        >
+          {locale === "vi" ? (
+            <>
+              <FlagIcon code="EN" />
+              <span>EN</span>
+            </>
+          ) : (
+            <>
+              <FlagIcon code="VI" />
+              <span>VI</span>
+            </>
+          )}
+        </button>
+      </div>
 
       <h1 className="mt-6 text-xl font-bold tracking-tight sm:mt-8 sm:text-2xl">{title}</h1>
     </>
@@ -514,14 +598,20 @@ function AuthHeader({ title }: { title: string }) {
 }
 
 function SocialButtons({ mode }: { mode: "login" | "register" }) {
-  const label =
-    mode === "login" ? "Đăng nhập với tài khoản Google" : "Đăng ký với tài khoản Google";
+  const t = useTranslations("RecruiterAuth");
+  const locale = useLocale();
+  const label = mode === "login" ? t("login.google") : t("register.google");
+
+  function handleGoogleLogin() {
+    window.location.href = `${env.NEXT_PUBLIC_API_BASE_URL}/recruiter/auth/google?locale=${locale}`;
+  }
 
   return (
     <div className="mt-6 grid gap-4 sm:grid-cols-1">
       <Button
         variant="outline"
         className="h-12 rounded-lg border-slate-200 text-slate-700 shadow-none hover:border-slate-300 hover:text-slate-950"
+        onClick={handleGoogleLogin}
       >
         <Image src="/assets/google.png" alt="" width={22} height={22} />
         {label}
@@ -541,13 +631,14 @@ function AuthDivider({ label }: { label: string }) {
 }
 
 function EmailField({ inputId, register }: { inputId: string; register: UseFormRegisterReturn }) {
+  const t = useTranslations("RecruiterAuth");
   return (
     <FormInput
       id={inputId}
-      label="Địa chỉ Email"
+      label={t("login.emailLabel")}
       className={authInputClassName}
       type="email"
-      placeholder="Nhập email của bạn"
+      placeholder={t("login.emailPlaceholder")}
       autoComplete="email"
       {...register}
       onBlur={(event) => resetAuthInputFocusStyle(event, register)}
@@ -624,48 +715,109 @@ function SubmitButton({
 }
 
 function ShowcasePanel() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const t = useTranslations("RecruiterAuth");
+
+  const slides = [
+    {
+      image: "/login/recruiter-login.svg",
+      title: t("showcase.slide1Title"),
+      description: t("showcase.slide1Description"),
+    },
+    {
+      image: "/login/recuiter-login-2.svg",
+      title: t("showcase.slide2Title"),
+      description: t("showcase.slide2Description"),
+    },
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [slides.length]);
+
+  const handlePrev = () => {
+    setActiveSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setActiveSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+  };
+
   return (
-    <section className="hidden bg-[#f8f7fc] px-10 py-12 lg:flex lg:flex-col lg:items-center lg:justify-center">
-      <div className="relative h-[270px] w-full max-w-[390px] overflow-hidden rounded-2xl">
-        <Image
-          src="/login/showcase.png"
-          alt=""
-          fill
-          className="scale-[1.8] object-cover object-[72%_42%]"
-          sizes="390px"
-          priority
-        />
+    <section className="hidden bg-white px-10 py-12 lg:flex lg:flex-col lg:items-center lg:justify-center">
+      {/* Sliding Images Container */}
+      <div className="relative mb-2 h-[380px] w-full max-w-[480px] overflow-hidden">
+        <div
+          className="flex h-full w-full transition-transform duration-500 ease-in-out"
+          style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+        >
+          {slides.map((slide, index) => (
+            <div key={index} className="relative h-full w-full flex-shrink-0">
+              <Image
+                src={slide.image}
+                alt={slide.title}
+                fill
+                className="object-contain"
+                sizes="480px"
+                priority={index === 0}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-12 grid w-full grid-cols-[42px_1fr_42px] items-center gap-5">
+      {/* Controller & Sliding Texts Container */}
+      <div className="grid w-full grid-cols-[42px_1fr_42px] items-center gap-5">
         <Button
           variant="outline"
           size="icon"
-          className="size-9 rounded-full border-emerald-100 bg-white/70 text-emerald-200 shadow-none"
-          aria-label="Nội dung trước"
+          className="size-9 rounded-full border-slate-200 bg-white text-slate-700 shadow-none hover:bg-slate-50"
+          aria-label={t("showcase.prev")}
+          onClick={handlePrev}
         >
           <CaretLeft size={17} />
         </Button>
-        <div className="text-center">
-          <h2 className="text-xl font-extrabold text-slate-950">Biểu đồ 3D phong phú</h2>
-          <p className="mt-4 text-sm leading-6 text-slate-500">
-            Phân tích dữ liệu trực quan giúp nhà tuyển dụng dễ dàng theo dõi hiệu quả các chiến dịch
-            tuyển dụng.
-          </p>
+        <div className="relative min-h-[120px] w-full overflow-hidden text-center">
+          <div
+            className="flex w-full transition-transform duration-500 ease-in-out"
+            style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+          >
+            {slides.map((slide, index) => (
+              <div key={index} className="w-full flex-shrink-0 px-2">
+                <h2 className="text-xl font-bold text-slate-950">{slide.title}</h2>
+                <p className="mt-4 text-sm leading-6 text-slate-500">{slide.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
         <Button
           variant="outline"
           size="icon"
-          className="size-9 rounded-full border-emerald-600 bg-white text-emerald-600 shadow-none"
-          aria-label="Nội dung tiếp theo"
+          className="size-9 rounded-full border-slate-200 bg-white text-slate-700 shadow-none hover:bg-slate-50"
+          aria-label={t("showcase.next")}
+          onClick={handleNext}
         >
           <CaretRight size={17} />
         </Button>
       </div>
 
-      <Button className="mt-10 h-9 rounded-lg bg-[#11a77a] px-5 text-xs font-extrabold shadow-none hover:bg-[#0d966d]">
-        Tìm hiểu thêm
-      </Button>
+      {/* Slide Indicators */}
+      <div className="mt-4 flex gap-2">
+        {slides.map((_, index) => (
+          <button
+            key={index}
+            type="button"
+            className={`h-2 rounded-full transition-all duration-300 ${
+              index === activeSlide ? "w-6 bg-emerald-600" : "w-2 bg-slate-300"
+            }`}
+            onClick={() => setActiveSlide(index)}
+            aria-label={`Đi tới slide ${index + 1}`}
+          />
+        ))}
+      </div>
     </section>
   );
 }

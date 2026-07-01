@@ -75,7 +75,6 @@ export type JobPostCatalogs = Readonly<{
   categories: JobOption[];
   employmentTypes: JobOption[];
   experienceLevels: JobOption[];
-  locations: JobLocationOption[];
   skills: JobOption[];
   specializations: JobOption[];
 }>;
@@ -144,12 +143,11 @@ export function addSpecializationToRecruiterJobPost(
 }
 
 export async function getJobPostCatalogs(): Promise<JobPostCatalogs> {
-  const [categories, employmentTypes, experienceLevels, locations, skills, specializations] =
+  const [categories, employmentTypes, experienceLevels, skills, specializations] =
     await Promise.all([
       apiRequest<JobOption[]>("/job-categories"),
       apiRequest<JobOption[]>("/employment-types"),
       apiRequest<JobOption[]>("/experience-levels"),
-      apiRequest<JobLocationOption[]>("/job-locations"),
       apiRequest<JobOption[]>("/skills"),
       apiRequest<JobOption[]>("/specializations"),
     ]);
@@ -158,7 +156,6 @@ export async function getJobPostCatalogs(): Promise<JobPostCatalogs> {
     categories,
     employmentTypes,
     experienceLevels,
-    locations,
     skills,
     specializations,
   };

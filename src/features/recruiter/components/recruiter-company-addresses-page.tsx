@@ -102,13 +102,33 @@ export function RecruiterCompanyAddressesPage() {
         const currentCompanyId = account.company?.id;
 
         if (!currentCompanyId) {
-          router.replace("/recruiter/company-profile");
+          const result = await Swal.fire({
+            icon: "warning",
+            title: t("companyAddresses.errors.noCompanyTitle"),
+            text: t("companyAddresses.errors.noCompanyText"),
+            confirmButtonColor: "#10a778",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+          });
+          if (result.isConfirmed) {
+            router.replace("/recruiter/company-profile");
+          }
           return;
         }
 
         const company = await getCompany(currentCompanyId, session.accessToken);
         if (!hasCompletedCompanyProfile(company)) {
-          router.replace("/recruiter/company-profile");
+          const result = await Swal.fire({
+            icon: "warning",
+            title: t("companyAddresses.errors.noCompanyTitle"),
+            text: t("companyAddresses.errors.noCompanyText"),
+            confirmButtonColor: "#10a778",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+          });
+          if (result.isConfirmed) {
+            router.replace("/recruiter/company-profile");
+          }
           return;
         }
 
@@ -121,7 +141,7 @@ export function RecruiterCompanyAddressesPage() {
     };
 
     void init();
-  }, [loadData, router]);
+  }, [loadData, router, t]);
 
   useEffect(() => {
     const fetchProvinces = async () => {

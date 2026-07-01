@@ -64,3 +64,11 @@ export async function getAdminJobPosts(token: string, limit: number = 100) {
 
   return [];
 }
+
+export async function getJobPostDetails(token: string, id: string) {
+  return apiRequest<AdminJobPostResponse>(`/job-posts/${id}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}

@@ -1,50 +1,16 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
+import { formatRelativeTime } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 
-const recentTasks = [
-  {
-    id: "1",
-    entity: "Công ty Cổ phần VNG",
-    type: "Đăng ký tài khoản",
-    status: "pending",
-    time: "2 giờ trước",
-  },
-  {
-    id: "2",
-    entity: "Senior React Developer",
-    type: "Tin tuyển dụng",
-    status: "approved",
-    time: "3 giờ trước",
-  },
-  {
-    id: "3",
-    entity: "FPT Software",
-    type: "Đăng ký tài khoản",
-    status: "pending",
-    time: "5 giờ trước",
-  },
-  {
-    id: "4",
-    entity: "Backend Engineer (Go)",
-    type: "Tin tuyển dụng",
-    status: "rejected",
-    time: "1 ngày trước",
-  },
-  {
-    id: "5",
-    entity: "Techcombank",
-    type: "Nâng cấp gói Pro",
-    status: "approved",
-    time: "1 ngày trước",
-  },
-];
+import type { AdminRecentActivity } from "../../api/dashboard";
 
-export function RecentActivity() {
+export function RecentActivity({ activities }: { activities?: AdminRecentActivity[] | undefined }) {
   const t = useTranslations("Admin.dashboard");
+  const locale = useLocale();
 
   return (
     <Card className="col-span-1 lg:col-span-3">
@@ -54,32 +20,41 @@ export function RecentActivity() {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {recentTasks.map((task) => (
-            <div key={task.id} className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-foreground text-sm leading-none font-bold">{task.entity}</p>
-                <p className="text-muted-foreground text-sm">{task.type}</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <Badge
-                    tone={
-                      task.status === "pending"
-                        ? "warning"
-                        : task.status === "approved"
-                          ? "success"
-                          : "error"
-                    }
-                  >
-                    {t(`recentActivity.status.${task.status}` as any)}
-                  </Badge>
+          {!Array.isArray(activities) || activities.length === 0 ? (
+            <p className="text-muted-foreground text-center text-sm">{t("recentActivity.empty")}</p>
+          ) : (
+            activities.map((task) => {
+              const status = task.status?.toLowerCase() || "neutral";
+              return (
+                <div key={task.id} className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-foreground text-sm leading-none font-bold">{task.title}</p>
+                    <p className="text-muted-foreground text-sm">{task.subtitle}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <Badge
+                        tone={
+                          status === "pending"
+                            ? "warning"
+                            : status === "approved" || status === "verified"
+                              ? "success"
+                              : status === "rejected"
+                                ? "error"
+                                : "neutral"
+                        }
+                      >
+                        {t(`recentActivity.status.${status}` as any)}
+                      </Badge>
+                    </div>
+                    <div className="text-muted-foreground hidden min-w-20 text-right text-xs sm:block">
+                      {formatRelativeTime(task.createdAt, locale as any)}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-muted-foreground hidden min-w-20 text-right text-xs sm:block">
-                  {task.time}
-                </div>
-              </div>
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
       </CardContent>
     </Card>

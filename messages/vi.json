@@ -439,7 +439,11 @@
       "seo": "SEO Console",
       "sales": "Sales CRM",
       "auditLog": "Audit log",
-      "settings": "Cài đặt"
+      "settings": "Cài đặt",
+      "generalInfo": "Thông tin chung",
+      "companyAddresses": "Địa chỉ làm việc",
+      "inviteUsers": "Mời người dùng",
+      "rolesSub": "Vai trò"
     },
     "shell": {
       "loading": "Đang tải không gian quản trị...",
@@ -1085,13 +1089,19 @@
         "status": {
           "pending": "Chờ duyệt",
           "approved": "Đã duyệt",
-          "rejected": "Từ chối"
+          "rejected": "Từ chối",
+          "neutral": "Khác",
+          "verified": "Đã xác thực"
         },
         "time": {
           "hoursAgo": "{count} giờ trước",
           "daysAgo": "{count} ngày trước"
-        }
-      }
+        },
+        "empty": "Không có hoạt động nào gần đây."
+      },
+      "totalUsers": "Tổng người dùng",
+      "totalUsersDesc": "Nhà tuyển dụng & ứng viên",
+      "comparedToLastWeek": "so với tuần trước"
     },
     "shell": {
       "loading": "Đang tải không gian quản trị...",
@@ -1207,6 +1217,22 @@
             "internship": "Thực tập",
             "other": "Khác"
           }
+        },
+        "details": {
+          "title": "Chi tiết tin đăng",
+          "subtitle": "Thông tin đầy đủ của tin tuyển dụng",
+          "back": "Quay lại danh sách",
+          "company": "Công ty",
+          "location": "Địa điểm",
+          "type": "Loại hình",
+          "salary": "Mức lương",
+          "postedDate": "Ngày đăng",
+          "applicants": "Lượt ứng tuyển",
+          "description": "Mô tả công việc",
+          "requirements": "Yêu cầu",
+          "benefits": "Quyền lợi",
+          "approve": "Duyệt tin",
+          "reject": "Từ chối"
         }
       },
       "articles": {
@@ -1245,6 +1271,10 @@
             "news": "Tin tức",
             "blog": "Blog"
           }
+        },
+        "details": {
+          "title": "Chi tiết bài viết",
+          "subtitle": "Xem trước nội dung và kiểm duyệt bài viết trước khi xuất bản."
         }
       },
       "moderation": {
@@ -1297,6 +1327,25 @@
             "unknown": "Lý do khác"
           },
           "anonymous": "Ẩn danh"
+        },
+        "details": {
+          "title": "Chi tiết báo cáo",
+          "back": "Quay lại danh sách",
+          "notFound": "Không tìm thấy báo cáo",
+          "notFoundDesc": "Báo cáo này có thể đã bị xóa hoặc bạn không có quyền truy cập.",
+          "reporterInfo": "Thông tin người báo cáo",
+          "targetInfo": "Thông tin đối tượng",
+          "reasonInfo": "Nội dung báo cáo",
+          "targetId": "Mã đối tượng (ID)",
+          "targetName": "Tên đối tượng",
+          "description": "Mô tả thêm / Bằng chứng",
+          "noDescription": "Không có mô tả chi tiết.",
+          "stats": "Thông tin xử lý",
+          "reportedAt": "Ngày gửi báo cáo",
+          "moderationActions": "Hành động kiểm duyệt",
+          "moderationDesc": "Báo cáo này đang chờ quản trị viên xem xét và xử lý.",
+          "resolve": "Đánh dấu Đã giải quyết",
+          "reject": "Từ chối báo cáo"
         }
       },
       "support": {
@@ -1655,6 +1704,98 @@
           }
         }
       }
+    }
+  },
+  "RecruiterAuth": {
+    "login": {
+      "title": "Chào mừng bạn đã quay trở lại",
+      "orDivider": "Hoặc đăng nhập bằng email",
+      "emailLabel": "Địa chỉ Email",
+      "emailPlaceholder": "Nhập email của bạn",
+      "passwordLabel": "Mật khẩu",
+      "passwordPlaceholder": "Nhập mật khẩu của bạn",
+      "forgotPassword": "Quên mật khẩu?",
+      "rememberMe": "Duy trì đăng nhập",
+      "submit": "Đăng nhập",
+      "submitting": "Đang đăng nhập...",
+      "success": "Đăng nhập thành công.",
+      "emailVerificationRequired": "Vui lòng xác thực email trước khi đăng nhập.",
+      "signupPrompt": "Chưa có tài khoản?",
+      "signupLink": "Đăng ký ngay",
+      "google": "Đăng nhập với tài khoản Google"
+    },
+    "register": {
+      "title": "Tạo tài khoản nhà tuyển dụng",
+      "orDivider": "Hoặc đăng ký bằng email",
+      "passwordLabel": "Mật khẩu",
+      "passwordPlaceholder": "Nhập mật khẩu của bạn",
+      "confirmLabel": "Nhập lại mật khẩu",
+      "confirmPlaceholder": "Nhập lại mật khẩu của bạn",
+      "submit": "Đăng ký",
+      "submitting": "Đang đăng ký...",
+      "success": "Đăng ký thành công. Vui lòng xác thực email.",
+      "google": "Đăng ký với tài khoản Google"
+    },
+    "forgotPassword": {
+      "title": "Quên mật khẩu",
+      "description": "Nhập email của bạn để nhận link đặt lại mật khẩu.",
+      "orDivider": "Khôi phục bằng email",
+      "submit": "Gửi link đặt lại mật khẩu",
+      "submitting": "Đang gửi..."
+    },
+    "resetPassword": {
+      "title": "Đặt lại mật khẩu",
+      "description": "Tạo mật khẩu mới cho tài khoản nhà tuyển dụng của bạn.",
+      "orDivider": "Mật khẩu mới",
+      "passwordLabel": "Mật khẩu mới",
+      "passwordPlaceholder": "Nhập mật khẩu mới",
+      "confirmLabel": "Nhập lại mật khẩu",
+      "confirmPlaceholder": "Nhập lại mật khẩu mới",
+      "submit": "Đặt lại mật khẩu",
+      "submitting": "Đang đặt lại..."
+    },
+    "showcase": {
+      "slide1Title": "Quản lý ứng viên thông minh",
+      "slide1Description": "Tối ưu hóa quy trình tuyển dụng với công cụ quản lý ứng viên AI hàng đầu.",
+      "slide2Title": "Phân tích số liệu trực quan",
+      "slide2Description": "Phân tích dữ liệu giúp nhà tuyển dụng dễ dàng theo dõi hiệu quả các chiến dịch tuyển dụng.",
+      "prev": "Nội dung trước",
+      "next": "Nội dung tiếp theo"
+    },
+    "errors": {
+      "default": "Không thể kết nối đến hệ thống. Vui lòng thử lại sau.",
+      "invalidData": "Thông tin chưa hợp lệ. Vui lòng kiểm tra lại.",
+      "resetTokenInvalid": "Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.",
+      "invalidCredentials": "Email hoặc mật khẩu không đúng.",
+      "emailNotVerified": "Tài khoản của bạn chưa được xác thực email. Vui lòng xác thực email.",
+      "emailAlreadyRegistered": "Email này đã được dùng cho tài khoản nhà tuyển dụng.",
+      "systemError": "Hệ thống đang gặp sự cố. Vui lòng thử lại sau ít phút.",
+      "processFailed": "Không thể xử lý yêu cầu. Vui lòng thử lại.",
+      "invalidForm": "Vui lòng kiểm tra lại thông tin."
+    },
+    "emailVerification": {
+      "loadingTitle": "Đang xác thực email...",
+      "successTitle": "Kích hoạt thành công",
+      "errorTitle": "Xác thực thất bại",
+      "loadingDesc": "Vui lòng chờ trong giây lát",
+      "successDesc": "Tài khoản của bạn đã được kích hoạt",
+      "errorDesc": "Có lỗi xảy ra trong quá trình xác thực",
+      "verifiedStamp": "Đã xác thực",
+      "successMsg": "Chúc mừng bạn! Tài khoản nhà tuyển dụng của bạn đã được xác thực thành công. Bây giờ bạn đã có thể đăng nhập vào bảng điều khiển.",
+      "resendLabel": "Nhập địa chỉ email của bạn để nhận liên kết mới:",
+      "sendButton": "Gửi liên kết xác thực mới",
+      "sendingButton": "Đang gửi...",
+      "countdownButton": "Gửi lại sau {countdown}s",
+      "loginButton": "Đăng nhập ngay",
+      "backToLogin": "← Quay lại đăng nhập",
+      "tokenMissingError": "Không tìm thấy mã xác thực (token). Vui lòng kiểm tra lại liên kết trong email.",
+      "tokenExpiredError": "Mã xác thực email không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu gửi lại link mới.",
+      "missingEmailTitle": "Thiếu thông tin",
+      "missingEmailText": "Vui lòng nhập địa chỉ email của bạn.",
+      "sendSuccessTitle": "Đã gửi email",
+      "sendSuccessText": "Hệ thống đã gửi link kích hoạt tài khoản đến: {email}",
+      "sendErrorTitle": "Lỗi gửi email",
+      "sendErrorText": "Email không tồn tại hoặc gửi email thất bại. Vui lòng kiểm tra lại."
     }
   }
 }
