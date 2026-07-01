@@ -300,22 +300,6 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               </div>
             </DetailSection>
 
-            <DetailSection icon={<BriefcaseBusiness size={18} />} title="Về công ty">
-              <p>
-                {job.company} là công ty công nghệ hàng đầu, hiện diện tại nhiều quốc gia với đội
-                ngũ kỹ sư lớn. Công ty hợp tác cùng khách hàng toàn cầu để kiến tạo giải pháp công
-                nghệ đưa doanh nghiệp bứt phá trong kỷ nguyên số.
-              </p>
-              <div className="job-detail-company-stats">
-                {companyStats.map((stat) => (
-                  <span key={stat.label}>
-                    <small>{stat.label}</small>
-                    <b>{stat.value}</b>
-                  </span>
-                ))}
-              </div>
-            </DetailSection>
-
             <section className="job-detail-card job-detail-similar-section">
               <div className="job-detail-card-head">
                 <span>
