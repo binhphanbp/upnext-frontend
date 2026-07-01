@@ -4,15 +4,42 @@ import {
   Briefcase,
   CurrencyCircleDollar,
   ShieldCheck,
+  TrendDown,
   TrendUp,
   Users,
 } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 
+import { cn } from "@/shared/lib/cn";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 
-export function StatCards() {
+import type { AdminDashboardSummary } from "../../api/dashboard";
+
+export function StatCards({ stats }: { stats?: AdminDashboardSummary | undefined }) {
   const t = useTranslations("Admin.dashboard");
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(value);
+  };
+
+  const renderPercent = (percent?: number) => {
+    if (percent === undefined || percent === null) return null;
+    const isPositive = percent > 0;
+    const isZero = percent === 0;
+    const Icon = isPositive ? TrendUp : TrendDown;
+
+    if (isZero) return null;
+
+    return (
+      <span className={cn("mr-1 flex items-center", isPositive ? "text-success" : "text-error")}>
+        <Icon className="mr-0.5" size={14} /> {isPositive ? "+" : ""}
+        {percent}%
+      </span>
+    );
+  };
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -22,12 +49,12 @@ export function StatCards() {
           <CurrencyCircleDollar className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
-          <div className="text-foreground text-2xl font-extrabold">245.500.000₫</div>
+          <div className="text-foreground text-2xl font-extrabold">
+            {formatCurrency(stats?.revenue?.total ?? 0)}
+          </div>
           <p className="text-muted-foreground mt-1 flex items-center text-xs">
-            <span className="text-success mr-1 flex items-center">
-              <TrendUp className="mr-0.5" size={14} /> +15.5%
-            </span>
-            {t("comparedToLastMonth")}
+            {renderPercent(stats?.revenue?.growthPercent)}
+            {(t as any)("comparedToLastWeek")}
           </p>
         </CardContent>
       </Card>
@@ -37,12 +64,14 @@ export function StatCards() {
           <Users className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
-          <div className="text-foreground text-2xl font-extrabold">+1.240</div>
+          <div className="text-foreground text-2xl font-extrabold">
+            {stats?.newUsers?.currentWeek?.total
+              ? `+${stats.newUsers.currentWeek.total.toLocaleString()}`
+              : 0}
+          </div>
           <p className="text-muted-foreground mt-1 flex items-center text-xs">
-            <span className="text-success mr-1 flex items-center">
-              <TrendUp className="mr-0.5" size={14} /> +8.2%
-            </span>
-            {t("comparedToLastMonth")}
+            {renderPercent(stats?.newUsers?.growthPercent)}
+            {(t as any)("comparedToLastWeek")}
           </p>
         </CardContent>
       </Card>
@@ -52,12 +81,12 @@ export function StatCards() {
           <Briefcase className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
-          <div className="text-foreground text-2xl font-extrabold">12.234</div>
+          <div className="text-foreground text-2xl font-extrabold">
+            {stats?.activeJobPosts?.total?.toLocaleString() ?? 0}
+          </div>
           <p className="text-muted-foreground mt-1 flex items-center text-xs">
-            <span className="text-success mr-1 flex items-center">
-              <TrendUp className="mr-0.5" size={14} /> +12%
-            </span>
-            {t("comparedToLastMonth")}
+            {renderPercent(stats?.activeJobPosts?.growthPercent)}
+            {(t as any)("comparedToLastWeek")}
           </p>
         </CardContent>
       </Card>
@@ -67,10 +96,16 @@ export function StatCards() {
           <ShieldCheck className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
-          <div className="text-warning text-2xl font-extrabold">48</div>
+          <div className="text-warning text-2xl font-extrabold">
+            {stats?.pendingReview?.total ?? 0}
+          </div>
           <p className="text-muted-foreground mt-1 text-xs">
-            <span className="text-foreground font-bold">12</span> {t("companies")},{" "}
-            <span className="text-foreground font-bold">36</span> {t("jobs")}
+            <span className="text-foreground font-bold">
+              {stats?.pendingReview?.companyRegistrations ?? 0}
+            </span>{" "}
+            {t("companies")},{" "}
+            <span className="text-foreground font-bold">{stats?.pendingReview?.jobPosts ?? 0}</span>{" "}
+            {t("jobs")}
           </p>
         </CardContent>
       </Card>

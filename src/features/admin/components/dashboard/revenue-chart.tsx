@@ -6,22 +6,9 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 
-const data = [
-  { name: "1", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "2", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "3", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "4", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "5", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "6", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "7", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "8", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "9", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "10", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "11", total: Math.floor(Math.random() * 200) + 50 },
-  { name: "12", total: Math.floor(Math.random() * 200) + 50 },
-];
+import type { AdminRevenueChartData } from "../../api/dashboard";
 
-export function RevenueChart() {
+export function RevenueChart({ data }: { data?: AdminRevenueChartData["points"] | undefined }) {
   const t = useTranslations("Admin.dashboard");
   const [mounted, setMounted] = useState(false);
 
@@ -39,14 +26,14 @@ export function RevenueChart() {
         <div className="h-[350px] w-full">
           {mounted ? (
             <ResponsiveContainer width="100%" height={350} minWidth={0}>
-              <BarChart data={data}>
+              <BarChart data={Array.isArray(data) ? data : []}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
                   stroke="var(--color-border)"
                 />
                 <XAxis
-                  dataKey="name"
+                  dataKey="label"
                   stroke="#888888"
                   fontSize={12}
                   tickLine={false}
@@ -58,7 +45,7 @@ export function RevenueChart() {
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `${value}M`}
+                  tickFormatter={(value) => `${value / 1000000}tr`}
                 />
                 <Tooltip
                   cursor={{ fill: "var(--color-surface-muted)" }}
@@ -69,10 +56,16 @@ export function RevenueChart() {
                     color: "var(--color-foreground)",
                     fontWeight: "bold",
                   }}
-                  formatter={(value: any) => [`${value}M`, t("revenueChart.title")]}
+                  formatter={(value: any) => [
+                    new Intl.NumberFormat("vi-VN", {
+                      style: "currency",
+                      currency: "VND",
+                    }).format(value),
+                    t("revenueChart.title"),
+                  ]}
                 />
                 <Bar
-                  dataKey="total"
+                  dataKey="revenue"
                   fill="var(--color-brand)"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={50}
