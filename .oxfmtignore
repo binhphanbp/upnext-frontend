@@ -8,3 +8,5 @@ playwright-report
 pnpm-lock.yaml
 test-results
 public/mockServiceWorker.js
+
+*.html
