@@ -639,7 +639,7 @@ function JobRow({
         <p className="text-xs text-slate-500">{job._count?.views ?? 0} lượt xem</p>
       </td>
       <td className="px-5 py-4">
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-start gap-2">
           {job.status !== "PUBLISHED" ? (
             <Button
               type="button"

@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretDown, CaretUp, CircleNotch } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, CircleNotch, Plus } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
@@ -295,7 +295,7 @@ export function RecruiterRolesPage() {
               return (
                 <div
                   key={group.id}
-                  className="overflow-hidden rounded-xl border border-slate-200/80 shadow-xs"
+                  className="overflow-hidden rounded-xl border border-slate-200/80"
                 >
                   {/* Accordion Group Header */}
                   <div
@@ -330,7 +330,7 @@ export function RecruiterRolesPage() {
                           <label
                             key={permission.id}
                             htmlFor={`permission-${permission.id}`}
-                            className="flex cursor-pointer items-start gap-3 rounded-lg p-1 select-none hover:bg-slate-50/50"
+                            className="flex cursor-pointer items-center gap-3 rounded-lg p-1 py-2 select-none hover:bg-slate-50/50"
                           >
                             <Checkbox
                               id={`permission-${permission.id}`}
@@ -348,11 +348,6 @@ export function RecruiterRolesPage() {
                               <span className="block text-sm font-bold text-slate-700">
                                 {getPermissionName(permission.code)}
                               </span>
-                              {permission.description && (
-                                <span className="mt-1 block text-xs font-medium text-slate-400">
-                                  {permission.description}
-                                </span>
-                              )}
                             </span>
                           </label>
                         );
@@ -368,13 +363,18 @@ export function RecruiterRolesPage() {
         {/* Submit Button */}
         <div className="flex justify-start">
           <Button
-            className="w-full bg-[#11a77a] font-bold hover:bg-[#0d966d] sm:w-48"
+            className="flex w-full items-center justify-center gap-2 bg-[#11a77a] font-bold hover:bg-[#0d966d] sm:w-48"
             disabled={
               saving || !isOwner || !newRoleName.trim() || newRolePermissionIds.length === 0
             }
             onClick={() => void createRole()}
           >
-            {saving ? t("team.actions.saving") : t("team.roleDialog.createSubmit")}
+            {saving ? (
+              <CircleNotch size={16} className="animate-spin" />
+            ) : (
+              <Plus size={16} weight="bold" />
+            )}
+            <span>{saving ? t("team.actions.saving") : t("team.roleDialog.createSubmit")}</span>
           </Button>
         </div>
 

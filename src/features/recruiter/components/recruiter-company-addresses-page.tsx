@@ -273,7 +273,7 @@ export function RecruiterCompanyAddressesPage() {
     <div className="w-full min-w-0 space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-outfit text-xl font-bold tracking-wide text-slate-950 sm:text-2xl">
+          <h1 className="font-outfit text-xl font-bold text-slate-950 sm:text-2xl">
             {t("companyAddresses.title")}
           </h1>
           <p className="mt-1 text-sm text-slate-500">{t("companyAddresses.description")}</p>
@@ -366,7 +366,7 @@ export function RecruiterCompanyAddressesPage() {
                       size="sm"
                       onClick={() => handleOpenEditForm(loc)}
                       aria-label={t("companyAddresses.editBtn")}
-                      className="size-8 p-0 text-slate-400 hover:text-slate-600"
+                      className="size-8 rounded-full p-0 text-slate-400 hover:text-slate-600"
                     >
                       <PencilSimple size={16} />
                     </Button>
@@ -375,7 +375,7 @@ export function RecruiterCompanyAddressesPage() {
                       size="sm"
                       onClick={() => handleDeleteLocation(loc.id)}
                       aria-label={t("companyAddresses.deleteBtn")}
-                      className="size-8 p-0 text-red-400 hover:bg-red-50 hover:text-red-600"
+                      className="size-8 rounded-full p-0 text-red-400 hover:bg-red-50 hover:text-red-600"
                     >
                       <Trash size={16} />
                     </Button>

@@ -330,3 +330,11 @@
     transform: scale(0.96);
   }
 }
+
+/* Fix z-index / pointer-events blocking SweetAlert2 inside Radix UI Dialogs */
+body.swal2-shown {
+  pointer-events: auto !important;
+}
+.swal2-container {
+  pointer-events: auto !important;
+}

@@ -735,7 +735,9 @@
           "loadError": "Failed to load company addresses.",
           "saveError": "Failed to save address information.",
           "deleteError": "Failed to delete address.",
-          "requiredFields": "Please fill in the office name, province/city and address."
+          "requiredFields": "Please fill in the office name, province/city and address.",
+          "noCompanyTitle": "Company Profile Incomplete",
+          "noCompanyText": "Please complete your company profile before configuring working locations."
         },
         "success": {
           "created": "New address added successfully.",
@@ -778,7 +780,8 @@
         "saving": "Saving...",
         "delete": "Delete",
         "edit": "Edit",
-        "search": "Search..."
+        "search": "Search...",
+        "export": "Export list"
       },
       "alerts": {
         "inviteOwnerOnly": "Only the company Owner has permission to invite members.",
@@ -848,6 +851,10 @@
         "members_manage": "Manage members & permissions",
         "billing_manage": "Manage billing & service plans"
       }
+    },
+    "jobPostsPage": {
+      "onboardingBlockedTitle": "Business Verification Required",
+      "onboardingBlockedText": "Your business profile must be fully completed and verified before you can publish job posts."
     },
     "candidates": {
       "title": "Candidate Management",

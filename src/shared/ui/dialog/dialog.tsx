@@ -27,7 +27,7 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = forwardRef<
   ElementRef<typeof DialogPrimitive.Content>,
   ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, onPointerDownOutside, onInteractOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -37,6 +37,22 @@ const DialogContent = forwardRef<
           "pointer-events-auto relative z-50 grid w-full max-w-lg gap-4 rounded-2xl border border-border bg-background p-6 shadow-2xl animate-dialog-unfold",
           className,
         )}
+        onPointerDownOutside={(event) => {
+          const target = event.target as HTMLElement;
+          if (target?.closest(".swal2-container")) {
+            event.preventDefault();
+          } else {
+            onPointerDownOutside?.(event);
+          }
+        }}
+        onInteractOutside={(event) => {
+          const target = event.target as HTMLElement;
+          if (target?.closest(".swal2-container")) {
+            event.preventDefault();
+          } else {
+            onInteractOutside?.(event);
+          }
+        }}
         {...props}
       >
         {children}
