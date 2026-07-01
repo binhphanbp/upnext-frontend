@@ -1,4 +1,127 @@
 {
+  "CvBuilder": {
+    "title": "UpNext CV Builder",
+    "subtitle": "Trình tạo CV thông minh dành cho Lập trình viên",
+    "aiImport": "AI Import CV",
+    "aiImportSuccess": "AI CV Parser: Đã phân tích file CV mock thành công và điền tự động dữ liệu!",
+    "prefill": "Đổ Dữ Liệu Profile",
+    "reset": "Xóa Sạch",
+    "export": "Xuất PDF / In CV",
+    "tabs": {
+      "personal": "Cá nhân",
+      "summary": "Tóm tắt",
+      "experience": "Kinh nghiệm",
+      "projects": "Dự án",
+      "education": "Học vấn",
+      "skills": "Kỹ năng",
+      "styling": "Thiết kế"
+    },
+    "personal": {
+      "title": "Thông tin cá nhân",
+      "subtitle": "Thông tin liên hệ cơ bản của bạn trên đầu trang CV.",
+      "fullName": "Họ và tên",
+      "fullNamePlaceholder": "Nguyễn Văn A",
+      "jobTitle": "Vị trí ứng tuyển",
+      "jobTitlePlaceholder": "Frontend Developer",
+      "email": "Email liên hệ",
+      "emailPlaceholder": "name@example.com",
+      "phone": "Số điện thoại",
+      "phonePlaceholder": "09xx xxx xxx",
+      "address": "Địa chỉ",
+      "addressPlaceholder": "Quận 1, TP. Hồ Chí Minh",
+      "website": "Website / GitHub / LinkedIn",
+      "websitePlaceholder": "github.com/your-username"
+    },
+    "summary": {
+      "title": "Tóm tắt sự nghiệp",
+      "subtitle": "Giới thiệu ngắn gọn 3-4 câu về thế mạnh và mục tiêu nghề nghiệp của bạn.",
+      "placeholder": "Mô tả tóm tắt kinh nghiệm nổi bật của bạn..."
+    },
+    "experience": {
+      "title": "Kinh nghiệm làm việc",
+      "subtitle": "Liệt kê quá trình công tác của bạn (mới nhất xếp trước).",
+      "empty": "Chưa có thông tin kinh nghiệm.",
+      "add": "Thêm mục",
+      "company": "Tên công ty",
+      "position": "Chức danh",
+      "start": "Thời gian bắt đầu",
+      "end": "Thời gian kết thúc",
+      "tech": "Công nghệ chính",
+      "description": "Mô tả công việc"
+    },
+    "projects": {
+      "title": "Dự án cá nhân / Sản phẩm",
+      "subtitle": "Mô tả dự án bạn tự xây dựng hoặc tham gia độc lập.",
+      "empty": "Chưa có thông tin dự án.",
+      "add": "Thêm mục",
+      "name": "Tên dự án",
+      "role": "Vai trò",
+      "github": "GitHub / Source Link",
+      "demo": "Deploy / Live Demo",
+      "tech": "Công nghệ sử dụng",
+      "description": "Mô tả dự án"
+    },
+    "education": {
+      "title": "Trình độ Học vấn",
+      "subtitle": "Thông tin các trường học, chuyên ngành bạn đã tốt nghiệp.",
+      "empty": "Chưa có thông tin học vấn.",
+      "add": "Thêm mục",
+      "school": "Tên trường học",
+      "degree": "Học vị / Bằng cấp",
+      "major": "Ngành học",
+      "gpa": "Điểm số GPA",
+      "start": "Thời gian bắt đầu",
+      "end": "Thời gian kết thúc",
+      "description": "Thành tích / Ghi chú"
+    },
+    "skills": {
+      "title": "Kỹ năng kỹ thuật",
+      "subtitle": "Khai báo các kỹ năng làm việc tốt nhất của bạn.",
+      "empty": "Chưa có thông tin kỹ năng.",
+      "add": "Thêm kỹ năng",
+      "name": "Kỹ năng (e.g. Next.js)",
+      "level": "Mức độ",
+      "levels": {
+        "beginner": "Cơ bản",
+        "intermediate": "Khá",
+        "advanced": "Thành thạo",
+        "expert": "Chuyên gia"
+      }
+    },
+    "styling": {
+      "title": "Cấu hình Thiết kế & Style",
+      "subtitle": "Lựa chọn layout, màu sắc, font chữ và căn chỉnh khoảng cách.",
+      "template": "Mẫu CV (Template)",
+      "themeColor": "Màu chủ đạo (Theme Color)",
+      "fontFamily": "Kiểu chữ (Font Family)",
+      "textSize": "Cỡ chữ văn bản",
+      "marginSize": "Độ rộng viền lề (Page Margin)",
+      "sectionsOrder": "Thứ tự các Section",
+      "cvLanguage": "Ngôn ngữ của nội dung CV",
+      "textSizes": {
+        "sm": "Nhỏ",
+        "base": "Vừa",
+        "lg": "Lớn"
+      },
+      "marginSizes": {
+        "sm": "Hẹp",
+        "base": "Vừa",
+        "lg": "Rộng"
+      },
+      "cvLanguages": {
+        "vi": "Tiếng Việt",
+        "en": "English"
+      }
+    },
+    "preview": {
+      "title": "Bản xem trước A4 (Thời gian thực)",
+      "zoom": "Thu nhỏ/Phóng to:",
+      "collapse": "Thu gọn khung nhập liệu",
+      "expand": "Mở rộng khung nhập liệu",
+      "collapseLabel": "Thu gọn",
+      "expandLabel": "Mở rộng"
+    }
+  },
   "Metadata": {
     "title": "UpNext - Nền tảng tuyển dụng nhân sự IT",
     "description": "UpNext kết nối ứng viên IT với công ty công nghệ uy tín, tập trung vào kỹ năng, dữ liệu thị trường và trải nghiệm tuyển dụng hiện đại."

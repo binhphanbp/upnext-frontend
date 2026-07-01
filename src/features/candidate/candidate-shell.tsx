@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "@/i18n/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
 
 import { PublicHeader } from "../public/shared/public-header";
 
@@ -10,6 +10,13 @@ type CandidateShellProps = Readonly<{
 
 export function CandidateShell({ children }: CandidateShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isCvBuilder = pathname.endsWith("/cv-builder");
+
+  if (isCvBuilder) {
+    return <div className="min-h-screen bg-slate-50">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-white text-slate-950">
