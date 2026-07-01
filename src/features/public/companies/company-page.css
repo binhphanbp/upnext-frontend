@@ -23,11 +23,6 @@
   cursor: pointer;
 }
 
-.company-page a {
-  color: inherit;
-  text-decoration: none;
-}
-
 /* Culture gallery states */
 .company-page .company-gallery {
   display: grid;
@@ -393,9 +388,6 @@
 }
 
 .company-breadcrumb {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 8px;
   margin-bottom: 16px;
   color: #6b7280;
@@ -470,19 +462,9 @@
 }
 
 .company-logo {
-  display: grid;
-  place-items: center;
   width: 86px;
   height: 86px;
-  overflow: hidden;
   border-radius: 18px;
-  background: #ffffff;
-}
-
-.company-logo img {
-  width: 78%;
-  height: 78%;
-  object-fit: contain;
 }
 
 .company-logo.is-large {
@@ -509,9 +491,6 @@
 }
 
 .company-banner-info h1 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin: 0 0 8px;
   color: #ffffff;
   font-size: 30px;
@@ -532,8 +511,6 @@
 }
 
 .company-banner-meta {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
   margin-top: 0;
@@ -541,8 +518,6 @@
 }
 
 .company-banner-meta span {
-  display: inline-flex;
-  align-items: center;
   gap: 6px;
   color: #d1d5db;
   font-size: 14px;
@@ -561,18 +536,11 @@
 }
 
 .company-banner-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 12px;
   margin-top: 0;
 }
 
 .company-page .company-follow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   min-height: 40px;
   padding: 0 24px;
   color: #ffffff;
@@ -594,10 +562,6 @@
 }
 
 .company-website {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   min-height: 40px;
   padding: 0 24px;
   color: #ffffff;
@@ -629,9 +593,6 @@
 }
 
 .company-banner-badge-icon {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
   width: 48px;
   height: 48px;
   color: var(--company-brand);
@@ -675,9 +636,6 @@
 }
 
 .company-stat {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   flex: 1 0 max-content;
   min-width: max-content;
   padding-right: 0;
@@ -690,9 +648,6 @@
 }
 
 .company-stat-icon {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
   width: 40px;
   height: 40px;
   color: var(--company-brand);
@@ -723,8 +678,6 @@
 
 .company-main,
 .company-aside {
-  display: flex;
-  flex-direction: column;
   gap: 24px;
 }
 
