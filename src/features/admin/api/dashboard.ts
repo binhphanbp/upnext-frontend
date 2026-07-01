@@ -79,16 +79,36 @@ export async function getAdminDashboard(
   if (params?.weekStart) searchParams.set("weekStart", params.weekStart);
   if (params?.activityLimit) searchParams.set("activityLimit", params.activityLimit.toString());
 
-  const response = await apiRequest<any>(`/admin/dashboard?${searchParams.toString()}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const [dashboardRes, candidatesRes, companiesRes, recruitersRes] = await Promise.all([
+    apiRequest<any>(`/admin/dashboard?${searchParams.toString()}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }),
+    apiRequest<any>(`/candidate-accounts?limit=1`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => null),
+    apiRequest<any>(`/companies?limit=1`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => null),
+    apiRequest<any>(`/recruiter-accounts?limit=1`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => null),
+  ]);
 
-  // Handle standard backend API wrapper { data: { ... } }
-  if (response && response.data) {
-    return response.data;
+  let data = dashboardRes;
+  if (dashboardRes && dashboardRes.data) {
+    data = dashboardRes.data;
   }
 
-  return response as AdminDashboardResponse;
+  // Inject totalUsers by summing up the totals from the 3 endpoints
+  const totalCandidates = candidatesRes?.meta?.total || 0;
+  const totalCompanies = companiesRes?.meta?.total || 0;
+  const totalRecruiters = recruitersRes?.meta?.total || 0;
+
+  if (data && data.summary) {
+    data.summary.totalUsers = totalCandidates + totalCompanies + totalRecruiters;
+  }
+
+  return data as AdminDashboardResponse;
 }
