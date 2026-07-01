@@ -87,6 +87,39 @@ test("renders migrated public jobs and companies pages", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "FPT Software", exact: true })).toBeVisible();
 });
 
+test("renders reference-inspired job detail and company profile sections", async ({ page }) => {
+  await page.goto("/vi/jobs/fpt-java-fresher");
+
+  await expect(page.getByRole("heading", { name: /fresher java developer/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sẵn sàng ứng tuyển?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tổng quan công việc" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lý do nên ứng tuyển" })).toBeVisible();
+
+  await page.goto("/vi/companies/fpt-software");
+
+  await expect(page.getByRole("heading", { name: "FPT Software", exact: true })).toBeVisible();
+  await expect(page.getByText("Nhà tuyển dụng được yêu thích")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Thông tin nhanh" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Việc làm đang tuyển" })).toBeVisible();
+});
+
+test("opens company culture gallery with overflow images", async ({ page }) => {
+  await page.goto("/vi/companies/fpt-software");
+
+  await expect(page.getByText("+15 ảnh")).toBeVisible();
+  await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
+
+  const galleryDialog = page.getByRole("dialog", { name: "Ảnh môi trường làm việc" });
+  await expect(galleryDialog).toBeVisible();
+  await expect(galleryDialog.getByText("3/18")).toBeVisible();
+
+  await galleryDialog.getByRole("button", { name: "Xem ảnh tiếp theo" }).click();
+  await expect(galleryDialog.getByText("4/18")).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(galleryDialog).toBeHidden();
+});
+
 test("renders migrated auth pages", async ({ page }) => {
   await page.goto("/vi/login");
   await expect(page.getByRole("heading", { name: "Đăng nhập", exact: true })).toBeVisible();

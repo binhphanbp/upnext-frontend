@@ -18,7 +18,7 @@
 }
 
 .marketing-home-header {
-  position: fixed;
+  position: sticky;
   top: 0;
   right: 0;
   left: 0;
@@ -798,7 +798,7 @@
 .marketing-home-content {
   width: min(1280px, calc(100vw - 96px));
   margin: 0 auto;
-  padding: 72px 0 58px;
+  padding: 72px 0 0;
 }
 
 .marketing-home-hero {
@@ -4607,5 +4607,333 @@ button.marketing-home-control {
 
   .marketing-home-footer-bottom-actions button {
     justify-content: center;
+  }
+}
+
+/* Reference-clean shared public footer */
+.marketing-home-footer {
+  width: 100vw;
+  margin-top: 72px;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: 48px 0 24px;
+  color: #1a1a1a;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.marketing-home-footer-main,
+.marketing-home-footer-bottom {
+  width: min(1200px, calc(100vw - 32px));
+}
+
+.marketing-home-footer-main {
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 0.95fr)
+    minmax(150px, 0.62fr)
+    minmax(170px, 0.68fr)
+    minmax(270px, 1.05fr);
+  gap: 44px;
+  align-items: start;
+  margin-bottom: 48px;
+}
+
+.marketing-home-footer-logo {
+  margin-bottom: 16px;
+}
+
+.marketing-home-footer-logo img {
+  width: 148px;
+}
+
+.marketing-home-footer-brand p {
+  width: min(100%, 320px);
+  margin: 0 0 24px;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.62;
+}
+
+.marketing-home-footer-socials {
+  gap: 12px;
+  margin-top: 0;
+}
+
+.marketing-home-footer-socials a {
+  width: 32px;
+  height: 32px;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #ffffff;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.marketing-home-footer-links {
+  display: contents;
+}
+
+.marketing-home-footer-link-column,
+.marketing-home-footer-contact {
+  min-width: 0;
+}
+
+.marketing-home-footer-links h3,
+.marketing-home-footer-contact h3,
+.marketing-home-footer-newsletter-title {
+  margin: 0 0 16px;
+  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.marketing-home-footer-link-column ul,
+.marketing-home-footer-contact ul {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marketing-home-footer-links button,
+.marketing-home-footer-contact ul button {
+  display: inline-flex;
+  padding: 0;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.marketing-home-footer-contact .marketing-home-footer-newsletter-title {
+  margin-top: 32px;
+  margin-bottom: 8px;
+  max-width: 260px;
+}
+
+.marketing-home-footer-contact p {
+  max-width: 280px;
+  margin: 0 0 12px;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.marketing-home-footer-newsletter {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 0;
+}
+
+.marketing-home-footer-newsletter input {
+  min-width: 0;
+  flex: 1 1 auto;
+  height: 40px;
+  padding: 0 12px;
+  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  background: #f9fafb;
+}
+
+.marketing-home-footer-newsletter input:focus {
+  border-color: var(--color-brand-logo);
+  box-shadow: none;
+}
+
+.marketing-home-footer-newsletter button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 16px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 0;
+  border-radius: 0 8px 8px 0;
+  background: var(--color-brand-logo);
+}
+
+.marketing-home-footer-bottom {
+  margin-top: 0;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.marketing-home-footer-bottom p {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.marketing-home-footer-bottom-actions {
+  flex-direction: row;
+  gap: 24px;
+}
+
+.marketing-home-footer-bottom-actions button {
+  gap: 4px;
+  min-height: 24px;
+  padding: 0;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+  border: 0;
+  border-radius: 0;
+}
+
+.marketing-home-footer-language {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0;
+  color: #6b7280 !important;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  list-style: none;
+  cursor: pointer;
+}
+
+.marketing-home-footer-language::-webkit-details-marker {
+  display: none;
+}
+
+.marketing-home-footer-language-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.marketing-home-footer-language-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 20;
+  display: grid;
+  min-width: 148px;
+  padding: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+}
+
+.marketing-home-footer-language-panel a,
+.marketing-home-footer-language-panel button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  width: 100%;
+  padding: 0 10px;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+
+.marketing-home-footer-language-panel a[aria-checked="true"],
+.marketing-home-footer-language-panel button[aria-checked="true"] {
+  color: var(--color-brand-logo);
+  background: var(--color-action-primary-subtle);
+}
+
+@media (hover: hover) {
+  .marketing-home-footer-socials a:hover {
+    color: var(--color-brand-logo);
+    border-color: var(--color-brand-logo);
+    background: #ffffff;
+  }
+
+  .marketing-home-footer-links button:hover,
+  .marketing-home-footer-contact ul button:hover,
+  .marketing-home-footer-bottom-actions button:hover {
+    color: var(--color-brand-logo);
+    transform: none;
+  }
+
+  .marketing-home-footer-language:hover {
+    color: var(--color-brand-logo) !important;
+  }
+
+  .marketing-home-footer-newsletter button:hover {
+    background: var(--color-action-primary-hover);
+    transform: none;
+  }
+
+  .marketing-home-footer-language-panel a:hover,
+  .marketing-home-footer-language-panel button:hover {
+    color: var(--color-brand-logo);
+    background: #f3f4f6;
+  }
+}
+
+@media (max-width: 1080px) {
+  .marketing-home-footer-main {
+    grid-template-columns: minmax(0, 1.1fr) repeat(2, minmax(0, 0.8fr));
+    gap: 36px;
+  }
+
+  .marketing-home-footer-contact {
+    grid-column: 1 / -1;
+  }
+
+  .marketing-home-footer-newsletter {
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 720px) {
+  .marketing-home-footer {
+    padding-top: 40px;
+  }
+
+  .marketing-home-footer-main {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    margin-bottom: 36px;
+  }
+
+  .marketing-home-footer-brand p {
+    width: 100%;
+  }
+
+  .marketing-home-footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .marketing-home-footer-bottom-actions {
+    flex-wrap: wrap;
+    gap: 16px 24px;
+  }
+
+  .marketing-home-footer-newsletter {
+    max-width: 390px;
   }
 }

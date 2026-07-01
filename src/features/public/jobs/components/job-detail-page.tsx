@@ -10,17 +10,22 @@ import {
   BriefcaseBusiness,
   Calendar,
   CheckCircle,
+  ChevronRight,
   Clock,
+  Coins,
   Eye,
+  FileText,
+  Globe,
   MapPin,
   Monitor,
   PaperPlaneTilt,
   ShareNetwork,
   ShieldCheck,
+  Sparkles,
   Star,
+  TrendingUp,
   UsersRound,
   WalletCards,
-  ChevronRight,
 } from "../../home/marketing-icons";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
@@ -50,13 +55,51 @@ const requirements = [
 ];
 
 const benefits = [
-  "Lương cạnh tranh theo năng lực, review định kỳ và thưởng theo hiệu quả dự án.",
-  "Bảo hiểm, nghỉ phép, phụ cấp thiết bị và ngân sách học tập chuyên môn.",
-  "Làm việc cùng đội ngũ kỹ thuật có kinh nghiệm, quy trình rõ ràng, tài liệu đầy đủ.",
-  "Cơ hội tham gia dự án quốc tế hoặc sản phẩm có lượng người dùng lớn.",
+  {
+    icon: <WalletCards size={20} />,
+    desc: "Thu nhập cạnh tranh, thưởng hiệu quả 2 lần/năm",
+  },
+  {
+    icon: <Monitor size={20} />,
+    desc: "Làm việc linh hoạt: Hybrid, Remote hoặc tại văn phòng hiện đại",
+  },
+  {
+    icon: <ShieldCheck size={20} />,
+    desc: "Bảo hiểm sức khỏe cao cấp cho bản thân và gia đình",
+  },
+  {
+    icon: <Globe size={20} />,
+    desc: "Đào tạo & chứng chỉ quốc tế qua học viện nội bộ",
+  },
+  {
+    icon: <TrendingUp size={20} />,
+    desc: "Cơ hội thăng tiến và lộ trình phát triển rõ ràng",
+  },
+  {
+    icon: <UsersRound size={20} />,
+    desc: "Teambuilding, du lịch, thể thao và nhiều hoạt động nội bộ",
+  },
 ];
 
-const hiringSteps = ["Lọc CV", "Phỏng vấn kỹ thuật", "Trao đổi văn hóa", "Offer"];
+const hiringSteps = [
+  { title: "Ứng tuyển", desc: "Gửi CV ứng tuyển qua UpNext" },
+  { title: "Sàng lọc hồ sơ", desc: "Nhà tuyển dụng xem xét và phản hồi" },
+  { title: "Phỏng vấn", desc: "1-2 vòng chuyên môn & văn hóa" },
+  { title: "Offer & Onboard", desc: "Nhận offer và hoàn tất thủ tục" },
+];
+
+const reasons = [
+  { icon: <Globe size={18} />, text: "Môi trường làm việc quốc tế, năng động" },
+  { icon: <TrendingUp size={18} />, text: "Cơ hội học hỏi và phát triển kỹ năng vượt trội" },
+  { icon: <BriefcaseBusiness size={18} />, text: "Dự án đa dạng với khách hàng hàng đầu thế giới" },
+  { icon: <ShieldCheck size={18} />, text: "Chế độ đãi ngộ và phúc lợi hàng đầu ngành" },
+];
+
+const companyStats = [
+  { value: "256", label: "Việc làm" },
+  { value: "30.000+", label: "Nhân sự" },
+  { value: "27+", label: "Quốc gia" },
+];
 
 function getJobId(path: string) {
   return decodeURIComponent(path.split("/").filter(Boolean)[1] ?? "");
@@ -104,7 +147,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
             item.id !== job.id &&
             item.categories.some((category) => job.categories.includes(category)),
         )
-        .slice(0, 4),
+        .slice(0, 3),
     [job],
   );
 
@@ -125,135 +168,187 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
           <span>{job.title}</span>
         </nav>
 
-        <button type="button" className="job-detail-back" onClick={() => navigate("/jobs")}>
-          <ArrowRight size={16} />
-          Quay lại danh sách
-        </button>
-
-        <section className="job-detail-hero">
-          <div className="job-detail-cover" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="job-detail-title">
-            <LogoMark job={job} size="large" />
-            <div>
-              <div className="job-detail-badges">
-                {job.featured && (
-                  <span>
-                    <Star size={14} /> Nổi bật
-                  </span>
-                )}
-                {job.urgent && <span className="is-urgent">Tuyển gấp</span>}
+        <section className="job-detail-layout">
+          <article className="job-detail-main">
+            <section className="job-detail-card job-detail-hero-card">
+              <div className="job-detail-company-row">
+                <LogoMark job={job} size="large" />
+                <div>
+                  <button
+                    type="button"
+                    className="job-detail-company-name"
+                    onClick={() => navigate("/companies/fpt-software")}
+                  >
+                    {job.company}
+                  </button>
+                  <p>{job.categories.join(" • ")}</p>
+                </div>
                 {job.verified && (
-                  <span>
-                    <ShieldCheck size={14} /> Công ty đã xác thực
+                  <span className="job-detail-verified">
+                    <ShieldCheck size={15} weight="fill" /> Đã xác thực
                   </span>
                 )}
               </div>
-              <h1>{job.title}</h1>
-              <p>
-                {job.company} · {job.location} · {job.posted}
-              </p>
-            </div>
-          </div>
-        </section>
 
-        <section className="job-detail-layout">
-          <article className="job-detail-main">
-            <section className="job-detail-summary-grid">
-              <InfoTile icon={<WalletCards size={20} />} label="Mức lương" value={job.salary} />
-              <InfoTile icon={<MapPin size={20} />} label="Địa điểm" value={job.location} />
-              <InfoTile icon={<Monitor size={20} />} label="Hình thức" value={job.mode} />
-              <InfoTile icon={<BriefcaseBusiness size={20} />} label="Cấp bậc" value={job.level} />
-            </section>
+              <div className="job-detail-title-row">
+                <h1>{job.title}</h1>
+                {(job.featured || job.urgent) && (
+                  <span className={job.urgent ? "is-urgent" : ""}>
+                    <Star size={14} weight="fill" />
+                    {job.urgent ? "Tuyển gấp" : "Hot"}
+                  </span>
+                )}
+              </div>
 
-            <section className="job-detail-section">
-              <h2>Mô tả công việc</h2>
-              <p>{job.description}</p>
-              <ul>
-                {responsibilities.map((item) => (
-                  <li key={item}>
-                    <CheckCircle size={18} />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
+              <p className="job-detail-lead">{job.description}</p>
 
-            <section className="job-detail-section">
-              <h2>Yêu cầu ứng viên</h2>
-              <ul>
-                {requirements.map((item) => (
-                  <li key={item}>
-                    <CheckCircle size={18} />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
+              <div className="job-detail-salary-row">
+                <Coins size={24} weight="fill" />
+                <strong>{job.salary}</strong>
+                <i aria-hidden="true" />
+                <span>Thỏa thuận theo năng lực</span>
+              </div>
 
-            <section className="job-detail-section">
-              <h2>Kỹ năng liên quan</h2>
-              <div className="job-detail-tags">
+              <div className="job-detail-meta-grid">
+                <InfoTile icon={<MapPin size={20} />} label="Địa điểm" value={job.location} />
+                <InfoTile icon={<Monitor size={20} />} label="Hình thức" value={job.mode} />
+                <InfoTile
+                  icon={<BriefcaseBusiness size={20} />}
+                  label="Cấp bậc"
+                  value={job.level}
+                />
+                <InfoTile icon={<Clock size={20} />} label="Đăng tuyển" value={job.posted} />
+              </div>
+
+              <div className="job-detail-tags" aria-label="Kỹ năng liên quan">
                 {job.tags.map((tag) => (
                   <span key={tag}>{tag}</span>
                 ))}
               </div>
+
+              <div className="job-detail-action-row">
+                <button type="button" onClick={() => navigate(`/register?job=${job.id}`)}>
+                  <PaperPlaneTilt size={18} />
+                  Ứng tuyển ngay
+                </button>
+                <button
+                  type="button"
+                  className={saved ? "is-saved" : ""}
+                  onClick={() => setSaved((current) => !current)}
+                >
+                  <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
+                  {saved ? "Đã lưu" : "Lưu tin"}
+                </button>
+                <button type="button">
+                  <ShareNetwork size={18} />
+                  Chia sẻ
+                </button>
+              </div>
             </section>
 
-            <section className="job-detail-section">
-              <h2>Quyền lợi</h2>
-              <ul>
-                {benefits.map((item) => (
-                  <li key={item}>
-                    <CheckCircle size={18} />
-                    <span>{item}</span>
-                  </li>
+            <DetailSection icon={<FileText size={18} />} title="Mô tả công việc">
+              <p>{job.description}</p>
+              <BulletList items={responsibilities} />
+            </DetailSection>
+
+            <DetailSection icon={<CheckCircle size={18} />} title="Yêu cầu ứng viên">
+              <BulletList items={requirements} />
+            </DetailSection>
+
+            <DetailSection icon={<Sparkles size={18} />} title="Quyền lợi">
+              <div className="job-detail-benefit-grid">
+                {benefits.map((benefit) => (
+                  <div key={benefit.desc} className="job-detail-benefit">
+                    <span>{benefit.icon}</span>
+                    <div>
+                      <p>{benefit.desc}</p>
+                    </div>
+                  </div>
                 ))}
-              </ul>
-            </section>
+              </div>
+            </DetailSection>
 
-            <section className="job-detail-section">
-              <h2>Quy trình tuyển dụng</h2>
-              <div className="job-detail-steps">
+            <DetailSection icon={<TrendingUp size={18} />} title="Quy trình tuyển dụng">
+              <div className="job-detail-process">
                 {hiringSteps.map((step, index) => (
-                  <span key={step}>
+                  <span key={step.title}>
                     <b>{index + 1}</b>
-                    {step}
+                    <strong>{step.title}</strong>
+                    <small>{step.desc}</small>
                   </span>
                 ))}
               </div>
-            </section>
+            </DetailSection>
 
-            <section className="job-detail-company">
-              <div>
-                <LogoMark job={job} />
-                <div>
-                  <h2>{job.company}</h2>
-                  <p>
-                    Công ty công nghệ đang mở nhiều vị trí IT, ưu tiên ứng viên có tư duy sản phẩm,
-                    kỹ năng kỹ thuật vững và khả năng phối hợp tốt trong môi trường phát triển
-                    nhanh.
-                  </p>
-                </div>
+            <DetailSection icon={<BriefcaseBusiness size={18} />} title="Kỹ năng & công nghệ">
+              <div className="job-detail-skill-cloud">
+                {[
+                  ...job.tags,
+                  "Next.js",
+                  "TypeScript",
+                  "JavaScript",
+                  "HTML5",
+                  "CSS3",
+                  "React Query",
+                  "Tailwind CSS",
+                  "Git",
+                  "RESTful API",
+                  "Docker",
+                ].map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
               </div>
-              <button type="button" onClick={() => navigate("/companies")}>
-                Xem công ty <ArrowRight size={16} />
-              </button>
+            </DetailSection>
+
+            <DetailSection icon={<BriefcaseBusiness size={18} />} title="Về công ty">
+              <p>
+                {job.company} là công ty công nghệ hàng đầu, hiện diện tại nhiều quốc gia với đội
+                ngũ kỹ sư lớn. Công ty hợp tác cùng khách hàng toàn cầu để kiến tạo giải pháp công
+                nghệ đưa doanh nghiệp bứt phá trong kỷ nguyên số.
+              </p>
+              <div className="job-detail-company-stats">
+                {companyStats.map((stat) => (
+                  <span key={stat.label}>
+                    <small>{stat.label}</small>
+                    <b>{stat.value}</b>
+                  </span>
+                ))}
+              </div>
+            </DetailSection>
+
+            <section className="job-detail-card job-detail-similar-section">
+              <div className="job-detail-card-head">
+                <span>
+                  <BriefcaseBusiness size={18} />
+                </span>
+                <h2>Việc làm tương tự</h2>
+              </div>
+              <div className="job-detail-similar-list">
+                {similarJobs.map((item) => (
+                  <button key={item.id} type="button" onClick={() => navigate(`/jobs/${item.id}`)}>
+                    <LogoMark job={item} />
+                    <span>
+                      <b>{item.title}</b>
+                      <small>{item.company}</small>
+                    </span>
+                    <em>{item.salary}</em>
+                  </button>
+                ))}
+              </div>
             </section>
           </article>
 
           <aside className="job-detail-aside">
-            <section className="job-detail-apply-card">
-              <div>
-                <span>Ứng tuyển vị trí</span>
-                <strong>{job.salary}</strong>
-              </div>
+            <section className="job-detail-card job-detail-ready-card">
+              <h2>Sẵn sàng ứng tuyển?</h2>
+              <p>Gia tăng cơ hội với hồ sơ nổi bật</p>
               <button type="button" onClick={() => navigate(`/register?job=${job.id}`)}>
                 <PaperPlaneTilt size={18} />
                 Ứng tuyển ngay
+              </button>
+              <button type="button">
+                <Coins size={18} />
+                Xem lương phù hợp
               </button>
               <button
                 type="button"
@@ -261,17 +356,25 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 onClick={() => setSaved((current) => !current)}
               >
                 <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
-                {saved ? "Đã lưu tin" : "Lưu tin"}
+                {saved ? "Đã lưu tin" : "So sánh CV với JD"}
               </button>
-              <button type="button">
-                <ShareNetwork size={18} />
-                Chia sẻ
-              </button>
+              <div className="job-detail-deadline">
+                Hạn nộp hồ sơ: <b>15/06/2025</b> <span>(còn 13 ngày)</span>
+              </div>
+              <div className="job-detail-verified-box">
+                <ShieldCheck size={20} weight="fill" />
+                <span>
+                  <b>Tin tuyển dụng đã xác thực</b>
+                  <small>Thông tin được kiểm duyệt bởi UpNext</small>
+                </span>
+              </div>
             </section>
 
-            <section className="job-detail-company-card">
-              <h2>Thông tin nhanh</h2>
-              <InfoLine icon={<Clock size={17} />} label="Đăng tuyển" value={job.posted} />
+            <section className="job-detail-card job-detail-overview-card">
+              <h2>Tổng quan công việc</h2>
+              <InfoLine icon={<WalletCards size={17} />} label="Mức lương" value={job.salary} />
+              <InfoLine icon={<MapPin size={17} />} label="Địa điểm" value={job.location} />
+              <InfoLine icon={<Monitor size={17} />} label="Hình thức" value={job.mode} />
               <InfoLine
                 icon={<UsersRound size={17} />}
                 label="Ứng viên"
@@ -285,18 +388,61 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               />
             </section>
 
-            <section className="job-detail-similar">
-              <h2>Việc làm tương tự</h2>
-              {similarJobs.map((item) => (
-                <button key={item.id} type="button" onClick={() => navigate(`/jobs/${item.id}`)}>
-                  <LogoMark job={item} />
-                  <span>
-                    <b>{item.title}</b>
-                    <small>{item.company}</small>
-                    <em>{item.salary}</em>
+            <section className="job-detail-card job-detail-company-mini">
+              <LogoMark job={job} />
+              <div>
+                <h2>{job.company}</h2>
+                <p>Công nghệ thông tin & Dịch vụ phần mềm</p>
+                <em>Top công ty</em>
+              </div>
+              <button type="button">
+                <Bookmark size={15} /> Theo dõi công ty
+              </button>
+              <div className="job-detail-company-mini-stats">
+                {companyStats.map((stat) => (
+                  <span key={stat.label}>
+                    <b>{stat.value}</b>
+                    <small>{stat.label}</small>
                   </span>
+                ))}
+              </div>
+              <button type="button" onClick={() => navigate("/companies/fpt-software")}>
+                Xem công ty <ArrowRight size={15} />
+              </button>
+            </section>
+
+            <section className="job-detail-card job-detail-reason-card">
+              <h2>Lý do nên ứng tuyển</h2>
+              <ul>
+                {reasons.map((reason) => (
+                  <li key={reason.text}>
+                    <span>{reason.icon}</span>
+                    <p>{reason.text}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="job-detail-card job-detail-share-card">
+              <h2>Chia sẻ công việc</h2>
+              <p>Giới thiệu công việc hấp dẫn này đến bạn bè của bạn.</p>
+              <div>
+                <button type="button" aria-label="Sao chép liên kết">
+                  <ShareNetwork size={17} />
                 </button>
-              ))}
+                <button type="button" aria-label="Chia sẻ qua Facebook">
+                  f
+                </button>
+                <button type="button" aria-label="Chia sẻ qua LinkedIn">
+                  in
+                </button>
+                <button type="button" aria-label="Chia sẻ qua Zalo">
+                  Zalo
+                </button>
+                <button type="button" aria-label="Chia sẻ qua email">
+                  @
+                </button>
+              </div>
             </section>
           </aside>
         </section>
@@ -304,6 +450,39 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
 
       <PublicFooter navigate={navigate} />
     </main>
+  );
+}
+
+function DetailSection({
+  icon,
+  title,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="job-detail-card job-detail-section">
+      <div className="job-detail-card-head">
+        <span>{icon}</span>
+        <h2>{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function BulletList({ items }: { items: string[] }) {
+  return (
+    <ul className="job-detail-bullet-list">
+      {items.map((item) => (
+        <li key={item}>
+          <span aria-hidden="true" />
+          {item}
+        </li>
+      ))}
+    </ul>
   );
 }
 
