@@ -1245,6 +1245,10 @@
             "news": "News",
             "blog": "Blog"
           }
+        },
+        "details": {
+          "title": "Article Details",
+          "subtitle": "Preview content and moderate the article before publishing."
         }
       },
       "moderation": {

@@ -1267,6 +1267,10 @@
             "news": "Tin tức",
             "blog": "Blog"
           }
+        },
+        "details": {
+          "title": "Chi tiết bài viết",
+          "subtitle": "Xem trước nội dung và kiểm duyệt bài viết trước khi xuất bản."
         }
       },
       "moderation": {
