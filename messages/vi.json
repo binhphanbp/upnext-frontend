@@ -1217,6 +1217,22 @@
             "internship": "Thực tập",
             "other": "Khác"
           }
+        },
+        "details": {
+          "title": "Chi tiết tin đăng",
+          "subtitle": "Thông tin đầy đủ của tin tuyển dụng",
+          "back": "Quay lại danh sách",
+          "company": "Công ty",
+          "location": "Địa điểm",
+          "type": "Loại hình",
+          "salary": "Mức lương",
+          "postedDate": "Ngày đăng",
+          "applicants": "Lượt ứng tuyển",
+          "description": "Mô tả công việc",
+          "requirements": "Yêu cầu",
+          "benefits": "Quyền lợi",
+          "approve": "Duyệt tin",
+          "reject": "Từ chối"
         }
       },
       "articles": {
