@@ -1101,7 +1101,6 @@
         },
         "empty": "Không có hoạt động nào gần đây."
       },
-      "totalUsers": "Tổng người dùng",
       "totalUsersDesc": "Nhà tuyển dụng & ứng viên",
       "comparedToLastWeek": "so với tuần trước"
     },
@@ -1244,7 +1243,8 @@
             "partTime": "Bán thời gian",
             "internship": "Thực tập",
             "other": "Khác"
-          }
+          },
+          "expirationDate": "Ngày hết hạn"
         },
         "details": {
           "title": "Chi tiết tin đăng",

@@ -40,6 +40,7 @@ export type AdminJobPost = {
   type: string;
   status: "Đang hiển thị" | "Chờ duyệt" | "Hết hạn" | "Đã từ chối";
   postedDate: string;
+  expirationDate: string | null;
   applicants: number;
 };
 
@@ -74,6 +75,11 @@ function mapToAdminJobPost(apiPost: AdminJobPostResponse): AdminJobPost {
     postedDate: apiPost.publishedAt
       ? formatAppDate(apiPost.publishedAt)
       : formatAppDate(apiPost.createdAt),
+    expirationDate: apiPost.applicationDeadline
+      ? formatAppDate(apiPost.applicationDeadline)
+      : apiPost.expiredAt
+        ? formatAppDate(apiPost.expiredAt)
+        : null,
     applicants: apiPost._count?.applications || apiPost.applicants || 0,
   };
 }
@@ -268,6 +274,9 @@ export function JobPostsTable() {
             <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
               {t("postedDate")}
             </th>
+            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+              {t("expirationDate")}
+            </th>
             <th className="px-4 py-3 text-right font-bold">Thao tác</th>
           </tr>
         </thead>
@@ -346,6 +355,13 @@ export function JobPostsTable() {
                   </td>
                   <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
                     {job.postedDate}
+                  </td>
+                  <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
+                    {job.expirationDate ? (
+                      job.expirationDate
+                    ) : (
+                      <span className="text-muted-foreground text-xs italic">Không có</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <DropdownMenu>

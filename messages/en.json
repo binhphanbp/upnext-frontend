@@ -1238,7 +1238,8 @@
             "partTime": "Part-time",
             "internship": "Internship",
             "other": "Other"
-          }
+          },
+          "expirationDate": "Expiration Date"
         }
       },
       "articles": {
