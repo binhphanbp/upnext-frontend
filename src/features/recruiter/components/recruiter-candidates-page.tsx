@@ -163,13 +163,13 @@ export function RecruiterCandidatesPage() {
         setCandidates(applicantsData);
         setJobs(jobPostsData);
       } catch (error) {
-        handleAuthError(error, router);
+        handleAuthError(error, router, locale);
       } finally {
         setInitialLoading(false);
         setLoading(false);
       }
     },
-    [jobPostId, status, search, router],
+    [jobPostId, status, search, router, locale],
   );
 
   const handleRefresh = useCallback(async () => {
@@ -283,7 +283,8 @@ export function RecruiterCandidatesPage() {
         : ["Full Name", "Job Post", "Submitted At", "CV Filename", "Status"];
 
     const rows = candidatesToExport.map((app) => {
-      const name = app.candidateProfile.account.fullName ?? "Anonymous";
+      const name =
+        app.candidateProfile.account.fullName ?? (locale === "vi" ? "Ẩn danh" : "Anonymous");
       const jobTitle = app.jobPost.title;
       const submittedAt = formatAppDateTime(app.submittedAt);
       const cvName = app.cvVersion?.fileName ?? "—";
@@ -574,7 +575,7 @@ export function RecruiterCandidatesPage() {
         <tbody>
           {candidates.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500">
+              <td colSpan={6} className="px-4 !py-12 text-center text-sm text-slate-500">
                 <div className="flex flex-col items-center justify-center">
                   <Image
                     src="/assets/icons/empty-state.png"
@@ -591,7 +592,9 @@ export function RecruiterCandidatesPage() {
             </tr>
           ) : (
             paginatedCandidates.map((app) => {
-              const name = app.candidateProfile.account.fullName ?? "Anonymous";
+              const name =
+                app.candidateProfile.account.fullName ??
+                (locale === "vi" ? "Ẩn danh" : "Anonymous");
 
               return (
                 <tr
@@ -749,7 +752,7 @@ function getTeamErrorMessage(error: unknown, t: any) {
   return t("onboarding.companyProfile.errors.unknown");
 }
 
-function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>) {
+function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>, locale: string) {
   if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
     clearRecruiterSession();
     router.replace("/recruiter/login");
@@ -758,7 +761,10 @@ function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>) {
 
   void Swal.fire({
     icon: "error",
-    title: "Lỗi hệ thống",
-    text: "Hệ thống gặp sự cố. Vui lòng thử lại sau.",
+    title: locale === "vi" ? "Lỗi hệ thống" : "System Error",
+    text:
+      locale === "vi"
+        ? "Hệ thống gặp sự cố. Vui lòng thử lại sau."
+        : "System encountered an error. Please try again later.",
   });
 }

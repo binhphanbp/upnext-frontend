@@ -236,7 +236,7 @@ export function RecruiterDashboardPage() {
 
   useEffect(() => {
     if (user?.id) {
-      const isSkipped = sessionStorage.getItem(`skippedOnboarding_${user.id}`) === "true";
+      const isSkipped = localStorage.getItem(`skippedOnboarding_${user.id}`) === "true";
       setSkippedOnboarding(isSkipped);
     } else {
       setSkippedOnboarding(false);
@@ -634,7 +634,7 @@ export function RecruiterDashboardPage() {
           token={token}
           onSkip={() => {
             if (user?.id) {
-              sessionStorage.setItem(`skippedOnboarding_${user.id}`, "true");
+              localStorage.setItem(`skippedOnboarding_${user.id}`, "true");
             }
             setSkippedOnboarding(true);
           }}
@@ -856,6 +856,70 @@ function RecruiterOnboardingDialog({
     setStep((current) => Math.max(current - 1, 0) as OnboardingStep);
   }
 
+  const [skipping, setSkipping] = useState(false);
+
+  async function handleSkipAndSaveProfile() {
+    const valid = await form.trigger(stepFields[0], {
+      shouldFocus: true,
+    });
+
+    if (!valid) {
+      showToast("error", getFirstErrorMessage(form.formState.errors, t));
+      setStep(0);
+      return;
+    }
+
+    setSkipping(true);
+    try {
+      const values = form.getValues();
+      let avatarUrl = profile?.avatarUrl ?? null;
+      const avatarFile = values.avatar?.item(0);
+
+      if (avatarFile) {
+        const uploadResult = await uploadFile(avatarFile, "AVATAR", "PUBLIC", token);
+        avatarUrl = uploadResult.file.publicUrl;
+      }
+
+      const genderValue =
+        values.gender === "MALE" || values.gender === "FEMALE"
+          ? (values.gender as "MALE" | "FEMALE")
+          : undefined;
+
+      if (!profile) {
+        await createRecruiterProfile(
+          {
+            fullName: values.fullName,
+            phoneNumber: values.phoneNumber,
+            recruiterAccountId: account.id,
+            gender: genderValue,
+            avatarUrl: avatarUrl || undefined,
+          },
+          token,
+        );
+      } else {
+        await updateRecruiterProfile(
+          profile.id,
+          {
+            fullName: values.fullName,
+            phoneNumber: values.phoneNumber,
+            gender: genderValue,
+            avatarUrl: avatarUrl || undefined,
+          },
+          token,
+        );
+      }
+
+      const nextAccount = await getRecruiterAccount(account.id, token);
+      onCompleted(nextAccount);
+      showToast("success", t("onboarding.messages.success"));
+      onSkip();
+    } catch (error) {
+      showToast("error", getOnboardingErrorMessage(error, t));
+    } finally {
+      setSkipping(false);
+    }
+  }
+
   async function submit(values: OnboardingValues) {
     const file = values.businessLicense?.item(0);
 
@@ -979,7 +1043,7 @@ function RecruiterOnboardingDialog({
             aria-describedby="recruiter-onboarding-dialog-description"
             className="animate-dialog-unfold pointer-events-auto relative flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white p-0 shadow-2xl [--ring:#10a778] focus:outline-none"
           >
-            <div className="bg-header relative shrink-0 overflow-hidden border-t-[3px] border-b border-slate-200 border-t-white px-4 py-6 sm:px-6 sm:py-8">
+            <div className="bg-header relative shrink-0 overflow-hidden border-b border-slate-200 px-4 py-6 sm:px-6 sm:py-8">
               {/* Grid pattern overlay */}
               <div
                 className="pointer-events-none absolute inset-0 opacity-15"
@@ -1039,7 +1103,7 @@ function RecruiterOnboardingDialog({
                                 ? "border-emerald-400 bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
                                 : active
                                   ? "border-emerald-400 bg-white text-emerald-600 shadow-lg shadow-emerald-400/30 scale-110"
-                                  : "border-white/20 bg-white/10 text-white/50",
+                                  : "border-white/20 bg-[#0b5b47] text-white/50",
                             ].join(" ")}
                           >
                             {completed ? "✓" : index + 1}
@@ -1202,7 +1266,7 @@ function RecruiterOnboardingDialog({
                             </h4>
                             <p className="max-w-xl text-[11px] leading-relaxed font-medium text-slate-500">
                               {t("onboarding.companyProfile.aiScan.helpText") ||
-                                "Tải lên Giấy đăng ký kinh doanh (GPKD), hệ thống AI của UpNext sẽ tự động phân tích và điền nhanh các thông tin như Tên công ty, Mã số thuế, Địa chỉ, SĐT, Email..."}
+                                "Tải lên Giấy đăng ký kinh doanh (GPKD), hệ thống AI của UpNext sẽ tự động phân tích và điền nhanh các thông tin."}
                             </p>
                           </div>
                         </div>
@@ -1469,44 +1533,52 @@ function RecruiterOnboardingDialog({
 
               <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
                 {isFirstStep ? (
-                  <button
-                    type="button"
-                    className="upnext-focus inline-flex cursor-pointer items-center gap-1.5 border-b border-b-transparent px-1 py-0.5 text-sm font-bold text-slate-500 transition-all hover:border-b-[#10a778] hover:text-[#10a778]"
-                    onClick={onSkip}
-                  >
-                    {t("onboarding.buttons.skip")}
-                    <ArrowRight size={16} />
-                  </button>
+                  <div />
                 ) : (
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={form.formState.isSubmitting}
+                    disabled={skipping || form.formState.isSubmitting}
                     onClick={goBack}
                   >
                     {t("onboarding.buttons.back")}
                   </Button>
                 )}
 
-                {isLastStep ? (
-                  <Button
-                    type="submit"
-                    disabled={form.formState.isSubmitting}
-                    className="h-11 rounded-lg bg-[#11a77a] px-6 text-sm font-extrabold hover:bg-[#0d966d]"
-                  >
-                    {form.formState.isSubmitting
-                      ? t("onboarding.buttons.submitting")
-                      : t("onboarding.buttons.finish")}
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    className="h-11 rounded-lg bg-[#11a77a] px-6 text-sm font-extrabold hover:bg-[#0d966d]"
-                    onClick={goNext}
-                  >
-                    {t("onboarding.buttons.next")}
-                  </Button>
-                )}
+                <div className="flex items-center gap-3">
+                  {!isFirstStep && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="font-semibold text-slate-500 hover:text-slate-800"
+                      disabled={skipping || form.formState.isSubmitting}
+                      onClick={handleSkipAndSaveProfile}
+                    >
+                      {skipping ? "Đang xử lý..." : t("onboarding.buttons.skip")}
+                    </Button>
+                  )}
+
+                  {isLastStep ? (
+                    <Button
+                      type="submit"
+                      disabled={skipping || form.formState.isSubmitting}
+                      className="h-11 rounded-full bg-[#11a77a] px-6 text-sm font-extrabold hover:bg-[#0d966d]"
+                    >
+                      {form.formState.isSubmitting
+                        ? t("onboarding.buttons.submitting")
+                        : t("onboarding.buttons.finish")}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      disabled={skipping || form.formState.isSubmitting}
+                      className="h-11 rounded-full bg-[#11a77a] px-6 text-sm font-extrabold hover:bg-[#0d966d]"
+                      onClick={goNext}
+                    >
+                      {t("onboarding.buttons.next")}
+                    </Button>
+                  )}
+                </div>
               </div>
             </form>
           </DialogPrimitive.Content>
