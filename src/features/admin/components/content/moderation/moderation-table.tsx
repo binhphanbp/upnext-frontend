@@ -1,12 +1,32 @@
 "use client";
 
-import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
-import type { ColumnDef } from "@tanstack/react-table";
+import { ArrowsCounterClockwise, DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import * as React from "react";
+import Swal from "sweetalert2";
 
+const toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+});
+
+import {
+  type AdminReportResponse,
+  type AdminReportStatus,
+  getAdminReports,
+  updateAdminReportStatus,
+} from "@/features/admin/api/reports";
+import { getAdminSession } from "@/features/admin/session";
+import { RecruiterTableLayout } from "@/features/recruiter/components/recruiter-table-layout";
+import { useRouter } from "@/i18n/navigation";
+import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import { DataTable } from "@/shared/ui/data-table";
+import { Checkbox } from "@/shared/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,314 +37,367 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
-
-export type AdminModerationReport = {
-  id: string;
-  contentType: "Tin tuyển dụng" | "Bình luận" | "Review công ty" | "Hồ sơ";
-  targetName: string;
-  reporter: string;
-  reason: string;
-  status: "Đang chờ xử lý" | "Đã giải quyết" | "Đã từ chối";
-  reportedDate: string;
-};
-
-const data: AdminModerationReport[] = [
-  {
-    id: "REP-9921",
-    contentType: "Tin tuyển dụng",
-    targetName: "Spam Job Posting Demo",
-    reporter: "user123@gmail.com",
-    reason: "Tin rác, lừa đảo",
-    status: "Đang chờ xử lý",
-    reportedDate: "24/06/2026",
-  },
-  {
-    id: "REP-9918",
-    contentType: "Review công ty",
-    targetName: "Công ty ABC",
-    reporter: "Ẩn danh",
-    reason: "Ngôn từ thù ghét, lăng mạ",
-    status: "Đã giải quyết",
-    reportedDate: "22/06/2026",
-  },
-  {
-    id: "REP-9905",
-    contentType: "Hồ sơ",
-    targetName: "Nguyễn Văn Scam",
-    reporter: "hr@company.com",
-    reason: "Sử dụng thông tin giả mạo",
-    status: "Đã từ chối",
-    reportedDate: "18/06/2026",
-  },
-  {
-    id: "REP-9922",
-    contentType: "Bình luận",
-    targetName: "Bài viết #ART-5012",
-    reporter: "admin_bot",
-    reason: "Chứa link đáng ngờ",
-    status: "Đang chờ xử lý",
-    reportedDate: "24/06/2026",
-  },
-  // Add more items for pagination
-  {
-    id: "REP-9923",
-    contentType: "Tin tuyển dụng",
-    targetName: "Trang lừa đảo tiền",
-    reporter: "user99@gmail.com",
-    reason: "Yêu cầu đóng phí",
-    status: "Đang chờ xử lý",
-    reportedDate: "25/06/2026",
-  },
-  {
-    id: "REP-9924",
-    contentType: "Bình luận",
-    targetName: "Bài viết #ART-5015",
-    reporter: "spam_hunter",
-    reason: "Quảng cáo cá cược",
-    status: "Đã giải quyết",
-    reportedDate: "25/06/2026",
-  },
-  {
-    id: "REP-9925",
-    contentType: "Hồ sơ",
-    targetName: "Clone Acc 1",
-    reporter: "admin",
-    reason: "Avatar phản cảm",
-    status: "Đã giải quyết",
-    reportedDate: "26/06/2026",
-  },
-  {
-    id: "REP-9926",
-    contentType: "Review công ty",
-    targetName: "Công ty XYZ",
-    reporter: "Ẩn danh",
-    reason: "Bôi nhọ danh dự",
-    status: "Đã từ chối",
-    reportedDate: "26/06/2026",
-  },
-  {
-    id: "REP-9927",
-    contentType: "Tin tuyển dụng",
-    targetName: "Việc nhẹ lương cao",
-    reporter: "hr_fpt",
-    reason: "Việc làm không có thật",
-    status: "Đang chờ xử lý",
-    reportedDate: "27/06/2026",
-  },
-  {
-    id: "REP-9928",
-    contentType: "Bình luận",
-    targetName: "Bài viết #ART-5018",
-    reporter: "user001",
-    reason: "Ngôn từ thô tục",
-    status: "Đang chờ xử lý",
-    reportedDate: "27/06/2026",
-  },
-  {
-    id: "REP-9929",
-    contentType: "Review công ty",
-    targetName: "Tech Startup X",
-    reporter: "ceo_startup",
-    reason: "Review giả mạo",
-    status: "Đã giải quyết",
-    reportedDate: "28/06/2026",
-  },
-  {
-    id: "REP-9930",
-    contentType: "Hồ sơ",
-    targetName: "Fake Profile 2",
-    reporter: "bot_scanner",
-    reason: "Tên chứa ký tự lạ",
-    status: "Đã từ chối",
-    reportedDate: "28/06/2026",
-  },
-];
-
-import { useTranslations } from "next-intl";
-
-export const getColumns = (t: any): ColumnDef<AdminModerationReport>[] => [
-  {
-    accessorKey: "contentType",
-    header: t("contentType"),
-    cell: ({ row }) => {
-      const type = row.original.contentType as string;
-      const typeKey =
-        type === "Tin tuyển dụng"
-          ? "job"
-          : type === "Bình luận"
-            ? "comment"
-            : type === "Review công ty"
-              ? "review"
-              : type === "Hồ sơ"
-                ? "profile"
-                : "job"; // fallback
-
-      return (
-        <div>
-          <p className="font-medium">{t(`contentTypeOptions.${typeKey}`)}</p>
-          <p className="text-muted-foreground text-xs">{row.original.targetName}</p>
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "reporter",
-    header: t("reporter"),
-    cell: ({ row }) => {
-      const reporter = row.original.reporter as string;
-      return <p>{reporter === "Ẩn danh" ? t("anonymous") : reporter}</p>;
-    },
-  },
-  {
-    accessorKey: "reason",
-    header: t("reason"),
-    cell: ({ row }) => {
-      const reason = row.original.reason as string;
-      let reasonKey = "unknown";
-
-      switch (reason) {
-        case "Tin rác, lừa đảo":
-          reasonKey = "spam";
-          break;
-        case "Ngôn từ thù ghét, lăng mạ":
-          reasonKey = "hateSpeech";
-          break;
-        case "Sử dụng thông tin giả mạo":
-          reasonKey = "fakeInfo";
-          break;
-        case "Chứa link đáng ngờ":
-          reasonKey = "suspiciousLink";
-          break;
-        case "Yêu cầu đóng phí":
-          reasonKey = "feeRequired";
-          break;
-        case "Quảng cáo cá cược":
-          reasonKey = "gambling";
-          break;
-        case "Avatar phản cảm":
-          reasonKey = "inappropriateAvatar";
-          break;
-        case "Bôi nhọ danh dự":
-          reasonKey = "defamation";
-          break;
-        case "Việc làm không có thật":
-          reasonKey = "fakeJob";
-          break;
-        case "Ngôn từ thô tục":
-          reasonKey = "profanity";
-          break;
-        case "Review giả mạo":
-          reasonKey = "fakeReview";
-          break;
-        case "Tên chứa ký tự lạ":
-          reasonKey = "invalidName";
-          break;
-      }
-
-      return <p className="max-w-[200px] truncate">{t(`reasonOptions.${reasonKey}`)}</p>;
-    },
-  },
-  {
-    accessorKey: "status",
-    header: t("status"),
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      const tone =
-        status === "Đã giải quyết"
-          ? "success"
-          : status === "Đang chờ xử lý"
-            ? "warning"
-            : "neutral";
-
-      const statusKey =
-        status === "Đã giải quyết"
-          ? "resolved"
-          : status === "Đang chờ xử lý"
-            ? "pending"
-            : "dismissed";
-      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
-    },
-  },
-  {
-    accessorKey: "reportedDate",
-    header: t("reportedDate"),
-    cell: ({ row }) => <div>{row.original.reportedDate}</div>,
-  },
-  {
-    id: "actions",
-    header: () => <div className="text-right">{t("actions")}</div>,
-    cell: ({ row }) => {
-      const report = row.original;
-
-      return (
-        <div className="text-right">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Mở menu thao tác</span>
-                <DotsThree size={20} weight="bold" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
-              <DropdownMenuItem>{t("actionOptions.viewDetails")}</DropdownMenuItem>
-              <DropdownMenuItem>{t("actionOptions.viewReporter")}</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {report.status === "Đang chờ xử lý" && (
-                <>
-                  <DropdownMenuItem className="text-success">
-                    {t("actionOptions.resolveAndRemove")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-warning">
-                    {t("actionOptions.banTarget")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-neutral">
-                    {t("actionOptions.dismiss")}
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      );
-    },
-  },
-];
+import { Skeleton } from "@/shared/ui/skeleton";
 
 export function ModerationTable() {
-  const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const t = useTranslations("Admin.content.moderation.table");
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
-  const filteredData = React.useMemo(() => {
-    if (statusFilter === "all") return data;
-    return data.filter((item) => item.status === statusFilter);
-  }, [statusFilter]);
+  const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [searchTerm, setSearchTerm] = React.useState<string>("");
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
 
-  const columns = React.useMemo(() => getColumns(t), [t]);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(10);
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+
+  // Debounce search
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchTerm);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  // Reset page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, debouncedQuery, pageSize]);
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["adminReports", currentPage, pageSize, statusFilter, debouncedQuery],
+    queryFn: async () => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return getAdminReports(session.accessToken, {
+        page: currentPage,
+        limit: pageSize,
+        q: debouncedQuery || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+      });
+    },
+  });
+
+  const { mutate: updateStatus } = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: AdminReportStatus }) => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return updateAdminReportStatus(session.accessToken, id, { status });
+    },
+    onSuccess: (updatedReport) => {
+      queryClient.invalidateQueries({ queryKey: ["adminReports"] });
+      const statusTrans = updatedReport.status === "RESOLVED" ? "Đã giải quyết" : "Từ chối";
+      void toast.fire({
+        icon: "success",
+        title: `Đã cập nhật trạng thái báo cáo thành: ${statusTrans}`,
+      });
+    },
+    onError: () => {
+      void toast.fire({ icon: "error", title: "Có lỗi xảy ra khi cập nhật trạng thái" });
+    },
+  });
+
+  const handleStatusChange = (id: string, status: AdminReportStatus) => {
+    Swal.fire({
+      title: "Xác nhận cập nhật",
+      text: `Bạn có chắc muốn ${status === "RESOLVED" ? "Đánh dấu giải quyết" : "Từ chối"} báo cáo này?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Đồng ý",
+      cancelButtonText: "Hủy",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        updateStatus({ id, status });
+      }
+    });
+  };
+
+  const handleRefresh = () => {
+    void refetch();
+    toast.fire({ icon: "success", title: "Đã làm mới dữ liệu" });
+  };
+
+  const items = data?.items || [];
+  const totalItems = data?.meta?.totalItems || 0;
+
+  const isAllPageSelected =
+    items.length > 0 && items.every((report) => selectedIds.includes(report.id));
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const pageIds = items.map((report) => report.id);
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    } else {
+      const pageIds = items.map((report) => report.id);
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds((prev) => [...prev, id]);
+    } else {
+      setSelectedIds((prev) => prev.filter((i) => i !== id));
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    const typeKey =
+      type === "JOB_POST"
+        ? "job"
+        : type === "COMMENT"
+          ? "comment"
+          : type === "COMPANY"
+            ? "review"
+            : type === "CANDIDATE" || type === "USER"
+              ? "profile"
+              : "job";
+    return t(`contentTypeOptions.${typeKey}`);
+  };
+
+  const getReasonLabel = (reason?: string) => {
+    let reasonKey = "unknown";
+    const normalizedReason = reason?.toUpperCase() || "";
+
+    if (normalizedReason.includes("SPAM")) reasonKey = "spam";
+    else if (normalizedReason.includes("HATE")) reasonKey = "hateSpeech";
+    else if (normalizedReason.includes("FAKE_INFO")) reasonKey = "fakeInfo";
+    else if (normalizedReason.includes("LINK")) reasonKey = "suspiciousLink";
+    else if (normalizedReason.includes("FEE")) reasonKey = "feeRequired";
+    else if (normalizedReason.includes("GAMBLING")) reasonKey = "gambling";
+    else if (normalizedReason.includes("AVATAR")) reasonKey = "inappropriateAvatar";
+    else if (normalizedReason.includes("DEFAMATION")) reasonKey = "defamation";
+    else if (normalizedReason.includes("FAKE_JOB")) reasonKey = "fakeJob";
+    else if (normalizedReason.includes("PROFANITY")) reasonKey = "profanity";
+    else if (normalizedReason.includes("FAKE_REVIEW")) reasonKey = "fakeReview";
+    else if (normalizedReason.includes("NAME")) reasonKey = "invalidName";
+
+    const translatedReason = t(`reasonOptions.${reasonKey}`);
+    return reasonKey === "unknown" && reason ? reason : translatedReason;
+  };
+
+  React.useEffect(() => {
+    if (isError) {
+      void toast.fire({ icon: "error", title: "Có lỗi xảy ra khi tải danh sách báo cáo" });
+    }
+  }, [isError]);
+
+  if (isLoading) {
+    return (
+      <div className="mt-6 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Skeleton className="h-10 w-full rounded-xl sm:w-[350px]" />
+          <Skeleton className="h-10 w-full rounded-xl sm:w-[180px]" />
+        </div>
+        <Skeleton className="h-[400px] w-full rounded-xl" />
+      </div>
+    );
+  }
 
   return (
-    <div className="mt-6 space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative w-full sm:w-[350px]">
-          <MagnifyingGlass
-            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
-            size={18}
-          />
-          <Input className="bg-muted h-10 rounded-xl pl-10" placeholder={t("searchPlaceholder")} />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
-            <SelectValue placeholder={t("allStatuses")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("allStatuses")}</SelectItem>
-            <SelectItem value="Đang chờ xử lý">{t("statusOptions.pending")}</SelectItem>
-            <SelectItem value="Đã giải quyết">{t("statusOptions.resolved")}</SelectItem>
-            <SelectItem value="Đã từ chối">{t("statusOptions.dismissed")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <DataTable columns={columns} data={filteredData} />
+    <div className="mt-6">
+      <RecruiterTableLayout
+        loading={isLoading}
+        totalItems={totalItems}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+        filterBar={
+          <>
+            <div className="relative w-full sm:w-[350px]">
+              <MagnifyingGlass
+                className="absolute top-1/2 left-3 z-10 -translate-y-1/2 text-slate-400"
+                size={18}
+              />
+              <Input
+                className="border-input focus:border-primary h-10 w-full rounded-xl border bg-white pl-10 text-sm shadow-none focus:outline-none"
+                placeholder={t("searchPlaceholder")}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+                <SelectValue placeholder={t("allStatuses")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("allStatuses")}</SelectItem>
+                <SelectItem value="PENDING">{t("statusOptions.pending")}</SelectItem>
+                <SelectItem value="REVIEWING">{t("statusOptions.reviewing")}</SelectItem>
+                <SelectItem value="RESOLVED">{t("statusOptions.resolved")}</SelectItem>
+                <SelectItem value="REJECTED">{t("statusOptions.dismissed")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        }
+        actionBar={
+          <>
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex h-10 w-10 items-center justify-center rounded-full border-slate-200 p-0 text-slate-600 shadow-none transition-all hover:bg-slate-50 hover:text-slate-800"
+              onClick={handleRefresh}
+              aria-label="Refresh list"
+            >
+              <ArrowsCounterClockwise size={18} />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-slate-200 p-0 text-slate-600 shadow-none transition-all hover:bg-slate-50 hover:text-slate-800 focus:ring-0 focus:ring-offset-0"
+              aria-label="More options"
+            >
+              <DotsThree size={24} weight="bold" />
+            </Button>
+          </>
+        }
+      >
+        <thead>
+          <tr className="border-b border-slate-300 !bg-[#bfe9d6] text-slate-900">
+            <th className="w-12 border-r border-slate-300 px-4 py-3 text-center last:border-r-0">
+              <input
+                type="checkbox"
+                className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
+                checked={isAllPageSelected}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+              />
+            </th>
+            <th className="border-r border-slate-300 px-4 py-3 text-left font-bold last:border-r-0">
+              {t("contentType")}
+            </th>
+            <th className="border-r border-slate-300 px-4 py-3 text-left font-bold last:border-r-0">
+              {t("reporter")}
+            </th>
+            <th className="border-r border-slate-300 px-4 py-3 text-left font-bold last:border-r-0">
+              {t("reason")}
+            </th>
+            <th className="border-r border-slate-300 px-4 py-3 text-center font-bold last:border-r-0">
+              {t("status")}
+            </th>
+            <th className="border-r border-slate-300 px-4 py-3 text-left font-bold last:border-r-0">
+              {t("reportedDate")}
+            </th>
+            <th className="border-r border-slate-300 px-4 py-3 text-right font-bold last:border-r-0">
+              {t("actions")}
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 bg-white text-sm text-slate-700">
+          {items.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                Không tìm thấy báo cáo nào phù hợp.
+              </td>
+            </tr>
+          ) : (
+            items.map((report) => {
+              const isSelected = selectedIds.includes(report.id);
+              const targetName = report.targetName || report.targetId;
+              const reporter =
+                report.reporter?.profile?.fullName || report.reporter?.email || t("anonymous");
+
+              const tone =
+                report.status === "RESOLVED"
+                  ? "success"
+                  : report.status === "PENDING"
+                    ? "warning"
+                    : report.status === "REVIEWING"
+                      ? "neutral"
+                      : "error";
+
+              const statusKey =
+                report.status === "RESOLVED"
+                  ? "resolved"
+                  : report.status === "PENDING"
+                    ? "pending"
+                    : report.status === "REVIEWING"
+                      ? "reviewing"
+                      : "dismissed";
+
+              return (
+                <tr
+                  key={report.id}
+                  className={`transition-colors hover:bg-slate-50 ${isSelected ? "bg-slate-50" : ""}`}
+                >
+                  <td className="border-r border-slate-200 px-4 py-3 text-center align-middle">
+                    <input
+                      type="checkbox"
+                      className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
+                      checked={isSelected}
+                      onChange={(e) => handleSelectOne(report.id, e.target.checked)}
+                    />
+                  </td>
+                  <td className="border-r border-slate-200 px-4 py-3">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-slate-900">
+                        {getTypeLabel(report.targetType)}
+                      </span>
+                      <span className="text-muted-foreground mt-1 text-xs" title={targetName}>
+                        {targetName.length > 30 ? targetName.substring(0, 30) + "..." : targetName}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="border-r border-slate-200 px-4 py-3">{reporter}</td>
+                  <td className="border-r border-slate-200 px-4 py-3">
+                    <span
+                      className="inline-block max-w-[200px] truncate"
+                      title={getReasonLabel(report.reason)}
+                    >
+                      {getReasonLabel(report.reason)}
+                    </span>
+                  </td>
+                  <td className="border-r border-slate-200 px-4 py-3 text-center">
+                    <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>
+                  </td>
+                  <td className="border-r border-slate-200 px-4 py-3">
+                    {report.createdAt ? formatAppDate(report.createdAt) : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Mở menu thao tác</span>
+                          <DotsThree size={20} weight="bold" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => router.push(`/admin/content/moderation/${report.id}`)}
+                        >
+                          {t("actionOptions.viewDetails")}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {report.status === "PENDING" && (
+                          <>
+                            <DropdownMenuItem
+                              className="text-success cursor-pointer"
+                              onClick={() => handleStatusChange(report.id, "RESOLVED")}
+                            >
+                              {t("actionOptions.resolve")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-error cursor-pointer"
+                              onClick={() => handleStatusChange(report.id, "REJECTED")}
+                            >
+                              {t("actionOptions.dismiss")}
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </RecruiterTableLayout>
     </div>
   );
 }

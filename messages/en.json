@@ -1301,6 +1301,25 @@
             "unknown": "Other reason"
           },
           "anonymous": "Anonymous"
+        },
+        "details": {
+          "title": "Report Details",
+          "back": "Back to list",
+          "notFound": "Report not found",
+          "notFoundDesc": "This report may have been deleted or you do not have permission.",
+          "reporterInfo": "Reporter Information",
+          "targetInfo": "Target Information",
+          "reasonInfo": "Report Content",
+          "targetId": "Target ID",
+          "targetName": "Target Name",
+          "description": "Additional Description / Evidence",
+          "noDescription": "No detailed description provided.",
+          "stats": "Processing Information",
+          "reportedAt": "Reported Date",
+          "moderationActions": "Moderation Actions",
+          "moderationDesc": "This report is awaiting administrator review and action.",
+          "resolve": "Mark as Resolved",
+          "reject": "Reject Report"
         }
       },
       "support": {
