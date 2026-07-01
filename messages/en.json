@@ -1049,6 +1049,7 @@
     },
     "operationsAndContent": {
       "title": "Operations & Content",
+      "companies": "Company Management",
       "jobs": "Job Posts",
       "articles": "Articles",
       "moderation": "Content Moderation",
@@ -1073,6 +1074,7 @@
       "subtitle": "Overview of UpNext system performance and revenue.",
       "downloadReport": "Download Report",
       "totalRevenue": "Total Revenue",
+      "totalUsers": "Total Users",
       "comparedToLastMonth": "vs last month",
       "newUsers": "New Users",
       "activeJobs": "Active Jobs",
@@ -1109,6 +1111,32 @@
       "signOut": "Sign Out"
     },
     "users": {
+      "recruiters": {
+        "title": "Employers",
+        "subtitle": "Manage employer accounts and permissions.",
+        "table": {
+          "searchPlaceholder": "Search by name, email, company...",
+          "allStatuses": "All Statuses",
+          "exportExcel": "Export Excel",
+          "user": "User",
+          "company": "Company",
+          "role": "Role",
+          "status": "Status",
+          "joinedDate": "Joined Date",
+          "actions": "Actions",
+          "empty": "No employers found",
+          "statusOptions": {
+            "active": "Active",
+            "pending": "Pending",
+            "banned": "Banned"
+          },
+          "actionOptions": {
+            "viewProfile": "View Profile",
+            "ban": "Ban Account",
+            "unban": "Unban Account"
+          }
+        }
+      },
       "employers": {
         "title": "Employers",
         "subtitle": "Manage company accounts, verify KYC profiles and assign service plans.",

@@ -1049,6 +1049,7 @@
     },
     "operationsAndContent": {
       "title": "Vận hành & Nội dung",
+      "companies": "Quản lý công ty",
       "jobs": "Quản lý tin đăng",
       "articles": "Quản lý bài viết",
       "moderation": "Kiểm duyệt nội dung",
@@ -1075,6 +1076,7 @@
       "totalRevenue": "Tổng doanh thu",
       "comparedToLastMonth": "so với tháng trước",
       "newUsers": "Người dùng mới",
+      "totalUsers": "Tổng người dùng",
       "activeJobs": "Tin đang hoạt động",
       "pendingApprovals": "Chờ kiểm duyệt",
       "companies": "công ty",
@@ -1115,6 +1117,32 @@
       "signOut": "Đăng xuất"
     },
     "users": {
+      "recruiters": {
+        "title": "Nhà tuyển dụng",
+        "subtitle": "Quản lý tài khoản và phân quyền cho người dùng doanh nghiệp.",
+        "table": {
+          "searchPlaceholder": "Tìm theo tên, email, công ty...",
+          "allStatuses": "Tất cả trạng thái",
+          "exportExcel": "Xuất Excel",
+          "user": "Người dùng",
+          "company": "Công ty",
+          "role": "Vai trò",
+          "status": "Trạng thái",
+          "joinedDate": "Ngày tham gia",
+          "actions": "Thao tác",
+          "empty": "Không tìm thấy nhà tuyển dụng nào",
+          "statusOptions": {
+            "active": "Đang hoạt động",
+            "pending": "Chờ xác thực",
+            "banned": "Bị khóa"
+          },
+          "actionOptions": {
+            "viewProfile": "Xem hồ sơ",
+            "ban": "Khóa tài khoản",
+            "unban": "Mở khóa tài khoản"
+          }
+        }
+      },
       "employers": {
         "title": "Nhà tuyển dụng",
         "subtitle": "Quản lý tài khoản công ty, duyệt hồ sơ KYC và phân quyền gói dịch vụ.",
