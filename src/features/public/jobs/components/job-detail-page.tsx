@@ -88,13 +88,6 @@ const hiringSteps = [
   { title: "Offer & Onboard", desc: "Nhận offer và hoàn tất thủ tục" },
 ];
 
-const reasons = [
-  { icon: <Globe size={18} />, text: "Môi trường làm việc quốc tế, năng động" },
-  { icon: <TrendingUp size={18} />, text: "Cơ hội học hỏi và phát triển kỹ năng vượt trội" },
-  { icon: <BriefcaseBusiness size={18} />, text: "Dự án đa dạng với khách hàng hàng đầu thế giới" },
-  { icon: <ShieldCheck size={18} />, text: "Chế độ đãi ngộ và phúc lợi hàng đầu ngành" },
-];
-
 const companyStats = [
   { value: "256", label: "Việc làm" },
   { value: "30.000+", label: "Nhân sự" },
@@ -393,18 +386,6 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               <button type="button" onClick={() => navigate("/companies/fpt-software")}>
                 Xem công ty <ArrowRight size={15} />
               </button>
-            </section>
-
-            <section className="job-detail-card job-detail-reason-card">
-              <h2>Lý do nên ứng tuyển</h2>
-              <ul>
-                {reasons.map((reason) => (
-                  <li key={reason.text}>
-                    <span>{reason.icon}</span>
-                    <p>{reason.text}</p>
-                  </li>
-                ))}
-              </ul>
             </section>
 
             <section className="job-detail-card job-detail-share-card">
