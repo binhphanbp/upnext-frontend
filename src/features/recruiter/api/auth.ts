@@ -46,11 +46,12 @@ export function registerRecruiter(payload: RecruiterRegisterPayload) {
   });
 }
 
-export function requestRecruiterPasswordReset(email: string) {
+export function requestRecruiterPasswordReset(email: string, locale?: string) {
   return apiRequest<PasswordResetMessageResponse>("/recruiter-accounts/password-reset/request", {
     body: JSON.stringify({ email }),
     headers: {
       "Content-Type": "application/json",
+      ...(locale ? { "x-locale": locale } : {}),
     },
     method: "POST",
   });
@@ -64,4 +65,30 @@ export function confirmRecruiterPasswordReset(payload: { token: string; password
     },
     method: "POST",
   });
+}
+
+export function requestRecruiterEmailVerification(email: string) {
+  return apiRequest<{ message: string }>(
+    "/recruiter-accounts/email-verification/request-unauthenticated",
+    {
+      body: JSON.stringify({ email }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    },
+  );
+}
+
+export function verifyRecruiterEmail(token: string) {
+  return apiRequest<{ email: string; emailVerified: boolean }>(
+    "/recruiter-accounts/email-verification/verify",
+    {
+      body: JSON.stringify({ token }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    },
+  );
 }

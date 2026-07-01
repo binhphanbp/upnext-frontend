@@ -439,7 +439,11 @@
       "seo": "SEO Console",
       "sales": "Sales CRM",
       "auditLog": "Audit Log",
-      "settings": "Settings"
+      "settings": "Settings",
+      "generalInfo": "General Info",
+      "companyAddresses": "Company Addresses",
+      "inviteUsers": "Invite Users",
+      "rolesSub": "Roles"
     },
     "shell": {
       "loading": "Loading admin workspace...",
@@ -1655,6 +1659,98 @@
           }
         }
       }
+    }
+  },
+  "RecruiterAuth": {
+    "login": {
+      "title": "Welcome back",
+      "orDivider": "Or sign in with email",
+      "emailLabel": "Email Address",
+      "emailPlaceholder": "Enter your email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "forgotPassword": "Forgot password?",
+      "rememberMe": "Remember me",
+      "submit": "Sign In",
+      "submitting": "Signing in...",
+      "success": "Logged in successfully.",
+      "emailVerificationRequired": "Please verify your email before logging in.",
+      "signupPrompt": "Don't have an account?",
+      "signupLink": "Sign up now",
+      "google": "Sign in with Google"
+    },
+    "register": {
+      "title": "Create Recruiter Account",
+      "orDivider": "Or sign up with email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "confirmLabel": "Confirm Password",
+      "confirmPlaceholder": "Re-enter your password",
+      "submit": "Sign Up",
+      "submitting": "Signing up...",
+      "success": "Registered successfully. Please verify your email.",
+      "google": "Sign up with Google"
+    },
+    "forgotPassword": {
+      "title": "Forgot Password",
+      "description": "Enter your email to receive a password reset link.",
+      "orDivider": "Recover via email",
+      "submit": "Send Reset Link",
+      "submitting": "Sending..."
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "description": "Create a new password for your recruiter account.",
+      "orDivider": "New password",
+      "passwordLabel": "New Password",
+      "passwordPlaceholder": "Enter new password",
+      "confirmLabel": "Confirm Password",
+      "confirmPlaceholder": "Re-enter new password",
+      "submit": "Reset Password",
+      "submitting": "Resetting..."
+    },
+    "showcase": {
+      "slide1Title": "Smart Candidate Management",
+      "slide1Description": "Optimize your hiring pipeline with leading AI candidate management tools.",
+      "slide2Title": "Intuitive Data Analytics",
+      "slide2Description": "Visual analytics help recruiters track hiring campaign performance easily.",
+      "prev": "Previous slide",
+      "next": "Next slide"
+    },
+    "errors": {
+      "default": "Unable to connect to server. Please try again later.",
+      "invalidData": "Invalid information. Please verify your details.",
+      "resetTokenInvalid": "Invalid or expired password reset link.",
+      "invalidCredentials": "Incorrect email or password.",
+      "emailNotVerified": "Your account has not been verified yet. Please check your email.",
+      "emailAlreadyRegistered": "This email is already registered to a recruiter account.",
+      "systemError": "System is down. Please try again in a few minutes.",
+      "processFailed": "Failed to process request. Please try again.",
+      "invalidForm": "Please check your information."
+    },
+    "emailVerification": {
+      "loadingTitle": "Verifying email...",
+      "successTitle": "Activation Successful",
+      "errorTitle": "Verification Failed",
+      "loadingDesc": "Please wait a moment",
+      "successDesc": "Your account has been activated",
+      "errorDesc": "An error occurred during verification",
+      "verifiedStamp": "Verified",
+      "successMsg": "Congratulations! Your recruiter account has been verified successfully. You can now log into the dashboard.",
+      "resendLabel": "Enter your email address to receive a new link:",
+      "sendButton": "Send new verification link",
+      "sendingButton": "Sending...",
+      "countdownButton": "Resend in {countdown}s",
+      "loginButton": "Log in now",
+      "backToLogin": "← Back to login",
+      "tokenMissingError": "Verification token not found. Please verify the link in your email.",
+      "tokenExpiredError": "Verification link is invalid or has expired. Please request a new link.",
+      "missingEmailTitle": "Information missing",
+      "missingEmailText": "Please enter your email address.",
+      "sendSuccessTitle": "Email sent",
+      "sendSuccessText": "We have sent a verification link to: {email}",
+      "sendErrorTitle": "Error sending email",
+      "sendErrorText": "The email does not exist or sending failed. Please check and try again."
     }
   }
 }

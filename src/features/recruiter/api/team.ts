@@ -240,3 +240,15 @@ export function updateApplicationStatus(
     method: "PATCH",
   });
 }
+
+export function updateCompanyMemberStatus(
+  memberId: string,
+  status: "ACTIVE" | "SUSPENDED",
+  token: string,
+) {
+  return apiRequest<CompanyMember>(`/company-members/${memberId}/status`, {
+    body: JSON.stringify({ status }),
+    headers: jsonAuthHeaders(token),
+    method: "PATCH",
+  });
+}
