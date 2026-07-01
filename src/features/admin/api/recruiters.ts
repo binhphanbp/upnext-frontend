@@ -30,11 +30,11 @@ export type AdminRecruitersPaginatedResponse = {
   };
 };
 
-export async function getAdminRecruiters(token: string) {
-  // Using limit=1000 to fetch all items for client-side pagination
+export async function getAdminRecruiters(token: string): Promise<AdminRecruiterResponse[]> {
+  // Using limit=100 to fetch all items for client-side pagination
   // This matches the pattern in other admin components like employers-table
   const response = await apiRequest<AdminRecruitersPaginatedResponse | AdminRecruiterResponse[]>(
-    `/recruiter-accounts?limit=1000`,
+    `/recruiter-accounts?limit=100`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -42,12 +42,17 @@ export async function getAdminRecruiters(token: string) {
     },
   );
 
-  if (Array.isArray(response)) {
-    return response;
+  let responseData = response as any;
+  if (response && "data" in response) {
+    responseData = (response as any).data;
   }
 
-  if (response && "items" in response && Array.isArray(response.items)) {
-    return response.items;
+  if (Array.isArray(responseData)) {
+    return responseData;
+  }
+
+  if (responseData && "items" in responseData && Array.isArray(responseData.items)) {
+    return responseData.items;
   }
 
   return [];
