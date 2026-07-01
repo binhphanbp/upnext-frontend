@@ -1327,6 +1327,25 @@
             "unknown": "Lý do khác"
           },
           "anonymous": "Ẩn danh"
+        },
+        "details": {
+          "title": "Chi tiết báo cáo",
+          "back": "Quay lại danh sách",
+          "notFound": "Không tìm thấy báo cáo",
+          "notFoundDesc": "Báo cáo này có thể đã bị xóa hoặc bạn không có quyền truy cập.",
+          "reporterInfo": "Thông tin người báo cáo",
+          "targetInfo": "Thông tin đối tượng",
+          "reasonInfo": "Nội dung báo cáo",
+          "targetId": "Mã đối tượng (ID)",
+          "targetName": "Tên đối tượng",
+          "description": "Mô tả thêm / Bằng chứng",
+          "noDescription": "Không có mô tả chi tiết.",
+          "stats": "Thông tin xử lý",
+          "reportedAt": "Ngày gửi báo cáo",
+          "moderationActions": "Hành động kiểm duyệt",
+          "moderationDesc": "Báo cáo này đang chờ quản trị viên xem xét và xử lý.",
+          "resolve": "Đánh dấu Đã giải quyết",
+          "reject": "Từ chối báo cáo"
         }
       },
       "support": {
