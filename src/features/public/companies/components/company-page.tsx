@@ -507,9 +507,15 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
           <span className="company-strip-icon">
             <PaperPlaneTilt size={26} weight="fill" />
           </span>
-          <div>
-            <strong>Ứng tuyển nhanh hơn với hồ sơ UpNext</strong>
-            <p>Tạo hồ sơ một lần – Ứng tuyển dễ dàng – Nổi bật với nhà tuyển dụng</p>
+          <div className="company-strip-content">
+            <span className="company-strip-kicker">Hồ sơ ứng viên UpNext</span>
+            <strong>Ứng tuyển nhanh hơn, nổi bật hơn với nhà tuyển dụng</strong>
+            <p>Tạo một hồ sơ dùng cho nhiều vị trí IT và theo dõi cơ hội phù hợp tại UpNext.</p>
+            <div className="company-strip-points" aria-label="Lợi ích hồ sơ UpNext">
+              <span>3 phút hoàn tất</span>
+              <span>Ứng tuyển 1 chạm</span>
+              <span>Nhận gợi ý việc làm</span>
+            </div>
           </div>
           <div className="company-strip-actions">
             <button
