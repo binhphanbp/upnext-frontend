@@ -1085,13 +1085,19 @@
         "status": {
           "pending": "Chờ duyệt",
           "approved": "Đã duyệt",
-          "rejected": "Từ chối"
+          "rejected": "Từ chối",
+          "neutral": "Khác",
+          "verified": "Đã xác thực"
         },
         "time": {
           "hoursAgo": "{count} giờ trước",
           "daysAgo": "{count} ngày trước"
-        }
-      }
+        },
+        "empty": "Không có hoạt động nào gần đây."
+      },
+      "totalUsers": "Tổng người dùng",
+      "totalUsersDesc": "Nhà tuyển dụng & ứng viên",
+      "comparedToLastWeek": "so với tuần trước"
     },
     "shell": {
       "loading": "Đang tải không gian quản trị...",

@@ -11,6 +11,7 @@ export function useAdminDashboard(params?: AdminDashboardParams) {
       if (!session) {
         throw new Error("No admin session found");
       }
+
       return getAdminDashboard(session.accessToken, params);
     },
   });

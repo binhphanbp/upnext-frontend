@@ -8,39 +8,64 @@ export type AdminDashboardParams = {
   activityLimit?: number;
 };
 
-export type AdminDashboardStat = {
-  value: number;
-  percentChange?: number;
-};
-
-export type AdminDashboardStats = {
-  totalRevenue?: AdminDashboardStat;
-  newUsers: AdminDashboardStat;
-  activeJobs: AdminDashboardStat;
-  pendingApprovals: {
+export type AdminDashboardSummary = {
+  revenue: {
     total: number;
-    companies: number;
-    jobs: number;
+    currentWeek: number;
+    previousWeek: number;
+    growthPercent: number;
   };
+  newUsers: {
+    currentWeek: { candidate: number; recruiter: number; total: number };
+    previousWeek: { candidate: number; recruiter: number; total: number };
+    growthPercent: number;
+  };
+  activeJobPosts: {
+    total: number;
+    currentWeek: number;
+    previousWeek: number;
+    growthPercent: number;
+  };
+  pendingReview: {
+    total: number;
+    companyRegistrations: number;
+    jobPosts: number;
+  };
+  totalUsers?: number; // Injected from parallel API calls
 };
 
 export type AdminRevenueChartData = {
-  name: string;
-  total: number;
+  period: string;
+  from: string;
+  to: string;
+  points: {
+    label: string;
+    from: string;
+    to: string;
+    revenue: number;
+    invoices: number;
+    plans: any[];
+  }[];
 };
 
 export type AdminRecentActivity = {
   id: string;
-  entity: string;
   type: string;
-  status: "pending" | "approved" | "rejected" | string;
-  time: string;
+  title: string;
+  subtitle: string;
+  status: string;
+  jobStatus?: string;
+  createdAt: string;
+  company?: {
+    id: string;
+    name: string;
+  };
 };
 
 export type AdminDashboardResponse = {
-  stats: AdminDashboardStats;
-  revenueChart: AdminRevenueChartData[];
-  recentActivity: AdminRecentActivity[];
+  summary: AdminDashboardSummary;
+  revenueChart: AdminRevenueChartData;
+  latestActivities: AdminRecentActivity[];
 };
 
 export async function getAdminDashboard(
