@@ -324,6 +324,7 @@ export function WorkspaceShell({
                   className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50"
                   variant="ghost"
                   size="md"
+                  onClick={onLogout}
                 >
                   <SignOut />
                   {t("shell.signOut")}
