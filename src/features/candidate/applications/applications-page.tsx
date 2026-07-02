@@ -37,6 +37,7 @@ import { PublicFooter } from "@/features/public/shared/public-footer";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
+import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import {
@@ -124,16 +125,10 @@ export function CandidateApplicationsPage() {
     <div className="flex flex-col gap-8">
       {/* Breadcrumbs & Title */}
       <div>
-        <nav
-          className="mb-4 flex items-center gap-2 text-xs text-slate-500"
-          aria-label="Breadcrumb"
-        >
-          <Link href="/" className="transition hover:text-emerald-600">
-            Trang chủ
-          </Link>
-          <CaretRight size={10} className="text-slate-400" />
-          <span className="font-medium text-slate-900">Việc làm đã ứng tuyển</span>
-        </nav>
+        <Breadcrumb
+          className="mb-4"
+          items={[{ label: "Trang chủ", href: "/" }, { label: "Việc làm đã ứng tuyển" }]}
+        />
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">

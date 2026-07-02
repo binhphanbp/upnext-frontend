@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
+import { Breadcrumb } from "@/shared/ui/breadcrumb";
+
 import {
   ArrowRight,
   ArrowUpRight,
@@ -239,17 +241,14 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
       <PublicHeader navigate={navigate} />
 
       <div className="company-shell">
-        <nav className="company-breadcrumb" aria-label="Breadcrumb">
-          <button type="button" onClick={() => navigate("/")}>
-            Trang chủ
-          </button>
-          <ChevronRight size={13} />
-          <button type="button" onClick={() => navigate("/companies")}>
-            Công ty
-          </button>
-          <ChevronRight size={13} />
-          <span>{company.name}</span>
-        </nav>
+        <Breadcrumb
+          className="mb-4"
+          items={[
+            { label: "Trang chủ", onClick: () => navigate("/") },
+            { label: "Công ty", onClick: () => navigate("/companies") },
+            { label: company.name },
+          ]}
+        />
 
         <section className="company-banner">
           <div className="company-banner-cover">
