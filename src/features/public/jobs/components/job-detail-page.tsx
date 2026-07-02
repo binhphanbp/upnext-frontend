@@ -256,16 +256,10 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               </JobContentBlock>
 
               <JobContentBlock title="Quyền lợi">
-                <div className="job-detail-benefit-prose">
-                  {benefitParagraphs.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
-                  ))}
-                  <ul>
-                    {benefitItems.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
+                {benefitParagraphs.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
+                <BulletList items={benefitItems} />
               </JobContentBlock>
             </section>
 

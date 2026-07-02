@@ -6,44 +6,6 @@
 }
 
 /* Stable job detail refinements */
-.job-detail-page .job-detail-benefit-prose {
-  display: grid;
-  gap: 16px;
-  color: #475569;
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.75;
-}
-
-.job-detail-page .job-detail-benefit-prose p {
-  margin: 0;
-}
-
-.job-detail-page .job-detail-benefit-prose ul {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.job-detail-page .job-detail-benefit-prose li {
-  position: relative;
-  padding-left: 24px;
-}
-
-.job-detail-page .job-detail-benefit-prose li::before {
-  content: "";
-  position: absolute;
-  top: 12px;
-  left: 2px;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--color-brand-logo);
-  box-shadow: 0 0 0 5px rgba(var(--color-brand-logo-rgb), 0.1);
-}
-
 .job-detail-page .job-detail-skill-block {
   display: grid;
   gap: 12px;
