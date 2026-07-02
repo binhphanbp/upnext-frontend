@@ -10,15 +10,16 @@ import {
   BriefcaseBusiness,
   Calendar,
   CheckCircle,
+  ChevronDown,
   ChevronRight,
   Clock,
   Coins,
   Eye,
   FileText,
-  Globe,
   MapPin,
   Monitor,
   PaperPlaneTilt,
+  Search,
   ShareNetwork,
   ShieldCheck,
   Sparkles,
@@ -26,6 +27,7 @@ import {
   TrendingUp,
   UsersRound,
   WalletCards,
+  X,
 } from "../../home/marketing-icons";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
@@ -54,31 +56,16 @@ const requirements = [
   "Ưu tiên ứng viên từng làm việc với hệ thống có người dùng thật hoặc quy mô enterprise.",
 ];
 
-const benefits = [
-  {
-    icon: <WalletCards size={20} />,
-    desc: "Thu nhập cạnh tranh, thưởng hiệu quả 2 lần/năm",
-  },
-  {
-    icon: <Monitor size={20} />,
-    desc: "Làm việc linh hoạt: Hybrid, Remote hoặc tại văn phòng hiện đại",
-  },
-  {
-    icon: <ShieldCheck size={20} />,
-    desc: "Bảo hiểm sức khỏe cao cấp cho bản thân và gia đình",
-  },
-  {
-    icon: <Globe size={20} />,
-    desc: "Đào tạo & chứng chỉ quốc tế qua học viện nội bộ",
-  },
-  {
-    icon: <TrendingUp size={20} />,
-    desc: "Cơ hội thăng tiến và lộ trình phát triển rõ ràng",
-  },
-  {
-    icon: <UsersRound size={20} />,
-    desc: "Teambuilding, du lịch, thể thao và nhiều hoạt động nội bộ",
-  },
+const benefitParagraphs = [
+  "FPT Software xây dựng gói đãi ngộ theo năng lực, hiệu quả công việc và mức độ đóng góp trong dự án. Ứng viên được trao đổi rõ về lương, thưởng, phúc lợi và mô hình làm việc trong quá trình phỏng vấn.",
+];
+
+const benefitItems = [
+  "Thu nhập cạnh tranh, xét tăng lương định kỳ và thưởng hiệu quả theo chính sách công ty.",
+  "Mô hình làm việc linh hoạt theo tính chất dự án: tại văn phòng, hybrid hoặc remote theo thỏa thuận.",
+  "Bảo hiểm sức khỏe, chương trình chăm sóc đời sống nhân viên và các hoạt động nội bộ.",
+  "Ngân sách đào tạo, chứng chỉ chuyên môn và cơ hội tham gia dự án quốc tế.",
+  "Lộ trình phát triển nghề nghiệp rõ ràng, có mentor và cơ hội thăng tiến theo năng lực.",
 ];
 
 const hiringSteps = [
@@ -131,17 +118,39 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   }
   const job = jobs.find((item) => item.id === jobId) ?? fallbackJob;
   const [saved, setSaved] = useState(false);
+  const [showAllSimilarJobs, setShowAllSimilarJobs] = useState(false);
 
   const similarJobs = useMemo(
     () =>
-      jobs
-        .filter(
-          (item) =>
-            item.id !== job.id &&
-            item.categories.some((category) => job.categories.includes(category)),
-        )
-        .slice(0, 3),
+      jobs.filter(
+        (item) =>
+          item.id !== job.id &&
+          item.categories.some((category) => job.categories.includes(category)),
+      ),
     [job],
+  );
+  const visibleSimilarJobs = showAllSimilarJobs ? similarJobs : similarJobs.slice(0, 4);
+  const hiddenSimilarJobCount = similarJobs.length - visibleSimilarJobs.length;
+  const skillTags = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...job.tags,
+          "Next.js",
+          "TypeScript",
+          "JavaScript",
+          "HTML5",
+          "CSS3",
+          "React Query",
+          "Tailwind CSS",
+          "Git",
+          "RESTful API",
+          "Docker",
+          "CI/CD",
+          "Microservices",
+        ]),
+      ),
+    [job.tags],
   );
 
   return (
@@ -249,15 +258,15 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
             </DetailSection>
 
             <DetailSection icon={<Sparkles size={18} />} title="Quyền lợi">
-              <div className="job-detail-benefit-grid">
-                {benefits.map((benefit) => (
-                  <div key={benefit.desc} className="job-detail-benefit">
-                    <span>{benefit.icon}</span>
-                    <div>
-                      <p>{benefit.desc}</p>
-                    </div>
-                  </div>
+              <div className="job-detail-benefit-prose">
+                {benefitParagraphs.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
                 ))}
+                <ul>
+                  {benefitItems.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
               </div>
             </DetailSection>
 
@@ -274,23 +283,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
             </DetailSection>
 
             <DetailSection icon={<BriefcaseBusiness size={18} />} title="Kỹ năng & công nghệ">
-              <div className="job-detail-skill-cloud">
-                {[
-                  ...job.tags,
-                  "Next.js",
-                  "TypeScript",
-                  "JavaScript",
-                  "HTML5",
-                  "CSS3",
-                  "React Query",
-                  "Tailwind CSS",
-                  "Git",
-                  "RESTful API",
-                  "Docker",
-                ].map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
-              </div>
+              <JobSkillCloud tags={skillTags} />
             </DetailSection>
 
             <section className="job-detail-card job-detail-similar-section">
@@ -301,7 +294,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 <h2>Việc làm tương tự</h2>
               </div>
               <div className="job-detail-similar-list">
-                {similarJobs.map((item) => (
+                {visibleSimilarJobs.map((item) => (
                   <button key={item.id} type="button" onClick={() => navigate(`/jobs/${item.id}`)}>
                     <LogoMark job={item} />
                     <span>
@@ -312,6 +305,20 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   </button>
                 ))}
               </div>
+              {similarJobs.length > 4 && (
+                <div className="job-detail-similar-actions">
+                  <button
+                    type="button"
+                    className="job-detail-similar-more"
+                    onClick={() => setShowAllSimilarJobs((current) => !current)}
+                  >
+                    {showAllSimilarJobs
+                      ? "Thu gọn"
+                      : `Xem thêm ${hiddenSimilarJobCount} việc tương tự`}
+                    <ChevronDown size={15} />
+                  </button>
+                </div>
+              )}
             </section>
           </article>
 
@@ -448,6 +455,77 @@ function BulletList({ items }: { items: string[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function JobSkillCloud({ tags }: { tags: string[] }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const visibleTags = tags.slice(0, 10);
+  const hiddenCount = tags.length - visibleTags.length;
+  const filteredTags = tags.filter((tag) => tag.toLowerCase().includes(query.trim().toLowerCase()));
+
+  return (
+    <div className="job-detail-skill-block">
+      <div className="job-detail-skill-cloud" aria-label="Kỹ năng và công nghệ nổi bật">
+        {visibleTags.map((tag) => (
+          <span key={tag}>{tag}</span>
+        ))}
+        {hiddenCount > 0 && (
+          <button type="button" className="job-detail-skill-more" onClick={() => setOpen(true)}>
+            +{hiddenCount} kỹ năng
+          </button>
+        )}
+      </div>
+      <p className="job-detail-skill-note">
+        Các công nghệ thường gặp trong dự án và vị trí tuyển dụng này.
+      </p>
+
+      {open && (
+        <dialog
+          open
+          className="job-detail-skill-dialog"
+          aria-labelledby="job-detail-skill-dialog-title"
+        >
+          <button
+            type="button"
+            className="job-detail-skill-backdrop"
+            aria-label="Đóng danh sách kỹ năng"
+            onClick={() => setOpen(false)}
+          />
+          <div className="job-detail-skill-panel">
+            <div className="job-detail-skill-dialog-head">
+              <div>
+                <h3 id="job-detail-skill-dialog-title">Kỹ năng & công nghệ</h3>
+                <p>{tags.length} kỹ năng liên quan đến vị trí này</p>
+              </div>
+              <button type="button" aria-label="Đóng" onClick={() => setOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <label className="job-detail-skill-search">
+              <Search size={18} />
+              <input
+                aria-label="Tìm kỹ năng"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Tìm kỹ năng"
+              />
+            </label>
+
+            <div className="job-detail-skill-dialog-grid">
+              {filteredTags.map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
+              {filteredTags.length === 0 && (
+                <p className="job-detail-skill-empty">Không tìm thấy kỹ năng phù hợp.</p>
+              )}
+            </div>
+          </div>
+        </dialog>
+      )}
+    </div>
   );
 }
 

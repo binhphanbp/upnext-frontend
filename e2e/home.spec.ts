@@ -93,7 +93,7 @@ test("renders reference-inspired job detail and company profile sections", async
   await expect(page.getByRole("heading", { name: /fresher java developer/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Sẵn sàng ứng tuyển?" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tổng quan công việc" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Lý do nên ứng tuyển" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Việc làm tương tự" })).toBeVisible();
 
   await page.goto("/vi/companies/fpt-software");
 
