@@ -372,7 +372,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 <p>Công nghệ thông tin & Dịch vụ phần mềm</p>
                 <em>Top công ty</em>
               </div>
-              <button type="button">
+              <button type="button" className="job-detail-company-follow">
                 <Bookmark size={15} /> Theo dõi công ty
               </button>
               <div className="job-detail-company-mini-stats">
@@ -383,8 +383,12 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   </span>
                 ))}
               </div>
-              <button type="button" onClick={() => navigate("/companies/fpt-software")}>
-                Xem công ty <ArrowRight size={15} />
+              <button
+                type="button"
+                className="job-detail-company-link"
+                onClick={() => navigate("/companies/fpt-software")}
+              >
+                Xem trang công ty <ArrowRight size={15} />
               </button>
             </section>
 
