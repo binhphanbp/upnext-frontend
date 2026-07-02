@@ -22,7 +22,6 @@ import {
   ShareNetwork,
   ShieldCheck,
   Star,
-  TrendingUp,
   UsersRound,
   WalletCards,
   X,
@@ -64,13 +63,6 @@ const benefitItems = [
   "Bảo hiểm sức khỏe, chương trình chăm sóc đời sống nhân viên và các hoạt động nội bộ.",
   "Ngân sách đào tạo, chứng chỉ chuyên môn và cơ hội tham gia dự án quốc tế.",
   "Lộ trình phát triển nghề nghiệp rõ ràng, có mentor và cơ hội thăng tiến theo năng lực.",
-];
-
-const hiringSteps = [
-  { title: "Ứng tuyển", desc: "Gửi CV ứng tuyển qua UpNext" },
-  { title: "Sàng lọc hồ sơ", desc: "Nhà tuyển dụng xem xét và phản hồi" },
-  { title: "Phỏng vấn", desc: "1-2 vòng chuyên môn & văn hóa" },
-  { title: "Offer & Onboard", desc: "Nhận offer và hoàn tất thủ tục" },
 ];
 
 const companyStats = [
@@ -127,7 +119,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
       ),
     [job],
   );
-  const visibleSimilarJobs = showAllSimilarJobs ? similarJobs : similarJobs.slice(0, 4);
+  const visibleSimilarJobs = showAllSimilarJobs ? similarJobs : similarJobs.slice(0, 3);
   const hiddenSimilarJobCount = similarJobs.length - visibleSimilarJobs.length;
   const skillTags = useMemo(
     () =>
@@ -205,8 +197,6 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               <div className="job-detail-salary-row">
                 <Coins size={24} weight="fill" />
                 <strong>{job.salary}</strong>
-                <i aria-hidden="true" />
-                <span>Thỏa thuận theo năng lực</span>
               </div>
 
               <div className="job-detail-meta-grid">
@@ -264,18 +254,6 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               </JobContentBlock>
             </section>
 
-            <DetailSection icon={<TrendingUp size={18} />} title="Quy trình tuyển dụng">
-              <div className="job-detail-process">
-                {hiringSteps.map((step, index) => (
-                  <span key={step.title}>
-                    <b>{index + 1}</b>
-                    <strong>{step.title}</strong>
-                    <small>{step.desc}</small>
-                  </span>
-                ))}
-              </div>
-            </DetailSection>
-
             <DetailSection icon={<BriefcaseBusiness size={18} />} title="Kỹ năng & công nghệ">
               <JobSkillCloud tags={skillTags} />
             </DetailSection>
@@ -299,7 +277,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   </button>
                 ))}
               </div>
-              {similarJobs.length > 4 && (
+              {similarJobs.length > 3 && (
                 <div className="job-detail-similar-actions">
                   <button
                     type="button"
