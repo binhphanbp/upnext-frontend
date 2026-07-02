@@ -940,7 +940,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
       <div>
         <PublicHeader navigate={navigate} />
 
-        <main className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 py-8">
+        <main className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8">
           {/* Breadcrumb & Title */}
           <div>
             <div className="mb-4 flex items-center gap-2 text-xs text-slate-500">
@@ -955,11 +955,10 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
               <CaretRight size={10} className="text-slate-400" />
               <span className="font-medium text-slate-900">Việc làm IT</span>
             </div>
-            <h1 className="mb-2 text-3xl font-bold text-slate-900">Việc làm IT</h1>
-            <p className="text-sm text-slate-500">
-              Tìm kiếm <span className="font-semibold text-slate-700">{filteredJobs.length}</span>{" "}
-              việc làm từ các công ty hàng đầu đang tuyển dụng
-            </p>
+            <h1 className="mb-2 text-3xl font-bold text-slate-900">
+              Tìm kiếm <span className="text-emerald-600">{filteredJobs.length}</span> việc làm từ
+              các công ty hàng đầu đang tuyển dụng
+            </h1>
           </div>
 
           {/* Hero Search Bar */}
