@@ -252,3 +252,38 @@ export function updateCompanyMemberStatus(
     method: "PATCH",
   });
 }
+
+export type CompanyInvitationDetails = Readonly<{
+  id: string;
+  invitedEmail: string;
+  companyName: string;
+  roleName: string | null;
+  hasPassword: boolean;
+}>;
+
+export function getCompanyInvitationDetails(id: string) {
+  return apiRequest<CompanyInvitationDetails>(`/company-members/invitations/${id}`, {
+    method: "GET",
+  });
+}
+
+export function acceptCompanyInvitationAndSetPassword(id: string, password: string) {
+  return apiRequest<{
+    accessToken: string;
+    tokenType: string;
+    user: { id: string; email: string; role: string };
+  }>(`/company-members/invitations/${id}/accept-and-set-password`, {
+    body: JSON.stringify({ password }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+}
+
+export function acceptCompanyInvitation(id: string, token: string) {
+  return apiRequest<{ id: string; status: string }>(`/company-members/invitations/${id}/accept`, {
+    headers: authHeaders(token),
+    method: "POST",
+  });
+}

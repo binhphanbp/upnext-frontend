@@ -17,6 +17,7 @@ import {
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
+import { Badge } from "@/shared/ui/badge";
 import { FormInput } from "@/shared/ui/input";
 
 import { RecruiterTableLayout } from "./recruiter-table-layout";
@@ -109,6 +110,23 @@ function SecurityIcon() {
   );
 }
 
+const INVOICES = [
+  {
+    id: "INV-84920",
+    date: "24/06/2026",
+    plan: "Recruiter Pro (1 Tháng)",
+    amount: 1200000,
+    status: "success",
+  },
+  {
+    id: "INV-83021",
+    date: "24/05/2026",
+    plan: "Recruiter Pro (1 Tháng)",
+    amount: 1200000,
+    status: "success",
+  },
+];
+
 export function RecruiterSettingsPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +161,38 @@ export function RecruiterSettingsPage() {
 
   // Security tab state
   const [tfaEnabled, setTfaEnabled] = useState(false);
+
+  // Device & IP State
+  const [userIp, setUserIp] = useState("Đang tải...");
+  const [deviceInfo, setDeviceInfo] = useState({ browser: "Chrome", os: "Windows" });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const ua = navigator.userAgent;
+      let os = "Windows";
+      let browser = "Chrome";
+
+      if (ua.indexOf("Win") !== -1) os = "Windows";
+      else if (ua.indexOf("Mac") !== -1) os = "macOS";
+      else if (ua.indexOf("Linux") !== -1) os = "Linux";
+      else if (ua.indexOf("Android") !== -1) os = "Android";
+      else if (ua.indexOf("like Mac") !== -1) os = "iOS";
+
+      if (ua.indexOf("Firefox") !== -1) browser = "Firefox";
+      else if (ua.indexOf("SamsungBrowser") !== -1) browser = "Samsung Browser";
+      else if (ua.indexOf("Opera") !== -1 || ua.indexOf("OPR") !== -1) browser = "Opera";
+      else if (ua.indexOf("Edge") !== -1 || ua.indexOf("Edg") !== -1) browser = "Edge";
+      else if (ua.indexOf("Chrome") !== -1) browser = "Chrome";
+      else if (ua.indexOf("Safari") !== -1) browser = "Safari";
+
+      setDeviceInfo({ browser, os });
+
+      fetch("https://api.ipify.org?format=json")
+        .then((res) => res.json())
+        .then((data) => setUserIp(data.ip))
+        .catch(() => setUserIp("127.0.0.1"));
+    }
+  }, []);
 
   const fetchDetails = useCallback(
     async (id: string, accessToken: string) => {
@@ -743,8 +793,69 @@ export function RecruiterSettingsPage() {
                   </div>
                 </div>
               </div>
+              {/* Security Card */}
+              <div className="col-span-12 md:col-span-6">
+                <div className="rounded-xl border border-slate-100 bg-white p-7 dark:border-slate-800 dark:bg-slate-900">
+                  <h5 className="mb-1 text-base font-bold text-slate-800 dark:text-white">
+                    Cài đặt bảo mật
+                  </h5>
+                  <p className="mb-6 text-xs text-slate-400 dark:text-slate-500">
+                    Tăng cường lớp bảo vệ và quản lý lịch sử đăng nhập
+                  </p>
 
-              <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-6 dark:border-slate-800">
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-4 rounded-lg bg-slate-50 p-4 dark:bg-slate-950/30">
+                      <input
+                        type="checkbox"
+                        id="tfa_check"
+                        aria-label="Two-factor authentication"
+                        className="mt-1 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                        checked={tfaEnabled}
+                        onChange={(e) => setTfaEnabled(e.target.checked)}
+                      />
+                      <div>
+                        <label
+                          htmlFor="tfa_check"
+                          className="text-sm font-bold text-slate-700 dark:text-slate-200"
+                        >
+                          Xác thực 2 yếu tố (2FA)
+                        </label>
+                        <p className="mt-0.5 text-xs text-slate-400">
+                          Yêu cầu nhập mã xác minh được gửi qua điện thoại hoặc ứng dụng
+                          Authenticator khi đăng nhập.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h6 className="mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+                        Thiết bị đang hoạt động
+                      </h6>
+                      <div className="space-y-3">
+                        <div className="dark:border-slate-850 flex items-center justify-between rounded-lg border border-slate-100 p-3 text-xs">
+                          <div>
+                            <p className="font-bold text-slate-700 dark:text-slate-200">
+                              {deviceInfo.browser} trên {deviceInfo.os} (Thiết bị này)
+                            </p>
+                            <p className="mt-0.5 text-slate-400">
+                              Địa chỉ IP: {userIp} — Hoạt động lần cuối: Vừa xong
+                            </p>
+                          </div>
+                          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Combined Save Button */}
+              <div className="col-span-12 flex justify-end gap-3 border-t border-slate-100 pt-6 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => {
@@ -769,30 +880,25 @@ export function RecruiterSettingsPage() {
         {/* Tab Panel: Bills */}
         {activeTab === "bills" && (
           <div className="mt-2 border-none p-6">
-            <div className="rounded-xl border border-slate-100 bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <h5 className="mb-1 text-base font-bold text-slate-800 dark:text-white">
-                Gói dịch vụ tuyển dụng
-              </h5>
-              <p className="mb-6 text-xs text-slate-400 dark:text-slate-500">
+            <div className="rounded-xl border border-slate-100 bg-white p-7">
+              <h5 className="mb-1 text-base font-bold text-slate-800">Gói dịch vụ tuyển dụng</h5>
+              <p className="mb-6 text-xs text-slate-400">
                 Theo dõi thông tin gói dịch vụ hiện tại và lịch sử thanh toán
               </p>
 
               {/* Package Card */}
-              <div className="mb-8 flex items-center justify-between rounded-xl border border-emerald-100 bg-emerald-50/50 p-5 dark:border-emerald-900/30 dark:bg-emerald-950/10">
+              <div className="mb-8 flex flex-col gap-4 rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-emerald-800/40 dark:bg-emerald-950/10">
                 <div>
-                  <span className="rounded bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">
-                    ACTIVE
-                  </span>
-                  <h4 className="mt-2 text-lg font-bold text-slate-800 dark:text-white">
+                  <h4 className="text-md font-bold text-slate-800 dark:text-slate-100">
                     UpNext Recruiter Pro Plan
                   </h4>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     Gói không giới hạn bài đăng & tiếp cận 5.000 hồ sơ ứng viên/tháng
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-slate-400">Gia hạn tiếp theo</p>
-                  <p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">
+                <div className="text-left sm:text-right">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Gia hạn tiếp theo</p>
+                  <p className="mt-1 text-sm font-bold text-slate-800 dark:text-slate-100">
                     24 tháng 12, 2026
                   </p>
                 </div>
@@ -805,44 +911,45 @@ export function RecruiterSettingsPage() {
               <RecruiterTableLayout loading={false}>
                 <thead>
                   <tr className="dark:border-slate-850 border-b border-slate-100 font-bold text-slate-400">
-                    <th className="px-4 py-3">Mã giao dịch</th>
-                    <th className="px-4 py-3">Ngày giao dịch</th>
-                    <th className="px-4 py-3">Gói dịch vụ</th>
-                    <th className="px-4 py-3">Số tiền</th>
+                    <th className="border-slate-250 border-r px-4 py-3 dark:border-slate-700">
+                      Mã giao dịch
+                    </th>
+                    <th className="border-slate-250 border-r px-4 py-3 dark:border-slate-700">
+                      Ngày giao dịch
+                    </th>
+                    <th className="border-slate-250 border-r px-4 py-3 dark:border-slate-700">
+                      Gói dịch vụ
+                    </th>
+                    <th className="border-slate-250 border-r px-4 py-3 dark:border-slate-700">
+                      Số tiền
+                    </th>
                     <th className="px-4 py-3 text-right">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-slate-50 transition hover:bg-slate-50/50 dark:border-slate-900 dark:hover:bg-slate-950/50">
-                    <td className="px-4 py-3 font-mono font-medium text-slate-600 dark:text-slate-300">
-                      INV-84920
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">24/06/2026</td>
-                    <td className="px-4 py-3 font-semibold">Recruiter Pro (1 Tháng)</td>
-                    <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">
-                      1,200,000 VND
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="rounded bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-700">
-                        Thành công
-                      </span>
-                    </td>
-                  </tr>
-                  <tr className="border-b border-slate-50 transition hover:bg-slate-50/50 dark:border-slate-900 dark:hover:bg-slate-950/50">
-                    <td className="px-4 py-3 font-mono font-medium text-slate-600 dark:text-slate-300">
-                      INV-83021
-                    </td>
-                    <td className="px-4 py-3 text-slate-500">24/05/2026</td>
-                    <td className="px-4 py-3 font-semibold">Recruiter Pro (1 Tháng)</td>
-                    <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">
-                      1,200,000 VND
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="rounded bg-green-50 px-2 py-0.5 text-[11px] font-bold text-green-700">
-                        Thành công
-                      </span>
-                    </td>
-                  </tr>
+                  {INVOICES.map((invoice) => (
+                    <tr
+                      key={invoice.id}
+                      className="border-b border-slate-50 transition even:bg-slate-50/50 hover:bg-slate-50/50 dark:border-slate-900 dark:even:bg-slate-900/30 dark:hover:bg-slate-950/50"
+                    >
+                      <td className="px-4 py-3 font-mono font-medium text-slate-600 dark:text-slate-300">
+                        {invoice.id}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">{invoice.date}</td>
+                      <td className="px-4 py-3 font-semibold">{invoice.plan}</td>
+                      <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">
+                        {new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                        }).format(invoice.amount)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Badge tone={invoice.status === "success" ? "success" : "neutral"}>
+                          {invoice.status === "success" ? "Thành công" : "Thất bại"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </RecruiterTableLayout>
             </div>

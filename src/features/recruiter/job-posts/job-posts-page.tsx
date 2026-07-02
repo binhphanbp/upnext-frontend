@@ -986,7 +986,7 @@ function JobRow({
                   className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 focus:outline-hidden disabled:opacity-50"
                 >
                   <CheckCircle size={16} />
-                  Gửi duyệt
+                  Xuất bản
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem

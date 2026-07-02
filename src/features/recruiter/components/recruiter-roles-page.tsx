@@ -1,24 +1,25 @@
 "use client";
 
-import { CaretDown, CaretUp, CircleNotch } from "@phosphor-icons/react";
+import { PencilSimple, Plus, Trash } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
-  createRecruiterRoleWithPermissions,
+  deleteRecruiterRole,
   getCompanyMembers,
-  getRecruiterPermissions,
-  type RecruiterPermission,
+  getRecruiterRoles,
+  type RecruiterRole,
+  type CompanyMember,
 } from "@/features/recruiter/api/team";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
+import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
-import { Card } from "@/shared/ui/card";
-import { Checkbox } from "@/shared/ui/checkbox";
-import { FormInput } from "@/shared/ui/input";
+
+import { RecruiterTableLayout } from "./recruiter-table-layout";
 
 const toast = Swal.mixin({
   toast: true,
@@ -34,51 +35,9 @@ function isOwnerRole(role: { code?: string | null; name?: string | null } | null
   return code === "OWNER" || name === "OWNER";
 }
 
-interface PermissionGroup {
-  id: string;
-  name: string;
-  permissions: RecruiterPermission[];
+function isCompanyCustomRole(role: RecruiterRole, companyId: string) {
+  return Boolean(companyId && role.companyId === companyId);
 }
-
-const getGroupedPermissions = (perms: RecruiterPermission[]): PermissionGroup[] => {
-  const groups: {
-    jobs_billing: { name: string; permissions: RecruiterPermission[] };
-    candidates_interviews: { name: string; permissions: RecruiterPermission[] };
-    company_team: { name: string; permissions: RecruiterPermission[] };
-  } = {
-    jobs_billing: {
-      name: "CHỨC NĂNG ĐĂNG TUYỂN",
-      permissions: [],
-    },
-    candidates_interviews: {
-      name: "QUẢN LÝ ỨNG VIÊN",
-      permissions: [],
-    },
-    company_team: {
-      name: "QUẢN LÝ DOANH NGHIỆP",
-      permissions: [],
-    },
-  };
-
-  perms.forEach((perm) => {
-    const mod = perm.module?.toLowerCase();
-    if (mod === "jobs" || mod === "billing") {
-      groups.jobs_billing.permissions.push(perm);
-    } else if (mod === "applications" || mod === "interviews") {
-      groups.candidates_interviews.permissions.push(perm);
-    } else {
-      groups.company_team.permissions.push(perm);
-    }
-  });
-
-  return Object.entries(groups)
-    .filter(([_, group]) => group.permissions.length > 0)
-    .map(([key, group]) => ({
-      id: key,
-      name: group.name,
-      permissions: group.permissions,
-    }));
-};
 
 export function RecruiterRolesPage() {
   const router = useRouter();
@@ -86,33 +45,15 @@ export function RecruiterRolesPage() {
 
   const [token, setToken] = useState("");
   const [accountId, setAccountId] = useState("");
+  const [companyId, setCompanyId] = useState("");
   const [isOwner, setIsOwner] = useState(false);
-  const [permissions, setPermissions] = useState<RecruiterPermission[]>([]);
+  const [roles, setRoles] = useState<RecruiterRole[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [newRoleName, setNewRoleName] = useState("");
-  const [newRolePermissionIds, setNewRolePermissionIds] = useState<string[]>([]);
+  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+  const [members, setMembers] = useState<CompanyMember[]>([]);
 
-  // Expanded collapsible sections
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    jobs_billing: true,
-    candidates_interviews: true,
-    company_team: true,
-  });
-
-  const getPermissionName = useCallback(
-    (code: string) => {
-      const key = `team.permissionNames.${code.replace(":", "_")}` as any;
-      try {
-        return t(key);
-      } catch {
-        return code;
-      }
-    },
-    [t],
-  );
-
-  const loadTeamData = useCallback(
+  const loadRoles = useCallback(
     async (nextAccountId: string, accessToken: string) => {
       try {
         setLoading(true);
@@ -129,20 +70,23 @@ export function RecruiterRolesPage() {
         }
 
         const nextCompanyId = account.company.id;
-        const [nextPermissions, membersList] = await Promise.all([
-          getRecruiterPermissions(accessToken),
+        const [nextRoles, membersList] = await Promise.all([
+          getRecruiterRoles(accessToken),
           getCompanyMembers(nextCompanyId, accessToken),
         ]);
 
-        setPermissions(nextPermissions);
-
         const currentMember = membersList.find(
-          (m) =>
-            (m.recruiterAccount?.id && m.recruiterAccount.id === nextAccountId) ||
-            (m.recruiterAccount?.email &&
-              m.recruiterAccount.email.toLowerCase() === account.email.toLowerCase()) ||
-            (m.invitedEmail && m.invitedEmail.toLowerCase() === account.email.toLowerCase()),
+          (member) =>
+            (member.recruiterAccount?.id && member.recruiterAccount.id === nextAccountId) ||
+            (member.recruiterAccount?.email &&
+              member.recruiterAccount.email.toLowerCase() === account.email.toLowerCase()) ||
+            (member.invitedEmail &&
+              member.invitedEmail.toLowerCase() === account.email.toLowerCase()),
         );
+
+        setCompanyId(nextCompanyId);
+        setRoles(nextRoles);
+        setMembers(membersList);
         setIsOwner(isOwnerRole(currentMember?.role) || !currentMember?.role);
       } catch (error) {
         handleAuthError(error, router);
@@ -163,86 +107,88 @@ export function RecruiterRolesPage() {
 
     setToken(session.accessToken);
     setAccountId(session.user.id);
-    void loadTeamData(session.user.id, session.accessToken);
-  }, [loadTeamData, router]);
+    void loadRoles(session.user.id, session.accessToken);
+  }, [loadRoles, router]);
 
-  const reload = async () => {
-    await loadTeamData(accountId, token);
-  };
+  const reload = useCallback(async () => {
+    await loadRoles(accountId, token);
+  }, [accountId, loadRoles, token]);
 
-  const createRole = async () => {
-    const roleName = newRoleName.trim();
+  const deleteRole = useCallback(
+    async (role: RecruiterRole) => {
+      if (!isOwner || !isCompanyCustomRole(role, companyId)) return;
 
-    if (!roleName || newRolePermissionIds.length === 0) {
-      void Swal.fire({ icon: "error", title: t("team.roleDialog.roleNameRequired") });
+      const result = await Swal.fire({
+        icon: "warning",
+        title: t("team.messages.deleteRoleConfirm"),
+        text: t("team.messages.deleteRoleWarning"),
+        showCancelButton: true,
+        confirmButtonColor: "#dc2626",
+        confirmButtonText: t("team.actions.delete"),
+        cancelButtonText: t("team.actions.cancel"),
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        setDeletingRoleId(role.id);
+        await deleteRecruiterRole(role.id, token);
+        await reload();
+        void toast.fire({ icon: "success", title: t("team.messages.deleteRoleSuccess") });
+      } catch (error) {
+        showActionError(error, t);
+      } finally {
+        setDeletingRoleId(null);
+      }
+    },
+    [companyId, isOwner, reload, t, token],
+  );
+
+  const handleBulkDeleteRoles = useCallback(async () => {
+    if (!isOwner || !token || selectedRoleIds.length === 0) return;
+
+    // Check if any selected roles are assigned to members
+    const assignedRoles = selectedRoleIds.filter((roleId) => {
+      const assignedMembers = members.filter((m) => m.role?.id === roleId);
+      return assignedMembers.length > 0;
+    });
+
+    if (assignedRoles.length > 0) {
+      const roleNames = roles
+        .filter((r) => assignedRoles.includes(r.id))
+        .map((r) => r.name)
+        .join(", ");
+      void Swal.fire({
+        icon: "error",
+        title: "Không thể xóa vai trò",
+        text: `Một số vai trò (${roleNames}) đang được gán cho thành viên. Vui lòng chuyển vai trò của họ trước khi xóa.`,
+      });
       return;
     }
 
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Xác nhận xóa nhiều vai trò",
+      text: `Bạn có chắc chắn muốn xóa ${selectedRoleIds.length} vai trò đã chọn?`,
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      confirmButtonText: "Xóa tất cả",
+      cancelButtonText: "Hủy",
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
-      setSaving(true);
-      await createRecruiterRoleWithPermissions({ name: roleName }, newRolePermissionIds, token);
-      setNewRoleName("");
-      setNewRolePermissionIds([]);
+      setLoading(true);
+      await Promise.all(selectedRoleIds.map((id) => deleteRecruiterRole(id, token)));
+      setSelectedRoleIds([]);
       await reload();
-      void toast.fire({ icon: "success", title: t("team.messages.roleSaveSuccess") });
+      void toast.fire({ icon: "success", title: "Xóa các vai trò thành công!" });
     } catch (error) {
       showActionError(error, t);
-    } finally {
-      setSaving(false);
+      setLoading(false);
     }
-  };
-
-  // Grouped permissions
-  const groupedPermissions = useMemo(() => {
-    return getGroupedPermissions(permissions);
-  }, [permissions]);
-
-  // Master checkbox logic per group
-  const isGroupAllSelected = useCallback(
-    (group: PermissionGroup) => {
-      return group.permissions.every((p) => newRolePermissionIds.includes(p.id));
-    },
-    [newRolePermissionIds],
-  );
-
-  const handleGroupCheckboxChange = useCallback((group: PermissionGroup, checked: boolean) => {
-    const permIds = group.permissions.map((p) => p.id);
-    if (checked) {
-      setNewRolePermissionIds((current) => Array.from(new Set([...current, ...permIds])));
-    } else {
-      setNewRolePermissionIds((current) => current.filter((id) => !permIds.includes(id)));
-    }
-  }, []);
-
-  // Accordion open/close toggle actions
-  const toggleGroup = useCallback((groupId: string) => {
-    setExpandedGroups((curr) => ({
-      ...curr,
-      [groupId]: !curr[groupId],
-    }));
-  }, []);
-
-  const allGroupsClosed = useMemo(() => {
-    return Object.values(expandedGroups).every((v) => !v);
-  }, [expandedGroups]);
-
-  const toggleAllGroups = useCallback(() => {
-    const nextValue = allGroupsClosed;
-    setExpandedGroups({
-      jobs_billing: nextValue,
-      candidates_interviews: nextValue,
-      company_team: nextValue,
-    });
-  }, [allGroupsClosed]);
-
-  if (loading) {
-    return (
-      <div className="flex h-80 items-center justify-center text-sm font-bold text-slate-500">
-        <CircleNotch className="mr-2 size-5 animate-spin text-emerald-600" />
-        {t("shell.loading")}
-      </div>
-    );
-  }
+  }, [isOwner, token, selectedRoleIds, members, roles, reload, t]);
 
   return (
     <div className="w-full min-w-0 space-y-6">
@@ -254,134 +200,170 @@ export function RecruiterRolesPage() {
         </div>
       </header>
 
-      {/* Top Section: Create Role Card */}
-      <Card className="upnext-shadow space-y-6 rounded-xl border-slate-200 bg-white p-5">
-        <div className="border-b border-slate-100 pb-3">
-          <h2 className="text-base font-bold text-slate-950">{t("team.roleDialog.createTitle")}</h2>
-        </div>
-
-        {/* Role Name Input */}
-        <div className="max-w-xl">
-          <FormInput
-            id="recruiter-role-name"
-            label={t("team.roleDialog.nameLabel")}
-            value={newRoleName}
-            onChange={(event) => setNewRoleName(event.target.value)}
-            placeholder={t("team.roleDialog.namePlaceholder")}
-            disabled={!isOwner}
-          />
-        </div>
-
-        {/* Collapsible Permissions Checklist */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <span className="text-sm font-bold text-slate-700">Gán quyền hạn</span>
-            <button
-              type="button"
-              disabled={!isOwner}
-              onClick={toggleAllGroups}
-              className="flex items-center gap-1 text-sm font-bold text-blue-600 transition-colors hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {allGroupsClosed ? "Mở tất cả" : "Đóng tất cả"}
-              {allGroupsClosed ? <CaretDown size={14} /> : <CaretUp size={14} />}
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {groupedPermissions.map((group) => {
-              const isExpanded = !!expandedGroups[group.id];
-              const allSelected = isGroupAllSelected(group);
+      <RecruiterTableLayout
+        loading={loading}
+        actionBar={
+          isOwner ? (
+            <div className="flex gap-2">
+              {selectedRoleIds.length > 0 && (
+                <Button
+                  variant="outline"
+                  className="h-10 gap-1.5 border-red-200 bg-red-50 font-bold text-red-700 hover:bg-red-100"
+                  onClick={() => void handleBulkDeleteRoles()}
+                >
+                  <Trash size={15} />
+                  <span>Xóa đã chọn ({selectedRoleIds.length})</span>
+                </Button>
+              )}
+              <Button asChild>
+                <Link href="/recruiter/team/roles/new">
+                  <Plus size={16} weight="bold" />
+                  <span>{t("team.actions.addRole")}</span>
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <Button disabled>
+              <Plus size={16} weight="bold" />
+              <span>{t("team.actions.addRole")}</span>
+            </Button>
+          )
+        }
+      >
+        <thead>
+          <tr className="border-b border-slate-300 bg-slate-200">
+            <th className="w-12 border-r border-slate-300 px-4 py-3 text-center last:border-r-0">
+              <input
+                type="checkbox"
+                checked={
+                  roles.filter((r) => isOwner && isCompanyCustomRole(r, companyId)).length > 0 &&
+                  selectedRoleIds.length ===
+                    roles.filter((r) => isOwner && isCompanyCustomRole(r, companyId)).length
+                }
+                onChange={(event) => {
+                  if (event.target.checked) {
+                    const modifiableRoles = roles.filter(
+                      (r) => isOwner && isCompanyCustomRole(r, companyId),
+                    );
+                    setSelectedRoleIds(modifiableRoles.map((r) => r.id));
+                  } else {
+                    setSelectedRoleIds([]);
+                  }
+                }}
+                aria-label="Select all roles"
+                className="text-primary accent-primary focus:ring-primary size-4 cursor-pointer rounded border border-slate-300 focus:ring-offset-0"
+                disabled={
+                  roles.filter((r) => isOwner && isCompanyCustomRole(r, companyId)).length === 0
+                }
+              />
+            </th>
+            <th className="border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
+              {t("team.roleDialog.nameLabel")}
+            </th>
+            <th className="border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
+              Vai trò
+            </th>
+            <th className="w-[120px] px-4 py-3 text-right text-xs font-bold text-slate-900">
+              {t("team.table.actions")}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {roles.length === 0 ? (
+            <tr aria-label={loading ? t("shell.loading") : t("team.table.emptyRoles")}>
+              <td colSpan={4} className="py-12 text-center text-sm font-medium text-slate-500">
+                {loading ? t("shell.loading") : t("team.table.emptyRoles")}
+              </td>
+            </tr>
+          ) : (
+            roles.map((role) => {
+              const canModifyRole = isOwner && isCompanyCustomRole(role, companyId);
 
               return (
-                <div
-                  key={group.id}
-                  className="overflow-hidden rounded-xl border border-slate-200/80 shadow-xs"
-                >
-                  {/* Accordion Group Header */}
-                  <div
-                    onClick={() => toggleGroup(group.id)}
-                    className="flex cursor-pointer items-center justify-between bg-slate-50/70 p-3.5 transition-colors select-none hover:bg-slate-50"
-                  >
-                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        id={`group-chk-${group.id}`}
-                        checked={allSelected}
-                        onCheckedChange={(checked) => handleGroupCheckboxChange(group, !!checked)}
-                        disabled={!isOwner}
-                      />
-                      <label
-                        htmlFor={`group-chk-${group.id}`}
-                        className="cursor-pointer text-sm font-bold text-slate-800 uppercase select-none"
-                      >
-                        {group.name}
-                      </label>
-                    </div>
-                    <div className="text-slate-400 hover:text-slate-600">
-                      {isExpanded ? <CaretUp size={16} /> : <CaretDown size={16} />}
-                    </div>
-                  </div>
-
-                  {/* Accordion Group Content */}
-                  {isExpanded && (
-                    <div className="space-y-3.5 divide-y divide-slate-100 border-t border-slate-100 bg-white p-4">
-                      {group.permissions.map((permission) => {
-                        const isChecked = newRolePermissionIds.includes(permission.id);
-                        return (
-                          <label
-                            key={permission.id}
-                            htmlFor={`permission-${permission.id}`}
-                            className="flex cursor-pointer items-start gap-3 rounded-lg p-1 select-none hover:bg-slate-50/50"
-                          >
-                            <Checkbox
-                              id={`permission-${permission.id}`}
-                              checked={isChecked}
-                              onCheckedChange={(checked) =>
-                                setNewRolePermissionIds((current) =>
-                                  checked === true
-                                    ? Array.from(new Set([...current, permission.id]))
-                                    : current.filter((id) => id !== permission.id),
-                                )
-                              }
-                              disabled={!isOwner}
-                            />
-                            <span className="flex-1">
-                              <span className="block text-sm font-bold text-slate-700">
-                                {getPermissionName(permission.code)}
-                              </span>
-                              {permission.description && (
-                                <span className="mt-1 block text-xs font-medium text-slate-400">
-                                  {permission.description}
-                                </span>
-                              )}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
+                <tr
+                  key={role.id}
+                  className={cn(
+                    "border-b border-slate-200 bg-white transition-colors duration-150 last:border-b-0 even:bg-slate-100/50 hover:bg-sky-50/30",
+                    selectedRoleIds.includes(role.id) && "bg-primary/5 hover:bg-primary/10",
                   )}
-                </div>
+                >
+                  <td className="w-12 border-r border-slate-100/50 px-4 py-2.5 text-center last:border-r-0">
+                    <input
+                      type="checkbox"
+                      checked={selectedRoleIds.includes(role.id)}
+                      disabled={!canModifyRole}
+                      onChange={(event) => {
+                        if (event.target.checked) {
+                          setSelectedRoleIds((current) => [...current, role.id]);
+                        } else {
+                          setSelectedRoleIds((current) => current.filter((id) => id !== role.id));
+                        }
+                      }}
+                      className={cn(
+                        "text-primary accent-primary focus:ring-primary size-4 rounded border border-slate-300 focus:ring-offset-0",
+                        canModifyRole ? "cursor-pointer" : "cursor-not-allowed opacity-50",
+                      )}
+                    />
+                  </td>
+                  <td
+                    className="border-r border-slate-100/50 px-4 py-2.5 last:border-r-0"
+                    aria-label={`${t("team.roleDialog.nameLabel")}: ${role.name}`}
+                  >
+                    {role.name}
+                  </td>
+                  <td className="border-r border-slate-100/50 px-4 py-2.5 font-bold text-slate-700 last:border-r-0">
+                    {members.filter((m) => m.role?.id === role.id).length}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex justify-end gap-2">
+                      {canModifyRole ? (
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="icon"
+                          className="size-8"
+                          aria-label={`${t("team.actions.edit")} ${role.name}`}
+                          title={t("team.actions.edit")}
+                        >
+                          <Link href={`/recruiter/team/roles/${role.id}/edit`}>
+                            <PencilSimple size={14} />
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="size-8"
+                          disabled
+                          aria-label={`${t("team.actions.edit")} ${role.name}`}
+                          title={t("team.actions.edit")}
+                        >
+                          <PencilSimple size={14} />
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="size-8 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                        disabled={!canModifyRole || deletingRoleId === role.id}
+                        onClick={() => void deleteRole(role)}
+                        aria-label={`${t("team.actions.delete")} ${role.name}`}
+                        title={t("team.actions.delete")}
+                      >
+                        <Trash size={14} />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
               );
-            })}
-          </div>
-        </div>
+            })
+          )}
+        </tbody>
+      </RecruiterTableLayout>
 
-        {/* Submit Button */}
-        <div className="flex justify-start">
-          <Button
-            className="w-full bg-[#11a77a] font-bold hover:bg-[#0d966d] sm:w-48"
-            disabled={
-              saving || !isOwner || !newRoleName.trim() || newRolePermissionIds.length === 0
-            }
-            onClick={() => void createRole()}
-          >
-            {saving ? t("team.actions.saving") : t("team.roleDialog.createSubmit")}
-          </Button>
-        </div>
-
-        {!isOwner && (
-          <p className="text-xs font-semibold text-amber-700">{t("team.alerts.roleOwnerOnly")}</p>
-        )}
-      </Card>
+      {!isOwner && (
+        <p className="text-xs font-semibold text-amber-700">{t("team.alerts.roleOwnerOnly")}</p>
+      )}
     </div>
   );
 }

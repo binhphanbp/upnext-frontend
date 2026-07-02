@@ -133,7 +133,9 @@ export function RecruiterTableLayout({
               </div>
             )}
             {actionBar && (
-              <div className="flex items-center gap-2.5 self-end md:self-auto">{actionBar}</div>
+              <div className="ml-auto flex items-center gap-2.5 self-end md:self-auto">
+                {actionBar}
+              </div>
             )}
           </div>
         </div>

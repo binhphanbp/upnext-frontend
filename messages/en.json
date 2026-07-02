@@ -898,7 +898,9 @@
           "loadError": "Failed to load company addresses.",
           "saveError": "Failed to save address information.",
           "deleteError": "Failed to delete address.",
-          "requiredFields": "Please fill in the office name, province/city and address."
+          "requiredFields": "Please fill in the office name, province/city and address.",
+          "noCompanyTitle": "Company Profile Incomplete",
+          "noCompanyText": "Please complete your company profile before configuring working locations."
         },
         "success": {
           "created": "New address added successfully.",
@@ -941,7 +943,11 @@
         "saving": "Saving...",
         "delete": "Delete",
         "edit": "Edit",
-        "search": "Search..."
+        "search": "Search...",
+        "export": "Export list",
+        "changeRole": "Change Role",
+        "lock": "Lock",
+        "unlock": "Unlock"
       },
       "alerts": {
         "inviteOwnerOnly": "Only the company Owner has permission to invite members.",
@@ -955,17 +961,20 @@
         "assignedCount": "Assigned Count",
         "permissions": "Permissions",
         "emptyMembers": "No members found.",
+        "emptyMembersSearch": "No matching members found.",
         "emptyRoles": "No roles found.",
         "allPermissions": "All permissions"
       },
       "status": {
         "active": "Active",
-        "pending": "Pending"
+        "pending": "Pending",
+        "suspended": "Locked"
       },
       "inviteDialog": {
         "title": "Invite New Member",
         "description": "Enter the email of the member you want to invite to your recruitment team.",
         "emailLabel": "Email Address",
+        "emailInvalid": "Invalid email format.",
         "roleLabel": "Recruitment Role",
         "submit": "Send Invitation",
         "submitting": "Sending..."
@@ -1011,6 +1020,10 @@
         "members_manage": "Manage members & permissions",
         "billing_manage": "Manage billing & service plans"
       }
+    },
+    "jobPostsPage": {
+      "onboardingBlockedTitle": "Business Verification Required",
+      "onboardingBlockedText": "Your business profile must be fully completed and verified before you can publish job posts."
     },
     "candidates": {
       "title": "Candidate Management",
@@ -1923,6 +1936,26 @@
       "confirmPlaceholder": "Re-enter new password",
       "submit": "Reset Password",
       "submitting": "Resetting..."
+    },
+    "companyInvitation": {
+      "title": "Company Invitation",
+      "subtitle": "You have been invited to join {companyName} as a {roleName}.",
+      "setPasswordTitle": "Setup your password",
+      "setPasswordDescription": "Please set a password for your account to join the company.",
+      "passwordLabel": "New password",
+      "passwordPlaceholder": "Enter your new password",
+      "confirmLabel": "Confirm password",
+      "confirmPlaceholder": "Confirm your password",
+      "submit": "Accept invitation & Set password",
+      "submitting": "Processing...",
+      "success": "Congratulations! You have successfully joined the company.",
+      "invalidInvitation": "Invalid or expired invitation link.",
+      "backToLogin": "Back to Login",
+      "alreadyAccepted": "This invitation has already been accepted or is no longer valid.",
+      "alreadyLoggedInTitle": "Accept Invitation",
+      "alreadyLoggedInDesc": "You are logged in as {email}. Do you want to join {companyName}?",
+      "acceptCta": "Accept Invitation",
+      "logoutAndUseOther": "Use a different account"
     },
     "showcase": {
       "slide1Title": "Smart Candidate Management",

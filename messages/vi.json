@@ -898,7 +898,9 @@
           "loadError": "Không thể tải danh sách địa chỉ.",
           "saveError": "Không thể lưu thông tin địa chỉ.",
           "deleteError": "Không thể xóa địa chỉ.",
-          "requiredFields": "Vui lòng điền đầy đủ tên văn phòng, tỉnh thành và địa chỉ."
+          "requiredFields": "Vui lòng điền đầy đủ tên văn phòng, tỉnh thành và địa chỉ.",
+          "noCompanyTitle": "Chưa hoàn tất thông tin công ty",
+          "noCompanyText": "Vui lòng hoàn thành thông tin doanh nghiệp trước khi thiết lập địa điểm làm việc."
         },
         "success": {
           "created": "Đã thêm địa chỉ mới thành công.",
@@ -941,7 +943,11 @@
         "saving": "Đang lưu...",
         "delete": "Xóa",
         "edit": "Chỉnh sửa",
-        "search": "Tìm kiếm..."
+        "search": "Tìm kiếm...",
+        "export": "Xuất danh sách",
+        "changeRole": "Thay đổi vai trò",
+        "lock": "Khóa",
+        "unlock": "Mở khóa"
       },
       "alerts": {
         "inviteOwnerOnly": "Chỉ Owner của công ty mới có quyền gửi lời mời thành viên.",
@@ -955,17 +961,20 @@
         "assignedCount": "Số người gán",
         "permissions": "Quyền hạn",
         "emptyMembers": "Chưa có thành viên nào.",
+        "emptyMembersSearch": "Không tìm thấy thành viên nào phù hợp.",
         "emptyRoles": "Chưa có vai trò nào.",
         "allPermissions": "Tất cả quyền"
       },
       "status": {
         "active": "Hoạt động",
-        "pending": "Đang chờ"
+        "pending": "Đang chờ",
+        "suspended": "Bị khóa"
       },
       "inviteDialog": {
         "title": "Mời thành viên mới",
         "description": "Nhập email thành viên bạn muốn mời vào đội ngũ tuyển dụng.",
         "emailLabel": "Địa chỉ email",
+        "emailInvalid": "Email không đúng định dạng.",
         "roleLabel": "Vai trò tuyển dụng",
         "submit": "Gửi lời mời",
         "submitting": "Đang gửi..."
@@ -1011,6 +1020,10 @@
         "members_manage": "Quản lý thành viên & phân quyền",
         "billing_manage": "Quản lý thanh toán & gói dịch vụ"
       }
+    },
+    "jobPostsPage": {
+      "onboardingBlockedTitle": "Yêu cầu xác thực doanh nghiệp",
+      "onboardingBlockedText": "Doanh nghiệp của bạn cần hoàn tất thông tin và được xác minh trước khi thực hiện đăng tin tuyển dụng."
     },
     "candidates": {
       "title": "Quản lý ứng viên",
@@ -1944,6 +1957,26 @@
       "confirmPlaceholder": "Nhập lại mật khẩu mới",
       "submit": "Đặt lại mật khẩu",
       "submitting": "Đang đặt lại..."
+    },
+    "companyInvitation": {
+      "title": "Lời mời gia nhập công ty",
+      "subtitle": "Bạn được mời tham gia {companyName} với vai trò {roleName}.",
+      "setPasswordTitle": "Thiết lập mật khẩu của bạn",
+      "setPasswordDescription": "Vui lòng đặt mật khẩu cho tài khoản để tham gia công ty.",
+      "passwordLabel": "Mật khẩu mới",
+      "passwordPlaceholder": "Nhập mật khẩu mới của bạn",
+      "confirmLabel": "Nhập lại mật khẩu",
+      "confirmPlaceholder": "Xác nhận lại mật khẩu",
+      "submit": "Đồng ý tham gia & Thiết lập mật khẩu",
+      "submitting": "Đang xử lý...",
+      "success": "Chúc mừng! Bạn đã tham gia công ty thành công.",
+      "invalidInvitation": "Lời mời không hợp lệ hoặc đã hết hạn.",
+      "backToLogin": "Quay lại trang Đăng nhập",
+      "alreadyAccepted": "Lời mời này đã được chấp nhận hoặc không còn hiệu lực.",
+      "alreadyLoggedInTitle": "Chấp nhận lời mời",
+      "alreadyLoggedInDesc": "Bạn đang đăng nhập bằng tài khoản {email}. Bạn có muốn tham gia {companyName} không?",
+      "acceptCta": "Chấp nhận lời mời",
+      "logoutAndUseOther": "Sử dụng tài khoản khác"
     },
     "showcase": {
       "slide1Title": "Quản lý ứng viên thông minh",
