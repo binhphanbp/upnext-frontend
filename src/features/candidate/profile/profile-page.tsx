@@ -21,6 +21,7 @@ import {
   PencilSimple,
   Phone,
   Plus,
+  PaintBrush,
   SealCheck,
   Sparkle,
   TrendUp,
@@ -51,6 +52,7 @@ import {
   createCandidateCv,
 } from "@/features/candidate/api/profile";
 import { getCandidateSession } from "@/features/candidate/session";
+import { Link } from "@/i18n/navigation";
 import { createApiUrl } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
@@ -2178,6 +2180,27 @@ function ResumeCard({
           <ArrowRight />
           {copy.change}
         </Button>
+      </div>
+      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-teal-200 bg-teal-50/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="grid size-11 place-items-center rounded-full bg-teal-100 text-teal-600">
+            <PaintBrush size={22} />
+          </span>
+          <div>
+            <p className="text-sm font-extrabold text-slate-950">
+              Chưa có CV hoặc muốn thiết kế mới?
+            </p>
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              Tự tạo CV online chuyên nghiệp, chuẩn ATS chỉ trong 5 phút.
+            </p>
+          </div>
+        </div>
+        <Link href="/candidate/cv-builder" className="w-full sm:w-auto">
+          <Button className="h-10 w-full rounded-lg bg-teal-600 font-extrabold text-white shadow-none hover:bg-teal-500">
+            <Plus />
+            Tạo CV Online
+          </Button>
+        </Link>
       </div>
       <div className="divide-y divide-slate-200 rounded-xl border border-slate-200">
         {viewModel.resumeRows.map((resume) => (
