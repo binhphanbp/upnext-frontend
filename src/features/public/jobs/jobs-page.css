@@ -3991,3 +3991,100 @@
     padding: 18px;
   }
 }
+
+/* UpNext color mapping for job detail */
+.job-detail-page {
+  --job-brand: var(--color-brand-logo);
+  --job-brand-hover: var(--color-action-primary-hover);
+  --job-brand-soft: var(--color-action-primary-subtle);
+  --job-brand-text: var(--color-action-primary-text);
+  --job-brand-rgb: var(--color-brand-logo-rgb);
+}
+
+.job-detail-page .job-detail-company-name,
+.job-detail-page .job-detail-verified,
+.job-detail-page .job-detail-salary-row,
+.job-detail-page .job-detail-info-tile svg,
+.job-detail-page .job-detail-similar-list em,
+.job-detail-page .job-detail-company-mini button,
+.job-detail-page .job-detail-company-mini > button,
+.job-detail-page .job-detail-share-card button:first-child {
+  color: var(--job-brand);
+}
+
+.job-detail-page .job-detail-card-head > span,
+.job-detail-page .job-detail-info-tile,
+.job-detail-page .job-detail-verified,
+.job-detail-page .job-detail-action-row button.is-saved,
+.job-detail-page .job-detail-ready-card button.is-saved,
+.job-detail-page .job-detail-skill-more,
+.job-detail-page .job-detail-company-mini button,
+.job-detail-page .job-detail-company-mini > button,
+.job-detail-page .job-detail-company-mini em {
+  background: var(--job-brand-soft);
+}
+
+.job-detail-page .job-detail-card-head > span,
+.job-detail-page .job-detail-benefit-prose li::before,
+.job-detail-page .job-detail-skill-more,
+.job-detail-page .job-detail-overview-card .job-detail-info-line svg,
+.job-detail-page .job-detail-info-line svg,
+.job-detail-page .job-detail-process b {
+  color: var(--job-brand);
+}
+
+.job-detail-page .job-detail-bullet-list li > span,
+.job-detail-page .job-detail-benefit-prose li::before {
+  background: var(--job-brand);
+  box-shadow: 0 0 0 5px rgba(var(--job-brand-rgb), 0.1);
+}
+
+.job-detail-page .job-detail-action-row button:first-child,
+.job-detail-page .job-detail-ready-card button:first-of-type,
+.job-detail-page .job-detail-process b {
+  color: var(--color-text-inverse);
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--job-brand), var(--job-brand-hover));
+  box-shadow: 0 14px 28px rgba(var(--job-brand-rgb), 0.22);
+}
+
+.job-detail-page .job-detail-action-row button.is-saved,
+.job-detail-page .job-detail-ready-card button.is-saved,
+.job-detail-page .job-detail-company-mini button,
+.job-detail-page .job-detail-company-mini > button,
+.job-detail-page .job-detail-similar-more,
+.job-detail-page .job-detail-skill-more {
+  color: var(--job-brand-text);
+  border-color: rgba(var(--job-brand-rgb), 0.28);
+}
+
+.job-detail-page .job-detail-similar-list button:hover,
+.job-detail-page .job-detail-skill-more:hover,
+.job-detail-page .job-detail-similar-more:hover,
+.job-detail-page .job-detail-company-mini button:hover,
+.job-detail-page .job-detail-company-mini > button:hover {
+  border-color: rgba(var(--job-brand-rgb), 0.42);
+}
+
+.job-detail-page .job-detail-verified-box {
+  color: var(--job-brand);
+  border-color: rgba(var(--job-brand-rgb), 0.22);
+  background: var(--job-brand-soft);
+}
+
+.job-detail-page .job-detail-verified-box b {
+  color: var(--job-brand-text);
+}
+
+.job-detail-page .job-detail-ready-card::after {
+  background: rgba(var(--job-brand-rgb), 0.08);
+}
+
+.job-detail-page .job-detail-salary-row i,
+.job-detail-page .job-detail-info-line svg {
+  background: rgba(var(--job-brand-rgb), 0.08);
+}
+
+.job-detail-page .job-detail-skill-more {
+  background: rgba(var(--job-brand-rgb), 0.06);
+}
