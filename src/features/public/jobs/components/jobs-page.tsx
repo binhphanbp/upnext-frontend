@@ -24,6 +24,7 @@ import { useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useSavedJobsStore } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
 import { apiRequest } from "@/shared/api/http";
 import { formatRelativeTime } from "@/shared/lib/date";
@@ -32,6 +33,7 @@ import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { getPublicJobs } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
+import { ApplyModal } from "./apply-modal";
 
 import "../jobs-page.css";
 
@@ -449,7 +451,8 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const [customMinSalary, setCustomMinSalary] = useState("");
   const [customMaxSalary, setCustomMaxSalary] = useState("");
   const [sort, setSort] = useState("relevant");
-  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const { savedJobIds, toggleSaveJob } = useSavedJobsStore();
+  const [applyJob, setApplyJob] = useState<Job | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 7;
@@ -1205,22 +1208,17 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                           <div className="mt-auto flex w-full items-center gap-2 sm:w-auto">
                             <button
                               type="button"
-                              onClick={() =>
-                                setSaved((current) => ({
-                                  ...current,
-                                  [job.id]: !current[job.id],
-                                }))
-                              }
+                              onClick={() => toggleSaveJob(job.id)}
                               className={`flex cursor-pointer items-center justify-center rounded-lg border p-2 transition ${
-                                saved[job.id]
+                                savedJobIds.includes(job.id)
                                   ? "border-emerald-200 bg-emerald-50 text-emerald-600"
                                   : "border-slate-200 bg-white text-slate-500 hover:text-slate-800"
                               }`}
-                              aria-label={saved[job.id] ? "Bỏ lưu tin" : "Lưu tin"}
+                              aria-label={savedJobIds.includes(job.id) ? "Bỏ lưu tin" : "Lưu tin"}
                             >
                               <BookmarkSimple
                                 size={18}
-                                weight={saved[job.id] ? "fill" : "regular"}
+                                weight={savedJobIds.includes(job.id) ? "fill" : "regular"}
                               />
                             </button>
                             <button
@@ -1232,7 +1230,14 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                             </button>
                             <button
                               type="button"
-                              onClick={() => navigate(`/register?job=${job.id}`)}
+                              onClick={() => {
+                                const session = getCandidateSession();
+                                if (session) {
+                                  setApplyJob(job);
+                                } else {
+                                  navigate(`/register?job=${job.id}`);
+                                }
+                              }}
                               className="flex-1 cursor-pointer rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700 sm:flex-initial"
                             >
                               Ứng tuyển
@@ -1581,6 +1586,10 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
       </div>
 
       <PublicFooter navigate={navigate} />
+
+      {applyJob && (
+        <ApplyModal isOpen={!!applyJob} onClose={() => setApplyJob(null)} job={applyJob} />
+      )}
     </div>
   );
 }
