@@ -3159,8 +3159,7 @@
   margin-top: 24px;
 }
 
-.job-detail-tags span,
-.job-detail-skill-cloud span {
+.job-detail-tags span {
   min-height: 32px;
   padding: 0 12px;
   color: #4b5563;
@@ -3171,8 +3170,7 @@
   background: #ffffff;
 }
 
-.job-detail-tags span:hover,
-.job-detail-skill-cloud span:hover {
+.job-detail-tags span:hover {
   border-color: #d1d5db;
 }
 
@@ -3335,10 +3333,24 @@
 }
 
 .job-detail-skill-cloud span {
-  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
   padding: 0 16px;
   color: #374151;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.job-detail-skill-cloud span:hover {
+  color: #059669;
+  border-color: #059669;
+  background: #ffffff;
 }
 
 .job-detail-company-stats {
@@ -3554,19 +3566,18 @@
   font-size: 14px;
   font-weight: 700;
   border: none;
-  border-radius: 12px;
-  background: #ecfdf5;
+  background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   transition: all 0.2s ease;
 }
 
 .job-detail-company-mini > button:hover {
-  background: #d1fae5;
   color: #047857;
+  gap: 10px;
 }
 
 .job-detail-company-mini-stats {
