@@ -80,7 +80,7 @@
   --input: #e2e8f0;
   --ring: #10a778;
   --chart-1: #10b981;
-  --chart-2: #6366f1;
+  --chart-2: var(--brand);
   --chart-3: #38bdf8;
   --chart-4: #f59e0b;
   --chart-5: #ef4444;
@@ -95,9 +95,9 @@
   --brand: #10a778;
   --brand-foreground: #ffffff;
   --brand-muted: #e7fff7;
-  --premium: #574bf5;
-  --premium-foreground: #ffffff;
-  --premium-muted: #eef2ff;
+  --premium: var(--brand);
+  --premium-foreground: var(--brand-foreground);
+  --premium-muted: var(--brand-muted);
   --surface: #ffffff;
   --surface-muted: #f8fafc;
   --success: #10b981;
@@ -135,7 +135,7 @@
   --color-indigo-100: #e0e7ff;
   --color-indigo-200: #c7d2fe;
   --color-indigo-300: #a5b4fc;
-  --color-indigo-400: #818cf8;
+  --color-indigo-400: var(--color-brand-logo);
   --color-indigo-500: #6366f1;
   --color-indigo-600: #574bf5;
   --color-indigo-700: #4338ca;
@@ -156,10 +156,10 @@
   --color-action-primary-hover: #0b7f5f;
   --color-action-primary-subtle: #ecfdf5;
   --color-action-primary-text: #065f46;
-  --color-action-premium-default: #574bf5;
-  --color-action-premium-hover: #4338ca;
-  --color-action-premium-subtle: #eef2ff;
-  --color-action-premium-text: #3730a3;
+  --color-action-premium-default: var(--color-action-primary-default);
+  --color-action-premium-hover: var(--color-action-primary-hover);
+  --color-action-premium-subtle: var(--color-action-primary-subtle);
+  --color-action-premium-text: var(--color-action-primary-text);
   --color-feedback-success: #10b981;
   --color-feedback-info: #3b82f6;
   --color-feedback-warning: #f59e0b;
@@ -186,7 +186,7 @@
   --input: #334155;
   --ring: #34d399;
   --chart-1: #34d399;
-  --chart-2: #818cf8;
+  --chart-2: var(--brand);
   --chart-3: #60a5fa;
   --chart-4: #fbbf24;
   --chart-5: #f87171;
@@ -201,9 +201,9 @@
   --brand: #34d399;
   --brand-foreground: #022c22;
   --brand-muted: #053528;
-  --premium: #818cf8;
-  --premium-foreground: #1e1b4b;
-  --premium-muted: #25205f;
+  --premium: var(--brand);
+  --premium-foreground: var(--brand-foreground);
+  --premium-muted: var(--brand-muted);
   --surface: #0f172a;
   --surface-muted: #1e293b;
   --success: #34d399;
