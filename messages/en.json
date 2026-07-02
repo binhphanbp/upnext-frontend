@@ -1,7 +1,7 @@
 {
   "CvBuilder": {
     "title": "UpNext CV Builder",
-    "subtitle": "Smart CV Builder for Developers",
+    "subtitle": "ATS-friendly CV Builder for IT Developers",
     "aiImport": "AI Import CV",
     "aiImportSuccess": "AI CV Parser: Successfully parsed mock CV and prefilled data!",
     "prefill": "Fill Profile Data",
@@ -120,6 +120,46 @@
       "expand": "Expand editing panel",
       "collapseLabel": "Collapse",
       "expandLabel": "Expand"
+    },
+    "aiEnhance": {
+      "button": "🤖 Optimize with AI",
+      "title": "AI Bullet Point Enhancer",
+      "description": "Use artificial intelligence to rewrite your descriptions in a high-impact, professional format, or choose from industry-standard templates below.",
+      "inputLabel": "Your current content",
+      "enhancedLabel": "AI Enhanced Suggestion",
+      "roleSelect": "Select role for industry templates:",
+      "apply": "Apply suggestion",
+      "enhancing": "Analyzing and optimizing descriptions...",
+      "selectRole": "Choose a role..."
+    },
+    "pdfGuide": {
+      "title": "A4 PDF Export & Print Guide",
+      "subtitle": "To ensure your PDF prints with a pixel-perfect layout, configure these settings in the browser print dialog:",
+      "margin": "1. Margins: Select \"None\"",
+      "graphics": "2. Background Graphics: Checked / Enabled",
+      "headerFooter": "3. Headers and Footers: Unchecked / Disabled",
+      "proceed": "Proceed to Print"
+    },
+    "assistant": {
+      "pageCount": "CV Length:",
+      "page": "A4 page",
+      "pages": "A4 pages",
+      "perfect": "Perfect length!",
+      "warning": "Page Overflow Alert",
+      "warningDetail": "Your CV is slightly overflowing to the next page. Consider narrowing margins, reducing font size, or condensing descriptions to keep it compact and professional.",
+      "completeness": "CV Completeness",
+      "tipsTitle": "CV Optimization Tips:",
+      "tipPersonalInfo": "Fill in your Email and Phone number.",
+      "tipSummary": "Add a professional summary description.",
+      "tipExperience": "Add at least one work experience item.",
+      "tipEducation": "Add school name and degree details.",
+      "tipProjects": "Add at least one personal project item.",
+      "tipSkills": "Add some core professional skills."
+    },
+    "editTitle": "Rename section",
+    "visibility": {
+      "hide": "Hide this section",
+      "show": "Show this section"
     }
   },
   "Metadata": {

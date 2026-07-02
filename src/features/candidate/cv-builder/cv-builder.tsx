@@ -24,6 +24,9 @@ import {
   CaretDoubleRight,
   DotsSix,
   ArrowLeft,
+  Eye,
+  EyeSlash,
+  PencilSimple,
 } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -98,6 +101,162 @@ const themeColors = {
   },
 };
 
+interface CvDatePickerProps {
+  value: string;
+  onChange: (val: string) => void;
+  label: string;
+  allowPresent?: boolean;
+  defaultMode?: "month-year" | "year-only";
+  isEn?: boolean;
+}
+
+const CvDatePicker = ({
+  value,
+  onChange,
+  label,
+  allowPresent = false,
+  defaultMode = "month-year",
+  isEn = false,
+}: CvDatePickerProps) => {
+  const [mode, setMode] = useState<"month-year" | "year-only">(
+    value && value.length === 4 ? "year-only" : defaultMode,
+  );
+
+  const isPresent = value.toLowerCase() === "present";
+
+  // Parse current value
+  let currentMonth = "";
+  let currentYear = "";
+  if (!isPresent && value) {
+    if (value.includes("-")) {
+      const parts = value.split("-");
+      currentYear = parts[0] || "";
+      currentMonth = parts[1] || "";
+    } else if (value.length === 4) {
+      currentYear = value;
+    }
+  }
+
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const m = i + 1;
+    const val = m < 10 ? `0${m}` : `${m}`;
+    return { value: val, label: isEn ? `Month ${m}` : `Tháng ${m}` };
+  });
+
+  const currentYearNum = new Date().getFullYear();
+  const years = Array.from({ length: 50 }, (_, i) => {
+    const y = currentYearNum - i;
+    return { value: `${y}`, label: `${y}` };
+  });
+
+  const handleMonthChange = (m: string) => {
+    const newYear = currentYear || `${currentYearNum}`;
+    onChange(`${newYear}-${m}`);
+  };
+
+  const handleYearChange = (y: string) => {
+    if (mode === "year-only") {
+      onChange(y);
+    } else {
+      const newMonth = currentMonth || "01";
+      onChange(`${y}-${newMonth}`);
+    }
+  };
+
+  const handleTogglePresent = (checked: boolean) => {
+    if (checked) {
+      onChange("Present");
+    } else {
+      onChange(`${currentYearNum}-01`);
+    }
+  };
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+          {label}
+        </label>
+
+        {!isPresent && (
+          <button
+            type="button"
+            onClick={() => {
+              const newMode = mode === "month-year" ? "year-only" : "month-year";
+              setMode(newMode);
+              if (newMode === "year-only") {
+                onChange(currentYear || `${currentYearNum}`);
+              } else {
+                onChange(`${currentYear || currentYearNum}-01`);
+              }
+            }}
+            className="text-[9px] font-bold text-slate-400 uppercase transition-colors hover:text-emerald-600"
+          >
+            {mode === "month-year"
+              ? isEn
+                ? "Select Year"
+                : "Chọn năm"
+              : isEn
+                ? "Select Month/Year"
+                : "Chọn tháng/năm"}
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {isPresent ? (
+          <div className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-500">
+            <span>{isEn ? "Present" : "Hiện tại / Present"}</span>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            {mode === "month-year" && (
+              <select
+                value={currentMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
+                className="h-9 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500"
+              >
+                <option value="">{isEn ? "Month" : "Tháng"}</option>
+                {months.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            <select
+              value={currentYear}
+              onChange={(e) => handleYearChange(e.target.value)}
+              className="h-9 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500"
+            >
+              <option value="">{isEn ? "Year" : "Năm"}</option>
+              {years.map((y) => (
+                <option key={y.value} value={y.value}>
+                  {y.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {allowPresent && (
+          <label className="flex cursor-pointer items-center gap-1.5 select-none">
+            <input
+              type="checkbox"
+              checked={isPresent}
+              onChange={(e) => handleTogglePresent(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+              {isEn ? "Current Work" : "Công việc hiện tại"}
+            </span>
+          </label>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export function CandidateCvBuilder() {
   const t = useTranslations("CvBuilder");
   const router = useRouter();
@@ -129,6 +288,8 @@ export function CandidateCvBuilder() {
     prefillFromProfile,
     clearCv,
     setCvData,
+    toggleSectionVisibility,
+    renameSection,
   } = useCvBuilderStore();
 
   const [activeTab, setActiveTab] = useState<string>("personal");
@@ -138,6 +299,19 @@ export function CandidateCvBuilder() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
+  const [aiEnhancerOpen, setAiEnhancerOpen] = useState<boolean>(false);
+  const [aiEnhancerSource, setAiEnhancerSource] = useState<{
+    type: "experience" | "project";
+    id: string;
+  } | null>(null);
+  const [aiInputText, setAiInputText] = useState<string>("");
+  const [aiEnhancedText, setAiEnhancedText] = useState<string>("");
+  const [isEnhancing, setIsEnhancing] = useState<boolean>(false);
+  const [selectedAiRole, setSelectedAiRole] = useState<string>("");
+  const [showPdfGuide, setShowPdfGuide] = useState<boolean>(false);
+  const [pageCount, setPageCount] = useState<number>(1);
+  const [isOverflowing, setIsOverflowing] = useState<boolean>(false);
+  const [canDrag, setCanDrag] = useState<string | null>(null);
 
   const style = cvData.style;
   const isCustomColor = style.themeColor.startsWith("#");
@@ -293,6 +467,130 @@ export function CandidateCvBuilder() {
     }
   };
 
+  const getCompleteness = () => {
+    let score = 0;
+    const tips: string[] = [];
+
+    // Personal Info: 20%
+    if (cvData.personalInfo.fullName) score += 5;
+    if (cvData.personalInfo.title) score += 5;
+    if (cvData.personalInfo.email) score += 5;
+    if (cvData.personalInfo.phoneNumber) score += 5;
+    if (!cvData.personalInfo.email || !cvData.personalInfo.phoneNumber) {
+      tips.push(t("assistant.tipPersonalInfo"));
+    }
+
+    // Summary: 15%
+    if (cvData.summary && cvData.summary.replace(/<[^>]*>/g, "").trim().length > 10) {
+      score += 15;
+    } else {
+      tips.push(t("assistant.tipSummary"));
+    }
+
+    // Experience: 30%
+    if (
+      cvData.experiences.length > 0 &&
+      cvData.experiences.some((e) => e.companyName && e.positionTitle)
+    ) {
+      score += 30;
+    } else {
+      tips.push(t("assistant.tipExperience"));
+    }
+
+    // Education: 15%
+    if (
+      cvData.educations.length > 0 &&
+      cvData.educations.some((edu) => edu.schoolName && edu.degree)
+    ) {
+      score += 15;
+    } else {
+      tips.push(t("assistant.tipEducation"));
+    }
+
+    // Projects: 10%
+    if (cvData.projects.length > 0 && cvData.projects.some((p) => p.name && p.role)) {
+      score += 10;
+    } else {
+      tips.push(t("assistant.tipProjects"));
+    }
+
+    // Skills: 10%
+    if (cvData.skills.length > 0 && cvData.skills.some((s) => s.name)) {
+      score += 10;
+    } else {
+      tips.push(t("assistant.tipSkills"));
+    }
+
+    return { score, tips };
+  };
+
+  const handleAiEnhance = (type: "experience" | "project", id: string, currentText: string) => {
+    setAiEnhancerSource({ type, id });
+    const cleanText = currentText.replace(/<[^>]*>/g, "").trim();
+    setAiInputText(cleanText);
+    setAiEnhancedText("");
+    setSelectedAiRole("");
+    setAiEnhancerOpen(true);
+  };
+
+  const runAiEnhance = () => {
+    if (!aiInputText.trim() && !selectedAiRole) return;
+    setIsEnhancing(true);
+
+    setTimeout(() => {
+      let result = "";
+      const isEn = cvData.cvLanguage === "en";
+
+      if (aiInputText.trim()) {
+        if (isEn) {
+          result = `• Engineered and developed high-performance features utilizing modern software paradigms.\n• Refactored codebase to apply clean code principles, reducing technical debt and improving maintainability.\n• Integrated key application endpoints and streamlined data pipelines to optimize response cycles.`;
+        } else {
+          result = `• Thiết kế và phát triển các tính năng hiệu năng cao áp dụng các mô hình kiến trúc phần mềm hiện đại.\n• Tái cấu trúc mã nguồn theo nguyên lý Clean Code, giảm thiểu nợ kỹ thuật và cải thiện hiệu suất bảo trì.\n• Tích hợp các cổng APIs cốt lõi và tối ưu hóa luồng dữ liệu giúp cải thiện tốc độ phản hồi phía Client.`;
+        }
+      } else if (selectedAiRole) {
+        const templates: Record<string, { vi: string; en: string }> = {
+          frontend: {
+            vi: "• Tối ưu hóa hiệu suất ứng dụng React, cải thiện 35% tốc độ tải trang ban đầu (FCP) bằng cách cấu hình Code Splitting và Lazy Loading.\n• Xây dựng và chuẩn hóa hệ thống Design System UI Components dùng chung, giúp tăng 40% tốc độ phát triển giao diện của đội ngũ.\n• Tích hợp APIs RESTful và quản lý trạng thái phức tạp với React Query và Zustand, xử lý dữ liệu đồng bộ mượt mà dưới client.",
+            en: "• Optimized React application performance, reducing initial load time (FCP) by 35% through code splitting and lazy loading techniques.\n• Built and standardized reusable Design System UI Components, accelerating frontend development speed by 40%.\n• Integrated complex RESTful APIs and managed global states using TanStack Query and Zustand for smooth client-side synchronization.",
+          },
+          backend: {
+            vi: "• Thiết kế và tối ưu hệ thống RESTful API bằng Node.js và NestJS, cải thiện tốc độ phản hồi 25% nhờ thiết lập Redis Caching.\n• Quản lý và thiết kế cơ sở dữ liệu PostgreSQL, tối ưu hóa các câu truy vấn phức tạp (SQL Indexing) giúp giảm tải CPU của DB Server 30%.\n• Triển khai kiến trúc Microservices và kết nối giao tiếp không đồng bộ giữa các dịch vụ thông qua Message Broker RabbitMQ.",
+            en: "• Designed and optimized RESTful APIs using Node.js and NestJS, improving response speed by 25% through Redis caching.\n• Modeled and managed PostgreSQL databases, optimizing complex queries via indexing to reduce database CPU load by 30%.\n• Implemented decoupled Microservices architecture using RabbitMQ for reliable asynchronous message passing.",
+          },
+          mobile: {
+            vi: "• Phát triển ứng dụng di động đa nền tảng bằng Flutter/React Native, tiếp cận hơn 50.000 người dùng hoạt động hàng tháng (MAU).\n• Tích hợp hệ thống thông báo đẩy (Push Notifications) qua Firebase Cloud Messaging và các cổng thanh toán Stripe/ZaloPay.\n• Giảm dung lượng cài đặt ứng dụng di động xuống 20% thông qua tối ưu hóa assets và cấu hình quy trình build Android/iOS ProGuard.",
+            en: "• Developed cross-platform mobile apps using Flutter/React Native, reaching over 50,000 monthly active users (MAU).\n• Integrated real-time push notifications via Firebase Cloud Messaging and secure Stripe/ZaloPay payment gateways.\n• Reduced mobile binary size by 20% through asset optimizations and ProGuard Android/iOS build configurations.",
+          },
+          fullstack: {
+            vi: "• Phát triển từ đầu đến cuối các tính năng của ứng dụng Web bằng Next.js (App Router), Node.js và PostgreSQL.\n• Thiết lập hệ thống kiểm thử tự động CI/CD với Github Actions và triển khai dự án lên nền tảng đám mây AWS.\n• Triển khai cơ chế phân quyền RBAC (Role-Based Access Control) bảo mật và cơ chế xác thực JWT kết hợp OAuth2.",
+            en: "• Developed end-to-stack web applications using Next.js (App Router), Node.js, and PostgreSQL.\n• Established CI/CD pipelines using GitHub Actions and deployed cloud resources on AWS.\n• Implemented secure Role-Based Access Control (RBAC) along with JWT and OAuth2 authentication flows.",
+          },
+        };
+        const activeTmpl = templates[selectedAiRole];
+        result = activeTmpl ? (isEn ? activeTmpl.en : activeTmpl.vi) : "";
+      }
+
+      setAiEnhancedText(result);
+      setIsEnhancing(false);
+    }, 1500);
+  };
+
+  const applyAiEnhancement = () => {
+    if (!aiEnhancedText || !aiEnhancerSource) return;
+
+    const formattedHtml = aiEnhancedText
+      .split("\n")
+      .map((line) => `<p>${line}</p>`)
+      .join("");
+
+    if (aiEnhancerSource.type === "experience") {
+      updateExperience(aiEnhancerSource.id, { description: formattedHtml });
+    } else {
+      updateProject(aiEnhancerSource.id, { description: formattedHtml });
+    }
+    setAiEnhancerOpen(false);
+  };
+
   // Auth check & Initial fetch
   useEffect(() => {
     const session = getCandidateSession();
@@ -302,6 +600,24 @@ export function CandidateCvBuilder() {
     }
     void syncProfileData(false);
   }, []);
+
+  // A4 Height & Page count calculations
+  useEffect(() => {
+    const element = document.getElementById("cv-print-area");
+    if (!element) return;
+
+    const timer = setTimeout(() => {
+      const height = element.scrollHeight;
+      const pages = Math.max(1, Math.ceil(height / 1120));
+      setPageCount(pages);
+
+      const pageRemainder = height % 1122;
+      const hasSlightOverflow = pageRemainder > 0 && pageRemainder < 150 && height > 1122;
+      setIsOverflowing(hasSlightOverflow);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [cvData, activeTab]);
 
   // Undo/Redo keyboard shortcuts
   useEffect(() => {
@@ -327,7 +643,14 @@ export function CandidateCvBuilder() {
   }, []);
 
   const handlePrint = () => {
-    window.print();
+    setShowPdfGuide(true);
+  };
+
+  const proceedToPrint = () => {
+    setShowPdfGuide(false);
+    setTimeout(() => {
+      window.print();
+    }, 150);
   };
 
   const simulatedAiParse = () => {
@@ -487,6 +810,46 @@ export function CandidateCvBuilder() {
           {/* Form Editing Area */}
           {!isEditorCollapsed && (
             <div className="flex-1 overflow-y-auto scroll-smooth p-6">
+              {/* CV Completeness Score Card */}
+              {(() => {
+                const { score, tips } = getCompleteness();
+                return (
+                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50/50 p-4 shadow-sm">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-bold tracking-wider text-slate-700 uppercase">
+                        {t("assistant.completeness")}
+                      </span>
+                      <span className="text-sm font-extrabold text-emerald-600">{score}%</span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/80">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${score}%` }}
+                      />
+                    </div>
+                    {/* Expandable Tips checklist if score < 100 */}
+                    {score < 100 && tips.length > 0 && (
+                      <div className="mt-3 border-t border-slate-200/50 pt-2.5">
+                        <span className="mb-1.5 block text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                          {t("assistant.tipsTitle")}
+                        </span>
+                        <ul className="space-y-1">
+                          {tips.map((tip, idx) => (
+                            <li
+                              key={idx}
+                              className="flex items-start gap-1.5 text-[11px] text-slate-500"
+                            >
+                              <span className="mt-0.5 font-bold text-emerald-500">•</span>
+                              <span>{tip}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {activeTab === "personal" && (
                 <div className="space-y-6">
                   <div>
@@ -669,32 +1032,19 @@ export function CandidateCvBuilder() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("experience.start")}
-                                </label>
-                                <Input
-                                  value={exp.startDate}
-                                  onChange={(e) =>
-                                    updateExperience(exp.id, { startDate: e.target.value })
-                                  }
-                                  placeholder="YYYY-MM"
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("experience.end")}
-                                </label>
-                                <Input
-                                  value={exp.endDate}
-                                  onChange={(e) =>
-                                    updateExperience(exp.id, { endDate: e.target.value })
-                                  }
-                                  placeholder="YYYY-MM or Present"
-                                  className="h-9 bg-white"
-                                />
-                              </div>
+                              <CvDatePicker
+                                label={t("experience.start")}
+                                value={exp.startDate}
+                                onChange={(val) => updateExperience(exp.id, { startDate: val })}
+                                isEn={isEn}
+                              />
+                              <CvDatePicker
+                                label={t("experience.end")}
+                                value={exp.endDate}
+                                onChange={(val) => updateExperience(exp.id, { endDate: val })}
+                                allowPresent
+                                isEn={isEn}
+                              />
                             </div>
 
                             <div className="space-y-1">
@@ -712,9 +1062,21 @@ export function CandidateCvBuilder() {
                             </div>
 
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                {t("experience.description")}
-                              </label>
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">
+                                  {t("experience.description")}
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleAiEnhance("experience", exp.id, exp.description)
+                                  }
+                                  className="flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 transition-colors outline-none hover:text-emerald-700 hover:underline"
+                                >
+                                  <Sparkle size={12} className="text-emerald-500" />
+                                  {t("aiEnhance.button")}
+                                </button>
+                              </div>
                               <RichTextEditor
                                 value={exp.description}
                                 onChange={(val) => updateExperience(exp.id, { description: val })}
@@ -849,9 +1211,21 @@ export function CandidateCvBuilder() {
                             </div>
 
                             <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                {t("projects.description")}
-                              </label>
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">
+                                  {t("projects.description")}
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleAiEnhance("project", proj.id, proj.description)
+                                  }
+                                  className="flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 transition-colors outline-none hover:text-emerald-700 hover:underline"
+                                >
+                                  <Sparkle size={12} className="text-emerald-500" />
+                                  {t("aiEnhance.button")}
+                                </button>
+                              </div>
                               <RichTextEditor
                                 value={proj.description}
                                 onChange={(val) => updateProject(proj.id, { description: val })}
@@ -974,32 +1348,21 @@ export function CandidateCvBuilder() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("education.start")}
-                                </label>
-                                <Input
-                                  value={edu.startDate || ""}
-                                  onChange={(e) =>
-                                    updateEducation(edu.id, { startDate: e.target.value })
-                                  }
-                                  placeholder="YYYY-MM"
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("education.end")}
-                                </label>
-                                <Input
-                                  value={edu.endDate || ""}
-                                  onChange={(e) =>
-                                    updateEducation(edu.id, { endDate: e.target.value })
-                                  }
-                                  placeholder="YYYY-MM or Present"
-                                  className="h-9 bg-white"
-                                />
-                              </div>
+                              <CvDatePicker
+                                label={t("education.start")}
+                                value={edu.startDate || ""}
+                                onChange={(val) => updateEducation(edu.id, { startDate: val })}
+                                defaultMode="year-only"
+                                isEn={isEn}
+                              />
+                              <CvDatePicker
+                                label={t("education.end")}
+                                value={edu.endDate || ""}
+                                onChange={(val) => updateEducation(edu.id, { endDate: val })}
+                                defaultMode="year-only"
+                                allowPresent
+                                isEn={isEn}
+                              />
                             </div>
 
                             <div className="space-y-1.5">
@@ -1392,9 +1755,12 @@ export function CandidateCvBuilder() {
                           return (
                             <div
                               key={sec}
-                              draggable={sec !== "personal"}
+                              draggable={sec !== "personal" && canDrag === sec}
                               onDragStart={(e) => {
-                                if (sec === "personal") return;
+                                if (sec === "personal" || canDrag !== sec) {
+                                  e.preventDefault();
+                                  return;
+                                }
                                 setDraggedIndex(idx);
                                 e.dataTransfer.effectAllowed = "move";
                               }}
@@ -1407,6 +1773,7 @@ export function CandidateCvBuilder() {
                               onDragEnd={() => {
                                 setDraggedIndex(null);
                                 setDragOverIndex(null);
+                                setCanDrag(null);
                               }}
                               onDrop={(e) => {
                                 e.preventDefault();
@@ -1424,34 +1791,93 @@ export function CandidateCvBuilder() {
                                 }
                                 setDraggedIndex(null);
                                 setDragOverIndex(null);
+                                setCanDrag(null);
                               }}
                               className={cn(
                                 "flex items-center justify-between rounded-xl border p-2.5 text-xs font-bold transition-all duration-200",
                                 sec === "personal"
                                   ? "bg-slate-50/20 border-slate-100 cursor-not-allowed opacity-80"
-                                  : "bg-slate-50/30 border-slate-200 cursor-grab active:cursor-grabbing hover:border-emerald-200 hover:bg-slate-50",
+                                  : "bg-slate-50/30 border-slate-200 hover:border-emerald-300 hover:bg-white hover:shadow-md hover:scale-[1.01]",
                                 draggedIndex === idx
-                                  ? "opacity-30 bg-slate-100 border-dashed border-emerald-300"
+                                  ? "opacity-30 bg-slate-100 border-dashed border-emerald-300 scale-95"
                                   : "",
                                 dragOverIndex === idx
-                                  ? "border-emerald-500 bg-emerald-50/30 scale-[1.02]"
+                                  ? "border-emerald-500 bg-emerald-50/30 scale-[1.02] shadow-lg"
                                   : "",
                               )}
                             >
                               <div className="flex items-center gap-2">
                                 {sec !== "personal" && (
-                                  <DotsSix size={18} className="cursor-grab text-slate-400" />
+                                  <button
+                                    type="button"
+                                    onMouseDown={() => setCanDrag(sec)}
+                                    onMouseUp={() => setCanDrag(null)}
+                                    className="cursor-grab rounded p-1 transition-colors outline-none hover:bg-slate-100 active:cursor-grabbing"
+                                    title="Kéo để sắp xếp"
+                                  >
+                                    <DotsSix size={18} className="text-slate-400" />
+                                  </button>
                                 )}
                                 {(() => {
                                   const SecIcon = secIconMap[sec] || User;
                                   return <SecIcon size={16} className="text-slate-500" />;
                                 })()}
-                                <span className="font-semibold text-slate-700">
-                                  {t(`${sec}.title`)}
+                                <span
+                                  className={cn(
+                                    "font-semibold text-slate-700",
+                                    cvData.hiddenSections?.includes(sec) &&
+                                      "line-through text-slate-400",
+                                  )}
+                                >
+                                  {cvData.customSectionNames?.[sec] || t(`${sec}.title`)}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1">
+                                {sec !== "personal" && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        void Swal.fire({
+                                          title: t("editTitle"),
+                                          input: "text",
+                                          inputValue:
+                                            cvData.customSectionNames?.[sec] || t(`${sec}.title`),
+                                          showCancelButton: true,
+                                          confirmButtonColor: "#10b981",
+                                          confirmButtonText: "OK",
+                                          cancelButtonText: "Hủy",
+                                        }).then((result) => {
+                                          if (result.isConfirmed && result.value !== undefined) {
+                                            renameSection(sec, result.value.trim());
+                                          }
+                                        });
+                                      }}
+                                      className="rounded p-1 text-slate-500 hover:bg-slate-200"
+                                      title={t("editTitle")}
+                                    >
+                                      <PencilSimple size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleSectionVisibility(sec)}
+                                      className="rounded p-1 hover:bg-slate-200"
+                                      title={
+                                        cvData.hiddenSections?.includes(sec)
+                                          ? t("visibility.show")
+                                          : t("visibility.hide")
+                                      }
+                                    >
+                                      {cvData.hiddenSections?.includes(sec) ? (
+                                        <EyeSlash size={14} className="text-red-500" />
+                                      ) : (
+                                        <Eye size={14} className="text-slate-500" />
+                                      )}
+                                    </button>
+                                  </>
+                                )}
                                 <button
+                                  type="button"
                                   onClick={() => moveSection(sec, "up")}
                                   disabled={idx === 0 || sec === "personal"}
                                   className="rounded p-1 hover:bg-slate-200 disabled:opacity-30"
@@ -1459,6 +1885,7 @@ export function CandidateCvBuilder() {
                                   <ArrowUp size={14} />
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => moveSection(sec, "down")}
                                   disabled={
                                     idx === cvData.sectionsOrder.length - 1 || sec === "personal"
@@ -1484,9 +1911,15 @@ export function CandidateCvBuilder() {
         <main className="flex flex-1 flex-col items-center overflow-y-auto bg-slate-200 p-6 print:overflow-visible print:bg-white print:p-0">
           {/* Zoom Slider Control */}
           <div className="mb-4 flex w-full max-w-[210mm] items-center justify-between rounded-xl border border-slate-200/60 bg-white p-3 text-xs font-bold text-slate-600 shadow-sm print:hidden">
-            <div className="flex items-center gap-2">
-              <Layout size={18} />
-              <span>{t("preview.title")}</span>
+            <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
+                <Layout size={18} />
+                <span>{t("preview.title")}</span>
+              </div>
+              <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-extrabold tracking-wider text-slate-500 uppercase">
+                {t("assistant.pageCount")} {pageCount}{" "}
+                {pageCount === 1 ? t("assistant.page") : t("assistant.pages")}
+              </span>
             </div>
             <div className="flex items-center gap-3">
               <span>{t("preview.zoom")}</span>
@@ -1502,6 +1935,14 @@ export function CandidateCvBuilder() {
               <span className="w-12 text-right">{Math.round(zoom * 100)}%</span>
             </div>
           </div>
+
+          {/* Slight Overflow Assistant Cta */}
+          {isOverflowing && (
+            <div className="animate-in fade-in slide-in-from-top-1 mb-4 flex w-full max-w-[210mm] items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800 shadow-sm duration-200 print:hidden">
+              <span className="text-base">💡</span>
+              <span>{t("assistant.warningDetail")}</span>
+            </div>
+          )}
 
           {/* Scale wrapper for zoom */}
           <div className="flex w-full items-start justify-center print:block print:w-auto print:transform-none">
@@ -1591,6 +2032,12 @@ export function CandidateCvBuilder() {
                     {/* Dynamic Sections */}
                     {cvData.sectionsOrder.map((sectionKey) => {
                       if (sectionKey === "personal") return null;
+                      if (cvData.hiddenSections?.includes(sectionKey)) return null;
+
+                      const customHeading =
+                        cvData.customSectionNames?.[sectionKey] ||
+                        headings[sectionKey as keyof typeof headings] ||
+                        t(`${sectionKey}.title`);
 
                       if (sectionKey === "summary" && cvData.summary) {
                         return (
@@ -1601,7 +2048,7 @@ export function CandidateCvBuilder() {
                                 colors.primary,
                               )}
                             >
-                              {headings.summary}
+                              {customHeading}
                             </h2>
                             <div className={cn("w-full border-t border-slate-200 mt-1 mb-2")} />
                             <div
@@ -1621,7 +2068,7 @@ export function CandidateCvBuilder() {
                                 colors.primary,
                               )}
                             >
-                              {headings.experience}
+                              {customHeading}
                             </h2>
                             <div className={cn("w-full border-t border-slate-200 mt-1 mb-2")} />
                             <div className="space-y-4">
@@ -1671,7 +2118,7 @@ export function CandidateCvBuilder() {
                                 colors.primary,
                               )}
                             >
-                              {headings.projects}
+                              {customHeading}
                             </h2>
                             <div className={cn("w-full border-t border-slate-200 mt-1 mb-2")} />
                             <div className="space-y-4">
@@ -1740,7 +2187,7 @@ export function CandidateCvBuilder() {
                                 colors.primary,
                               )}
                             >
-                              {headings.education}
+                              {customHeading}
                             </h2>
                             <div className={cn("w-full border-t border-slate-200 mt-1 mb-2")} />
                             <div className="space-y-3">
@@ -1785,7 +2232,7 @@ export function CandidateCvBuilder() {
                                 colors.primary,
                               )}
                             >
-                              {headings.skills}
+                              {customHeading}
                             </h2>
                             <div className={cn("w-full border-t border-slate-200 mt-1 mb-2")} />
                             <div className="flex flex-wrap gap-2 pt-1">
@@ -1859,12 +2306,18 @@ export function CandidateCvBuilder() {
                     {/* Dynamic Sections */}
                     {cvData.sectionsOrder.map((sectionKey) => {
                       if (sectionKey === "personal") return null;
+                      if (cvData.hiddenSections?.includes(sectionKey)) return null;
+
+                      const customHeading =
+                        cvData.customSectionNames?.[sectionKey] ||
+                        headings[sectionKey as keyof typeof headings] ||
+                        t(`${sectionKey}.title`);
 
                       if (sectionKey === "summary" && cvData.summary) {
                         return (
                           <div key={sectionKey} className="grid grid-cols-4 gap-4">
                             <h3 className="col-span-1 text-xs font-extrabold tracking-widest text-slate-800 uppercase">
-                              {headings.summary}
+                              {customHeading}
                             </h3>
                             <div className="col-span-3">
                               <div
@@ -1880,7 +2333,7 @@ export function CandidateCvBuilder() {
                         return (
                           <div key={sectionKey} className="grid grid-cols-4 gap-4">
                             <h3 className="col-span-1 text-xs font-extrabold tracking-widest text-slate-800 uppercase">
-                              {headings.experience}
+                              {customHeading}
                             </h3>
                             <div className="col-span-3 space-y-4">
                               {cvData.experiences.map((exp) => (
@@ -1916,7 +2369,7 @@ export function CandidateCvBuilder() {
                         return (
                           <div key={sectionKey} className="grid grid-cols-4 gap-4">
                             <h3 className="col-span-1 text-xs font-extrabold tracking-widest text-slate-800 uppercase">
-                              {headings.projects}
+                              {customHeading}
                             </h3>
                             <div className="col-span-3 space-y-4">
                               {cvData.projects.map((proj) => (
@@ -1945,7 +2398,7 @@ export function CandidateCvBuilder() {
                         return (
                           <div key={sectionKey} className="grid grid-cols-4 gap-4">
                             <h3 className="col-span-1 text-xs font-extrabold tracking-widest text-slate-800 uppercase">
-                              {headings.education}
+                              {customHeading}
                             </h3>
                             <div className="col-span-3 space-y-3">
                               {cvData.educations.map((edu) => (
@@ -1974,7 +2427,7 @@ export function CandidateCvBuilder() {
                         return (
                           <div key={sectionKey} className="grid grid-cols-4 gap-4">
                             <h3 className="col-span-1 text-xs font-extrabold tracking-widest text-slate-800 uppercase">
-                              {headings.skills}
+                              {customHeading}
                             </h3>
                             <div className="col-span-3">
                               <p className="text-xs leading-relaxed text-slate-700">
@@ -2071,10 +2524,10 @@ export function CandidateCvBuilder() {
                       </div>
 
                       {/* Skills in Sidebar */}
-                      {cvData.skills.length > 0 && (
+                      {cvData.skills.length > 0 && !cvData.hiddenSections?.includes("skills") && (
                         <div className="space-y-3 border-t border-white/15 pt-4">
                           <h3 className="text-xs font-black tracking-widest text-teal-300 uppercase">
-                            {headings.skills}
+                            {cvData.customSectionNames?.["skills"] || headings.skills}
                           </h3>
                           <div className="space-y-2.5">
                             {cvData.skills.map((sk) => {
@@ -2119,32 +2572,33 @@ export function CandidateCvBuilder() {
                       )}
 
                       {/* Education in Sidebar */}
-                      {cvData.educations.length > 0 && (
-                        <div className="space-y-3 border-t border-white/15 pt-4">
-                          <h3 className="text-xs font-black tracking-widest text-teal-300 uppercase">
-                            {headings.education}
-                          </h3>
-                          <div className="space-y-3">
-                            {cvData.educations.map((edu) => (
-                              <div key={edu.id} className="space-y-1 text-[11px]">
-                                <p className="font-bold">{edu.schoolName}</p>
-                                <p className="opacity-90">
-                                  {edu.degree} / {edu.major}
-                                </p>
-                                <p className="text-[9px] opacity-70">
-                                  {edu.startDate} - {formatEndDate(edu.endDate)}
-                                </p>
-                              </div>
-                            ))}
+                      {cvData.educations.length > 0 &&
+                        !cvData.hiddenSections?.includes("education") && (
+                          <div className="space-y-3 border-t border-white/15 pt-4">
+                            <h3 className="text-xs font-black tracking-widest text-teal-300 uppercase">
+                              {cvData.customSectionNames?.["education"] || headings.education}
+                            </h3>
+                            <div className="space-y-3">
+                              {cvData.educations.map((edu) => (
+                                <div key={edu.id} className="space-y-1 text-[11px]">
+                                  <p className="font-bold">{edu.schoolName}</p>
+                                  <p className="opacity-90">
+                                    {edu.degree} / {edu.major}
+                                  </p>
+                                  <p className="text-[9px] opacity-70">
+                                    {edu.startDate} - {formatEndDate(edu.endDate)}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
 
                     {/* Right Column (Main Content) */}
                     <div className="col-span-2 space-y-6 bg-white p-6 text-slate-800">
                       {/* Profile Summary */}
-                      {cvData.summary && (
+                      {cvData.summary && !cvData.hiddenSections?.includes("summary") && (
                         <div className="space-y-2">
                           <h2
                             className={cn(
@@ -2153,7 +2607,7 @@ export function CandidateCvBuilder() {
                               colors.divider,
                             )}
                           >
-                            {headings.summary}
+                            {cvData.customSectionNames?.["summary"] || headings.summary}
                           </h2>
                           <div
                             className="preview-rich-text text-xs leading-relaxed text-slate-600"
@@ -2163,89 +2617,91 @@ export function CandidateCvBuilder() {
                       )}
 
                       {/* Work Experience */}
-                      {cvData.experiences.length > 0 && (
-                        <div className="space-y-3">
-                          <h2
-                            className={cn(
-                              "text-sm font-bold uppercase tracking-wider border-b pb-1.5",
-                              colors.primary,
-                              colors.divider,
-                            )}
-                          >
-                            {headings.experience}
-                          </h2>
-                          <div className="space-y-4">
-                            {cvData.experiences.map((exp) => (
-                              <div key={exp.id} className="space-y-1">
-                                <div className="flex items-start justify-between text-xs">
-                                  <div>
-                                    <span className="font-bold text-slate-900">
-                                      {exp.companyName}
-                                    </span>
-                                    <span className="mx-1.5 text-slate-400">|</span>
-                                    <span className="font-semibold text-slate-700 italic">
-                                      {exp.positionTitle}
+                      {cvData.experiences.length > 0 &&
+                        !cvData.hiddenSections?.includes("experience") && (
+                          <div className="space-y-3">
+                            <h2
+                              className={cn(
+                                "text-sm font-bold uppercase tracking-wider border-b pb-1.5",
+                                colors.primary,
+                                colors.divider,
+                              )}
+                            >
+                              {cvData.customSectionNames?.["experience"] || headings.experience}
+                            </h2>
+                            <div className="space-y-4">
+                              {cvData.experiences.map((exp) => (
+                                <div key={exp.id} className="space-y-1">
+                                  <div className="flex items-start justify-between text-xs">
+                                    <div>
+                                      <span className="font-bold text-slate-900">
+                                        {exp.companyName}
+                                      </span>
+                                      <span className="mx-1.5 text-slate-400">|</span>
+                                      <span className="font-semibold text-slate-700 italic">
+                                        {exp.positionTitle}
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] font-semibold text-slate-400">
+                                      {exp.startDate} - {formatEndDate(exp.endDate)}
                                     </span>
                                   </div>
-                                  <span className="text-[10px] font-semibold text-slate-400">
-                                    {exp.startDate} - {formatEndDate(exp.endDate)}
-                                  </span>
+                                  {exp.technologies && (
+                                    <p className="text-[10px] font-semibold text-slate-500">
+                                      Tech: {exp.technologies}
+                                    </p>
+                                  )}
+                                  <div
+                                    className="preview-rich-text text-xs leading-relaxed text-slate-600"
+                                    dangerouslySetInnerHTML={{ __html: exp.description }}
+                                  />
                                 </div>
-                                {exp.technologies && (
-                                  <p className="text-[10px] font-semibold text-slate-500">
-                                    Tech: {exp.technologies}
-                                  </p>
-                                )}
-                                <div
-                                  className="preview-rich-text text-xs leading-relaxed text-slate-600"
-                                  dangerouslySetInnerHTML={{ __html: exp.description }}
-                                />
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Projects */}
-                      {cvData.projects.length > 0 && (
-                        <div className="space-y-3">
-                          <h2
-                            className={cn(
-                              "text-sm font-bold uppercase tracking-wider border-b pb-1.5",
-                              colors.primary,
-                              colors.divider,
-                            )}
-                          >
-                            {headings.projects}
-                          </h2>
-                          <div className="space-y-4">
-                            {cvData.projects.map((proj) => (
-                              <div key={proj.id} className="space-y-1">
-                                <div className="flex items-start justify-between text-xs">
-                                  <div>
-                                    <span className="font-bold text-slate-900">{proj.name}</span>
-                                    <span className="mx-1.5 text-slate-400">|</span>
-                                    <span className="font-semibold text-slate-700 italic">
-                                      {proj.role}
-                                    </span>
-                                  </div>
-                                  <div className="flex gap-2 text-[10px]">
-                                    {proj.projectUrl && (
-                                      <span className="text-teal-600 underline">
-                                        {proj.projectUrl}
+                      {cvData.projects.length > 0 &&
+                        !cvData.hiddenSections?.includes("projects") && (
+                          <div className="space-y-3">
+                            <h2
+                              className={cn(
+                                "text-sm font-bold uppercase tracking-wider border-b pb-1.5",
+                                colors.primary,
+                                colors.divider,
+                              )}
+                            >
+                              {cvData.customSectionNames?.["projects"] || headings.projects}
+                            </h2>
+                            <div className="space-y-4">
+                              {cvData.projects.map((proj) => (
+                                <div key={proj.id} className="space-y-1">
+                                  <div className="flex items-start justify-between text-xs">
+                                    <div>
+                                      <span className="font-bold text-slate-900">{proj.name}</span>
+                                      <span className="mx-1.5 text-slate-400">|</span>
+                                      <span className="font-semibold text-slate-700 italic">
+                                        {proj.role}
                                       </span>
-                                    )}
+                                    </div>
+                                    <div className="flex gap-2 text-[10px]">
+                                      {proj.projectUrl && (
+                                        <span className="text-teal-600 underline">
+                                          {proj.projectUrl}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
+                                  <div
+                                    className="preview-rich-text text-xs leading-relaxed text-slate-600"
+                                    dangerouslySetInnerHTML={{ __html: proj.description }}
+                                  />
                                 </div>
-                                <div
-                                  className="preview-rich-text text-xs leading-relaxed text-slate-600"
-                                  dangerouslySetInnerHTML={{ __html: proj.description }}
-                                />
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </div>
                 )}
@@ -2254,6 +2710,186 @@ export function CandidateCvBuilder() {
           </div>
         </main>
       </div>
+      {/* AI Bullet Point Enhancer Modal */}
+      {aiEnhancerOpen && (
+        <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm duration-200">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between bg-slate-900 px-6 py-4 text-white">
+              <div className="flex items-center gap-2">
+                <Sparkle size={20} className="text-emerald-400" />
+                <h3 className="text-base font-bold">{t("aiEnhance.title")}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAiEnhancerOpen(false)}
+                className="text-xl font-bold text-slate-400 transition-colors hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="flex-1 space-y-4 overflow-y-auto p-6">
+              <p className="text-xs leading-relaxed text-slate-500">{t("aiEnhance.description")}</p>
+
+              {/* Text Input area */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                  {t("aiEnhance.inputLabel")}
+                </label>
+                <textarea
+                  value={aiInputText}
+                  onChange={(e) => setAiInputText(e.target.value)}
+                  placeholder="Ví dụ: Lập trình frontend bằng React và tối ưu hóa hệ thống tải trang..."
+                  className="h-24 w-full rounded-xl border border-slate-200 bg-slate-50/30 p-3 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {/* Template dropdown selector */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                  {t("aiEnhance.roleSelect")}
+                </label>
+                <select
+                  value={selectedAiRole}
+                  onChange={(e) => setSelectedAiRole(e.target.value)}
+                  className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500"
+                >
+                  <option value="">-- {t("aiEnhance.selectRole")} --</option>
+                  <option value="frontend">Frontend Developer</option>
+                  <option value="backend">Backend Developer</option>
+                  <option value="fullstack">Fullstack Developer</option>
+                  <option value="mobile">Mobile Developer</option>
+                </select>
+              </div>
+
+              {/* Trigger button */}
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="button"
+                  onClick={runAiEnhance}
+                  disabled={isEnhancing || (!aiInputText.trim() && !selectedAiRole)}
+                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-700"
+                >
+                  {isEnhancing ? (
+                    <>
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      {t("aiEnhance.enhancing")}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkle size={14} />
+                      {t("aiEnhance.button")}
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Result output area */}
+              {aiEnhancedText && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 space-y-1.5 border-t border-slate-100 pt-4 duration-200">
+                  <label className="block text-[10px] font-bold tracking-wider text-emerald-600 uppercase">
+                    {t("aiEnhance.enhancedLabel")}
+                  </label>
+                  <div className="min-h-[80px] w-full rounded-xl border border-emerald-100 bg-emerald-50/30 p-3 text-xs leading-relaxed font-semibold whitespace-pre-wrap text-slate-700">
+                    {aiEnhancedText}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer buttons */}
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAiEnhancerOpen(false)}
+                className="rounded-xl border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Hủy
+              </Button>
+              <Button
+                type="button"
+                onClick={applyAiEnhancement}
+                disabled={!aiEnhancedText}
+                className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-slate-800"
+              >
+                {t("aiEnhance.apply")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* PDF Export Settings Guidance Modal */}
+      {showPdfGuide && (
+        <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm duration-200">
+          <div className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between bg-slate-900 px-6 py-4 text-white">
+              <div className="flex items-center gap-2">
+                <Printer size={20} className="text-emerald-400" />
+                <h3 className="text-base font-bold">{t("pdfGuide.title")}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPdfGuide(false)}
+                className="text-xl font-bold text-slate-400 transition-colors hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="space-y-4 p-6">
+              <p className="text-xs leading-relaxed font-semibold text-slate-500">
+                {t("pdfGuide.subtitle")}
+              </p>
+
+              <div className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] text-emerald-700">
+                    1
+                  </span>
+                  {t("pdfGuide.margin")}
+                </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] text-emerald-700">
+                    2
+                  </span>
+                  {t("pdfGuide.graphics")}
+                </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] text-emerald-700">
+                    3
+                  </span>
+                  {t("pdfGuide.headerFooter")}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPdfGuide(false)}
+                className="rounded-xl border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Hủy
+              </Button>
+              <Button
+                type="button"
+                onClick={proceedToPrint}
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
+              >
+                <Printer size={14} />
+                {t("pdfGuide.proceed")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -36,6 +36,8 @@ const initialCvData: CvData = {
   },
   selectedTemplate: "modern",
   cvLanguage: "vi",
+  hiddenSections: [],
+  customSectionNames: {},
 };
 
 interface CvBuilderState {
@@ -70,6 +72,8 @@ interface CvBuilderState {
   setCvData: (data: CvData) => void;
   prefillFromProfile: () => void;
   clearCv: () => void;
+  toggleSectionVisibility: (key: CvSectionKey) => void;
+  renameSection: (key: CvSectionKey, newName: string) => void;
 }
 
 export const useCvBuilderStore = create<CvBuilderState>()(
@@ -359,6 +363,31 @@ export const useCvBuilderStore = create<CvBuilderState>()(
         }),
 
       clearCv: () => get().updateCvData(() => initialCvData),
+
+      toggleSectionVisibility: (key) =>
+        get().updateCvData((cvData) => {
+          const hiddenSections = cvData.hiddenSections || [];
+          const isHidden = hiddenSections.includes(key);
+          const newHidden = isHidden
+            ? hiddenSections.filter((k) => k !== key)
+            : [...hiddenSections, key];
+          return {
+            ...cvData,
+            hiddenSections: newHidden,
+          };
+        }),
+
+      renameSection: (key, newName) =>
+        get().updateCvData((cvData) => {
+          const customSectionNames = cvData.customSectionNames || {};
+          return {
+            ...cvData,
+            customSectionNames: {
+              ...customSectionNames,
+              [key]: newName,
+            },
+          };
+        }),
     }),
     {
       name: "upnext-cv-builder-draft",

@@ -75,4 +75,6 @@ export interface CvData {
   style: CvStyleConfig;
   selectedTemplate: "modern" | "minimalist" | "creative";
   cvLanguage: "vi" | "en";
+  hiddenSections?: CvSectionKey[];
+  customSectionNames?: Record<string, string>;
 }

@@ -1,7 +1,7 @@
 {
   "CvBuilder": {
     "title": "UpNext CV Builder",
-    "subtitle": "Trình tạo CV thông minh dành cho Lập trình viên",
+    "subtitle": "Công cụ tạo CV chuyên nghiệp chuẩn ATS cho Lập trình viên",
     "aiImport": "AI Import CV",
     "aiImportSuccess": "AI CV Parser: Đã phân tích file CV mock thành công và điền tự động dữ liệu!",
     "prefill": "Đổ Dữ Liệu Profile",
@@ -120,6 +120,46 @@
       "expand": "Mở rộng khung nhập liệu",
       "collapseLabel": "Thu gọn",
       "expandLabel": "Mở rộng"
+    },
+    "aiEnhance": {
+      "button": "🤖 Tối ưu bằng AI",
+      "title": "Công cụ Tối ưu hóa Mô tả bằng AI",
+      "description": "Sử dụng trí tuệ nhân tạo để viết lại mô tả của bạn theo định dạng chuyên nghiệp hơn, hoặc chọn từ mẫu gợi ý chuẩn ngành bên dưới.",
+      "inputLabel": "Nội dung hiện tại của bạn",
+      "enhancedLabel": "Kết quả tối ưu gợi ý",
+      "roleSelect": "Chọn vai trò chuẩn ngành để xem gợi ý:",
+      "apply": "Áp dụng kết quả",
+      "enhancing": "Đang phân tích và tối ưu hóa...",
+      "selectRole": "Chọn vị trí..."
+    },
+    "pdfGuide": {
+      "title": "Hướng dẫn Xuất PDF & In CV chuẩn nét",
+      "subtitle": "Để bản in PDF có định dạng chuẩn chỉnh nhất trên trình duyệt, vui lòng cấu hình các thiết lập sau trong hộp thoại In:",
+      "margin": "1. Lề (Margins): Chọn \"Không có\" (None)",
+      "graphics": "2. Đồ họa nền (Background Graphics): Bật/Tích chọn",
+      "headerFooter": "3. Tiêu đề và chân trang (Headers & Footers): Tắt/Bỏ chọn",
+      "proceed": "Tiến hành In ngay"
+    },
+    "assistant": {
+      "pageCount": "Độ dài CV:",
+      "page": "trang A4",
+      "pages": "trang A4",
+      "perfect": "Độ dài hoàn hảo!",
+      "warning": "Cảnh báo tràn trang",
+      "warningDetail": "CV của bạn đang tràn trang mới một chút. Hãy cân nhắc thu hẹp lề, giảm cỡ chữ hoặc rút gọn nội dung để CV nằm gọn trong trang chẵn chuyên nghiệp.",
+      "completeness": "Mức độ hoàn thiện CV",
+      "tipsTitle": "Gợi ý tối ưu CV:",
+      "tipPersonalInfo": "Bổ sung đầy đủ Email & Số điện thoại liên hệ.",
+      "tipSummary": "Thêm phần giới thiệu tóm tắt sự nghiệp.",
+      "tipExperience": "Mô tả ít nhất một kinh nghiệm làm việc.",
+      "tipEducation": "Bổ sung thông tin trường học & bằng cấp.",
+      "tipProjects": "Thêm ít nhất một dự án cá nhân.",
+      "tipSkills": "Bổ sung các kỹ năng chuyên môn cốt lõi."
+    },
+    "editTitle": "Đổi tên mục",
+    "visibility": {
+      "hide": "Ẩn mục này",
+      "show": "Hiện mục này"
     }
   },
   "Metadata": {
