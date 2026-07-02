@@ -9,20 +9,17 @@ import {
   Bookmark,
   BriefcaseBusiness,
   Calendar,
-  CheckCircle,
   ChevronDown,
   ChevronRight,
   Clock,
   Coins,
   Eye,
-  FileText,
   MapPin,
   Monitor,
   PaperPlaneTilt,
   Search,
   ShareNetwork,
   ShieldCheck,
-  Sparkles,
   Star,
   TrendingUp,
   UsersRound,
@@ -248,27 +245,29 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               </div>
             </section>
 
-            <DetailSection icon={<FileText size={18} />} title="Mô tả công việc">
-              <p>{job.description}</p>
-              <BulletList items={responsibilities} />
-            </DetailSection>
+            <section className="job-detail-card job-detail-description-card">
+              <JobContentBlock title="Mô tả công việc">
+                <p>{job.description}</p>
+                <BulletList items={responsibilities} />
+              </JobContentBlock>
 
-            <DetailSection icon={<CheckCircle size={18} />} title="Yêu cầu ứng viên">
-              <BulletList items={requirements} />
-            </DetailSection>
+              <JobContentBlock title="Yêu cầu ứng viên">
+                <BulletList items={requirements} />
+              </JobContentBlock>
 
-            <DetailSection icon={<Sparkles size={18} />} title="Quyền lợi">
-              <div className="job-detail-benefit-prose">
-                {benefitParagraphs.map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
-                ))}
-                <ul>
-                  {benefitItems.map((item) => (
-                    <li key={item}>{item}</li>
+              <JobContentBlock title="Quyền lợi">
+                <div className="job-detail-benefit-prose">
+                  {benefitParagraphs.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
                   ))}
-                </ul>
-              </div>
-            </DetailSection>
+                  <ul>
+                    {benefitItems.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </JobContentBlock>
+            </section>
 
             <DetailSection icon={<TrendingUp size={18} />} title="Quy trình tuyển dụng">
               <div className="job-detail-process">
@@ -440,6 +439,15 @@ function DetailSection({
         <span>{icon}</span>
         <h2>{title}</h2>
       </div>
+      {children}
+    </section>
+  );
+}
+
+function JobContentBlock({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="job-detail-content-block">
+      <h2>{title}</h2>
       {children}
     </section>
   );

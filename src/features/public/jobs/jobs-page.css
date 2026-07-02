@@ -269,6 +269,38 @@
   overflow-wrap: anywhere;
 }
 
+.job-detail-page .job-detail-description-card {
+  display: grid;
+  gap: 26px;
+  padding: 26px;
+}
+
+.job-detail-page .job-detail-content-block {
+  display: grid;
+  gap: 14px;
+}
+
+.job-detail-page .job-detail-content-block + .job-detail-content-block {
+  padding-top: 26px;
+  border-top: 1px solid #eef2f6;
+}
+
+.job-detail-page .job-detail-content-block h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.job-detail-page .job-detail-content-block > p {
+  margin: 0;
+  color: #475569;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.75;
+}
+
 @media (max-width: 640px) {
   .job-detail-page .job-detail-skill-dialog {
     align-items: end;
@@ -290,6 +322,10 @@
 
   .job-detail-page .job-detail-info-line {
     grid-template-columns: 34px minmax(72px, 0.7fr) minmax(0, 1.2fr);
+  }
+
+  .job-detail-page .job-detail-description-card {
+    padding: 18px;
   }
 }
 
