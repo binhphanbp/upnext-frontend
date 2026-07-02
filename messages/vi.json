@@ -489,6 +489,39 @@
         "content": "Hồ sơ của bạn hiện đang ở trạng thái kích hoạt từng phần. Sau khi hoàn tất 3 bước cập nhật thông tin trong hộp thoại (Thông tin nhà tuyển dụng, hồ sơ công ty và tải lên minh chứng doanh nghiệp hợp lệ), hệ thống sẽ gửi yêu cầu phê duyệt đến quản trị viên. Công ty của bạn sẽ được kích hoạt đầy đủ tính năng tuyển dụng ngay khi hồ sơ được xác minh thành công."
       }
     },
+    "pipeline": {
+      "title": "Quy trình ứng viên",
+      "subtitle": "Quản lý trạng thái ứng viên, theo dõi các giai đoạn tuyển dụng và đánh giá kết quả kiểm tra.",
+      "metrics": {
+        "totalCandidates": "Tổng số ứng viên",
+        "totalCandidatesDesc": "Ứng viên khớp điều kiện lọc",
+        "inInterview": "Đang phỏng vấn",
+        "inInterviewDesc": "Giai đoạn phỏng vấn trực tiếp",
+        "offersSent": "Đề xuất đã gửi",
+        "offersSentDesc": "Đã gửi đề nghị thử việc",
+        "hiredRate": "Tỉ lệ tuyển dụng",
+        "hiredRateDesc": "Đã tuyển / tổng số ứng viên"
+      },
+      "filters": {
+        "searchPlaceholder": "Tìm theo tên ứng viên, vị trí, công nghệ...",
+        "allJobs": "Tất cả công việc",
+        "clearFilters": "Xóa bộ lọc",
+        "exportBtn": "Xuất file",
+        "addCandidateBtn": "Thêm ứng viên",
+        "showingFiltered": "Đang hiển thị kết quả lọc theo lựa chọn của bạn."
+      },
+      "column": {
+        "noCandidates": "Không có ứng viên",
+        "emptyDescription": "Kéo thả hoặc ghép ứng viên phù hợp.",
+        "yearsExp": "{count} năm kinh nghiệm",
+        "yrsExp": "{count} năm kinh nghiệm"
+      },
+      "emptyState": {
+        "title": "Không tìm thấy ứng viên nào",
+        "description": "Không có ứng viên nào khớp với từ khóa tìm kiếm hoặc công việc đã chọn. Vui lòng thay đổi từ khóa hoặc xóa bộ lọc.",
+        "clearFilters": "Xóa bộ lọc"
+      }
+    },
     "onboarding": {
       "step0": "Thông tin nhà tuyển dụng",
       "step1": "Hồ sơ công ty",
