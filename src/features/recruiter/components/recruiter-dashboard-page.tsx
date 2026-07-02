@@ -247,11 +247,17 @@ export function RecruiterDashboardPage() {
     if (!account) return false;
     if (skippedOnboarding) return false;
 
+    // Only OWNER accounts need to perform company onboarding
+    const isOwner = account.recruiterRole?.code === "OWNER";
+    if (!isOwner) return false;
+
     const isCompanyOnboarded =
       account.company &&
-      (account.company.verificationStatus === "VERIFIED" || account.company.businessLicenseFileId);
+      (account.company.verificationStatus === "VERIFIED" ||
+        account.company.verificationStatus === "PENDING" ||
+        account.company.businessLicenseFileId);
 
-    return !account.profile || !isCompanyOnboarded;
+    return !isCompanyOnboarded;
   }, [account, skippedOnboarding]);
 
   const progressPercentage = useMemo(() => {

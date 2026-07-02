@@ -5,6 +5,11 @@ export type RecruiterAccountDetail = Readonly<{
   id: string;
   email: string;
   status: string;
+  recruiterRole?: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
   company: {
     id: string;
     name: string;

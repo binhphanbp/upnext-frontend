@@ -125,9 +125,24 @@ function resetAuthInputFocusStyle(
 
 export function RecruiterLoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const tAuth = useTranslations("Auth");
   const t = useTranslations("RecruiterAuth");
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      showToast("error", errorParam);
+      const params = new URLSearchParams(window.location.search);
+      params.delete("error");
+      const newSearch = params.toString();
+      router.replace(
+        newSearch ? `${window.location.pathname}?${newSearch}` : window.location.pathname,
+      );
+    }
+  }, [searchParams, router]);
+
   const form = useForm<LoginValues>({
     resolver: zodResolver(
       createLoginSchema({
@@ -150,7 +165,7 @@ export function RecruiterLoginPage() {
       localStorage.setItem("upnext.recruiter.tokenType", response.tokenType);
       localStorage.setItem("upnext.recruiter.user", JSON.stringify(response.user));
       showToast("success", t("login.success"));
-      router.push("/recruiter");
+      router.push(searchParams.get("redirect") || "/recruiter");
     } catch (error) {
       if (error instanceof ApiError && error.status === 403) {
         showToast("warning", t("login.emailVerificationRequired"));
@@ -580,13 +595,13 @@ export function AuthHeader({ title }: { title: string }) {
         >
           {locale === "vi" ? (
             <>
-              <FlagIcon code="EN" />
-              <span>EN</span>
+              <FlagIcon code="VI" />
+              <span>VI</span>
             </>
           ) : (
             <>
-              <FlagIcon code="VI" />
-              <span>VI</span>
+              <FlagIcon code="EN" />
+              <span>EN</span>
             </>
           )}
         </button>

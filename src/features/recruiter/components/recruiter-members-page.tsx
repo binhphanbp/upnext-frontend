@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  ArrowsLeftRight,
   CircleNotch,
+  Crown,
   DownloadSimple,
   MagnifyingGlass,
   Lock,
@@ -218,7 +220,7 @@ export function RecruiterMembersPage() {
         setRoles(nextRoles);
         setIsOwner(isOwnerRole(userRole) || !userRole);
       } catch (error) {
-        handleAuthError(error, router);
+        handleAuthError(error, router, t);
       } finally {
         setLoading(false);
       }
@@ -256,7 +258,7 @@ export function RecruiterMembersPage() {
     }
 
     if (!isValidEmail(nextEmail)) {
-      setInviteEmailError("Email không đúng định dạng.");
+      setInviteEmailError(t("team.inviteDialog.emailInvalid"));
       return;
     }
 
@@ -286,15 +288,55 @@ export function RecruiterMembersPage() {
     }
   };
 
-  const toggleMemberStatus = async (member: CompanyMember) => {
-    const nextStatus = member.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED";
-    const statusText = nextStatus === "SUSPENDED" ? "khÃ³a" : "má»Ÿ khÃ³a";
+  const handleTransferOwnership = async (member: CompanyMember) => {
+    const ownerRole = roles.find((r) => isOwnerRole(r));
+    if (!ownerRole) {
+      void Swal.fire({
+        icon: "error",
+        title: "Không tìm thấy vai trò Owner",
+        text: "Không thể thực hiện chuyển quyền vào lúc này.",
+      });
+      return;
+    }
+
+    const name =
+      member.recruiterAccount?.profile?.fullName ??
+      member.recruiterAccount?.email ??
+      member.invitedEmail;
+
     const result = await Swal.fire({
       icon: "warning",
-      title: `${nextStatus === "SUSPENDED" ? "KhÃ³a" : "Má»Ÿ khÃ³a"} tÃ i khoáº£n nÃ y?`,
-      text: `Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n ${statusText} tÃ i khoáº£n cá»§a ${member.recruiterAccount?.profile?.fullName ?? member.invitedEmail}?`,
+      title: "Chuyển quyền Chủ sở hữu?",
+      text: `Bạn có chắc chắn muốn chuyển quyền Owner cho ${name} không? Tài khoản của bạn sẽ bị hạ xuống vai trò HR.`,
       showCancelButton: true,
-      confirmButtonText: "Äá»“ng Ã½",
+      confirmButtonText: "Đồng ý chuyển",
+      cancelButtonText: t("team.actions.cancel"),
+      confirmButtonColor: "#d33",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      setLoading(true);
+      await updateCompanyMemberRole(member.id, ownerRole.id, token);
+      await reload();
+      void toast.fire({ icon: "success", title: "Đã chuyển quyền sở hữu thành công." });
+    } catch (error) {
+      showActionError(error, t);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleMemberStatus = async (member: CompanyMember) => {
+    const nextStatus = member.status === "SUSPENDED" ? "ACTIVE" : "SUSPENDED";
+    const statusText = nextStatus === "SUSPENDED" ? "khóa" : "mở khóa";
+    const result = await Swal.fire({
+      icon: "warning",
+      title: `${nextStatus === "SUSPENDED" ? "Khóa" : "Mở khóa"} tài khoản này?`,
+      text: `Bạn có chắc chắn muốn ${statusText} tài khoản của ${member.recruiterAccount?.profile?.fullName ?? member.invitedEmail}?`,
+      showCancelButton: true,
+      confirmButtonText: "Đồng ý",
       cancelButtonText: t("team.actions.cancel"),
     });
 
@@ -303,7 +345,7 @@ export function RecruiterMembersPage() {
     try {
       await updateCompanyMemberStatus(member.id, nextStatus, token);
       await reload();
-      void toast.fire({ icon: "success", title: `ÄÃ£ ${statusText} thÃ nh viÃªn thÃ nh cÃ´ng.` });
+      void toast.fire({ icon: "success", title: `Đã ${statusText} thành viên thành công.` });
     } catch (error) {
       showActionError(error, t);
     }
@@ -363,8 +405,8 @@ export function RecruiterMembersPage() {
 
     const result = await Swal.fire({
       icon: "warning",
-      title: "XÃ³a cÃ¡c thÃ nh viÃªn Ä‘Ã£ chá»n?",
-      text: `HÃ nh Ä‘á»™ng nÃ y sáº½ xÃ³a vÄ©nh viá»…n ${selectedModifiableMemberIds.length} thÃ nh viÃªn tuyá»ƒn dá»¥ng Ä‘Ã£ chá»n.`,
+      title: "Xóa các thành viên đã chọn?",
+      text: `Hành động này sẽ xóa vĩnh viễn ${selectedModifiableMemberIds.length} thành viên tuyển dụng đã chọn.`,
       showCancelButton: true,
       confirmButtonText: t("team.actions.delete"),
       cancelButtonText: t("team.actions.cancel"),
@@ -377,7 +419,7 @@ export function RecruiterMembersPage() {
       await Promise.all(selectedModifiableMemberIds.map((id) => removeCompanyMember(id, token)));
       setRowSelection({});
       await reload();
-      void toast.fire({ icon: "success", title: "ÄÃ£ xÃ³a cÃ¡c thÃ nh viÃªn thÃ nh cÃ´ng." });
+      void toast.fire({ icon: "success", title: "Đã xóa các thành viên thành công." });
     } catch (error) {
       showActionError(error, t);
     } finally {
@@ -388,13 +430,13 @@ export function RecruiterMembersPage() {
   const handleBulkLock = async (status: "ACTIVE" | "SUSPENDED") => {
     if (selectedModifiableMemberIds.length === 0) return;
 
-    const actionText = status === "SUSPENDED" ? "KhÃ³a" : "Má»Ÿ khÃ³a";
+    const actionText = status === "SUSPENDED" ? "Khóa" : "Mở khóa";
     const result = await Swal.fire({
       icon: "warning",
-      title: `${actionText} cÃ¡c tÃ i khoáº£n Ä‘Ã£ chá»n?`,
-      text: `Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n ${actionText.toLowerCase()} ${selectedModifiableMemberIds.length} tÃ i khoáº£n thÃ nh viÃªn tuyá»ƒn dá»¥ng nÃ y?`,
+      title: `${actionText} các tài khoản đã chọn?`,
+      text: `Bạn có chắc chắn muốn ${actionText.toLowerCase()} ${selectedModifiableMemberIds.length} tài khoản thành viên tuyển dụng này?`,
       showCancelButton: true,
-      confirmButtonText: "Äá»“ng Ã½",
+      confirmButtonText: "Đồng ý",
       cancelButtonText: t("team.actions.cancel"),
     });
 
@@ -409,7 +451,7 @@ export function RecruiterMembersPage() {
       await reload();
       void toast.fire({
         icon: "success",
-        title: `ÄÃ£ ${actionText.toLowerCase()} cÃ¡c thÃ nh viÃªn thÃ nh cÃ´ng.`,
+        title: `Đã ${actionText.toLowerCase()} các thành viên thành công.`,
       });
     } catch (error) {
       showActionError(error, t);
@@ -426,10 +468,10 @@ export function RecruiterMembersPage() {
 
     const result = await Swal.fire({
       icon: "warning",
-      title: "Thay Ä‘á»•i vai trÃ² tuyá»ƒn dá»¥ng?",
-      text: `Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n Ä‘á»•i vai trÃ² cá»§a ${selectedModifiableMemberIds.length} thÃ nh viÃªn Ä‘Ã£ chá»n thÃ nh "${selectedRole.name}"?`,
+      title: "Thay đổi vai trò tuyển dụng?",
+      text: `Bạn có chắc chắn muốn đổi vai trò của ${selectedModifiableMemberIds.length} thành viên đã chọn thành "${selectedRole.name}"?`,
       showCancelButton: true,
-      confirmButtonText: "Äá»“ng Ã½",
+      confirmButtonText: "Đồng ý",
       cancelButtonText: t("team.actions.cancel"),
     });
 
@@ -444,7 +486,7 @@ export function RecruiterMembersPage() {
       await reload();
       void toast.fire({
         icon: "success",
-        title: "ÄÃ£ thay Ä‘á»•i vai trÃ² cÃ¡c thÃ nh viÃªn thÃ nh cÃ´ng.",
+        title: "Đã thay đổi vai trò các thành viên thành công.",
       });
     } catch (error) {
       showActionError(error, t);
@@ -512,7 +554,7 @@ export function RecruiterMembersPage() {
     <div className="w-full min-w-0 space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-950">Mời người dùng</h1>
+          <h1 className="text-2xl font-bold text-slate-950">{t("team.title")}</h1>
         </div>
         <div className="flex flex-wrap gap-2.5">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-100 bg-teal-50/60 px-4 py-2 text-sm font-bold text-teal-800">
@@ -537,13 +579,13 @@ export function RecruiterMembersPage() {
       <RecruiterTableLayout
         loading={false}
         filterBar={
-          <div className="relative max-w-xs flex-1">
+          <div className="relative w-full flex-1 sm:max-w-xs">
             <MagnifyingGlass
               size={18}
               className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
             />
             <Input
-              placeholder={t("team.actions.search") || "TÃ¬m kiáº¿m..."}
+              placeholder={t("team.actions.search") || "Tìm kiếm..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-10 rounded-lg pl-10 text-sm"
@@ -554,27 +596,9 @@ export function RecruiterMembersPage() {
           <div className="flex flex-wrap items-center justify-end gap-2">
             {selectedMemberIds.length > 0 && isOwner && (
               <>
-                <span className="mr-2 text-xs font-bold text-slate-500">
-                  ÄÃ£ chá»n {selectedMemberIds.length} dÃ²ng
-                </span>
-
-                {/* Bulk Role Select dropdown */}
-                <Select onValueChange={handleBulkRoleChange} value="">
-                  <SelectTrigger className="h-10 w-[160px] rounded-lg border-slate-200 bg-white text-sm">
-                    <SelectValue placeholder={t("team.actions.changeRole")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assignableRoles.map((role) => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
                 <Button
                   variant="outline"
-                  className="h-10 gap-1.5 border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
+                  className="h-10 gap-1.5 rounded-full border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
                   onClick={() => void handleBulkLock("SUSPENDED")}
                   disabled={selectedModifiableMemberIds.length === 0}
                 >
@@ -584,7 +608,7 @@ export function RecruiterMembersPage() {
 
                 <Button
                   variant="outline"
-                  className="h-10 gap-1.5 border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
+                  className="h-10 gap-1.5 rounded-full border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
                   onClick={() => void handleBulkLock("ACTIVE")}
                   disabled={selectedModifiableMemberIds.length === 0}
                 >
@@ -593,8 +617,8 @@ export function RecruiterMembersPage() {
                 </Button>
 
                 <Button
-                  variant="outline"
-                  className="h-10 gap-1.5 border-red-200 bg-red-50 font-bold text-red-700 hover:bg-red-100"
+                  variant="ghost"
+                  className="h-10 gap-1.5 rounded-full border border-red-200 bg-red-50 font-bold text-red-700 hover:border-red-300 hover:bg-red-100 hover:text-red-800"
                   onClick={() => void handleBulkDelete()}
                   disabled={selectedModifiableMemberIds.length === 0}
                 >
@@ -607,7 +631,7 @@ export function RecruiterMembersPage() {
             <Button
               variant="outline"
               onClick={handleExport}
-              className="h-10 gap-1.5 border-slate-200 font-bold text-slate-700 hover:bg-slate-50"
+              className="h-10 gap-1.5 rounded-full border-slate-200 font-bold text-slate-700 hover:bg-slate-50"
             >
               <DownloadSimple size={16} />
               <span>{t("team.actions.export")}</span>
@@ -636,7 +660,7 @@ export function RecruiterMembersPage() {
             <th className="w-[180px] min-w-[170px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {t("team.table.role")}
             </th>
-            <th className="w-[120px] min-w-[110px] px-4 py-3 text-right text-xs font-bold text-slate-900">
+            <th className="w-[120px] min-w-[110px] px-4 py-3 !text-center text-xs font-bold text-slate-900">
               {t("team.table.actions")}
             </th>
           </tr>
@@ -644,8 +668,23 @@ export function RecruiterMembersPage() {
         <tbody>
           {filteredMembers.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-4 py-12 text-center text-sm text-slate-500">
-                {t("team.table.emptyMembers")}
+              <td colSpan={5} className="px-4 !py-12 text-center text-sm text-slate-500">
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <div className="relative h-28 w-28 shrink-0">
+                    <Image
+                      src="/assets/icons/page-not-found.png"
+                      alt="Not Found"
+                      fill
+                      className="object-contain opacity-75"
+                    />
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-slate-500">
+                    {searchQuery.trim()
+                      ? t("team.table.emptyMembersSearch") ||
+                        "Không tìm thấy thành viên nào phù hợp."
+                      : t("team.table.emptyMembers")}
+                  </p>
+                </div>
               </td>
             </tr>
           ) : (
@@ -662,7 +701,7 @@ export function RecruiterMembersPage() {
                 label = t("team.status.pending");
               } else if (member.status === "SUSPENDED") {
                 tone = "error";
-                label = t("team.status.suspended") || "Bá»‹ khÃ³a";
+                label = t("team.status.suspended") || "Bị khóa";
               }
 
               return (
@@ -715,57 +754,87 @@ export function RecruiterMembersPage() {
                     <Badge tone={tone}>{label}</Badge>
                   </td>
                   <td className="w-[180px] min-w-[170px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
-                    <RoleSelect
-                      label={`${t("team.table.role")} ${email}`}
-                      hideLabel
-                      roles={roles}
-                      value={member.role?.id ?? ""}
-                      onValueChange={(roleId) => changeMemberRole(member.id, roleId)}
-                      size="sm"
-                      disabled={!memberCanBeModified}
-                      t={t}
-                    />
+                    {isOwnerRole(member.role) ? (
+                      <div className="flex items-center justify-start">
+                        <div
+                          className="flex items-center gap-1 rounded-full border border-amber-200/60 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700"
+                          title="Chủ sở hữu công ty"
+                        >
+                          <Crown size={12} weight="fill" className="text-amber-500" />
+                          <span>Owner</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <RoleSelect
+                        label={`${t("team.table.role")} ${email}`}
+                        hideLabel
+                        roles={assignableRoles}
+                        value={member.role?.id ?? ""}
+                        onValueChange={(roleId) => changeMemberRole(member.id, roleId)}
+                        size="sm"
+                        disabled={!memberCanBeModified}
+                        t={t}
+                      />
+                    )}
                   </td>
                   <td className="w-[120px] min-w-[110px] px-4 py-2.5">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        aria-label={
-                          member.status === "SUSPENDED" ? `Unlock ${email}` : `Lock ${email}`
-                        }
-                        className={cn(
-                          "size-8 rounded-lg border-slate-200 text-slate-400 shadow-none transition-all",
-                          memberCanBeModified
-                            ? "hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-                            : "cursor-not-allowed opacity-50",
-                        )}
-                        disabled={!memberCanBeModified}
-                        onClick={() => void toggleMemberStatus(member)}
-                        title={member.status === "SUSPENDED" ? "Má»Ÿ khÃ³a" : "KhÃ³a tÃ i khoáº£n"}
-                      >
-                        {member.status === "SUSPENDED" ? (
-                          <LockOpen size={14} />
-                        ) : (
-                          <Lock size={14} />
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        aria-label={`Delete ${email}`}
-                        className={cn(
-                          "size-8 rounded-lg border-slate-200 text-slate-400 shadow-none transition-all",
-                          memberCanBeModified
-                            ? "hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                            : "cursor-not-allowed opacity-50",
-                        )}
-                        disabled={!memberCanBeModified}
-                        onClick={() => void deleteMember(member.id)}
-                        title="XÃ³a thÃ nh viÃªn"
-                      >
-                        <Trash size={14} />
-                      </Button>
+                    <div className="flex items-center justify-center gap-2">
+                      {isOwnerRole(member.role) ? (
+                        <span className="font-medium text-slate-400">-</span>
+                      ) : (
+                        <>
+                          {isOwner && member.status === "ACTIVE" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Transfer ownership to ${email}`}
+                              className="size-8 rounded-full border border-slate-200 bg-white text-slate-400 shadow-none transition-all hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600"
+                              onClick={() => void handleTransferOwnership(member)}
+                              title="Chuyển quyền Owner"
+                            >
+                              <ArrowsLeftRight size={14} />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={
+                              member.status === "SUSPENDED" ? `Unlock ${email}` : `Lock ${email}`
+                            }
+                            className={cn(
+                              "size-8 rounded-full border border-slate-200 bg-white text-slate-400 shadow-none transition-all",
+                              memberCanBeModified
+                                ? "hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                                : "cursor-not-allowed opacity-50",
+                            )}
+                            disabled={!memberCanBeModified}
+                            onClick={() => void toggleMemberStatus(member)}
+                            title={member.status === "SUSPENDED" ? "Mở khóa" : "Khóa tài khoản"}
+                          >
+                            {member.status === "SUSPENDED" ? (
+                              <LockOpen size={14} />
+                            ) : (
+                              <Lock size={14} />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Delete ${email}`}
+                            className={cn(
+                              "size-8 rounded-full border border-slate-200 bg-white text-slate-400 shadow-none transition-all",
+                              memberCanBeModified
+                                ? "hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                                : "cursor-not-allowed opacity-50",
+                            )}
+                            disabled={!memberCanBeModified}
+                            onClick={() => void deleteMember(member.id)}
+                            title="Xóa thành viên"
+                          >
+                            <Trash size={14} />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -794,7 +863,7 @@ export function RecruiterMembersPage() {
               }}
               onBlur={() => {
                 if (inviteEmail.trim() && !isValidEmail(inviteEmail)) {
-                  setInviteEmailError("Email không đúng định dạng.");
+                  setInviteEmailError(t("team.inviteDialog.emailInvalid"));
                 }
               }}
               placeholder="recruiter@company.com"
@@ -895,7 +964,7 @@ function RoleSelect({
 function showActionError(error: unknown, t: any) {
   void Swal.fire({
     icon: "error",
-    title: t("team.messages.errorTitle") || "CÃ³ lá»—i xáº£y ra",
+    title: t("team.messages.errorTitle") || "Có lỗi xảy ra",
     text: getTeamErrorMessage(error, t),
   });
 }
@@ -919,13 +988,10 @@ function getTeamErrorMessage(error: unknown, t: any) {
     if (error.status === 403) return t("onboarding.companyProfile.errors.forbidden");
     if (error.status === 404) return t("onboarding.companyProfile.errors.notFound");
   }
-  return (
-    t("onboarding.companyProfile.errors.unknown") ||
-    "Há»‡ thá»‘ng gáº·p lá»—i. Vui lÃ²ng thá»­ láº¡i."
-  );
+  return t("onboarding.companyProfile.errors.unknown") || "Hệ thống gặp lỗi. Vui lòng thử lại.";
 }
 
-function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>) {
+function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>, t: any) {
   if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
     clearRecruiterSession();
     router.replace("/recruiter/login");
@@ -933,7 +999,8 @@ function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>) {
   }
   void Swal.fire({
     icon: "error",
-    title: "Lá»—i há»‡ thá»‘ng",
-    text: "Há»‡ thá»‘ng gáº·p sá»± cá»‘. Vui lÃ²ng thá»­ láº¡i sau.",
+    title: t("onboarding.companyProfile.errors.saveErrorTitle") || "Lỗi hệ thống",
+    text:
+      t("onboarding.companyProfile.errors.unknown") || "Hệ thống gặp sự cố. Vui lòng thử lại sau.",
   });
 }

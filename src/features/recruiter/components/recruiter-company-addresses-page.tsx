@@ -2,6 +2,7 @@
 
 import { MapPin, Plus, Trash, PencilSimple, CircleNotch } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
@@ -21,6 +22,7 @@ import {
 } from "@/features/recruiter/constants/vietnam-provinces";
 import { getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
+import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
@@ -57,6 +59,7 @@ export function RecruiterCompanyAddressesPage() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [locations, setLocations] = useState<CompanyLocation[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [provinces, setProvinces] =
     useState<ReadonlyArray<{ code: number; name: string }>>(VIETNAM_PROVINCES);
 
@@ -269,6 +272,42 @@ export function RecruiterCompanyAddressesPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!companyId || !token || selectedIds.length === 0) return;
+
+    const result = await Swal.fire({
+      title: "Xác nhận xóa nhiều địa chỉ",
+      text: `Bạn có chắc chắn muốn xóa ${selectedIds.length} địa chỉ đã chọn không?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Xóa tất cả",
+      cancelButtonText: "Hủy",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        setLoading(true);
+        await Promise.all(selectedIds.map((id) => deleteCompanyLocation(companyId, id, token)));
+        setSelectedIds([]);
+        void toast.fire({
+          icon: "success",
+          title: "Đã xóa các địa chỉ thành công!",
+        });
+        void loadData(companyId, token);
+      } catch (err) {
+        console.error("Failed to bulk delete locations", err);
+        void Swal.fire({
+          icon: "error",
+          title: t("companyAddresses.errors.deleteError"),
+          text: t("companyProfile.errors.unknown"),
+        });
+        setLoading(false);
+      }
+    }
+  };
+
   return (
     <div className="w-full min-w-0 space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -291,17 +330,45 @@ export function RecruiterCompanyAddressesPage() {
         loading={loading}
         filterBar={<span aria-hidden="true" />}
         actionBar={
-          <Button
-            onClick={handleOpenAddForm}
-            className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 font-bold text-white shadow-none transition-all hover:bg-emerald-700"
-          >
-            <Plus size={18} weight="bold" />
-            <span>{t("companyAddresses.addBtn")}</span>
-          </Button>
+          <div className="flex gap-2">
+            {selectedIds.length > 0 && (
+              <Button
+                variant="outline"
+                className="h-10 gap-1.5 border-red-200 bg-red-50 font-bold text-red-700 hover:bg-red-100"
+                onClick={() => void handleBulkDelete()}
+              >
+                <Trash size={15} />
+                <span>Xóa đã chọn ({selectedIds.length})</span>
+              </Button>
+            )}
+            <Button
+              onClick={handleOpenAddForm}
+              className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 font-bold text-white shadow-none transition-all hover:bg-emerald-700"
+            >
+              <Plus size={18} weight="bold" />
+              <span>{t("companyAddresses.addBtn")}</span>
+            </Button>
+          </div>
         }
       >
         <thead>
           <tr className="border-b border-slate-300 bg-slate-200">
+            <th className="w-12 border-r border-slate-300 px-4 py-3 text-center last:border-r-0">
+              <input
+                type="checkbox"
+                checked={locations.length > 0 && selectedIds.length === locations.length}
+                onChange={(event) => {
+                  if (event.target.checked) {
+                    setSelectedIds(locations.map((loc) => loc.id));
+                  } else {
+                    setSelectedIds([]);
+                  }
+                }}
+                aria-label="Select all addresses"
+                className="text-primary accent-primary focus:ring-primary size-4 cursor-pointer rounded border border-slate-300 focus:ring-offset-0"
+                disabled={locations.length === 0}
+              />
+            </th>
             <th className="w-[220px] min-w-[200px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {t("companyAddresses.officeName")}
             </th>
@@ -320,14 +387,16 @@ export function RecruiterCompanyAddressesPage() {
           {locations.length === 0 ? (
             <tr aria-label="Empty company addresses">
               <td
-                colSpan={4}
+                colSpan={5}
                 aria-label="No company addresses"
                 className="!px-6 !py-16 text-center text-sm text-slate-500"
               >
                 <div className="flex flex-col items-center justify-center gap-3">
-                  <img
+                  <Image
                     src="/assets/icons/office-building.png"
                     alt=""
+                    width={80}
+                    height={80}
                     className="size-20 object-contain"
                     aria-hidden="true"
                   />
@@ -346,8 +415,25 @@ export function RecruiterCompanyAddressesPage() {
             locations.map((loc) => (
               <tr
                 key={loc.id}
-                className="border-b border-slate-200 bg-white transition-colors duration-150 last:border-b-0 even:bg-slate-100/50 hover:bg-sky-50/30"
+                className={cn(
+                  "border-b border-slate-200 bg-white transition-colors duration-150 last:border-b-0 even:bg-slate-100/50 hover:bg-sky-50/30",
+                  selectedIds.includes(loc.id) && "bg-primary/5 hover:bg-primary/10",
+                )}
               >
+                <td className="w-12 border-r border-slate-100/50 px-4 py-2.5 text-center last:border-r-0">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(loc.id)}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        setSelectedIds((current) => [...current, loc.id]);
+                      } else {
+                        setSelectedIds((current) => current.filter((id) => id !== loc.id));
+                      }
+                    }}
+                    className="text-primary accent-primary focus:ring-primary size-4 cursor-pointer rounded border border-slate-300 focus:ring-offset-0"
+                  />
+                </td>
                 <td className="w-[220px] min-w-[200px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
                   <span className="text-sm font-semibold text-slate-800">{loc.name || "-"}</span>
                 </td>

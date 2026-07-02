@@ -128,7 +128,8 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
     pathname.includes("/forgot-password") ||
     pathname.includes("/reset-password") ||
     pathname.includes("/email-verification") ||
-    pathname.includes("/auth/callback");
+    pathname.includes("/auth/callback") ||
+    pathname.includes("/company-invitations");
 
   useEffect(() => {
     if (isAuthPage) {

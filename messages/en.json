@@ -781,7 +781,10 @@
         "delete": "Delete",
         "edit": "Edit",
         "search": "Search...",
-        "export": "Export list"
+        "export": "Export list",
+        "changeRole": "Change Role",
+        "lock": "Lock",
+        "unlock": "Unlock"
       },
       "alerts": {
         "inviteOwnerOnly": "Only the company Owner has permission to invite members.",
@@ -795,17 +798,20 @@
         "assignedCount": "Assigned Count",
         "permissions": "Permissions",
         "emptyMembers": "No members found.",
+        "emptyMembersSearch": "No matching members found.",
         "emptyRoles": "No roles found.",
         "allPermissions": "All permissions"
       },
       "status": {
         "active": "Active",
-        "pending": "Pending"
+        "pending": "Pending",
+        "suspended": "Locked"
       },
       "inviteDialog": {
         "title": "Invite New Member",
         "description": "Enter the email of the member you want to invite to your recruitment team.",
         "emailLabel": "Email Address",
+        "emailInvalid": "Invalid email format.",
         "roleLabel": "Recruitment Role",
         "submit": "Send Invitation",
         "submitting": "Sending..."
@@ -1738,6 +1744,26 @@
       "confirmPlaceholder": "Re-enter new password",
       "submit": "Reset Password",
       "submitting": "Resetting..."
+    },
+    "companyInvitation": {
+      "title": "Company Invitation",
+      "subtitle": "You have been invited to join {companyName} as a {roleName}.",
+      "setPasswordTitle": "Setup your password",
+      "setPasswordDescription": "Please set a password for your account to join the company.",
+      "passwordLabel": "New password",
+      "passwordPlaceholder": "Enter your new password",
+      "confirmLabel": "Confirm password",
+      "confirmPlaceholder": "Confirm your password",
+      "submit": "Accept invitation & Set password",
+      "submitting": "Processing...",
+      "success": "Congratulations! You have successfully joined the company.",
+      "invalidInvitation": "Invalid or expired invitation link.",
+      "backToLogin": "Back to Login",
+      "alreadyAccepted": "This invitation has already been accepted or is no longer valid.",
+      "alreadyLoggedInTitle": "Accept Invitation",
+      "alreadyLoggedInDesc": "You are logged in as {email}. Do you want to join {companyName}?",
+      "acceptCta": "Accept Invitation",
+      "logoutAndUseOther": "Use a different account"
     },
     "showcase": {
       "slide1Title": "Smart Candidate Management",
