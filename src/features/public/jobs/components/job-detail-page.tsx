@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
 import { useSavedJobsStore } from "@/features/candidate/saved-jobs";
+import { getCandidateSession } from "@/features/candidate/session";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 
 import { getPublicJobs } from "../../home/api";
@@ -33,6 +34,7 @@ import {
 } from "../../home/marketing-icons";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
+import { ApplyModal } from "./apply-modal";
 import { jobs, type Job } from "./jobs-page";
 
 import "../jobs-page.css";
@@ -200,6 +202,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   const job = jobsList.find((item) => item.id === jobId) ?? fallbackJob;
   const { savedJobIds, toggleSaveJob } = useSavedJobsStore();
   const saved = savedJobIds.includes(job.id);
+  const [isOpenApply, setIsOpenApply] = useState(false);
 
   const similarJobs = useMemo(
     () =>
@@ -286,7 +289,17 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               </div>
 
               <div className="job-detail-action-row">
-                <button type="button" onClick={() => navigate(`/register?job=${job.id}`)}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const session = getCandidateSession();
+                    if (session) {
+                      setIsOpenApply(true);
+                    } else {
+                      navigate(`/register?job=${job.id}`);
+                    }
+                  }}
+                >
                   <PaperPlaneTilt size={18} />
                   Ứng tuyển ngay
                 </button>
@@ -411,7 +424,17 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
             <section className="job-detail-card job-detail-ready-card">
               <h2>Sẵn sàng ứng tuyển?</h2>
               <p>Gia tăng cơ hội với hồ sơ nổi bật</p>
-              <button type="button" onClick={() => navigate(`/register?job=${job.id}`)}>
+              <button
+                type="button"
+                onClick={() => {
+                  const session = getCandidateSession();
+                  if (session) {
+                    setIsOpenApply(true);
+                  } else {
+                    navigate(`/register?job=${job.id}`);
+                  }
+                }}
+              >
                 <PaperPlaneTilt size={18} />
                 Ứng tuyển ngay
               </button>
@@ -506,6 +529,10 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
       </section>
 
       <PublicFooter navigate={navigate} />
+
+      {isOpenApply && (
+        <ApplyModal isOpen={isOpenApply} onClose={() => setIsOpenApply(false)} job={job} />
+      )}
     </main>
   );
 }

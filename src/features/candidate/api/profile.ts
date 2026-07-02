@@ -372,3 +372,22 @@ export function createCandidateCv(
     method: "POST",
   });
 }
+
+export function submitApplication(
+  token: string,
+  payload: {
+    jobPostId: string;
+    candidateAccountId: string;
+    cvId?: string | null;
+    coverLetter?: string | null;
+  },
+) {
+  return apiRequest<any>("/applications", {
+    method: "POST",
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+}
