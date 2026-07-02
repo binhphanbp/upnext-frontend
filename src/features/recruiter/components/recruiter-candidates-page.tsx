@@ -16,6 +16,7 @@ import {
 import { format } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 
@@ -115,6 +116,9 @@ export function RecruiterCandidatesPage() {
   const t = useTranslations("Recruiter");
   const locale = useLocale() as Locale;
 
+  const searchParams = useSearchParams();
+  const presetJobPostId = searchParams?.get("jobPostId") ?? "";
+
   const [token, setToken] = useState("");
   const [candidates, setCandidates] = useState<Application[]>([]);
   const [jobs, setJobs] = useState<RecruiterJobPost[]>([]);
@@ -125,7 +129,7 @@ export function RecruiterCandidatesPage() {
 
   // Filter States
   const [search, setSearch] = useState("");
-  const [jobPostId, setJobPostId] = useState("");
+  const [jobPostId, setJobPostId] = useState(presetJobPostId);
   const [status, setStatus] = useState("");
 
   // Pagination States
