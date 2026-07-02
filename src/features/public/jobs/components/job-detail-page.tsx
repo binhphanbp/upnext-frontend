@@ -4,13 +4,14 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
+import { Breadcrumb } from "@/shared/ui/breadcrumb";
+
 import {
   ArrowRight,
   Bookmark,
   BriefcaseBusiness,
   Calendar,
   CheckCircle,
-  ChevronRight,
   Clock,
   Coins,
   Eye,
@@ -149,17 +150,14 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
       <PublicHeader navigate={navigate} />
 
       <section className="job-detail-shell">
-        <nav className="job-detail-breadcrumb" aria-label="Breadcrumb">
-          <button type="button" onClick={() => navigate("/")}>
-            Trang chủ
-          </button>
-          <ChevronRight size={14} />
-          <button type="button" onClick={() => navigate("/jobs")}>
-            Việc làm IT
-          </button>
-          <ChevronRight size={14} />
-          <span>{job.title}</span>
-        </nav>
+        <Breadcrumb
+          className="mb-4"
+          items={[
+            { label: "Trang chủ", onClick: () => navigate("/") },
+            { label: "Việc làm IT", onClick: () => navigate("/jobs") },
+            { label: job.title },
+          ]}
+        />
 
         <section className="job-detail-layout">
           <article className="job-detail-main">

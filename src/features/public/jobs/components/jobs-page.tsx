@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  House,
   CaretRight,
   CaretDown,
   Check,
@@ -28,6 +27,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCandidateSession } from "@/features/candidate/session";
 import { apiRequest } from "@/shared/api/http";
 import { formatRelativeTime } from "@/shared/lib/date";
+import { Breadcrumb } from "@/shared/ui/breadcrumb";
 
 import { getPublicJobs } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
@@ -943,18 +943,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         <main className="flex w-full flex-col gap-6 py-8">
           {/* Breadcrumb & Title */}
           <div className="jobs-container">
-            <div className="mb-4 flex items-center gap-2 text-xs text-slate-500">
-              <House size={14} className="text-slate-400" />
-              <button
-                type="button"
-                onClick={() => navigate("/")}
-                className="cursor-pointer transition hover:text-emerald-600"
-              >
-                Trang chủ
-              </button>
-              <CaretRight size={10} className="text-slate-400" />
-              <span className="font-medium text-slate-900">Việc làm IT</span>
-            </div>
+            <Breadcrumb
+              className="mb-4"
+              items={[
+                { label: "Trang chủ", onClick: () => navigate("/") },
+                { label: "Việc làm IT" },
+              ]}
+            />
             <h1 className="mb-2 text-3xl font-bold text-slate-900">
               Tìm kiếm <span className="text-emerald-600">{filteredJobs.length}</span> việc làm từ
               các công ty hàng đầu đang tuyển dụng
@@ -1066,7 +1061,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
           </div>
 
           {/* Main Section: List & Filter */}
-          <div className="mt-2 grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="jobs-container mt-2 grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* Left Column: Job Cards List */}
             <div className="flex flex-col gap-4 lg:col-span-8 xl:col-span-9">
               {/* Sort options bar */}
