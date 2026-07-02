@@ -29,4 +29,17 @@ export const handlers = [
   //     { status: 401 },
   //   );
   // }),
+  http.patch(
+    `${env.NEXT_PUBLIC_API_BASE_URL}/applications/:id/status`,
+    async ({ params, request }) => {
+      const { id } = params;
+      const body = (await request.json()) as { status: string; note?: string };
+      return HttpResponse.json({
+        id,
+        status: body.status,
+        note: body.note,
+        updatedAt: new Date().toISOString(),
+      });
+    },
+  ),
 ];

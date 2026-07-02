@@ -652,6 +652,39 @@
         "content": "Your profile is currently partially activated. After completing the 3 update steps in the dialog (Recruiter Info, Company Profile, and uploading a valid business verification file), the system will submit a request to the administrator. Your company will be fully activated for recruitment as soon as your profile is successfully verified."
       }
     },
+    "pipeline": {
+      "title": "Candidate Pipeline",
+      "subtitle": "Manage candidate status, track recruitment stages, and evaluate scoring metrics.",
+      "metrics": {
+        "totalCandidates": "Total Candidates",
+        "totalCandidatesDesc": "Candidates matching criteria",
+        "inInterview": "In Interview",
+        "inInterviewDesc": "Active interviewing phase",
+        "offersSent": "Offers Sent",
+        "offersSentDesc": "Extended salary proposals",
+        "hiredRate": "Hired Rate",
+        "hiredRateDesc": "Hired vs total candidates"
+      },
+      "filters": {
+        "searchPlaceholder": "Search candidate name, role, tech stack...",
+        "allJobs": "All Jobs",
+        "clearFilters": "Clear Filters",
+        "exportBtn": "Export",
+        "addCandidateBtn": "Add Candidate",
+        "showingFiltered": "Showing filtered results based on your selection."
+      },
+      "column": {
+        "noCandidates": "No candidates",
+        "emptyDescription": "Drag candidates here or match candidates.",
+        "yearsExp": "{count} years experience",
+        "yrsExp": "{count} yrs exp"
+      },
+      "emptyState": {
+        "title": "No candidates found",
+        "description": "No candidates match your search or job criteria. Try adjustments or clear the filters.",
+        "clearFilters": "Clear Filters"
+      }
+    },
     "onboarding": {
       "step0": "Recruiter Info",
       "step1": "Company Profile",

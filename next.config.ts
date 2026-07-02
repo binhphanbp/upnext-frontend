@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   experimental: {
     globalNotFound: true,
   },
+  turbopack: {
+    root: process.cwd(),
+  },
+  transpilePackages: ["@phosphor-icons/react"],
   images: {
     remotePatterns: [
       {
