@@ -310,9 +310,9 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 </span>
                 <h2>Thông tin tuyển dụng</h2>
               </div>
-              <div className="space-y-8">
+              <div>
                 {/* Mô tả công việc */}
-                <div>
+                <div className="pb-5">
                   <h3 className="mb-3 text-base font-bold text-slate-900">Mô tả công việc</h3>
                   {job.description && job.description.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
@@ -327,7 +327,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 </div>
 
                 {/* Yêu cầu ứng viên */}
-                <div className="border-t border-slate-100 pt-6">
+                <div className="border-t border-slate-100 py-5">
                   <h3 className="mb-3 text-base font-bold text-slate-900">Yêu cầu ứng viên</h3>
                   {job.requirements &&
                   job.requirements.replace(/<[^>]*>/g, "").trim().length > 0 ? (
@@ -343,7 +343,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 </div>
 
                 {/* Quyền lợi */}
-                <div className="border-t border-slate-100 pt-6">
+                <div className="border-t border-slate-100 pt-5">
                   <h3 className="mb-3 text-base font-bold text-slate-900">Quyền lợi</h3>
                   {job.benefits && job.benefits.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
@@ -359,7 +359,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               </div>
             </section>
 
-            <DetailSection icon={<BriefcaseBusiness size={18} />} title="Kỹ năng & công nghệ">
+            <DetailSection title="Kỹ năng & công nghệ">
               <div className="job-detail-skill-cloud">
                 {[
                   ...job.tags,
@@ -381,9 +381,6 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
 
             <section className="job-detail-card job-detail-similar-section">
               <div className="job-detail-card-head mb-6">
-                <span>
-                  <BriefcaseBusiness size={18} />
-                </span>
                 <h2>Việc làm tương tự</h2>
               </div>
               <div className="job-detail-similar-grid">
@@ -442,9 +439,9 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
 
             <section className="job-detail-card job-detail-overview-card">
               <h2>Tổng quan công việc</h2>
-              <InfoLine icon={<WalletCards size={17} />} label="Mức lương" value={job.salary} />
+              <InfoLine icon={<Coins size={17} />} label="Mức lương" value={job.salary} />
               <InfoLine icon={<MapPin size={17} />} label="Địa điểm" value={job.location} />
-              <InfoLine icon={<Monitor size={17} />} label="Hình thức" value={job.mode} />
+              <InfoLine icon={<BriefcaseBusiness size={17} />} label="Hình thức" value={job.mode} />
               <InfoLine
                 icon={<UsersRound size={17} />}
                 label="Ứng viên"
@@ -452,7 +449,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               />
               <InfoLine icon={<Calendar size={17} />} label="Trạng thái" value="Đang nhận hồ sơ" />
               <InfoLine
-                icon={<Eye size={17} />}
+                icon={<Star size={17} />}
                 label="Ưu tiên"
                 value={job.featured ? "Tin nổi bật" : "Tin thường"}
               />
@@ -516,14 +513,14 @@ function DetailSection({
   title,
   children,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   title: string;
   children: ReactNode;
 }) {
   return (
     <section className="job-detail-card job-detail-section">
       <div className="job-detail-card-head">
-        <span>{icon}</span>
+        {icon && <span>{icon}</span>}
         <h2>{title}</h2>
       </div>
       {children}
