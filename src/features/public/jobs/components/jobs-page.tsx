@@ -1176,8 +1176,8 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                             )}
                           </h3>
                           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500">
-                            <span className="flex items-center gap-1 border-none bg-transparent p-0 text-slate-500">
-                              <Buildings size={14} className="mr-1 inline-block" /> {job.company}
+                            <span className="flex items-center gap-1">
+                              <MapPin size={14} className="mr-1 inline-block" /> {job.location}
                             </span>
                             <span className="flex items-center gap-1">
                               <Users size={14} className="mr-1 inline-block" /> {job.applicants} ứng
@@ -1203,9 +1203,6 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                         <div className="flex min-w-[140px] items-end justify-between gap-2.5 sm:flex-col sm:justify-start">
                           <span className="text-base font-bold whitespace-nowrap text-slate-900">
                             {job.salary}
-                          </span>
-                          <span className="flex items-center gap-1 text-xs text-slate-500">
-                            <MapPin size={14} /> {job.location}
                           </span>
                           <div className="mt-auto flex w-full items-center gap-2 sm:w-auto">
                             <button
