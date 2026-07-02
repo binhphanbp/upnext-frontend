@@ -1146,7 +1146,9 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                     >
                       <div className="flex flex-col gap-5 sm:flex-row">
                         {/* Logo */}
-                        <LogoMark src={job.logo} name={job.company} color={job.logoColor} />
+                        <div onClick={() => navigate(`/jobs/${job.id}`)} className="cursor-pointer">
+                          <LogoMark src={job.logo} name={job.company} color={job.logoColor} />
+                        </div>
 
                         {/* Body */}
                         <div className="flex flex-1 flex-col gap-1">
@@ -1158,7 +1160,10 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                               <CheckCircle size={14} className="text-emerald-500" weight="fill" />
                             )}
                           </div>
-                          <h3 className="line-clamp-1 text-base font-bold text-slate-900 transition group-hover:text-emerald-600">
+                          <h3
+                            onClick={() => navigate(`/jobs/${job.id}`)}
+                            className="line-clamp-1 cursor-pointer text-base font-bold text-slate-900 transition group-hover:text-emerald-600"
+                          >
                             {job.title}
                             {job.urgent && (
                               <span className="ml-2 inline-flex items-center rounded border border-red-100 bg-red-50 px-1.5 py-0.5 align-middle text-[10px] font-bold text-red-500">
@@ -1223,6 +1228,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                                 size={18}
                                 weight={saved[job.id] ? "fill" : "regular"}
                               />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/jobs/${job.id}`)}
+                              className="flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                            >
+                              Chi tiết <ArrowRight size={12} />
                             </button>
                             <button
                               type="button"
@@ -1493,27 +1505,6 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                         </span>
                       </label>
                     ))}
-                  </div>
-                  {/* Custom Salary Inputs */}
-                  <div className="flex items-center gap-2 border-t border-slate-100 pt-3">
-                    <input
-                      type="number"
-                      placeholder="Từ"
-                      value={customMinSalary}
-                      onChange={(e) => setCustomMinSalary(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-center text-xs outline-none focus:border-emerald-500"
-                    />
-                    <span className="text-xs text-slate-400">-</span>
-                    <input
-                      type="number"
-                      placeholder="Đến"
-                      value={customMaxSalary}
-                      onChange={(e) => setCustomMaxSalary(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-center text-xs outline-none focus:border-emerald-500"
-                    />
-                    <span className="text-[10px] font-medium whitespace-nowrap text-slate-500">
-                      tr. VND
-                    </span>
                   </div>
                 </div>
 
