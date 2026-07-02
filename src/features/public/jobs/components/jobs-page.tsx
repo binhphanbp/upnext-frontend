@@ -1066,7 +1066,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
           </div>
 
           {/* Main Section: List & Filter */}
-          <div className="mt-2 grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="jobs-container mt-2 grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* Left Column: Job Cards List */}
             <div className="flex flex-col gap-4 lg:col-span-8 xl:col-span-9">
               {/* Sort options bar */}
