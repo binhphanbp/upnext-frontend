@@ -17,6 +17,7 @@ import {
   MapPin,
   Monitor,
   PaperPlaneTilt,
+  Plus,
   Search,
   ShareNetwork,
   ShieldCheck,
@@ -373,7 +374,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 <em>Top công ty</em>
               </div>
               <button type="button" className="job-detail-company-follow">
-                <Bookmark size={15} /> Theo dõi công ty
+                <Plus size={16} /> Theo dõi công ty
               </button>
               <div className="job-detail-company-mini-stats">
                 {companyStats.map((stat) => (
