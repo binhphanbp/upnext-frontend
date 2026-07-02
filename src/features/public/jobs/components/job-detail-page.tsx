@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
+import { useSavedJobsStore } from "@/features/candidate/saved-jobs";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 
 import { getPublicJobs } from "../../home/api";
@@ -197,7 +198,8 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   }, [apiJobsData]);
 
   const job = jobsList.find((item) => item.id === jobId) ?? fallbackJob;
-  const [saved, setSaved] = useState(false);
+  const { savedJobIds, toggleSaveJob } = useSavedJobsStore();
+  const saved = savedJobIds.includes(job.id);
 
   const similarJobs = useMemo(
     () =>
@@ -291,7 +293,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 <button
                   type="button"
                   className={saved ? "is-saved" : ""}
-                  onClick={() => setSaved((current) => !current)}
+                  onClick={() => toggleSaveJob(job.id)}
                 >
                   <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
                   {saved ? "Đã lưu" : "Lưu tin"}
@@ -420,7 +422,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               <button
                 type="button"
                 className={saved ? "is-saved" : ""}
-                onClick={() => setSaved((current) => !current)}
+                onClick={() => toggleSaveJob(job.id)}
               >
                 <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
                 {saved ? "Đã lưu tin" : "So sánh CV với JD"}
