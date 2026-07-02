@@ -60,14 +60,12 @@ export function StatCards({ stats }: { stats?: AdminDashboardSummary | undefined
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-bold">{t("newUsers")}</CardTitle>
+          <CardTitle className="text-sm font-bold">{t("totalUsers")}</CardTitle>
           <Users className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
           <div className="text-foreground text-2xl font-extrabold">
-            {stats?.newUsers?.currentWeek?.total
-              ? `+${stats.newUsers.currentWeek.total.toLocaleString()}`
-              : 0}
+            {stats?.totalUsers?.toLocaleString() ?? 0}
           </div>
           <p className="text-muted-foreground mt-1 flex items-center text-xs">
             {renderPercent(stats?.newUsers?.growthPercent)}

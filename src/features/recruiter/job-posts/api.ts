@@ -43,6 +43,7 @@ export type RecruiterJobPost = Readonly<{
   jobCategory: JobOption | null;
   employmentType: JobOption | null;
   experienceLevel: JobOption | null;
+  educationLevel?: string;
   jobPostSkills: ReadonlyArray<{
     skill: JobOption;
   }>;
@@ -69,6 +70,7 @@ export type CreateRecruiterJobPostPayload = Readonly<{
   jobCategoryId?: string | undefined;
   experienceLevelId?: string | undefined;
   employmentTypeId?: string | undefined;
+  educationLevel?: string | undefined;
 }>;
 
 export type JobPostCatalogs = Readonly<{
@@ -139,6 +141,47 @@ export function addSpecializationToRecruiterJobPost(
     body: JSON.stringify({ specializationId, isRequired: true }),
     headers: jsonAuthHeaders(token),
     method: "POST",
+  });
+}
+
+export function updateRecruiterJobPost(
+  jobPostId: string,
+  payload: CreateRecruiterJobPostPayload,
+  token: string,
+) {
+  return apiRequest<RecruiterJobPost>(`/job-posts/${jobPostId}`, {
+    body: JSON.stringify(removeEmptyFields(payload)),
+    headers: jsonAuthHeaders(token),
+    method: "PATCH",
+  });
+}
+
+export function deleteSkillFromRecruiterJobPost(jobPostId: string, skillId: string, token: string) {
+  return apiRequest(`/job-posts/${jobPostId}/skills/${skillId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
+export function deleteLocationFromRecruiterJobPost(
+  jobPostId: string,
+  locationId: string,
+  token: string,
+) {
+  return apiRequest(`/job-posts/${jobPostId}/locations/${locationId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
+export function deleteSpecializationFromRecruiterJobPost(
+  jobPostId: string,
+  specializationId: string,
+  token: string,
+) {
+  return apiRequest(`/job-posts/${jobPostId}/specializations/${specializationId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
   });
 }
 

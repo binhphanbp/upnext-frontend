@@ -1,4 +1,167 @@
 {
+  "CvBuilder": {
+    "title": "UpNext CV Builder",
+    "subtitle": "ATS-friendly CV Builder for IT Developers",
+    "aiImport": "AI Import CV",
+    "aiImportSuccess": "AI CV Parser: Successfully parsed mock CV and prefilled data!",
+    "prefill": "Fill Profile Data",
+    "reset": "Clear CV",
+    "export": "Export PDF / Print",
+    "tabs": {
+      "personal": "Personal",
+      "summary": "Summary",
+      "experience": "Experience",
+      "projects": "Projects",
+      "education": "Education",
+      "skills": "Skills",
+      "styling": "Design"
+    },
+    "personal": {
+      "title": "Personal Information",
+      "subtitle": "Your basic contact information displayed at the top of the CV.",
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "John Doe",
+      "jobTitle": "Target Position",
+      "jobTitlePlaceholder": "Frontend Developer",
+      "email": "Contact Email",
+      "emailPlaceholder": "name@example.com",
+      "phone": "Phone Number",
+      "phonePlaceholder": "+1 xxx xxx xxx",
+      "address": "Address",
+      "addressPlaceholder": "New York, USA",
+      "website": "Website / GitHub / LinkedIn",
+      "websitePlaceholder": "github.com/your-username"
+    },
+    "summary": {
+      "title": "Professional Summary",
+      "subtitle": "A brief 3-4 sentence introduction of your strengths and career goals.",
+      "placeholder": "Briefly describe your outstanding experience..."
+    },
+    "experience": {
+      "title": "Work Experience",
+      "subtitle": "List your work history (newest first).",
+      "empty": "No experience information yet.",
+      "add": "Add Item",
+      "company": "Company Name",
+      "position": "Job Title",
+      "start": "Start Date",
+      "end": "End Date",
+      "tech": "Key Technologies",
+      "description": "Job Description"
+    },
+    "projects": {
+      "title": "Personal Projects / Products",
+      "subtitle": "Describe projects you built independently or as a key contributor.",
+      "empty": "No project information yet.",
+      "add": "Add Item",
+      "name": "Project Name",
+      "role": "Role",
+      "github": "GitHub / Source Link",
+      "demo": "Deploy / Live Demo",
+      "tech": "Technologies Used",
+      "description": "Project Description"
+    },
+    "education": {
+      "title": "Education Background",
+      "subtitle": "Details of schools and majors you graduated from.",
+      "empty": "No education information yet.",
+      "add": "Add Item",
+      "school": "School Name",
+      "degree": "Degree / Qualification",
+      "major": "Major",
+      "gpa": "GPA Grade",
+      "start": "Start Date",
+      "end": "End Date",
+      "description": "Achievements / Notes"
+    },
+    "skills": {
+      "title": "Technical Skills",
+      "subtitle": "Declare your best working skills.",
+      "empty": "No skill information yet.",
+      "add": "Add Skill",
+      "name": "Skill (e.g. Next.js)",
+      "level": "Proficiency",
+      "levels": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced",
+        "expert": "Expert"
+      }
+    },
+    "styling": {
+      "title": "Layout Design & Style Config",
+      "subtitle": "Choose layout, colors, typography, and page spacing.",
+      "template": "CV Template",
+      "themeColor": "Theme Color",
+      "fontFamily": "Font Family",
+      "textSize": "Text Font Size",
+      "marginSize": "Page Margin Space",
+      "sectionsOrder": "Sections Display Order",
+      "cvLanguage": "CV Content Language",
+      "textSizes": {
+        "sm": "Small",
+        "base": "Medium",
+        "lg": "Large"
+      },
+      "marginSizes": {
+        "sm": "Narrow",
+        "base": "Medium",
+        "lg": "Wide"
+      },
+      "cvLanguages": {
+        "vi": "Tiếng Việt",
+        "en": "English"
+      }
+    },
+    "preview": {
+      "title": "A4 Preview Sheet (Real-time)",
+      "zoom": "Zoom:",
+      "collapse": "Collapse editing panel",
+      "expand": "Expand editing panel",
+      "collapseLabel": "Collapse",
+      "expandLabel": "Expand"
+    },
+    "aiEnhance": {
+      "button": "🤖 Optimize with AI",
+      "title": "AI Bullet Point Enhancer",
+      "description": "Use artificial intelligence to rewrite your descriptions in a high-impact, professional format, or choose from industry-standard templates below.",
+      "inputLabel": "Your current content",
+      "enhancedLabel": "AI Enhanced Suggestion",
+      "roleSelect": "Select role for industry templates:",
+      "apply": "Apply suggestion",
+      "enhancing": "Analyzing and optimizing descriptions...",
+      "selectRole": "Choose a role..."
+    },
+    "pdfGuide": {
+      "title": "A4 PDF Export & Print Guide",
+      "subtitle": "To ensure your PDF prints with a pixel-perfect layout, configure these settings in the browser print dialog:",
+      "margin": "1. Margins: Select \"None\"",
+      "graphics": "2. Background Graphics: Checked / Enabled",
+      "headerFooter": "3. Headers and Footers: Unchecked / Disabled",
+      "proceed": "Proceed to Print"
+    },
+    "assistant": {
+      "pageCount": "CV Length:",
+      "page": "A4 page",
+      "pages": "A4 pages",
+      "perfect": "Perfect length!",
+      "warning": "Page Overflow Alert",
+      "warningDetail": "Your CV is slightly overflowing to the next page. Consider narrowing margins, reducing font size, or condensing descriptions to keep it compact and professional.",
+      "completeness": "CV Completeness",
+      "tipsTitle": "CV Optimization Tips:",
+      "tipPersonalInfo": "Fill in your Email and Phone number.",
+      "tipSummary": "Add a professional summary description.",
+      "tipExperience": "Add at least one work experience item.",
+      "tipEducation": "Add school name and degree details.",
+      "tipProjects": "Add at least one personal project item.",
+      "tipSkills": "Add some core professional skills."
+    },
+    "editTitle": "Rename section",
+    "visibility": {
+      "hide": "Hide this section",
+      "show": "Show this section"
+    }
+  },
   "Metadata": {
     "title": "UpNext - IT recruitment platform",
     "description": "UpNext connects IT talent with trusted technology companies through skill-first matching, market data, and a modern hiring experience."
@@ -1062,6 +1225,7 @@
     },
     "operationsAndContent": {
       "title": "Operations & Content",
+      "companies": "Company Management",
       "jobs": "Job Posts",
       "articles": "Articles",
       "moderation": "Content Moderation",
@@ -1086,6 +1250,7 @@
       "subtitle": "Overview of UpNext system performance and revenue.",
       "downloadReport": "Download Report",
       "totalRevenue": "Total Revenue",
+      "totalUsers": "Total Users",
       "comparedToLastMonth": "vs last month",
       "newUsers": "New Users",
       "activeJobs": "Active Jobs",
@@ -1122,6 +1287,32 @@
       "signOut": "Sign Out"
     },
     "users": {
+      "recruiters": {
+        "title": "Employers",
+        "subtitle": "Manage employer accounts and permissions.",
+        "table": {
+          "searchPlaceholder": "Search by name, email, company...",
+          "allStatuses": "All Statuses",
+          "exportExcel": "Export Excel",
+          "user": "User",
+          "company": "Company",
+          "role": "Role",
+          "status": "Status",
+          "joinedDate": "Joined Date",
+          "actions": "Actions",
+          "empty": "No employers found",
+          "statusOptions": {
+            "active": "Active",
+            "pending": "Pending",
+            "banned": "Banned"
+          },
+          "actionOptions": {
+            "viewProfile": "View Profile",
+            "ban": "Ban Account",
+            "unban": "Unban Account"
+          }
+        }
+      },
       "employers": {
         "title": "Employers",
         "subtitle": "Manage company accounts, verify KYC profiles and assign service plans.",
@@ -1223,7 +1414,8 @@
             "partTime": "Part-time",
             "internship": "Internship",
             "other": "Other"
-          }
+          },
+          "expirationDate": "Expiration Date"
         }
       },
       "articles": {

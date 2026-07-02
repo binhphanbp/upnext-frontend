@@ -1,7 +1,18 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Briefcase, CheckCircle, Plus, Prohibit, X } from "@phosphor-icons/react";
+import {
+  Briefcase,
+  CheckCircle,
+  DotsThreeVertical,
+  Eye,
+  MagnifyingGlass,
+  PencilSimple,
+  Plus,
+  Prohibit,
+  Users,
+  X,
+} from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { useForm, type FieldErrors, type UseFormRegisterReturn } from "react-hook-form";
@@ -27,6 +38,10 @@ import {
   type JobPostCatalogs,
   publishRecruiterJobPost,
   type RecruiterJobPost,
+  updateRecruiterJobPost,
+  deleteSkillFromRecruiterJobPost,
+  deleteLocationFromRecruiterJobPost,
+  deleteSpecializationFromRecruiterJobPost,
 } from "@/features/recruiter/job-posts/api";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
@@ -35,6 +50,12 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Checkbox } from "@/shared/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 import { FormInput } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { RichTextEditor } from "@/shared/ui/rich-text-editor";
@@ -52,7 +73,7 @@ const Toast = Swal.mixin({
 
 const optionalNumber = z.preprocess(
   (value) => (value === "" || value === null ? undefined : value),
-  z.coerce.number().min(0).optional(),
+  z.coerce.number().min(0).max(99999999999, "Mức lương tối đa là 99.999.999.999 VND.").optional(),
 );
 
 const EMAIL_LIST_SEPARATOR = /[,;]+/;
@@ -76,6 +97,15 @@ const optionalEmailList = z
     },
   );
 
+const EDUCATION_LEVEL_OPTIONS: JobOption[] = [
+  { id: "ANY", name: "Không yêu cầu" },
+  { id: "HIGH_SCHOOL", name: "Trung học phổ thông" },
+  { id: "VOCATIONAL", name: "Trung cấp" },
+  { id: "COLLEGE", name: "Cao đẳng" },
+  { id: "BACHELOR", name: "Đại học" },
+  { id: "POSTGRADUATE", name: "Sau đại học" },
+];
+
 const jobPostSchema = z
   .object({
     title: z.string().trim().min(5, "Vui lòng nhập tiêu đề tối thiểu 5 ký tự."),
@@ -86,10 +116,15 @@ const jobPostSchema = z
     salaryMax: optionalNumber,
     salaryIsNegotiable: z.boolean(),
     salaryIsVisible: z.boolean(),
-    vacanciesCount: z.coerce.number().int().min(1, "Số lượng tuyển phải từ 1."),
+    vacanciesCount: z.coerce
+      .number()
+      .int()
+      .min(1, "Số lượng tuyển phải từ 1.")
+      .max(99999, "Số lượng tuyển tối đa là 99.999."),
     jobCategoryId: z.string().optional(),
     employmentTypeId: z.string().optional(),
     experienceLevelId: z.string().optional(),
+    educationLevel: z.string().default("ANY"),
     jobLocationIds: z.array(z.string()).default([]),
     applicationEmails: optionalEmailList,
     skillIds: z.array(z.string()).default([]),
@@ -176,8 +211,14 @@ export function RecruiterJobPostsPage() {
   const [redirecting, setRedirecting] = useState(false);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
 
-  const [submitAction, setSubmitAction] = useState<"draft" | "publish">("draft");
   const [editorResetKey, setEditorResetKey] = useState(0);
+  const [view, setView] = useState<"list" | "create" | "details" | "edit">("list");
+  const [activeJob, setActiveJob] = useState<RecruiterJobPost | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const form = useForm<JobPostFormInput, unknown, JobPostFormValues>({
     resolver: zodResolver(jobPostSchema),
@@ -192,6 +233,7 @@ export function RecruiterJobPostsPage() {
       jobCategoryId: "",
       employmentTypeId: "",
       experienceLevelId: "",
+      educationLevel: "ANY",
       jobLocationIds: [],
       applicationEmails: "",
       skillIds: [],
@@ -280,50 +322,141 @@ export function RecruiterJobPostsPage() {
 
   async function submit(values: JobPostFormValues) {
     try {
-      const createdJob = await createRecruiterJobPost(
-        {
-          benefits: values.benefits,
-          description: values.description,
-          employmentTypeId: values.employmentTypeId,
-          experienceLevelId: values.experienceLevelId,
-          jobCategoryId: values.jobCategoryId,
-          requirements: values.requirements,
-          salaryCurrency: "VND",
-          salaryIsNegotiable: values.salaryIsNegotiable,
-          salaryIsVisible: values.salaryIsVisible,
-          salaryMax: values.salaryMax,
-          salaryMin: values.salaryMin,
-          title: values.title,
-          vacanciesCount: values.vacanciesCount,
-        },
-        token,
-      );
+      if (view === "edit" && activeJob) {
+        // Edit flow
+        await updateRecruiterJobPost(
+          activeJob.id,
+          {
+            benefits: values.benefits,
+            description: values.description,
+            employmentTypeId: values.employmentTypeId,
+            experienceLevelId: values.experienceLevelId,
+            jobCategoryId: values.jobCategoryId,
+            requirements: values.requirements,
+            salaryCurrency: "VND",
+            salaryIsNegotiable: values.salaryIsNegotiable,
+            salaryIsVisible: values.salaryIsVisible,
+            salaryMax: values.salaryMax,
+            salaryMin: values.salaryMin,
+            title: values.title,
+            vacanciesCount: values.vacanciesCount,
+            educationLevel: values.educationLevel,
+          },
+          token,
+        );
 
-      await Promise.all([
-        ...values.jobLocationIds.map((locationId) =>
-          addLocationToRecruiterJobPost(createdJob.id, locationId, token),
-        ),
-        ...values.skillIds.map((skillId) =>
-          addSkillToRecruiterJobPost(createdJob.id, skillId, token),
-        ),
-        ...values.specializationIds.map((specializationId) =>
-          addSpecializationToRecruiterJobPost(createdJob.id, specializationId, token),
-        ),
-      ]);
+        // Update locations relations
+        const oldLocationIds = activeJob.jobPostLocations.map((l) => l.jobLocation.id);
+        const locationsToAdd = values.jobLocationIds.filter((id) => !oldLocationIds.includes(id));
+        const locationsToRemove = oldLocationIds.filter(
+          (id) => !values.jobLocationIds.includes(id),
+        );
 
-      if (submitAction === "publish") {
-        await publishRecruiterJobPost(createdJob.id, token);
-        showToast("success", "Tin tuyển dụng đã được đăng thành công.");
+        // Update skills relations
+        const oldSkillIds = activeJob.jobPostSkills.map((s) => s.skill.id);
+        const skillsToAdd = values.skillIds.filter((id) => !oldSkillIds.includes(id));
+        const skillsToRemove = oldSkillIds.filter((id) => !values.skillIds.includes(id));
+
+        // Update specializations relations
+        const oldSpecializationIds =
+          ((activeJob as any).jobPostSpecializations as any[] | undefined)?.map(
+            (s) => s.specialization.id,
+          ) ?? [];
+        const specializationsToAdd = values.specializationIds.filter(
+          (id) => !oldSpecializationIds.includes(id),
+        );
+        const specializationsToRemove = oldSpecializationIds.filter(
+          (id) => !values.specializationIds.includes(id),
+        );
+
+        await Promise.all([
+          ...locationsToAdd.map((id) => addLocationToRecruiterJobPost(activeJob.id, id, token)),
+          ...locationsToRemove.map((id) =>
+            deleteLocationFromRecruiterJobPost(activeJob.id, id, token),
+          ),
+          ...skillsToAdd.map((id) => addSkillToRecruiterJobPost(activeJob.id, id, token)),
+          ...skillsToRemove.map((id) => deleteSkillFromRecruiterJobPost(activeJob.id, id, token)),
+          ...specializationsToAdd.map((id) =>
+            addSpecializationToRecruiterJobPost(activeJob.id, id, token),
+          ),
+          ...specializationsToRemove.map((id) =>
+            deleteSpecializationFromRecruiterJobPost(activeJob.id, id, token),
+          ),
+        ]);
+
+        showToast("success", "Cập nhật tin tuyển dụng thành công.");
       } else {
-        showToast("success", "Đã lưu bản nháp tin tuyển dụng thành công.");
+        // Create flow
+        const createdJob = await createRecruiterJobPost(
+          {
+            benefits: values.benefits,
+            description: values.description,
+            employmentTypeId: values.employmentTypeId,
+            experienceLevelId: values.experienceLevelId,
+            jobCategoryId: values.jobCategoryId,
+            requirements: values.requirements,
+            salaryCurrency: "VND",
+            salaryIsNegotiable: values.salaryIsNegotiable,
+            salaryIsVisible: values.salaryIsVisible,
+            salaryMax: values.salaryMax,
+            salaryMin: values.salaryMin,
+            title: values.title,
+            vacanciesCount: values.vacanciesCount,
+            educationLevel: values.educationLevel,
+          },
+          token,
+        );
+
+        await Promise.all([
+          ...values.jobLocationIds.map((locationId) =>
+            addLocationToRecruiterJobPost(createdJob.id, locationId, token),
+          ),
+          ...values.skillIds.map((skillId) =>
+            addSkillToRecruiterJobPost(createdJob.id, skillId, token),
+          ),
+          ...values.specializationIds.map((specializationId) =>
+            addSpecializationToRecruiterJobPost(createdJob.id, specializationId, token),
+          ),
+        ]);
+
+        showToast("success", "Đã tạo bản nháp tin tuyển dụng thành công.");
       }
 
       form.reset();
       setEditorResetKey((key) => key + 1);
       await reloadJobs();
+      setView("list");
+      setActiveJob(null);
     } catch (error) {
       showToast("error", getJobPostErrorMessage(error));
     }
+  }
+
+  function startEdit(job: RecruiterJobPost) {
+    setActiveJob(job);
+    form.reset({
+      title: job.title,
+      description: job.description,
+      requirements: job.requirements ?? "",
+      benefits: job.benefits ?? "",
+      salaryIsNegotiable: job.salaryIsNegotiable,
+      salaryIsVisible: job.salaryIsVisible,
+      salaryMin: job.salaryMin !== null ? Number(job.salaryMin) : undefined,
+      salaryMax: job.salaryMax !== null ? Number(job.salaryMax) : undefined,
+      vacanciesCount: job.vacanciesCount,
+      jobCategoryId: job.jobCategory?.id ?? "",
+      employmentTypeId: job.employmentType?.id ?? "",
+      experienceLevelId: job.experienceLevel?.id ?? "",
+      educationLevel: job.educationLevel ?? "ANY",
+      jobLocationIds: job.jobPostLocations.map((l) => l.jobLocation.id),
+      applicationEmails: "",
+      skillIds: job.jobPostSkills.map((s) => s.skill.id),
+      specializationIds:
+        ((job as any).jobPostSpecializations as any[] | undefined)?.map(
+          (s) => s.specialization.id,
+        ) ?? [],
+    });
+    setView("edit");
   }
 
   async function publish(jobPostId: string) {
@@ -331,7 +464,7 @@ export function RecruiterJobPostsPage() {
       setActionJobId(jobPostId);
       await publishRecruiterJobPost(jobPostId, token);
       await reloadJobs();
-      showToast("success", "Tin tuyển dụng đã được xuất bản.");
+      showToast("success", "Tin tuyển dụng đã được gửi duyệt.");
     } catch (error) {
       showToast("error", getJobPostErrorMessage(error));
     } finally {
@@ -352,6 +485,19 @@ export function RecruiterJobPostsPage() {
     }
   }
 
+  const filteredJobs = jobs.filter((job) => {
+    const matchesSearch =
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (job.description && job.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesStatus = statusFilter === "ALL" || job.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalPages = Math.ceil(filteredJobs.length / pageSize) || 1;
+  const activePage = Math.min(currentPage, totalPages);
+  const startIndex = (activePage - 1) * pageSize;
+  const paginatedJobs = filteredJobs.slice(startIndex, startIndex + pageSize);
+
   if (loading || redirecting) {
     return <div className="text-sm font-semibold text-slate-600">Đang tải tin tuyển dụng...</div>;
   }
@@ -361,229 +507,386 @@ export function RecruiterJobPostsPage() {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="font-outfit text-xl font-bold text-slate-950 sm:text-2xl">
-            Tin tuyển dụng
+            {view === "create"
+              ? "Tạo tin tuyển dụng"
+              : view === "edit"
+                ? "Chỉnh sửa tin tuyển dụng"
+                : view === "details"
+                  ? "Chi tiết tin tuyển dụng"
+                  : "Tin tuyển dụng"}
           </h1>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <Badge tone={companyVerified ? "success" : "warning"}>
             {companyVerified ? "Công ty đã xác thực" : "Công ty chờ xác thực"}
           </Badge>
           <Badge tone="neutral">{jobs.length} tin</Badge>
+          {view === "list" ? (
+            <Button
+              onClick={() => setView("create")}
+              className="bg-[#11a77a] font-bold text-white hover:bg-[#0d966d]"
+            >
+              <Plus size={16} className="mr-1" />
+              Tạo tin tuyển dụng
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => {
+                form.reset();
+                setView("list");
+                setActiveJob(null);
+              }}
+              className="border-slate-200 text-slate-700 hover:bg-slate-50"
+            >
+              Quay lại danh sách
+            </Button>
+          )}
         </div>
       </header>
-      <Card className="overflow-hidden rounded-lg border border-slate-200 bg-white p-0 shadow-sm">
-        <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <Plus size={18} className="text-emerald-700" />
-            <h2 className="text-base font-bold text-slate-950">Mô tả công việc</h2>
-          </div>
-        </div>
 
-        <form
-          onSubmit={form.handleSubmit(submit, (errors) =>
-            showToast("error", getFirstErrorMessage(errors)),
-          )}
-          noValidate
-          className="space-y-5 p-5"
-        >
-          <JobInput
-            id="job-title"
-            label="Chức danh"
-            placeholder="Senior Frontend Engineer"
-            register={form.register("title")}
-            error={form.formState.errors.title?.message}
-          />
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <JobSelect
-              label="Cấp bậc"
-              options={catalogs.experienceLevels}
-              placeholder="Chọn cấp bậc"
-              value={form.watch("experienceLevelId") ?? ""}
-              onValueChange={(value) =>
-                form.setValue("experienceLevelId", value, { shouldDirty: true })
-              }
-              error={form.formState.errors.experienceLevelId?.message}
-            />
-            <JobSelect
-              label="Loại việc làm"
-              options={catalogs.employmentTypes}
-              placeholder="Chọn loại việc làm"
-              value={form.watch("employmentTypeId") ?? ""}
-              onValueChange={(value) =>
-                form.setValue("employmentTypeId", value, { shouldDirty: true })
-              }
-              error={form.formState.errors.employmentTypeId?.message}
-            />
+      {(view === "create" || view === "edit") && (
+        <Card className="overflow-hidden rounded-lg border border-slate-200 bg-white p-0 shadow-sm">
+          <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-4">
+            <div className="flex items-center gap-2">
+              {view === "create" ? (
+                <Plus size={18} className="text-emerald-700" />
+              ) : (
+                <PencilSimple size={18} className="text-emerald-700" />
+              )}
+              <h2 className="text-base font-bold text-slate-950">
+                {view === "create" ? "Mô tả công việc" : "Chỉnh sửa mô tả công việc"}
+              </h2>
+            </div>
           </div>
 
-          <LocationRelationPicker
-            locations={companyLocations}
-            selectedIds={form.watch("jobLocationIds") ?? []}
-            onChange={(ids) => form.setValue("jobLocationIds", ids, { shouldDirty: true })}
-          />
+          <form
+            onSubmit={form.handleSubmit(submit, (errors) =>
+              showToast("error", getFirstErrorMessage(errors)),
+            )}
+            noValidate
+            className="space-y-5 p-5"
+          >
+            <JobInput
+              id="job-title"
+              label="Chức danh"
+              placeholder="Senior Frontend Engineer"
+              register={form.register("title")}
+              error={form.formState.errors.title?.message}
+            />
 
-          <RichTextField
-            key={`job-description-${editorResetKey}`}
-            label="Mô tả"
-            placeholder="Mô tả phạm vi công việc, sản phẩm và trách nhiệm chính..."
-            value={form.watch("description") ?? ""}
-            onChange={(value) =>
-              form.setValue("description", value, { shouldDirty: true, shouldValidate: true })
-            }
-            error={form.formState.errors.description?.message}
-          />
-
-          <RichTextField
-            key={`job-requirements-${editorResetKey}`}
-            label="Yêu cầu công việc"
-            placeholder="Kinh nghiệm, kỹ năng bắt buộc, năng lực ưu tiên..."
-            value={form.watch("requirements") ?? ""}
-            onChange={(value) => form.setValue("requirements", value, { shouldDirty: true })}
-            error={form.formState.errors.requirements?.message}
-          />
-
-          <RichTextField
-            key={`job-benefits-${editorResetKey}`}
-            label="Quyền lợi / Phúc lợi"
-            placeholder="Lương thưởng, bảo hiểm, chế độ làm việc, lộ trình phát triển..."
-            value={form.watch("benefits") ?? ""}
-            onChange={(value) => form.setValue("benefits", value, { shouldDirty: true })}
-            error={form.formState.errors.benefits?.message}
-          />
-
-          <section className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
-            <Label className="text-sm font-bold text-slate-700">Mức lương</Label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <JobInput
-                id="job-salary-min"
-                label="Từ"
-                placeholder="20000000"
-                register={form.register("salaryMin")}
-                type="number"
-                error={form.formState.errors.salaryMin?.message}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <JobSelect
+                label="Ngành nghề"
+                options={catalogs.categories}
+                placeholder="Chọn ngành nghề"
+                value={form.watch("jobCategoryId") ?? ""}
+                onValueChange={(value) =>
+                  form.setValue("jobCategoryId", value, { shouldDirty: true })
+                }
+                error={form.formState.errors.jobCategoryId?.message}
               />
-              <JobInput
-                id="job-salary-max"
-                label="Đến"
-                placeholder="40000000"
-                register={form.register("salaryMax")}
-                type="number"
-                error={form.formState.errors.salaryMax?.message}
+              <JobSelect
+                label="Cấp bậc"
+                options={catalogs.experienceLevels}
+                placeholder="Chọn cấp bậc"
+                value={form.watch("experienceLevelId") ?? ""}
+                onValueChange={(value) =>
+                  form.setValue("experienceLevelId", value, { shouldDirty: true })
+                }
+                error={form.formState.errors.experienceLevelId?.message}
+              />
+              <JobSelect
+                label="Loại việc làm"
+                options={catalogs.employmentTypes}
+                placeholder="Chọn loại việc làm"
+                value={form.watch("employmentTypeId") ?? ""}
+                onValueChange={(value) =>
+                  form.setValue("employmentTypeId", value, { shouldDirty: true })
+                }
+                error={form.formState.errors.employmentTypeId?.message}
+              />
+              <JobSelect
+                label="Trình độ học vấn"
+                options={EDUCATION_LEVEL_OPTIONS}
+                placeholder="Chọn trình độ học vấn"
+                value={form.watch("educationLevel") ?? "ANY"}
+                onValueChange={(value) =>
+                  form.setValue("educationLevel", value, { shouldDirty: true })
+                }
+                error={form.formState.errors.educationLevel?.message}
               />
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <CheckboxRow
-                checked={form.watch("salaryIsNegotiable")}
-                id="job-salary-negotiable"
-                label="Lương thỏa thuận"
-                onCheckedChange={(checked) =>
-                  form.setValue("salaryIsNegotiable", checked, { shouldDirty: true })
-                }
-              />
-              <CheckboxRow
-                checked={form.watch("salaryIsVisible")}
-                id="job-salary-visible"
-                label="Hiển thị lương"
-                onCheckedChange={(checked) =>
-                  form.setValue("salaryIsVisible", checked, { shouldDirty: true })
-                }
-              />
-            </div>
-          </section>
 
-          <JobInput
-            id="job-vacancies"
-            label="Số lượng tuyển dụng"
-            placeholder="1"
-            register={form.register("vacanciesCount")}
-            type="number"
-            error={form.formState.errors.vacanciesCount?.message}
-          />
-
-          <JobInput
-            id="job-application-emails"
-            label="Địa chỉ email nhận hồ sơ"
-            placeholder="hr@company.com, recruitment@company.com"
-            register={form.register("applicationEmails")}
-            helperText="Địa chỉ email sẽ được ẩn với người tìm việc. Bạn có thể nhập nhiều địa chỉ cách nhau bằng dấu phẩy hoặc chấm phẩy."
-            error={form.formState.errors.applicationEmails?.message}
-          />
-
-          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-5">
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={form.formState.isSubmitting}
-              onClick={() => setSubmitAction("draft")}
-              className="h-11 border-slate-200 px-6 font-bold text-slate-700 hover:bg-slate-50"
-            >
-              {form.formState.isSubmitting && submitAction === "draft" ? "Đang lưu..." : "Lưu nháp"}
-            </Button>
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting}
-              onClick={() => setSubmitAction("publish")}
-              className="h-11 bg-[#11a77a] px-6 font-bold text-white shadow-none hover:bg-[#0d966d]"
-            >
-              {form.formState.isSubmitting && submitAction === "publish"
-                ? "Đang đăng..."
-                : "Đăng tin"}
-            </Button>
-          </div>
-        </form>
-      </Card>
-
-      <RecruiterTableLayout
-        loading={false}
-        filterBar={
-          <div className="flex items-center gap-2">
-            <Briefcase size={19} className="text-emerald-700" />
-            <h2 className="text-lg font-extrabold text-slate-950">Danh sách tin</h2>
-          </div>
-        }
-      >
-        <thead className="bg-slate-50 text-left text-xs font-extrabold tracking-wide text-slate-500 uppercase">
-          <tr>
-            <th className="px-5 py-3" scope="col">
-              Tin tuyển dụng
-            </th>
-            <th className="px-5 py-3" scope="col">
-              Trạng thái
-            </th>
-            <th className="px-5 py-3" scope="col">
-              Ứng viên
-            </th>
-            <th className="px-5 py-3 text-right" scope="col">
-              Thao tác
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {jobs.map((job) => (
-            <JobRow
-              actionJobId={actionJobId}
-              companyVerified={companyVerified}
-              job={job}
-              key={job.id}
-              onClose={close}
-              onPublish={publish}
+            <LocationRelationPicker
+              locations={companyLocations}
+              selectedIds={form.watch("jobLocationIds") ?? []}
+              onChange={(ids) => form.setValue("jobLocationIds", ids, { shouldDirty: true })}
             />
-          ))}
-          {jobs.length === 0 ? (
-            <tr>
-              <td
-                colSpan={4}
-                className="px-5 py-10 text-center text-sm font-semibold text-slate-500"
+
+            <SearchTagPicker
+              id="job-skills"
+              label="Kỹ năng"
+              placeholder="Nhập từ khóa để tìm kiếm kỹ năng..."
+              options={catalogs.skills}
+              selectedIds={form.watch("skillIds") ?? []}
+              onChange={(ids) => form.setValue("skillIds", ids, { shouldDirty: true })}
+            />
+
+            <SearchTagPicker
+              id="job-specializations"
+              label="Chuyên ngành"
+              placeholder="Nhập từ khóa để tìm kiếm chuyên ngành..."
+              options={catalogs.specializations}
+              selectedIds={form.watch("specializationIds") ?? []}
+              onChange={(ids) => form.setValue("specializationIds", ids, { shouldDirty: true })}
+            />
+
+            <RichTextField
+              key={`job-description-${editorResetKey}`}
+              label="Mô tả"
+              placeholder="Mô tả phạm vi công việc, sản phẩm và trách nhiệm chính..."
+              value={form.watch("description") ?? ""}
+              onChange={(value) =>
+                form.setValue("description", value, { shouldDirty: true, shouldValidate: true })
+              }
+              error={form.formState.errors.description?.message}
+            />
+
+            <RichTextField
+              key={`job-requirements-${editorResetKey}`}
+              label="Yêu cầu công việc"
+              placeholder="Kinh nghiệm, kỹ năng bắt buộc, năng lực ưu tiên..."
+              value={form.watch("requirements") ?? ""}
+              onChange={(value) => form.setValue("requirements", value, { shouldDirty: true })}
+              error={form.formState.errors.requirements?.message}
+            />
+
+            <RichTextField
+              key={`job-benefits-${editorResetKey}`}
+              label="Quyền lợi / Phúc lợi"
+              placeholder="Lương thưởng, bảo hiểm, chế độ làm việc, lộ trình phát triển..."
+              value={form.watch("benefits") ?? ""}
+              onChange={(value) => form.setValue("benefits", value, { shouldDirty: true })}
+              error={form.formState.errors.benefits?.message}
+            />
+
+            <section className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+              <Label className="text-sm font-bold text-slate-700">Mức lương</Label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <JobInput
+                  id="job-salary-min"
+                  label="Từ"
+                  placeholder="20000000"
+                  register={form.register("salaryMin")}
+                  type="number"
+                  error={form.formState.errors.salaryMin?.message}
+                />
+                <JobInput
+                  id="job-salary-max"
+                  label="Đến"
+                  placeholder="40000000"
+                  register={form.register("salaryMax")}
+                  type="number"
+                  error={form.formState.errors.salaryMax?.message}
+                />
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <CheckboxRow
+                  checked={form.watch("salaryIsNegotiable")}
+                  id="job-salary-negotiable"
+                  label="Lương thỏa thuận"
+                  onCheckedChange={(checked) =>
+                    form.setValue("salaryIsNegotiable", checked, { shouldDirty: true })
+                  }
+                />
+                <CheckboxRow
+                  checked={form.watch("salaryIsVisible")}
+                  id="job-salary-visible"
+                  label="Hiển thị lương"
+                  onCheckedChange={(checked) =>
+                    form.setValue("salaryIsVisible", checked, { shouldDirty: true })
+                  }
+                />
+              </div>
+            </section>
+
+            <JobInput
+              id="job-vacancies"
+              label="Số lượng tuyển dụng"
+              placeholder="1"
+              register={form.register("vacanciesCount")}
+              type="number"
+              error={form.formState.errors.vacanciesCount?.message}
+            />
+
+            <JobInput
+              id="job-application-emails"
+              label="Địa chỉ email nhận hồ sơ"
+              placeholder="hr@company.com, recruitment@company.com"
+              register={form.register("applicationEmails")}
+              helperText="Địa chỉ email sẽ được ẩn với người tìm việc. Bạn có thể nhập nhiều địa chỉ cách nhau bằng dấu phẩy hoặc chấm phẩy."
+              error={form.formState.errors.applicationEmails?.message}
+            />
+
+            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-5">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={form.formState.isSubmitting}
+                onClick={() => {
+                  form.reset();
+                  setView("list");
+                  setActiveJob(null);
+                }}
+                className="h-11 px-6 font-bold text-slate-500 hover:bg-slate-50"
               >
-                Chưa có tin tuyển dụng.
-              </td>
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="h-11 bg-[#11a77a] px-6 font-bold text-white shadow-none hover:bg-[#0d966d]"
+              >
+                {form.formState.isSubmitting
+                  ? view === "edit"
+                    ? "Đang lưu..."
+                    : "Đang tạo..."
+                  : view === "edit"
+                    ? "Lưu thay đổi"
+                    : "Tạo bản nháp"}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      {view === "list" && (
+        <RecruiterTableLayout
+          loading={false}
+          totalItems={filteredJobs.length}
+          currentPage={activePage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          filterBar={
+            <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-2">
+                <Briefcase size={19} className="text-emerald-700" />
+                <h2 className="text-lg font-extrabold text-slate-950">Danh sách tin</h2>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex w-64 items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 focus-within:border-emerald-500">
+                  <MagnifyingGlass size={16} className="mr-2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm tin tuyển dụng..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full bg-transparent text-xs font-semibold placeholder:text-slate-400 focus:outline-hidden"
+                  />
+                </div>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="h-9 w-[150px] rounded-lg border-slate-200 bg-white text-xs font-bold shadow-none">
+                    <SelectValue placeholder="Trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+                    <SelectItem value="PUBLISHED">Đang đăng / Chờ duyệt</SelectItem>
+                    <SelectItem value="DRAFT">Bản nháp</SelectItem>
+                    <SelectItem value="CLOSED">Đã đóng</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          }
+        >
+          <thead className="bg-slate-50 text-left text-xs font-extrabold tracking-wide text-slate-500 uppercase">
+            <tr>
+              <th className="px-5 py-3" scope="col">
+                Tin tuyển dụng
+              </th>
+              <th className="px-5 py-3" scope="col">
+                Trạng thái
+              </th>
+              <th className="px-5 py-3" scope="col">
+                Ứng viên
+              </th>
+              <th className="px-5 py-3 text-center" scope="col">
+                Thao tác
+              </th>
             </tr>
-          ) : null}
-        </tbody>
-      </RecruiterTableLayout>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {paginatedJobs.map((job) => (
+              <JobRow
+                actionJobId={actionJobId}
+                companyVerified={companyVerified}
+                job={job}
+                key={job.id}
+                onClose={close}
+                onPublish={publish}
+                onViewDetails={(selectedJob) => {
+                  setActiveJob(selectedJob);
+                  setView("details");
+                }}
+                onEdit={startEdit}
+              />
+            ))}
+            {paginatedJobs.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-5 py-10 text-center text-sm font-semibold text-slate-500"
+                >
+                  {searchTerm || statusFilter !== "ALL"
+                    ? "Không tìm thấy tin tuyển dụng phù hợp."
+                    : "Chưa có tin tuyển dụng."}
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </RecruiterTableLayout>
+      )}
+      {view === "details" && activeJob && (
+        <RecruiterJobDetailView
+          job={activeJob}
+          onBack={() => {
+            setView("list");
+            setActiveJob(null);
+          }}
+        />
+      )}
     </div>
   );
+}
+
+function getJobStatusBadge(job: RecruiterJobPost) {
+  if (job.status === "DRAFT") {
+    return { text: "Bản nháp", tone: "neutral" as const };
+  }
+  if (job.status === "CLOSED") {
+    return { text: "Đã đóng", tone: "neutral" as const };
+  }
+  if (job.status === "PUBLISHED") {
+    if (job.moderationStatus === "APPROVED") {
+      return { text: "Đang đăng", tone: "success" as const };
+    }
+    if (job.moderationStatus === "REJECTED") {
+      return { text: "Bị từ chối", tone: "error" as const };
+    }
+    return { text: "Chờ duyệt", tone: "warning" as const };
+  }
+  return { text: job.status, tone: "neutral" as const };
 }
 
 function JobRow({
@@ -592,24 +895,33 @@ function JobRow({
   job,
   onClose,
   onPublish,
+  onViewDetails,
+  onEdit,
 }: {
   actionJobId: string | null;
   companyVerified: boolean;
   job: RecruiterJobPost;
   onClose: (jobPostId: string) => void;
   onPublish: (jobPostId: string) => void;
+  onViewDetails: (job: RecruiterJobPost) => void;
+  onEdit: (job: RecruiterJobPost) => void;
 }) {
   const pending = actionJobId === job.id;
-  const statusTone =
-    job.status === "PUBLISHED" ? "success" : job.status === "CLOSED" ? "neutral" : "warning";
+  const { text: statusText, tone: statusTone } = getJobStatusBadge(job);
   const salary = formatSalary(job);
 
+  const cleanDescription = job.description ? job.description.replace(/<[^>]*>/g, "") : "";
+
   return (
-    <tr className="align-top" aria-label={job.title}>
+    <tr className="align-top transition-colors hover:bg-slate-50/50" aria-label={job.title}>
       <td className="px-5 py-4" aria-label="Job post details">
         <div className="max-w-md">
-          <p className="font-extrabold text-slate-950">{job.title}</p>
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{job.description}</p>
+          <p className="cursor-pointer text-sm font-extrabold text-slate-900 transition-colors hover:text-emerald-700">
+            {job.title}
+          </p>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 font-medium text-slate-500">
+            {cleanDescription}
+          </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {job.jobCategory ? <Badge tone="neutral">{job.jobCategory.name}</Badge> : null}
             {job.experienceLevel ? <Badge tone="neutral">{job.experienceLevel.name}</Badge> : null}
@@ -629,44 +941,341 @@ function JobRow({
         </div>
       </td>
       <td className="px-5 py-4" aria-label="Job post status">
-        <div className="space-y-2">
-          <Badge tone={statusTone}>{job.status}</Badge>
-          <p className="text-xs text-slate-500">{job.moderationStatus}</p>
-        </div>
+        <Badge tone={statusTone}>{statusText}</Badge>
       </td>
       <td className="px-5 py-4">
         <div className="text-sm font-bold text-slate-800">{job._count?.applications ?? 0}</div>
         <p className="text-xs text-slate-500">{job._count?.views ?? 0} lượt xem</p>
       </td>
-      <td className="px-5 py-4">
-        <div className="flex justify-start gap-2">
-          {job.status !== "PUBLISHED" ? (
-            <Button
-              type="button"
-              size="sm"
-              disabled={pending || !companyVerified}
-              className="gap-1.5 bg-[#11a77a] hover:bg-[#0d966d]"
-              onClick={() => onPublish(job.id)}
+      <td className="px-5 py-4 text-center">
+        <div className="flex items-center justify-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="flex h-8 w-8 items-center justify-center rounded-lg p-0 text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus:ring-0 focus:ring-offset-0"
+                aria-label="Thao tác"
+              >
+                <DotsThreeVertical size={20} weight="bold" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="z-50 w-48 rounded-xl border border-slate-200 bg-white p-1 shadow-lg"
             >
-              <CheckCircle size={15} />
-              Xuất bản
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={pending}
-              className="gap-1.5"
-              onClick={() => onClose(job.id)}
-            >
-              <Prohibit size={15} />
-              Đóng
-            </Button>
-          )}
+              <DropdownMenuItem
+                onClick={() => onViewDetails(job)}
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 focus:outline-hidden"
+              >
+                <Eye size={16} className="text-slate-500" />
+                Xem chi tiết tin
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={() => onEdit(job)}
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 focus:outline-hidden"
+              >
+                <PencilSimple size={16} className="text-slate-500" />
+                Chỉnh sửa tin
+              </DropdownMenuItem>
+
+              {job.status !== "PUBLISHED" ? (
+                <DropdownMenuItem
+                  disabled={pending || !companyVerified}
+                  onClick={() => onPublish(job.id)}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 focus:outline-hidden disabled:opacity-50"
+                >
+                  <CheckCircle size={16} />
+                  Xuất bản
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  disabled={pending}
+                  onClick={() => onClose(job.id)}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 focus:outline-hidden disabled:opacity-50"
+                >
+                  <Prohibit size={16} />
+                  Đóng tin tuyển dụng
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </td>
     </tr>
+  );
+}
+
+function getEducationLevelLabel(level?: string) {
+  switch (level) {
+    case "ANY":
+      return "Không yêu cầu";
+    case "HIGH_SCHOOL":
+      return "Trung học phổ thông";
+    case "VOCATIONAL":
+      return "Trung cấp";
+    case "COLLEGE":
+      return "Cao đẳng";
+    case "BACHELOR":
+      return "Đại học";
+    case "POSTGRADUATE":
+      return "Sau đại học";
+    default:
+      return "Không yêu cầu";
+  }
+}
+
+function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack: () => void }) {
+  const router = useRouter();
+  const salary = formatSalary(job);
+
+  const cleanDescription = job.description || "Chưa có mô tả";
+  const cleanRequirements = job.requirements || "Chưa có yêu cầu";
+  const cleanBenefits = job.benefits || "Chưa có quyền lợi";
+
+  // Calculate moderation status badge tone & text
+  const modTone =
+    job.moderationStatus === "APPROVED"
+      ? "success"
+      : job.moderationStatus === "REJECTED"
+        ? "error"
+        : "warning";
+  const modText =
+    job.moderationStatus === "APPROVED"
+      ? "Đã duyệt"
+      : job.moderationStatus === "REJECTED"
+        ? "Từ chối"
+        : "Chờ duyệt";
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-6 md:grid-cols-3">
+        <div className="space-y-6 md:col-span-2">
+          <Card className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="flex items-center gap-2 border-b border-slate-100 pb-2 text-base font-bold text-slate-900">
+              <Briefcase size={18} className="text-emerald-600" />
+              Mô tả công việc
+            </h3>
+            <div
+              className="prose prose-sm max-w-none text-sm leading-relaxed break-words text-slate-600 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+              dangerouslySetInnerHTML={{ __html: cleanDescription }}
+            />
+          </Card>
+
+          {job.requirements && (
+            <Card className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-slate-900">
+                Yêu cầu công việc
+              </h3>
+              <div
+                className="prose prose-sm max-w-none text-sm leading-relaxed break-words text-slate-600 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+                dangerouslySetInnerHTML={{ __html: cleanRequirements }}
+              />
+            </Card>
+          )}
+
+          {job.benefits && (
+            <Card className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-slate-900">
+                Quyền lợi & Phúc lợi
+              </h3>
+              <div
+                className="prose prose-sm max-w-none text-sm leading-relaxed break-words text-slate-600 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
+                dangerouslySetInnerHTML={{ __html: cleanBenefits }}
+              />
+            </Card>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <Card className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="border-b border-slate-100 pb-2 text-sm font-extrabold tracking-wider text-slate-900 uppercase">
+              Hiệu quả tin đăng
+            </h3>
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div className="rounded-lg bg-slate-50 p-2.5">
+                <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
+                  Lượt xem
+                </span>
+                <span className="text-base font-extrabold text-slate-800">
+                  {job._count?.views ?? 0}
+                </span>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-2.5">
+                <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
+                  Ứng tuyển
+                </span>
+                <span className="text-base font-extrabold text-slate-800">
+                  {job._count?.applications ?? 0}
+                </span>
+              </div>
+            </div>
+            <div className="pt-2">
+              <Button
+                onClick={() => router.push(`/recruiter/candidates?jobPostId=${job.id}`)}
+                className="flex h-10 w-full items-center justify-center gap-2 bg-[#11a77a] text-xs font-bold text-white hover:bg-[#0d966d]"
+              >
+                <Users size={16} />
+                Xem danh sách ứng viên ({job._count?.applications ?? 0})
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 text-sm shadow-sm">
+            <h3 className="border-b border-slate-100 pb-2 text-sm font-extrabold tracking-wider text-slate-900 uppercase">
+              Thông tin công việc
+            </h3>
+
+            {/* Section: Trạng thái duyệt */}
+            <div className="flex flex-col gap-1 border-b border-slate-100 pb-3">
+              <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                Trạng thái duyệt
+              </span>
+              <div className="mt-1">
+                <Badge tone={modTone}>{modText}</Badge>
+              </div>
+            </div>
+
+            {/* Section: Thông tin chung */}
+            <div className="space-y-3.5 border-b border-slate-100 pb-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                  Ngành nghề
+                </span>
+                <span
+                  className="max-w-[160px] truncate text-right font-semibold text-slate-700"
+                  title={job.jobCategory?.name || ""}
+                >
+                  {job.jobCategory?.name || "Chưa cập nhật"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                  Cấp bậc
+                </span>
+                <span className="text-right font-semibold text-slate-700">
+                  {job.experienceLevel?.name || "Chưa cập nhật"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                  Hình thức
+                </span>
+                <span className="text-right font-semibold text-slate-700">
+                  {job.employmentType?.name || "Chưa cập nhật"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                  Mức lương
+                </span>
+                <span className="text-right font-extrabold text-emerald-700">{salary}</span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                  Số lượng tuyển
+                </span>
+                <span className="text-right font-semibold text-slate-700">
+                  {job.vacanciesCount} người
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                  Học vấn tối thiểu
+                </span>
+                <span className="text-right font-semibold text-slate-700">
+                  {getEducationLevelLabel(job.educationLevel)}
+                </span>
+              </div>
+
+              {job.publishedAt && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                    Ngày xuất bản
+                  </span>
+                  <span className="text-right font-semibold text-slate-700">
+                    {new Date(job.publishedAt).toLocaleDateString("vi-VN")}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Section: Địa điểm làm việc */}
+            <div className="space-y-2 border-b border-slate-100 pb-4">
+              <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
+                Địa điểm làm việc
+              </span>
+              <div className="space-y-1.5">
+                {job.jobPostLocations.map(({ jobLocation }) => (
+                  <div
+                    key={jobLocation.id}
+                    className="rounded-lg border border-slate-100 bg-slate-50 p-2 text-xs leading-relaxed font-semibold text-slate-700"
+                  >
+                    {formatLocation(jobLocation)}
+                  </div>
+                ))}
+                {job.jobPostLocations.length === 0 && (
+                  <span className="text-xs font-medium text-slate-500">Chưa có địa điểm</span>
+                )}
+              </div>
+            </div>
+
+            {/* Section: Kỹ năng & Chuyên ngành */}
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
+                  Kỹ năng yêu cầu
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {job.jobPostSkills.map(({ skill }) => (
+                    <Badge key={skill.id} tone="info">
+                      {skill.name}
+                    </Badge>
+                  ))}
+                  {job.jobPostSkills.length === 0 && (
+                    <span className="text-xs font-medium text-slate-500">Chưa có kỹ năng</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
+                  Chuyên ngành liên quan
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {((job as any).jobPostSpecializations as any[] | undefined)?.map(
+                    ({ specialization }) => (
+                      <Badge key={specialization.id} tone="brand">
+                        {specialization.name}
+                      </Badge>
+                    ),
+                  )}
+                  {(!(job as any).jobPostSpecializations ||
+                    ((job as any).jobPostSpecializations as any[]).length === 0) && (
+                    <span className="text-xs font-medium text-slate-500">Chưa có chuyên ngành</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="h-10 border-slate-200 px-6 font-bold text-slate-700 hover:bg-slate-50"
+        >
+          Quay lại danh sách
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -820,6 +1429,7 @@ function LocationRelationPicker({
           {locations.map((location) => (
             <RelationCheckbox
               checked={selectedIds.includes(location.id)}
+              id={`location-${location.id}`}
               key={location.id}
               label={formatLocation(location)}
               onCheckedChange={(checked) =>
@@ -846,17 +1456,122 @@ function LocationRelationPicker({
   );
 }
 
+function SearchTagPicker({
+  options,
+  selectedIds,
+  onChange,
+  placeholder,
+  label,
+  id,
+}: {
+  options: JobOption[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  placeholder: string;
+  label: string;
+  id: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const filtered = options.filter(
+    (option) =>
+      option.name.toLowerCase().includes(query.toLowerCase()) && !selectedIds.includes(option.id),
+  );
+
+  const handleSelect = (optionId: string) => {
+    onChange(Array.from(new Set([...selectedIds, optionId])));
+    setQuery("");
+    setIsOpen(false);
+  };
+
+  const handleRemove = (optionId: string) => {
+    onChange(selectedIds.filter((id) => id !== optionId));
+  };
+
+  const selectedOptions = selectedIds
+    .map((selectedId) => options.find((opt) => opt.id === selectedId))
+    .filter((opt): opt is JobOption => Boolean(opt));
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+      <Label htmlFor={id} className="text-sm font-bold text-slate-700">
+        {label}
+      </Label>
+      <div className="relative">
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1 shadow-none focus-within:border-emerald-500">
+          <MagnifyingGlass size={16} className="text-slate-400" />
+          <input
+            id={id}
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setIsOpen(true);
+            }}
+            onFocus={() => setIsOpen(true)}
+            onBlur={() => setIsOpen(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const firstOption = filtered[0];
+                if (firstOption) {
+                  handleSelect(firstOption.id);
+                }
+              }
+            }}
+            placeholder={placeholder}
+            className="h-9 w-full bg-transparent text-sm placeholder:text-slate-400 focus:outline-hidden"
+          />
+        </div>
+
+        {isOpen && (
+          <div className="absolute z-55 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+            {filtered.length > 0 ? (
+              <ul>
+                {filtered.map((option) => (
+                  <li key={option.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSelect(option.id);
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-900"
+                    >
+                      {option.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : query.trim() !== "" ? (
+              <p className="px-3 py-2 text-xs font-semibold text-slate-500">
+                Không tìm thấy kết quả phù hợp.
+              </p>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      <SelectedChips
+        labels={selectedOptions.map((opt) => ({ id: opt.id, label: opt.name }))}
+        onRemove={handleRemove}
+      />
+    </div>
+  );
+}
+
 function RelationCheckbox({
   checked,
+  id,
   label,
   onCheckedChange,
 }: {
   checked: boolean;
+  id: string;
   label: string;
   onCheckedChange: (checked: boolean) => void;
 }) {
-  const id = `relation-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-
   return (
     <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 hover:border-emerald-300">
       <Checkbox
@@ -921,7 +1636,5 @@ function formatSalary(job: RecruiterJobPost) {
 }
 
 function formatLocation(location: CompanyLocation | JobLocationOption) {
-  return [location.workingModel, location.city, location.district, location.address]
-    .filter(Boolean)
-    .join(" - ");
+  return [location.city, location.district, location.address].filter(Boolean).join(" - ");
 }

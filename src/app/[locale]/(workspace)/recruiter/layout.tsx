@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
-import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
+import { getRecruiterAccount, getRecruiterStats } from "@/features/recruiter/api/onboarding";
 import { getCompanyMembers, getRecruiterRoles } from "@/features/recruiter/api/team";
 import {
   recruiterNavGroups,
@@ -52,6 +52,9 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
   const [identity, setIdentity] = useState<WorkspaceIdentity | null>(null);
   const [isOwner, setIsOwner] = useState(true);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [stats, setStats] = useState<{ totalJobPosts: number; totalCandidates: number } | null>(
+    null,
+  );
   const t = useTranslations("Recruiter");
 
   const translatedNavGroups = useMemo(() => {
@@ -61,12 +64,22 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       }
 
       let itemLabel = item.label;
+      let badge = item.badge;
+
       if (item.label === "Báo cáo tuyển dụng") itemLabel = t("nav.report");
-      else if (item.label === "Tin tuyển dụng") itemLabel = t("nav.jobPosts");
-      else if (item.label === "Ứng viên") itemLabel = t("nav.candidates");
-      else if (item.label === "Pipeline") itemLabel = t("nav.pipeline");
-      else if (item.label === "Phỏng vấn") itemLabel = t("nav.interviews");
-      else if (item.label === "Hồ sơ công ty") itemLabel = t("nav.companyProfile");
+      else if (item.label === "Tin tuyển dụng") {
+        itemLabel = t("nav.jobPosts");
+        if (stats) badge = String(stats.totalJobPosts);
+      } else if (item.label === "Ứng viên") {
+        itemLabel = t("nav.candidates");
+        if (stats) badge = String(stats.totalCandidates);
+      } else if (item.label === "Pipeline") {
+        itemLabel = t("nav.pipeline");
+        badge = undefined;
+      } else if (item.label === "Phỏng vấn") {
+        itemLabel = t("nav.interviews");
+        badge = undefined;
+      } else if (item.label === "Hồ sơ công ty") itemLabel = t("nav.companyProfile");
       else if (item.label === "Đội ngũ & quyền") itemLabel = t("nav.team");
       else if (item.label === "Phân tích") itemLabel = t("nav.analytics");
       else if (item.label === "Thanh toán") itemLabel = t("nav.billing");
@@ -74,6 +87,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       const resultItem: any = {
         ...item,
         label: itemLabel,
+        badge,
       };
 
       if (item.children) {
@@ -120,7 +134,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
         };
       })
       .filter(Boolean) as any[];
-  }, [t, userPermissions, isOwner]);
+  }, [t, userPermissions, isOwner, stats]);
 
   const isAuthPage =
     pathname.includes("/login") ||
@@ -230,6 +244,14 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       };
 
       void loadRecruiterData();
+
+      void getRecruiterStats(parsedUser.id, accessToken)
+        .then((statsData) => {
+          setStats(statsData);
+        })
+        .catch((err) => {
+          console.error("getRecruiterStats error in layout:", err);
+        });
     } catch (e) {
       console.error("Error in recruiter layout try-catch:", e);
       localStorage.removeItem("upnext.recruiter.accessToken");

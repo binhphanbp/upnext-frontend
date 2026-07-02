@@ -19,7 +19,7 @@ export function RecentActivity({ activities }: { activities?: AdminRecentActivit
         <CardDescription>{t("recentActivity.subtitle")}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        <div className="h-[350px] scrollbar-thin space-y-6 overflow-y-auto pr-4">
           {!Array.isArray(activities) || activities.length === 0 ? (
             <p className="text-muted-foreground text-center text-sm">{t("recentActivity.empty")}</p>
           ) : (

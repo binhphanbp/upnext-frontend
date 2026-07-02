@@ -72,13 +72,18 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
   {
     label: "userManagement.title",
     items: [
-      { label: "userManagement.employers", href: "/admin/users/employers", icon: Buildings },
+      {
+        label: "userManagement.employers",
+        href: "/admin/users/recruiters",
+        icon: IdentificationBadge,
+      },
       { label: "userManagement.candidates", href: "/admin/users/candidates", icon: Users },
     ],
   },
   {
     label: "operationsAndContent.title",
     items: [
+      { label: "operationsAndContent.companies", href: "/admin/users/employers", icon: Buildings },
       { label: "operationsAndContent.jobs", href: "/admin/content/jobs", icon: Briefcase },
       { label: "operationsAndContent.articles", href: "/admin/content/articles", icon: Article },
       {
