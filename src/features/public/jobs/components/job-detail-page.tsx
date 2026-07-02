@@ -1,11 +1,13 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 
+import { getPublicJobs } from "../../home/api";
 import {
   ArrowRight,
   Bookmark,
@@ -130,19 +132,83 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   if (!fallbackJob) {
     throw new Error("No jobs available for job detail page.");
   }
-  const job = jobs.find((item) => item.id === jobId) ?? fallbackJob;
+
+  const { data: apiJobsData } = useQuery({
+    queryKey: ["public-jobs"],
+    queryFn: getPublicJobs,
+  });
+
+  const jobsList = useMemo(() => {
+    if (!apiJobsData) return jobs;
+
+    const mapped: Job[] = apiJobsData.map((job) => {
+      const isRemote =
+        job.employmentType?.name.toLowerCase().includes("remote") ||
+        job.title.toLowerCase().includes("remote");
+      const isHighSalary =
+        (job.salaryMin && job.salaryMin >= 30000000) ||
+        (job.salaryMax && job.salaryMax >= 30000000);
+
+      const categories: string[] = [];
+      if (isRemote) categories.push("remote");
+      if (isHighSalary) categories.push("high-salary");
+      const categoryCode = job.jobCategory?.name.toLowerCase() || "";
+      if (categoryCode.includes("frontend")) categories.push("frontend");
+      if (categoryCode.includes("backend")) categories.push("backend");
+      if (categoryCode.includes("mobile")) categories.push("mobile");
+      if (categoryCode.includes("data") || categoryCode.includes("ai")) {
+        categories.push("data-ai");
+      }
+      if (categoryCode.includes("devops")) categories.push("devops");
+      if (categoryCode.includes("qa") || categoryCode.includes("test")) {
+        categories.push("qa");
+      }
+
+      return {
+        id: job.id,
+        title: job.title,
+        company: job.company?.name || "UpNext Partner",
+        logo: job.company?.logoUrl || "",
+        logoColor: "#10b981",
+        verified: true,
+        salary:
+          job.salaryIsVisible && job.salaryMin && job.salaryMax
+            ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu/tháng`
+            : "Thỏa thuận",
+        location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
+        mode: job.employmentType?.name || "Full-time",
+        level: job.experienceLevel?.name || "Middle",
+        type: job.employmentType?.name || "Full-time",
+        posted: "Mới đăng",
+        applicants: 12,
+        tags: [job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+          Boolean,
+        ) as string[],
+        description: job.description || "",
+        categories,
+        urgent: false,
+        featured: false,
+        requirements: job.requirements,
+        benefits: job.benefits,
+      };
+    });
+
+    return [...mapped, ...jobs];
+  }, [apiJobsData]);
+
+  const job = jobsList.find((item) => item.id === jobId) ?? fallbackJob;
   const [saved, setSaved] = useState(false);
 
   const similarJobs = useMemo(
     () =>
-      jobs
+      jobsList
         .filter(
           (item) =>
             item.id !== job.id &&
             item.categories.some((category) => job.categories.includes(category)),
         )
-        .slice(0, 3),
-    [job],
+        .slice(0, 4),
+    [job, jobsList],
   );
 
   return (
@@ -237,39 +303,61 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               </div>
             </section>
 
-            <DetailSection icon={<FileText size={18} />} title="Mô tả công việc">
-              <p>{job.description}</p>
-              <BulletList items={responsibilities} />
-            </DetailSection>
-
-            <DetailSection icon={<CheckCircle size={18} />} title="Yêu cầu ứng viên">
-              <BulletList items={requirements} />
-            </DetailSection>
-
-            <DetailSection icon={<Sparkles size={18} />} title="Quyền lợi">
-              <div className="job-detail-benefit-grid">
-                {benefits.map((benefit) => (
-                  <div key={benefit.desc} className="job-detail-benefit">
-                    <span>{benefit.icon}</span>
-                    <div>
-                      <p>{benefit.desc}</p>
+            <section className="job-detail-card job-detail-section">
+              <div className="job-detail-card-head mb-6">
+                <span>
+                  <FileText size={18} />
+                </span>
+                <h2>Thông tin tuyển dụng</h2>
+              </div>
+              <div className="space-y-8">
+                {/* Mô tả công việc */}
+                <div>
+                  <h3 className="mb-3 text-base font-bold text-slate-900">Mô tả công việc</h3>
+                  {job.description && job.description.replace(/<[^>]*>/g, "").trim().length > 0 ? (
+                    <div
+                      className="job-detail-rich-text space-y-2 text-sm leading-relaxed text-slate-700"
+                      dangerouslySetInnerHTML={{ __html: job.description }}
+                    />
+                  ) : (
+                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-700">
+                      <BulletList items={responsibilities} />
                     </div>
-                  </div>
-                ))}
-              </div>
-            </DetailSection>
+                  )}
+                </div>
 
-            <DetailSection icon={<TrendingUp size={18} />} title="Quy trình tuyển dụng">
-              <div className="job-detail-process">
-                {hiringSteps.map((step, index) => (
-                  <span key={step.title}>
-                    <b>{index + 1}</b>
-                    <strong>{step.title}</strong>
-                    <small>{step.desc}</small>
-                  </span>
-                ))}
+                {/* Yêu cầu ứng viên */}
+                <div className="border-t border-slate-100 pt-6">
+                  <h3 className="mb-3 text-base font-bold text-slate-900">Yêu cầu ứng viên</h3>
+                  {job.requirements &&
+                  job.requirements.replace(/<[^>]*>/g, "").trim().length > 0 ? (
+                    <div
+                      className="job-detail-rich-text space-y-2 text-sm leading-relaxed text-slate-700"
+                      dangerouslySetInnerHTML={{ __html: job.requirements }}
+                    />
+                  ) : (
+                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-700">
+                      <BulletList items={requirements} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Quyền lợi */}
+                <div className="border-t border-slate-100 pt-6">
+                  <h3 className="mb-3 text-base font-bold text-slate-900">Quyền lợi</h3>
+                  {job.benefits && job.benefits.replace(/<[^>]*>/g, "").trim().length > 0 ? (
+                    <div
+                      className="job-detail-rich-text space-y-2 text-sm leading-relaxed text-slate-700"
+                      dangerouslySetInnerHTML={{ __html: job.benefits }}
+                    />
+                  ) : (
+                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-700">
+                      <BulletList items={benefits.map((b) => b.desc)} />
+                    </div>
+                  )}
+                </div>
               </div>
-            </DetailSection>
+            </section>
 
             <DetailSection icon={<BriefcaseBusiness size={18} />} title="Kỹ năng & công nghệ">
               <div className="job-detail-skill-cloud">
@@ -292,22 +380,29 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
             </DetailSection>
 
             <section className="job-detail-card job-detail-similar-section">
-              <div className="job-detail-card-head">
+              <div className="job-detail-card-head mb-6">
                 <span>
                   <BriefcaseBusiness size={18} />
                 </span>
                 <h2>Việc làm tương tự</h2>
               </div>
-              <div className="job-detail-similar-list">
+              <div className="job-detail-similar-grid">
                 {similarJobs.map((item) => (
-                  <button key={item.id} type="button" onClick={() => navigate(`/jobs/${item.id}`)}>
+                  <div
+                    key={item.id}
+                    className="job-detail-similar-card"
+                    onClick={() => navigate(`/jobs/${item.id}`)}
+                  >
                     <LogoMark job={item} />
-                    <span>
-                      <b>{item.title}</b>
-                      <small>{item.company}</small>
-                    </span>
-                    <em>{item.salary}</em>
-                  </button>
+                    <div className="job-detail-similar-info">
+                      <h3>{item.title}</h3>
+                      <p>{item.company}</p>
+                      <div className="job-detail-similar-meta">
+                        <span className="job-detail-similar-badge">{item.location}</span>
+                        <span className="job-detail-similar-badge is-salary">{item.salary}</span>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </section>
@@ -461,10 +556,12 @@ function InfoTile({ icon, label, value }: { icon: ReactNode; label: string; valu
 
 function InfoLine({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <p className="job-detail-info-line">
-      {icon}
-      <span>{label}</span>
-      <b>{value}</b>
-    </p>
+    <div className="job-detail-info-line">
+      <div className="job-detail-info-icon">{icon}</div>
+      <div className="job-detail-info-content">
+        <span className="job-detail-info-label">{label}</span>
+        <b className="job-detail-info-value">{value}</b>
+      </div>
+    </div>
   );
 }

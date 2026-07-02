@@ -58,6 +58,8 @@ export type Job = {
   categories: string[];
   urgent?: boolean;
   featured?: boolean;
+  requirements?: string | null;
+  benefits?: string | null;
 };
 
 type FilterGroup = {
@@ -537,6 +539,8 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         categories,
         urgent: false,
         featured: false,
+        requirements: job.requirements,
+        benefits: job.benefits,
       };
     });
 
