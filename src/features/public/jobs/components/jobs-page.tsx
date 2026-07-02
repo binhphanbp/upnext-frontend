@@ -936,13 +936,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col justify-between bg-slate-50/50 font-sans text-slate-800 antialiased">
+    <div className="jobs-page flex min-h-screen flex-col justify-between bg-slate-50/50 font-sans text-slate-800 antialiased">
       <div>
         <PublicHeader navigate={navigate} />
 
-        <main className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8">
+        <main className="flex w-full flex-col gap-6 py-8">
           {/* Breadcrumb & Title */}
-          <div>
+          <div className="jobs-container">
             <div className="mb-4 flex items-center gap-2 text-xs text-slate-500">
               <House size={14} className="text-slate-400" />
               <button
@@ -962,47 +962,49 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
           </div>
 
           {/* Hero Search Bar */}
-          <form
-            className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:flex-row"
-            onSubmit={runSearch}
-          >
-            <div className="flex w-full flex-1 items-center gap-2.5 px-3">
-              <MagnifyingGlass size={20} className="flex-shrink-0 text-slate-400" />
-              <input
-                type="text"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="Tìm kiếm theo vị trí, kỹ năng, công ty..."
-                className="w-full border-none bg-transparent py-2 text-sm font-medium text-slate-800 placeholder-slate-400 outline-none"
-              />
-            </div>
-            <div className="hidden h-8 w-px bg-slate-200 md:block"></div>
-            <div className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 md:w-[280px] md:rounded-none md:border-none md:bg-transparent">
-              <select
-                value={location}
-                onChange={(e) => {
-                  setLocation(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full cursor-pointer border-none bg-transparent py-2.5 text-sm font-medium text-slate-700 outline-none"
-              >
-                {locationsList.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="submit"
-              className="w-full cursor-pointer rounded-xl bg-emerald-600 px-8 py-3 text-sm font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700 md:w-auto"
+          <div className="jobs-container">
+            <form
+              className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:flex-row"
+              onSubmit={runSearch}
             >
-              Tìm kiếm
-            </button>
-          </form>
+              <div className="flex w-full flex-1 items-center gap-2.5 px-3">
+                <MagnifyingGlass size={20} className="flex-shrink-0 text-slate-400" />
+                <input
+                  type="text"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder="Tìm kiếm theo vị trí, kỹ năng, công ty..."
+                  className="w-full border-none bg-transparent py-2 text-sm font-medium text-slate-800 placeholder-slate-400 outline-none"
+                />
+              </div>
+              <div className="hidden h-8 w-px bg-slate-200 md:block"></div>
+              <div className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 md:w-[280px] md:rounded-none md:border-none md:bg-transparent">
+                <select
+                  value={location}
+                  onChange={(e) => {
+                    setLocation(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full cursor-pointer border-none bg-transparent py-2.5 text-sm font-medium text-slate-700 outline-none"
+                >
+                  {locationsList.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="submit"
+                className="w-full cursor-pointer rounded-xl bg-emerald-600 px-8 py-3 text-sm font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700 md:w-auto"
+              >
+                Tìm kiếm
+              </button>
+            </form>
+          </div>
 
           {/* Popular Keywords */}
-          <div className="flex flex-wrap items-center gap-3 text-xs">
+          <div className="jobs-container flex flex-wrap items-center gap-3 text-xs">
             <span className="font-medium text-slate-500">Tìm kiếm phổ biến:</span>
             <div className="flex flex-wrap gap-2">
               {[
@@ -1032,7 +1034,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
 
           {/* Active Categories Tabs */}
           <div
-            className="flex scrollbar-none gap-2 overflow-x-auto pb-1"
+            className="jobs-container flex scrollbar-none gap-2 overflow-x-auto pb-1"
             aria-label="Nhóm việc làm"
           >
             {categories.map((category) => (
