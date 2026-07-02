@@ -950,10 +950,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                 { label: "Việc làm IT" },
               ]}
             />
-            <h1 className="mb-2 text-3xl font-bold text-slate-900">
-              Tìm kiếm <span className="text-emerald-600">{filteredJobs.length}</span> việc làm từ
-              các công ty hàng đầu đang tuyển dụng
-            </h1>
+            <h1 className="sr-only">Tìm kiếm việc làm từ các công ty hàng đầu đang tuyển dụng</h1>
           </div>
 
           {/* Hero Search Bar */}
