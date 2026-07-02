@@ -940,7 +940,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
       <div>
         <PublicHeader navigate={navigate} />
 
-        <main className="mx-auto flex max-w-[1400px] flex-col gap-6 px-6 py-8">
+        <main className="mx-auto flex max-w-[1280px] flex-col gap-6 px-6 py-8">
           {/* Breadcrumb & Title */}
           <div>
             <div className="mb-4 flex items-center gap-2 text-xs text-slate-500">
