@@ -1394,6 +1394,7 @@ button.marketing-home-control {
 .marketing-home-popular-viewport {
   --popular-panel-height: 72px;
   position: relative;
+  flex: 1;
   height: var(--popular-panel-height);
   max-width: min(100%, 620px);
   overflow: hidden;
@@ -1408,7 +1409,7 @@ button.marketing-home-control {
   display: flex;
   align-items: center;
   align-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 9px 10px;
   min-height: var(--popular-panel-height);
 }
@@ -4343,6 +4344,7 @@ button.marketing-home-control {
   }
 
   .marketing-home-popular-row {
+    flex-wrap: wrap;
     align-content: flex-start;
     gap: 8px;
   }
