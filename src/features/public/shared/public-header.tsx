@@ -639,7 +639,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
       </nav>
 
       <div className="marketing-home-header-actions">
-        <button className="marketing-home-employer" onClick={() => navigate("/register")}>
+        <button className="marketing-home-employer" onClick={() => navigate("/recruiter/login")}>
           <span className="marketing-home-employer-text">
             <small>{copy.employerSmall}</small>
             <b>{copy.employerLabel}</b>
