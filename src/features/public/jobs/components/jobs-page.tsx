@@ -522,7 +522,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         id: job.id,
         title: job.title,
         company: job.company?.name || "UpNext Partner",
-        logo: job.company?.logoUrl || "",
+        logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
         logoColor: "#10b981",
         verified: true,
         salary:

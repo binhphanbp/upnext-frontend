@@ -24,6 +24,24 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "3001",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "itviec.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.itviec.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {

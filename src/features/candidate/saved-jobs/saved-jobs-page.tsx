@@ -15,7 +15,6 @@ import {
   Sparkle,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getPublicJobs } from "@/features/public/home/api";
@@ -110,7 +109,10 @@ export function CandidateSavedJobsPage() {
         id: job.id,
         title: job.title,
         company: job.company?.name || "UpNext Partner",
-        logo: job.company?.logoUrl || "/assets/marketing/home/companies/fpt.png",
+        logo:
+          job.company?.logoUrl ||
+          job.company?.logoFile?.publicUrl ||
+          "/assets/marketing/home/companies/fpt.png",
         logoColor: "#059669",
         verified: true,
         salary: job.salaryIsVisible
@@ -261,12 +263,12 @@ export function CandidateSavedJobsPage() {
                 >
                   {/* Company Logo */}
                   <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50">
-                    <Image
+                    <img
                       src={job.logo}
                       alt={`Logo ${job.company}`}
                       width={40}
                       height={40}
-                      className="rounded-lg object-contain"
+                      className="rounded-lg object-contain p-1"
                     />
                   </div>
 

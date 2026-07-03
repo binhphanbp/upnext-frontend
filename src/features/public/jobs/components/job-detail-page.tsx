@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -100,6 +99,16 @@ const companyStats = [
   { value: "27+", label: "Quốc gia" },
 ];
 
+function getCleanLeadText(html: string) {
+  if (!html) return "";
+  // Strip summary tag and its contents
+  let text = html.replace(/<summary>([\s\S]*?)<\/summary>/gi, "");
+  // Strip all other HTML tags
+  text = text.replace(/<[^>]*>/gi, "");
+  // Normalize whitespace
+  return text.replace(/\s+/g, " ").trim();
+}
+
 function getJobId(path: string) {
   return decodeURIComponent(path.split("/").filter(Boolean)[1] ?? "");
 }
@@ -118,11 +127,12 @@ function LogoMark({ job, size = "normal" }: { job: Job; size?: "normal" | "large
 
   return (
     <span className={className}>
-      <Image
+      <img
         src={job.logo}
         alt={`Logo ${job.company}`}
         width={size === "large" ? 72 : 48}
         height={size === "large" ? 72 : 48}
+        className="rounded-lg object-contain p-1"
         onError={() => setFailed(true)}
       />
     </span>
@@ -171,7 +181,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
         id: job.id,
         title: job.title,
         company: job.company?.name || "UpNext Partner",
-        logo: job.company?.logoUrl || "",
+        logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
         logoColor: "#10b981",
         verified: true,
         salary:
@@ -262,7 +272,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 )}
               </div>
 
-              <p className="job-detail-lead">{job.description}</p>
+              <p className="job-detail-lead">{getCleanLeadText(job.description)}</p>
 
               <div className="job-detail-salary-row">
                 <Coins size={24} weight="fill" />

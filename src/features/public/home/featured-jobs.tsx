@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+
+import { getCandidateSession } from "@/features/candidate/session";
 
 import { getPublicJobs, type PublicJob } from "./api";
 import {
@@ -28,6 +29,7 @@ import {
 
 type FeaturedJobsProps = {
   navigate: (path: string) => void;
+  onApply: (job: { id: string; title: string; company: string }) => void;
 };
 
 type BadgeTone = "featured" | "new" | "urgent" | "remote" | "salary";
@@ -85,11 +87,12 @@ function CompanyLogo({ src, name, color }: { src: string; name: string; color: s
 
   return (
     <i className="featured-job-logo">
-      <Image
+      <img
         src={src}
         alt={`Logo ${name}`}
         width={48}
         height={48}
+        className="object-contain p-1"
         onError={() => setFailed(true)}
       />
     </i>
@@ -401,7 +404,7 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
     badge: { label: labelMap[tone], tone },
     company: job.company?.name || "UpNext Partner",
     verified: true,
-    logo: job.company?.logoUrl || "",
+    logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
     logoColor: "#10b981",
     title: job.title,
     salary:
@@ -428,7 +431,7 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number]["key"];
 
-export function FeaturedJobs({ navigate }: FeaturedJobsProps) {
+export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [index, setIndex] = useState(0);
   const [animate, setAnimate] = useState(false);
@@ -614,7 +617,7 @@ export function FeaturedJobs({ navigate }: FeaturedJobsProps) {
                         <button
                           type="button"
                           className="featured-job-title"
-                          onClick={() => navigate(`/jobs?keyword=${encodeURIComponent(job.title)}`)}
+                          onClick={() => navigate(`/jobs/${job.id}`)}
                         >
                           {job.title}
                         </button>
@@ -664,7 +667,12 @@ export function FeaturedJobs({ navigate }: FeaturedJobsProps) {
                           className="featured-job-apply"
                           onClick={(event) => {
                             event.stopPropagation();
-                            navigate("/register");
+                            const session = getCandidateSession();
+                            if (session) {
+                              onApply(job);
+                            } else {
+                              navigate(`/register?job=${job.id}`);
+                            }
                           }}
                         >
                           Ứng tuyển <ArrowRight size={15} />
