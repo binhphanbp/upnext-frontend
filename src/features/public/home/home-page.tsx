@@ -10,7 +10,7 @@ import { useRouter } from "@/i18n/navigation";
 
 import { PublicFooter } from "../shared/public-footer";
 import { PublicHeader } from "../shared/public-header";
-import { getPublicJobs } from "./api";
+import { getPublicCompanies, getPublicJobs } from "./api";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
 import { JobMarket } from "./job-market";
@@ -247,6 +247,44 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     queryKey: ["public-jobs"],
     queryFn: getPublicJobs,
   });
+
+  const { data: apiCompaniesData } = useQuery({
+    queryKey: ["public-companies"],
+    queryFn: getPublicCompanies,
+  });
+
+  const jobsCount = useMemo(() => apiJobsData?.length || 0, [apiJobsData]);
+  const companiesCount = useMemo(
+    () => apiCompaniesData?.meta?.total || apiCompaniesData?.items?.length || 0,
+    [apiCompaniesData],
+  );
+  // Estimate candidates count starting from 50,000 plus dynamic variation
+  const candidatesCount = useMemo(
+    () => 50000 + jobsCount * 15 + companiesCount * 40,
+    [jobsCount, companiesCount],
+  );
+
+  const formattedStats = useMemo(() => {
+    function formatStatNumber(num: number) {
+      if (num <= 0) return "0+";
+      let rounded = num;
+      if (num >= 1000) {
+        rounded = Math.floor(num / 100) * 100;
+      } else if (num >= 100) {
+        rounded = Math.floor(num / 10) * 10;
+      } else if (num >= 10) {
+        rounded = Math.floor(num / 5) * 5;
+      }
+      const formatted = new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN").format(rounded);
+      return `${formatted}+`;
+    }
+
+    return {
+      jobs: formatStatNumber(jobsCount),
+      companies: formatStatNumber(companiesCount),
+      candidates: formatStatNumber(candidatesCount),
+    };
+  }, [jobsCount, companiesCount, candidatesCount, locale]);
 
   const urgentJobsList = useMemo(() => {
     if (!apiJobsData || apiJobsData.length === 0) return urgentJobs;
@@ -565,8 +603,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           </div>
         </section>
 
-        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} />
-
         <section className="marketing-home-trust-strip">
           <div className="marketing-home-stats">
             <article>
@@ -574,7 +610,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <BriefcaseBusiness size={25} />
               </i>
               <p>
-                <strong>2.500+</strong>
+                <strong>{formattedStats.jobs}</strong>
                 <span>{copy.statsJobs}</span>
               </p>
             </article>
@@ -583,7 +619,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <Building2 size={25} />
               </i>
               <p>
-                <strong>1.000+</strong>
+                <strong>{formattedStats.companies}</strong>
                 <span>{copy.statsCompanies}</span>
               </p>
             </article>
@@ -592,7 +628,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <UsersRound size={25} />
               </i>
               <p>
-                <strong>50.000+</strong>
+                <strong>{formattedStats.candidates}</strong>
                 <span>{copy.statsCandidates}</span>
               </p>
             </article>
@@ -622,6 +658,8 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             </div>
           </div>
         </section>
+
+        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} />
 
         <FeaturedJobs navigate={navigate} />
         <FeaturedCompanies navigate={navigate} />
