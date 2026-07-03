@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { useRouter } from "@/i18n/navigation";
 
@@ -17,20 +17,20 @@ import { JobMarket } from "./job-market";
 import {
   Bookmark,
   BriefcaseBusiness,
-  Briefcase,
   Building2,
   Check,
   ChevronDown,
   ChevronRight,
   Clock,
   Coins,
-  Eye,
-  Flame,
   MapPin,
   Search,
   Sparkles,
   TrendingUp,
   UsersRound,
+  User,
+  Globe,
+  Cloud,
 } from "./marketing-icons";
 import { buildPopularKeywordSlides, getPopularKeywordsForLocale } from "./popular-keywords";
 import { TechOrbit } from "./tech-orbit";
@@ -87,68 +87,76 @@ const trustedCompanies = [
 
 const urgentJobs = [
   {
-    id: "fpt-frontend",
-    logo: "/assets/marketing/home/companies/fpt.png",
-    title: "Senior Frontend Developer (ReactJS)",
-    company: "FPT Software",
-    salary: "30 - 45 triệu",
+    id: "brighttech-frontend",
+    logo: "",
+    title: "Frontend Developer",
+    company: "BrightTech",
+    salary: "18 - 25 triệu",
     location: "Hà Nội",
     mode: "Hybrid",
     tags: ["React", "TypeScript", "Next.js"],
-    deadline: "Còn 18 giờ",
-    deadlineTone: "amber",
-    applicants: "28 ứng viên",
-    views: "412 lượt xem",
-    competition: "Cạnh tranh vừa",
-    progress: 58,
-  },
-  {
-    id: "momo-backend",
-    logo: "/assets/marketing/home/companies/momo.png",
-    title: "Backend Engineer (Golang)",
-    company: "MoMo",
-    salary: "35 - 55 triệu",
-    location: "Hồ Chí Minh",
-    mode: "Onsite",
-    tags: ["Go", "gRPC", "Kafka"],
-    deadline: "Còn 6 giờ",
+    deadline: "Còn 3 ngày",
     deadlineTone: "red",
-    applicants: "54 ứng viên",
-    views: "760 lượt xem",
-    competition: "Cạnh tranh cao",
-    progress: 100,
+    applicants: "12 ứng viên",
+    views: "185 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Junior",
+    bgClass: "bg-slate-800",
   },
   {
-    id: "viettel-devops-urgent",
-    logo: "/assets/marketing/home/companies/viettel.png",
-    title: "DevOps Engineer (Kubernetes)",
-    company: "Viettel Solutions",
-    salary: "28 - 50 triệu",
+    id: "novalabs-backend",
+    logo: "",
+    title: "Backend Developer",
+    company: "Nova Labs",
+    salary: "20 - 30 triệu",
+    location: "TP.HCM",
+    mode: "Remote",
+    tags: ["Node.js", "PostgreSQL", "Docker"],
+    deadline: "Còn 5 ngày",
+    deadlineTone: "red",
+    applicants: "18 ứng viên",
+    views: "245 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Middle",
+    bgClass: "bg-purple-600",
+  },
+  {
+    id: "skysoft-data",
+    logo: "",
+    title: "Data Engineer",
+    company: "SkySoft",
+    salary: "22 - 35 triệu",
     location: "Đà Nẵng",
     mode: "Onsite",
-    tags: ["AWS", "Kubernetes", "Terraform"],
-    deadline: "Còn 1 ngày",
-    deadlineTone: "amber",
-    applicants: "12 ứng viên",
-    views: "198 lượt xem",
+    tags: ["Python", "SQL", "Airflow"],
+    deadline: "Còn 2 ngày",
+    deadlineTone: "red",
+    applicants: "9 ứng viên",
+    views: "112 lượt xem",
     competition: "Mới mở · ít ứng viên",
-    progress: 30,
+    progress: 25,
+    level: "Middle",
+    bgClass: "bg-sky-500",
   },
   {
-    id: "vng-data",
-    logo: "/assets/marketing/home/companies/vng.png",
-    title: "Data Engineer",
-    company: "VNG Corporation",
-    salary: "27 - 45 triệu",
-    location: "Hồ Chí Minh",
+    id: "pixelworks-uiux",
+    logo: "",
+    title: "UI/UX Designer",
+    company: "Pixel Works",
+    salary: "15 - 22 triệu",
+    location: "Hà Nội",
     mode: "Hybrid",
-    tags: ["Python", "Spark", "Airflow"],
-    deadline: "Còn 12 giờ",
+    tags: ["Figma", "Design System", "UX Research"],
+    deadline: "Còn 4 ngày",
     deadlineTone: "red",
-    applicants: "33 ứng viên",
-    views: "503 lượt xem",
-    competition: "Cạnh tranh vừa",
-    progress: 58,
+    applicants: "14 ứng viên",
+    views: "192 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Junior",
+    bgClass: "bg-rose-500",
   },
 ];
 
@@ -310,6 +318,15 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         views: "185 lượt xem",
         competition: "Mới mở · ít ứng viên",
         progress: 25,
+        level: job.experienceLevel?.name || "Junior",
+        bgClass:
+          index === 0
+            ? "bg-slate-800"
+            : index === 1
+              ? "bg-purple-600"
+              : index === 2
+                ? "bg-sky-500"
+                : "bg-rose-500",
       };
     });
 
@@ -368,9 +385,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
       <section className="marketing-home-content">
         <section className="marketing-home-hero">
           <div className="marketing-home-copy">
-            <span className="marketing-home-eyebrow">
-              <Sparkles size={16} /> {copy.eyebrow}
-            </span>
             <h1>
               {copy.titleLine1}
               <br />
@@ -691,16 +705,14 @@ function UrgentJobsSection({
     views: string;
     competition: string;
     progress: number;
+    level: string;
+    bgClass: string;
   }>;
 }) {
   return (
     <section className="marketing-home-urgent" aria-label="Việc cần tuyển gấp">
       <header className="marketing-home-urgent-head">
         <div>
-          <span className="marketing-home-urgent-eyebrow">
-            <Flame size={14} weight="fill" />
-            Tuyển gấp
-          </span>
           <h2>Việc cần tuyển gấp</h2>
           <p>Các vị trí đang đóng đơn sớm - nộp hồ sơ ngay để không bỏ lỡ cơ hội.</p>
         </div>
@@ -717,11 +729,15 @@ function UrgentJobsSection({
         {urgentJobs.map((job) => (
           <article className="urgent-job-card" key={job.id}>
             <div className="urgent-job-top">
-              <span className="urgent-job-logo">
+              <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
                 {job.logo ? (
                   <Image src={job.logo} alt={`Logo ${job.company}`} width={46} height={46} />
+                ) : job.company === "SkySoft" ? (
+                  <span className="flex size-full items-center justify-center rounded-lg bg-sky-100 text-sky-600">
+                    <Cloud size={24} weight="fill" />
+                  </span>
                 ) : (
-                  <span className="flex size-full items-center justify-center rounded-lg bg-emerald-600 text-lg font-bold text-white">
+                  <span className="flex size-full items-center justify-center rounded-lg text-lg font-bold text-white">
                     {job.company.charAt(0)}
                   </span>
                 )}
@@ -740,12 +756,11 @@ function UrgentJobsSection({
                 <Coins size={15} />
                 {job.salary}
               </span>
-              <span>
-                <MapPin size={15} />
+              <span className="urgent-job-loc-mode">
+                <MapPin size={14} />
                 {job.location}
-              </span>
-              <span>
-                <Briefcase size={15} />
+                <span className="mx-1.5 text-slate-300">•</span>
+                {job.mode === "Remote" ? <Globe size={14} /> : <Building2 size={14} />}
                 {job.mode}
               </span>
             </div>
@@ -756,21 +771,16 @@ function UrgentJobsSection({
               ))}
             </div>
 
-            <div className="urgent-job-stats">
-              <span>
+            <div className="urgent-job-footer">
+              <span className="urgent-job-level">
+                <User size={14} />
+                {job.level}
+              </span>
+              <span className="mx-1.5 text-slate-300">•</span>
+              <span className="urgent-job-applicants">
                 <UsersRound size={14} />
                 {job.applicants}
               </span>
-              <span>
-                <Eye size={14} />
-                {job.views}
-              </span>
-            </div>
-
-            <div className="urgent-job-competition">
-              <span>Mức độ cạnh tranh</span>
-              <b>{job.competition}</b>
-              <i style={{ "--urgent-progress": `${job.progress}%` } as CSSProperties} />
             </div>
 
             <button
