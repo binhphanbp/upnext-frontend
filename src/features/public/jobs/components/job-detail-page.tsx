@@ -101,11 +101,27 @@ const companyStats = [
 
 function getCleanLeadText(html: string) {
   if (!html) return "";
-  // Strip summary tag and its contents
-  let text = html.replace(/<summary>([\s\S]*?)<\/summary>/gi, "");
-  // Strip all other HTML tags
+  let text = html.replace(/<summary[^>]*>([\s\S]*?)<\/summary>/gi, "");
   text = text.replace(/<[^>]*>/gi, "");
-  // Normalize whitespace
+  return text.replace(/\s+/g, " ").trim();
+}
+function getCleanHtml(html: string) {
+  if (!html) return "";
+  let cleaned = html.replace(/<summary[^>]*>([\s\S]*?)<\/summary>/gi, "");
+  cleaned = cleaned.replace(/<details[^>]*>/gi, "").replace(/<\/details>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Mô tả công việc\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Yêu cầu ứng viên\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Quyền lợi\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Mô tả công việc\s*<\/p>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Yêu cầu ứng viên\s*<\/p>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Quyền lợi\s*<\/p>/gi, "");
+  return cleaned.trim();
+}
+
+function getCleanText(html: string) {
+  if (!html) return "";
+  let text = html.replace(/<summary[^>]*>([\s\S]*?)<\/summary>/gi, "");
+  text = text.replace(/<[^>]*>/gi, "");
   return text.replace(/\s+/g, " ").trim();
 }
 
@@ -342,7 +358,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   {job.description && job.description.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
                       className="job-detail-rich-text space-y-2 text-sm leading-relaxed text-slate-700"
-                      dangerouslySetInnerHTML={{ __html: job.description }}
+                      dangerouslySetInnerHTML={{ __html: getCleanHtml(job.description) }}
                     />
                   ) : (
                     <div className="job-detail-rich-text text-sm leading-relaxed text-slate-700">
@@ -358,7 +374,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   job.requirements.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
                       className="job-detail-rich-text space-y-2 text-sm leading-relaxed text-slate-700"
-                      dangerouslySetInnerHTML={{ __html: job.requirements }}
+                      dangerouslySetInnerHTML={{ __html: getCleanHtml(job.requirements) }}
                     />
                   ) : (
                     <div className="job-detail-rich-text text-sm leading-relaxed text-slate-700">
@@ -373,7 +389,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   {job.benefits && job.benefits.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
                       className="job-detail-rich-text space-y-2 text-sm leading-relaxed text-slate-700"
-                      dangerouslySetInnerHTML={{ __html: job.benefits }}
+                      dangerouslySetInnerHTML={{ __html: getCleanHtml(job.benefits) }}
                     />
                   ) : (
                     <div className="job-detail-rich-text text-sm leading-relaxed text-slate-700">
