@@ -7,6 +7,7 @@ export {
   BookmarkSimple as Bookmark,
   Brain,
   Briefcase,
+  Cloud,
   Briefcase as BriefcaseBusiness,
   Buildings as Building2,
   Calendar,
@@ -63,6 +64,7 @@ export {
   Sun,
   TrendUp as TrendingUp,
   UsersThree as UsersRound,
+  User,
   X,
   YoutubeLogo as Youtube,
 } from "@phosphor-icons/react";

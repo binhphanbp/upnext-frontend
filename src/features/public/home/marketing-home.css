@@ -1769,35 +1769,21 @@ button.marketing-home-control {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 372px;
-  padding: 20px;
-  border: 1px solid #dbe6ef;
-  border-radius: 18px;
-  background:
-    linear-gradient(#ffffff, #ffffff) padding-box,
-    linear-gradient(92deg, #0aa56f 0%, #0aa56f 38%, #5651ff 100%) border-box;
+  padding: 24px 20px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.urgent-job-card:hover {
+  transform: translateY(-2px);
   box-shadow:
-    0 18px 42px rgba(15, 23, 42, 0.05),
-    inset 0 3px 0 transparent;
-}
-
-.urgent-job-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 22px;
-  right: 22px;
-  height: 4px;
-  background: linear-gradient(90deg, #0aa56f 0%, #1682c4 55%, #5b55ff 100%);
-  border-radius: 0 0 999px 999px;
-}
-
-.urgent-job-card::after {
-  content: "";
-  position: absolute;
-  inset: 4px 0 0;
-  pointer-events: none;
-  background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.1), transparent 58%);
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -4px rgba(0, 0, 0, 0.05);
 }
 
 .urgent-job-card > * {
@@ -1807,7 +1793,7 @@ button.marketing-home-control {
 
 .urgent-job-top,
 .urgent-job-meta,
-.urgent-job-stats {
+.urgent-job-footer {
   display: flex;
   align-items: center;
 }
@@ -1818,15 +1804,29 @@ button.marketing-home-control {
 }
 
 .urgent-job-logo {
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   overflow: hidden;
-  border: 1px solid #e8eef5;
   border-radius: 12px;
-  background: #ffffff;
+}
+
+.urgent-job-logo.bg-slate-800 {
+  background-color: #1e293b;
+}
+
+.urgent-job-logo.bg-purple-600 {
+  background-color: #7c3aed;
+}
+
+.urgent-job-logo.bg-sky-500 {
+  background-color: #0ea5e9;
+}
+
+.urgent-job-logo.bg-rose-500 {
+  background-color: #f43f5e;
 }
 
 .urgent-job-logo img {
@@ -1841,148 +1841,102 @@ button.marketing-home-control {
   align-items: center;
   gap: 5px;
   min-height: 28px;
-  padding: 0 10px;
+  padding: 0 12px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
   border-radius: 999px;
+  color: #ef4444;
+  background: #fef2f2;
 }
 
-.urgent-job-deadline.is-amber {
-  color: #c46210;
-  background: #fff3e3;
-}
-
-.urgent-job-deadline.is-red {
-  color: #f02d3a;
-  background: #fff0f0;
-  box-shadow: inset 0 0 0 1px #ffd5d8;
+.urgent-job-deadline svg {
+  color: #ef4444;
 }
 
 .urgent-job-card h3 {
-  min-height: 48px;
-  margin: 20px 0 0;
-  color: #111827;
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.3;
+  margin: 16px 0 0;
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .urgent-job-company {
   display: block;
-  margin-top: 7px;
+  margin-top: 5px;
   color: #64748b;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .urgent-job-meta {
-  flex-wrap: wrap;
-  gap: 8px 13px;
-  margin-top: 15px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 14px;
 }
 
-.urgent-job-meta span {
+.urgent-job-meta .urgent-job-salary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #10b981;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.urgent-job-meta .urgent-job-salary svg {
+  color: #10b981;
+}
+
+.urgent-job-meta .urgent-job-loc-mode {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   color: #64748b;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .urgent-job-meta svg,
-.urgent-job-stats svg {
+.urgent-job-footer svg {
   flex: 0 0 auto;
-  color: #8ba0b8;
-}
-
-.urgent-job-meta .urgent-job-salary {
-  color: #0aa56f;
-  font-size: 13px;
-  font-weight: 900;
+  color: #94a3b8;
 }
 
 .urgent-job-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  min-height: 30px;
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
 .urgent-job-tags i {
   padding: 5px 10px;
   color: #475569;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 500;
   font-style: normal;
   line-height: 1;
-  border-radius: 7px;
+  border-radius: 6px;
   background: #f1f5f9;
 }
 
-.urgent-job-stats {
-  gap: 18px;
-  margin-top: 16px;
-  padding-top: 13px;
-  border-top: 1px solid #eef2f7;
+.urgent-job-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.urgent-job-stats span {
+.urgent-job-level,
+.urgent-job-applicants {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;
-  color: #52657c;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.urgent-job-competition {
-  margin-top: 12px;
-}
-
-.urgent-job-competition span,
-.urgent-job-competition b {
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.urgent-job-competition span {
-  color: #9aa9ba;
-}
-
-.urgent-job-competition b {
-  float: right;
-  color: #5b55ff;
-}
-
-.urgent-job-competition i {
-  clear: both;
-  display: block;
-  height: 5px;
-  margin-top: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #edf2f7;
-}
-
-.urgent-job-competition i::before {
-  content: "";
-  display: block;
-  width: var(--urgent-progress);
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #0aa56f 0%, #665cff 100%);
-}
-
-.urgent-job-card:nth-child(3) .urgent-job-competition b {
-  color: #0b7f5f;
-}
-
-.urgent-job-card:nth-child(3) .urgent-job-competition i::before {
-  background: #0aa56f;
 }
 
 .urgent-job-apply {
@@ -1991,15 +1945,20 @@ button.marketing-home-control {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 44px;
-  margin-top: auto;
+  min-height: 40px;
+  margin-top: 14px;
   color: #ffffff;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: 13.5px;
+  font-weight: 700;
   border: 0;
-  border-radius: 9px;
-  background: linear-gradient(100deg, #0b986d 0%, #14b983 100%);
-  box-shadow: 0 13px 28px rgba(16, 185, 129, 0.2);
+  border-radius: 8px;
+  background: #0baa70;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.urgent-job-apply:hover {
+  background: #098f5e;
 }
 
 .urgent-job-apply svg {
