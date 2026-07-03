@@ -322,6 +322,7 @@ function useVisibleCount() {
 
   useEffect(() => {
     const update = () => setCount(getCount());
+    update(); // Initialize count on mount
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
@@ -354,9 +355,21 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
     }));
 
     const result: CompanyPage[] = [];
-    const PAGE_SIZE = 10;
+    const PAGE_SIZE = 11;
+    const staticCos = staticPages.flatMap((p) => p.companies);
+
     for (let i = 0; i < mapped.length; i += PAGE_SIZE) {
       const chunk = mapped.slice(i, i + PAGE_SIZE);
+
+      // Pad chunk up to 11 elements using static companies to avoid empty slots in the grid
+      const paddedCompanies = [...chunk];
+      for (const staticCo of staticCos) {
+        if (paddedCompanies.length >= 11) break;
+        if (!paddedCompanies.some((c) => c.id === staticCo.id)) {
+          paddedCompanies.push(staticCo);
+        }
+      }
+
       const first = apiCosData.items[i]!;
       const featured: FeaturedCompany = {
         id: first.id,
@@ -372,7 +385,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
 
       result.push({
         featured,
-        companies: chunk,
+        companies: paddedCompanies,
       });
     }
 

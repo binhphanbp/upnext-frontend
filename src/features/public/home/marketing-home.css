@@ -2760,6 +2760,11 @@ button.marketing-home-control {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .featured-company-featured-jobs {
