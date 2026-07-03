@@ -19,10 +19,6 @@ import {
   Star,
   UsersThree,
   VideoCamera,
-  PaperPlaneTilt,
-  User,
-  XCircle,
-  FileText,
   Globe,
   Moon,
   Question,
@@ -114,13 +110,6 @@ export function CandidateApplicationsPage() {
       });
   }, [query, sort, status, timeRange]);
 
-  // Statistics derived dynamically
-  const totalCount = applications.length;
-  const reviewingCount = applications.filter((a) => a.status === "reviewing").length;
-  const interviewCount = applications.filter((a) => a.status === "interview").length;
-  const offerCount = applications.filter((a) => a.status === "offer").length;
-  const rejectedCount = applications.filter((a) => a.status === "rejected").length;
-
   return (
     <div className="flex flex-col gap-8">
       {/* Breadcrumbs & Title */}
@@ -147,79 +136,6 @@ export function CandidateApplicationsPage() {
               Khám phá thêm việc làm
             </Link>
           </Button>
-        </div>
-      </div>
-
-      {/* Statistics Row */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        {/* Total Applications */}
-        <div className="flex h-[110px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-lg text-emerald-600">
-              <FileText size={20} />
-            </div>
-            <div className="text-xs font-semibold text-slate-500">Tổng đơn ứng tuyển</div>
-          </div>
-          <div className="mt-2 flex items-end justify-between">
-            <div className="text-2xl font-bold text-slate-900">{totalCount}</div>
-            <div className="text-[10px] text-slate-400">Tất cả thời gian</div>
-          </div>
-        </div>
-
-        {/* Reviewing */}
-        <div className="flex h-[110px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-lg text-blue-600">
-              <PaperPlaneTilt size={20} />
-            </div>
-            <div className="text-xs font-semibold text-slate-500">Đang xử lý</div>
-          </div>
-          <div className="mt-2 flex items-end justify-between">
-            <div className="text-2xl font-bold text-slate-900">{reviewingCount}</div>
-            <div className="text-[10px] text-slate-400">Đơn đang xem xét</div>
-          </div>
-        </div>
-
-        {/* Interview */}
-        <div className="flex h-[110px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50 text-lg text-amber-500">
-              <User size={20} />
-            </div>
-            <div className="text-xs font-semibold text-slate-500">Phỏng vấn</div>
-          </div>
-          <div className="mt-2 flex items-end justify-between">
-            <div className="text-2xl font-bold text-slate-900">{interviewCount}</div>
-            <div className="text-[10px] font-medium text-slate-400">Vòng phỏng vấn</div>
-          </div>
-        </div>
-
-        {/* Offer */}
-        <div className="flex h-[110px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 text-lg text-purple-600">
-              <CheckCircle size={20} />
-            </div>
-            <div className="text-xs font-semibold text-slate-500">Đã nhận offer</div>
-          </div>
-          <div className="mt-2 flex items-end justify-between">
-            <div className="text-2xl font-bold text-slate-900">{offerCount}</div>
-            <div className="text-[10px] font-bold text-emerald-600">Chúc mừng bạn!</div>
-          </div>
-        </div>
-
-        {/* Rejected */}
-        <div className="flex h-[110px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-lg text-slate-600">
-              <XCircle size={20} />
-            </div>
-            <div className="text-xs font-semibold text-slate-500">Không phù hợp</div>
-          </div>
-          <div className="mt-2 flex items-end justify-between">
-            <div className="text-2xl font-bold text-slate-900">{rejectedCount}</div>
-            <div className="text-[10px] text-slate-400">Đơn dừng tuyển</div>
-          </div>
         </div>
       </div>
 
