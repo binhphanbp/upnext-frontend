@@ -17,6 +17,9 @@ export interface PublicJob {
     id: string;
     name: string;
     logoUrl?: string | null;
+    logoFile?: {
+      publicUrl: string;
+    } | null;
   } | null;
   jobCategory?: { name: string } | null;
   employmentType?: { name: string } | null;
@@ -34,6 +37,9 @@ export interface PublicCompany {
   name: string;
   type: string;
   logoUrl?: string | null;
+  logoFile?: {
+    publicUrl: string;
+  } | null;
   website?: string | null;
   address?: string | null;
   description?: string | null;

@@ -1862,6 +1862,29 @@ button.marketing-home-control {
   line-height: 1.35;
 }
 
+.urgent-job-title {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #111827;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 280ms cubic-bezier(0.32, 0.72, 0, 1);
+  width: 100%;
+}
+
+.urgent-job-card:hover .urgent-job-title {
+  color: #0aa56f;
+}
+
 .urgent-job-company {
   display: block;
   margin-top: 5px;

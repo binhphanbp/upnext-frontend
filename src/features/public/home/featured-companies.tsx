@@ -272,11 +272,12 @@ function Logo({ company }: { company: Company | FeaturedCompany }) {
     );
   }
   return (
-    <Image
+    <img
       src={company.logo}
       alt={`Logo ${company.name}`}
       width={56}
       height={56}
+      className="rounded-lg object-contain p-1"
       onError={() => setFailed(true)}
     />
   );
@@ -350,7 +351,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
       name: co.name,
       category: co.type || "Technology",
       jobs: 12,
-      logo: co.logoUrl || "",
+      logo: co.logoUrl || co.logoFile?.publicUrl || "",
       logoColor: "#10b981",
     }));
 
@@ -376,7 +377,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
         name: first.name,
         category: first.type || "Technology",
         jobs: 12,
-        logo: first.logoUrl || "",
+        logo: first.logoUrl || first.logoFile?.publicUrl || "",
         logoColor: "#10b981",
         cover: "",
         tags: [first.type || "Technology", "Partner"],

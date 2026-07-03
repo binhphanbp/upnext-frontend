@@ -6,6 +6,8 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { getCandidateSession } from "@/features/candidate/session";
+import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
 import { useRouter } from "@/i18n/navigation";
 
 import { PublicFooter } from "../shared/public-footer";
@@ -238,6 +240,9 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("");
   const [openField, setOpenField] = useState<FieldKey | null>(null);
+  const [applyJob, setApplyJob] = useState<{ id: string; title: string; company: string } | null>(
+    null,
+  );
 
   const copy = locale === "en" ? homeCopy.en : homeCopy.vi;
   const popularKeywords = useMemo(
@@ -300,7 +305,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
       const isUrgent = index % 2 === 0;
       return {
         id: job.id,
-        logo: job.company?.logoUrl || "",
+        logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
         title: job.title,
         company: job.company?.name || "UpNext Partner",
         salary:
@@ -673,13 +678,17 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           </div>
         </section>
 
-        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} />
+        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} onApply={setApplyJob} />
 
-        <FeaturedJobs navigate={navigate} />
+        <FeaturedJobs navigate={navigate} onApply={setApplyJob} />
         <FeaturedCompanies navigate={navigate} />
         <JobMarket navigate={navigate} />
 
         <PublicFooter navigate={navigate} />
+
+        {applyJob && (
+          <ApplyModal isOpen={!!applyJob} onClose={() => setApplyJob(null)} job={applyJob} />
+        )}
       </section>
     </main>
   );
@@ -688,6 +697,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 function UrgentJobsSection({
   navigate,
   urgentJobs,
+  onApply,
 }: {
   navigate: (path: string) => void;
   urgentJobs: Array<{
@@ -708,6 +718,7 @@ function UrgentJobsSection({
     level: string;
     bgClass: string;
   }>;
+  onApply: (job: { id: string; title: string; company: string }) => void;
 }) {
   return (
     <section className="marketing-home-urgent" aria-label="Việc cần tuyển gấp">
@@ -731,7 +742,13 @@ function UrgentJobsSection({
             <div className="urgent-job-top">
               <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
                 {job.logo ? (
-                  <Image src={job.logo} alt={`Logo ${job.company}`} width={46} height={46} />
+                  <img
+                    src={job.logo}
+                    alt={`Logo ${job.company}`}
+                    width={46}
+                    height={46}
+                    className="rounded-lg object-contain p-1"
+                  />
                 ) : job.company === "SkySoft" ? (
                   <span className="flex size-full items-center justify-center rounded-lg bg-sky-100 text-sky-600">
                     <Cloud size={24} weight="fill" />
@@ -748,7 +765,15 @@ function UrgentJobsSection({
               </span>
             </div>
 
-            <h3>{job.title}</h3>
+            <h3>
+              <button
+                type="button"
+                className="urgent-job-title"
+                onClick={() => navigate(`/jobs/${job.id}`)}
+              >
+                {job.title}
+              </button>
+            </h3>
             <strong className="urgent-job-company">{job.company}</strong>
 
             <div className="urgent-job-meta">
@@ -786,7 +811,14 @@ function UrgentJobsSection({
             <button
               type="button"
               className="urgent-job-apply"
-              onClick={() => navigate("/register")}
+              onClick={() => {
+                const session = getCandidateSession();
+                if (session) {
+                  onApply(job);
+                } else {
+                  navigate(`/register?job=${job.id}`);
+                }
+              }}
             >
               Ứng tuyển ngay <ChevronRight size={16} />
             </button>
