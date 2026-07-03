@@ -15,6 +15,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createCandidateCv,
   getMyCandidateCvs,
+  getMyCandidateProfile,
   submitApplication,
   uploadCandidateCvFile,
 } from "@/features/candidate/api/profile";
@@ -66,6 +67,12 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     enabled: !!session && mounted,
   });
 
+  const { data: profileData } = useQuery({
+    queryKey: ["candidate-profile", session?.user.id],
+    queryFn: () => getMyCandidateProfile(session!.accessToken),
+    enabled: !!session && mounted,
+  });
+
   // Auto-select default CV
   useEffect(() => {
     if (cvsData?.items) {
@@ -78,13 +85,17 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     }
   }, [cvsData]);
 
-  // If phone number is available on session user, set it
+  // Prefill candidate details when profile loads
   useEffect(() => {
-    if (session?.user) {
-      // In real profile we fetch phone number, we can default to empty
-      setPhoneNumber("");
+    if (profileData) {
+      if (profileData.account?.fullName) {
+        setFullName(profileData.account.fullName);
+      }
+      if (profileData.phoneNumber) {
+        setPhoneNumber(profileData.phoneNumber);
+      }
     }
-  }, [session]);
+  }, [profileData]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -181,7 +192,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
               dõi tiến độ xét duyệt hồ sơ bất cứ lúc nào.
             </p>
 
-            <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row">
+            <div className="mt-8 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
               <Button
                 onClick={() => {
                   onClose();
@@ -374,7 +385,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
             </div>
 
             {/* Footer buttons */}
-            <div className="mt-6 flex gap-3 border-t border-slate-100 pt-4">
+            <div className="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
               <Button
                 variant="outline"
                 type="button"
