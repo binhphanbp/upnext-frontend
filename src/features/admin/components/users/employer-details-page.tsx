@@ -39,7 +39,7 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
         <div className="flex items-center gap-4">
           <Skeleton className="h-10 w-32 rounded-lg" />
         </div>
-        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <Skeleton className="h-24 w-full rounded-2xl" />
           <Skeleton className="h-24 w-full rounded-2xl" />
@@ -80,46 +80,63 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
 
       {/* Main Profile Card */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-start">
-          <div className="bg-muted flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border border-slate-200">
-            {company.logoFile?.publicUrl ? (
-              <img
-                src={company.logoFile.publicUrl}
-                alt={company.name}
-                className="h-full w-full rounded-2xl object-contain p-2"
-              />
-            ) : (
-              <span className="text-muted-foreground text-4xl font-bold uppercase">
-                {company.name.charAt(0)}
-              </span>
-            )}
+        {/* Cover Image */}
+        {company.coverFile?.publicUrl ? (
+          <div className="h-48 w-full border-b border-slate-100 sm:h-72 lg:h-80">
+            <img
+              src={company.coverFile.publicUrl}
+              alt="Cover"
+              className="h-full w-full object-cover"
+            />
           </div>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-900">{company.name}</h1>
-            <p className="mt-1 text-slate-500">
-              Mã số thuế:{" "}
-              <span className="font-semibold text-slate-900">
-                {company.taxCode || "Chưa cập nhật"}
-              </span>
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Badge
-                tone={company.verificationStatus === "VERIFIED" ? "success" : "warning"}
-                className="px-3 py-1 text-sm"
-              >
-                {company.verificationStatus === "VERIFIED" ? "Đã xác thực" : "Chờ duyệt"}
-              </Badge>
-              <Badge
-                tone={company.status === "ACTIVE" ? "success" : "error"}
-                className="px-3 py-1 text-sm"
-              >
-                {company.status === "ACTIVE" ? "Hoạt động" : "Bị khóa"}
-              </Badge>
-              {company.type && (
-                <Badge tone="neutral" className="px-3 py-1 text-sm">
-                  {company.type}
+        ) : (
+          <div className="h-48 w-full border-b border-slate-100 bg-gradient-to-r from-[#bfe9d6]/40 to-sky-100/50 sm:h-72 lg:h-80" />
+        )}
+
+        <div className="px-6 pb-6 sm:px-8 sm:pb-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+            <div className="z-10 -mt-12 flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200 sm:-mt-16 sm:h-32 sm:w-32">
+              <div className="flex h-full w-full items-center justify-center rounded-xl bg-slate-50">
+                {company.logoFile?.publicUrl ? (
+                  <img
+                    src={company.logoFile.publicUrl}
+                    alt={company.name}
+                    className="h-full w-full rounded-xl object-contain p-2"
+                  />
+                ) : (
+                  <span className="text-4xl font-bold text-slate-400 uppercase sm:text-5xl">
+                    {company.name.charAt(0)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex-1 pt-2 sm:pt-4">
+              <h1 className="text-2xl font-bold text-slate-900">{company.name}</h1>
+              <p className="mt-1 text-slate-500">
+                Mã số thuế:{" "}
+                <span className="font-semibold text-slate-900">
+                  {company.taxCode || "Chưa cập nhật"}
+                </span>
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Badge
+                  tone={company.verificationStatus === "VERIFIED" ? "success" : "warning"}
+                  className="px-3 py-1 text-sm"
+                >
+                  {company.verificationStatus === "VERIFIED" ? "Đã xác thực" : "Chờ duyệt"}
                 </Badge>
-              )}
+                <Badge
+                  tone={company.status === "ACTIVE" ? "success" : "error"}
+                  className="px-3 py-1 text-sm"
+                >
+                  {company.status === "ACTIVE" ? "Hoạt động" : "Bị khóa"}
+                </Badge>
+                {company.type && (
+                  <Badge tone="neutral" className="px-3 py-1 text-sm">
+                    {company.type}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </div>
