@@ -1,6 +1,5 @@
 import { useTranslations } from "next-intl";
 
-import { AddEmployerDialog } from "@/features/admin/components/users/add-employer-dialog";
 import { EmployersTable } from "@/features/admin/components/users/employers-table";
 
 export default function EmployersPage() {
@@ -12,9 +11,6 @@ export default function EmployersPage() {
         <div>
           <h2 className="text-foreground text-3xl font-extrabold tracking-tight">{t("title")}</h2>
           <p className="text-muted-foreground mt-1">{t("subtitle")}</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <AddEmployerDialog />
         </div>
       </div>
 
