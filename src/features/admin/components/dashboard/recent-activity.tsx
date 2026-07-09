@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import * as React from "react";
 
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
@@ -12,18 +13,20 @@ export function RecentActivity({ activities }: { activities?: AdminRecentActivit
   const t = useTranslations("Admin.dashboard");
   const locale = useLocale();
 
+  const validActivities = Array.isArray(activities) ? activities : [];
+
   return (
-    <Card className="col-span-1 lg:col-span-3">
+    <Card className="col-span-1 flex flex-col lg:col-span-3">
       <CardHeader>
         <CardTitle>{t("recentActivity.title")}</CardTitle>
         <CardDescription>{t("recentActivity.subtitle")}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="h-[350px] scrollbar-thin space-y-6 overflow-y-auto pr-4">
-          {!Array.isArray(activities) || activities.length === 0 ? (
+      <CardContent className="flex flex-1 flex-col justify-between">
+        <div className="max-h-[350px] scrollbar-thin space-y-6 overflow-y-auto pr-4">
+          {validActivities.length === 0 ? (
             <p className="text-muted-foreground text-center text-sm">{t("recentActivity.empty")}</p>
           ) : (
-            activities.map((task) => {
+            validActivities.map((task) => {
               const status = task.status?.toLowerCase() || "neutral";
               return (
                 <div key={task.id} className="flex items-center justify-between">
