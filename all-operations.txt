@@ -1,0 +1,231 @@
+POST /api/v1/admin/auth/login - Đăng nhập tài khoản Admin
+GET /api/v1/admin/dashboard - Lấy dữ liệu dashboard thống kê nền tảng cho admin
+GET /api/v1/admin/roles - Danh sách vai trò Admin
+POST /api/v1/admin/roles - Tạo vai trò Admin mới
+GET /api/v1/admin/roles/{id} - Chi tiết vai trò Admin
+PATCH /api/v1/admin/roles/{id} - Cập nhật vai trò Admin
+DELETE /api/v1/admin/roles/{id} - Xóa vai trò Admin
+POST /api/v1/admin/roles/{id}/permissions - Gán danh sách quyền cho vai trò Admin
+GET /api/v1/admin/permissions - Danh sách quyền Admin
+POST /api/v1/admin/permissions - Tạo quyền Admin mới
+GET /api/v1/admin/permissions/{id} - Chi tiết quyền Admin
+PATCH /api/v1/admin/permissions/{id} - Cập nhật quyền Admin
+DELETE /api/v1/admin/permissions/{id} - Xóa quyền Admin
+POST /api/v1/admin/posts - Tạo bài viết mới
+GET /api/v1/admin/posts - Lấy danh sách bài viết cho Admin
+GET /api/v1/admin/posts/categories - Lấy danh sách danh mục bài viết cho dropdown selection
+GET /api/v1/admin/posts/tags - Lấy danh sách tag bài viết cho dropdown selection
+GET /api/v1/admin/posts/{id} - Chi tiết bài viết
+PATCH /api/v1/admin/posts/{id} - Cập nhật bài viết
+DELETE /api/v1/admin/posts/{id} - Xóa bài viết
+POST /api/v1/reports - Tạo báo cáo vi phạm mới (Ứng viên)
+GET /api/v1/admin/reports - Lấy danh sách báo cáo vi phạm cho Admin
+GET /api/v1/admin/reports/{id} - Chi tiết báo cáo vi phạm
+PATCH /api/v1/admin/reports/{id}/status - Duyệt báo cáo vi phạm (cập nhật trạng thái)
+POST /api/v1/companies - Tạo công ty
+GET /api/v1/companies - Danh sách công ty
+GET /api/v1/companies/{idOrSlug} - Chi tiết công ty
+GET /api/v1/companies/{id}/jobs - Danh sách việc làm của công ty
+PATCH /api/v1/companies/{id} - Cập nhật công ty
+DELETE /api/v1/companies/{id} - Xóa công ty
+POST /api/v1/companies/{id}/logo - Tải lên logo công ty
+POST /api/v1/companies/{id}/cover - Tải lên ảnh bìa công ty
+POST /api/v1/companies/{id}/photos - Tải lên ảnh hoạt động/văn phòng công ty
+DELETE /api/v1/companies/{id}/photos/{photoId} - Xóa ảnh công ty
+POST /api/v1/companies/{id}/business-license - Tải lên giấy đăng ký kinh doanh
+POST /api/v1/companies/{id}/scan-license - Quét giấy phép kinh doanh bằng AI
+GET /api/v1/companies/{id}/business-license/url - Lấy URL xem giấy đăng ký kinh doanh
+POST /api/v1/companies/{id}/verify - Xác thực doanh nghiệp
+GET /api/v1/companies/{id}/reputation-activities - Xem lịch sử điểm uy tín
+POST /api/v1/recruiter/auth/register - Đăng ký tài khoản nhà tuyển dụng
+POST /api/v1/recruiter/auth/login - Đăng nhập nhà tuyển dụng
+POST /api/v1/recruiter-accounts/password-reset/request - Gửi link đặt lại mật khẩu recruiter
+POST /api/v1/recruiter-accounts/password-reset/confirm - Đặt lại mật khẩu recruiter bằng token
+GET /api/v1/recruiter-accounts - Danh sách tài khoản nhà tuyển dụng
+GET /api/v1/recruiter-accounts/{id} - Chi tiết tài khoản nhà tuyển dụng
+PATCH /api/v1/recruiter-accounts/{id} - Cập nhật tài khoản nhà tuyển dụng
+GET /api/v1/recruiter-accounts/{id}/dashboard-stats - Thống kê dashboard nhà tuyển dụng
+POST /api/v1/recruiter-accounts/{id}/change-password - Đổi mật khẩu tài khoản nhà tuyển dụng
+PATCH /api/v1/recruiter-accounts/{id}/deactivate - Vô hiệu hóa tài khoản nhà tuyển dụng
+POST /api/v1/recruiter-profiles - Tạo hồ sơ nhà tuyển dụng
+GET /api/v1/recruiter-profiles/me - Lấy hồ sơ nhà tuyển dụng của tôi
+GET /api/v1/recruiter-profiles/{id} - Lấy chi tiết hồ sơ nhà tuyển dụng
+PATCH /api/v1/recruiter-profiles/{id} - Cập nhật hồ sơ nhà tuyển dụng
+DELETE /api/v1/recruiter-profiles/{id} - Xóa hồ sơ nhà tuyển dụng
+GET /api/v1/companies/{companyId}/members - Danh sách thành viên công ty
+POST /api/v1/companies/{companyId}/members/invite - Mời thành viên vào công ty
+POST /api/v1/company-members/invitations/{id}/accept - Chấp nhận lời mời vào công ty
+PATCH /api/v1/company-members/{id}/role - Cập nhật vai trò thành viên
+DELETE /api/v1/company-members/{id} - Xóa thành viên khỏi công ty
+GET /api/v1/recruiter-roles - Danh sách vai trò nhà tuyển dụng
+POST /api/v1/recruiter-roles - Tạo vai trò nhà tuyển dụng
+GET /api/v1/recruiter-roles/{id} - Chi tiết vai trò nhà tuyển dụng
+PATCH /api/v1/recruiter-roles/{id} - Cập nhật vai trò nhà tuyển dụng
+DELETE /api/v1/recruiter-roles/{id} - Xóa vai trò nhà tuyển dụng
+POST /api/v1/recruiter-roles/{roleId}/permissions - Gán quyền cho vai trò
+GET /api/v1/recruiter-permissions - Danh sách quyền nhà tuyển dụng
+POST /api/v1/recruiter-permissions - Tạo quyền nhà tuyển dụng
+GET /api/v1/recruiter-permissions/{id} - Chi tiết quyền nhà tuyển dụng
+PATCH /api/v1/recruiter-permissions/{id} - Cập nhật quyền nhà tuyển dụng
+DELETE /api/v1/recruiter-permissions/{id} - Xóa quyền nhà tuyển dụng
+POST /api/v1/candidate/auth/register - Đăng ký tài khoản ứng viên
+POST /api/v1/candidate/auth/login - Đăng nhập tài khoản ứng viên
+POST /api/v1/candidate-accounts/email-verification/request - Gửi link xác thực email ứng viên
+POST /api/v1/candidate-accounts/email-verification/verify - Xác thực email ứng viên bằng token
+POST /api/v1/candidate-accounts/password-reset/request - Gửi link đặt lại mật khẩu ứng viên
+POST /api/v1/candidate-accounts/password-reset/confirm - Đặt lại mật khẩu ứng viên bằng token
+GET /api/v1/candidate-accounts/me - Lấy thông tin tài khoản ứng viên
+PATCH /api/v1/candidate-accounts/me - Ứng viên đổi mật khẩu tài khoản
+GET /api/v1/candidate-accounts - Lấy danh sách tài khoản ứng viên (ADMIN)
+GET /api/v1/candidate-accounts/{id} - Lấy thông tin chi tiết tài khoản ứng viên (ADMIN)
+PATCH /api/v1/candidate-accounts/{id}/status - Admin cập nhật trạng thái tài khoản ứng viên
+GET /api/v1/candidate-profiles/me - Lấy thông tin hồ sơ ứng viên
+PATCH /api/v1/candidate-profiles/me - Cập nhật hồ sơ ứng viên
+GET /api/v1/candidate-profiles/me/educations - Lấy danh sách học vấn
+POST /api/v1/candidate-profiles/me/educations - Thêm học vấn
+PATCH /api/v1/candidate-profiles/me/educations/{id} - Cập nhật học vấn
+DELETE /api/v1/candidate-profiles/me/educations/{id} - Xóa học vấn
+GET /api/v1/candidate-profiles/me/experiences - Lấy danh sách kinh nghiệm
+POST /api/v1/candidate-profiles/me/experiences - Thêm kinh nghiệm
+PATCH /api/v1/candidate-profiles/me/experiences/{id} - Cập nhật kinh nghiệm
+DELETE /api/v1/candidate-profiles/me/experiences/{id} - Xóa kinh nghiệm
+GET /api/v1/candidate-profiles/me/skills - Lấy danh sách kỹ năng
+POST /api/v1/candidate-profiles/me/skills - Thêm kỹ năng
+PATCH /api/v1/candidate-profiles/me/skills/{id} - Cập nhật kỹ năng
+DELETE /api/v1/candidate-profiles/me/skills/{id} - Xóa kỹ năng
+GET /api/v1/candidate-profiles/me/job-preference - Lấy mong muốn việc làm
+PATCH /api/v1/candidate-profiles/me/job-preference - Cập nhật mong muốn việc làm
+GET /api/v1/candidate-profiles/me/certifications - Lấy danh sách chứng chỉ
+POST /api/v1/candidate-profiles/me/certifications - Tạo chứng chỉ
+PATCH /api/v1/candidate-profiles/me/certifications/{id} - Cập nhật chứng chỉ
+DELETE /api/v1/candidate-profiles/me/certifications/{id} - Xóa chứng chỉ
+GET /api/v1/candidate-profiles/me/languages - Lấy danh sách ngôn ngữ
+POST /api/v1/candidate-profiles/me/languages - Tạo ngôn ngữ
+PATCH /api/v1/candidate-profiles/me/languages/{id} - Cập nhật ngôn ngữ
+DELETE /api/v1/candidate-profiles/me/languages/{id} - Xóa ngôn ngữ
+GET /api/v1/candidate-profiles/me/links - Lấy danh sách liên kết
+POST /api/v1/candidate-profiles/me/links - Tạo liên kết
+PATCH /api/v1/candidate-profiles/me/links/{id} - Cập nhật liên kết
+DELETE /api/v1/candidate-profiles/me/links/{id} - Xóa liên kết
+GET /api/v1/candidate-profiles/me/projects - Lấy danh sách dự án
+POST /api/v1/candidate-profiles/me/projects - Tạo dự án
+PATCH /api/v1/candidate-profiles/me/projects/{id} - Cập nhật dự án
+DELETE /api/v1/candidate-profiles/me/projects/{id} - Xoá dự án
+POST /api/v1/job-posts - Tạo bản nháp tin tuyển dụng
+GET /api/v1/job-posts - Danh sách tin tuyển dụng đã đăng
+GET /api/v1/job-posts/{id} - Chi tiết tin tuyển dụng
+PATCH /api/v1/job-posts/{id} - Cập nhật tin tuyển dụng của tôi
+DELETE /api/v1/job-posts/{id} - Xóa tin tuyển dụng của tôi
+PATCH /api/v1/job-posts/{id}/publish - Đăng tin tuyển dụng
+PATCH /api/v1/job-posts/{id}/close - Đóng tin tuyển dụng
+PATCH /api/v1/job-posts/{id}/reopen - Mở lại tin tuyển dụng
+POST /api/v1/job-posts/{id}/skills - Thêm kỹ năng vào tin tuyển dụng
+DELETE /api/v1/job-posts/{id}/skills/{skillId} - Xóa kỹ năng khỏi tin tuyển dụng
+POST /api/v1/job-posts/{id}/locations - Thêm địa điểm làm việc vào tin tuyển dụng
+DELETE /api/v1/job-posts/{id}/locations/{locationId} - Xóa địa điểm làm việc khỏi tin tuyển dụng
+POST /api/v1/job-posts/{id}/specializations - Thêm chuyên ngành vào tin tuyển dụng
+DELETE /api/v1/job-posts/{id}/specializations/{specializationId} - Xóa chuyên ngành khỏi tin tuyển dụng
+POST /api/v1/job-posts/{id}/views - Ghi nhận lượt xem tin tuyển dụng
+GET /api/v1/job-posts/{id}/views/stats - Thống kê lượt xem tin tuyển dụng
+GET /api/v1/recruiter/job-posts - Danh sách tin tuyển dụng của tôi
+GET /api/v1/admin/job-posts - Danh sách tin tuyển dụng cho admin
+POST /api/v1/saved-jobs - Lưu việc làm
+GET /api/v1/saved-jobs - Danh sách việc làm đã lưu
+DELETE /api/v1/saved-jobs/{jobPostId} - Hủy lưu việc làm
+POST /api/v1/companies/{id}/follow - Theo dõi công ty
+DELETE /api/v1/companies/{id}/follow - Bỏ theo dõi công ty
+GET /api/v1/company-follows/me - Danh sách công ty đang theo dõi
+POST /api/v1/companies/{id}/reviews - Tạo đánh giá công ty
+GET /api/v1/companies/{id}/reviews - Danh sách đánh giá công ty
+PATCH /api/v1/company-reviews/{id} - Cập nhật đánh giá công ty
+DELETE /api/v1/company-reviews/{id} - Xóa đánh giá công ty
+POST /api/v1/recruiter/shortlists - Thêm ứng viên vào danh sách rút gọn
+GET /api/v1/recruiter/shortlists - Danh sách ứng viên rút gọn của tôi
+DELETE /api/v1/recruiter/shortlists/{id} - Xóa ứng viên khỏi danh sách rút gọn
+POST /api/v1/job-categories - Tạo danh mục việc làm
+GET /api/v1/job-categories - Danh sách danh mục việc làm
+GET /api/v1/job-categories/{id} - Chi tiết danh mục việc làm
+PATCH /api/v1/job-categories/{id} - Cập nhật danh mục việc làm
+DELETE /api/v1/job-categories/{id} - Xóa danh mục việc làm
+POST /api/v1/employment-types - Tạo loại hình công việc
+GET /api/v1/employment-types - Danh sách loại hình công việc
+GET /api/v1/employment-types/{id} - Chi tiết loại hình công việc
+PATCH /api/v1/employment-types/{id} - Cập nhật loại hình công việc
+DELETE /api/v1/employment-types/{id} - Xóa loại hình công việc
+POST /api/v1/experience-levels - Tạo cấp độ kinh nghiệm
+GET /api/v1/experience-levels - Danh sách cấp độ kinh nghiệm
+GET /api/v1/experience-levels/{id} - Chi tiết cấp độ kinh nghiệm
+PATCH /api/v1/experience-levels/{id} - Cập nhật cấp độ kinh nghiệm
+DELETE /api/v1/experience-levels/{id} - Xóa cấp độ kinh nghiệm
+POST /api/v1/files/upload - Upload file lên Cloudinary
+POST /api/v1/files/upload-many - Upload nhiều file lên Cloudinary
+POST /api/v1/specializations - Tạo chuyên ngành
+GET /api/v1/specializations - Danh sách chuyên ngành
+GET /api/v1/specializations/{id} - Chi tiết chuyên ngành
+PATCH /api/v1/specializations/{id} - Cập nhật chuyên ngành
+DELETE /api/v1/specializations/{id} - Xóa chuyên ngành
+POST /api/v1/job-locations - Tạo địa điểm làm việc
+GET /api/v1/job-locations - Danh sách địa điểm làm việc
+GET /api/v1/job-locations/{id} - Chi tiết địa điểm làm việc
+PATCH /api/v1/job-locations/{id} - Cập nhật địa điểm làm việc
+DELETE /api/v1/job-locations/{id} - Xóa địa điểm làm việc
+POST /api/v1/skill-categories - Tạo danh mục kỹ năng
+GET /api/v1/skill-categories - Danh sách danh mục kỹ năng
+POST /api/v1/skills - Tạo kỹ năng
+GET /api/v1/skills - Danh sách kỹ năng
+GET /api/v1/skills/search - Tìm kiếm kỹ năng
+GET /api/v1/skills/{id} - Chi tiết kỹ năng
+PATCH /api/v1/skills/{id} - Cập nhật kỹ năng
+DELETE /api/v1/skills/{id} - Xóa kỹ năng
+GET /api/home - Lấy toàn bộ dữ liệu trang chủ
+POST /api/v1/applications - Nộp hồ sơ ứng tuyển
+PATCH /api/v1/applications/{id}/withdraw - Rút hồ sơ ứng tuyển
+GET /api/v1/applications/me - Lấy danh sách hồ sơ ứng tuyển của ứng viên hiện tại
+GET /api/v1/applications/{id} - Lấy chi tiết hồ sơ ứng tuyển
+GET /api/v1/job-posts/{jobId}/applications - Lấy danh sách ứng viên của tin tuyển dụng (Chỉ dành cho nhà tuyển dụng)
+GET /api/v1/job-posts/{jobId}/applications/me - Kiểm tra xem ứng viên đã nộp hồ sơ vào tin tuyển dụng chưa
+GET /api/v1/recruiter/company-applications - Lấy tất cả hồ sơ ứng tuyển của công ty (Chỉ dành cho nhà tuyển dụng)
+PATCH /api/v1/applications/{id}/status - Cập nhật trạng thái hồ sơ ứng tuyển
+POST /api/v1/cvs - Tạo CV
+GET /api/v1/cvs/me - Lấy danh sách CV của ứng viên hiện tại
+GET /api/v1/cvs/{id} - Xem chi tiết CV
+PATCH /api/v1/cvs/{id} - Cập nhật CV
+DELETE /api/v1/cvs/{id} - Xóa CV
+PATCH /api/v1/cvs/{id}/default - Đặt CV mặc định
+POST /api/v1/cvs/{cvId}/versions - Tải lên phiên bản CV mới
+GET /api/v1/cvs/{cvId}/versions - Lấy danh sách phiên bản của một CV
+GET /api/v1/cv-versions/{id} - Xem chi tiết phiên bản CV
+DELETE /api/v1/cv-versions/{id} - Xóa phiên bản CV
+GET /api/v1/cv-versions/{id}/download - Tải xuống phiên bản CV
+POST /api/v1/cv-versions/{id}/restore - Khôi phục phiên bản CV
+POST /api/v1/cv-templates - Tạo mẫu CV
+GET /api/v1/cv-templates - Lấy danh sách mẫu CV
+GET /api/v1/cv-templates/{id} - Xem chi tiết mẫu CV
+PATCH /api/v1/cv-templates/{id} - Cập nhật mẫu CV
+DELETE /api/v1/cv-templates/{id} - Xóa mẫu CV
+PATCH /api/v1/cv-templates/{id}/activate - Bật mẫu CV
+PATCH /api/v1/cv-templates/{id}/deactivate - Tắt mẫu CV
+POST /api/v1/subscription-plans - Tạo gói dịch vụ mới (Chỉ dành cho Admin)
+GET /api/v1/subscription-plans - Lấy danh sách tất cả gói dịch vụ
+GET /api/v1/subscription-plans/{id} - Lấy thông tin chi tiết một gói dịch vụ
+PATCH /api/v1/subscription-plans/{id} - Cập nhật thông tin gói dịch vụ (Chỉ dành cho Admin)
+DELETE /api/v1/subscription-plans/{id} - Xóa gói dịch vụ (Chỉ dành cho Admin)
+POST /api/v1/company-subscriptions - Đăng ký gói dịch vụ mới (Cho phép Admin hoặc Recruiter)
+GET /api/v1/company-subscriptions/active - Lấy thông tin gói đang hoạt động của công ty hiện tại (Dành cho Recruiter)
+GET /api/v1/company-subscriptions/history - Xem lịch sử đăng ký gói dịch vụ (Admin xem tất cả, Recruiter xem của công ty mình)
+POST /api/v1/invoices - Tạo hóa đơn mới (Cho phép Admin hoặc Recruiter)
+GET /api/v1/invoices - Lấy tất cả hóa đơn (Admin thấy hết, Recruiter thấy của công ty)
+GET /api/v1/invoices/{id} - Xem chi tiết một hóa đơn
+POST /api/v1/invoices/{id}/pay - Thanh toán hóa đơn (Kích hoạt dịch vụ)
+POST /api/v1/interviews - Lên lịch phỏng vấn mới
+GET /api/v1/interviews - Lấy danh sách các cuộc phỏng vấn
+GET /api/v1/interviews/{id} - Lấy thông tin chi tiết cuộc phỏng vấn kèm logs
+PATCH /api/v1/interviews/{id}/reschedule - Đề xuất hoặc dời lịch phỏng vấn mới
+PATCH /api/v1/interviews/{id}/cancel - Hủy lịch phỏng vấn
+PATCH /api/v1/interviews/{id}/result - Cập nhật kết quả phỏng vấn và hoàn thành phỏng vấn
+GET /health - undefined
+POST /api/v1/search-keywords/log - Lưu lại từ khóa người dùng tìm kiếm
+GET /api/v1/search-keywords/top - Lấy danh sách top từ khóa được tìm kiếm nhiều nhất
+POST /api/v1/notifications/tokens/register - Register or update FCM device token for the current user
+POST /api/v1/notifications/tokens/unregister - Unregister/remove FCM device token (e.g. on logout)
+POST /api/v1/notifications/tokens/test-send - Send a test push notification to a specific token (Public endpoint for testing)

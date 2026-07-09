@@ -1092,7 +1092,7 @@
             }
           }
         },
-        "summary": "Danh sách công ty",
+        "summary": "Lấy danh sách công ty (ADMIN)",
         "tags": ["Companies"]
       }
     },
@@ -1607,7 +1607,7 @@
             "bearer": []
           }
         ],
-        "summary": "Xác thực doanh nghiệp",
+        "summary": "Xác thực doanh nghiệp (ADMIN)",
         "tags": ["Companies"]
       }
     },
@@ -1637,6 +1637,152 @@
           }
         ],
         "summary": "Xem lịch sử điểm uy tín",
+        "tags": ["Companies"]
+      }
+    },
+    "/api/v1/companies/{id}/locations": {
+      "get": {
+        "operationId": "CompaniesController_getLocations_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lấy danh sách địa điểm của công ty",
+        "tags": ["Companies"]
+      },
+      "post": {
+        "operationId": "CompaniesController_createLocation_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJobLocationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Thêm địa điểm cho công ty",
+        "tags": ["Companies"]
+      }
+    },
+    "/api/v1/companies/{id}/locations/{locationId}": {
+      "patch": {
+        "operationId": "CompaniesController_updateLocation_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company UUID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "description": "Location UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateJobLocationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cập nhật địa điểm của công ty",
+        "tags": ["Companies"]
+      },
+      "delete": {
+        "operationId": "CompaniesController_removeLocation_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company UUID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locationId",
+            "required": true,
+            "in": "path",
+            "description": "Location UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Xóa địa điểm của công ty",
         "tags": ["Companies"]
       }
     },
@@ -1712,10 +1858,45 @@
         "tags": ["Recruiter - Auth"]
       }
     },
+    "/api/v1/recruiter/auth/google": {
+      "get": {
+        "operationId": "RecruiterAuthController_googleAuth_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Khởi chạy luồng đăng nhập bằng Google cho Recruiter (Redirect)",
+        "tags": ["Recruiter - Auth"]
+      }
+    },
+    "/api/v1/recruiter/auth/google/callback": {
+      "get": {
+        "operationId": "RecruiterAuthController_googleAuthCallback_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Callback xử lý đăng nhập Google Recruiter từ Backend và redirect về Frontend",
+        "tags": ["Recruiter - Auth"]
+      }
+    },
     "/api/v1/recruiter-accounts/password-reset/request": {
       "post": {
         "operationId": "RecruiterPasswordResetController_requestPasswordReset_v1",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-locale",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2353,6 +2534,106 @@
         "tags": ["Recruiter - Profile"]
       }
     },
+    "/api/v1/recruiter-accounts/email-verification/request": {
+      "post": {
+        "operationId": "RecruiterAccountEmailVerificationController_requestEmailVerification_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Đã gửi link xác thực email nếu email chưa được xác thực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecruiterEmailVerificationRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Thiếu hoặc token không hợp lệ"
+          },
+          "403": {
+            "description": "Chỉ nhà tuyển dụng mới có thể gọi endpoint này"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Gửi link xác thực email nhà tuyển dụng",
+        "tags": ["Recruiter - Account"]
+      }
+    },
+    "/api/v1/recruiter-accounts/email-verification/request-unauthenticated": {
+      "post": {
+        "operationId": "RecruiterAccountEmailVerificationController_requestEmailVerificationUnauthenticated_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestRecruiterEmailVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đã gửi link xác thực email nếu tài khoản tồn tại và chưa được xác thực",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecruiterEmailVerificationRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Payload không hợp lệ"
+          }
+        },
+        "summary": "Gửi lại link xác thực email nhà tuyển dụng bằng địa chỉ email (chưa đăng nhập)",
+        "tags": ["Recruiter - Account"]
+      }
+    },
+    "/api/v1/recruiter-accounts/email-verification/verify": {
+      "post": {
+        "operationId": "RecruiterAccountEmailVerificationController_verifyEmail_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRecruiterEmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Xác thực email thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecruiterEmailVerificationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Payload không hợp lệ"
+          },
+          "401": {
+            "description": "Token xác thực email không hợp lệ hoặc đã hết hạn"
+          }
+        },
+        "summary": "Xác thực email nhà tuyển dụng bằng token",
+        "tags": ["Recruiter - Account"]
+      }
+    },
     "/api/v1/companies/{companyId}/members": {
       "get": {
         "description": "Xem danh sách thành viên của một công ty.",
@@ -2482,6 +2763,73 @@
         "tags": ["Company - Members"]
       }
     },
+    "/api/v1/company-members/invitations/{id}": {
+      "get": {
+        "description": "Xem chi tiết lời mời bằng UUID mà không cần đăng nhập.",
+        "operationId": "CompanyMembersController_getInvitation_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company member (invitation) UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation details retrieved successfully"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "summary": "Xem thông tin lời mời vào công ty",
+        "tags": ["Company - Members"]
+      }
+    },
+    "/api/v1/company-members/invitations/{id}/accept-and-set-password": {
+      "post": {
+        "description": "Dành cho thành viên được mời chưa có mật khẩu.",
+        "operationId": "CompanyMembersController_acceptAndSetPassword_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company member (invitation) UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitationAndSetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invitation accepted and password set successfully"
+          },
+          "400": {
+            "description": "Invalid payload or password already set"
+          },
+          "404": {
+            "description": "Invitation not found"
+          }
+        },
+        "summary": "Chấp nhận lời mời và đặt mật khẩu mới",
+        "tags": ["Company - Members"]
+      }
+    },
     "/api/v1/company-members/{id}/role": {
       "patch": {
         "description": "Đổi vai trò của thành viên trong công ty.",
@@ -2526,6 +2874,46 @@
           }
         },
         "summary": "Cập nhật vai trò thành viên",
+        "tags": ["Company - Members"]
+      }
+    },
+    "/api/v1/company-members/{id}/status": {
+      "patch": {
+        "description": "Khóa hoặc mở khóa thành viên trong công ty.",
+        "operationId": "CompanyMembersController_updateStatus_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company member UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member status updated successfully"
+          },
+          "400": {
+            "description": "Invalid request payload"
+          },
+          "404": {
+            "description": "Member not found"
+          }
+        },
+        "summary": "Cập nhật trạng thái hoạt động thành viên",
         "tags": ["Company - Members"]
       }
     },
@@ -3095,6 +3483,32 @@
         "tags": ["Candidate - Auth"]
       }
     },
+    "/api/v1/candidate/auth/google": {
+      "get": {
+        "operationId": "CandidateAccountAuthController_googleAuth_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Khởi chạy luồng đăng nhập bằng Google (Redirect)",
+        "tags": ["Candidate - Auth"]
+      }
+    },
+    "/api/v1/candidate/auth/google/callback": {
+      "get": {
+        "operationId": "CandidateAccountAuthController_googleAuthCallback_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Callback xử lý đăng nhập Google từ Backend và redirect về Frontend",
+        "tags": ["Candidate - Auth"]
+      }
+    },
     "/api/v1/candidate-accounts/email-verification/request": {
       "post": {
         "operationId": "CandidateAccountEmailVerificationController_requestEmailVerification_v1",
@@ -3231,6 +3645,123 @@
         "tags": ["Candidate - Account"]
       }
     },
+    "/api/v1/candidate-accounts": {
+      "post": {
+        "operationId": "CandidateAccountController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCandidateAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateAccount"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dữ liệu yêu cầu không hợp lệ."
+          },
+          "401": {
+            "description": "Thiếu hoặc token không hợp lệ."
+          },
+          "403": {
+            "description": "Chỉ admin mới có thể gọi endpoint này."
+          },
+          "409": {
+            "description": "Tài khoản ứng viên đã tồn tại"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Admin tạo tài khoản ứng viên mới",
+        "tags": ["Candidate - Account"]
+      },
+      "get": {
+        "operationId": "CandidateAccountController_findAll_v1",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Object"
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Object"
+                }
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateAccountList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Tham số truy vấn không hợp lệ."
+          },
+          "401": {
+            "description": "Thiếu hoặc token không hợp lệ."
+          },
+          "403": {
+            "description": "Chỉ admin mới có thể gọi endpoint này."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lấy danh sách tài khoản ứng viên (ADMIN)",
+        "tags": ["Candidate - Account"]
+      }
+    },
     "/api/v1/candidate-accounts/me": {
       "get": {
         "operationId": "CandidateAccountController_findMe_v1",
@@ -3307,78 +3838,6 @@
           }
         ],
         "summary": "Ứng viên đổi mật khẩu tài khoản",
-        "tags": ["Candidate - Account"]
-      }
-    },
-    "/api/v1/candidate-accounts": {
-      "get": {
-        "operationId": "CandidateAccountController_findAll_v1",
-        "parameters": [
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "minimum": 1,
-              "default": 1,
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Object"
-                }
-              ]
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "minimum": 1,
-              "maximum": 100,
-              "default": 20,
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Object"
-                }
-              ]
-            }
-          },
-          {
-            "name": "q",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CandidateAccountList"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Tham số truy vấn không hợp lệ."
-          },
-          "401": {
-            "description": "Thiếu hoặc token không hợp lệ."
-          },
-          "403": {
-            "description": "Chỉ admin mới có thể gọi endpoint này."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Lấy danh sách tài khoản ứng viên (ADMIN)",
         "tags": ["Candidate - Account"]
       }
     },
@@ -5323,6 +5782,318 @@
         "tags": ["Admin - Job Posts"]
       }
     },
+    "/api/v1/admin/job-posts/{id}/approve": {
+      "patch": {
+        "description": "Phê duyệt trạng thái kiểm duyệt của tin tuyển dụng thành APPROVED. Chỉ cho phép khi trạng thái hiện tại là PENDING.",
+        "operationId": "AdminJobPostsController_approve_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID của tin tuyển dụng",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveJobPostDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Phê duyệt tin tuyển dụng thành công.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "message": "Phê duyệt tin tuyển dụng thành công.",
+                    "jobPost": {
+                      "id": "1f5f4a65-50d7-4f24-a65f-4f2a4d42f9cf",
+                      "title": "Senior Backend Developer",
+                      "moderationStatus": "APPROVED",
+                      "moderationNote": "Tin tuyển dụng hợp lệ.",
+                      "reason": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Tin tuyển dụng đã được duyệt hoặc từ chối trước đó."
+          },
+          "404": {
+            "description": "Không tìm thấy tin tuyển dụng."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Phê duyệt tin tuyển dụng (ADMIN)",
+        "tags": ["Admin - Job Posts"]
+      }
+    },
+    "/api/v1/admin/job-posts/{id}/reject": {
+      "patch": {
+        "description": "Từ chối duyệt tin tuyển dụng, chuyển trạng thái kiểm duyệt thành REJECTED. Chỉ cho phép khi trạng thái hiện tại là PENDING.",
+        "operationId": "AdminJobPostsController_reject_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID của tin tuyển dụng",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectJobPostDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Từ chối duyệt tin tuyển dụng thành công.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "message": "Từ chối duyệt tin tuyển dụng thành công.",
+                    "jobPost": {
+                      "id": "1f5f4a65-50d7-4f24-a65f-4f2a4d42f9cf",
+                      "title": "Senior Backend Developer",
+                      "moderationStatus": "REJECTED",
+                      "moderationNote": null,
+                      "reason": "Lý do từ chối tuyển dụng."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Tin tuyển dụng đã được duyệt hoặc từ chối trước đó."
+          },
+          "404": {
+            "description": "Không tìm thấy tin tuyển dụng."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Từ chối duyệt tin tuyển dụng (ADMIN)",
+        "tags": ["Admin - Job Posts"]
+      }
+    },
+    "/api/v1/notifications/tokens/register": {
+      "post": {
+        "operationId": "NotificationTokenController_registerToken_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveFcmTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token registered successfully."
+          },
+          "401": {
+            "description": "Unauthorized."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register or update FCM device token for the current user",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/notifications/tokens/unregister": {
+      "post": {
+        "operationId": "NotificationTokenController_unregisterToken_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Token unregistered successfully."
+          },
+          "401": {
+            "description": "Unauthorized."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unregister/remove FCM device token (e.g. on logout)",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/notifications/tokens/test-send": {
+      "post": {
+        "operationId": "NotificationTokenController_sendTestNotification_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Test notification sent."
+          }
+        },
+        "summary": "Send a test push notification to a specific token (Public endpoint for testing)",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_getNotifications_v1",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return paginated notifications list."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get paginated list of notifications for the current user",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "patch": {
+        "operationId": "NotificationsController_markAllAsRead_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "All notifications marked as read."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark all notifications as read for the current user",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markAsRead_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as read."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Notification not found."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a specific notification as read",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/notifications/{id}": {
+      "delete": {
+        "operationId": "NotificationsController_deleteNotification_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "404": {
+            "description": "Notification not found."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a notification",
+        "tags": ["Notifications"]
+      }
+    },
     "/api/v1/saved-jobs": {
       "post": {
         "operationId": "SavedJobsController_saveJob_v1",
@@ -6995,6 +7766,52 @@
         "tags": ["Applications"]
       }
     },
+    "/api/v1/recruiter/pipeline": {
+      "get": {
+        "operationId": "ApplicationsController_getRecruiterPipeline_v1",
+        "parameters": [
+          {
+            "name": "jobPostId",
+            "required": false,
+            "in": "query",
+            "description": "Lọc theo ID tin tuyển dụng",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "required": false,
+            "in": "query",
+            "description": "Lọc theo ID giai đoạn pipeline",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Tìm kiếm theo tên, email, vị trí hoặc kỹ năng",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dữ liệu pipeline ứng viên."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lấy dữ liệu quy trình ứng viên (RECRUITER)",
+        "tags": ["Applications"]
+      }
+    },
     "/api/v1/applications/{id}/status": {
       "patch": {
         "operationId": "ApplicationsController_updateStatus_v1",
@@ -8630,71 +9447,6 @@
         "summary": "Lấy danh sách top từ khóa được tìm kiếm nhiều nhất",
         "tags": ["Search - Keywords"]
       }
-    },
-    "/api/v1/notifications/tokens/register": {
-      "post": {
-        "operationId": "NotificationTokenController_registerToken_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveFcmTokenDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Token registered successfully."
-          },
-          "401": {
-            "description": "Unauthorized."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Register or update FCM device token for the current user",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/notifications/tokens/unregister": {
-      "post": {
-        "operationId": "NotificationTokenController_unregisterToken_v1",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Token unregistered successfully."
-          },
-          "401": {
-            "description": "Unauthorized."
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Unregister/remove FCM device token (e.g. on logout)",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/notifications/tokens/test-send": {
-      "post": {
-        "operationId": "NotificationTokenController_sendTestNotification_v1",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Test notification sent."
-          }
-        },
-        "summary": "Send a test push notification to a specific token (Public endpoint for testing)",
-        "tags": ["Notifications"]
-      }
     }
   },
   "info": {
@@ -9260,10 +10012,19 @@
             "type": "string",
             "example": "Công ty công nghệ tập trung vào các sản phẩm nền tảng tuyển dụng"
           },
+          "benefits": {
+            "type": "string",
+            "example": "Phúc lợi gồm có ăn trưa, teambuilding hàng tháng, BHXH..."
+          },
           "companySize": {
             "type": "string",
             "maxLength": 80,
             "example": "51-200 nhân sự"
+          },
+          "workingDays": {
+            "type": "string",
+            "maxLength": 150,
+            "example": "Thứ 2 - Thứ 6"
           }
         },
         "required": ["name"]
@@ -9345,9 +10106,17 @@
             "type": "object",
             "example": "Công ty công nghệ tập trung vào các sản phẩm nền tảng tuyển dụng"
           },
+          "benefits": {
+            "type": "object",
+            "example": "Ăn trưa, Teambuilding hàng tháng, BHXH..."
+          },
           "companySize": {
             "type": "object",
             "example": "51-200 nhân sự"
+          },
+          "workingDays": {
+            "type": "object",
+            "example": "Thứ 2 - Thứ 6"
           },
           "verificationStatus": {
             "type": "string",
@@ -9523,9 +10292,17 @@
             "type": "object",
             "example": "Công ty công nghệ tập trung vào các sản phẩm nền tảng tuyển dụng"
           },
+          "benefits": {
+            "type": "object",
+            "example": "Ăn trưa, Teambuilding hàng tháng, BHXH..."
+          },
           "companySize": {
             "type": "object",
             "example": "51-200 nhân sự"
+          },
+          "workingDays": {
+            "type": "object",
+            "example": "Thứ 2 - Thứ 6"
           },
           "verificationStatus": {
             "type": "string",
@@ -9680,10 +10457,19 @@
             "type": "string",
             "example": "Công ty công nghệ tập trung vào các sản phẩm nền tảng tuyển dụng"
           },
+          "benefits": {
+            "type": "string",
+            "example": "Phúc lợi gồm có ăn trưa, teambuilding hàng tháng, BHXH..."
+          },
           "companySize": {
             "type": "string",
             "maxLength": 80,
             "example": "51-200 nhân sự"
+          },
+          "workingDays": {
+            "type": "string",
+            "maxLength": 150,
+            "example": "Thứ 2 - Thứ 6"
           }
         }
       },
@@ -9739,6 +10525,69 @@
           }
         },
         "required": ["status"]
+      },
+      "CreateJobLocationDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string",
+            "default": "Vietnam"
+          },
+          "workingModel": {
+            "type": "string",
+            "enum": ["ONSITE", "REMOTE", "HYBRID"]
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          }
+        },
+        "required": ["workingModel"]
+      },
+      "UpdateJobLocationDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string",
+            "default": "Vietnam"
+          },
+          "workingModel": {
+            "type": "string",
+            "enum": ["ONSITE", "REMOTE", "HYBRID"]
+          },
+          "city": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          }
+        }
       },
       "RegisterRecruiterDto": {
         "type": "object",
@@ -9810,7 +10659,7 @@
         "properties": {
           "message": {
             "type": "string",
-            "example": "Nếu email tồn tại, hệ thống đã gửi link đặt lại mật khẩu đến email của bạn."
+            "example": "Hệ thống đã gửi link đặt lại mật khẩu đến email của bạn."
           }
         },
         "required": ["message"]
@@ -9930,6 +10779,68 @@
             "example": "https://cdn.upnext.dev/avatars/abc.jpg"
           }
         }
+      },
+      "RecruiterEmailVerificationRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "recruiter@company.com"
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "example": false
+          },
+          "emailVerifiedAt": {
+            "type": "object",
+            "example": null,
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Hệ thống đã gửi link xác thực đến email của bạn."
+          }
+        },
+        "required": ["email", "emailVerified", "message"]
+      },
+      "RequestRecruiterEmailVerificationDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "recruiter@company.com"
+          }
+        },
+        "required": ["email"]
+      },
+      "VerifyRecruiterEmailDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": ["token"]
+      },
+      "RecruiterEmailVerificationResult": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "recruiter@company.com"
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "example": true
+          },
+          "emailVerifiedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-06-16T15:30:00.000Z"
+          }
+        },
+        "required": ["email", "emailVerified", "emailVerifiedAt"]
       },
       "CompanyMemberProfile": {
         "type": "object",
@@ -10106,6 +11017,17 @@
         },
         "required": ["id", "status", "updatedAt"]
       },
+      "AcceptInvitationAndSetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "example": "password123",
+            "minLength": 8
+          }
+        },
+        "required": ["password"]
+      },
       "UpdateMemberRoleDto": {
         "type": "object",
         "properties": {
@@ -10133,13 +11055,24 @@
         },
         "required": ["id", "roleId", "role"]
       },
+      "UpdateMemberStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "SUSPENDED",
+            "enum": ["ACTIVE", "SUSPENDED"]
+          }
+        },
+        "required": ["status"]
+      },
       "CreateRecruiterRoleDto": {
         "type": "object",
         "properties": {
           "code": {
             "type": "string",
             "maxLength": 80,
-            "example": "hr_manager"
+            "example": "accounting"
           },
           "name": {
             "type": "string",
@@ -10151,7 +11084,7 @@
             "example": "Manages recruitment and HR operations"
           }
         },
-        "required": ["code", "name"]
+        "required": ["name"]
       },
       "UpdateRecruiterRoleDto": {
         "type": "object",
@@ -10159,7 +11092,7 @@
           "code": {
             "type": "string",
             "maxLength": 80,
-            "example": "hr_manager"
+            "example": "accounting"
           },
           "name": {
             "type": "string",
@@ -10345,6 +11278,43 @@
           }
         },
         "required": ["email", "emailVerified", "emailVerifiedAt"]
+      },
+      "CreateCandidateAccountDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "example": "Phan Van A",
+            "maxLength": 150
+          },
+          "email": {
+            "type": "string",
+            "example": "aphan@gmail.com",
+            "maxLength": 255
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 72,
+            "writeOnly": true
+          },
+          "authProvider": {
+            "type": "string",
+            "enum": ["DEFAULT", "GOOGLE", "GITHUB", "LINKEDIN"],
+            "default": "DEFAULT"
+          },
+          "providerUserId": {
+            "type": "string",
+            "example": "google-oauth2|1234567890",
+            "maxLength": 255
+          },
+          "candidateAccountStatus": {
+            "type": "string",
+            "enum": ["ACTIVE", "BANNED", "PENDING_VERIFICATION"],
+            "default": "ACTIVE"
+          }
+        },
+        "required": ["fullName", "email"]
       },
       "CandidateAccount": {
         "type": "object",
@@ -11586,6 +12556,18 @@
             "type": "string",
             "description": "UUID của hình thức làm việc.",
             "example": "12fd0d6d-755c-4f2e-b08c-747a5a1b4e7f"
+          },
+          "educationLevel": {
+            "type": "string",
+            "description": "Trình độ học vấn yêu cầu.",
+            "enum": ["ANY", "HIGH_SCHOOL", "VOCATIONAL", "COLLEGE", "BACHELOR", "POSTGRADUATE"],
+            "default": "ANY",
+            "example": "BACHELOR"
+          },
+          "expiredAt": {
+            "type": "string",
+            "description": "Hạn nộp hồ sơ tin tuyển dụng (định dạng ISO 8601).",
+            "example": "2026-07-31T17:00:00.000Z"
           }
         },
         "required": ["title", "description"]
@@ -11668,6 +12650,18 @@
             "type": "string",
             "description": "UUID của hình thức làm việc.",
             "example": "12fd0d6d-755c-4f2e-b08c-747a5a1b4e7f"
+          },
+          "educationLevel": {
+            "type": "string",
+            "description": "Trình độ học vấn yêu cầu.",
+            "enum": ["ANY", "HIGH_SCHOOL", "VOCATIONAL", "COLLEGE", "BACHELOR", "POSTGRADUATE"],
+            "default": "ANY",
+            "example": "BACHELOR"
+          },
+          "expiredAt": {
+            "type": "string",
+            "description": "Hạn nộp hồ sơ tin tuyển dụng (định dạng ISO 8601).",
+            "example": "2026-07-31T17:00:00.000Z"
           }
         }
       },
@@ -11727,6 +12721,43 @@
           }
         },
         "required": ["specializationId"]
+      },
+      "ApproveJobPostDto": {
+        "type": "object",
+        "properties": {
+          "moderationNote": {
+            "type": "string",
+            "description": "Ghi chú phê duyệt tin tuyển dụng.",
+            "example": "Tin tuyển dụng hợp lệ, đầy đủ thông tin."
+          }
+        }
+      },
+      "RejectJobPostDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Lý do từ chối duyệt tin tuyển dụng.",
+            "example": "Nội dung tuyển dụng không đúng quy định hoặc thiếu thông tin cần thiết."
+          }
+        },
+        "required": ["reason"]
+      },
+      "SaveFcmTokenDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The FCM registration token from Firebase client SDK",
+            "example": "dG9rZW4tMTIzNDU2Nzg5MA=="
+          },
+          "deviceType": {
+            "type": "string",
+            "description": "The device type registering the token",
+            "example": "web"
+          }
+        },
+        "required": ["token"]
       },
       "SaveJobDto": {
         "type": "object",
@@ -12039,63 +13070,6 @@
           "slug": {
             "type": "string",
             "description": "Unique slug e.g. backend-development"
-          }
-        }
-      },
-      "CreateJobLocationDto": {
-        "type": "object",
-        "properties": {
-          "country": {
-            "type": "string",
-            "default": "Vietnam"
-          },
-          "workingModel": {
-            "type": "string",
-            "enum": ["ONSITE", "REMOTE", "HYBRID"]
-          },
-          "city": {
-            "type": "string"
-          },
-          "district": {
-            "type": "string"
-          },
-          "address": {
-            "type": "string"
-          },
-          "latitude": {
-            "type": "number"
-          },
-          "longitude": {
-            "type": "number"
-          }
-        },
-        "required": ["workingModel"]
-      },
-      "UpdateJobLocationDto": {
-        "type": "object",
-        "properties": {
-          "country": {
-            "type": "string",
-            "default": "Vietnam"
-          },
-          "workingModel": {
-            "type": "string",
-            "enum": ["ONSITE", "REMOTE", "HYBRID"]
-          },
-          "city": {
-            "type": "string"
-          },
-          "district": {
-            "type": "string"
-          },
-          "address": {
-            "type": "string"
-          },
-          "latitude": {
-            "type": "number"
-          },
-          "longitude": {
-            "type": "number"
           }
         }
       },
@@ -13079,22 +14053,6 @@
           }
         },
         "required": ["keyword"]
-      },
-      "SaveFcmTokenDto": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string",
-            "description": "The FCM registration token from Firebase client SDK",
-            "example": "dG9rZW4tMTIzNDU2Nzg5MA=="
-          },
-          "deviceType": {
-            "type": "string",
-            "description": "The device type registering the token",
-            "example": "web"
-          }
-        },
-        "required": ["token"]
       }
     }
   }

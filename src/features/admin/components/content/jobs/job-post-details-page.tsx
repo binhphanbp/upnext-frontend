@@ -9,11 +9,12 @@ import {
   CalendarBlank,
   Users,
 } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import * as React from "react";
+import Swal from "sweetalert2";
 
-import { getJobPostDetails } from "@/features/admin/api/job-posts";
+import { getJobPostDetails, rejectJobPost, approveJobPost } from "@/features/admin/api/job-posts";
 import { getAdminSession, clearAdminSession } from "@/features/admin/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
@@ -23,9 +24,18 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 
+const toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+});
+
 export function JobPostDetailsPage({ id }: { id: string }) {
   const t = useTranslations("Admin.content.jobs.details");
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const {
     data: jobPost,
@@ -55,6 +65,88 @@ export function JobPostDetailsPage({ id }: { id: string }) {
       }
     }
   }, [error, router]);
+
+  const { mutate: rejectPost, isPending: isRejecting } = useMutation({
+    mutationFn: async (reason: string) => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return rejectJobPost(session.accessToken, id, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminJobPost", id] });
+      queryClient.invalidateQueries({ queryKey: ["adminJobPosts"] });
+      void toast.fire({
+        icon: "success",
+        title: "Đã từ chối tin đăng thành công",
+      });
+    },
+    onError: () => {
+      void toast.fire({ icon: "error", title: "Có lỗi xảy ra khi từ chối tin đăng" });
+    },
+  });
+
+  const { mutate: approvePost, isPending: isApproving } = useMutation({
+    mutationFn: async () => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return approveJobPost(session.accessToken, id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminJobPost", id] });
+      queryClient.invalidateQueries({ queryKey: ["adminJobPosts"] });
+      void toast.fire({
+        icon: "success",
+        title: "Đã duyệt tin đăng thành công",
+      });
+    },
+    onError: () => {
+      void toast.fire({ icon: "error", title: "Có lỗi xảy ra khi duyệt tin đăng" });
+    },
+  });
+
+  const handleApprove = () => {
+    Swal.fire({
+      title: "Duyệt tin đăng",
+      text: "Bạn có chắc muốn duyệt tin đăng này không?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Duyệt",
+      cancelButtonText: "Hủy",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        approvePost();
+      }
+    });
+  };
+
+  const handleReject = () => {
+    Swal.fire({
+      title: "Từ chối tin đăng",
+      text: "Vui lòng nhập lý do từ chối (bắt buộc):",
+      input: "textarea",
+      inputPlaceholder: "Nhập lý do...",
+      inputAttributes: {
+        "aria-label": "Nhập lý do từ chối",
+      },
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Từ chối",
+      cancelButtonText: "Hủy",
+      preConfirm: (reason) => {
+        if (!reason || reason.trim() === "") {
+          Swal.showValidationMessage("Bạn phải nhập lý do từ chối");
+        }
+        return reason;
+      },
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        rejectPost(result.value);
+      }
+    });
+  };
 
   if (isLoading) {
     return (
@@ -89,15 +181,15 @@ export function JobPostDetailsPage({ id }: { id: string }) {
 
   let mappedStatus = "Đang hiển thị";
   let tone: "success" | "warning" | "neutral" | "error" = "success";
-  if (jobPost.moderationStatus === "PENDING" || jobPost.status === "DRAFT") {
-    mappedStatus = "Chờ duyệt";
-    tone = "warning";
-  } else if (jobPost.moderationStatus === "REJECTED") {
+  if (jobPost.moderationStatus === "REJECTED") {
     mappedStatus = "Đã từ chối";
     tone = "error";
   } else if (jobPost.status === "CLOSED" || jobPost.status === "ARCHIVED") {
     mappedStatus = "Hết hạn";
     tone = "neutral";
+  } else if (jobPost.moderationStatus === "PENDING") {
+    mappedStatus = "Chờ duyệt";
+    tone = "warning";
   }
 
   let mappedType = "Khác";
@@ -162,6 +254,17 @@ export function JobPostDetailsPage({ id }: { id: string }) {
               </div>
             </CardContent>
           </Card>
+
+          {mappedStatus === "Đã từ chối" && (
+            <Card className="border-error bg-error/5">
+              <CardContent className="pt-6">
+                <h3 className="text-error-foreground mb-2 font-bold">Lý do từ chối</h3>
+                <p className="text-error-foreground/90 text-sm">
+                  {jobPost.reason || jobPost.moderationNote || "Không có lý do cụ thể."}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Details */}
           <Card>
@@ -234,12 +337,18 @@ export function JobPostDetailsPage({ id }: { id: string }) {
                   tảng.
                 </p>
                 <div className="flex flex-col gap-2 pt-2">
-                  <Button className="bg-success hover:bg-success/90 w-full text-white">
+                  <Button
+                    className="bg-success hover:bg-success/90 w-full cursor-pointer text-white"
+                    onClick={handleApprove}
+                    disabled={isApproving}
+                  >
                     {t("approve")}
                   </Button>
                   <Button
                     variant="outline"
-                    className="text-error hover:bg-error/10 hover:text-error w-full"
+                    className="text-error hover:bg-error/10 hover:text-error w-full cursor-pointer"
+                    onClick={handleReject}
+                    disabled={isRejecting}
                   >
                     {t("reject")}
                   </Button>

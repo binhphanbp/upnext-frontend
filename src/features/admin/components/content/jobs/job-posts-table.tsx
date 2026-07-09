@@ -6,11 +6,17 @@ import {
   DownloadSimple,
   MagnifyingGlass,
 } from "@phosphor-icons/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import * as React from "react";
+import Swal from "sweetalert2";
 
-import { getAdminJobPosts, type AdminJobPostResponse } from "@/features/admin/api/job-posts";
+import {
+  getAdminJobPosts,
+  rejectJobPost,
+  approveJobPost,
+  type AdminJobPostResponse,
+} from "@/features/admin/api/job-posts";
 import { getAdminSession, clearAdminSession } from "@/features/admin/session";
 import { RecruiterTableLayout } from "@/features/recruiter/components/recruiter-table-layout";
 import { useRouter } from "@/i18n/navigation";
@@ -31,6 +37,16 @@ import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Skeleton } from "@/shared/ui/skeleton";
 
+import { JobPostDetailsDialog } from "./job-post-details-dialog";
+
+const toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+});
+
 export type AdminJobPost = {
   id: string;
   title: string;
@@ -42,16 +58,17 @@ export type AdminJobPost = {
   postedDate: string;
   expirationDate: string | null;
   applicants: number;
+  reason?: string;
 };
 
 function mapToAdminJobPost(apiPost: AdminJobPostResponse): AdminJobPost {
   let mappedStatus: AdminJobPost["status"] = "Đang hiển thị";
-  if (apiPost.moderationStatus === "PENDING" || apiPost.status === "DRAFT") {
-    mappedStatus = "Chờ duyệt";
-  } else if (apiPost.moderationStatus === "REJECTED") {
+  if (apiPost.moderationStatus === "REJECTED") {
     mappedStatus = "Đã từ chối";
   } else if (apiPost.status === "CLOSED" || apiPost.status === "ARCHIVED") {
     mappedStatus = "Hết hạn";
+  } else if (apiPost.moderationStatus === "PENDING") {
+    mappedStatus = "Chờ duyệt";
   }
 
   let mappedType = "Khác";
@@ -81,6 +98,7 @@ function mapToAdminJobPost(apiPost: AdminJobPostResponse): AdminJobPost {
         ? formatAppDate(apiPost.expiredAt)
         : null,
     applicants: apiPost._count?.applications || apiPost.applicants || 0,
+    reason: apiPost.reason || apiPost.moderationNote,
   };
 }
 
@@ -90,6 +108,8 @@ export function JobPostsTable() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [selectedJobId, setSelectedJobId] = React.useState<string | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
 
   const t = useTranslations("Admin.content.jobs.table");
   const router = useRouter();
@@ -114,6 +134,69 @@ export function JobPostsTable() {
   const handleRefresh = React.useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["adminJobPosts"] });
   }, [queryClient]);
+
+  const { mutate: rejectPost, isPending: isRejecting } = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return rejectJobPost(session.accessToken, id, { reason });
+    },
+    onSuccess: () => {
+      handleRefresh();
+      void toast.fire({
+        icon: "success",
+        title: "Đã từ chối tin đăng thành công",
+      });
+    },
+    onError: () => {
+      void toast.fire({ icon: "error", title: "Có lỗi xảy ra khi từ chối tin đăng" });
+    },
+  });
+
+  const { mutate: approvePost, isPending: isApproving } = useMutation({
+    mutationFn: async (id: string) => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return approveJobPost(session.accessToken, id);
+    },
+    onSuccess: () => {
+      handleRefresh();
+      void toast.fire({
+        icon: "success",
+        title: "Đã duyệt tin đăng thành công",
+      });
+    },
+    onError: () => {
+      void toast.fire({ icon: "error", title: "Có lỗi xảy ra khi duyệt tin đăng" });
+    },
+  });
+
+  const handleReject = (jobId: string) => {
+    Swal.fire({
+      title: "Từ chối tin đăng",
+      text: "Vui lòng nhập lý do từ chối (bắt buộc):",
+      input: "textarea",
+      inputPlaceholder: "Nhập lý do...",
+      inputAttributes: {
+        "aria-label": "Nhập lý do từ chối",
+      },
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Từ chối",
+      cancelButtonText: "Hủy",
+      preConfirm: (reason) => {
+        if (!reason || reason.trim() === "") {
+          Swal.showValidationMessage("Bạn phải nhập lý do từ chối");
+        }
+        return reason;
+      },
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        rejectPost({ id: jobId, reason: result.value });
+      }
+    });
+  };
 
   React.useEffect(() => {
     if (error) {
@@ -375,14 +458,17 @@ export function JobPostsTable() {
                         <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
                         <DropdownMenuItem
                           className="cursor-pointer"
-                          onClick={() => router.push(`/admin/content/jobs/${job.id}`)}
+                          onSelect={() => {
+                            setSelectedJobId(job.id);
+                            setIsDetailsOpen(true);
+                          }}
                         >
                           {t("actionOptions.viewDetails")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="cursor-pointer"
                           disabled={!job.companyId}
-                          onClick={() =>
+                          onSelect={() =>
                             job.companyId && router.push(`/admin/users/employers/${job.companyId}`)
                           }
                         >
@@ -391,13 +477,52 @@ export function JobPostsTable() {
                         <DropdownMenuSeparator />
                         {job.status === "Chờ duyệt" && (
                           <>
-                            <DropdownMenuItem className="text-success">
+                            <DropdownMenuItem
+                              className="text-success cursor-pointer"
+                              disabled={isApproving}
+                              onSelect={() => {
+                                Swal.fire({
+                                  title: "Duyệt tin đăng",
+                                  text: "Bạn có chắc muốn duyệt tin đăng này không?",
+                                  icon: "question",
+                                  showCancelButton: true,
+                                  confirmButtonColor: "#3085d6",
+                                  cancelButtonColor: "#d33",
+                                  confirmButtonText: "Duyệt",
+                                  cancelButtonText: "Hủy",
+                                }).then((result) => {
+                                  if (result.isConfirmed) {
+                                    approvePost(job.id);
+                                  }
+                                });
+                              }}
+                            >
                               {t("actionOptions.approve")}
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-error">
+                            <DropdownMenuItem
+                              className="text-error cursor-pointer"
+                              disabled={isRejecting}
+                              onSelect={() => handleReject(job.id)}
+                            >
                               {t("actionOptions.reject")}
                             </DropdownMenuItem>
                           </>
+                        )}
+                        {job.status === "Đã từ chối" && (
+                          <DropdownMenuItem
+                            className="cursor-pointer text-orange-600"
+                            onSelect={() => {
+                              Swal.fire({
+                                title: "Lý do từ chối",
+                                text: job.reason || "Không có lý do cụ thể.",
+                                icon: "info",
+                                confirmButtonColor: "#3085d6",
+                                confirmButtonText: "Đóng",
+                              });
+                            }}
+                          >
+                            Xem lý do từ chối
+                          </DropdownMenuItem>
                         )}
                         {job.status === "Đang hiển thị" && (
                           <DropdownMenuItem className="text-error">
@@ -413,6 +538,15 @@ export function JobPostsTable() {
           )}
         </tbody>
       </RecruiterTableLayout>
+
+      <JobPostDetailsDialog
+        id={selectedJobId}
+        open={isDetailsOpen}
+        onOpenChange={(open) => {
+          setIsDetailsOpen(open);
+          if (!open) setTimeout(() => setSelectedJobId(null), 300);
+        }}
+      />
     </div>
   );
 }

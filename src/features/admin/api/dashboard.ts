@@ -88,7 +88,7 @@ export async function getAdminDashboard(
     apiRequest<any>(`/candidate-accounts?limit=1`, {
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => null),
-    apiRequest<any>(`/companies?limit=1`, {
+    apiRequest<any>(`/companies?limit=1000`, {
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => null),
     apiRequest<any>(`/recruiter-accounts?limit=1`, {
@@ -108,6 +108,22 @@ export async function getAdminDashboard(
 
   if (data && data.summary) {
     data.summary.totalUsers = totalCandidates + totalCompanies + totalRecruiters;
+
+    // Calculate pending companies since the dashboard API might not return it accurately yet
+    if (companiesRes && companiesRes.items) {
+      const pendingCompanies = companiesRes.items.filter(
+        (c: any) => c.status !== "LOCKED" && c.verificationStatus !== "VERIFIED",
+      ).length;
+
+      if (!data.summary.pendingReview) {
+        data.summary.pendingReview = { total: 0, companyRegistrations: 0, jobPosts: 0 };
+      }
+
+      data.summary.pendingReview.companyRegistrations = pendingCompanies;
+      data.summary.pendingReview.total =
+        data.summary.pendingReview.companyRegistrations +
+        (data.summary.pendingReview.jobPosts || 0);
+    }
   }
 
   return data as AdminDashboardResponse;

@@ -1,0 +1,18 @@
+[
+  "GET /api/v1/admin/posts - Lấy danh sách bài viết cho Admin",
+  "GET /api/v1/admin/reports - Lấy danh sách báo cáo vi phạm cho Admin",
+  "PATCH /api/v1/admin/reports/{id}/status - Duyệt báo cáo vi phạm (cập nhật trạng thái)",
+  "GET /api/v1/companies - Danh sách công ty",
+  "GET /api/v1/recruiter-accounts - Danh sách tài khoản nhà tuyển dụng",
+  "GET /api/v1/recruiter-accounts/{id} - Chi tiết tài khoản nhà tuyển dụng",
+  "PATCH /api/v1/recruiter-accounts/{id} - Cập nhật tài khoản nhà tuyển dụng",
+  "PATCH /api/v1/recruiter-accounts/{id}/deactivate - Vô hiệu hóa tài khoản nhà tuyển dụng",
+  "GET /api/v1/recruiter-profiles/me - Lấy hồ sơ nhà tuyển dụng của tôi",
+  "GET /api/v1/recruiter-profiles/{id} - Lấy chi tiết hồ sơ nhà tuyển dụng",
+  "POST /api/v1/company-members/invitations/{id}/accept - Chấp nhận lời mời vào công ty",
+  "PATCH /api/v1/candidate-accounts/{id}/status - Admin cập nhật trạng thái tài khoản ứng viên",
+  "GET /api/v1/admin/job-posts - Danh sách tin tuyển dụng cho admin",
+  "GET /api/v1/recruiter/company-applications - Lấy tất cả hồ sơ ứng tuyển của công ty (Chỉ dành cho nhà tuyển dụng)",
+  "PATCH /api/v1/applications/{id}/status - Cập nhật trạng thái hồ sơ ứng tuyển",
+  "GET /health - undefined"
+]

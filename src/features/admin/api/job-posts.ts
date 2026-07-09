@@ -70,5 +70,28 @@ export async function getJobPostDetails(token: string, id: string) {
     headers: {
       Authorization: `Bearer ${token}`,
     },
+    cache: "no-store",
+  });
+}
+
+export async function rejectJobPost(token: string, id: string, payload: { reason: string }) {
+  return apiRequest<{ success: boolean }>(`/admin/job-posts/${id}/reject`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      reason: payload.reason,
+    }),
+  });
+}
+
+export async function approveJobPost(token: string, id: string) {
+  return apiRequest<{ success: boolean }>(`/admin/job-posts/${id}/approve`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 }
