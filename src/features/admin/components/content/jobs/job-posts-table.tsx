@@ -15,6 +15,7 @@ import {
   getAdminJobPosts,
   rejectJobPost,
   approveJobPost,
+  updateJobPostVisibility,
   type AdminJobPostResponse,
 } from "@/features/admin/api/job-posts";
 import { getAdminSession, clearAdminSession } from "@/features/admin/session";
@@ -54,7 +55,7 @@ export type AdminJobPost = {
   companyId: string | null;
   location: string;
   type: string;
-  status: "Đang hiển thị" | "Chờ duyệt" | "Hết hạn" | "Đã từ chối";
+  status: "Đang hiển thị" | "Chờ duyệt" | "Hết hạn" | "Đã từ chối" | "Đã ẩn";
   postedDate: string;
   expirationDate: string | null;
   applicants: number;
@@ -63,7 +64,9 @@ export type AdminJobPost = {
 
 function mapToAdminJobPost(apiPost: AdminJobPostResponse): AdminJobPost {
   let mappedStatus: AdminJobPost["status"] = "Đang hiển thị";
-  if (apiPost.moderationStatus === "REJECTED") {
+  if (apiPost.isHidden) {
+    mappedStatus = "Đã ẩn";
+  } else if (apiPost.moderationStatus === "REJECTED") {
     mappedStatus = "Đã từ chối";
   } else if (apiPost.status === "CLOSED" || apiPost.status === "ARCHIVED") {
     mappedStatus = "Hết hạn";
@@ -168,6 +171,24 @@ export function JobPostsTable() {
     },
     onError: () => {
       void toast.fire({ icon: "error", title: "Có lỗi xảy ra khi duyệt tin đăng" });
+    },
+  });
+
+  const { mutate: updateVisibility, isPending: isUpdatingVisibility } = useMutation({
+    mutationFn: async ({ id, isHidden }: { id: string; isHidden: boolean }) => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return updateJobPostVisibility(session.accessToken, id, isHidden);
+    },
+    onSuccess: () => {
+      handleRefresh();
+      void toast.fire({
+        icon: "success",
+        title: "Đã cập nhật trạng thái hiển thị thành công",
+      });
+    },
+    onError: () => {
+      void toast.fire({ icon: "error", title: "Có lỗi xảy ra khi cập nhật trạng thái" });
     },
   });
 
@@ -299,6 +320,7 @@ export function JobPostsTable() {
                 <SelectItem value="Chờ duyệt">{t("statusOptions.pending")}</SelectItem>
                 <SelectItem value="Hết hạn">{t("statusOptions.expired")}</SelectItem>
                 <SelectItem value="Đã từ chối">{t("statusOptions.rejected")}</SelectItem>
+                <SelectItem value="Đã ẩn">{t("statusOptions.hidden")}</SelectItem>
               </SelectContent>
             </Select>
           </>
@@ -380,7 +402,7 @@ export function JobPostsTable() {
                   ? "success"
                   : job.status === "Chờ duyệt"
                     ? "warning"
-                    : job.status === "Hết hạn"
+                    : job.status === "Hết hạn" || job.status === "Đã ẩn"
                       ? "neutral"
                       : "error";
 
@@ -391,7 +413,9 @@ export function JobPostsTable() {
                     ? "pending"
                     : job.status === "Hết hạn"
                       ? "expired"
-                      : "rejected";
+                      : job.status === "Đã ẩn"
+                        ? "hidden"
+                        : "rejected";
 
               const typeKey =
                 job.type === "Toàn thời gian"
@@ -525,8 +549,51 @@ export function JobPostsTable() {
                           </DropdownMenuItem>
                         )}
                         {job.status === "Đang hiển thị" && (
-                          <DropdownMenuItem className="text-error">
+                          <DropdownMenuItem
+                            className="text-error cursor-pointer"
+                            disabled={isUpdatingVisibility}
+                            onSelect={() => {
+                              Swal.fire({
+                                title: "Gỡ tin đăng",
+                                text: "Bạn có chắc chắn muốn gỡ tin đăng này khỏi nền tảng không?",
+                                icon: "warning",
+                                showCancelButton: true,
+                                confirmButtonColor: "#d33",
+                                cancelButtonColor: "#3085d6",
+                                confirmButtonText: "Gỡ tin",
+                                cancelButtonText: "Hủy",
+                              }).then((result) => {
+                                if (result.isConfirmed) {
+                                  updateVisibility({ id: job.id, isHidden: true });
+                                }
+                              });
+                            }}
+                          >
                             {t("actionOptions.remove")}
+                          </DropdownMenuItem>
+                        )}
+                        {job.status === "Đã ẩn" && (
+                          <DropdownMenuItem
+                            className="text-success cursor-pointer"
+                            disabled={isUpdatingVisibility}
+                            onSelect={() => {
+                              Swal.fire({
+                                title: "Hiển thị lại",
+                                text: "Bạn có muốn hiển thị lại tin đăng này trên nền tảng không?",
+                                icon: "question",
+                                showCancelButton: true,
+                                confirmButtonColor: "#3085d6",
+                                cancelButtonColor: "#d33",
+                                confirmButtonText: "Hiển thị",
+                                cancelButtonText: "Hủy",
+                              }).then((result) => {
+                                if (result.isConfirmed) {
+                                  updateVisibility({ id: job.id, isHidden: false });
+                                }
+                              });
+                            }}
+                          >
+                            Hiển thị lại
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>

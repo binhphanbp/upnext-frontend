@@ -1433,7 +1433,8 @@
             "active": "Active",
             "pending": "Pending",
             "expired": "Expired",
-            "rejected": "Rejected"
+            "rejected": "Rejected",
+            "hidden": "Hidden"
           },
           "actionOptions": {
             "viewDetails": "View Job Details",

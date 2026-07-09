@@ -1438,7 +1438,8 @@
             "active": "Đang hiển thị",
             "pending": "Chờ duyệt",
             "expired": "Hết hạn",
-            "rejected": "Đã từ chối"
+            "rejected": "Đã từ chối",
+            "hidden": "Đã ẩn"
           },
           "actionOptions": {
             "viewDetails": "Xem chi tiết tin",

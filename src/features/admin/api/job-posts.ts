@@ -95,3 +95,14 @@ export async function approveJobPost(token: string, id: string) {
     },
   });
 }
+
+export async function updateJobPostVisibility(token: string, id: string, isHidden: boolean) {
+  return apiRequest<{ success: boolean }>(`/admin/job-posts/${id}/visibility`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ isHidden }),
+  });
+}
