@@ -49,6 +49,12 @@ export interface CvSkill {
   level: SkillLevel;
 }
 
+export interface CvTargetJob {
+  role: string;
+  company: string;
+  description: string;
+}
+
 export type CvSectionKey =
   | "personal"
   | "summary"
@@ -56,6 +62,8 @@ export type CvSectionKey =
   | "projects"
   | "education"
   | "skills";
+
+export type CvEditorSectionKey = "targeting" | CvSectionKey | "review" | "styling";
 
 export interface CvStyleConfig {
   fontFamily: "font-sans" | "font-serif" | "font-mono" | "font-outfit";
@@ -65,6 +73,7 @@ export interface CvStyleConfig {
 }
 
 export interface CvData {
+  targetJob: CvTargetJob;
   personalInfo: CvPersonalInfo;
   summary: string;
   experiences: CvExperience[];
@@ -77,4 +86,54 @@ export interface CvData {
   cvLanguage: "vi" | "en";
   hiddenSections?: CvSectionKey[];
   customSectionNames?: Record<string, string>;
+}
+
+export type CvIssueSeverity = "error" | "warning";
+
+export interface CvIssue {
+  code: string;
+  path: string;
+  section: CvSectionKey;
+  severity: CvIssueSeverity;
+}
+
+export type CvSectionStatus = "complete" | "empty" | "inProgress";
+
+export interface CvSectionEvaluation {
+  completion: number;
+  errors: number;
+  status: CvSectionStatus;
+  warnings: number;
+}
+
+export interface CvEvaluation {
+  blockingIssues: CvIssue[];
+  contentSignals: CvContentSignals;
+  exportReady: boolean;
+  issues: CvIssue[];
+  jobMatch: CvJobMatchEvaluation;
+  score: number;
+  sections: Record<CvSectionKey, CvSectionEvaluation>;
+}
+
+export interface CvKeywordEvidence {
+  keyword: string;
+  sections: CvSectionKey[];
+}
+
+export interface CvJobMatchEvaluation {
+  hasDescription: boolean;
+  matched: CvKeywordEvidence[];
+  missing: string[];
+  score: number | null;
+  total: number;
+}
+
+export interface CvContentSignals {
+  actionLedBullets: number;
+  quantifiedBullets: number;
+  skillsWithEvidence: number;
+  skillsWithoutEvidence: string[];
+  totalBullets: number;
+  totalSkills: number;
 }

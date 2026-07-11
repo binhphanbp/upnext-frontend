@@ -1,53 +1,148 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 
-import { mockProfileDataVi, mockProfileDataEn } from "./mock-profile";
-import {
+import type {
   CvData,
-  CvPersonalInfo,
-  CvExperience,
   CvEducation,
+  CvExperience,
+  CvPersonalInfo,
   CvProject,
-  CvSkill,
   CvSectionKey,
+  CvSkill,
   CvStyleConfig,
+  CvTargetJob,
 } from "./types";
 
-const initialCvData: CvData = {
-  personalInfo: {
-    fullName: "",
-    title: "",
-    email: "",
-    phoneNumber: "",
-    address: "",
-    website: "",
-  },
-  summary: "",
-  experiences: [],
-  educations: [],
-  projects: [],
-  skills: [],
-  sectionsOrder: ["personal", "summary", "experience", "projects", "education", "skills"],
-  style: {
-    fontFamily: "font-sans",
-    themeColor: "emerald",
-    textSize: "base",
-    marginSize: "base",
-  },
-  selectedTemplate: "modern",
-  cvLanguage: "vi",
-  hiddenSections: [],
-  customSectionNames: {},
-};
+const DEFAULT_SECTIONS: CvSectionKey[] = [
+  "personal",
+  "summary",
+  "experience",
+  "projects",
+  "education",
+  "skills",
+];
 
-interface CvBuilderState {
+export const CV_BUILDER_STORAGE_NAME = "upnext-cv-builder-draft";
+
+export function getCvBuilderStorageKey(accountId: string) {
+  return `${CV_BUILDER_STORAGE_NAME}.${accountId}`;
+}
+
+export function createInitialCvData(language: CvData["cvLanguage"] = "vi"): CvData {
+  return {
+    targetJob: {
+      role: "",
+      company: "",
+      description: "",
+    },
+    personalInfo: {
+      fullName: "",
+      title: "",
+      email: "",
+      phoneNumber: "",
+      address: "",
+      website: "",
+    },
+    summary: "",
+    experiences: [],
+    educations: [],
+    projects: [],
+    skills: [],
+    sectionsOrder: [...DEFAULT_SECTIONS],
+    style: {
+      fontFamily: "font-sans",
+      themeColor: "emerald",
+      textSize: "base",
+      marginSize: "base",
+    },
+    selectedTemplate: "modern",
+    cvLanguage: language,
+    hiddenSections: [],
+    customSectionNames: {},
+  };
+}
+
+function cloneCvData(cvData: CvData): CvData {
+  return JSON.parse(JSON.stringify(cvData)) as CvData;
+}
+
+function createId(prefix: string) {
+  const randomId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+  return `${prefix}-${randomId}`;
+}
+
+function getScopedStorageKey(name: string) {
+  if (typeof window === "undefined") return `${name}.anonymous`;
+
+  try {
+    const rawUser = window.localStorage.getItem("upnext.candidate.user");
+    const user = rawUser ? (JSON.parse(rawUser) as { id?: string }) : null;
+    return `${name}.${user?.id ?? "anonymous"}`;
+  } catch {
+    return `${name}.anonymous`;
+  }
+}
+
+const accountScopedStorage = createJSONStorage(() => ({
+  getItem: (name: string) => window.localStorage.getItem(getScopedStorageKey(name)),
+  removeItem: (name: string) => window.localStorage.removeItem(getScopedStorageKey(name)),
+  setItem: (name: string, value: string) =>
+    window.localStorage.setItem(getScopedStorageKey(name), value),
+}));
+
+function normalizeCvData(value: CvData | undefined): CvData {
+  const fallback = createInitialCvData(value?.cvLanguage ?? "vi");
+  if (!value) return fallback;
+
+  const sections = value.sectionsOrder?.filter(
+    (section, index, values) =>
+      DEFAULT_SECTIONS.includes(section) && values.indexOf(section) === index,
+  );
+  const sectionsOrder = [...(sections ?? [])];
+  for (const section of DEFAULT_SECTIONS) {
+    if (!sectionsOrder.includes(section)) sectionsOrder.push(section);
+  }
+
+  return {
+    ...fallback,
+    ...value,
+    targetJob: { ...fallback.targetJob, ...value.targetJob },
+    personalInfo: { ...fallback.personalInfo, ...value.personalInfo },
+    style: { ...fallback.style, ...value.style },
+    experiences: value.experiences ?? [],
+    educations: value.educations ?? [],
+    projects: value.projects ?? [],
+    skills: value.skills ?? [],
+    sectionsOrder,
+    hiddenSections: value.hiddenSections ?? [],
+    customSectionNames: value.customSectionNames ?? {},
+  };
+}
+
+function moveItem<T extends { id: string }>(items: T[], id: string, direction: "up" | "down") {
+  const nextItems = [...items];
+  const currentIndex = nextItems.findIndex((item) => item.id === id);
+  const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+  if (currentIndex < 0 || targetIndex < 0 || targetIndex >= nextItems.length) return items;
+
+  const current = nextItems[currentIndex];
+  const target = nextItems[targetIndex];
+  if (!current || !target) return items;
+  nextItems[currentIndex] = target;
+  nextItems[targetIndex] = current;
+  return nextItems;
+}
+
+export interface CvBuilderState {
   cvData: CvData;
+  draftSavedAt: string | null;
   past: CvData[];
   future: CvData[];
   undo: () => void;
   redo: () => void;
   updateCvData: (fn: (cvData: CvData) => CvData) => void;
   updatePersonalInfo: (info: Partial<CvPersonalInfo>) => void;
+  updateTargetJob: (target: Partial<CvTargetJob>) => void;
   updateSummary: (summary: string) => void;
   addExperience: () => void;
   updateExperience: (id: string, experience: Partial<CvExperience>) => void;
@@ -70,7 +165,6 @@ interface CvBuilderState {
   selectTemplate: (template: CvData["selectedTemplate"]) => void;
   setCvLanguage: (lang: CvData["cvLanguage"]) => void;
   setCvData: (data: CvData) => void;
-  prefillFromProfile: () => void;
   clearCv: () => void;
   toggleSectionVisibility: (key: CvSectionKey) => void;
   renameSection: (key: CvSectionKey, newName: string) => void;
@@ -79,53 +173,46 @@ interface CvBuilderState {
 export const useCvBuilderStore = create<CvBuilderState>()(
   persist(
     (set, get) => ({
-      cvData: initialCvData,
+      cvData: createInitialCvData(),
+      draftSavedAt: null,
       past: [],
       future: [],
 
-      updateCvData: (fn) => {
+      updateCvData: (update) => {
         const { cvData, past } = get();
-        const oldState = JSON.parse(JSON.stringify(cvData));
-        const newState = fn(cvData);
-        // Only push to history if it actually changed
-        if (JSON.stringify(oldState) !== JSON.stringify(newState)) {
-          set({
-            cvData: newState,
-            past: [...past, oldState].slice(-50),
-            future: [],
-          });
-        }
+        const previous = cloneCvData(cvData);
+        const next = update(cvData);
+        if (JSON.stringify(previous) === JSON.stringify(next)) return;
+
+        set({
+          cvData: next,
+          draftSavedAt: new Date().toISOString(),
+          past: [...past, previous].slice(-60),
+          future: [],
+        });
       },
 
       undo: () => {
         const { past, cvData, future } = get();
-        if (past.length === 0) return;
-
-        const previous = past[past.length - 1];
+        const previous = past.at(-1);
         if (!previous) return;
-
-        const newPast = past.slice(0, past.length - 1);
-
         set({
           cvData: previous,
-          past: newPast,
-          future: [cvData, ...future],
+          draftSavedAt: new Date().toISOString(),
+          past: past.slice(0, -1),
+          future: [cloneCvData(cvData), ...future].slice(0, 60),
         });
       },
 
       redo: () => {
         const { past, cvData, future } = get();
-        if (future.length === 0) return;
-
         const next = future[0];
         if (!next) return;
-
-        const newFuture = future.slice(1);
-
         set({
           cvData: next,
-          past: [...past, cvData],
-          future: newFuture,
+          draftSavedAt: new Date().toISOString(),
+          past: [...past, cloneCvData(cvData)].slice(-60),
+          future: future.slice(1),
         });
       },
 
@@ -134,264 +221,205 @@ export const useCvBuilderStore = create<CvBuilderState>()(
           ...cvData,
           personalInfo: { ...cvData.personalInfo, ...info },
         })),
-
-      updateSummary: (summary) =>
+      updateTargetJob: (targetJob) =>
         get().updateCvData((cvData) => ({
           ...cvData,
-          summary,
+          targetJob: { ...cvData.targetJob, ...targetJob },
         })),
+      updateSummary: (summary) => get().updateCvData((cvData) => ({ ...cvData, summary })),
 
       addExperience: () =>
-        get().updateCvData((cvData) => {
-          const newExp: CvExperience = {
-            id: `exp-${Date.now()}`,
-            companyName: "",
-            positionTitle: "",
-            startDate: "",
-            endDate: "",
-            isCurrent: false,
-            description: "",
-            technologies: "",
-          };
-          return {
-            ...cvData,
-            experiences: [...cvData.experiences, newExp],
-          };
-        }),
-
+        get().updateCvData((cvData) => ({
+          ...cvData,
+          experiences: [
+            ...cvData.experiences,
+            {
+              id: createId("experience"),
+              companyName: "",
+              positionTitle: "",
+              startDate: "",
+              endDate: "",
+              isCurrent: false,
+              description: "",
+              technologies: "",
+            },
+          ],
+        })),
       updateExperience: (id, experience) =>
         get().updateCvData((cvData) => ({
           ...cvData,
-          experiences: cvData.experiences.map((exp) =>
-            exp.id === id ? { ...exp, ...experience } : exp,
+          experiences: cvData.experiences.map((item) =>
+            item.id === id ? { ...item, ...experience } : item,
           ),
         })),
-
       deleteExperience: (id) =>
         get().updateCvData((cvData) => ({
           ...cvData,
-          experiences: cvData.experiences.filter((exp) => exp.id !== id),
+          experiences: cvData.experiences.filter((item) => item.id !== id),
+        })),
+      moveExperience: (id, direction) =>
+        get().updateCvData((cvData) => ({
+          ...cvData,
+          experiences: moveItem(cvData.experiences, id, direction),
         })),
 
-      moveExperience: (id, direction) =>
-        get().updateCvData((cvData) => {
-          const experiences = [...cvData.experiences];
-          const index = experiences.findIndex((exp) => exp.id === id);
-          if (index === -1) return cvData;
-          const targetIndex = direction === "up" ? index - 1 : index + 1;
-          if (targetIndex < 0 || targetIndex >= experiences.length) return cvData;
-          // Swap
-          const temp = experiences[index];
-          const target = experiences[targetIndex];
-          if (temp && target) {
-            experiences[index] = target;
-            experiences[targetIndex] = temp;
-          }
-          return { ...cvData, experiences };
-        }),
-
       addEducation: () =>
-        get().updateCvData((cvData) => {
-          const newEdu: CvEducation = {
-            id: `edu-${Date.now()}`,
-            schoolName: "",
-            degree: "",
-            major: "",
-            startDate: "",
-            endDate: "",
-            isCurrent: false,
-            description: "",
-          };
-          return {
-            ...cvData,
-            educations: [...cvData.educations, newEdu],
-          };
-        }),
-
+        get().updateCvData((cvData) => ({
+          ...cvData,
+          educations: [
+            ...cvData.educations,
+            {
+              id: createId("education"),
+              schoolName: "",
+              degree: "",
+              major: "",
+              startDate: "",
+              endDate: "",
+              isCurrent: false,
+              gpa: "",
+              description: "",
+            },
+          ],
+        })),
       updateEducation: (id, education) =>
         get().updateCvData((cvData) => ({
           ...cvData,
-          educations: cvData.educations.map((edu) =>
-            edu.id === id ? { ...edu, ...education } : edu,
+          educations: cvData.educations.map((item) =>
+            item.id === id ? { ...item, ...education } : item,
           ),
         })),
-
       deleteEducation: (id) =>
         get().updateCvData((cvData) => ({
           ...cvData,
-          educations: cvData.educations.filter((edu) => edu.id !== id),
+          educations: cvData.educations.filter((item) => item.id !== id),
+        })),
+      moveEducation: (id, direction) =>
+        get().updateCvData((cvData) => ({
+          ...cvData,
+          educations: moveItem(cvData.educations, id, direction),
         })),
 
-      moveEducation: (id, direction) =>
-        get().updateCvData((cvData) => {
-          const educations = [...cvData.educations];
-          const index = educations.findIndex((edu) => edu.id === id);
-          if (index === -1) return cvData;
-          const targetIndex = direction === "up" ? index - 1 : index + 1;
-          if (targetIndex < 0 || targetIndex >= educations.length) return cvData;
-          // Swap
-          const temp = educations[index];
-          const target = educations[targetIndex];
-          if (temp && target) {
-            educations[index] = target;
-            educations[targetIndex] = temp;
-          }
-          return { ...cvData, educations };
-        }),
-
       addProject: () =>
-        get().updateCvData((cvData) => {
-          const newProj: CvProject = {
-            id: `proj-${Date.now()}`,
-            name: "",
-            role: "",
-            description: "",
-            projectUrl: "",
-            deployUrl: "",
-            technologies: "",
-          };
-          return {
-            ...cvData,
-            projects: [...cvData.projects, newProj],
-          };
-        }),
-
+        get().updateCvData((cvData) => ({
+          ...cvData,
+          projects: [
+            ...cvData.projects,
+            {
+              id: createId("project"),
+              name: "",
+              role: "",
+              description: "",
+              projectUrl: "",
+              deployUrl: "",
+              technologies: "",
+            },
+          ],
+        })),
       updateProject: (id, project) =>
         get().updateCvData((cvData) => ({
           ...cvData,
-          projects: cvData.projects.map((proj) =>
-            proj.id === id ? { ...proj, ...project } : proj,
+          projects: cvData.projects.map((item) =>
+            item.id === id ? { ...item, ...project } : item,
           ),
         })),
-
       deleteProject: (id) =>
         get().updateCvData((cvData) => ({
           ...cvData,
-          projects: cvData.projects.filter((proj) => proj.id !== id),
+          projects: cvData.projects.filter((item) => item.id !== id),
+        })),
+      moveProject: (id, direction) =>
+        get().updateCvData((cvData) => ({
+          ...cvData,
+          projects: moveItem(cvData.projects, id, direction),
         })),
 
-      moveProject: (id, direction) =>
-        get().updateCvData((cvData) => {
-          const projects = [...cvData.projects];
-          const index = projects.findIndex((proj) => proj.id === id);
-          if (index === -1) return cvData;
-          const targetIndex = direction === "up" ? index - 1 : index + 1;
-          if (targetIndex < 0 || targetIndex >= projects.length) return cvData;
-          // Swap
-          const temp = projects[index];
-          const target = projects[targetIndex];
-          if (temp && target) {
-            projects[index] = target;
-            projects[targetIndex] = temp;
-          }
-          return { ...cvData, projects };
-        }),
-
       addSkill: () =>
-        get().updateCvData((cvData) => {
-          const newSkill: CvSkill = {
-            id: `sk-${Date.now()}`,
-            name: "",
-            level: "ADVANCED",
-          };
-          return {
-            ...cvData,
-            skills: [...cvData.skills, newSkill],
-          };
-        }),
-
+        get().updateCvData((cvData) => ({
+          ...cvData,
+          skills: [...cvData.skills, { id: createId("skill"), name: "", level: "INTERMEDIATE" }],
+        })),
       updateSkill: (id, skill) =>
         get().updateCvData((cvData) => ({
           ...cvData,
-          skills: cvData.skills.map((sk) => (sk.id === id ? { ...sk, ...skill } : sk)),
+          skills: cvData.skills.map((item) => (item.id === id ? { ...item, ...skill } : item)),
         })),
-
       deleteSkill: (id) =>
         get().updateCvData((cvData) => ({
           ...cvData,
-          skills: cvData.skills.filter((sk) => sk.id !== id),
+          skills: cvData.skills.filter((item) => item.id !== id),
         })),
 
       moveSection: (key, direction) =>
         get().updateCvData((cvData) => {
           const sectionsOrder = [...cvData.sectionsOrder];
-          const index = sectionsOrder.indexOf(key);
-          if (index === -1) return cvData;
-          const targetIndex = direction === "up" ? index - 1 : index + 1;
-          if (targetIndex < 0 || targetIndex >= sectionsOrder.length) return cvData;
-          // Swap
-          const temp = sectionsOrder[index];
+          const currentIndex = sectionsOrder.indexOf(key);
+          const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+          if (currentIndex < 0 || targetIndex < 0 || targetIndex >= sectionsOrder.length)
+            return cvData;
           const target = sectionsOrder[targetIndex];
-          if (temp && target) {
-            sectionsOrder[index] = target;
-            sectionsOrder[targetIndex] = temp;
-          }
+          if (!target) return cvData;
+          sectionsOrder[targetIndex] = key;
+          sectionsOrder[currentIndex] = target;
           return { ...cvData, sectionsOrder };
         }),
-
       setSectionsOrder: (sectionsOrder) =>
-        get().updateCvData((cvData) => ({
-          ...cvData,
-          sectionsOrder,
-        })),
-
+        get().updateCvData((cvData) => ({ ...cvData, sectionsOrder })),
       updateStyle: (style) =>
+        get().updateCvData((cvData) => ({ ...cvData, style: { ...cvData.style, ...style } })),
+      selectTemplate: (selectedTemplate) =>
+        get().updateCvData((cvData) => ({ ...cvData, selectedTemplate })),
+      setCvLanguage: (cvLanguage) => get().updateCvData((cvData) => ({ ...cvData, cvLanguage })),
+      setCvData: (cvData) => get().updateCvData(() => normalizeCvData(cvData)),
+      clearCv: () =>
         get().updateCvData((cvData) => ({
-          ...cvData,
-          style: { ...cvData.style, ...style },
+          ...createInitialCvData(cvData.cvLanguage),
+          targetJob: { ...cvData.targetJob },
+          style: { ...cvData.style },
+          selectedTemplate: cvData.selectedTemplate,
+          sectionsOrder: [...cvData.sectionsOrder],
         })),
-
-      selectTemplate: (template) =>
-        get().updateCvData((cvData) => ({
-          ...cvData,
-          selectedTemplate: template,
-        })),
-
-      setCvLanguage: (cvLanguage) =>
-        get().updateCvData((cvData) => ({
-          ...cvData,
-          cvLanguage,
-        })),
-
-      setCvData: (cvData) => get().updateCvData(() => cvData),
-
-      prefillFromProfile: () =>
-        get().updateCvData((cvData) => {
-          const currentLang = cvData.cvLanguage;
-          const mockData = currentLang === "en" ? mockProfileDataEn : mockProfileDataVi;
-          return JSON.parse(JSON.stringify(mockData));
-        }),
-
-      clearCv: () => get().updateCvData(() => initialCvData),
-
       toggleSectionVisibility: (key) =>
         get().updateCvData((cvData) => {
-          const hiddenSections = cvData.hiddenSections || [];
-          const isHidden = hiddenSections.includes(key);
-          const newHidden = isHidden
-            ? hiddenSections.filter((k) => k !== key)
-            : [...hiddenSections, key];
+          const hiddenSections = cvData.hiddenSections ?? [];
           return {
             ...cvData,
-            hiddenSections: newHidden,
+            hiddenSections: hiddenSections.includes(key)
+              ? hiddenSections.filter((section) => section !== key)
+              : [...hiddenSections, key],
           };
         }),
-
       renameSection: (key, newName) =>
-        get().updateCvData((cvData) => {
-          const customSectionNames = cvData.customSectionNames || {};
-          return {
-            ...cvData,
-            customSectionNames: {
-              ...customSectionNames,
-              [key]: newName,
-            },
-          };
-        }),
+        get().updateCvData((cvData) => ({
+          ...cvData,
+          customSectionNames: {
+            ...(cvData.customSectionNames ?? {}),
+            [key]: newName.trim(),
+          },
+        })),
     }),
     {
-      name: "upnext-cv-builder-draft",
-      partialize: (state) => ({ cvData: state.cvData }),
+      name: CV_BUILDER_STORAGE_NAME,
+      storage: accountScopedStorage,
+      version: 3,
+      partialize: (state) => ({ cvData: state.cvData, draftSavedAt: state.draftSavedAt }),
+      migrate: (persistedState) => {
+        const persisted = persistedState as Partial<CvBuilderState>;
+        return {
+          ...persisted,
+          cvData: normalizeCvData(persisted.cvData),
+          draftSavedAt: persisted.draftSavedAt ?? null,
+        } as CvBuilderState;
+      },
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<CvBuilderState>;
+        return {
+          ...currentState,
+          ...persisted,
+          cvData: normalizeCvData(persisted.cvData),
+          past: [],
+          future: [],
+        };
+      },
     },
   ),
 );

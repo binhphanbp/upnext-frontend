@@ -1,2896 +1,2398 @@
 "use client";
 
 import {
-  Briefcase,
-  GraduationCap,
-  Code,
-  User,
-  Layout,
-  PaintBrush,
-  Printer,
-  Trash,
-  Plus,
-  ArrowUp,
+  ArrowClockwise,
+  ArrowCounterClockwise,
   ArrowDown,
-  Sparkle,
-  Link as LinkIcon,
-  EnvelopeSimple,
-  Phone,
-  MapPin,
-  Globe,
-  PlusCircle,
-  FilePdf,
-  CaretDoubleLeft,
-  CaretDoubleRight,
-  DotsSix,
   ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ArrowsInSimple,
+  Briefcase,
+  ChartLineUp,
+  Check,
+  CheckCircle,
+  Code,
+  Crosshair,
+  DownloadSimple,
   Eye,
   EyeSlash,
-  PencilSimple,
+  FileText,
+  GraduationCap,
+  Info,
+  ListChecks,
+  Minus,
+  Palette,
+  Plus,
+  ShieldCheck,
+  Trash,
+  User,
+  WarningCircle,
+  Wrench,
 } from "@phosphor-icons/react";
-import { useTranslations } from "next-intl";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import Swal from "sweetalert2";
+import { useLocale, useTranslations } from "next-intl";
+import {
+  cloneElement,
+  isValidElement,
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { getMyCandidateProfile, type CandidateProfileApi } from "@/features/candidate/api/profile";
 import { getCandidateSession } from "@/features/candidate/session";
-import { upnextLogo } from "@/features/public/home/brand";
 import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
-import { RichTextEditor } from "@/shared/ui/rich-text-editor";
+import { Label } from "@/shared/ui/label";
 
-import { useCvBuilderStore } from "./store";
-import { CvData } from "./types";
+import { CvPreview } from "./cv-preview";
+import { evaluateCv, isCvEmpty, mapProfileToCvData, toPlainText } from "./logic";
+import { createInitialCvData, getCvBuilderStorageKey, useCvBuilderStore } from "./store";
+import type {
+  CvData,
+  CvEditorSectionKey,
+  CvEvaluation,
+  CvIssue,
+  CvSectionKey,
+  SkillLevel,
+} from "./types";
 
 import "./cv-builder.css";
 
-// Color mapping for Tailwind classes
-const themeColors = {
-  teal: {
-    primary: "text-teal-600",
-    bg: "bg-teal-500",
-    border: "border-teal-500",
-    accent: "text-teal-700",
-    bgLight: "bg-teal-50",
-    bullets: "marker:text-teal-600",
-    creativeSidebar: "bg-teal-950 text-teal-50",
-    divider: "border-teal-200",
-  },
-  indigo: {
-    primary: "text-indigo-600",
-    bg: "bg-indigo-500",
-    border: "border-indigo-500",
-    accent: "text-indigo-700",
-    bgLight: "bg-indigo-50",
-    bullets: "marker:text-indigo-600",
-    creativeSidebar: "bg-indigo-900 text-indigo-50",
-    divider: "border-indigo-200",
-  },
-  violet: {
-    primary: "text-violet-600",
-    bg: "bg-violet-500",
-    border: "border-violet-500",
-    accent: "text-violet-700",
-    bgLight: "bg-violet-50",
-    bullets: "marker:text-violet-600",
-    creativeSidebar: "bg-violet-900 text-violet-50",
-    divider: "border-violet-200",
-  },
-  emerald: {
-    primary: "text-emerald-600",
-    bg: "bg-emerald-500",
-    border: "border-emerald-500",
-    accent: "text-emerald-700",
-    bgLight: "bg-emerald-50",
-    bullets: "marker:text-emerald-600",
-    creativeSidebar: "bg-emerald-900 text-emerald-50",
-    divider: "border-emerald-200",
-  },
-  slate: {
-    primary: "text-slate-800",
-    bg: "bg-slate-700",
-    border: "border-slate-700",
-    accent: "text-slate-900",
-    bgLight: "bg-slate-100",
-    bullets: "marker:text-slate-800",
-    creativeSidebar: "bg-slate-800 text-slate-50",
-    divider: "border-slate-300",
-  },
-};
+const SECTION_ICONS = {
+  targeting: Crosshair,
+  personal: User,
+  summary: FileText,
+  experience: Briefcase,
+  projects: Code,
+  education: GraduationCap,
+  skills: Wrench,
+  review: ListChecks,
+  styling: Palette,
+} as const;
 
-interface CvDatePickerProps {
-  value: string;
-  onChange: (val: string) => void;
-  label: string;
-  allowPresent?: boolean;
-  defaultMode?: "month-year" | "year-only";
-  isEn?: boolean;
+const CONTENT_SECTIONS: CvSectionKey[] = [
+  "personal",
+  "summary",
+  "experience",
+  "projects",
+  "education",
+  "skills",
+];
+
+const EDITOR_SEQUENCE: CvEditorSectionKey[] = [
+  "targeting",
+  ...CONTENT_SECTIONS,
+  "review",
+  "styling",
+];
+
+const THEME_OPTIONS = [
+  { id: "emerald", color: "#0f9f74" },
+  { id: "teal", color: "#0f8c8c" },
+  { id: "indigo", color: "#4f46e5" },
+  { id: "violet", color: "#7c3aed" },
+  { id: "slate", color: "#334155" },
+] as const;
+
+const TEMPLATE_OPTIONS: CvData["selectedTemplate"][] = ["modern", "minimalist", "creative"];
+const SKILL_LEVELS: SkillLevel[] = ["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"];
+const PREVIEW_WIDTH = 794;
+const MIN_PREVIEW_ZOOM = 0.32;
+const MAX_PREVIEW_ZOOM = 1.05;
+
+function getIssue(evaluation: CvEvaluation, path: string) {
+  return evaluation.issues.find((issue) => issue.path === path);
 }
 
-const CvDatePicker = ({
-  value,
-  onChange,
-  label,
-  allowPresent = false,
-  defaultMode = "month-year",
-  isEn = false,
-}: CvDatePickerProps) => {
-  const [mode, setMode] = useState<"month-year" | "year-only">(
-    value && value.length === 4 ? "year-only" : defaultMode,
+function FieldMessage({
+  issue,
+  visible,
+}: Readonly<{ issue?: CvIssue | undefined; visible: boolean }>) {
+  const t = useTranslations("CvBuilder");
+  if (!issue || !visible) return null;
+  return (
+    <p
+      className={cn(
+        "cv-field-message",
+        issue.severity === "error" ? "cv-field-message--error" : "cv-field-message--warning",
+      )}
+      id={`cv-error-${issue.path.replaceAll(".", "-")}`}
+      role={issue.severity === "error" ? "alert" : undefined}
+    >
+      {issue.severity === "error" ? (
+        <WarningCircle aria-hidden="true" />
+      ) : (
+        <Info aria-hidden="true" />
+      )}
+      {t(`validation.${issue.code}`)}
+    </p>
   );
+}
 
-  const isPresent = value.toLowerCase() === "present";
-
-  // Parse current value
-  let currentMonth = "";
-  let currentYear = "";
-  if (!isPresent && value) {
-    if (value.includes("-")) {
-      const parts = value.split("-");
-      currentYear = parts[0] || "";
-      currentMonth = parts[1] || "";
-    } else if (value.length === 4) {
-      currentYear = value;
-    }
-  }
-
-  const months = Array.from({ length: 12 }, (_, i) => {
-    const m = i + 1;
-    const val = m < 10 ? `0${m}` : `${m}`;
-    return { value: val, label: isEn ? `Month ${m}` : `Tháng ${m}` };
-  });
-
-  const currentYearNum = new Date().getFullYear();
-  const years = Array.from({ length: 50 }, (_, i) => {
-    const y = currentYearNum - i;
-    return { value: `${y}`, label: `${y}` };
-  });
-
-  const handleMonthChange = (m: string) => {
-    const newYear = currentYear || `${currentYearNum}`;
-    onChange(`${newYear}-${m}`);
-  };
-
-  const handleYearChange = (y: string) => {
-    if (mode === "year-only") {
-      onChange(y);
-    } else {
-      const newMonth = currentMonth || "01";
-      onChange(`${y}-${newMonth}`);
-    }
-  };
-
-  const handleTogglePresent = (checked: boolean) => {
-    if (checked) {
-      onChange("Present");
-    } else {
-      onChange(`${currentYearNum}-01`);
-    }
-  };
+function FormField({
+  children,
+  error,
+  hint,
+  id,
+  label,
+  required,
+  showError,
+}: Readonly<{
+  children: ReactNode;
+  error?: CvIssue | undefined;
+  hint?: string | undefined;
+  id: string;
+  label: string;
+  required?: boolean | undefined;
+  showError: boolean;
+}>) {
+  const errorId = error ? `cv-error-${error.path.replaceAll(".", "-")}` : undefined;
+  const hintId = hint ? `cv-hint-${id}` : undefined;
+  const visibleIssue = Boolean(error && showError);
+  const visibleHint = Boolean(hint && !visibleIssue);
+  const control = isValidElement<{
+    "aria-describedby"?: string | undefined;
+    "aria-invalid"?: boolean | undefined;
+    "aria-required"?: boolean | undefined;
+    required?: boolean | undefined;
+  }>(children)
+    ? cloneElement(children, {
+        "aria-describedby":
+          [
+            ...(children.props["aria-describedby"]?.split(/\s+/) ?? []).filter(
+              (descriptionId) => descriptionId !== errorId && descriptionId !== hintId,
+            ),
+            visibleIssue ? errorId : undefined,
+            visibleHint ? hintId : undefined,
+          ]
+            .filter(Boolean)
+            .join(" ") || undefined,
+        "aria-invalid": Boolean(visibleIssue && error?.severity === "error"),
+        "aria-required": required || undefined,
+        required: required || undefined,
+      })
+    : children;
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-          {label}
-        </label>
+    <div className="cv-form-field">
+      <Label htmlFor={id}>
+        {label}
+        {required ? <span aria-hidden="true"> *</span> : null}
+      </Label>
+      {control}
+      {visibleHint ? (
+        <p className="cv-field-hint" id={hintId}>
+          {hint}
+        </p>
+      ) : null}
+      <FieldMessage issue={error} visible={showError} />
+    </div>
+  );
+}
 
-        {!isPresent && (
-          <button
-            type="button"
-            onClick={() => {
-              const newMode = mode === "month-year" ? "year-only" : "month-year";
-              setMode(newMode);
-              if (newMode === "year-only") {
-                onChange(currentYear || `${currentYearNum}`);
-              } else {
-                onChange(`${currentYear || currentYearNum}-01`);
-              }
-            }}
-            className="text-[9px] font-bold text-slate-400 uppercase transition-colors hover:text-emerald-600"
+function SectionHeading({
+  eyebrow,
+  subtitle,
+  title,
+}: Readonly<{ eyebrow: string; subtitle: string; title: string }>) {
+  return (
+    <header className="cv-editor-heading">
+      <p>{eyebrow}</p>
+      <h2>{title}</h2>
+      <span>{subtitle}</span>
+    </header>
+  );
+}
+
+function EmptyState({
+  action,
+  description,
+  icon,
+  title,
+}: Readonly<{ action: ReactNode; description: string; icon: ReactNode; title: string }>) {
+  return (
+    <div className="cv-empty-state">
+      <span className="cv-empty-state__icon">{icon}</span>
+      <h3>{title}</h3>
+      <p>{description}</p>
+      {action}
+    </div>
+  );
+}
+
+function ItemActions({
+  index,
+  length,
+  name,
+  onDelete,
+  onMove,
+}: Readonly<{
+  index: number;
+  length: number;
+  name: string;
+  onDelete: () => void;
+  onMove: (direction: "up" | "down") => void;
+}>) {
+  const t = useTranslations("CvBuilder");
+  return (
+    <div className="cv-item-actions">
+      <button
+        aria-label={t("actions.moveUp", { name })}
+        disabled={index === 0}
+        onClick={() => onMove("up")}
+        title={t("actions.moveUp", { name })}
+        type="button"
+      >
+        <ArrowUp aria-hidden="true" />
+      </button>
+      <button
+        aria-label={t("actions.moveDown", { name })}
+        disabled={index === length - 1}
+        onClick={() => onMove("down")}
+        title={t("actions.moveDown", { name })}
+        type="button"
+      >
+        <ArrowDown aria-hidden="true" />
+      </button>
+      <button
+        aria-label={t("actions.delete", { name })}
+        className="cv-item-actions__delete"
+        onClick={onDelete}
+        title={t("actions.delete", { name })}
+        type="button"
+      >
+        <Trash aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function TargetingEditor({ evaluation }: Readonly<{ evaluation: CvEvaluation }>) {
+  const t = useTranslations("CvBuilder");
+  const { cvData, updatePersonalInfo, updateTargetJob } = useCvBuilderStore();
+  const target = cvData.targetJob;
+  const match = evaluation.jobMatch;
+  const canUseRole =
+    Boolean(target.role.trim()) && target.role.trim() !== cvData.personalInfo.title;
+
+  return (
+    <div className="cv-editor-section cv-targeting-editor">
+      <SectionHeading
+        eyebrow={t("targeting.eyebrow")}
+        subtitle={t("targeting.subtitle")}
+        title={t("targeting.title")}
+      />
+
+      <div className="cv-targeting-grid">
+        <section className="cv-targeting-form" aria-labelledby="cv-targeting-form-title">
+          <div className="cv-panel-heading">
+            <span aria-hidden="true">
+              <Crosshair />
+            </span>
+            <div>
+              <h3 id="cv-targeting-form-title">{t("targeting.formTitle")}</h3>
+              <p>{t("targeting.formDescription")}</p>
+            </div>
+          </div>
+          <div className="cv-form-grid">
+            <FormField id="cv-target-role" label={t("targeting.role")} required showError={false}>
+              <Input
+                autoComplete="off"
+                id="cv-target-role"
+                name="targetJob.role"
+                onChange={(event) => updateTargetJob({ role: event.target.value })}
+                placeholder={t("targeting.rolePlaceholder")}
+                value={target.role}
+              />
+            </FormField>
+            <FormField id="cv-target-company" label={t("targeting.company")} showError={false}>
+              <Input
+                autoComplete="organization"
+                id="cv-target-company"
+                name="targetJob.company"
+                onChange={(event) => updateTargetJob({ company: event.target.value })}
+                placeholder={t("targeting.companyPlaceholder")}
+                value={target.company}
+              />
+            </FormField>
+          </div>
+          <FormField
+            hint={t("targeting.descriptionHint")}
+            id="cv-target-description"
+            label={t("targeting.description")}
+            showError={false}
           >
-            {mode === "month-year"
-              ? isEn
-                ? "Select Year"
-                : "Chọn năm"
-              : isEn
-                ? "Select Month/Year"
-                : "Chọn tháng/năm"}
-          </button>
-        )}
+            <textarea
+              aria-label={t("targeting.description")}
+              className="cv-textarea cv-target-description"
+              id="cv-target-description"
+              maxLength={5000}
+              name="targetJob.description"
+              onChange={(event) => updateTargetJob({ description: event.target.value })}
+              placeholder={t("targeting.descriptionPlaceholder")}
+              value={target.description}
+            />
+          </FormField>
+          <div className="cv-targeting-form-footer">
+            <span>
+              <ShieldCheck aria-hidden="true" /> {t("targeting.privateAnalysis")}
+            </span>
+            <Button
+              disabled={!canUseRole}
+              onClick={() => updatePersonalInfo({ title: target.role.trim() })}
+              size="sm"
+              variant="outline"
+            >
+              {t("targeting.useAsHeadline")}
+            </Button>
+          </div>
+        </section>
+
+        <aside className="cv-match-card" aria-live="polite">
+          <div className="cv-panel-heading">
+            <span aria-hidden="true">
+              <ListChecks />
+            </span>
+            <div>
+              <h3>{t("targeting.matchTitle")}</h3>
+              <p>{t("targeting.matchDescription")}</p>
+            </div>
+          </div>
+          {match.hasDescription ? (
+            <>
+              <div className="cv-match-score-row">
+                <output
+                  aria-label={t("targeting.coverageValue", { score: match.score ?? 0 })}
+                  className="cv-match-score"
+                  style={{ "--cv-match": `${match.score ?? 0}%` } as CSSProperties}
+                >
+                  <strong>{match.score ?? 0}</strong>
+                  <span>%</span>
+                </output>
+                <div>
+                  <strong>{t("targeting.coverageLabel")}</strong>
+                  <p>
+                    {t("targeting.coverageSummary", {
+                      matched: match.matched.length,
+                      total: match.total,
+                    })}
+                  </p>
+                </div>
+              </div>
+              <div className="cv-keyword-group">
+                <strong>{t("targeting.matchedKeywords")}</strong>
+                <div className="cv-keyword-list">
+                  {match.matched.length > 0 ? (
+                    match.matched.slice(0, 8).map((item) => (
+                      <span className="is-matched" key={item.keyword}>
+                        <Check aria-hidden="true" /> {item.keyword}
+                      </span>
+                    ))
+                  ) : (
+                    <small>{t("targeting.noMatchedKeywords")}</small>
+                  )}
+                </div>
+              </div>
+              <div className="cv-keyword-group">
+                <strong>{t("targeting.missingKeywords")}</strong>
+                <div className="cv-keyword-list">
+                  {match.missing.length > 0 ? (
+                    match.missing.slice(0, 8).map((keyword) => (
+                      <span className="is-missing" key={keyword}>
+                        {keyword}
+                      </span>
+                    ))
+                  ) : (
+                    <small>{t("targeting.noMissingKeywords")}</small>
+                  )}
+                </div>
+              </div>
+              <p className="cv-match-disclaimer">
+                <Info aria-hidden="true" /> {t("targeting.notAtsScore")}
+              </p>
+            </>
+          ) : (
+            <div className="cv-match-empty">
+              <Crosshair aria-hidden="true" />
+              <strong>{t("targeting.emptyMatchTitle")}</strong>
+              <p>{t("targeting.emptyMatchDescription")}</p>
+            </div>
+          )}
+        </aside>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {isPresent ? (
-          <div className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-500">
-            <span>{isEn ? "Present" : "Hiện tại / Present"}</span>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            {mode === "month-year" && (
-              <select
-                value={currentMonth}
-                onChange={(e) => handleMonthChange(e.target.value)}
-                className="h-9 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500"
-              >
-                <option value="">{isEn ? "Month" : "Tháng"}</option>
-                {months.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            )}
-            <select
-              value={currentYear}
-              onChange={(e) => handleYearChange(e.target.value)}
-              className="h-9 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500"
-            >
-              <option value="">{isEn ? "Year" : "Năm"}</option>
-              {years.map((y) => (
-                <option key={y.value} value={y.value}>
-                  {y.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {allowPresent && (
-          <label className="flex cursor-pointer items-center gap-1.5 select-none">
-            <input
-              type="checkbox"
-              checked={isPresent}
-              onChange={(e) => handleTogglePresent(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-            />
-            <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-              {isEn ? "Current Work" : "Công việc hiện tại"}
-            </span>
-          </label>
-        )}
+      <div className="cv-evidence-principles">
+        <div>
+          <span>01</span>
+          <p>
+            <strong>{t("targeting.principles.evidenceTitle")}</strong>
+            {t("targeting.principles.evidenceDescription")}
+          </p>
+        </div>
+        <div>
+          <span>02</span>
+          <p>
+            <strong>{t("targeting.principles.truthTitle")}</strong>
+            {t("targeting.principles.truthDescription")}
+          </p>
+        </div>
+        <div>
+          <span>03</span>
+          <p>
+            <strong>{t("targeting.principles.versionTitle")}</strong>
+            {t("targeting.principles.versionDescription")}
+          </p>
+        </div>
       </div>
     </div>
   );
-};
+}
+
+function PersonalEditor({
+  evaluation,
+  revealValidation,
+}: Readonly<{ evaluation: CvEvaluation; revealValidation: boolean }>) {
+  const t = useTranslations("CvBuilder");
+  const { cvData, updatePersonalInfo } = useCvBuilderStore();
+  const personal = cvData.personalInfo;
+  const fullNameIssue = getIssue(evaluation, "personalInfo.fullName");
+  const titleIssue = getIssue(evaluation, "personalInfo.title");
+  const emailIssue = getIssue(evaluation, "personalInfo.email");
+  const phoneIssue = getIssue(evaluation, "personalInfo.phoneNumber");
+  const websiteIssue = getIssue(evaluation, "personalInfo.website");
+
+  return (
+    <div className="cv-editor-section">
+      <SectionHeading
+        eyebrow={t("editor.step", { current: 1, total: 6 })}
+        subtitle={t("personal.subtitle")}
+        title={t("personal.title")}
+      />
+      <div className="cv-form-grid">
+        <FormField
+          error={fullNameIssue}
+          id="cv-full-name"
+          label={t("personal.fullName")}
+          required
+          showError={revealValidation}
+        >
+          <Input
+            aria-describedby={fullNameIssue ? "cv-error-personalInfo-fullName" : undefined}
+            aria-invalid={Boolean(fullNameIssue && revealValidation)}
+            autoComplete="name"
+            id="cv-full-name"
+            name="fullName"
+            onChange={(event) => updatePersonalInfo({ fullName: event.target.value })}
+            placeholder={t("personal.fullNamePlaceholder")}
+            value={personal.fullName}
+          />
+        </FormField>
+        <FormField
+          error={titleIssue}
+          id="cv-job-title"
+          label={t("personal.jobTitle")}
+          required
+          showError={revealValidation}
+        >
+          <Input
+            aria-describedby={titleIssue ? "cv-error-personalInfo-title" : undefined}
+            aria-invalid={Boolean(titleIssue && revealValidation)}
+            autoComplete="organization-title"
+            id="cv-job-title"
+            name="jobTitle"
+            onChange={(event) => updatePersonalInfo({ title: event.target.value })}
+            placeholder={t("personal.jobTitlePlaceholder")}
+            value={personal.title}
+          />
+        </FormField>
+        <FormField
+          error={emailIssue}
+          id="cv-email"
+          label={t("personal.email")}
+          required
+          showError={revealValidation || Boolean(personal.email)}
+        >
+          <Input
+            aria-describedby={emailIssue ? "cv-error-personalInfo-email" : undefined}
+            aria-invalid={Boolean(emailIssue && (revealValidation || personal.email))}
+            autoComplete="email"
+            id="cv-email"
+            inputMode="email"
+            name="email"
+            onChange={(event) => updatePersonalInfo({ email: event.target.value })}
+            placeholder={t("personal.emailPlaceholder")}
+            spellCheck={false}
+            type="email"
+            value={personal.email}
+          />
+        </FormField>
+        <FormField
+          error={phoneIssue}
+          id="cv-phone"
+          label={t("personal.phone")}
+          required
+          showError={revealValidation || Boolean(personal.phoneNumber)}
+        >
+          <Input
+            aria-describedby={phoneIssue ? "cv-error-personalInfo-phoneNumber" : undefined}
+            aria-invalid={Boolean(phoneIssue && (revealValidation || personal.phoneNumber))}
+            autoComplete="tel"
+            id="cv-phone"
+            inputMode="tel"
+            name="phoneNumber"
+            onChange={(event) => updatePersonalInfo({ phoneNumber: event.target.value })}
+            placeholder={t("personal.phonePlaceholder")}
+            type="tel"
+            value={personal.phoneNumber}
+          />
+        </FormField>
+        <FormField id="cv-address" label={t("personal.address")} showError={false}>
+          <Input
+            autoComplete="address-level2"
+            id="cv-address"
+            name="address"
+            onChange={(event) => updatePersonalInfo({ address: event.target.value })}
+            placeholder={t("personal.addressPlaceholder")}
+            value={personal.address}
+          />
+        </FormField>
+        <FormField
+          error={websiteIssue}
+          hint={t("personal.websiteHint")}
+          id="cv-website"
+          label={t("personal.website")}
+          showError={Boolean(personal.website)}
+        >
+          <Input
+            aria-describedby={websiteIssue ? "cv-error-personalInfo-website" : undefined}
+            aria-invalid={Boolean(websiteIssue && personal.website)}
+            autoComplete="url"
+            id="cv-website"
+            inputMode="url"
+            name="website"
+            onChange={(event) => updatePersonalInfo({ website: event.target.value })}
+            placeholder={t("personal.websitePlaceholder")}
+            spellCheck={false}
+            type="url"
+            value={personal.website}
+          />
+        </FormField>
+      </div>
+    </div>
+  );
+}
+
+function SummaryEditor({ evaluation }: Readonly<{ evaluation: CvEvaluation }>) {
+  const t = useTranslations("CvBuilder");
+  const { cvData, updateSummary } = useCvBuilderStore();
+  const summary = toPlainText(cvData.summary);
+  const issue = getIssue(evaluation, "summary");
+  return (
+    <div className="cv-editor-section">
+      <SectionHeading
+        eyebrow={t("editor.step", { current: 2, total: 6 })}
+        subtitle={t("summary.subtitle")}
+        title={t("summary.title")}
+      />
+      <div className="cv-writing-guide">
+        <strong>{t("summary.formulaTitle")}</strong>
+        <p>{t("summary.formula")}</p>
+      </div>
+      <FormField
+        error={issue}
+        hint={t("summary.hint")}
+        id="cv-summary"
+        label={t("summary.label")}
+        showError={summary.length > 0 && summary.length < 60}
+      >
+        <textarea
+          aria-label={t("summary.label")}
+          aria-describedby="cv-summary-count"
+          className="cv-textarea cv-textarea--large"
+          id="cv-summary"
+          maxLength={700}
+          name="summary"
+          onChange={(event) => updateSummary(event.target.value)}
+          placeholder={t("summary.placeholder")}
+          value={summary}
+        />
+      </FormField>
+      <p className="cv-character-count" id="cv-summary-count">
+        {t("editor.characters", { current: summary.length, recommended: 120 })}
+      </p>
+    </div>
+  );
+}
+
+function ExperienceEditor({
+  evaluation,
+  revealValidation,
+}: Readonly<{ evaluation: CvEvaluation; revealValidation: boolean }>) {
+  const t = useTranslations("CvBuilder");
+  const { cvData, addExperience, updateExperience, deleteExperience, moveExperience } =
+    useCvBuilderStore();
+
+  return (
+    <div className="cv-editor-section">
+      <SectionHeading
+        eyebrow={t("editor.step", { current: 3, total: 6 })}
+        subtitle={t("experience.subtitle")}
+        title={t("experience.title")}
+      />
+      {cvData.experiences.length === 0 ? (
+        <EmptyState
+          action={
+            <Button onClick={addExperience} size="sm">
+              <Plus /> {t("experience.add")}
+            </Button>
+          }
+          description={t("experience.emptyDescription")}
+          icon={<Briefcase />}
+          title={t("experience.empty")}
+        />
+      ) : (
+        <div className="cv-item-list">
+          {cvData.experiences.map((experience, index) => {
+            const prefix = `experiences.${index}`;
+            const title = experience.positionTitle || t("experience.item", { index: index + 1 });
+            const companyIssue = getIssue(evaluation, `${prefix}.companyName`);
+            const positionIssue = getIssue(evaluation, `${prefix}.positionTitle`);
+            const startIssue = getIssue(evaluation, `${prefix}.startDate`);
+            const endIssue = getIssue(evaluation, `${prefix}.endDate`);
+            const descriptionIssue = getIssue(evaluation, `${prefix}.description`);
+            const description = toPlainText(experience.description);
+            return (
+              <article
+                aria-labelledby={`experience-heading-${experience.id}`}
+                className="cv-item-card"
+                key={experience.id}
+              >
+                <header className="cv-item-card__header">
+                  <div>
+                    <span>{t("experience.item", { index: index + 1 })}</span>
+                    <h3 id={`experience-heading-${experience.id}`}>{title}</h3>
+                  </div>
+                  <ItemActions
+                    index={index}
+                    length={cvData.experiences.length}
+                    name={title}
+                    onDelete={() => deleteExperience(experience.id)}
+                    onMove={(direction) => moveExperience(experience.id, direction)}
+                  />
+                </header>
+                <div className="cv-form-grid">
+                  <FormField
+                    error={positionIssue}
+                    id={`experience-position-${experience.id}`}
+                    label={t("experience.position")}
+                    required
+                    showError={revealValidation}
+                  >
+                    <Input
+                      aria-invalid={Boolean(positionIssue && revealValidation)}
+                      autoComplete="organization-title"
+                      id={`experience-position-${experience.id}`}
+                      name={`experiences[${index}].positionTitle`}
+                      onChange={(event) =>
+                        updateExperience(experience.id, { positionTitle: event.target.value })
+                      }
+                      placeholder={t("experience.positionPlaceholder")}
+                      value={experience.positionTitle}
+                    />
+                  </FormField>
+                  <FormField
+                    error={companyIssue}
+                    id={`experience-company-${experience.id}`}
+                    label={t("experience.company")}
+                    required
+                    showError={revealValidation}
+                  >
+                    <Input
+                      aria-invalid={Boolean(companyIssue && revealValidation)}
+                      autoComplete="organization"
+                      id={`experience-company-${experience.id}`}
+                      name={`experiences[${index}].companyName`}
+                      onChange={(event) =>
+                        updateExperience(experience.id, { companyName: event.target.value })
+                      }
+                      placeholder={t("experience.companyPlaceholder")}
+                      value={experience.companyName}
+                    />
+                  </FormField>
+                  <FormField
+                    error={startIssue}
+                    id={`experience-start-${experience.id}`}
+                    label={t("experience.start")}
+                    required
+                    showError={revealValidation}
+                  >
+                    <Input
+                      aria-invalid={Boolean(startIssue && revealValidation)}
+                      id={`experience-start-${experience.id}`}
+                      name={`experiences[${index}].startDate`}
+                      onChange={(event) =>
+                        updateExperience(experience.id, { startDate: event.target.value })
+                      }
+                      type="month"
+                      value={experience.startDate}
+                    />
+                  </FormField>
+                  <FormField
+                    error={endIssue}
+                    id={`experience-end-${experience.id}`}
+                    label={t("experience.end")}
+                    showError={Boolean(endIssue)}
+                  >
+                    <Input
+                      aria-invalid={Boolean(endIssue)}
+                      disabled={experience.isCurrent}
+                      id={`experience-end-${experience.id}`}
+                      min={experience.startDate || undefined}
+                      name={`experiences[${index}].endDate`}
+                      onChange={(event) =>
+                        updateExperience(experience.id, { endDate: event.target.value })
+                      }
+                      type="month"
+                      value={experience.endDate}
+                    />
+                  </FormField>
+                </div>
+                <label className="cv-checkbox-row">
+                  <input
+                    aria-label={t("experience.current")}
+                    checked={experience.isCurrent}
+                    name={`experiences[${index}].isCurrent`}
+                    onChange={(event) =>
+                      updateExperience(experience.id, {
+                        isCurrent: event.target.checked,
+                        ...(event.target.checked ? { endDate: "" } : {}),
+                      })
+                    }
+                    type="checkbox"
+                  />
+                  <span>{t("experience.current")}</span>
+                </label>
+                <FormField
+                  error={descriptionIssue}
+                  hint={t("experience.descriptionHint")}
+                  id={`experience-description-${experience.id}`}
+                  label={t("experience.description")}
+                  showError={description.length > 0 && description.length < 60}
+                >
+                  <textarea
+                    aria-label={t("experience.description")}
+                    className="cv-textarea"
+                    id={`experience-description-${experience.id}`}
+                    maxLength={1200}
+                    name={`experiences[${index}].description`}
+                    onChange={(event) =>
+                      updateExperience(experience.id, { description: event.target.value })
+                    }
+                    placeholder={t("experience.descriptionPlaceholder")}
+                    value={description}
+                  />
+                </FormField>
+                <FormField
+                  id={`experience-tech-${experience.id}`}
+                  label={t("experience.tech")}
+                  showError={false}
+                >
+                  <Input
+                    id={`experience-tech-${experience.id}`}
+                    name={`experiences[${index}].technologies`}
+                    onChange={(event) =>
+                      updateExperience(experience.id, { technologies: event.target.value })
+                    }
+                    placeholder={t("experience.techPlaceholder")}
+                    value={experience.technologies}
+                  />
+                </FormField>
+              </article>
+            );
+          })}
+          <Button className="cv-add-another" onClick={addExperience} variant="outline">
+            <Plus /> {t("experience.addAnother")}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProjectsEditor({
+  evaluation,
+  revealValidation,
+}: Readonly<{ evaluation: CvEvaluation; revealValidation: boolean }>) {
+  const t = useTranslations("CvBuilder");
+  const { cvData, addProject, updateProject, deleteProject, moveProject } = useCvBuilderStore();
+  return (
+    <div className="cv-editor-section">
+      <SectionHeading
+        eyebrow={t("editor.step", { current: 4, total: 6 })}
+        subtitle={t("projects.subtitle")}
+        title={t("projects.title")}
+      />
+      {cvData.projects.length === 0 ? (
+        <EmptyState
+          action={
+            <Button onClick={addProject} size="sm">
+              <Plus /> {t("projects.add")}
+            </Button>
+          }
+          description={t("projects.emptyDescription")}
+          icon={<Code />}
+          title={t("projects.empty")}
+        />
+      ) : (
+        <div className="cv-item-list">
+          {cvData.projects.map((project, index) => {
+            const prefix = `projects.${index}`;
+            const title = project.name || t("projects.item", { index: index + 1 });
+            const description = toPlainText(project.description);
+            return (
+              <article
+                aria-labelledby={`project-heading-${project.id}`}
+                className="cv-item-card"
+                key={project.id}
+              >
+                <header className="cv-item-card__header">
+                  <div>
+                    <span>{t("projects.item", { index: index + 1 })}</span>
+                    <h3 id={`project-heading-${project.id}`}>{title}</h3>
+                  </div>
+                  <ItemActions
+                    index={index}
+                    length={cvData.projects.length}
+                    name={title}
+                    onDelete={() => deleteProject(project.id)}
+                    onMove={(direction) => moveProject(project.id, direction)}
+                  />
+                </header>
+                <div className="cv-form-grid">
+                  <FormField
+                    error={getIssue(evaluation, `${prefix}.name`)}
+                    id={`project-name-${project.id}`}
+                    label={t("projects.name")}
+                    required
+                    showError={revealValidation}
+                  >
+                    <Input
+                      id={`project-name-${project.id}`}
+                      name={`projects[${index}].name`}
+                      onChange={(event) => updateProject(project.id, { name: event.target.value })}
+                      placeholder={t("projects.namePlaceholder")}
+                      value={project.name}
+                    />
+                  </FormField>
+                  <FormField
+                    error={getIssue(evaluation, `${prefix}.role`)}
+                    id={`project-role-${project.id}`}
+                    label={t("projects.role")}
+                    required
+                    showError={revealValidation}
+                  >
+                    <Input
+                      id={`project-role-${project.id}`}
+                      name={`projects[${index}].role`}
+                      onChange={(event) => updateProject(project.id, { role: event.target.value })}
+                      placeholder={t("projects.rolePlaceholder")}
+                      value={project.role}
+                    />
+                  </FormField>
+                  <FormField
+                    error={getIssue(evaluation, `${prefix}.projectUrl`)}
+                    id={`project-source-${project.id}`}
+                    label={t("projects.github")}
+                    showError={Boolean(project.projectUrl)}
+                  >
+                    <Input
+                      autoComplete="url"
+                      id={`project-source-${project.id}`}
+                      inputMode="url"
+                      name={`projects[${index}].projectUrl`}
+                      onChange={(event) =>
+                        updateProject(project.id, { projectUrl: event.target.value })
+                      }
+                      placeholder="github.com/username/project"
+                      spellCheck={false}
+                      type="url"
+                      value={project.projectUrl}
+                    />
+                  </FormField>
+                  <FormField
+                    error={getIssue(evaluation, `${prefix}.deployUrl`)}
+                    id={`project-demo-${project.id}`}
+                    label={t("projects.demo")}
+                    showError={Boolean(project.deployUrl)}
+                  >
+                    <Input
+                      autoComplete="url"
+                      id={`project-demo-${project.id}`}
+                      inputMode="url"
+                      name={`projects[${index}].deployUrl`}
+                      onChange={(event) =>
+                        updateProject(project.id, { deployUrl: event.target.value })
+                      }
+                      placeholder="project.example.com"
+                      spellCheck={false}
+                      type="url"
+                      value={project.deployUrl}
+                    />
+                  </FormField>
+                </div>
+                <FormField
+                  error={getIssue(evaluation, `${prefix}.description`)}
+                  hint={t("projects.descriptionHint")}
+                  id={`project-description-${project.id}`}
+                  label={t("projects.description")}
+                  showError={description.length > 0 && description.length < 40}
+                >
+                  <textarea
+                    aria-label={t("projects.description")}
+                    className="cv-textarea"
+                    id={`project-description-${project.id}`}
+                    maxLength={900}
+                    name={`projects[${index}].description`}
+                    onChange={(event) =>
+                      updateProject(project.id, { description: event.target.value })
+                    }
+                    placeholder={t("projects.descriptionPlaceholder")}
+                    value={description}
+                  />
+                </FormField>
+                <FormField
+                  id={`project-tech-${project.id}`}
+                  label={t("projects.tech")}
+                  showError={false}
+                >
+                  <Input
+                    id={`project-tech-${project.id}`}
+                    name={`projects[${index}].technologies`}
+                    onChange={(event) =>
+                      updateProject(project.id, { technologies: event.target.value })
+                    }
+                    placeholder={t("projects.techPlaceholder")}
+                    value={project.technologies}
+                  />
+                </FormField>
+              </article>
+            );
+          })}
+          <Button className="cv-add-another" onClick={addProject} variant="outline">
+            <Plus /> {t("projects.addAnother")}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EducationEditor({
+  evaluation,
+  revealValidation,
+}: Readonly<{ evaluation: CvEvaluation; revealValidation: boolean }>) {
+  const t = useTranslations("CvBuilder");
+  const { cvData, addEducation, updateEducation, deleteEducation, moveEducation } =
+    useCvBuilderStore();
+  return (
+    <div className="cv-editor-section">
+      <SectionHeading
+        eyebrow={t("editor.step", { current: 5, total: 6 })}
+        subtitle={t("education.subtitle")}
+        title={t("education.title")}
+      />
+      {cvData.educations.length === 0 ? (
+        <EmptyState
+          action={
+            <Button onClick={addEducation} size="sm">
+              <Plus /> {t("education.add")}
+            </Button>
+          }
+          description={t("education.emptyDescription")}
+          icon={<GraduationCap />}
+          title={t("education.empty")}
+        />
+      ) : (
+        <div className="cv-item-list">
+          {cvData.educations.map((education, index) => {
+            const prefix = `educations.${index}`;
+            const title = education.schoolName || t("education.item", { index: index + 1 });
+            return (
+              <article
+                aria-labelledby={`education-heading-${education.id}`}
+                className="cv-item-card"
+                key={education.id}
+              >
+                <header className="cv-item-card__header">
+                  <div>
+                    <span>{t("education.item", { index: index + 1 })}</span>
+                    <h3 id={`education-heading-${education.id}`}>{title}</h3>
+                  </div>
+                  <ItemActions
+                    index={index}
+                    length={cvData.educations.length}
+                    name={title}
+                    onDelete={() => deleteEducation(education.id)}
+                    onMove={(direction) => moveEducation(education.id, direction)}
+                  />
+                </header>
+                <div className="cv-form-grid">
+                  <FormField
+                    error={getIssue(evaluation, `${prefix}.schoolName`)}
+                    id={`education-school-${education.id}`}
+                    label={t("education.school")}
+                    required
+                    showError={revealValidation}
+                  >
+                    <Input
+                      autoComplete="organization"
+                      id={`education-school-${education.id}`}
+                      name={`educations[${index}].schoolName`}
+                      onChange={(event) =>
+                        updateEducation(education.id, { schoolName: event.target.value })
+                      }
+                      placeholder={t("education.schoolPlaceholder")}
+                      value={education.schoolName}
+                    />
+                  </FormField>
+                  <FormField
+                    error={getIssue(evaluation, `${prefix}.degree`)}
+                    id={`education-degree-${education.id}`}
+                    label={t("education.degree")}
+                    required
+                    showError={revealValidation}
+                  >
+                    <Input
+                      id={`education-degree-${education.id}`}
+                      name={`educations[${index}].degree`}
+                      onChange={(event) =>
+                        updateEducation(education.id, { degree: event.target.value })
+                      }
+                      placeholder={t("education.degreePlaceholder")}
+                      value={education.degree}
+                    />
+                  </FormField>
+                  <FormField
+                    id={`education-major-${education.id}`}
+                    label={t("education.major")}
+                    showError={false}
+                  >
+                    <Input
+                      id={`education-major-${education.id}`}
+                      name={`educations[${index}].major`}
+                      onChange={(event) =>
+                        updateEducation(education.id, { major: event.target.value })
+                      }
+                      placeholder={t("education.majorPlaceholder")}
+                      value={education.major}
+                    />
+                  </FormField>
+                  <FormField
+                    id={`education-gpa-${education.id}`}
+                    label={t("education.gpa")}
+                    showError={false}
+                  >
+                    <Input
+                      id={`education-gpa-${education.id}`}
+                      name={`educations[${index}].gpa`}
+                      onChange={(event) =>
+                        updateEducation(education.id, { gpa: event.target.value })
+                      }
+                      placeholder="3.5/4.0"
+                      value={education.gpa ?? ""}
+                    />
+                  </FormField>
+                  <FormField
+                    id={`education-start-${education.id}`}
+                    label={t("education.start")}
+                    showError={false}
+                  >
+                    <Input
+                      id={`education-start-${education.id}`}
+                      name={`educations[${index}].startDate`}
+                      onChange={(event) =>
+                        updateEducation(education.id, { startDate: event.target.value })
+                      }
+                      type="month"
+                      value={education.startDate}
+                    />
+                  </FormField>
+                  <FormField
+                    error={getIssue(evaluation, `${prefix}.endDate`)}
+                    id={`education-end-${education.id}`}
+                    label={t("education.end")}
+                    showError={Boolean(getIssue(evaluation, `${prefix}.endDate`))}
+                  >
+                    <Input
+                      disabled={education.isCurrent}
+                      id={`education-end-${education.id}`}
+                      min={education.startDate || undefined}
+                      name={`educations[${index}].endDate`}
+                      onChange={(event) =>
+                        updateEducation(education.id, { endDate: event.target.value })
+                      }
+                      type="month"
+                      value={education.endDate}
+                    />
+                  </FormField>
+                </div>
+                <label className="cv-checkbox-row">
+                  <input
+                    aria-label={t("education.current")}
+                    checked={education.isCurrent}
+                    name={`educations[${index}].isCurrent`}
+                    onChange={(event) =>
+                      updateEducation(education.id, {
+                        isCurrent: event.target.checked,
+                        ...(event.target.checked ? { endDate: "" } : {}),
+                      })
+                    }
+                    type="checkbox"
+                  />
+                  <span>{t("education.current")}</span>
+                </label>
+                <FormField
+                  id={`education-description-${education.id}`}
+                  label={t("education.description")}
+                  showError={false}
+                >
+                  <textarea
+                    aria-label={t("education.description")}
+                    className="cv-textarea"
+                    id={`education-description-${education.id}`}
+                    maxLength={600}
+                    name={`educations[${index}].description`}
+                    onChange={(event) =>
+                      updateEducation(education.id, { description: event.target.value })
+                    }
+                    placeholder={t("education.descriptionPlaceholder")}
+                    value={toPlainText(education.description)}
+                  />
+                </FormField>
+              </article>
+            );
+          })}
+          <Button className="cv-add-another" onClick={addEducation} variant="outline">
+            <Plus /> {t("education.addAnother")}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SkillsEditor({
+  evaluation,
+  revealValidation,
+}: Readonly<{ evaluation: CvEvaluation; revealValidation: boolean }>) {
+  const t = useTranslations("CvBuilder");
+  const { cvData, addSkill, updateSkill, deleteSkill } = useCvBuilderStore();
+  const generalIssue = getIssue(evaluation, "skills");
+  return (
+    <div className="cv-editor-section">
+      <SectionHeading
+        eyebrow={t("editor.step", { current: 6, total: 6 })}
+        subtitle={t("skills.subtitle")}
+        title={t("skills.title")}
+      />
+      <div className="cv-writing-guide">
+        <strong>{t("skills.guideTitle")}</strong>
+        <p>{t("skills.guide")}</p>
+      </div>
+      {cvData.skills.length === 0 ? (
+        <EmptyState
+          action={
+            <Button onClick={addSkill} size="sm">
+              <Plus /> {t("skills.add")}
+            </Button>
+          }
+          description={t("skills.emptyDescription")}
+          icon={<Wrench />}
+          title={t("skills.empty")}
+        />
+      ) : (
+        <div className="cv-skill-list">
+          {cvData.skills.map((skill, index) => {
+            const issue = getIssue(evaluation, `skills.${index}.name`);
+            return (
+              <div className="cv-skill-row" key={skill.id}>
+                <div className="cv-form-field">
+                  <Label htmlFor={`skill-name-${skill.id}`}>{t("skills.name")}</Label>
+                  <Input
+                    aria-describedby={
+                      issue && revealValidation
+                        ? `cv-error-${issue.path.replaceAll(".", "-")}`
+                        : undefined
+                    }
+                    aria-invalid={Boolean(issue && revealValidation)}
+                    id={`skill-name-${skill.id}`}
+                    name={`skills[${index}].name`}
+                    onChange={(event) => updateSkill(skill.id, { name: event.target.value })}
+                    placeholder={t("skills.namePlaceholder")}
+                    value={skill.name}
+                  />
+                  <FieldMessage issue={issue} visible={revealValidation} />
+                </div>
+                <div className="cv-form-field">
+                  <Label htmlFor={`skill-level-${skill.id}`}>{t("skills.level")}</Label>
+                  <select
+                    className="cv-select"
+                    id={`skill-level-${skill.id}`}
+                    name={`skills[${index}].level`}
+                    onChange={(event) =>
+                      updateSkill(skill.id, { level: event.target.value as SkillLevel })
+                    }
+                    value={skill.level}
+                  >
+                    {SKILL_LEVELS.map((level) => (
+                      <option key={level} value={level}>
+                        {t(`skills.levels.${level.toLowerCase()}`)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  aria-label={t("actions.delete", {
+                    name: skill.name || t("skills.item", { index: index + 1 }),
+                  })}
+                  className="cv-skill-delete"
+                  onClick={() => deleteSkill(skill.id)}
+                  type="button"
+                >
+                  <Trash aria-hidden="true" />
+                </button>
+              </div>
+            );
+          })}
+          <Button className="cv-add-another" onClick={addSkill} variant="outline">
+            <Plus /> {t("skills.addAnother")}
+          </Button>
+        </div>
+      )}
+      <FieldMessage issue={generalIssue} visible={Boolean(generalIssue)} />
+    </div>
+  );
+}
+
+function DesignEditor() {
+  const t = useTranslations("CvBuilder");
+  const {
+    cvData,
+    moveSection,
+    renameSection,
+    selectTemplate,
+    setCvLanguage,
+    toggleSectionVisibility,
+    updateStyle,
+  } = useCvBuilderStore();
+  const hiddenSections = new Set(cvData.hiddenSections ?? []);
+  return (
+    <div className="cv-editor-section">
+      <SectionHeading
+        eyebrow={t("styling.eyebrow")}
+        subtitle={t("styling.subtitle")}
+        title={t("styling.title")}
+      />
+      <fieldset className="cv-design-group">
+        <legend>{t("styling.template")}</legend>
+        <div className="cv-template-grid">
+          {TEMPLATE_OPTIONS.map((template) => (
+            <button
+              aria-label={t(`styling.templates.${template}`)}
+              aria-pressed={cvData.selectedTemplate === template}
+              className={cn(
+                "cv-template-option",
+                cvData.selectedTemplate === template && "cv-template-option--selected",
+              )}
+              key={template}
+              onClick={() => selectTemplate(template)}
+              type="button"
+            >
+              <span
+                className={`cv-template-thumbnail cv-template-thumbnail--${template}`}
+                aria-hidden="true"
+              >
+                <span className="cv-template-mini-header">
+                  <b />
+                  <i />
+                </span>
+                <span className="cv-template-mini-section">
+                  <b />
+                  <i />
+                  <i />
+                </span>
+                <span className="cv-template-mini-section">
+                  <b />
+                  <i />
+                  <i />
+                </span>
+              </span>
+              <span className="cv-template-copy">
+                <strong>
+                  {t(`styling.templates.${template}`)}
+                  <em>{t("styling.atsBadge")}</em>
+                </strong>
+                <small>{t(`styling.templateDescriptions.${template}`)}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      <fieldset className="cv-design-group">
+        <legend>{t("styling.themeColor")}</legend>
+        <div className="cv-color-options">
+          {THEME_OPTIONS.map((theme) => (
+            <button
+              aria-label={t(`styling.colors.${theme.id}`)}
+              aria-pressed={cvData.style.themeColor === theme.id}
+              className={cn(
+                "cv-color-option",
+                cvData.style.themeColor === theme.id && "cv-color-option--selected",
+              )}
+              key={theme.id}
+              onClick={() => updateStyle({ themeColor: theme.id })}
+              style={{ "--swatch": theme.color } as CSSProperties}
+              title={t(`styling.colors.${theme.id}`)}
+              type="button"
+            >
+              {cvData.style.themeColor === theme.id ? <Check aria-hidden="true" /> : null}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+      <div className="cv-design-grid">
+        <FormField id="cv-font" label={t("styling.fontFamily")} showError={false}>
+          <select
+            className="cv-select"
+            id="cv-font"
+            name="fontFamily"
+            onChange={(event) =>
+              updateStyle({ fontFamily: event.target.value as CvData["style"]["fontFamily"] })
+            }
+            value={cvData.style.fontFamily}
+          >
+            <option value="font-sans">Inter / System</option>
+            <option value="font-serif">Georgia</option>
+            <option value="font-mono">Courier / Mono</option>
+            <option value="font-outfit">Outfit</option>
+          </select>
+        </FormField>
+        <FormField id="cv-language" label={t("styling.cvLanguage")} showError={false}>
+          <select
+            className="cv-select"
+            id="cv-language"
+            name="cvLanguage"
+            onChange={(event) => setCvLanguage(event.target.value as CvData["cvLanguage"])}
+            value={cvData.cvLanguage}
+          >
+            <option value="vi">{t("styling.cvLanguages.vi")}</option>
+            <option value="en">{t("styling.cvLanguages.en")}</option>
+          </select>
+        </FormField>
+      </div>
+      <div className="cv-design-grid">
+        <fieldset className="cv-design-group cv-design-group--compact">
+          <legend>{t("styling.textSize")}</legend>
+          <div className="cv-segmented-control">
+            {(["sm", "base", "lg"] as const).map((size) => (
+              <button
+                aria-pressed={cvData.style.textSize === size}
+                className={cvData.style.textSize === size ? "is-active" : undefined}
+                key={size}
+                onClick={() => updateStyle({ textSize: size })}
+                type="button"
+              >
+                {t(`styling.textSizes.${size}`)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset className="cv-design-group cv-design-group--compact">
+          <legend>{t("styling.marginSize")}</legend>
+          <div className="cv-segmented-control">
+            {(["sm", "base", "lg"] as const).map((size) => (
+              <button
+                aria-pressed={cvData.style.marginSize === size}
+                className={cvData.style.marginSize === size ? "is-active" : undefined}
+                key={size}
+                onClick={() => updateStyle({ marginSize: size })}
+                type="button"
+              >
+                {t(`styling.marginSizes.${size}`)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+      <div className="cv-design-group">
+        <h3>{t("styling.sectionsOrder")}</h3>
+        <p>{t("styling.sectionsHint")}</p>
+        <div className="cv-section-order-list">
+          {cvData.sectionsOrder.map((section, index) => {
+            const Icon = SECTION_ICONS[section];
+            const isPersonal = section === "personal";
+            const isHidden = hiddenSections.has(section);
+            return (
+              <div className={cn("cv-section-order-item", isHidden && "is-hidden")} key={section}>
+                <Icon aria-hidden="true" />
+                <Input
+                  aria-label={t("styling.sectionName", { section: t(`tabs.${section}`) })}
+                  disabled={isPersonal}
+                  onChange={(event) => renameSection(section, event.target.value)}
+                  value={cvData.customSectionNames?.[section] ?? t(`tabs.${section}`)}
+                />
+                <div>
+                  <button
+                    aria-label={t("actions.moveUp", { name: t(`tabs.${section}`) })}
+                    disabled={isPersonal || index <= 1}
+                    onClick={() => moveSection(section, "up")}
+                    type="button"
+                  >
+                    <ArrowUp />
+                  </button>
+                  <button
+                    aria-label={t("actions.moveDown", { name: t(`tabs.${section}`) })}
+                    disabled={isPersonal || index === cvData.sectionsOrder.length - 1}
+                    onClick={() => moveSection(section, "down")}
+                    type="button"
+                  >
+                    <ArrowDown />
+                  </button>
+                  <button
+                    aria-label={isHidden ? t("visibility.show") : t("visibility.hide")}
+                    disabled={isPersonal}
+                    onClick={() => toggleSectionVisibility(section)}
+                    type="button"
+                  >
+                    {isHidden ? <EyeSlash /> : <Eye />}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewEditor({
+  evaluation,
+  onNavigate,
+  pageCount,
+}: Readonly<{
+  evaluation: CvEvaluation;
+  onNavigate: (section: CvEditorSectionKey) => void;
+  pageCount: number;
+}>) {
+  const t = useTranslations("CvBuilder");
+  const importantIssues = evaluation.issues
+    .toSorted(
+      (first, second) => Number(second.severity === "error") - Number(first.severity === "error"),
+    )
+    .slice(0, 8);
+  const isReady = evaluation.exportReady;
+  const signals = evaluation.contentSignals;
+  const evidenceScore =
+    signals.totalSkills > 0
+      ? Math.round((signals.skillsWithEvidence / signals.totalSkills) * 100)
+      : 0;
+
+  return (
+    <div className="cv-editor-section">
+      <SectionHeading
+        eyebrow={t("review.eyebrow")}
+        subtitle={t("review.subtitle")}
+        title={t("review.title")}
+      />
+
+      <section className={cn("cv-review-hero", isReady ? "is-ready" : "has-errors")}>
+        <div className="cv-review-score">
+          <strong>{evaluation.score}</strong>
+          <span>/ 100</span>
+        </div>
+        <div>
+          <span className="cv-review-status-badge">
+            {isReady ? <CheckCircle aria-hidden="true" /> : <WarningCircle aria-hidden="true" />}
+            {isReady ? t("review.exportable") : t("review.notExportable")}
+          </span>
+          <h3>{isReady ? t("review.readyTitle") : t("review.needsWorkTitle")}</h3>
+          <p>
+            {isReady
+              ? t("review.readyDescription", { pages: pageCount })
+              : t("review.needsWorkDescription", { count: evaluation.blockingIssues.length })}
+          </p>
+        </div>
+      </section>
+
+      <div className="cv-review-metrics">
+        <div>
+          <strong>{evaluation.blockingIssues.length}</strong>
+          <span>{t("review.errors")}</span>
+        </div>
+        <div>
+          <strong>{evaluation.issues.length - evaluation.blockingIssues.length}</strong>
+          <span>{t("review.suggestions")}</span>
+        </div>
+        <div>
+          <strong>{pageCount}</strong>
+          <span>{t("review.pages")}</span>
+        </div>
+      </div>
+
+      <section className="cv-review-insights" aria-labelledby="cv-review-insights-title">
+        <div className="cv-review-section-heading">
+          <div>
+            <span>{t("review.insightsEyebrow")}</span>
+            <h3 id="cv-review-insights-title">{t("review.insightsTitle")}</h3>
+          </div>
+          <p>{t("review.insightsDescription")}</p>
+        </div>
+        <div className="cv-insight-grid">
+          <article>
+            <span className="cv-insight-icon">
+              <Crosshair aria-hidden="true" />
+            </span>
+            <div>
+              <strong>
+                {evaluation.jobMatch.score === null ? "—" : `${evaluation.jobMatch.score}%`}
+              </strong>
+              <h4>{t("review.keywordCoverage")}</h4>
+              <p>
+                {evaluation.jobMatch.hasDescription
+                  ? t("review.keywordCoverageDescription", {
+                      matched: evaluation.jobMatch.matched.length,
+                      total: evaluation.jobMatch.total,
+                    })
+                  : t("review.keywordCoverageEmpty")}
+              </p>
+              <button onClick={() => onNavigate("targeting")} type="button">
+                {t("review.openTargeting")} <ArrowRight aria-hidden="true" />
+              </button>
+            </div>
+          </article>
+          <article>
+            <span className="cv-insight-icon">
+              <ChartLineUp aria-hidden="true" />
+            </span>
+            <div>
+              <strong>
+                {signals.quantifiedBullets}/{signals.totalBullets}
+              </strong>
+              <h4>{t("review.measurableImpact")}</h4>
+              <p>{t("review.measurableImpactDescription")}</p>
+              <button onClick={() => onNavigate("experience")} type="button">
+                {t("review.improveExperience")} <ArrowRight aria-hidden="true" />
+              </button>
+            </div>
+          </article>
+          <article>
+            <span className="cv-insight-icon">
+              <ShieldCheck aria-hidden="true" />
+            </span>
+            <div>
+              <strong>{evidenceScore}%</strong>
+              <h4>{t("review.skillEvidence")}</h4>
+              <p>
+                {t("review.skillEvidenceDescription", {
+                  evidenced: signals.skillsWithEvidence,
+                  total: signals.totalSkills,
+                })}
+              </p>
+              <button onClick={() => onNavigate("skills")} type="button">
+                {t("review.reviewSkills")} <ArrowRight aria-hidden="true" />
+              </button>
+            </div>
+          </article>
+        </div>
+        {signals.skillsWithoutEvidence.length > 0 ? (
+          <div className="cv-evidence-gap">
+            <strong>{t("review.skillsWithoutEvidence")}</strong>
+            <div className="cv-keyword-list">
+              {signals.skillsWithoutEvidence.slice(0, 8).map((skill) => (
+                <span className="is-missing" key={skill}>
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      {evaluation.jobMatch.hasDescription ? (
+        <section className="cv-review-keywords" aria-labelledby="cv-review-keywords-title">
+          <div className="cv-review-section-heading">
+            <div>
+              <span>{t("review.jobEvidenceEyebrow")}</span>
+              <h3 id="cv-review-keywords-title">{t("review.jobEvidenceTitle")}</h3>
+            </div>
+            <p>{t("review.jobEvidenceDescription")}</p>
+          </div>
+          <div className="cv-review-keyword-columns">
+            <div>
+              <strong>{t("targeting.matchedKeywords")}</strong>
+              <div className="cv-keyword-list">
+                {evaluation.jobMatch.matched.map((item) => (
+                  <span className="is-matched" key={item.keyword}>
+                    <Check aria-hidden="true" /> {item.keyword}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <strong>{t("targeting.missingKeywords")}</strong>
+              <div className="cv-keyword-list">
+                {evaluation.jobMatch.missing.map((keyword) => (
+                  <span className="is-missing" key={keyword}>
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="cv-review-list" aria-labelledby="cv-review-checklist-title">
+        <div className="cv-review-section-heading">
+          <div>
+            <span>{t("review.checklistEyebrow")}</span>
+            <h3 id="cv-review-checklist-title">{t("review.checklist")}</h3>
+          </div>
+          <p>{t("review.checklistDescription")}</p>
+        </div>
+        {importantIssues.length > 0 ? (
+          <ul>
+            {importantIssues.map((issue) => (
+              <li key={`${issue.path}-${issue.code}`}>
+                <span className={issue.severity === "error" ? "is-error" : "is-warning"}>
+                  {issue.severity === "error" ? <WarningCircle /> : <Info />}
+                </span>
+                <p>{t(`validation.${issue.code}`)}</p>
+                <button onClick={() => onNavigate(issue.section)} type="button">
+                  {t("review.fix")}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="cv-review-empty">
+            <CheckCircle />
+            <p>{t("review.noIssues")}</p>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
 
 export function CandidateCvBuilder() {
   const t = useTranslations("CvBuilder");
+  const locale = useLocale();
   const router = useRouter();
+  const { cvData, draftSavedAt, past, future, clearCv, redo, setCvData, undo } =
+    useCvBuilderStore();
+  const [activeSection, setActiveSection] = useState<CvEditorSectionKey>("targeting");
+  const [workspaceMode, setWorkspaceMode] = useState<"edit" | "preview">("edit");
+  const [zoom, setZoom] = useState(0.82);
+  const [previewHeight, setPreviewHeight] = useState(1123);
+  const [pageCount, setPageCount] = useState(1);
+  const [authReady, setAuthReady] = useState(false);
+  const [profile, setProfile] = useState<CandidateProfileApi | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileNotice, setProfileNotice] = useState<string | null>(null);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [exportDialog, setExportDialog] = useState<"closed" | "blocked" | "guide">("closed");
+  const [revealValidation, setRevealValidation] = useState(false);
+  const editorScrollRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const previewViewportRef = useRef<HTMLDivElement>(null);
+  const evaluation = useMemo(() => evaluateCv(cvData), [cvData]);
 
-  const {
-    cvData,
-    updatePersonalInfo,
-    updateSummary,
-    addExperience,
-    updateExperience,
-    deleteExperience,
-    moveExperience,
-    addEducation,
-    updateEducation,
-    deleteEducation,
-    moveEducation,
-    addProject,
-    updateProject,
-    deleteProject,
-    moveProject,
-    addSkill,
-    updateSkill,
-    deleteSkill,
-    moveSection,
-    setSectionsOrder,
-    setCvLanguage,
-    updateStyle,
-    selectTemplate,
-    prefillFromProfile,
-    clearCv,
-    setCvData,
-    toggleSectionVisibility,
-    renameSection,
-  } = useCvBuilderStore();
-
-  const [activeTab, setActiveTab] = useState<string>("personal");
-  const [zoom, setZoom] = useState<number>(0.85);
-  const [isEditorCollapsed, setIsEditorCollapsed] = useState<boolean>(false);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
-  const [aiEnhancerOpen, setAiEnhancerOpen] = useState<boolean>(false);
-  const [aiEnhancerSource, setAiEnhancerSource] = useState<{
-    type: "experience" | "project";
-    id: string;
-  } | null>(null);
-  const [aiInputText, setAiInputText] = useState<string>("");
-  const [aiEnhancedText, setAiEnhancedText] = useState<string>("");
-  const [isEnhancing, setIsEnhancing] = useState<boolean>(false);
-  const [selectedAiRole, setSelectedAiRole] = useState<string>("");
-  const [showPdfGuide, setShowPdfGuide] = useState<boolean>(false);
-  const [pageCount, setPageCount] = useState<number>(1);
-  const [isOverflowing, setIsOverflowing] = useState<boolean>(false);
-  const [canDrag, setCanDrag] = useState<string | null>(null);
-
-  const style = cvData.style;
-  const isCustomColor = style.themeColor.startsWith("#");
-  const customColor = style.themeColor;
-  const colors = isCustomColor
-    ? {
-        primary: "custom-cv-primary",
-        bg: "custom-cv-bg",
-        border: "custom-cv-border",
-        accent: "custom-cv-primary",
-        bgLight: "custom-cv-bg-light",
-        bullets: "",
-        creativeSidebar: "custom-cv-creative-sidebar",
-        divider: "custom-cv-divider",
-      }
-    : themeColors[style.themeColor as keyof typeof themeColors] || themeColors.emerald;
-  const isEn = cvData.cvLanguage === "en";
-
-  // Dynamic headings mapping based on CV content language
-  const headings = {
-    contactInfo: isEn ? "Contact Info" : "Thông tin liên hệ",
-    summary: isEn ? "Professional Summary" : "Tóm tắt sự nghiệp",
-    experience: isEn ? "Work Experience" : "Kinh nghiệm làm việc",
-    projects: isEn ? "Projects" : "Dự án phát triển",
-    education: isEn ? "Education" : "Trình độ Học vấn",
-    skills: isEn ? "Technical Skills" : "Kỹ năng kỹ thuật",
-    present: isEn ? "Present" : "Hiện tại",
-    gpa: isEn ? "GPA" : "GPA",
-    techUsed: isEn ? "Technologies: " : "Công nghệ sử dụng: ",
-  };
-
-  // Convert profile backend schema to CV Builder schema
-  const mapProfileToCvData = (profile: CandidateProfileApi, currentLang: "vi" | "en"): CvData => {
-    return {
-      personalInfo: {
-        fullName: profile.account?.fullName || "",
-        title: profile.jobPreference?.desiredPosition || "",
-        email: profile.account?.email || "",
-        phoneNumber: profile.phoneNumber || "",
-        address: profile.address || "",
-        website:
-          profile.links?.find((l) => l.type === "GITHUB" || l.type === "LINKEDIN")?.url || "",
-      },
-      summary: profile.description || "",
-      experiences: (profile.experiences || []).map((exp) => ({
-        id: exp.id || `exp-${Date.now()}-${Math.random()}`,
-        companyName: exp.companyName || "",
-        positionTitle: exp.positionTitle || "",
-        startDate: exp.startDate || "",
-        endDate: exp.endDate || (exp.isCurrent ? "Present" : ""),
-        isCurrent: exp.isCurrent ?? false,
-        description: exp.description || "",
-        technologies: exp.technologies || "",
-      })),
-      educations: (profile.educations || []).map((edu) => ({
-        id: edu.id || `edu-${Date.now()}-${Math.random()}`,
-        schoolName: edu.schoolName || "",
-        degree: edu.degree || "",
-        major: edu.major || "",
-        startDate: edu.startDate || "",
-        endDate: edu.endDate || (edu.isCurrent ? "Present" : ""),
-        isCurrent: edu.isCurrent ?? false,
-        gpa: edu.gpa ? String(edu.gpa) : "",
-        description: edu.description || "",
-      })),
-      projects: (profile.projects || []).map((proj) => ({
-        id: proj.id || `proj-${Date.now()}-${Math.random()}`,
-        name: proj.name || "",
-        role: proj.role || "",
-        description: proj.description || "",
-        projectUrl: proj.projectUrl || "",
-        deployUrl: proj.deployUrl || "",
-        technologies: proj.technologies || "",
-      })),
-      skills: (profile.skills || []).map((sk) => ({
-        id: sk.id || `sk-${Date.now()}-${Math.random()}`,
-        name: sk.skill?.name || "",
-        level: sk.proficiencyLevel || "ADVANCED",
-      })),
-      sectionsOrder: ["personal", "summary", "experience", "projects", "education", "skills"],
-      style: {
-        fontFamily: "font-sans",
-        themeColor: "emerald",
-        textSize: "base",
-        marginSize: "base",
-      },
-      selectedTemplate: "modern",
-      cvLanguage: currentLang,
-    };
-  };
-
-  const syncProfileData = async (force: boolean = false) => {
-    const session = getCandidateSession();
-    if (!session) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      if (force) {
-        setIsLoading(true);
-      }
-      const profile = await getMyCandidateProfile(session.accessToken);
-      const newCvData = mapProfileToCvData(profile, cvData.cvLanguage);
-
-      if (force) {
-        setCvData(newCvData);
-        void Swal.fire({
-          icon: "success",
-          title: "Đồng bộ thành công",
-          text: "Đã cập nhật dữ liệu mới nhất từ Profile của bạn.",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      } else {
-        // Auto fill if the local store is empty or has default values
-        const isEmpty =
-          !cvData.personalInfo.fullName &&
-          !cvData.summary &&
-          cvData.experiences.length === 0 &&
-          cvData.educations.length === 0;
-
-        if (isEmpty) {
-          setCvData(newCvData);
-        } else {
-          // Ask if user wants to overwrite
-          const result = await Swal.fire({
-            title: "Đồng bộ từ Profile?",
-            text: "Hệ thống phát hiện bạn đã có sẵn dữ liệu hồ sơ. Bạn có muốn tải dữ liệu từ Profile UpNext ghi đè lên bản nháp CV này không?",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonText: "Đồng bộ ngay",
-            cancelButtonText: "Giữ bản nháp cũ",
-            confirmButtonColor: "#0d9488",
-          });
-
-          if (result.isConfirmed) {
-            setCvData(newCvData);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Failed to sync profile data:", error);
-      if (force) {
-        void Swal.fire({
-          icon: "error",
-          title: "Lỗi đồng bộ",
-          text: "Không thể kết nối đến máy chủ để lấy thông tin profile.",
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getCompleteness = () => {
-    let score = 0;
-    const tips: string[] = [];
-
-    // Personal Info: 20%
-    if (cvData.personalInfo.fullName) score += 5;
-    if (cvData.personalInfo.title) score += 5;
-    if (cvData.personalInfo.email) score += 5;
-    if (cvData.personalInfo.phoneNumber) score += 5;
-    if (!cvData.personalInfo.email || !cvData.personalInfo.phoneNumber) {
-      tips.push(t("assistant.tipPersonalInfo"));
-    }
-
-    // Summary: 15%
-    if (cvData.summary && cvData.summary.replace(/<[^>]*>/g, "").trim().length > 10) {
-      score += 15;
-    } else {
-      tips.push(t("assistant.tipSummary"));
-    }
-
-    // Experience: 30%
-    if (
-      cvData.experiences.length > 0 &&
-      cvData.experiences.some((e) => e.companyName && e.positionTitle)
-    ) {
-      score += 30;
-    } else {
-      tips.push(t("assistant.tipExperience"));
-    }
-
-    // Education: 15%
-    if (
-      cvData.educations.length > 0 &&
-      cvData.educations.some((edu) => edu.schoolName && edu.degree)
-    ) {
-      score += 15;
-    } else {
-      tips.push(t("assistant.tipEducation"));
-    }
-
-    // Projects: 10%
-    if (cvData.projects.length > 0 && cvData.projects.some((p) => p.name && p.role)) {
-      score += 10;
-    } else {
-      tips.push(t("assistant.tipProjects"));
-    }
-
-    // Skills: 10%
-    if (cvData.skills.length > 0 && cvData.skills.some((s) => s.name)) {
-      score += 10;
-    } else {
-      tips.push(t("assistant.tipSkills"));
-    }
-
-    return { score, tips };
-  };
-
-  const handleAiEnhance = (type: "experience" | "project", id: string, currentText: string) => {
-    setAiEnhancerSource({ type, id });
-    const cleanText = currentText.replace(/<[^>]*>/g, "").trim();
-    setAiInputText(cleanText);
-    setAiEnhancedText("");
-    setSelectedAiRole("");
-    setAiEnhancerOpen(true);
-  };
-
-  const runAiEnhance = () => {
-    if (!aiInputText.trim() && !selectedAiRole) return;
-    setIsEnhancing(true);
-
-    setTimeout(() => {
-      let result = "";
-      const isEn = cvData.cvLanguage === "en";
-
-      if (aiInputText.trim()) {
-        if (isEn) {
-          result = `• Engineered and developed high-performance features utilizing modern software paradigms.\n• Refactored codebase to apply clean code principles, reducing technical debt and improving maintainability.\n• Integrated key application endpoints and streamlined data pipelines to optimize response cycles.`;
-        } else {
-          result = `• Thiết kế và phát triển các tính năng hiệu năng cao áp dụng các mô hình kiến trúc phần mềm hiện đại.\n• Tái cấu trúc mã nguồn theo nguyên lý Clean Code, giảm thiểu nợ kỹ thuật và cải thiện hiệu suất bảo trì.\n• Tích hợp các cổng APIs cốt lõi và tối ưu hóa luồng dữ liệu giúp cải thiện tốc độ phản hồi phía Client.`;
-        }
-      } else if (selectedAiRole) {
-        const templates: Record<string, { vi: string; en: string }> = {
-          frontend: {
-            vi: "• Tối ưu hóa hiệu suất ứng dụng React, cải thiện 35% tốc độ tải trang ban đầu (FCP) bằng cách cấu hình Code Splitting và Lazy Loading.\n• Xây dựng và chuẩn hóa hệ thống Design System UI Components dùng chung, giúp tăng 40% tốc độ phát triển giao diện của đội ngũ.\n• Tích hợp APIs RESTful và quản lý trạng thái phức tạp với React Query và Zustand, xử lý dữ liệu đồng bộ mượt mà dưới client.",
-            en: "• Optimized React application performance, reducing initial load time (FCP) by 35% through code splitting and lazy loading techniques.\n• Built and standardized reusable Design System UI Components, accelerating frontend development speed by 40%.\n• Integrated complex RESTful APIs and managed global states using TanStack Query and Zustand for smooth client-side synchronization.",
-          },
-          backend: {
-            vi: "• Thiết kế và tối ưu hệ thống RESTful API bằng Node.js và NestJS, cải thiện tốc độ phản hồi 25% nhờ thiết lập Redis Caching.\n• Quản lý và thiết kế cơ sở dữ liệu PostgreSQL, tối ưu hóa các câu truy vấn phức tạp (SQL Indexing) giúp giảm tải CPU của DB Server 30%.\n• Triển khai kiến trúc Microservices và kết nối giao tiếp không đồng bộ giữa các dịch vụ thông qua Message Broker RabbitMQ.",
-            en: "• Designed and optimized RESTful APIs using Node.js and NestJS, improving response speed by 25% through Redis caching.\n• Modeled and managed PostgreSQL databases, optimizing complex queries via indexing to reduce database CPU load by 30%.\n• Implemented decoupled Microservices architecture using RabbitMQ for reliable asynchronous message passing.",
-          },
-          mobile: {
-            vi: "• Phát triển ứng dụng di động đa nền tảng bằng Flutter/React Native, tiếp cận hơn 50.000 người dùng hoạt động hàng tháng (MAU).\n• Tích hợp hệ thống thông báo đẩy (Push Notifications) qua Firebase Cloud Messaging và các cổng thanh toán Stripe/ZaloPay.\n• Giảm dung lượng cài đặt ứng dụng di động xuống 20% thông qua tối ưu hóa assets và cấu hình quy trình build Android/iOS ProGuard.",
-            en: "• Developed cross-platform mobile apps using Flutter/React Native, reaching over 50,000 monthly active users (MAU).\n• Integrated real-time push notifications via Firebase Cloud Messaging and secure Stripe/ZaloPay payment gateways.\n• Reduced mobile binary size by 20% through asset optimizations and ProGuard Android/iOS build configurations.",
-          },
-          fullstack: {
-            vi: "• Phát triển từ đầu đến cuối các tính năng của ứng dụng Web bằng Next.js (App Router), Node.js và PostgreSQL.\n• Thiết lập hệ thống kiểm thử tự động CI/CD với Github Actions và triển khai dự án lên nền tảng đám mây AWS.\n• Triển khai cơ chế phân quyền RBAC (Role-Based Access Control) bảo mật và cơ chế xác thực JWT kết hợp OAuth2.",
-            en: "• Developed end-to-stack web applications using Next.js (App Router), Node.js, and PostgreSQL.\n• Established CI/CD pipelines using GitHub Actions and deployed cloud resources on AWS.\n• Implemented secure Role-Based Access Control (RBAC) along with JWT and OAuth2 authentication flows.",
-          },
-        };
-        const activeTmpl = templates[selectedAiRole];
-        result = activeTmpl ? (isEn ? activeTmpl.en : activeTmpl.vi) : "";
-      }
-
-      setAiEnhancedText(result);
-      setIsEnhancing(false);
-    }, 1500);
-  };
-
-  const applyAiEnhancement = () => {
-    if (!aiEnhancedText || !aiEnhancerSource) return;
-
-    const formattedHtml = aiEnhancedText
-      .split("\n")
-      .map((line) => `<p>${line}</p>`)
-      .join("");
-
-    if (aiEnhancerSource.type === "experience") {
-      updateExperience(aiEnhancerSource.id, { description: formattedHtml });
-    } else {
-      updateProject(aiEnhancerSource.id, { description: formattedHtml });
-    }
-    setAiEnhancerOpen(false);
-  };
-
-  // Auth check & Initial fetch
-  useEffect(() => {
-    const session = getCandidateSession();
-    if (!session) {
-      router.push("/login");
-      return;
-    }
-    void syncProfileData(false);
+  const measurePreview = useCallback(() => {
+    const element = previewRef.current;
+    if (!element) return;
+    const height = Math.max(1123, element.scrollHeight);
+    setPreviewHeight(height);
+    setPageCount(Math.max(1, Math.ceil(height / 1123)));
   }, []);
 
-  // A4 Height & Page count calculations
   useEffect(() => {
-    const element = document.getElementById("cv-print-area");
+    const element = previewRef.current;
     if (!element) return;
+    measurePreview();
+    const observer = new ResizeObserver(measurePreview);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [measurePreview]);
 
-    const timer = setTimeout(() => {
-      const height = element.scrollHeight;
-      const pages = Math.max(1, Math.ceil(height / 1120));
-      setPageCount(pages);
+  const fitPreviewToViewport = useCallback(() => {
+    const viewport = previewViewportRef.current;
+    if (!viewport || viewport.clientWidth === 0) return;
+    const styles = window.getComputedStyle(viewport);
+    const availableWidth =
+      viewport.clientWidth -
+      Number.parseFloat(styles.paddingLeft) -
+      Number.parseFloat(styles.paddingRight);
+    const fittedZoom = Math.min(
+      MAX_PREVIEW_ZOOM,
+      Math.max(MIN_PREVIEW_ZOOM, availableWidth / PREVIEW_WIDTH),
+    );
+    setZoom((current) => (Math.abs(current - fittedZoom) < 0.005 ? current : fittedZoom));
+  }, []);
 
-      const pageRemainder = height % 1122;
-      const hasSlightOverflow = pageRemainder > 0 && pageRemainder < 150 && height > 1122;
-      setIsOverflowing(hasSlightOverflow);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [cvData, activeTab]);
-
-  // Undo/Redo keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isCtrl = e.ctrlKey || e.metaKey;
-      if (isCtrl) {
-        if (e.key.toLowerCase() === "z") {
-          e.preventDefault();
-          if (e.shiftKey) {
-            useCvBuilderStore.getState().redo();
-          } else {
-            useCvBuilderStore.getState().undo();
-          }
-        } else if (e.key.toLowerCase() === "y") {
-          e.preventDefault();
-          useCvBuilderStore.getState().redo();
+    const viewport = previewViewportRef.current;
+    if (!viewport) return;
+    const frame = window.requestAnimationFrame(fitPreviewToViewport);
+    const observer = new ResizeObserver(fitPreviewToViewport);
+    observer.observe(viewport);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [fitPreviewToViewport, workspaceMode]);
+
+  useEffect(() => {
+    const session = getCandidateSession();
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const hasScopedDraft = window.localStorage.getItem(getCvBuilderStorageKey(session.user.id));
+      if (!hasScopedDraft) {
+        useCvBuilderStore.setState({
+          cvData: createInitialCvData(locale === "en" ? "en" : "vi"),
+          draftSavedAt: null,
+          future: [],
+          past: [],
+        });
+      }
+      await useCvBuilderStore.persist.rehydrate();
+      if (cancelled) return;
+      setAuthReady(true);
+
+      try {
+        const candidateProfile = await getMyCandidateProfile(session.accessToken);
+        if (cancelled) return;
+        setProfile(candidateProfile);
+        const currentDraft = useCvBuilderStore.getState().cvData;
+        if (isCvEmpty(currentDraft)) {
+          useCvBuilderStore
+            .getState()
+            .setCvData(mapProfileToCvData(candidateProfile, currentDraft));
         }
+      } catch {
+        // A local draft remains fully usable when the optional profile request is unavailable.
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [locale, router]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.matches("input, textarea, select") ||
+        target?.isContentEditable ||
+        target?.closest("[contenteditable='true']")
+      ) {
+        return;
+      }
+      if (event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          useCvBuilderStore.getState().redo();
+        } else {
+          useCvBuilderStore.getState().undo();
+        }
+      } else if (event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        useCvBuilderStore.getState().redo();
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handlePrint = () => {
-    setShowPdfGuide(true);
+  const requestProfileSync = async () => {
+    setProfileNotice(null);
+    if (profile) {
+      setSyncDialogOpen(true);
+      return;
+    }
+    const session = getCandidateSession();
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+    setProfileLoading(true);
+    try {
+      const candidateProfile = await getMyCandidateProfile(session.accessToken);
+      setProfile(candidateProfile);
+      setSyncDialogOpen(true);
+    } catch {
+      setProfileNotice(t("profileSync.error"));
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const applyProfile = () => {
+    if (!profile) return;
+    setCvData(mapProfileToCvData(profile, useCvBuilderStore.getState().cvData));
+    setSyncDialogOpen(false);
+    setProfileNotice(t("profileSync.success"));
+  };
+
+  const requestExport = () => {
+    setRevealValidation(true);
+    if (!evaluation.exportReady) {
+      setExportDialog("blocked");
+      return;
+    }
+    setExportDialog("guide");
   };
 
   const proceedToPrint = () => {
-    setShowPdfGuide(false);
-    setTimeout(() => {
-      window.print();
-    }, 150);
+    setExportDialog("closed");
+    window.setTimeout(() => window.print(), 100);
   };
 
-  const simulatedAiParse = () => {
-    prefillFromProfile();
-    alert(t("aiImportSuccess"));
+  const savedLabel = draftSavedAt
+    ? t("save.savedAt", {
+        time: new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(
+          new Date(draftSavedAt),
+        ),
+      })
+    : t("save.autosaveReady");
+
+  const navItems: Array<{ id: CvEditorSectionKey; label: string }> = [
+    { id: "targeting", label: t("tabs.targeting") },
+    ...CONTENT_SECTIONS.map((id) => ({ id, label: t(`tabs.${id}`) })),
+    { id: "review", label: t("tabs.review") },
+    { id: "styling", label: t("tabs.styling") },
+  ];
+  const activeIndex = EDITOR_SEQUENCE.indexOf(activeSection);
+  const previousSection = activeIndex > 0 ? EDITOR_SEQUENCE[activeIndex - 1] : undefined;
+  const nextSection =
+    activeIndex >= 0 && activeIndex < EDITOR_SEQUENCE.length - 1
+      ? EDITOR_SEQUENCE[activeIndex + 1]
+      : undefined;
+
+  const goToSection = (section: CvEditorSectionKey) => {
+    setActiveSection(section);
+    setWorkspaceMode("edit");
+    window.requestAnimationFrame(() => editorScrollRef.current?.scrollTo({ top: 0 }));
   };
 
-  const formatEndDate = (dateStr: string) => {
-    if (!dateStr) return "";
-    const lower = dateStr.toLowerCase().trim();
-    if (lower === "present" || lower === "hiện tại" || lower === "hiện nay") {
-      return headings.present;
+  const goToIssueSection = (section: CvEditorSectionKey) => {
+    goToSection(section);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const sectionRoot =
+          editorScrollRef.current?.querySelector<HTMLElement>(".cv-editor-section");
+        const target = sectionRoot?.querySelector<HTMLElement>(
+          '[aria-invalid="true"], input[required]:invalid, textarea[required]:invalid, button',
+        );
+        target?.focus({ preventScroll: true });
+        target?.scrollIntoView({ block: "center" });
+      });
+    });
+  };
+
+  const renderEditor = () => {
+    switch (activeSection) {
+      case "targeting":
+        return <TargetingEditor evaluation={evaluation} />;
+      case "personal":
+        return <PersonalEditor evaluation={evaluation} revealValidation={revealValidation} />;
+      case "summary":
+        return <SummaryEditor evaluation={evaluation} />;
+      case "experience":
+        return <ExperienceEditor evaluation={evaluation} revealValidation={revealValidation} />;
+      case "projects":
+        return <ProjectsEditor evaluation={evaluation} revealValidation={revealValidation} />;
+      case "education":
+        return <EducationEditor evaluation={evaluation} revealValidation={revealValidation} />;
+      case "skills":
+        return <SkillsEditor evaluation={evaluation} revealValidation={revealValidation} />;
+      case "review":
+        return (
+          <ReviewEditor evaluation={evaluation} onNavigate={goToSection} pageCount={pageCount} />
+        );
+      case "styling":
+        return <DesignEditor />;
     }
-    return dateStr;
   };
 
-  if (isLoading) {
+  if (!authReady) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-slate-50">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-600" />
-        <p className="text-sm font-semibold text-slate-500">Đang tải dữ liệu hồ sơ từ UpNext...</p>
-      </div>
+      <main className="cv-builder-loading" aria-live="polite">
+        <span />
+        <p>{t("loading")}</p>
+      </main>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-50 select-none">
-      {/* Top Header Bar */}
-      <header className="z-10 flex items-center justify-between bg-slate-900 px-6 py-4 text-white shadow-md print:hidden">
-        <div className="flex items-center gap-3">
+    <main className="cv-builder-shell">
+      <header className="cv-builder-topbar">
+        <div className="cv-builder-brand">
           <button
+            aria-label={t("backToProfile")}
             onClick={() => router.push("/candidate/profile")}
-            className="mr-2 flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 text-slate-400 transition-colors hover:border-slate-500 hover:text-white"
-            title="Quay lại Hồ sơ"
+            type="button"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft aria-hidden="true" />
           </button>
-          <div className="flex items-center gap-3">
-            <Image
-              src={upnextLogo.whiteWordmark}
-              alt="UpNext"
-              width={110}
-              height={26}
-              priority
-              className="object-contain"
-            />
-            <span className="mx-1 h-5 w-px bg-slate-700" />
-            <div>
-              <h1 className="text-sm font-extrabold tracking-tight text-white">{t("title")}</h1>
-              <p className="text-[10px] font-semibold text-slate-400">{t("subtitle")}</p>
-            </div>
+          <span className="cv-builder-brand__mark" aria-hidden="true">
+            U
+          </span>
+          <div>
+            <h1>{t("title")}</h1>
+            <p>{t("subtitle")}</p>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
+        <div className="cv-builder-status-cluster">
+          <button
+            className="cv-target-context"
+            onClick={() => goToSection("targeting")}
+            type="button"
+          >
+            <Crosshair aria-hidden="true" />
+            <span>
+              <small>{t("targeting.contextLabel")}</small>
+              <strong>{cvData.targetJob.role || t("targeting.contextEmpty")}</strong>
+            </span>
+          </button>
+          <div className="cv-builder-save-state" aria-live="polite">
+            <ShieldCheck aria-hidden="true" />
+            <span>{savedLabel}</span>
+            <small>{t("save.localOnly")}</small>
+          </div>
+        </div>
+        <div className="cv-builder-toolbar">
+          <div className="cv-history-actions">
+            <button
+              aria-label={t("actions.undo")}
+              disabled={past.length === 0}
+              onClick={undo}
+              title={t("actions.undo")}
+              type="button"
+            >
+              <ArrowCounterClockwise />
+            </button>
+            <button
+              aria-label={t("actions.redo")}
+              disabled={future.length === 0}
+              onClick={redo}
+              title={t("actions.redo")}
+              type="button"
+            >
+              <ArrowClockwise />
+            </button>
+          </div>
           <Button
-            onClick={() => syncProfileData(true)}
+            aria-label={t("profileSync.button")}
+            className="cv-toolbar-secondary"
+            disabled={profileLoading}
+            onClick={() => void requestProfileSync()}
+            size="sm"
             variant="outline"
-            className="flex items-center gap-2 rounded-lg border-emerald-500/30 bg-emerald-950/20 px-4 py-2 text-sm font-semibold text-emerald-400 hover:border-emerald-400 hover:bg-emerald-950/40"
           >
-            <PlusCircle size={18} />
-            Đồng bộ từ Profile
+            <ArrowClockwise /> <span>{t("profileSync.buttonShort")}</span>
           </Button>
-
           <Button
-            onClick={simulatedAiParse}
-            variant="outline"
-            className="flex items-center gap-2 rounded-lg border-slate-700 bg-transparent px-4 py-2 text-sm font-semibold text-emerald-400 hover:border-slate-500 hover:bg-slate-800"
+            aria-label={t("reset")}
+            className="cv-toolbar-danger"
+            onClick={() => setClearDialogOpen(true)}
+            size="sm"
+            variant="ghost"
           >
-            <Sparkle size={18} weight="fill" />
-            {t("aiImport")}
+            <Trash /> <span>{t("resetShort")}</span>
           </Button>
-
-          <Button
-            onClick={clearCv}
-            variant="outline"
-            className="flex items-center gap-2 rounded-lg border-slate-700 bg-transparent px-4 py-2 text-sm font-semibold text-slate-300 hover:border-slate-600 hover:bg-slate-800"
-          >
-            <Trash size={18} />
-            {t("reset")}
-          </Button>
-
-          <Button
-            onClick={handlePrint}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/10 hover:bg-emerald-500"
-          >
-            <Printer size={18} weight="bold" />
-            {t("export")}
+          <Button onClick={requestExport} size="sm">
+            <DownloadSimple /> <span>{t("export")}</span>
           </Button>
         </div>
       </header>
 
-      {/* Main Workspace split screen */}
-      <div className="flex flex-1 overflow-hidden print:h-auto print:overflow-visible print:p-0">
-        {/* LEFT PANEL: EDITORFORM */}
-        <aside
-          className={cn(
-            "transition-all duration-300 flex overflow-hidden border-r border-slate-200 bg-white print:hidden",
-            isEditorCollapsed ? "w-[85px] min-w-[85px]" : "w-[45%] min-w-[500px]",
-          )}
+      {profileNotice ? (
+        <div className="cv-profile-notice" aria-live="polite">
+          <Info aria-hidden="true" />
+          <span>{profileNotice}</span>
+          <button
+            aria-label={t("actions.dismiss")}
+            onClick={() => setProfileNotice(null)}
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
+
+      <fieldset className="cv-mobile-mode-switch">
+        <legend className="sr-only">{t("mobile.viewMode")}</legend>
+        <button
+          aria-pressed={workspaceMode === "edit" && activeSection !== "review"}
+          onClick={() => {
+            if (activeSection === "review") goToSection("targeting");
+            else setWorkspaceMode("edit");
+          }}
+          type="button"
         >
-          {/* Tab Selection Sidebar */}
-          <div className="flex w-[85px] flex-col items-center justify-between border-r border-slate-100 bg-slate-50 py-4">
-            <div className="flex w-full flex-col items-center gap-2">
-              {[
-                { id: "personal", label: t("tabs.personal"), icon: User },
-                { id: "summary", label: t("tabs.summary"), icon: FilePdf },
-                { id: "experience", label: t("tabs.experience"), icon: Briefcase },
-                { id: "projects", label: t("tabs.projects"), icon: Code },
-                { id: "education", label: t("tabs.education"), icon: GraduationCap },
-                { id: "skills", label: t("tabs.skills"), icon: PaintBrush },
-                { id: "styling", label: t("tabs.styling"), icon: Layout },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      setIsEditorCollapsed(false); // Auto expand when user clicks a tab
-                    }}
-                    className={cn(
-                      "flex flex-col items-center justify-center w-[72px] h-[72px] rounded-xl transition-all gap-1.5 text-[10px] font-bold outline-none",
-                      isActive
-                        ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100"
-                        : "text-slate-500 hover:text-slate-900 hover:bg-slate-100",
-                    )}
-                  >
-                    <Icon size={22} weight={isActive ? "fill" : "regular"} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+          <FileText /> {t("mobile.edit")}
+        </button>
+        <button
+          aria-pressed={workspaceMode === "preview"}
+          onClick={() => setWorkspaceMode("preview")}
+          type="button"
+        >
+          <Eye /> {t("mobile.preview")}
+        </button>
+        <button
+          aria-pressed={workspaceMode === "edit" && activeSection === "review"}
+          onClick={() => goToSection("review")}
+          type="button"
+        >
+          <ListChecks /> {t("mobile.review")}
+        </button>
+      </fieldset>
 
-            {/* Toggle collapse button */}
-            <button
-              onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
-              className="mt-auto flex h-[52px] w-[72px] flex-col items-center justify-center rounded-xl text-slate-500 transition-colors outline-none hover:bg-slate-200 hover:text-slate-900"
-              title={isEditorCollapsed ? t("preview.expand") : t("preview.collapse")}
-            >
-              {isEditorCollapsed ? (
-                <>
-                  <CaretDoubleRight size={20} />
-                  <span className="mt-1 text-[8px] font-bold">{t("preview.expandLabel")}</span>
-                </>
-              ) : (
-                <>
-                  <CaretDoubleLeft size={20} />
-                  <span className="mt-1 text-[8px] font-bold">{t("preview.collapseLabel")}</span>
-                </>
-              )}
-            </button>
+      <div className="cv-builder-workspace">
+        <aside
+          className={cn("cv-builder-sidebar", workspaceMode === "preview" && "cv-mobile-hidden")}
+        >
+          <button
+            className={cn("cv-sidebar-target", activeSection === "targeting" && "is-active")}
+            onClick={() => goToSection("targeting")}
+            type="button"
+          >
+            <span aria-hidden="true">
+              <Crosshair />
+            </span>
+            <span>
+              <small>{t("targeting.sidebarLabel")}</small>
+              <strong>{cvData.targetJob.role || t("targeting.sidebarEmpty")}</strong>
+              {cvData.targetJob.company ? <em>{cvData.targetJob.company}</em> : null}
+            </span>
+            <ArrowRight aria-hidden="true" />
+          </button>
+          <section className="cv-progress-card" aria-labelledby="cv-progress-title">
+            <div>
+              <p id="cv-progress-title">{t("assistant.completeness")}</p>
+              <strong>{evaluation.score}%</strong>
+            </div>
+            <progress
+              aria-label={t("assistant.completenessValue", { score: evaluation.score })}
+              className="cv-progress-track"
+              max={100}
+              value={evaluation.score}
+            />
+            <small>{t("assistant.progressHint")}</small>
+          </section>
+          <nav aria-label={t("navigation.label")} className="cv-section-navigation">
+            <p>{t("navigation.content")}</p>
+            {navItems.map((item, index) => {
+              const Icon = SECTION_ICONS[item.id];
+              const sectionEvaluation =
+                item.id in evaluation.sections
+                  ? evaluation.sections[item.id as CvSectionKey]
+                  : null;
+              const active = activeSection === item.id;
+              return (
+                <button
+                  aria-current={active ? "step" : undefined}
+                  className={cn("cv-section-nav-item", active && "is-active")}
+                  key={item.id}
+                  onClick={() => goToSection(item.id)}
+                  type="button"
+                >
+                  <span className="cv-section-nav-icon">
+                    <Icon aria-hidden="true" />
+                  </span>
+                  <span className="cv-section-nav-label">
+                    <strong>{item.label}</strong>
+                    <small>
+                      {item.id === "targeting"
+                        ? evaluation.jobMatch.hasDescription
+                          ? t("navigation.matchStatus", { score: evaluation.jobMatch.score ?? 0 })
+                          : t("navigation.targetStatus")
+                        : item.id === "review"
+                          ? t("navigation.reviewStatus", {
+                              count: evaluation.blockingIssues.length,
+                            })
+                          : item.id === "styling"
+                            ? t("navigation.designStatus")
+                            : sectionEvaluation
+                              ? t(`status.${sectionEvaluation.status}`)
+                              : ""}
+                    </small>
+                  </span>
+                  {sectionEvaluation ? (
+                    <span
+                      aria-label={t(`status.${sectionEvaluation.status}`)}
+                      className={cn("cv-section-status", `is-${sectionEvaluation.status}`)}
+                    >
+                      {sectionEvaluation.status === "complete" ? <Check /> : index + 1}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </nav>
+          <div className="cv-local-draft-note">
+            <ShieldCheck aria-hidden="true" />
+            <p>
+              <strong>{t("save.privateTitle")}</strong>
+              <span>{t("save.privateDescription")}</span>
+            </p>
           </div>
-
-          {/* Form Editing Area */}
-          {!isEditorCollapsed && (
-            <div className="flex-1 overflow-y-auto scroll-smooth p-6">
-              {/* CV Completeness Score Card */}
-              {(() => {
-                const { score, tips } = getCompleteness();
-                return (
-                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50/50 p-4 shadow-sm">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-bold tracking-wider text-slate-700 uppercase">
-                        {t("assistant.completeness")}
-                      </span>
-                      <span className="text-sm font-extrabold text-emerald-600">{score}%</span>
-                    </div>
-                    {/* Progress bar */}
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/80">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                        style={{ width: `${score}%` }}
-                      />
-                    </div>
-                    {/* Expandable Tips checklist if score < 100 */}
-                    {score < 100 && tips.length > 0 && (
-                      <div className="mt-3 border-t border-slate-200/50 pt-2.5">
-                        <span className="mb-1.5 block text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                          {t("assistant.tipsTitle")}
-                        </span>
-                        <ul className="space-y-1">
-                          {tips.map((tip, idx) => (
-                            <li
-                              key={idx}
-                              className="flex items-start gap-1.5 text-[11px] text-slate-500"
-                            >
-                              <span className="mt-0.5 font-bold text-emerald-500">•</span>
-                              <span>{tip}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-              {activeTab === "personal" && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-800">{t("personal.title")}</h2>
-                    <p className="mt-1 text-xs text-slate-400">{t("personal.subtitle")}</p>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-600 uppercase">
-                          {t("personal.fullName")}
-                        </label>
-                        <Input
-                          value={cvData.personalInfo.fullName}
-                          onChange={(e) => updatePersonalInfo({ fullName: e.target.value })}
-                          placeholder={t("personal.fullNamePlaceholder")}
-                          className="h-10"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-600 uppercase">
-                          {t("personal.jobTitle")}
-                        </label>
-                        <Input
-                          value={cvData.personalInfo.title}
-                          onChange={(e) => updatePersonalInfo({ title: e.target.value })}
-                          placeholder={t("personal.jobTitlePlaceholder")}
-                          className="h-10"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-600 uppercase">
-                          {t("personal.email")}
-                        </label>
-                        <Input
-                          type="email"
-                          value={cvData.personalInfo.email}
-                          onChange={(e) => updatePersonalInfo({ email: e.target.value })}
-                          placeholder={t("personal.emailPlaceholder")}
-                          className="h-10"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-600 uppercase">
-                          {t("personal.phone")}
-                        </label>
-                        <Input
-                          value={cvData.personalInfo.phoneNumber}
-                          onChange={(e) => updatePersonalInfo({ phoneNumber: e.target.value })}
-                          placeholder={t("personal.phonePlaceholder")}
-                          className="h-10"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 uppercase">
-                        {t("personal.address")}
-                      </label>
-                      <Input
-                        value={cvData.personalInfo.address}
-                        onChange={(e) => updatePersonalInfo({ address: e.target.value })}
-                        placeholder={t("personal.addressPlaceholder")}
-                        className="h-10"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 uppercase">
-                        {t("personal.website")}
-                      </label>
-                      <Input
-                        value={cvData.personalInfo.website}
-                        onChange={(e) => updatePersonalInfo({ website: e.target.value })}
-                        placeholder={t("personal.websitePlaceholder")}
-                        className="h-10"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "summary" && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-800">{t("summary.title")}</h2>
-                    <p className="mt-1 text-xs text-slate-400">{t("summary.subtitle")}</p>
-                  </div>
-                  <div className="space-y-4">
-                    <RichTextEditor
-                      value={cvData.summary}
-                      onChange={updateSummary}
-                      placeholder={t("summary.placeholder")}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "experience" && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-800">{t("experience.title")}</h2>
-                      <p className="mt-1 text-xs text-slate-400">{t("experience.subtitle")}</p>
-                    </div>
-                    <Button
-                      onClick={addExperience}
-                      className="flex h-9 items-center gap-1 border border-emerald-200 bg-emerald-50 px-3 font-bold text-emerald-700 hover:bg-emerald-100"
-                    >
-                      <Plus size={16} />
-                      {t("experience.add")}
-                    </Button>
-                  </div>
-
-                  <div className="space-y-6">
-                    {cvData.experiences.length === 0 ? (
-                      <div className="rounded-xl border-2 border-dashed border-slate-200 py-8 text-center">
-                        <p className="text-sm text-slate-400">{t("experience.empty")}</p>
-                      </div>
-                    ) : (
-                      cvData.experiences.map((exp, index) => (
-                        <div
-                          key={exp.id}
-                          className="relative space-y-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4"
-                        >
-                          <div className="absolute top-4 right-4 flex items-center gap-1.5">
-                            <button
-                              onClick={() => moveExperience(exp.id, "up")}
-                              disabled={index === 0}
-                              className="rounded p-1 text-slate-500 hover:bg-slate-200 disabled:opacity-30"
-                            >
-                              <ArrowUp size={16} />
-                            </button>
-                            <button
-                              onClick={() => moveExperience(exp.id, "down")}
-                              disabled={index === cvData.experiences.length - 1}
-                              className="rounded p-1 text-slate-500 hover:bg-slate-200 disabled:opacity-30"
-                            >
-                              <ArrowDown size={16} />
-                            </button>
-                            <button
-                              onClick={() => deleteExperience(exp.id)}
-                              className="rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
-                            >
-                              <Trash size={16} />
-                            </button>
-                          </div>
-
-                          <div className="space-y-3 pr-20">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("experience.company")}
-                                </label>
-                                <Input
-                                  value={exp.companyName}
-                                  onChange={(e) =>
-                                    updateExperience(exp.id, { companyName: e.target.value })
-                                  }
-                                  placeholder={t("experience.company")}
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("experience.position")}
-                                </label>
-                                <Input
-                                  value={exp.positionTitle}
-                                  onChange={(e) =>
-                                    updateExperience(exp.id, { positionTitle: e.target.value })
-                                  }
-                                  placeholder={t("experience.position")}
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <CvDatePicker
-                                label={t("experience.start")}
-                                value={exp.startDate}
-                                onChange={(val) => updateExperience(exp.id, { startDate: val })}
-                                isEn={isEn}
-                              />
-                              <CvDatePicker
-                                label={t("experience.end")}
-                                value={exp.endDate}
-                                onChange={(val) => updateExperience(exp.id, { endDate: val })}
-                                allowPresent
-                                isEn={isEn}
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                {t("experience.tech")}
-                              </label>
-                              <Input
-                                value={exp.technologies}
-                                onChange={(e) =>
-                                  updateExperience(exp.id, { technologies: e.target.value })
-                                }
-                                placeholder="React, Next.js, Node.js"
-                                className="h-9 bg-white"
-                              />
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("experience.description")}
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleAiEnhance("experience", exp.id, exp.description)
-                                  }
-                                  className="flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 transition-colors outline-none hover:text-emerald-700 hover:underline"
-                                >
-                                  <Sparkle size={12} className="text-emerald-500" />
-                                  {t("aiEnhance.button")}
-                                </button>
-                              </div>
-                              <RichTextEditor
-                                value={exp.description}
-                                onChange={(val) => updateExperience(exp.id, { description: val })}
-                                placeholder="Nhập mô tả..."
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "projects" && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-800">{t("projects.title")}</h2>
-                      <p className="mt-1 text-xs text-slate-400">{t("projects.subtitle")}</p>
-                    </div>
-                    <Button
-                      onClick={addProject}
-                      className="flex h-9 items-center gap-1 border border-emerald-200 bg-emerald-50 px-3 font-bold text-emerald-700 hover:bg-emerald-100"
-                    >
-                      <Plus size={16} />
-                      {t("projects.add")}
-                    </Button>
-                  </div>
-
-                  <div className="space-y-6">
-                    {cvData.projects.length === 0 ? (
-                      <div className="rounded-xl border-2 border-dashed border-slate-200 py-8 text-center">
-                        <p className="text-sm text-slate-400">{t("projects.empty")}</p>
-                      </div>
-                    ) : (
-                      cvData.projects.map((proj, index) => (
-                        <div
-                          key={proj.id}
-                          className="relative space-y-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4"
-                        >
-                          <div className="absolute top-4 right-4 flex items-center gap-1.5">
-                            <button
-                              onClick={() => moveProject(proj.id, "up")}
-                              disabled={index === 0}
-                              className="rounded p-1 text-slate-500 hover:bg-slate-200 disabled:opacity-30"
-                            >
-                              <ArrowUp size={16} />
-                            </button>
-                            <button
-                              onClick={() => moveProject(proj.id, "down")}
-                              disabled={index === cvData.projects.length - 1}
-                              className="rounded p-1 text-slate-500 hover:bg-slate-200 disabled:opacity-30"
-                            >
-                              <ArrowDown size={16} />
-                            </button>
-                            <button
-                              onClick={() => deleteProject(proj.id)}
-                              className="rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
-                            >
-                              <Trash size={16} />
-                            </button>
-                          </div>
-
-                          <div className="space-y-3 pr-20">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("projects.name")}
-                                </label>
-                                <Input
-                                  value={proj.name}
-                                  onChange={(e) => updateProject(proj.id, { name: e.target.value })}
-                                  placeholder="Project Name"
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("projects.role")}
-                                </label>
-                                <Input
-                                  value={proj.role}
-                                  onChange={(e) => updateProject(proj.id, { role: e.target.value })}
-                                  placeholder="Fullstack Developer"
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("projects.github")}
-                                </label>
-                                <Input
-                                  value={proj.projectUrl}
-                                  onChange={(e) =>
-                                    updateProject(proj.id, { projectUrl: e.target.value })
-                                  }
-                                  placeholder="github.com/username/project"
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("projects.demo")}
-                                </label>
-                                <Input
-                                  value={proj.deployUrl}
-                                  onChange={(e) =>
-                                    updateProject(proj.id, { deployUrl: e.target.value })
-                                  }
-                                  placeholder="project.demo.com"
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                {t("projects.tech")}
-                              </label>
-                              <Input
-                                value={proj.technologies}
-                                onChange={(e) =>
-                                  updateProject(proj.id, { technologies: e.target.value })
-                                }
-                                placeholder="React, Next.js, Node.js"
-                                className="h-9 bg-white"
-                              />
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("projects.description")}
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleAiEnhance("project", proj.id, proj.description)
-                                  }
-                                  className="flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 transition-colors outline-none hover:text-emerald-700 hover:underline"
-                                >
-                                  <Sparkle size={12} className="text-emerald-500" />
-                                  {t("aiEnhance.button")}
-                                </button>
-                              </div>
-                              <RichTextEditor
-                                value={proj.description}
-                                onChange={(val) => updateProject(proj.id, { description: val })}
-                                placeholder="Mô tả..."
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "education" && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-800">{t("education.title")}</h2>
-                      <p className="mt-1 text-xs text-slate-400">{t("education.subtitle")}</p>
-                    </div>
-                    <Button
-                      onClick={addEducation}
-                      className="flex h-9 items-center gap-1 border border-emerald-200 bg-emerald-50 px-3 font-bold text-emerald-700 hover:bg-emerald-100"
-                    >
-                      <Plus size={16} />
-                      {t("education.add")}
-                    </Button>
-                  </div>
-
-                  <div className="space-y-6">
-                    {cvData.educations.length === 0 ? (
-                      <div className="rounded-xl border-2 border-dashed border-slate-200 py-8 text-center">
-                        <p className="text-sm text-slate-400">{t("education.empty")}</p>
-                      </div>
-                    ) : (
-                      cvData.educations.map((edu, index) => (
-                        <div
-                          key={edu.id}
-                          className="relative space-y-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4"
-                        >
-                          <div className="absolute top-4 right-4 flex items-center gap-1.5">
-                            <button
-                              onClick={() => moveEducation(edu.id, "up")}
-                              disabled={index === 0}
-                              className="rounded p-1 text-slate-500 hover:bg-slate-200 disabled:opacity-30"
-                            >
-                              <ArrowUp size={16} />
-                            </button>
-                            <button
-                              onClick={() => moveEducation(edu.id, "down")}
-                              disabled={index === cvData.educations.length - 1}
-                              className="rounded p-1 text-slate-500 hover:bg-slate-200 disabled:opacity-30"
-                            >
-                              <ArrowDown size={16} />
-                            </button>
-                            <button
-                              onClick={() => deleteEducation(edu.id)}
-                              className="rounded p-1.5 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
-                            >
-                              <Trash size={16} />
-                            </button>
-                          </div>
-
-                          <div className="space-y-3 pr-20">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("education.school")}
-                                </label>
-                                <Input
-                                  value={edu.schoolName}
-                                  onChange={(e) =>
-                                    updateEducation(edu.id, { schoolName: e.target.value })
-                                  }
-                                  placeholder={t("education.school")}
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("education.degree")}
-                                </label>
-                                <Input
-                                  value={edu.degree}
-                                  onChange={(e) =>
-                                    updateEducation(edu.id, { degree: e.target.value })
-                                  }
-                                  placeholder={t("education.degree")}
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-4">
-                              <div className="col-span-2 space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("education.major")}
-                                </label>
-                                <Input
-                                  value={edu.major}
-                                  onChange={(e) =>
-                                    updateEducation(edu.id, { major: e.target.value })
-                                  }
-                                  placeholder={t("education.major")}
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                  {t("education.gpa")}
-                                </label>
-                                <Input
-                                  value={edu.gpa || ""}
-                                  onChange={(e) => updateEducation(edu.id, { gpa: e.target.value })}
-                                  placeholder="3.5/4.0"
-                                  className="h-9 bg-white"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <CvDatePicker
-                                label={t("education.start")}
-                                value={edu.startDate || ""}
-                                onChange={(val) => updateEducation(edu.id, { startDate: val })}
-                                defaultMode="year-only"
-                                isEn={isEn}
-                              />
-                              <CvDatePicker
-                                label={t("education.end")}
-                                value={edu.endDate || ""}
-                                onChange={(val) => updateEducation(edu.id, { endDate: val })}
-                                defaultMode="year-only"
-                                allowPresent
-                                isEn={isEn}
-                              />
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase">
-                                {t("education.description")}
-                              </label>
-                              <RichTextEditor
-                                value={edu.description}
-                                onChange={(val) => updateEducation(edu.id, { description: val })}
-                                placeholder="Mô tả..."
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "skills" && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-slate-800">{t("skills.title")}</h2>
-                      <p className="mt-1 text-xs text-slate-400">{t("skills.subtitle")}</p>
-                    </div>
-                    <Button
-                      onClick={addSkill}
-                      className="flex h-9 items-center gap-1 border border-emerald-200 bg-emerald-50 px-3 font-bold text-emerald-700 hover:bg-emerald-100"
-                    >
-                      <Plus size={16} />
-                      {t("skills.add")}
-                    </Button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {cvData.skills.length === 0 ? (
-                      <div className="rounded-xl border-2 border-dashed border-slate-200 py-8 text-center">
-                        <p className="text-sm text-slate-400">{t("skills.empty")}</p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-3">
-                        {cvData.skills.map((sk) => (
-                          <div
-                            key={sk.id}
-                            className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3"
-                          >
-                            <Input
-                              value={sk.name}
-                              onChange={(e) => updateSkill(sk.id, { name: e.target.value })}
-                              placeholder={t("skills.name")}
-                              className="h-9 flex-1 bg-white"
-                            />
-                            <select
-                              value={sk.level}
-                              onChange={(e) => updateSkill(sk.id, { level: e.target.value as any })}
-                              className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold outline-none"
-                            >
-                              <option value="BEGINNER">{t("skills.levels.beginner")}</option>
-                              <option value="INTERMEDIATE">
-                                {t("skills.levels.intermediate")}
-                              </option>
-                              <option value="ADVANCED">{t("skills.levels.advanced")}</option>
-                              <option value="EXPERT">{t("skills.levels.expert")}</option>
-                            </select>
-                            <button
-                              onClick={() => deleteSkill(sk.id)}
-                              className="rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
-                            >
-                              <Trash size={16} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "styling" && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-800">{t("styling.title")}</h2>
-                    <p className="mt-1 text-xs text-slate-400">{t("styling.subtitle")}</p>
-                  </div>
-
-                  <div className="space-y-6">
-                    {/* CV Content Language Selector */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-600 uppercase">
-                        {t("styling.cvLanguage")}
-                      </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {[
-                          { id: "vi", name: t("styling.cvLanguages.vi") },
-                          { id: "en", name: t("styling.cvLanguages.en") },
-                        ].map((l) => (
-                          <button
-                            key={l.id}
-                            onClick={() => setCvLanguage(l.id as any)}
-                            className={cn(
-                              "py-2 px-3 border rounded-xl text-xs font-semibold text-center transition-all",
-                              cvData.cvLanguage === l.id
-                                ? "border-emerald-500 text-emerald-700 bg-emerald-50/20"
-                                : "border-slate-200 hover:bg-slate-50 text-slate-600",
-                            )}
-                          >
-                            {l.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Template selector */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-600 uppercase">
-                        {t("styling.template")}
-                      </label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[
-                          { id: "modern", name: "Modern (1 col)" },
-                          { id: "minimalist", name: "Minimalist B&W" },
-                          { id: "creative", name: "Creative (2 col)" },
-                        ].map((t) => (
-                          <button
-                            key={t.id}
-                            onClick={() => selectTemplate(t.id as any)}
-                            className={cn(
-                              "py-2.5 px-3 border-2 rounded-xl text-xs font-bold transition-all text-center",
-                              cvData.selectedTemplate === t.id
-                                ? "border-emerald-500 bg-emerald-50/50 text-emerald-700 shadow-sm"
-                                : "border-slate-200 hover:border-slate-300 text-slate-600",
-                            )}
-                          >
-                            {t.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Color palette */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-600 uppercase">
-                        {t("styling.themeColor")}
-                      </label>
-                      <div className="flex flex-wrap items-center gap-3">
-                        {[
-                          { id: "teal", bg: "bg-teal-500", name: "Teal" },
-                          { id: "indigo", bg: "bg-indigo-500", name: "Indigo" },
-                          { id: "violet", bg: "bg-violet-500", name: "Violet" },
-                          { id: "emerald", bg: "bg-emerald-500", name: "Emerald" },
-                          { id: "slate", bg: "bg-slate-700", name: "Slate" },
-                        ].map((c) => (
-                          <button
-                            key={c.id}
-                            onClick={() => updateStyle({ themeColor: c.id as any })}
-                            title={c.name}
-                            className={cn(
-                              "w-8 h-8 rounded-full border-2 transition-all flex items-center justify-center",
-                              style.themeColor === c.id
-                                ? "border-slate-800 ring-2 ring-emerald-300"
-                                : "border-transparent",
-                            )}
-                          >
-                            <span className={cn("w-6 h-6 rounded-full block", c.bg)} />
-                          </button>
-                        ))}
-
-                        {/* Custom Color Picker */}
-                        {(() => {
-                          const isCustom = style.themeColor.startsWith("#");
-                          const designerColors = [
-                            "#f43f5e",
-                            "#ec4899",
-                            "#a855f7",
-                            "#8b5cf6",
-                            "#6366f1",
-                            "#3b82f6",
-                            "#0ea5e9",
-                            "#14b8a6",
-                            "#10b981",
-                            "#f59e0b",
-                            "#f97316",
-                            "#475569",
-                          ];
-                          return (
-                            <div className="relative">
-                              <button
-                                type="button"
-                                onClick={() => setShowColorPicker(!showColorPicker)}
-                                title="Chọn màu tùy chỉnh"
-                                className={cn(
-                                  "w-8 h-8 rounded-full border-2 transition-all flex items-center justify-center cursor-pointer relative overflow-hidden outline-none",
-                                  isCustom
-                                    ? "border-slate-800 ring-2 ring-emerald-300"
-                                    : "border-slate-200 hover:border-slate-300",
-                                )}
-                                style={{
-                                  background: isCustom
-                                    ? style.themeColor
-                                    : "conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)",
-                                }}
-                              />
-
-                              {showColorPicker && (
-                                <>
-                                  {/* Close Popover Backdrop */}
-                                  <div
-                                    className="fixed inset-0 z-40 cursor-default"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setShowColorPicker(false);
-                                    }}
-                                  />
-                                  {/* Popover Card */}
-                                  <div className="animate-in fade-in slide-in-from-top-2 absolute top-10 left-0 z-50 w-64 rounded-xl border border-slate-200 bg-white p-4 shadow-xl duration-150">
-                                    <h4 className="mb-3 text-xs font-extrabold text-slate-800 uppercase">
-                                      Màu sắc tùy chỉnh
-                                    </h4>
-
-                                    {/* Palette Grid */}
-                                    <div className="mb-3 grid grid-cols-6 gap-2">
-                                      {designerColors.map((color) => (
-                                        <button
-                                          key={color}
-                                          type="button"
-                                          onClick={() => updateStyle({ themeColor: color })}
-                                          className={cn(
-                                            "w-7 h-7 rounded-full border border-slate-200/50 hover:scale-110 active:scale-95 transition-transform",
-                                            style.themeColor === color
-                                              ? "ring-2 ring-slate-800"
-                                              : "",
-                                          )}
-                                          style={{ backgroundColor: color }}
-                                          title={color}
-                                        />
-                                      ))}
-                                    </div>
-
-                                    {/* HEX input and picker */}
-                                    <div className="flex items-center gap-2 border-t border-slate-100 pt-3">
-                                      <div className="relative flex-1">
-                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-xs font-bold text-slate-400">
-                                          #
-                                        </span>
-                                        <input
-                                          type="text"
-                                          placeholder="FFFFFF"
-                                          maxLength={7}
-                                          value={
-                                            style.themeColor.startsWith("#")
-                                              ? style.themeColor.replace("#", "")
-                                              : ""
-                                          }
-                                          onChange={(e) => {
-                                            const hex = e.target.value.trim();
-                                            if (/^[0-9A-Fa-f]{0,6}$/.test(hex)) {
-                                              updateStyle({
-                                                themeColor: hex ? `#${hex}` : "#10b981",
-                                              });
-                                            }
-                                          }}
-                                          className="w-full rounded-lg border border-slate-200 py-1.5 pr-3 pl-7 text-xs font-bold text-slate-700 uppercase outline-none focus:border-emerald-500"
-                                        />
-                                      </div>
-
-                                      {/* Native picker proxy button */}
-                                      <label
-                                        title="Chọn từ bảng màu chi tiết"
-                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 transition-transform hover:bg-slate-50 active:scale-95"
-                                      >
-                                        <PaintBrush size={16} className="text-slate-600" />
-                                        <input
-                                          type="color"
-                                          value={isCustom ? style.themeColor : "#10b981"}
-                                          onChange={(e) =>
-                                            updateStyle({ themeColor: e.target.value })
-                                          }
-                                          className="sr-only"
-                                        />
-                                      </label>
-                                    </div>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* Typography Font family */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-600 uppercase">
-                        {t("styling.fontFamily")}
-                      </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {[
-                          { id: "font-sans", name: "Sans-Serif (Inter)" },
-                          { id: "font-outfit", name: "Outfit (Modern)" },
-                          { id: "font-serif", name: "Classic Serif" },
-                          { id: "font-mono", name: "Developer Mono" },
-                        ].map((f) => (
-                          <button
-                            key={f.id}
-                            onClick={() => updateStyle({ fontFamily: f.id as any })}
-                            className={cn(
-                              "py-2 px-3 border rounded-xl text-xs font-semibold text-center transition-all",
-                              style.fontFamily === f.id
-                                ? "border-emerald-500 text-emerald-700 bg-emerald-50/20"
-                                : "border-slate-200 hover:bg-slate-50 text-slate-600",
-                            )}
-                          >
-                            {f.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Font sizes */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-600 uppercase">
-                        {t("styling.textSize")}
-                      </label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[
-                          { id: "sm", name: t("styling.textSizes.sm") },
-                          { id: "base", name: t("styling.textSizes.base") },
-                          { id: "lg", name: t("styling.textSizes.lg") },
-                        ].map((s) => (
-                          <button
-                            key={s.id}
-                            onClick={() => updateStyle({ textSize: s.id as any })}
-                            className={cn(
-                              "py-2 px-3 border rounded-xl text-xs font-semibold text-center transition-all",
-                              style.textSize === s.id
-                                ? "border-emerald-500 text-emerald-700 bg-emerald-50/20"
-                                : "border-slate-200 hover:bg-slate-50 text-slate-600",
-                            )}
-                          >
-                            {s.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Margins */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-600 uppercase">
-                        {t("styling.marginSize")}
-                      </label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[
-                          { id: "sm", name: t("styling.marginSizes.sm") },
-                          { id: "base", name: t("styling.marginSizes.base") },
-                          { id: "lg", name: t("styling.marginSizes.lg") },
-                        ].map((m) => (
-                          <button
-                            key={m.id}
-                            onClick={() => updateStyle({ marginSize: m.id as any })}
-                            className={cn(
-                              "py-2 px-3 border rounded-xl text-xs font-semibold text-center transition-all",
-                              style.marginSize === m.id
-                                ? "border-emerald-500 text-emerald-700 bg-emerald-50/20"
-                                : "border-slate-200 hover:bg-slate-50 text-slate-600",
-                            )}
-                          >
-                            {m.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Section Order */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-600 uppercase">
-                        {t("styling.sectionsOrder")}
-                      </label>
-                      <div className="space-y-2">
-                        {cvData.sectionsOrder.map((sec, idx) => {
-                          const secIconMap = {
-                            personal: User,
-                            summary: FilePdf,
-                            experience: Briefcase,
-                            projects: Code,
-                            education: GraduationCap,
-                            skills: PaintBrush,
-                          };
-                          return (
-                            <div
-                              key={sec}
-                              draggable={sec !== "personal" && canDrag === sec}
-                              onDragStart={(e) => {
-                                if (sec === "personal" || canDrag !== sec) {
-                                  e.preventDefault();
-                                  return;
-                                }
-                                setDraggedIndex(idx);
-                                e.dataTransfer.effectAllowed = "move";
-                              }}
-                              onDragOver={(e) => {
-                                e.preventDefault();
-                                if (sec !== "personal" && draggedIndex !== idx) {
-                                  setDragOverIndex(idx);
-                                }
-                              }}
-                              onDragEnd={() => {
-                                setDraggedIndex(null);
-                                setDragOverIndex(null);
-                                setCanDrag(null);
-                              }}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                if (
-                                  draggedIndex !== null &&
-                                  draggedIndex !== idx &&
-                                  sec !== "personal"
-                                ) {
-                                  const newOrder = [...cvData.sectionsOrder];
-                                  const [removed] = newOrder.splice(draggedIndex, 1);
-                                  if (removed) {
-                                    newOrder.splice(idx, 0, removed);
-                                    setSectionsOrder(newOrder);
-                                  }
-                                }
-                                setDraggedIndex(null);
-                                setDragOverIndex(null);
-                                setCanDrag(null);
-                              }}
-                              className={cn(
-                                "flex items-center justify-between rounded-xl border p-2.5 text-xs font-bold transition-all duration-200",
-                                sec === "personal"
-                                  ? "bg-slate-50/20 border-slate-100 cursor-not-allowed opacity-80"
-                                  : "bg-slate-50/30 border-slate-200 hover:border-emerald-300 hover:bg-white hover:shadow-md hover:scale-[1.01]",
-                                draggedIndex === idx
-                                  ? "opacity-30 bg-slate-100 border-dashed border-emerald-300 scale-95"
-                                  : "",
-                                dragOverIndex === idx
-                                  ? "border-emerald-500 bg-emerald-50/30 scale-[1.02] shadow-lg"
-                                  : "",
-                              )}
-                            >
-                              <div className="flex items-center gap-2">
-                                {sec !== "personal" && (
-                                  <button
-                                    type="button"
-                                    onMouseDown={() => setCanDrag(sec)}
-                                    onMouseUp={() => setCanDrag(null)}
-                                    className="cursor-grab rounded p-1 transition-colors outline-none hover:bg-slate-100 active:cursor-grabbing"
-                                    title="Kéo để sắp xếp"
-                                  >
-                                    <DotsSix size={18} className="text-slate-400" />
-                                  </button>
-                                )}
-                                {(() => {
-                                  const SecIcon = secIconMap[sec] || User;
-                                  return <SecIcon size={16} className="text-slate-500" />;
-                                })()}
-                                <span
-                                  className={cn(
-                                    "font-semibold text-slate-700",
-                                    cvData.hiddenSections?.includes(sec) &&
-                                      "line-through text-slate-400",
-                                  )}
-                                >
-                                  {cvData.customSectionNames?.[sec] || t(`${sec}.title`)}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                {sec !== "personal" && (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        void Swal.fire({
-                                          title: t("editTitle"),
-                                          input: "text",
-                                          inputValue:
-                                            cvData.customSectionNames?.[sec] || t(`${sec}.title`),
-                                          showCancelButton: true,
-                                          confirmButtonColor: "#10b981",
-                                          confirmButtonText: "OK",
-                                          cancelButtonText: "Hủy",
-                                        }).then((result) => {
-                                          if (result.isConfirmed && result.value !== undefined) {
-                                            renameSection(sec, result.value.trim());
-                                          }
-                                        });
-                                      }}
-                                      className="rounded p-1 text-slate-500 hover:bg-slate-200"
-                                      title={t("editTitle")}
-                                    >
-                                      <PencilSimple size={14} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleSectionVisibility(sec)}
-                                      className="rounded p-1 hover:bg-slate-200"
-                                      title={
-                                        cvData.hiddenSections?.includes(sec)
-                                          ? t("visibility.show")
-                                          : t("visibility.hide")
-                                      }
-                                    >
-                                      {cvData.hiddenSections?.includes(sec) ? (
-                                        <EyeSlash size={14} className="text-red-500" />
-                                      ) : (
-                                        <Eye size={14} className="text-slate-500" />
-                                      )}
-                                    </button>
-                                  </>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => moveSection(sec, "up")}
-                                  disabled={idx === 0 || sec === "personal"}
-                                  className="rounded p-1 hover:bg-slate-200 disabled:opacity-30"
-                                >
-                                  <ArrowUp size={14} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => moveSection(sec, "down")}
-                                  disabled={
-                                    idx === cvData.sectionsOrder.length - 1 || sec === "personal"
-                                  }
-                                  className="rounded p-1 hover:bg-slate-200 disabled:opacity-30"
-                                >
-                                  <ArrowDown size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </aside>
 
-        {/* RIGHT PANEL: A4 PREVIEW */}
-        <main className="flex flex-1 flex-col items-center overflow-y-auto bg-slate-200 p-6 print:overflow-visible print:bg-white print:p-0">
-          {/* Zoom Slider Control */}
-          <div className="mb-4 flex w-full max-w-[210mm] items-center justify-between rounded-xl border border-slate-200/60 bg-white p-3 text-xs font-bold text-slate-600 shadow-sm print:hidden">
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-2">
-                <Layout size={18} />
-                <span>{t("preview.title")}</span>
-              </div>
-              <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-extrabold tracking-wider text-slate-500 uppercase">
-                {t("assistant.pageCount")} {pageCount}{" "}
-                {pageCount === 1 ? t("assistant.page") : t("assistant.pages")}
+        <section
+          aria-label={t("editor.label")}
+          className={cn("cv-builder-editor", workspaceMode === "preview" && "cv-mobile-hidden")}
+        >
+          <div className="cv-builder-editor-scroll" ref={editorScrollRef}>
+            {renderEditor()}
+          </div>
+          <footer className="cv-editor-footer">
+            <div>
+              <span>
+                {t("workflow.progress", {
+                  current: activeIndex + 1,
+                  total: EDITOR_SEQUENCE.length,
+                })}
               </span>
+              <strong>{t(`tabs.${activeSection}`)}</strong>
             </div>
-            <div className="flex items-center gap-3">
-              <span>{t("preview.zoom")}</span>
-              <input
-                type="range"
-                min="0.5"
-                max="1.2"
-                step="0.05"
-                value={zoom}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="w-32 cursor-pointer accent-teal-600"
-              />
-              <span className="w-12 text-right">{Math.round(zoom * 100)}%</span>
-            </div>
-          </div>
-
-          {/* Slight Overflow Assistant Cta */}
-          {isOverflowing && (
-            <div className="animate-in fade-in slide-in-from-top-1 mb-4 flex w-full max-w-[210mm] items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800 shadow-sm duration-200 print:hidden">
-              <span className="text-base">💡</span>
-              <span>{t("assistant.warningDetail")}</span>
-            </div>
-          )}
-
-          {/* Scale wrapper for zoom */}
-          <div className="flex w-full items-start justify-center print:block print:w-auto print:transform-none">
-            <div
-              className="print:origin-auto origin-top transform-gpu pb-12 transition-transform print:transform-none"
-              style={{
-                transform: `scale(${zoom})`,
-                width: "210mm",
-              }}
-            >
-              <div
-                id="cv-print-area"
-                className={cn(
-                  "a4-sheet print-area font-sans text-slate-800 text-left relative",
-                  style.fontFamily,
-                  `margin-${style.marginSize}`,
-                  `text-${style.textSize}`,
-                )}
+            <div>
+              <Button
+                disabled={!previousSection}
+                onClick={() => previousSection && goToSection(previousSection)}
+                size="sm"
+                variant="outline"
               >
-                {/* Custom Color Styling Injection */}
-                {isCustomColor && (
-                  <style>{`
-                    .custom-cv-primary { color: ${customColor} !important; }
-                    .custom-cv-bg { background-color: ${customColor} !important; }
-                    .custom-cv-border { border-color: ${customColor}30 !important; }
-                    .custom-cv-bg-light { background-color: ${customColor}10 !important; }
-                    .custom-cv-divider { border-color: ${customColor}20 !important; }
-                    .custom-cv-creative-sidebar { background-color: ${customColor} !important; }
-                  `}</style>
-                )}
-                {/* Page Break Dotted Indicators on Screen */}
-                <div className="page-break-indicator print:hidden" style={{ top: "296mm" }} />
-                <div className="page-break-indicator print:hidden" style={{ top: "593mm" }} />
-                <div className="page-break-indicator print:hidden" style={{ top: "890mm" }} />
-
-                {/* 1. MODERN TEMPLATE RENDERING */}
-                {cvData.selectedTemplate === "modern" && (
-                  <div className="space-y-6">
-                    {/* Header */}
-                    <div
-                      className="border-b pb-4 text-center"
-                      style={{
-                        borderColor: isCustomColor
-                          ? `${customColor}20`
-                          : (
-                              themeColors[style.themeColor as keyof typeof themeColors] ||
-                              themeColors.emerald
-                            ).divider,
-                      }}
-                    >
-                      <h1 className={cn("font-bold tracking-tight text-slate-900")}>
-                        {cvData.personalInfo.fullName || (isEn ? "YOUR NAME" : "HỌ VÀ TÊN CỦA BẠN")}
-                      </h1>
-                      <p className={cn("font-semibold text-sm mt-1", colors.primary)}>
-                        {cvData.personalInfo.title ||
-                          (isEn ? "Target Position" : "Vị trí ứng tuyển")}
-                      </p>
-
-                      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                        {cvData.personalInfo.email && (
-                          <span className="flex items-center gap-1">
-                            <EnvelopeSimple size={14} />
-                            {cvData.personalInfo.email}
-                          </span>
-                        )}
-                        {cvData.personalInfo.phoneNumber && (
-                          <span className="flex items-center gap-1">
-                            <Phone size={14} />
-                            {cvData.personalInfo.phoneNumber}
-                          </span>
-                        )}
-                        {cvData.personalInfo.address && (
-                          <span className="flex items-center gap-1">
-                            <MapPin size={14} />
-                            {cvData.personalInfo.address}
-                          </span>
-                        )}
-                        {cvData.personalInfo.website && (
-                          <span className="flex items-center gap-1">
-                            <Globe size={14} />
-                            {cvData.personalInfo.website}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Dynamic Sections */}
-                    {cvData.sectionsOrder.map((sectionKey) => {
-                      if (sectionKey === "personal") return null;
-                      if (cvData.hiddenSections?.includes(sectionKey)) return null;
-
-                      const customHeading =
-                        cvData.customSectionNames?.[sectionKey] ||
-                        headings[sectionKey as keyof typeof headings] ||
-                        t(`${sectionKey}.title`);
-
-                      if (sectionKey === "summary" && cvData.summary) {
-                        return (
-                          <div key={sectionKey} className="space-y-2">
-                            <h2
-                              className={cn(
-                                "text-base font-bold uppercase tracking-wider",
-                                colors.primary,
-                              )}
-                            >
-                              {customHeading}
-                            </h2>
-                            <div className={cn("w-full border-t border-slate-200 mt-1 mb-2")} />
-                            <div
-                              className="preview-rich-text text-sm leading-relaxed text-slate-600"
-                              dangerouslySetInnerHTML={{ __html: cvData.summary }}
-                            />
-                          </div>
-                        );
-                      }
-
-                      if (sectionKey === "experience" && cvData.experiences.length > 0) {
-                        return (
-                          <div key={sectionKey} className="space-y-3">
-                            <h2
-                              className={cn(
-                                "text-base font-bold uppercase tracking-wider",
-                                colors.primary,
-                              )}
-                            >
-                              {customHeading}
-                            </h2>
-                            <div className={cn("w-full border-t border-slate-200 mt-1 mb-2")} />
-                            <div className="space-y-4">
-                              {cvData.experiences.map((exp) => (
-                                <div key={exp.id} className="space-y-1.5">
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <span className="font-bold text-slate-900">
-                                        {exp.companyName}
-                                      </span>
-                                      <span className="mx-2 text-slate-400">|</span>
-                                      <span className="font-semibold text-slate-700 italic">
-                                        {exp.positionTitle}
-                                      </span>
-                                    </div>
-                                    <span className="text-xs font-semibold text-slate-500">
-                                      {exp.startDate} - {formatEndDate(exp.endDate)}
-                                    </span>
-                                  </div>
-
-                                  {exp.technologies && (
-                                    <div className="text-xs font-semibold text-slate-600">
-                                      <span className="font-normal text-slate-400">
-                                        {headings.techUsed}
-                                      </span>
-                                      {exp.technologies}
-                                    </div>
-                                  )}
-
-                                  <div
-                                    className="preview-rich-text pl-0 text-xs text-slate-600"
-                                    dangerouslySetInnerHTML={{ __html: exp.description }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (sectionKey === "projects" && cvData.projects.length > 0) {
-                        return (
-                          <div key={sectionKey} className="space-y-3">
-                            <h2
-                              className={cn(
-                                "text-base font-bold uppercase tracking-wider",
-                                colors.primary,
-                              )}
-                            >
-                              {customHeading}
-                            </h2>
-                            <div className={cn("w-full border-t border-slate-200 mt-1 mb-2")} />
-                            <div className="space-y-4">
-                              {cvData.projects.map((proj) => (
-                                <div key={proj.id} className="space-y-1.5">
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <span className="font-bold text-slate-900">{proj.name}</span>
-                                      <span className="mx-2 text-slate-400">|</span>
-                                      <span className="font-semibold text-slate-600 italic">
-                                        {proj.role}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-xs">
-                                      {proj.projectUrl && (
-                                        <a
-                                          href={`https://${proj.projectUrl}`}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="inline-flex items-center gap-0.5 font-medium text-teal-600 hover:underline"
-                                        >
-                                          <LinkIcon size={12} />
-                                          GitHub
-                                        </a>
-                                      )}
-                                      {proj.deployUrl && (
-                                        <a
-                                          href={`https://${proj.deployUrl}`}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="inline-flex items-center gap-0.5 font-medium text-indigo-600 hover:underline"
-                                        >
-                                          <Globe size={12} />
-                                          Demo
-                                        </a>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {proj.technologies && (
-                                    <div className="text-xs font-semibold text-slate-600">
-                                      <span className="font-normal text-slate-400">
-                                        {headings.techUsed}
-                                      </span>
-                                      {proj.technologies}
-                                    </div>
-                                  )}
-
-                                  <div
-                                    className="preview-rich-text pl-0 text-xs text-slate-600"
-                                    dangerouslySetInnerHTML={{ __html: proj.description }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (sectionKey === "education" && cvData.educations.length > 0) {
-                        return (
-                          <div key={sectionKey} className="space-y-3">
-                            <h2
-                              className={cn(
-                                "text-base font-bold uppercase tracking-wider",
-                                colors.primary,
-                              )}
-                            >
-                              {customHeading}
-                            </h2>
-                            <div className={cn("w-full border-t border-slate-200 mt-1 mb-2")} />
-                            <div className="space-y-3">
-                              {cvData.educations.map((edu) => (
-                                <div key={edu.id} className="space-y-1">
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <span className="font-bold text-slate-900">
-                                        {edu.schoolName}
-                                      </span>
-                                      <span className="mx-2 text-slate-400">|</span>
-                                      <span className="font-semibold text-slate-700">
-                                        {edu.degree} - {edu.major}
-                                      </span>
-                                    </div>
-                                    <span className="text-xs font-semibold text-slate-500">
-                                      {edu.startDate} - {formatEndDate(edu.endDate)}
-                                    </span>
-                                  </div>
-                                  {edu.gpa && (
-                                    <div className="text-xs text-slate-500">
-                                      {headings.gpa}: {edu.gpa}
-                                    </div>
-                                  )}
-                                  <div
-                                    className="preview-rich-text text-xs text-slate-600"
-                                    dangerouslySetInnerHTML={{ __html: edu.description }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (sectionKey === "skills" && cvData.skills.length > 0) {
-                        return (
-                          <div key={sectionKey} className="space-y-2">
-                            <h2
-                              className={cn(
-                                "text-base font-bold uppercase tracking-wider",
-                                colors.primary,
-                              )}
-                            >
-                              {customHeading}
-                            </h2>
-                            <div className={cn("w-full border-t border-slate-200 mt-1 mb-2")} />
-                            <div className="flex flex-wrap gap-2 pt-1">
-                              {cvData.skills.map((sk) => (
-                                <div
-                                  key={sk.id}
-                                  className="flex items-center gap-1.5 rounded-md border border-slate-200/80 bg-slate-50 px-3 py-1 text-xs"
-                                >
-                                  <span className="font-bold text-slate-800">{sk.name}</span>
-                                  <span className="text-slate-300">|</span>
-                                  <span className="text-[10px] font-bold text-slate-500 uppercase">
-                                    {sk.level === "EXPERT"
-                                      ? isEn
-                                        ? "Expert"
-                                        : "Chuyên gia"
-                                      : sk.level === "ADVANCED"
-                                        ? isEn
-                                          ? "Advanced"
-                                          : "Thành thạo"
-                                        : sk.level === "INTERMEDIATE"
-                                          ? isEn
-                                            ? "Intermediate"
-                                            : "Khá"
-                                          : isEn
-                                            ? "Beginner"
-                                            : "Cơ bản"}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      return null;
-                    })}
-                  </div>
-                )}
-
-                {/* 2. MINIMALIST TEMPLATE RENDERING */}
-                {cvData.selectedTemplate === "minimalist" && (
-                  <div className="space-y-6">
-                    {/* Minimal Header */}
-                    <div className="space-y-1.5">
-                      <h1 className="text-3xl font-extrabold tracking-wide text-slate-900 uppercase">
-                        {cvData.personalInfo.fullName || (isEn ? "YOUR NAME" : "HỌ VÀ TÊN")}
-                      </h1>
-                      <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
-                        {cvData.personalInfo.title ||
-                          (isEn ? "TARGET POSITION" : "VỊ TRÍ ỨNG TUYỂN")}
-                      </p>
-
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1.5 text-xs text-slate-600">
-                        {cvData.personalInfo.email && <span>{cvData.personalInfo.email}</span>}
-                        {cvData.personalInfo.phoneNumber && (
-                          <span>• {cvData.personalInfo.phoneNumber}</span>
-                        )}
-                        {cvData.personalInfo.address && (
-                          <span>• {cvData.personalInfo.address}</span>
-                        )}
-                        {cvData.personalInfo.website && (
-                          <span>
-                            • <span className="underline">{cvData.personalInfo.website}</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="border-b-2 border-slate-800" />
-
-                    {/* Dynamic Sections */}
-                    {cvData.sectionsOrder.map((sectionKey) => {
-                      if (sectionKey === "personal") return null;
-                      if (cvData.hiddenSections?.includes(sectionKey)) return null;
-
-                      const customHeading =
-                        cvData.customSectionNames?.[sectionKey] ||
-                        headings[sectionKey as keyof typeof headings] ||
-                        t(`${sectionKey}.title`);
-
-                      if (sectionKey === "summary" && cvData.summary) {
-                        return (
-                          <div key={sectionKey} className="grid grid-cols-4 gap-4">
-                            <h3 className="col-span-1 text-xs font-extrabold tracking-widest text-slate-800 uppercase">
-                              {customHeading}
-                            </h3>
-                            <div className="col-span-3">
-                              <div
-                                className="preview-rich-text text-xs leading-relaxed text-slate-700"
-                                dangerouslySetInnerHTML={{ __html: cvData.summary }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (sectionKey === "experience" && cvData.experiences.length > 0) {
-                        return (
-                          <div key={sectionKey} className="grid grid-cols-4 gap-4">
-                            <h3 className="col-span-1 text-xs font-extrabold tracking-widest text-slate-800 uppercase">
-                              {customHeading}
-                            </h3>
-                            <div className="col-span-3 space-y-4">
-                              {cvData.experiences.map((exp) => (
-                                <div key={exp.id} className="space-y-1">
-                                  <div className="flex items-start justify-between text-xs font-bold text-slate-900">
-                                    <span>
-                                      {exp.companyName} —{" "}
-                                      <span className="font-normal italic">
-                                        {exp.positionTitle}
-                                      </span>
-                                    </span>
-                                    <span className="font-medium text-slate-500">
-                                      {exp.startDate} - {formatEndDate(exp.endDate)}
-                                    </span>
-                                  </div>
-                                  {exp.technologies && (
-                                    <p className="text-[10px] font-semibold text-slate-500 uppercase">
-                                      Tech: {exp.technologies}
-                                    </p>
-                                  )}
-                                  <div
-                                    className="preview-rich-text text-xs leading-relaxed text-slate-600"
-                                    dangerouslySetInnerHTML={{ __html: exp.description }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (sectionKey === "projects" && cvData.projects.length > 0) {
-                        return (
-                          <div key={sectionKey} className="grid grid-cols-4 gap-4">
-                            <h3 className="col-span-1 text-xs font-extrabold tracking-widest text-slate-800 uppercase">
-                              {customHeading}
-                            </h3>
-                            <div className="col-span-3 space-y-4">
-                              {cvData.projects.map((proj) => (
-                                <div key={proj.id} className="space-y-1">
-                                  <div className="flex items-start justify-between text-xs font-bold text-slate-900">
-                                    <span>
-                                      {proj.name} —{" "}
-                                      <span className="font-normal italic">{proj.role}</span>
-                                    </span>
-                                    <span className="text-[10px] font-bold text-teal-700 underline">
-                                      {proj.projectUrl || proj.deployUrl}
-                                    </span>
-                                  </div>
-                                  <div
-                                    className="preview-rich-text text-xs leading-relaxed text-slate-600"
-                                    dangerouslySetInnerHTML={{ __html: proj.description }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (sectionKey === "education" && cvData.educations.length > 0) {
-                        return (
-                          <div key={sectionKey} className="grid grid-cols-4 gap-4">
-                            <h3 className="col-span-1 text-xs font-extrabold tracking-widest text-slate-800 uppercase">
-                              {customHeading}
-                            </h3>
-                            <div className="col-span-3 space-y-3">
-                              {cvData.educations.map((edu) => (
-                                <div key={edu.id} className="space-y-1 text-xs">
-                                  <div className="flex items-start justify-between font-bold text-slate-900">
-                                    <span>{edu.schoolName}</span>
-                                    <span className="font-medium text-slate-500">
-                                      {edu.startDate} - {formatEndDate(edu.endDate)}
-                                    </span>
-                                  </div>
-                                  <p className="text-slate-600 italic">
-                                    {edu.degree} - {edu.major} {edu.gpa && `(GPA: ${edu.gpa})`}
-                                  </p>
-                                  <div
-                                    className="preview-rich-text text-slate-600"
-                                    dangerouslySetInnerHTML={{ __html: edu.description }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (sectionKey === "skills" && cvData.skills.length > 0) {
-                        return (
-                          <div key={sectionKey} className="grid grid-cols-4 gap-4">
-                            <h3 className="col-span-1 text-xs font-extrabold tracking-widest text-slate-800 uppercase">
-                              {customHeading}
-                            </h3>
-                            <div className="col-span-3">
-                              <p className="text-xs leading-relaxed text-slate-700">
-                                {cvData.skills.map((sk, idx) => (
-                                  <span key={sk.id}>
-                                    <strong>{sk.name}</strong> (
-                                    {sk.level === "EXPERT"
-                                      ? isEn
-                                        ? "Expert"
-                                        : "Chuyên gia"
-                                      : sk.level === "ADVANCED"
-                                        ? isEn
-                                          ? "Advanced"
-                                          : "Thành thạo"
-                                        : sk.level === "INTERMEDIATE"
-                                          ? isEn
-                                            ? "Intermediate"
-                                            : "Khá"
-                                          : isEn
-                                            ? "Beginner"
-                                            : "Cơ bản"}
-                                    ){idx < cvData.skills.length - 1 ? ", " : ""}
-                                  </span>
-                                ))}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      return null;
-                    })}
-                  </div>
-                )}
-
-                {/* 3. CREATIVE TEMPLATE RENDERING */}
-                {cvData.selectedTemplate === "creative" && (
-                  <div className="-m-[20mm] grid min-h-[257mm] grid-cols-3 gap-0 print:-m-[20mm]">
-                    {/* Left Column (Colored Sidebar) */}
-                    <div
-                      className={cn(
-                        "col-span-1 p-6 space-y-6 flex flex-col justify-start",
-                        colors.creativeSidebar,
-                      )}
-                    >
-                      {/* Avatar placeholder / Personal Info */}
-                      <div className="space-y-4">
-                        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border-4 border-white/20 bg-white/10 text-3xl font-black select-none">
-                          {cvData.personalInfo.fullName?.charAt(0) || "U"}
-                        </div>
-
-                        <div className="text-center">
-                          <h1 className="text-lg leading-snug font-bold tracking-tight">
-                            {cvData.personalInfo.fullName || (isEn ? "YOUR NAME" : "TÊN CỦA BẠN")}
-                          </h1>
-                          <p className="mt-1 text-[11px] font-semibold tracking-wider text-teal-300 uppercase">
-                            {cvData.personalInfo.title ||
-                              (isEn ? "Target Position" : "Vị trí công việc")}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Contacts block */}
-                      <div className="space-y-3 border-t border-white/15 pt-4">
-                        <h3 className="text-xs font-black tracking-widest text-teal-300 uppercase">
-                          {headings.contactInfo}
-                        </h3>
-                        <div className="space-y-2 text-[11px] opacity-90">
-                          {cvData.personalInfo.email && (
-                            <div className="flex items-center gap-2">
-                              <EnvelopeSimple size={14} className="opacity-70" />
-                              <span className="truncate">{cvData.personalInfo.email}</span>
-                            </div>
-                          )}
-                          {cvData.personalInfo.phoneNumber && (
-                            <div className="flex items-center gap-2">
-                              <Phone size={14} className="opacity-70" />
-                              <span>{cvData.personalInfo.phoneNumber}</span>
-                            </div>
-                          )}
-                          {cvData.personalInfo.address && (
-                            <div className="flex items-center gap-2">
-                              <MapPin size={14} className="opacity-70" />
-                              <span className="line-clamp-2">{cvData.personalInfo.address}</span>
-                            </div>
-                          )}
-                          {cvData.personalInfo.website && (
-                            <div className="flex items-center gap-2">
-                              <Globe size={14} className="opacity-70" />
-                              <span className="truncate">{cvData.personalInfo.website}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Skills in Sidebar */}
-                      {cvData.skills.length > 0 && !cvData.hiddenSections?.includes("skills") && (
-                        <div className="space-y-3 border-t border-white/15 pt-4">
-                          <h3 className="text-xs font-black tracking-widest text-teal-300 uppercase">
-                            {cvData.customSectionNames?.["skills"] || headings.skills}
-                          </h3>
-                          <div className="space-y-2.5">
-                            {cvData.skills.map((sk) => {
-                              const levelPercent =
-                                sk.level === "EXPERT"
-                                  ? "w-full"
-                                  : sk.level === "ADVANCED"
-                                    ? "w-4/5"
-                                    : sk.level === "INTERMEDIATE"
-                                      ? "w-3/5"
-                                      : "w-2/5";
-                              return (
-                                <div key={sk.id} className="space-y-1">
-                                  <div className="flex justify-between text-[11px] font-semibold">
-                                    <span>{sk.name}</span>
-                                    <span className="text-[9px] uppercase opacity-75">
-                                      {sk.level === "EXPERT"
-                                        ? isEn
-                                          ? "Expert"
-                                          : "Chuyên gia"
-                                        : sk.level === "ADVANCED"
-                                          ? isEn
-                                            ? "Advanced"
-                                            : "Thành thạo"
-                                          : sk.level === "INTERMEDIATE"
-                                            ? isEn
-                                              ? "Intermediate"
-                                              : "Khá"
-                                            : isEn
-                                              ? "Beginner"
-                                              : "Cơ bản"}
-                                    </span>
-                                  </div>
-                                  <div className="h-1 w-full overflow-hidden rounded-full bg-white/20">
-                                    <div className={cn("h-full bg-teal-400", levelPercent)} />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Education in Sidebar */}
-                      {cvData.educations.length > 0 &&
-                        !cvData.hiddenSections?.includes("education") && (
-                          <div className="space-y-3 border-t border-white/15 pt-4">
-                            <h3 className="text-xs font-black tracking-widest text-teal-300 uppercase">
-                              {cvData.customSectionNames?.["education"] || headings.education}
-                            </h3>
-                            <div className="space-y-3">
-                              {cvData.educations.map((edu) => (
-                                <div key={edu.id} className="space-y-1 text-[11px]">
-                                  <p className="font-bold">{edu.schoolName}</p>
-                                  <p className="opacity-90">
-                                    {edu.degree} / {edu.major}
-                                  </p>
-                                  <p className="text-[9px] opacity-70">
-                                    {edu.startDate} - {formatEndDate(edu.endDate)}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                    </div>
-
-                    {/* Right Column (Main Content) */}
-                    <div className="col-span-2 space-y-6 bg-white p-6 text-slate-800">
-                      {/* Profile Summary */}
-                      {cvData.summary && !cvData.hiddenSections?.includes("summary") && (
-                        <div className="space-y-2">
-                          <h2
-                            className={cn(
-                              "text-sm font-bold uppercase tracking-wider border-b pb-1.5",
-                              colors.primary,
-                              colors.divider,
-                            )}
-                          >
-                            {cvData.customSectionNames?.["summary"] || headings.summary}
-                          </h2>
-                          <div
-                            className="preview-rich-text text-xs leading-relaxed text-slate-600"
-                            dangerouslySetInnerHTML={{ __html: cvData.summary }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Work Experience */}
-                      {cvData.experiences.length > 0 &&
-                        !cvData.hiddenSections?.includes("experience") && (
-                          <div className="space-y-3">
-                            <h2
-                              className={cn(
-                                "text-sm font-bold uppercase tracking-wider border-b pb-1.5",
-                                colors.primary,
-                                colors.divider,
-                              )}
-                            >
-                              {cvData.customSectionNames?.["experience"] || headings.experience}
-                            </h2>
-                            <div className="space-y-4">
-                              {cvData.experiences.map((exp) => (
-                                <div key={exp.id} className="space-y-1">
-                                  <div className="flex items-start justify-between text-xs">
-                                    <div>
-                                      <span className="font-bold text-slate-900">
-                                        {exp.companyName}
-                                      </span>
-                                      <span className="mx-1.5 text-slate-400">|</span>
-                                      <span className="font-semibold text-slate-700 italic">
-                                        {exp.positionTitle}
-                                      </span>
-                                    </div>
-                                    <span className="text-[10px] font-semibold text-slate-400">
-                                      {exp.startDate} - {formatEndDate(exp.endDate)}
-                                    </span>
-                                  </div>
-                                  {exp.technologies && (
-                                    <p className="text-[10px] font-semibold text-slate-500">
-                                      Tech: {exp.technologies}
-                                    </p>
-                                  )}
-                                  <div
-                                    className="preview-rich-text text-xs leading-relaxed text-slate-600"
-                                    dangerouslySetInnerHTML={{ __html: exp.description }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                      {/* Projects */}
-                      {cvData.projects.length > 0 &&
-                        !cvData.hiddenSections?.includes("projects") && (
-                          <div className="space-y-3">
-                            <h2
-                              className={cn(
-                                "text-sm font-bold uppercase tracking-wider border-b pb-1.5",
-                                colors.primary,
-                                colors.divider,
-                              )}
-                            >
-                              {cvData.customSectionNames?.["projects"] || headings.projects}
-                            </h2>
-                            <div className="space-y-4">
-                              {cvData.projects.map((proj) => (
-                                <div key={proj.id} className="space-y-1">
-                                  <div className="flex items-start justify-between text-xs">
-                                    <div>
-                                      <span className="font-bold text-slate-900">{proj.name}</span>
-                                      <span className="mx-1.5 text-slate-400">|</span>
-                                      <span className="font-semibold text-slate-700 italic">
-                                        {proj.role}
-                                      </span>
-                                    </div>
-                                    <div className="flex gap-2 text-[10px]">
-                                      {proj.projectUrl && (
-                                        <span className="text-teal-600 underline">
-                                          {proj.projectUrl}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div
-                                    className="preview-rich-text text-xs leading-relaxed text-slate-600"
-                                    dangerouslySetInnerHTML={{ __html: proj.description }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-      {/* AI Bullet Point Enhancer Modal */}
-      {aiEnhancerOpen && (
-        <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm duration-200">
-          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between bg-slate-900 px-6 py-4 text-white">
-              <div className="flex items-center gap-2">
-                <Sparkle size={20} className="text-emerald-400" />
-                <h3 className="text-base font-bold">{t("aiEnhance.title")}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAiEnhancerOpen(false)}
-                className="text-xl font-bold text-slate-400 transition-colors hover:text-white"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Content Body */}
-            <div className="flex-1 space-y-4 overflow-y-auto p-6">
-              <p className="text-xs leading-relaxed text-slate-500">{t("aiEnhance.description")}</p>
-
-              {/* Text Input area */}
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                  {t("aiEnhance.inputLabel")}
-                </label>
-                <textarea
-                  value={aiInputText}
-                  onChange={(e) => setAiInputText(e.target.value)}
-                  placeholder="Ví dụ: Lập trình frontend bằng React và tối ưu hóa hệ thống tải trang..."
-                  className="h-24 w-full rounded-xl border border-slate-200 bg-slate-50/30 p-3 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {/* Template dropdown selector */}
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold tracking-wider text-slate-500 uppercase">
-                  {t("aiEnhance.roleSelect")}
-                </label>
-                <select
-                  value={selectedAiRole}
-                  onChange={(e) => setSelectedAiRole(e.target.value)}
-                  className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500"
-                >
-                  <option value="">-- {t("aiEnhance.selectRole")} --</option>
-                  <option value="frontend">Frontend Developer</option>
-                  <option value="backend">Backend Developer</option>
-                  <option value="fullstack">Fullstack Developer</option>
-                  <option value="mobile">Mobile Developer</option>
-                </select>
-              </div>
-
-              {/* Trigger button */}
-              <div className="flex justify-end pt-2">
-                <Button
-                  type="button"
-                  onClick={runAiEnhance}
-                  disabled={isEnhancing || (!aiInputText.trim() && !selectedAiRole)}
-                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-emerald-700"
-                >
-                  {isEnhancing ? (
-                    <>
-                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      {t("aiEnhance.enhancing")}
-                    </>
-                  ) : (
-                    <>
-                      <Sparkle size={14} />
-                      {t("aiEnhance.button")}
-                    </>
-                  )}
+                <ArrowLeft aria-hidden="true" /> {t("workflow.previous")}
+              </Button>
+              {nextSection ? (
+                <Button onClick={() => goToSection(nextSection)} size="sm">
+                  {t("workflow.next", { section: t(`tabs.${nextSection}`) })}
+                  <ArrowRight aria-hidden="true" />
                 </Button>
-              </div>
-
-              {/* Result output area */}
-              {aiEnhancedText && (
-                <div className="animate-in fade-in slide-in-from-bottom-2 space-y-1.5 border-t border-slate-100 pt-4 duration-200">
-                  <label className="block text-[10px] font-bold tracking-wider text-emerald-600 uppercase">
-                    {t("aiEnhance.enhancedLabel")}
-                  </label>
-                  <div className="min-h-[80px] w-full rounded-xl border border-emerald-100 bg-emerald-50/30 p-3 text-xs leading-relaxed font-semibold whitespace-pre-wrap text-slate-700">
-                    {aiEnhancedText}
-                  </div>
-                </div>
+              ) : (
+                <Button onClick={requestExport} size="sm">
+                  <DownloadSimple aria-hidden="true" /> {t("workflow.export")}
+                </Button>
               )}
             </div>
+          </footer>
+        </section>
 
-            {/* Footer buttons */}
-            <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAiEnhancerOpen(false)}
-                className="rounded-xl border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100"
-              >
-                Hủy
-              </Button>
-              <Button
-                type="button"
-                onClick={applyAiEnhancement}
-                disabled={!aiEnhancedText}
-                className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-slate-800"
-              >
-                {t("aiEnhance.apply")}
-              </Button>
+        <section
+          aria-label={t("preview.title")}
+          className={cn(
+            "cv-builder-preview",
+            workspaceMode === "edit" && "cv-preview-mobile-hidden",
+          )}
+        >
+          <header className="cv-preview-toolbar">
+            <div>
+              <strong>{t("preview.title")}</strong>
+              <span className={pageCount > 2 ? "is-warning" : undefined}>
+                {t("preview.pageCount", { count: pageCount })}
+              </span>
             </div>
-          </div>
-        </div>
-      )}
-      {/* PDF Export Settings Guidance Modal */}
-      {showPdfGuide && (
-        <div className="animate-in fade-in fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm duration-200">
-          <div className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between bg-slate-900 px-6 py-4 text-white">
-              <div className="flex items-center gap-2">
-                <Printer size={20} className="text-emerald-400" />
-                <h3 className="text-base font-bold">{t("pdfGuide.title")}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPdfGuide(false)}
-                className="text-xl font-bold text-slate-400 transition-colors hover:text-white"
-              >
-                ×
+            <span className="cv-preview-active-section">
+              {t("preview.editing", { section: t(`tabs.${activeSection}`) })}
+            </span>
+            <fieldset className="cv-zoom-control">
+              <legend className="sr-only">{t("preview.zoom")}</legend>
+              <button aria-label={t("preview.fit")} onClick={fitPreviewToViewport} type="button">
+                <ArrowsInSimple />
               </button>
-            </div>
-
-            {/* Content Body */}
-            <div className="space-y-4 p-6">
-              <p className="text-xs leading-relaxed font-semibold text-slate-500">
-                {t("pdfGuide.subtitle")}
-              </p>
-
-              <div className="space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] text-emerald-700">
-                    1
-                  </span>
-                  {t("pdfGuide.margin")}
-                </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] text-emerald-700">
-                    2
-                  </span>
-                  {t("pdfGuide.graphics")}
-                </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] text-emerald-700">
-                    3
-                  </span>
-                  {t("pdfGuide.headerFooter")}
-                </div>
+              <button
+                aria-label={t("preview.zoomOut")}
+                disabled={zoom <= MIN_PREVIEW_ZOOM}
+                onClick={() => setZoom((value) => Math.max(MIN_PREVIEW_ZOOM, value - 0.1))}
+                type="button"
+              >
+                <Minus />
+              </button>
+              <output>{Math.round(zoom * 100)}%</output>
+              <button
+                aria-label={t("preview.zoomIn")}
+                disabled={zoom >= MAX_PREVIEW_ZOOM}
+                onClick={() => setZoom((value) => Math.min(MAX_PREVIEW_ZOOM, value + 0.1))}
+                type="button"
+              >
+                <Plus />
+              </button>
+            </fieldset>
+          </header>
+          <div className="cv-preview-scroll" ref={previewViewportRef}>
+            <div
+              className="cv-preview-scale-frame"
+              style={{ height: previewHeight * zoom, width: PREVIEW_WIDTH * zoom }}
+            >
+              <div className="cv-preview-scale" style={{ transform: `scale(${zoom})` }}>
+                <CvPreview
+                  activeSection={
+                    CONTENT_SECTIONS.includes(activeSection as CvSectionKey)
+                      ? (activeSection as CvSectionKey)
+                      : undefined
+                  }
+                  cvData={cvData}
+                  ref={previewRef}
+                />
               </div>
             </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowPdfGuide(false)}
-                className="rounded-xl border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100"
-              >
-                Hủy
-              </Button>
-              <Button
-                type="button"
-                onClick={proceedToPrint}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
-              >
-                <Printer size={14} />
-                {t("pdfGuide.proceed")}
-              </Button>
-            </div>
           </div>
-        </div>
-      )}
-    </div>
+        </section>
+      </div>
+
+      <Dialog onOpenChange={setSyncDialogOpen} open={syncDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("profileSync.dialogTitle")}</DialogTitle>
+            <DialogDescription>{t("profileSync.dialogDescription")}</DialogDescription>
+          </DialogHeader>
+          <div className="cv-dialog-callout">
+            <Info />
+            <p>
+              <strong>{t("profileSync.replaceTitle")}</strong>
+              <span>{t("profileSync.replaceDescription")}</span>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setSyncDialogOpen(false)} variant="outline">
+              {t("actions.cancel")}
+            </Button>
+            <Button onClick={applyProfile}>
+              <ArrowClockwise /> {t("profileSync.confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog onOpenChange={setClearDialogOpen} open={clearDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("clearDialog.title")}</DialogTitle>
+            <DialogDescription>{t("clearDialog.description")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setClearDialogOpen(false)} variant="outline">
+              {t("actions.cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                clearCv();
+                setClearDialogOpen(false);
+                setActiveSection("personal");
+              }}
+              variant="destructive"
+            >
+              <Trash /> {t("clearDialog.confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        onOpenChange={(open) => setExportDialog(open ? "blocked" : "closed")}
+        open={exportDialog === "blocked"}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("exportValidation.title")}</DialogTitle>
+            <DialogDescription>
+              {t("exportValidation.description", { count: evaluation.blockingIssues.length })}
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="cv-dialog-issues">
+            {evaluation.blockingIssues.slice(0, 5).map((issue) => (
+              <li key={`${issue.path}-${issue.code}`}>
+                <WarningCircle /> {t(`validation.${issue.code}`)}
+              </li>
+            ))}
+          </ul>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setExportDialog("closed");
+                goToIssueSection(evaluation.blockingIssues[0]?.section ?? "personal");
+              }}
+            >
+              {t("exportValidation.fix")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        onOpenChange={(open) => setExportDialog(open ? "guide" : "closed")}
+        open={exportDialog === "guide"}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("pdfGuide.title")}</DialogTitle>
+            <DialogDescription>{t("pdfGuide.subtitle")}</DialogDescription>
+          </DialogHeader>
+          <ol className="cv-print-guide">
+            <li>
+              <span>1</span>
+              <p>{t("pdfGuide.destination")}</p>
+            </li>
+            <li>
+              <span>2</span>
+              <p>{t("pdfGuide.margin")}</p>
+            </li>
+            <li>
+              <span>3</span>
+              <p>{t("pdfGuide.graphics")}</p>
+            </li>
+            <li>
+              <span>4</span>
+              <p>{t("pdfGuide.headerFooter")}</p>
+            </li>
+          </ol>
+          <DialogFooter>
+            <Button onClick={() => setExportDialog("closed")} variant="outline">
+              {t("actions.cancel")}
+            </Button>
+            <Button onClick={proceedToPrint}>
+              <DownloadSimple /> {t("pdfGuide.proceed")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </main>
   );
 }
 
