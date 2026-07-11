@@ -625,6 +625,7 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                         className="marketing-home-mega-item"
                         href={item.path}
                         onClick={() => setOpenMenu(null)}
+                        prefetch={openMenu === menu.key ? null : false}
                       >
                         <i
                           className={`marketing-home-mega-icon ${item.iconClass}`}
