@@ -19,37 +19,41 @@ const SheetOverlay = forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm", className)}
+    className={cn("fixed inset-0 z-[90] bg-slate-950/55 backdrop-blur-sm", className)}
     {...props}
   />
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
-const sheetVariants = cva("fixed z-50 gap-4 bg-background p-6 shadow-2xl transition ease-in-out", {
-  variants: {
-    side: {
-      top: "inset-x-0 top-0 border-b border-border",
-      bottom: "inset-x-0 bottom-0 border-t border-border",
-      left: "inset-y-0 left-0 h-full w-3/4 border-r border-border sm:max-w-sm",
-      right: "inset-y-0 right-0 h-full w-3/4 border-l border-border sm:max-w-sm",
+const sheetVariants = cva(
+  "fixed z-[100] gap-4 bg-background p-6 shadow-2xl transition ease-in-out",
+  {
+    variants: {
+      side: {
+        top: "inset-x-0 top-0 border-b border-border",
+        bottom: "inset-x-0 bottom-0 border-t border-border",
+        left: "inset-y-0 left-0 h-full w-3/4 border-r border-border sm:max-w-sm",
+        right: "inset-y-0 right-0 h-full w-3/4 border-l border-border sm:max-w-sm",
+      },
+    },
+    defaultVariants: {
+      side: "right",
     },
   },
-  defaultVariants: {
-    side: "right",
-  },
-});
+);
 
 const SheetContent = forwardRef<
   ElementRef<typeof SheetPrimitive.Content>,
-  ComponentPropsWithoutRef<typeof SheetPrimitive.Content> & VariantProps<typeof sheetVariants>
->(({ side = "right", className, children, ...props }, ref) => (
+  ComponentPropsWithoutRef<typeof SheetPrimitive.Content> &
+    VariantProps<typeof sheetVariants> & { closeLabel?: string }
+>(({ side = "right", className, children, closeLabel = "Đóng", ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
     <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
       {children}
       <SheetPrimitive.Close className="upnext-focus text-muted-foreground absolute top-4 right-4 rounded-full p-1 opacity-70 transition-opacity hover:opacity-100">
         <X size={18} />
-        <span className="sr-only">Đóng</span>
+        <span className="sr-only">{closeLabel}</span>
       </SheetPrimitive.Close>
     </SheetPrimitive.Content>
   </SheetPortal>

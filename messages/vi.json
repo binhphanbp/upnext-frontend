@@ -1131,118 +1131,651 @@
   "CandidateProfile": {
     "content": {
       "page": {
-        "title": "Hồ sơ của tôi",
-        "description": "Quản lý hồ sơ nghề nghiệp và thông tin tìm việc của bạn.",
-        "previewProfile": "Xem hồ sơ",
-        "saveChanges": "Lưu thay đổi",
-        "save": "Lưu",
-        "mobileStatus": "Hoàn thành 82% · Đang hiển thị với nhà tuyển dụng"
+        "eyebrow": "Không gian ứng viên",
+        "title": "Hồ sơ nghề nghiệp",
+        "description": "Quản lý thông tin nhà tuyển dụng nhìn thấy và giữ hồ sơ của bạn luôn chính xác, nhất quán.",
+        "lastUpdated": "Cập nhật gần nhất {date}",
+        "notUpdated": "Chưa có thông tin cập nhật"
+      },
+      "header": {
+        "profileFallback": "Hồ sơ ứng viên",
+        "headlineFallback": "Thêm vị trí mong muốn để thể hiện rõ định hướng nghề nghiệp của bạn.",
+        "locationFallback": "Chưa thêm địa điểm",
+        "contactFallback": "Chưa đủ thông tin liên hệ",
+        "applications": "{count} lượt ứng tuyển",
+        "savedJobs": "{count} việc làm đã lưu",
+        "documents": "{count} CV",
+        "summaryLabel": "Tóm tắt hồ sơ"
+      },
+      "navigation": {
+        "title": "Nội dung hồ sơ",
+        "description": "Chọn một mục để xem và chỉnh sửa.",
+        "ariaLabel": "Điều hướng các mục hồ sơ",
+        "mobileLabel": "Mục hồ sơ đang xem",
+        "progressLabel": "Tiến độ hồ sơ"
+      },
+      "sections": {
+        "overview": {
+          "title": "Tổng quan",
+          "description": "Thông tin nhận diện, liên hệ và phần giới thiệu xuất hiện đầu tiên trên hồ sơ.",
+          "navDescription": "Thông tin cơ bản và giới thiệu",
+          "linksTitle": "Liên kết nghề nghiệp",
+          "emptyTitle": "Thông tin cơ bản chưa đầy đủ",
+          "emptyDescription": "Bổ sung thông tin liên hệ và phần giới thiệu để hoàn thiện phần mở đầu hồ sơ."
+        },
+        "experience": {
+          "title": "Kinh nghiệm",
+          "description": "Trình bày quá trình làm việc, phạm vi trách nhiệm và kết quả bạn đã tạo ra.",
+          "navDescription": "Quá trình làm việc",
+          "emptyTitle": "Chưa có kinh nghiệm làm việc",
+          "emptyDescription": "Thêm công việc, kỳ thực tập hoặc kinh nghiệm chuyên môn gần nhất của bạn."
+        },
+        "projects": {
+          "title": "Dự án",
+          "description": "Giới thiệu sản phẩm, dự án cá nhân hoặc đóng góp tiêu biểu có thể kiểm chứng.",
+          "navDescription": "Sản phẩm và portfolio",
+          "emptyTitle": "Chưa có dự án",
+          "emptyDescription": "Thêm một dự án để làm rõ cách bạn áp dụng kỹ năng vào thực tế."
+        },
+        "education": {
+          "title": "Học vấn",
+          "description": "Quản lý quá trình học tập và nền tảng chuyên môn của bạn.",
+          "navDescription": "Trường học và chương trình đào tạo",
+          "emptyTitle": "Chưa có thông tin học vấn",
+          "emptyDescription": "Thêm trường học, chương trình đào tạo hoặc bậc học phù hợp."
+        },
+        "skills": {
+          "title": "Kỹ năng",
+          "description": "Liệt kê năng lực chuyên môn và tự đánh giá mức độ thành thạo.",
+          "navDescription": "Năng lực chuyên môn",
+          "emptyTitle": "Chưa có kỹ năng",
+          "emptyDescription": "Thêm các kỹ năng phản ánh đúng kinh nghiệm và định hướng của bạn."
+        },
+        "credentials": {
+          "title": "Chứng chỉ & ngôn ngữ",
+          "description": "Bổ sung chứng chỉ nghề nghiệp và khả năng sử dụng ngôn ngữ.",
+          "navDescription": "Chứng nhận và ngôn ngữ",
+          "certificationsTitle": "Chứng chỉ nghề nghiệp",
+          "languagesTitle": "Ngôn ngữ",
+          "emptyTitle": "Chưa có chứng chỉ hoặc ngôn ngữ",
+          "emptyDescription": "Bạn có thể thêm từng nội dung khi chúng phù hợp với hồ sơ nghề nghiệp."
+        },
+        "documents": {
+          "title": "CV & tài liệu",
+          "description": "Quản lý các bản CV dùng khi ứng tuyển và chọn bản mặc định.",
+          "navDescription": "CV tải lên và CV từ Builder",
+          "emptyTitle": "Chưa có CV",
+          "emptyDescription": "Tải lên CV hiện tại hoặc tạo một bản bằng CV Builder của UpNext."
+        },
+        "preferences": {
+          "title": "Mong muốn việc làm",
+          "description": "Xác định vị trí, mức lương và cách làm việc bạn đang tìm kiếm.",
+          "navDescription": "Vai trò và điều kiện mong muốn",
+          "emptyTitle": "Chưa thiết lập mong muốn việc làm",
+          "emptyDescription": "Thêm tiêu chí tìm việc để quản lý mục tiêu nghề nghiệp rõ ràng hơn."
+        }
+      },
+      "readiness": {
+        "title": "Mức độ sẵn sàng của hồ sơ",
+        "description": "Tiến độ được tính từ các thông tin cốt lõi bên dưới. Mỗi tiêu chí chỉ được đánh dấu hoàn thành khi hồ sơ có dữ liệu tương ứng.",
+        "completionLabel": "Mức độ hoàn thiện hồ sơ",
+        "criteriaCount": "Đã hoàn thành {completed}/{total} tiêu chí",
+        "checklistLabel": "Tiêu chí hoàn thiện hồ sơ",
+        "completeTitle": "Các thông tin cốt lõi đã đầy đủ",
+        "completeDescription": "Bạn vẫn có thể rà soát và cập nhật hồ sơ khi kinh nghiệm hoặc mục tiêu nghề nghiệp thay đổi.",
+        "needsAttentionTitle": "Việc nên làm tiếp theo",
+        "needsAttentionDescription": "Ưu tiên các mục còn thiếu để hồ sơ phản ánh đầy đủ năng lực và mong muốn hiện tại.",
+        "criteria": {
+          "basics": {
+            "title": "Thông tin liên hệ",
+            "description": "Có số điện thoại và địa điểm hiện tại."
+          },
+          "summary": {
+            "title": "Giới thiệu nghề nghiệp",
+            "description": "Có phần giới thiệu ngắn về chuyên môn và định hướng."
+          },
+          "experience": {
+            "title": "Kinh nghiệm làm việc",
+            "description": "Có ít nhất một kinh nghiệm làm việc."
+          },
+          "education": {
+            "title": "Học vấn",
+            "description": "Có ít nhất một thông tin học vấn."
+          },
+          "skills": {
+            "title": "Kỹ năng",
+            "description": "Có ít nhất một kỹ năng chuyên môn."
+          },
+          "documents": {
+            "title": "CV mặc định",
+            "description": "Có ít nhất một CV và đã chọn bản mặc định."
+          },
+          "preferences": {
+            "title": "Mong muốn việc làm",
+            "description": "Có vị trí mong muốn và mô hình làm việc."
+          }
+        },
+        "nextActions": {
+          "title": "Gợi ý tiếp theo",
+          "description": "Các gợi ý này dựa trên nội dung còn thiếu trong hồ sơ của bạn.",
+          "allDoneTitle": "Không còn mục bắt buộc cần bổ sung",
+          "allDoneDescription": "Hãy cập nhật lại hồ sơ khi có kinh nghiệm, kỹ năng hoặc CV mới.",
+          "basics": "Bổ sung thông tin liên hệ",
+          "summary": "Viết phần giới thiệu nghề nghiệp",
+          "experience": "Thêm kinh nghiệm làm việc",
+          "education": "Thêm thông tin học vấn",
+          "skills": "Thêm kỹ năng chuyên môn",
+          "documents": "Thêm và chọn CV mặc định",
+          "preferences": "Thiết lập mong muốn việc làm"
+        }
       },
       "status": {
-        "title": "Hồ sơ của bạn gần hoàn thiện",
-        "badge": "Cần bổ sung",
-        "description": "Hoàn thiện các mục có tác động cao để tăng khả năng xuất hiện trong tìm kiếm và tạo niềm tin với nhà tuyển dụng.",
-        "completedTitle": "Mục đã hoàn thành",
-        "completedDescription": "Các phần này đã sẵn sàng và không cần lặp lại ở nơi khác.",
-        "completionLabel": "Mức độ hoàn thiện hồ sơ"
+        "title": "Trạng thái tìm việc",
+        "description": "Cho biết bạn có đang sẵn sàng trao đổi về cơ hội mới hay không.",
+        "openToWork": "Sẵn sàng nhận cơ hội",
+        "openToWorkDescription": "Nhà tuyển dụng có thể biết bạn đang cân nhắc cơ hội mới.",
+        "notLooking": "Chưa tìm cơ hội mới",
+        "notLookingDescription": "Hồ sơ vẫn được lưu nhưng không hiển thị trạng thái sẵn sàng tìm việc.",
+        "updating": "Đang cập nhật trạng thái...",
+        "updateSuccess": "Đã cập nhật trạng thái tìm việc.",
+        "updateError": "Chưa thể cập nhật trạng thái tìm việc. Vui lòng thử lại."
       },
-      "tasks": [
-        {
-          "title": "Thêm 2 kỹ năng nữa",
-          "description": "Độ phủ kỹ năng giúp hệ thống gợi ý chính xác và nhà tuyển dụng lọc hồ sơ nhanh hơn.",
-          "action": "Thêm ngay",
-          "tone": "warning"
-        },
-        {
-          "title": "Tải CV mới nhất",
-          "description": "CV cập nhật giúp nhà tuyển dụng có bản tóm tắt đáng tin cậy để đối chiếu với hồ sơ.",
-          "action": "Tải lên",
-          "tone": "neutral"
-        }
-      ],
-      "highlights": [
-        {
-          "label": "Thông tin cá nhân",
-          "status": "Đã cập nhật"
-        },
-        {
-          "label": "Giới thiệu bản thân",
-          "status": "Đã cập nhật"
-        },
-        {
-          "label": "Kinh nghiệm làm việc",
-          "status": "Đã thêm 2 vị trí"
-        },
-        {
-          "label": "Học vấn",
-          "status": "2 mục"
-        }
-      ],
-      "sidebar": {
-        "verifiedProfile": "Hồ sơ đã xác thực",
-        "editPhoto": "Chỉnh ảnh đại diện",
-        "resume": "CV / Resume",
-        "primary": "Chính",
-        "resumeFile": "Alex_Johnson_Resume.pdf",
-        "resumeMeta": "Tải lên 12/05/2024 · 248 KB",
-        "downloadResume": "Tải CV xuống",
-        "uploadResume": "Tải CV mới lên",
-        "resumeHint": "PDF, DOCX tối đa 5MB",
-        "preferencesTitle": "Tóm tắt mong muốn việc làm",
-        "viewPreferences": "Xem toàn bộ mong muốn",
-        "visibilityTitle": "Hiển thị hồ sơ",
-        "visibilityDescription": "Hồ sơ của bạn đang hiển thị với nhà tuyển dụng.",
-        "visibilityEnabled": "Đã bật hiển thị hồ sơ",
-        "manageVisibility": "Quản lý hiển thị hồ sơ"
+      "visibility": {
+        "title": "Quyền hiển thị hồ sơ",
+        "description": "Kiểm soát việc nhà tuyển dụng có thể xem hồ sơ nghề nghiệp của bạn.",
+        "public": "Công khai với nhà tuyển dụng",
+        "publicDescription": "Nhà tuyển dụng trên UpNext có thể xem hồ sơ của bạn.",
+        "private": "Riêng tư",
+        "privateDescription": "Chỉ bạn có thể xem hồ sơ; thông tin ứng tuyển đã gửi không bị thay đổi.",
+        "updating": "Đang cập nhật quyền hiển thị...",
+        "updateSuccess": "Đã cập nhật quyền hiển thị hồ sơ.",
+        "updateError": "Chưa thể cập nhật quyền hiển thị. Vui lòng thử lại."
       },
-      "labels": {
-        "fullName": "Họ và tên",
-        "headline": "Tiêu đề nghề nghiệp",
-        "email": "Email",
-        "phone": "Số điện thoại",
-        "location": "Địa điểm",
-        "website": "Website",
-        "github": "GitHub",
-        "linkedin": "LinkedIn",
-        "basicInformation": "Thông tin cơ bản",
-        "about": "Giới thiệu bản thân",
-        "skills": "Kỹ năng",
-        "workExperience": "Kinh nghiệm làm việc",
-        "education": "Học vấn",
-        "projects": "Dự án / Portfolio",
-        "certificationsLanguages": "Chứng chỉ & Ngôn ngữ",
-        "certifications": "Chứng chỉ",
-        "languages": "Ngôn ngữ",
-        "jobPreferences": "Mong muốn việc làm"
+      "states": {
+        "loadingTitle": "Đang tải hồ sơ",
+        "loadingDescription": "UpNext đang lấy thông tin nghề nghiệp của bạn.",
+        "unauthenticatedTitle": "Bạn cần đăng nhập",
+        "unauthenticatedDescription": "Đăng nhập bằng tài khoản ứng viên để quản lý hồ sơ nghề nghiệp.",
+        "profileMissingTitle": "Chưa thể mở hồ sơ",
+        "profileMissingDescription": "Tài khoản này chưa có hồ sơ ứng viên. Vui lòng thử lại hoặc liên hệ hỗ trợ.",
+        "errorTitle": "Không thể tải hồ sơ",
+        "errorDescription": "Đã xảy ra lỗi khi lấy dữ liệu. Nội dung mẫu sẽ không được hiển thị thay cho hồ sơ của bạn.",
+        "sectionErrorTitle": "Không thể tải mục này",
+        "sectionErrorDescription": "Các mục khác vẫn có thể sử dụng. Hãy thử tải lại mục đang xem.",
+        "offlineTitle": "Bạn đang ngoại tuyến",
+        "offlineDescription": "Kiểm tra kết nối mạng trước khi thử lại."
       },
       "actions": {
+        "save": "Lưu",
+        "saveChanges": "Lưu thay đổi",
+        "saving": "Đang lưu...",
+        "cancel": "Hủy",
+        "close": "Đóng",
         "edit": "Chỉnh sửa",
-        "addSkill": "Thêm kỹ năng",
+        "delete": "Xóa",
+        "deleting": "Đang xóa...",
+        "retry": "Thử lại",
+        "refresh": "Tải lại",
+        "continue": "Tiếp tục",
+        "back": "Quay lại",
+        "done": "Hoàn tất",
+        "preview": "Xem trước",
+        "previewAsRecruiter": "Xem như nhà tuyển dụng",
+        "openMenu": "Mở menu thao tác",
+        "editProfile": "Chỉnh sửa thông tin cơ bản",
+        "editStatus": "Cập nhật trạng thái",
+        "manageVisibility": "Quản lý quyền hiển thị",
         "addExperience": "Thêm kinh nghiệm",
-        "addEducation": "Thêm học vấn",
         "addProject": "Thêm dự án",
+        "addEducation": "Thêm học vấn",
+        "addCertification": "Thêm chứng chỉ",
+        "addSkill": "Thêm kỹ năng",
         "addLanguage": "Thêm ngôn ngữ",
-        "addPreference": "Thêm mong muốn",
-        "missing": "Thiếu"
+        "addLink": "Thêm liên kết",
+        "editPreferences": "Chỉnh sửa mong muốn",
+        "uploadCv": "Tải CV lên",
+        "openCvBuilder": "Mở CV Builder",
+        "download": "Tải xuống",
+        "setDefault": "Đặt làm CV mặc định",
+        "replace": "Thay thế tệp",
+        "signIn": "Đăng nhập"
       },
-      "about": "Frontend developer giàu đam mê với hơn 5 năm kinh nghiệm xây dựng ứng dụng web responsive, dễ tiếp cận và hiệu năng cao. Tôi thích biến vấn đề phức tạp thành trải nghiệm đơn giản, đẹp và trực quan. Có kinh nghiệm với React, Next.js, TypeScript và tối ưu hiệu năng.",
-      "current": "Hiện tại",
-      "languages": [
-        ["Tiếng Anh", "Bản ngữ"],
-        ["Tiếng Tây Ban Nha", "Chuyên nghiệp"],
-        ["Tiếng Pháp", "Cơ bản"]
-      ],
-      "preferences": [
-        ["Vai trò mong muốn", "Frontend Developer"],
-        ["Hình thức làm việc", "Toàn thời gian"],
-        ["Mức lương", "$100,000 - $140,000"],
-        ["Mô hình làm việc", "Hybrid, Remote"],
-        ["Địa điểm ưu tiên", "San Francisco, CA, USA · Austin, TX, USA"]
-      ],
-      "contact": {
-        "profileDetailsLabel": "Chi tiết hồ sơ",
-        "completedSectionsLabel": "Các phần hồ sơ đã hoàn thành",
-        "bottomNavLabel": "Điều hướng mobile của ứng viên"
+      "feedback": {
+        "created": "Đã thêm thông tin mới.",
+        "updated": "Đã lưu thay đổi.",
+        "deleted": "Đã xóa mục đã chọn.",
+        "failed": "Không thể hoàn tất thao tác. Vui lòng thử lại.",
+        "noChanges": "Chưa có thay đổi để lưu.",
+        "unsavedTitle": "Bạn có thay đổi chưa lưu",
+        "unsavedDescription": "Nếu đóng bây giờ, các thay đổi trong biểu mẫu sẽ bị mất."
+      },
+      "forms": {
+        "common": {
+          "requiredHint": "Các trường có dấu * là bắt buộc.",
+          "optional": "Không bắt buộc",
+          "current": "Hiện tại",
+          "present": "Hiện nay",
+          "selectPlaceholder": "Chọn một giá trị",
+          "datePlaceholder": "Chọn ngày",
+          "charactersRemaining": "Còn {count} ký tự"
+        },
+        "profile": {
+          "title": "Chỉnh sửa thông tin cơ bản",
+          "description": "Giữ thông tin liên hệ và phần giới thiệu đúng với tình trạng hiện tại.",
+          "personalSection": "Thông tin cá nhân",
+          "contactSection": "Thông tin liên hệ",
+          "summarySection": "Giới thiệu nghề nghiệp",
+          "fields": {
+            "fullName": {
+              "label": "Họ và tên",
+              "placeholder": "Nhập họ và tên",
+              "help": "Tên này được lấy từ tài khoản UpNext của bạn."
+            },
+            "email": {
+              "label": "Email",
+              "placeholder": "tenban@example.com",
+              "help": "Email đăng nhập được quản lý trong phần cài đặt tài khoản."
+            },
+            "phoneNumber": {
+              "label": "Số điện thoại",
+              "placeholder": "Nhập số điện thoại",
+              "help": "Dùng số điện thoại bạn có thể nhận liên hệ tuyển dụng."
+            },
+            "gender": {
+              "label": "Giới tính",
+              "placeholder": "Chọn giới tính",
+              "help": "Thông tin này không bắt buộc."
+            },
+            "address": {
+              "label": "Địa điểm hiện tại",
+              "placeholder": "Ví dụ: Thành phố Hồ Chí Minh",
+              "help": "Chỉ cần thành phố hoặc tỉnh; không nên nhập địa chỉ nhà đầy đủ."
+            },
+            "birthdate": {
+              "label": "Ngày sinh",
+              "placeholder": "Chọn ngày sinh",
+              "help": "Thông tin này không bắt buộc."
+            },
+            "description": {
+              "label": "Giới thiệu nghề nghiệp",
+              "placeholder": "Tóm tắt chuyên môn, thế mạnh và định hướng nghề nghiệp của bạn...",
+              "help": "Viết ngắn gọn, cụ thể và tránh đưa thông tin nhạy cảm."
+            }
+          }
+        },
+        "experience": {
+          "addTitle": "Thêm kinh nghiệm",
+          "editTitle": "Chỉnh sửa kinh nghiệm",
+          "description": "Mô tả vai trò, phạm vi công việc và kết quả có thể kiểm chứng.",
+          "fields": {
+            "positionTitle": {
+              "label": "Chức danh",
+              "placeholder": "Ví dụ: Kỹ sư phần mềm"
+            },
+            "companyName": {
+              "label": "Công ty hoặc tổ chức",
+              "placeholder": "Nhập tên công ty"
+            },
+            "employmentType": {
+              "label": "Loại hình làm việc",
+              "placeholder": "Chọn loại hình"
+            },
+            "startDate": {
+              "label": "Ngày bắt đầu"
+            },
+            "endDate": {
+              "label": "Ngày kết thúc"
+            },
+            "isCurrent": {
+              "label": "Tôi đang làm việc tại đây"
+            },
+            "description": {
+              "label": "Mô tả",
+              "placeholder": "Nêu trách nhiệm chính, phạm vi và kết quả nổi bật...",
+              "help": "Ưu tiên kết quả cụ thể và không đưa thông tin mật của doanh nghiệp."
+            },
+            "technologies": {
+              "label": "Công nghệ hoặc kỹ năng sử dụng",
+              "placeholder": "Ví dụ: TypeScript, React, PostgreSQL",
+              "help": "Phân tách các mục bằng dấu phẩy."
+            }
+          }
+        },
+        "project": {
+          "addTitle": "Thêm dự án",
+          "editTitle": "Chỉnh sửa dự án",
+          "description": "Thêm dự án cá nhân hoặc dự án công việc mà bạn có thể công khai.",
+          "fields": {
+            "name": {
+              "label": "Tên dự án",
+              "placeholder": "Nhập tên dự án"
+            },
+            "role": {
+              "label": "Vai trò",
+              "placeholder": "Ví dụ: Frontend Developer"
+            },
+            "description": {
+              "label": "Mô tả",
+              "placeholder": "Mô tả bài toán, đóng góp của bạn và kết quả..."
+            },
+            "projectUrl": {
+              "label": "Liên kết dự án",
+              "placeholder": "https://example.com"
+            },
+            "deployUrl": {
+              "label": "Liên kết sản phẩm đang chạy",
+              "placeholder": "https://app.example.com"
+            },
+            "technologies": {
+              "label": "Công nghệ sử dụng",
+              "placeholder": "Ví dụ: Next.js, NestJS, PostgreSQL",
+              "help": "Phân tách các mục bằng dấu phẩy."
+            },
+            "startDate": {
+              "label": "Ngày bắt đầu"
+            },
+            "endDate": {
+              "label": "Ngày kết thúc"
+            }
+          }
+        },
+        "education": {
+          "addTitle": "Thêm học vấn",
+          "editTitle": "Chỉnh sửa học vấn",
+          "description": "Thêm chương trình học hoặc đào tạo liên quan đến định hướng nghề nghiệp.",
+          "fields": {
+            "schoolName": {
+              "label": "Trường hoặc cơ sở đào tạo",
+              "placeholder": "Nhập tên trường"
+            },
+            "degree": {
+              "label": "Bằng cấp",
+              "placeholder": "Ví dụ: Cử nhân"
+            },
+            "major": {
+              "label": "Chuyên ngành",
+              "placeholder": "Ví dụ: Công nghệ thông tin"
+            },
+            "startDate": {
+              "label": "Ngày bắt đầu"
+            },
+            "endDate": {
+              "label": "Ngày kết thúc"
+            },
+            "isCurrent": {
+              "label": "Tôi đang học tại đây"
+            },
+            "gpa": {
+              "label": "GPA",
+              "placeholder": "Nhập điểm trên thang 10",
+              "help": "GPA không bắt buộc và phải nằm trong khoảng từ 0 đến 10."
+            },
+            "description": {
+              "label": "Hoạt động hoặc thành tích",
+              "placeholder": "Thêm nội dung liên quan đến chương trình học..."
+            }
+          }
+        },
+        "certification": {
+          "addTitle": "Thêm chứng chỉ",
+          "editTitle": "Chỉnh sửa chứng chỉ",
+          "description": "Chỉ thêm chứng chỉ bạn đã đạt được và có thông tin chính xác.",
+          "fields": {
+            "name": {
+              "label": "Tên chứng chỉ",
+              "placeholder": "Nhập tên chứng chỉ"
+            },
+            "organization": {
+              "label": "Tổ chức cấp",
+              "placeholder": "Nhập tên tổ chức"
+            },
+            "issuedDate": {
+              "label": "Ngày cấp"
+            },
+            "expiredDate": {
+              "label": "Ngày hết hạn"
+            },
+            "credentialUrl": {
+              "label": "Liên kết xác thực",
+              "placeholder": "https://example.com/credential"
+            }
+          }
+        },
+        "skill": {
+          "addTitle": "Thêm kỹ năng",
+          "editTitle": "Chỉnh sửa kỹ năng",
+          "description": "Chọn kỹ năng phù hợp và đánh giá mức độ thành thạo thực tế.",
+          "fields": {
+            "skill": {
+              "label": "Kỹ năng",
+              "placeholder": "Tìm kiếm kỹ năng"
+            },
+            "proficiencyLevel": {
+              "label": "Mức độ thành thạo",
+              "placeholder": "Chọn mức độ"
+            },
+            "yearsOfExperience": {
+              "label": "Số năm kinh nghiệm",
+              "placeholder": "Ví dụ: 2.5"
+            }
+          },
+          "searching": "Đang tìm kỹ năng...",
+          "noResults": "Không tìm thấy kỹ năng phù hợp.",
+          "createNew": "Tạo kỹ năng “{name}”",
+          "alreadyAdded": "Kỹ năng này đã có trong hồ sơ.",
+          "yearsValue": "{count} năm"
+        },
+        "language": {
+          "addTitle": "Thêm ngôn ngữ",
+          "editTitle": "Chỉnh sửa ngôn ngữ",
+          "description": "Chọn mức độ phản ánh đúng khả năng sử dụng ngôn ngữ của bạn.",
+          "fields": {
+            "language": {
+              "label": "Ngôn ngữ",
+              "placeholder": "Ví dụ: Tiếng Anh"
+            },
+            "proficiency": {
+              "label": "Mức độ sử dụng",
+              "placeholder": "Chọn mức độ"
+            }
+          }
+        },
+        "link": {
+          "addTitle": "Thêm liên kết",
+          "editTitle": "Chỉnh sửa liên kết",
+          "description": "Dẫn nhà tuyển dụng đến hồ sơ nghề nghiệp hoặc sản phẩm công khai của bạn.",
+          "fields": {
+            "type": {
+              "label": "Loại liên kết",
+              "placeholder": "Chọn loại liên kết"
+            },
+            "url": {
+              "label": "Địa chỉ liên kết",
+              "placeholder": "https://example.com"
+            }
+          }
+        },
+        "preferences": {
+          "title": "Chỉnh sửa mong muốn việc làm",
+          "description": "Thông tin này giúp bạn duy trì tiêu chí tìm việc nhất quán.",
+          "salarySection": "Mức lương mong muốn",
+          "workSection": "Điều kiện làm việc",
+          "fields": {
+            "desiredPosition": {
+              "label": "Vị trí mong muốn",
+              "placeholder": "Ví dụ: Backend Developer"
+            },
+            "desiredSalaryMin": {
+              "label": "Mức lương tối thiểu",
+              "placeholder": "Nhập mức tối thiểu"
+            },
+            "desiredSalaryMax": {
+              "label": "Mức lương tối đa",
+              "placeholder": "Nhập mức tối đa"
+            },
+            "salaryCurrency": {
+              "label": "Đơn vị tiền tệ",
+              "placeholder": "Chọn đơn vị"
+            },
+            "workingModel": {
+              "label": "Mô hình làm việc",
+              "placeholder": "Chọn mô hình"
+            },
+            "desiredLevelId": {
+              "label": "Cấp bậc mong muốn",
+              "placeholder": "Chọn cấp bậc"
+            },
+            "noticePeriodDays": {
+              "label": "Thời gian có thể bắt đầu",
+              "placeholder": "Số ngày cần báo trước",
+              "help": "Nhập số ngày bạn cần trước khi có thể bắt đầu công việc mới."
+            },
+            "isRelocate": {
+              "label": "Tôi sẵn sàng chuyển nơi ở vì công việc"
+            }
+          }
+        }
+      },
+      "options": {
+        "gender": {
+          "MALE": "Nam",
+          "FEMALE": "Nữ"
+        },
+        "employmentType": {
+          "FULL_TIME": "Toàn thời gian",
+          "PART_TIME": "Bán thời gian",
+          "CONTRACT": "Hợp đồng",
+          "INTERNSHIP": "Thực tập",
+          "FREELANCE": "Tự do",
+          "OTHER": "Khác"
+        },
+        "workingModel": {
+          "ONSITE": "Tại văn phòng",
+          "REMOTE": "Từ xa",
+          "HYBRID": "Kết hợp"
+        },
+        "skillProficiency": {
+          "BEGINNER": "Mới bắt đầu",
+          "INTERMEDIATE": "Trung cấp",
+          "ADVANCED": "Nâng cao",
+          "EXPERT": "Chuyên gia"
+        },
+        "languageProficiency": {
+          "BASIC": "Cơ bản",
+          "INTERMEDIATE": "Trung cấp",
+          "PROFESSIONAL": "Sử dụng trong công việc",
+          "FLUENT": "Thành thạo",
+          "NATIVE": "Bản ngữ hoặc tương đương"
+        },
+        "linkType": {
+          "WEBSITE": "Website cá nhân",
+          "PORTFOLIO": "Portfolio",
+          "LINKEDIN": "LinkedIn",
+          "GITHUB": "GitHub",
+          "OTHER": "Khác"
+        },
+        "currency": {
+          "VND": "VND",
+          "USD": "USD"
+        }
+      },
+      "validation": {
+        "required": "Trường này là bắt buộc.",
+        "selectionRequired": "Vui lòng chọn một giá trị.",
+        "invalidEmail": "Nhập địa chỉ email hợp lệ.",
+        "invalidPhone": "Nhập số điện thoại hợp lệ.",
+        "invalidUrl": "Nhập liên kết đầy đủ bắt đầu bằng http:// hoặc https://.",
+        "invalidDate": "Nhập ngày hợp lệ.",
+        "startBeforeEnd": "Ngày kết thúc phải sau ngày bắt đầu.",
+        "salaryRange": "Mức lương tối đa phải lớn hơn hoặc bằng mức tối thiểu.",
+        "gpaRange": "GPA phải nằm trong khoảng từ 0 đến 10.",
+        "noticePeriodRange": "Thời gian báo trước phải nằm trong khoảng từ 0 đến 365 ngày.",
+        "positiveNumber": "Giá trị phải là số không âm.",
+        "maxLength": "Nội dung không được vượt quá {max} ký tự.",
+        "duplicate": "Thông tin này đã có trong hồ sơ.",
+        "fileRequired": "Vui lòng chọn một tệp CV.",
+        "fileType": "Chỉ hỗ trợ tệp PDF hoặc DOCX.",
+        "fileSize": "Tệp phải nhỏ hơn hoặc bằng {size} MB."
+      },
+      "deleteConfirmations": {
+        "cancelAction": "Giữ lại",
+        "deleteAction": "Xóa vĩnh viễn",
+        "experience": {
+          "title": "Xóa kinh nghiệm này?",
+          "description": "Kinh nghiệm sẽ bị xóa khỏi hồ sơ và không thể khôi phục."
+        },
+        "project": {
+          "title": "Xóa dự án này?",
+          "description": "Dự án sẽ bị xóa khỏi hồ sơ và không thể khôi phục."
+        },
+        "education": {
+          "title": "Xóa thông tin học vấn này?",
+          "description": "Thông tin học vấn sẽ bị xóa khỏi hồ sơ và không thể khôi phục."
+        },
+        "certification": {
+          "title": "Xóa chứng chỉ này?",
+          "description": "Chứng chỉ sẽ bị xóa khỏi hồ sơ và không thể khôi phục."
+        },
+        "skill": {
+          "title": "Xóa kỹ năng này?",
+          "description": "Kỹ năng sẽ bị xóa khỏi hồ sơ của bạn."
+        },
+        "language": {
+          "title": "Xóa ngôn ngữ này?",
+          "description": "Ngôn ngữ sẽ bị xóa khỏi hồ sơ của bạn."
+        },
+        "link": {
+          "title": "Xóa liên kết này?",
+          "description": "Liên kết sẽ bị xóa khỏi hồ sơ của bạn."
+        },
+        "cv": {
+          "title": "Xóa CV này?",
+          "description": "Tệp và các phiên bản thuộc CV này sẽ bị xóa. Thao tác không thể hoàn tác.",
+          "defaultDescription": "Đây là CV mặc định. Hãy chọn một CV mặc định khác trước khi xóa."
+        }
+      },
+      "recruiterPreview": {
+        "title": "Bản xem trước dành cho nhà tuyển dụng",
+        "description": "Đây là cách thông tin nghề nghiệp hiện có của bạn được trình bày. Nội dung chưa lưu sẽ không xuất hiện.",
+        "previewLabel": "Chế độ xem trước",
+        "privateNoticeTitle": "Hồ sơ đang ở chế độ riêng tư",
+        "privateNoticeDescription": "Nhà tuyển dụng không thể mở hồ sơ này cho đến khi bạn chuyển quyền hiển thị sang công khai.",
+        "contactTitle": "Thông tin liên hệ",
+        "aboutTitle": "Giới thiệu",
+        "noSummary": "Ứng viên chưa thêm phần giới thiệu.",
+        "noExperience": "Ứng viên chưa thêm kinh nghiệm làm việc.",
+        "noProjects": "Ứng viên chưa thêm dự án.",
+        "noEducation": "Ứng viên chưa thêm học vấn.",
+        "noSkills": "Ứng viên chưa thêm kỹ năng.",
+        "closePreview": "Đóng bản xem trước"
+      },
+      "documents": {
+        "uploadTitle": "Tải CV lên",
+        "uploadDescription": "Chọn một bản CV đã kiểm tra kỹ trước khi dùng để ứng tuyển.",
+        "dropzoneLabel": "Khu vực tải CV lên",
+        "dropzoneTitle": "Kéo thả CV vào đây",
+        "dropzoneDescription": "Hoặc chọn tệp từ thiết bị của bạn.",
+        "chooseFile": "Chọn tệp",
+        "supportedFormats": "Định dạng hỗ trợ: PDF, DOCX",
+        "maximumSize": "Dung lượng tối đa: {size} MB",
+        "selectedFile": "Tệp đã chọn: {name}",
+        "uploading": "Đang tải lên...",
+        "processing": "Đang xử lý",
+        "ready": "Sẵn sàng",
+        "failed": "Xử lý thất bại",
+        "defaultLabel": "Mặc định",
+        "uploadedLabel": "CV tải lên",
+        "builderLabel": "Tạo bằng UpNext CV Builder",
+        "uploadedAt": "Tải lên {date}",
+        "updatedAt": "Cập nhật {date}",
+        "fileSize": "{size}",
+        "version": "Phiên bản {version}",
+        "setDefaultSuccess": "Đã đặt CV mặc định.",
+        "uploadSuccess": "Đã tải CV lên.",
+        "deleteSuccess": "Đã xóa CV.",
+        "uploadError": "Không thể tải CV lên. Vui lòng kiểm tra tệp và thử lại.",
+        "previewUnavailable": "Không có bản xem trước cho tệp này.",
+        "downloadUnavailable": "Không thể tải tệp xuống lúc này."
       }
     }
   },

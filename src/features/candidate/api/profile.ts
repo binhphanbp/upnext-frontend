@@ -120,6 +120,109 @@ export type CandidateJobPreferenceApi = Readonly<{
   isRelocate: boolean;
 }>;
 
+export type UpdateCandidateProfilePayload = Readonly<
+  Partial<{
+    phoneNumber: string;
+    gender: "MALE" | "FEMALE";
+    address: string;
+    birthdate: string;
+    description: string;
+    jobSearchStatus: "OPEN_TO_WORK" | "NOT_LOOKING";
+    profileVisibility: "PUBLIC" | "PRIVATE";
+  }>
+>;
+
+export type CreateCandidateExperiencePayload = Readonly<{
+  companyName: string;
+  positionTitle: string;
+  employmentType?: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent?: boolean;
+  description?: string;
+  technologies?: string;
+  sortOrder?: number;
+}>;
+
+export type UpdateCandidateExperiencePayload = Readonly<Partial<CreateCandidateExperiencePayload>>;
+
+export type CreateCandidateEducationPayload = Readonly<{
+  schoolName: string;
+  degree?: string;
+  major?: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent?: boolean;
+  gpa?: number;
+  description?: string;
+  sortOrder?: number;
+}>;
+
+export type UpdateCandidateEducationPayload = Readonly<Partial<CreateCandidateEducationPayload>>;
+
+export type CreateCandidateSkillPayload = Readonly<{
+  skillId: string;
+  proficiencyLevel?: CandidateSkillApi["proficiencyLevel"];
+  yearsOfExperience?: number;
+  sortOrder?: number;
+}>;
+
+export type UpdateCandidateSkillPayload = Readonly<Partial<CreateCandidateSkillPayload>>;
+
+export type CreateCandidateProjectPayload = Readonly<{
+  name: string;
+  role?: string;
+  description?: string;
+  projectUrl?: string;
+  technologies?: string;
+  deployUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  sortOrder?: number;
+}>;
+
+export type UpdateCandidateProjectPayload = Readonly<Partial<CreateCandidateProjectPayload>>;
+
+export type CreateCandidateCertificationPayload = Readonly<{
+  name: string;
+  organization?: string;
+  issuedDate?: string;
+  expiredDate?: string;
+  credentialUrl?: string;
+  sortOrder?: number;
+}>;
+
+export type UpdateCandidateCertificationPayload = Readonly<
+  Partial<CreateCandidateCertificationPayload>
+>;
+
+export type CreateCandidateLanguagePayload = Readonly<{
+  language: string;
+  proficiency: string;
+}>;
+
+export type UpdateCandidateLanguagePayload = Readonly<Partial<CreateCandidateLanguagePayload>>;
+
+export type CreateCandidateLinkPayload = Readonly<{
+  type: string;
+  url: string;
+}>;
+
+export type UpdateCandidateLinkPayload = Readonly<Partial<CreateCandidateLinkPayload>>;
+
+export type UpdateCandidateJobPreferencePayload = Readonly<
+  Partial<{
+    desiredPosition: string;
+    desiredSalaryMin: number | undefined;
+    desiredSalaryMax: number | undefined;
+    salaryCurrency: string;
+    workingModel: "ONSITE" | "REMOTE" | "HYBRID";
+    desiredLevelId: string;
+    noticePeriodDays: number;
+    isRelocate: boolean;
+  }>
+>;
+
 export type SkillOptionApi = Readonly<{
   id: string;
   name: string;
@@ -173,16 +276,7 @@ export function getMyCandidateProfile(token: string) {
   });
 }
 
-export function updateMyCandidateProfile(
-  token: string,
-  payload: Partial<{
-    phoneNumber: string;
-    address: string;
-    description: string;
-    jobSearchStatus: "OPEN_TO_WORK" | "NOT_LOOKING";
-    profileVisibility: "PUBLIC" | "PRIVATE";
-  }>,
-) {
+export function updateMyCandidateProfile(token: string, payload: UpdateCandidateProfilePayload) {
   return apiRequest<CandidateProfileApi>("/candidate-profiles/me", {
     body: JSON.stringify(payload),
     headers: {
@@ -193,15 +287,7 @@ export function updateMyCandidateProfile(
   });
 }
 
-export function createCandidateEducation(
-  token: string,
-  payload: {
-    schoolName: string;
-    degree?: string;
-    major?: string;
-    description?: string;
-  },
-) {
+export function createCandidateEducation(token: string, payload: CreateCandidateEducationPayload) {
   return apiRequest<CandidateEducationApi>("/candidate-profiles/me/educations", {
     body: JSON.stringify(payload),
     headers: {
@@ -212,16 +298,31 @@ export function createCandidateEducation(
   });
 }
 
+export function updateCandidateEducation(
+  token: string,
+  educationId: string,
+  payload: UpdateCandidateEducationPayload,
+) {
+  return apiRequest<CandidateEducationApi>(`/candidate-profiles/me/educations/${educationId}`, {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "PATCH",
+  });
+}
+
+export function deleteCandidateEducation(token: string, educationId: string) {
+  return apiRequest<void>(`/candidate-profiles/me/educations/${educationId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
 export function createCandidateExperience(
   token: string,
-  payload: {
-    companyName: string;
-    positionTitle: string;
-    employmentType?: string;
-    description?: string;
-    technologies?: string;
-    isCurrent?: boolean;
-  },
+  payload: CreateCandidateExperiencePayload,
 ) {
   return apiRequest<CandidateExperienceApi>("/candidate-profiles/me/experiences", {
     body: JSON.stringify(payload),
@@ -233,14 +334,29 @@ export function createCandidateExperience(
   });
 }
 
-export function createCandidateSkill(
+export function updateCandidateExperience(
   token: string,
-  payload: {
-    skillId: string;
-    proficiencyLevel?: CandidateSkillApi["proficiencyLevel"];
-    yearsOfExperience?: number;
-  },
+  experienceId: string,
+  payload: UpdateCandidateExperiencePayload,
 ) {
+  return apiRequest<CandidateExperienceApi>(`/candidate-profiles/me/experiences/${experienceId}`, {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "PATCH",
+  });
+}
+
+export function deleteCandidateExperience(token: string, experienceId: string) {
+  return apiRequest<void>(`/candidate-profiles/me/experiences/${experienceId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
+export function createCandidateSkill(token: string, payload: CreateCandidateSkillPayload) {
   return apiRequest<CandidateSkillApi>("/candidate-profiles/me/skills", {
     body: JSON.stringify(payload),
     headers: {
@@ -251,17 +367,169 @@ export function createCandidateSkill(
   });
 }
 
+export function updateCandidateSkill(
+  token: string,
+  candidateSkillId: string,
+  payload: UpdateCandidateSkillPayload,
+) {
+  return apiRequest<CandidateSkillApi>(`/candidate-profiles/me/skills/${candidateSkillId}`, {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "PATCH",
+  });
+}
+
+export function deleteCandidateSkill(token: string, candidateSkillId: string) {
+  return apiRequest<void>(`/candidate-profiles/me/skills/${candidateSkillId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
+export function createCandidateProject(token: string, payload: CreateCandidateProjectPayload) {
+  return apiRequest<CandidateProjectApi>("/candidate-profiles/me/projects", {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+}
+
+export function updateCandidateProject(
+  token: string,
+  projectId: string,
+  payload: UpdateCandidateProjectPayload,
+) {
+  return apiRequest<CandidateProjectApi>(`/candidate-profiles/me/projects/${projectId}`, {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "PATCH",
+  });
+}
+
+export function deleteCandidateProject(token: string, projectId: string) {
+  return apiRequest<void>(`/candidate-profiles/me/projects/${projectId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
+export function createCandidateCertification(
+  token: string,
+  payload: CreateCandidateCertificationPayload,
+) {
+  return apiRequest<CandidateCertificationApi>("/candidate-profiles/me/certifications", {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+}
+
+export function updateCandidateCertification(
+  token: string,
+  certificationId: string,
+  payload: UpdateCandidateCertificationPayload,
+) {
+  return apiRequest<CandidateCertificationApi>(
+    `/candidate-profiles/me/certifications/${certificationId}`,
+    {
+      body: JSON.stringify(payload),
+      headers: {
+        ...authHeaders(token),
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    },
+  );
+}
+
+export function deleteCandidateCertification(token: string, certificationId: string) {
+  return apiRequest<void>(`/candidate-profiles/me/certifications/${certificationId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
+export function createCandidateLanguage(token: string, payload: CreateCandidateLanguagePayload) {
+  return apiRequest<CandidateLanguageApi>("/candidate-profiles/me/languages", {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+}
+
+export function updateCandidateLanguage(
+  token: string,
+  languageId: string,
+  payload: UpdateCandidateLanguagePayload,
+) {
+  return apiRequest<CandidateLanguageApi>(`/candidate-profiles/me/languages/${languageId}`, {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "PATCH",
+  });
+}
+
+export function deleteCandidateLanguage(token: string, languageId: string) {
+  return apiRequest<void>(`/candidate-profiles/me/languages/${languageId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
+export function createCandidateLink(token: string, payload: CreateCandidateLinkPayload) {
+  return apiRequest<CandidateLinkApi>("/candidate-profiles/me/links", {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+}
+
+export function updateCandidateLink(
+  token: string,
+  linkId: string,
+  payload: UpdateCandidateLinkPayload,
+) {
+  return apiRequest<CandidateLinkApi>(`/candidate-profiles/me/links/${linkId}`, {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "PATCH",
+  });
+}
+
+export function deleteCandidateLink(token: string, linkId: string) {
+  return apiRequest<void>(`/candidate-profiles/me/links/${linkId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
 export function updateCandidateJobPreference(
   token: string,
-  payload: Partial<{
-    desiredPosition: string;
-    desiredSalaryMin: number | undefined;
-    desiredSalaryMax: number | undefined;
-    salaryCurrency: string;
-    workingModel: "ONSITE" | "REMOTE" | "HYBRID";
-    noticePeriodDays: number;
-    isRelocate: boolean;
-  }>,
+  payload: UpdateCandidateJobPreferencePayload,
 ) {
   return apiRequest<CandidateJobPreferenceApi>("/candidate-profiles/me/job-preference", {
     body: JSON.stringify(payload),
@@ -289,11 +557,16 @@ export function createSkillOption(name: string) {
   });
 }
 
-export function getMyCandidateCvs(token: string, candidateAccountId: string) {
+export function getMyCandidateCvs(
+  token: string,
+  candidateAccountId: string,
+  page = 1,
+  limit = 100,
+) {
   const params = new URLSearchParams({
     candidateAccountId,
-    limit: "20",
-    page: "1",
+    limit: String(limit),
+    page: String(page),
   });
 
   return apiRequest<PaginatedResponse<CandidateCvApi>>(`/cvs/me?${params.toString()}`, {
