@@ -2,85 +2,92 @@
 
 ## Goal
 
-Replace the current company culture-image preview with a polished, immersive lightbox that keeps the active thumbnail visible, works predictably with pointer, keyboard, and touch input, and remains usable across desktop and mobile viewports.
+Replace the company culture-image preview with a flat, full-viewport lightbox inspired by the clarity of lightGallery while remaining custom-built, visually aligned with UpNext, and independent of a carousel dependency.
 
-## Confirmed root cause
+The image must remain the visual priority. The page behind the lightbox should still be perceptible through a blue-charcoal glass overlay instead of disappearing behind an opaque black modal.
 
-The current gallery updates `activeCultureImage` but has no thumbnail refs or effect that synchronizes the horizontal rail. At image `15/18`, runtime measurement showed:
+## Confirmed problems
 
-- thumbnail rail `scrollLeft`: `0`
-- active thumbnail: outside the rail viewport
-- `activeFullyVisible`: `false`
+- The original gallery changed the active image without synchronizing the horizontal thumbnail rail. At image `15/18`, the rail remained at `scrollLeft: 0` and the active thumbnail was outside the viewport.
+- The first redesign introduced too many visible containers: overlay, large modal card, toolbar row, image frame, and footer card. It read like a dashboard modal rather than a modern image viewer.
+- Grid columns reserved for navigation controls reduced the image area, especially on mobile.
 
-The current hand-built `<dialog open>` also lacks the complete modal lifecycle expected from a production dialog: focus containment, reliable focus restoration, background inertness, and a single coordinated close path.
+## Visual direction
 
-## Product direction
+Use three visual layers only:
 
-Use a dark, immersive UpNext lightbox that prioritizes the image instead of presenting a floating picture above a visible native scrollbar. The experience should feel calm and editorial rather than decorative or game-like.
+1. The main image, centered directly in the viewport.
+2. Floating glass controls and edge navigation.
+3. A thumbnail filmstrip floating over a transparent-to-blue-charcoal bottom gradient.
 
-### Layout
+The Radix dialog content fills the viewport and has no card background, border, radius, or boxed header/footer. The overlay uses a translucent blue-charcoal color at roughly 60–66% opacity with restrained blur so the company page remains visible. Local control surfaces provide sufficient contrast without making the whole viewer opaque.
 
-The dialog has three stable zones:
+UpNext emerald is reserved for active thumbnails, focus rings, and deliberate hover emphasis. It is not used as a large background.
 
-1. A compact top toolbar with the collection label, an accessible live counter, and a close button.
-2. A flexible image stage that uses the available viewport while preserving the image aspect ratio.
-3. A bottom filmstrip with edge fades, compact thumbnails, and an UpNext emerald active state.
+### Top controls
 
-The shell uses restrained charcoal surfaces, subtle borders, and soft shadows. Navigation controls remain discoverable rather than appearing only on hover.
+- A tabular live counter sits at the top-left.
+- A compact glass toolbar sits at the top-right.
+- The visible toolbar contains useful viewer controls only: zoom out, current zoom/reset, zoom in, fullscreen, filmstrip visibility, and close.
+- The dialog title and usage instructions remain programmatically available but are visually hidden to avoid another header layer.
+- All icon controls have Vietnamese accessible names, native tooltips, 44px targets, hover/active states, and strong `:focus-visible` treatment.
 
-### Image navigation
+### Image stage
 
-- Previous and next buttons wrap between the first and last image.
-- `ArrowLeft` and `ArrowRight` navigate while focus is inside the dialog.
-- `Home` selects the first image; `End` selects the last image.
-- A deliberate horizontal swipe changes the image on touch devices; vertical page-like gestures are ignored.
-- Clicking a thumbnail selects it directly.
-- Image changes use a short opacity/scale entrance and disable nonessential motion when reduced motion is requested.
+- The stage uses all remaining viewport space and reserves only safe breathing room for the top controls and filmstrip.
+- The image uses `object-fit: contain`, has no frame or dark card, and receives only a restrained shadow.
+- Previous/next controls are absolutely positioned near the viewport edges and never consume image grid columns.
+- Image changes use a short opacity transition; reduced-motion users get an immediate change.
+- Clicking the empty stage closes the lightbox without treating image, toolbar, navigation, drag, or swipe interactions as backdrop clicks.
 
-### Thumbnail synchronization
+### Filmstrip
 
-The component stores a ref to the filmstrip viewport and each thumbnail. Whenever the active index changes—from arrows, keyboard, swipe, or direct selection—the active thumbnail is scrolled into the visible center of the filmstrip.
+- The filmstrip floats at the bottom over a single gradient, with no footer card or native scrollbar.
+- Desktop thumbnails are approximately `84 × 56px`; mobile thumbnails are approximately `64 × 44px`.
+- The active thumbnail has an emerald border plus opacity/scale emphasis and `aria-current`.
+- Whenever navigation changes the active image, the rail centers the active thumbnail. It re-centers after a resize or orientation change.
+- The user can hide the filmstrip to maximize image space and restore it from the toolbar.
 
-The scroll targets only the thumbnail rail, uses `block: "nearest"` and `inline: "center"`, and falls back to immediate movement for reduced-motion users. The filmstrip hides the browser's native scrollbar while preserving wheel, trackpad, drag, and keyboard scrolling.
+## Interaction model
 
-### Dialog behavior and accessibility
+- Previous/next buttons wrap from first to last and last to first.
+- `ArrowLeft`, `ArrowRight`, `Home`, and `End` navigate.
+- `+`, `-`, and `0` control zoom/reset.
+- A deliberate horizontal swipe navigates when the image is at fit scale.
+- Zoom supports toolbar control, double-click/tap, pointer pan while enlarged, and reset on image change.
+- Fullscreen uses the browser Fullscreen API when available and exits cleanly when the dialog closes.
+- Direct thumbnail selection remains available.
+- Escape closes the dialog, focus stays trapped while open, and focus returns to the gallery item that opened it.
 
-- Build the specialized lightbox on Radix Dialog primitives already installed in the project.
-- Opening the gallery moves focus into the dialog, traps it there, makes background content inert, and locks background scrolling.
-- Escape, the close button, overlay interaction, or controlled state closure all use one close path.
-- Closing restores focus to the gallery item that opened the lightbox.
-- The dialog has a programmatic title and description.
-- Icon-only controls have explicit labels and visible focus states.
-- The active thumbnail uses `aria-current`; the image counter is announced politely when it changes.
-- Decorative icons and thumbnails use appropriate hidden/empty alternative text.
+The viewer intentionally excludes share, rotate, flip, autoplay, and forced downloads. Those controls add noise or content-rights ambiguity without meaningful value for a recruitment-company gallery.
 
-### Responsive behavior
+## Accessibility and responsive behavior
 
-- Desktop: a wide stage with a centered filmstrip, generous but bounded spacing, and side navigation controls.
-- Tablet: reduced outer padding while retaining the three-zone structure.
-- Mobile: nearly edge-to-edge dialog, compact toolbar and thumbnails, always-visible navigation, safe-area-aware padding, and touch swipe support.
-- The dialog never creates page-level horizontal scrolling.
+- Build on installed Radix Dialog primitives for focus containment, background inertness, Escape handling, and body-scroll locking.
+- Use a programmatic title/description, polite live counter, descriptive image alternatives, decorative empty thumbnail alternatives, and explicit control labels.
+- Touch targets are at least 44px. Full-bleed areas account for safe-area insets.
+- The viewer never creates document-level horizontal overflow.
+- On mobile, the toolbar remains within the viewport, arrows stay reachable, and the image stage remains larger than the chrome.
+- All entrance, image, toolbar, and filmstrip motion honors `prefers-reduced-motion`.
 
 ## Component boundaries
 
-Create a focused `CompanyGalleryDialog` beside the existing company page. It owns dialog state presentation, image navigation, gesture handling, thumbnail refs, and active-thumbnail synchronization. `PublicCompanyPage` remains responsible only for the selected image index and opening the dialog from the culture grid.
+`CompanyGalleryDialog` owns presentation, navigation, zoom/pan state, fullscreen state, gesture handling, focus restoration, thumbnail refs, and rail synchronization. `PublicCompanyPage` owns only the selected image index and gallery opening buttons.
 
-No new dependency or generic shared abstraction is introduced. The existing company gallery data and public route remain unchanged.
+No new dependency, API change, or shared abstraction is introduced.
 
 ## Verification
 
-Extend the existing Playwright company gallery flow before implementation:
+Playwright coverage must verify:
 
-- open at image `3/18`
-- navigate to `15/18` and assert the active thumbnail is fully inside the filmstrip viewport
-- navigate `18 → 1` and `1 → 18`
-- verify ArrowLeft, ArrowRight, Home, End, Escape, focus restoration, and direct thumbnail selection
-- verify desktop and mobile geometry with no document-level horizontal overflow
-- verify dialog semantics, accessible labels, and active thumbnail state
+- translucent overlay and full-viewport flat content
+- desktop and mobile controls remain inside the viewport
+- navigation to `15/18` centers the active thumbnail
+- first/last wrapping and Arrow/Home/End behavior
+- zoom in/out/reset and reset after image navigation
+- filmstrip hide/show state
+- Escape closure and opener focus restoration
+- no document horizontal overflow at `390 × 844`
+- dialog semantics, live counter, accessible labels, and active thumbnail state
 
-Run `pnpm verify`, `pnpm build`, and the focused Playwright gallery test after implementation.
-
-## Non-goals
-
-- No company data/API migration, image upload workflow, new carousel package, or redesign of unrelated company-profile sections.
-- No changes to the shared dialog component unless an actual project-wide defect blocks the specialized gallery.
+Run the focused gallery Playwright tests, `pnpm verify`, and `pnpm build` before handoff.
