@@ -20,7 +20,7 @@ import type { ReactNode } from "react";
 
 import { getMyCandidateProfile } from "@/features/candidate/api/profile";
 import { clearCandidateSession, getCandidateSession } from "@/features/candidate/session";
-import { usePathname, useRouter } from "@/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
 import { upnextLogo } from "../home/brand";
 import {
@@ -454,7 +454,11 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
       if (!navRef.current?.contains(event.target as Node)) setOpenMenu(null);
     }
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpenMenu(null);
+      if (event.key !== "Escape") return;
+
+      const trigger = document.getElementById(`public-nav-${openMenu}-trigger`);
+      setOpenMenu(null);
+      trigger?.focus();
     }
     function handleScroll() {
       setOpenMenu(null);
@@ -578,6 +582,8 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
       <nav className="marketing-home-nav" aria-label="Điều hướng chính" ref={navRef}>
         {navMenus.map((menu) => {
           const navCopy = currentLocale === "en" ? enNavCopy[menu.key] : undefined;
+          const triggerId = `public-nav-${menu.key}-trigger`;
+          const panelId = `public-nav-${menu.key}-panel`;
 
           return (
             <div
@@ -585,53 +591,60 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
               className={`marketing-home-nav-dd${openMenu === menu.key ? " is-open" : ""}`}
               onMouseEnter={() => setOpenMenu(menu.key)}
               onMouseLeave={() => setOpenMenu(null)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) setOpenMenu(null);
+              }}
             >
               <button
+                id={triggerId}
                 type="button"
                 className="marketing-home-nav-trigger"
-                aria-haspopup="true"
+                aria-controls={panelId}
                 aria-expanded={openMenu === menu.key}
                 onClick={() => setOpenMenu((open) => (open === menu.key ? null : menu.key))}
               >
                 {navCopy?.label ?? menu.label}
-                <ChevronDown size={15} />
+                <ChevronDown size={15} aria-hidden="true" />
               </button>
 
               <div
+                id={panelId}
                 className={`marketing-home-mega${menu.columns === 1 ? " is-single" : ""}`}
-                role="menu"
+                aria-labelledby={triggerId}
               >
                 <div className="marketing-home-mega-head">
                   <span className="marketing-home-mega-eyebrow">
-                    <Sparkles size={14} /> {navCopy?.eyebrow ?? menu.eyebrow}
+                    <Sparkles size={14} aria-hidden="true" /> {navCopy?.eyebrow ?? menu.eyebrow}
                   </span>
                   <p>{navCopy?.tagline ?? menu.tagline}</p>
                 </div>
-                <div className="marketing-home-mega-grid">
+                <ul className="marketing-home-mega-grid">
                   {menu.items.map((item) => (
-                    <button
-                      key={item.label}
-                      type="button"
-                      role="menuitem"
-                      className="marketing-home-mega-item"
-                      onClick={() => {
-                        setOpenMenu(null);
-                        navigate(item.path);
-                      }}
-                    >
-                      <i className={`marketing-home-mega-icon ${item.iconClass}`}>{item.icon}</i>
-                      <span className="marketing-home-mega-text">
-                        <b>
-                          <span>{item.label}</span>
-                          {item.badge && (
-                            <em className="marketing-home-mega-badge">{item.badge}</em>
-                          )}
-                        </b>
-                        <small>{item.desc}</small>
-                      </span>
-                    </button>
+                    <li key={item.label}>
+                      <Link
+                        className="marketing-home-mega-item"
+                        href={item.path}
+                        onClick={() => setOpenMenu(null)}
+                      >
+                        <i
+                          className={`marketing-home-mega-icon ${item.iconClass}`}
+                          aria-hidden="true"
+                        >
+                          {item.icon}
+                        </i>
+                        <span className="marketing-home-mega-text">
+                          <b>
+                            <span>{item.label}</span>
+                            {item.badge && (
+                              <em className="marketing-home-mega-badge">{item.badge}</em>
+                            )}
+                          </b>
+                          <small>{item.desc}</small>
+                        </span>
+                      </Link>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             </div>
           );

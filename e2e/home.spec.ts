@@ -60,6 +60,108 @@ test("uses one shared public header across public marketing pages", async ({ pag
   await expect(page.locator(".marketing-home-header")).toHaveCount(0);
 });
 
+test("keeps every public header mega menu readable and inside the viewport", async ({ page }) => {
+  const menuCases = [
+    {
+      key: "jobs",
+      label: "Việc làm IT",
+      destinations: [
+        "/vi/jobs?position=Frontend Developer",
+        "/vi/jobs?position=Backend Developer",
+        "/vi/jobs?position=Mobile Developer",
+        "/vi/jobs?position=AI/ML Engineer",
+        "/vi/jobs?position=DevOps Engineer",
+        "/vi/jobs",
+      ],
+    },
+    {
+      key: "companies",
+      label: "Công ty IT",
+      destinations: ["/vi/companies", "/vi/companies", "/vi/companies"],
+    },
+    {
+      key: "blog",
+      label: "Bài viết",
+      destinations: ["/vi/jobs", "/vi/jobs", "/vi/jobs"],
+    },
+    {
+      key: "features",
+      label: "Tính năng",
+      destinations: [
+        "/vi/register",
+        "/vi/register",
+        "/vi/register",
+        "/vi/jobs",
+        "/vi/register",
+        "/vi/register",
+      ],
+    },
+  ] as const;
+
+  for (const width of [1280, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/vi");
+
+    const navigation = page.getByLabel("Điều hướng chính");
+
+    for (const menuCase of menuCases) {
+      const triggerId = `public-nav-${menuCase.key}-trigger`;
+      const panelId = `public-nav-${menuCase.key}-panel`;
+      const trigger = navigation.getByRole("button", { name: menuCase.label, exact: true });
+
+      await expect(trigger).toHaveAttribute("id", triggerId);
+      await expect(trigger).toHaveAttribute("aria-controls", panelId);
+      await expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+      await trigger.focus();
+      await page.keyboard.press("Enter");
+      await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+      const panel = navigation.locator(`#${panelId}`);
+      await expect(panel).toHaveAttribute("aria-labelledby", triggerId);
+      await expect(panel).toBeVisible();
+
+      const links = panel.getByRole("link");
+      await expect(links).toHaveCount(menuCase.destinations.length);
+      const destinations = await links.evaluateAll((elements) =>
+        elements.map((element) => {
+          const url = new URL((element as HTMLAnchorElement).href);
+          return decodeURIComponent(`${url.pathname}${url.search}`);
+        }),
+      );
+      expect(destinations).toEqual(menuCase.destinations);
+
+      const layout = await panel.evaluate((element) => {
+        const panelRect = element.getBoundingClientRect();
+        const items = Array.from(
+          element.querySelectorAll<HTMLElement>(".marketing-home-mega-item"),
+        );
+
+        return {
+          panelInsideViewport: panelRect.left >= 0 && panelRect.right <= window.innerWidth,
+          pageHasHorizontalOverflow: document.documentElement.scrollWidth > window.innerWidth,
+          overflowingItems: items
+            .filter((item) => item.scrollWidth > item.clientWidth)
+            .map((item) => item.textContent?.trim()),
+          nonWrappingDescriptions: Array.from(
+            element.querySelectorAll<HTMLElement>(".marketing-home-mega-text small"),
+          ).filter((description) => getComputedStyle(description).whiteSpace !== "normal").length,
+        };
+      });
+
+      expect(layout.panelInsideViewport).toBe(true);
+      expect(layout.pageHasHorizontalOverflow).toBe(false);
+      expect(layout.overflowingItems).toEqual([]);
+      expect(layout.nonWrappingDescriptions).toBe(0);
+
+      await page.keyboard.press("Escape");
+      await expect(panel).toBeHidden();
+      await expect(trigger).toHaveAttribute("aria-expanded", "false");
+      await expect(trigger).toBeFocused();
+    }
+  }
+});
+
 test("uses one shared public footer across public marketing pages", async ({ page }) => {
   for (const route of ["/vi", "/vi/jobs", "/vi/companies"]) {
     await page.goto(route);
