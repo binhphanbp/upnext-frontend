@@ -2,7 +2,7 @@
 
 import {
   Briefcase,
-  Check,
+  CheckCircle,
   Code,
   Eye,
   EyeSlash,
@@ -20,7 +20,7 @@ import {
 import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   type CandidateCvApi,
@@ -83,6 +83,11 @@ type DeleteRequest =
   | DeleteProfileRecordRequest
   | Readonly<{ cv: CandidateCvApi; id: string; kind: "cv"; label: string }>;
 
+type ControlFeedback = Readonly<{
+  message: string;
+  tone: "error" | "success";
+}> | null;
+
 const sectionIcons: Record<ProfileSectionId, typeof IdentificationCard> = {
   credentials: Translate,
   documents: FileText,
@@ -104,12 +109,26 @@ export function CandidateProfilePage() {
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [pendingControl, setPendingControl] = useState<"status" | "visibility" | null>(null);
-  const [controlFeedback, setControlFeedback] = useState<string | null>(null);
+  const [controlFeedback, setControlFeedback] = useState<ControlFeedback>(null);
 
   const sectionParam = searchParams.get("section");
   const activeSection: ProfileSectionId = isProfileSectionId(sectionParam)
     ? sectionParam
     : "overview";
+  const previousSectionRef = useRef(activeSection);
+
+  useEffect(() => {
+    if (previousSectionRef.current === activeSection) return;
+    previousSectionRef.current = activeSection;
+
+    const frame = window.requestAnimationFrame(() => {
+      const heading = document.getElementById("profile-section-title");
+      heading?.focus({ preventScroll: true });
+      heading?.scrollIntoView({ block: "start" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeSection]);
 
   if (!isSessionResolved || (session && profileQuery.isLoading)) {
     return <CandidateProfileLoading />;
@@ -125,7 +144,7 @@ export function CandidateProfilePage() {
         title={t("states.unauthenticatedTitle")}
         description={t("states.unauthenticatedDescription")}
         action={
-          <Button asChild>
+          <Button asChild className="candidate-profile-primary-action">
             <Link href="/login">{t("actions.signIn")}</Link>
           </Button>
         }
@@ -136,10 +155,18 @@ export function CandidateProfilePage() {
   if (profileQuery.isError || !profileQuery.data) {
     return (
       <ProfileState
+        tone="error"
         icon={<WarningCircle />}
         title={t("states.errorTitle")}
         description={t("states.errorDescription")}
-        action={<Button onClick={() => profileQuery.refetch()}>{t("actions.retry")}</Button>}
+        action={
+          <Button
+            className="candidate-profile-primary-action"
+            onClick={() => profileQuery.refetch()}
+          >
+            {t("actions.retry")}
+          </Button>
+        }
       />
     );
   }
@@ -168,9 +195,9 @@ export function CandidateProfilePage() {
       await mutateProfile((token) =>
         updateMyCandidateProfile(token, { jobSearchStatus: nextStatus }),
       );
-      setControlFeedback(t("status.updateSuccess"));
+      setControlFeedback({ message: t("status.updateSuccess"), tone: "success" });
     } catch {
-      setControlFeedback(t("status.updateError"));
+      setControlFeedback({ message: t("status.updateError"), tone: "error" });
     } finally {
       setPendingControl(null);
     }
@@ -184,9 +211,9 @@ export function CandidateProfilePage() {
       await mutateProfile((token) =>
         updateMyCandidateProfile(token, { profileVisibility: nextVisibility }),
       );
-      setControlFeedback(t("visibility.updateSuccess"));
+      setControlFeedback({ message: t("visibility.updateSuccess"), tone: "success" });
     } catch {
-      setControlFeedback(t("visibility.updateError"));
+      setControlFeedback({ message: t("visibility.updateError"), tone: "error" });
     } finally {
       setPendingControl(null);
     }
@@ -194,62 +221,93 @@ export function CandidateProfilePage() {
 
   return (
     <div className="pb-12">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-5 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:mb-6 sm:flex sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-[-0.035em] text-balance text-slate-950 sm:text-4xl">
             {t("page.title")}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t("page.description")}</p>
         </div>
-        <Button variant="outline" onClick={() => setIsPreviewOpen(true)}>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={t("actions.previewAsRecruiter")}
+          className="hover:border-accent-foreground hover:text-accent-foreground self-start bg-white sm:h-11 sm:w-auto sm:px-5"
+          onClick={() => setIsPreviewOpen(true)}
+        >
           <Eye aria-hidden="true" />
-          {t("actions.previewAsRecruiter")}
+          <span className="hidden sm:inline">{t("actions.previewAsRecruiter")}</span>
         </Button>
       </div>
 
-      <ProfileCommandHeader
-        pendingControl={pendingControl}
-        profile={profile}
-        onEdit={() => setEditor({ kind: "profile" })}
-        onStatusChange={updateStatus}
-        onVisibilityChange={updateVisibility}
-      />
-      <p
-        aria-live="polite"
-        className="mt-2 min-h-5 text-right text-xs font-semibold text-slate-500"
-      >
-        {controlFeedback}
-      </p>
-
-      <div className="sticky top-20 z-20 mt-5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:hidden">
-        <label
-          className="block text-xs font-bold tracking-wide text-slate-500 uppercase"
-          htmlFor="profile-mobile-section"
+      <div className="relative">
+        <ProfileCommandHeader
+          pendingControl={pendingControl}
+          profile={profile}
+          onEdit={() => setEditor({ kind: "profile" })}
+          onStatusChange={updateStatus}
+          onVisibilityChange={updateVisibility}
+        />
+        <div
+          aria-live="polite"
+          className="pointer-events-none absolute right-1 -bottom-4 z-10 flex max-w-[calc(100%-0.5rem)] justify-end sm:-bottom-5"
         >
-          {t("navigation.mobileLabel")}
-        </label>
-        <select
-          id="profile-mobile-section"
-          value={activeSection}
-          className="focus-visible:border-brand focus-visible:ring-brand/20 mt-1 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 focus-visible:ring-2 focus-visible:outline-none"
-          onChange={(event) => {
-            router.replace(`/candidate/profile?section=${event.target.value}`, { scroll: false });
-          }}
-        >
-          {profileSectionIds.map((section) => (
-            <option key={section} value={section}>
-              {t(`sections.${section}.title`)}
-            </option>
-          ))}
-        </select>
+          {controlFeedback ? (
+            <p
+              className={cn(
+                "inline-flex items-center gap-1.5 truncate text-xs font-semibold",
+                controlFeedback.tone === "success" ? "text-emerald-700" : "text-red-700",
+              )}
+            >
+              {controlFeedback.tone === "success" ? (
+                <CheckCircle aria-hidden="true" size={15} weight="fill" />
+              ) : (
+                <WarningCircle aria-hidden="true" size={15} weight="fill" />
+              )}
+              {controlFeedback.message}
+            </p>
+          ) : null}
+        </div>
       </div>
 
-      <MobileReadinessSummary readiness={readiness} />
+      <div className="sticky top-16 z-20 mt-4 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm sm:top-20 sm:mt-5 sm:p-3 lg:hidden">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+          <div className="min-w-0">
+            <label
+              className="sr-only text-xs font-bold tracking-wide text-slate-500 uppercase sm:not-sr-only sm:block"
+              htmlFor="profile-mobile-section"
+            >
+              {t("navigation.mobileLabel")}
+            </label>
+            <select
+              id="profile-mobile-section"
+              value={activeSection}
+              className="focus-visible:border-brand focus-visible:ring-brand/20 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-900 focus-visible:ring-2 focus-visible:outline-none sm:mt-1"
+              onChange={(event) => {
+                router.replace(`/candidate/profile?section=${event.target.value}`, {
+                  scroll: false,
+                });
+              }}
+            >
+              {profileSectionIds.map((section) => (
+                <option key={section} value={section}>
+                  {t(`sections.${section}.title`)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <MobileReadinessSummary embedded readiness={readiness} />
+        </div>
+      </div>
 
-      <div className="mt-7 grid items-start gap-8 lg:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[210px_minmax(0,1fr)_270px]">
+      <div className="hidden lg:block 2xl:hidden">
+        <MobileReadinessSummary activeSection={activeSection} readiness={readiness} />
+      </div>
+
+      <div className="mt-5 grid items-start gap-6 sm:mt-7 lg:grid-cols-[200px_minmax(0,1fr)] 2xl:grid-cols-[200px_minmax(680px,1fr)_252px]">
         <ProfileNavigation activeSection={activeSection} counts={sectionCounts} />
 
-        <div className="min-w-0 lg:min-h-[620px] lg:border-l lg:border-slate-200 lg:pl-8 xl:border-r xl:pr-8">
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-7">
           {activeSection === "overview" && (
             <OverviewSection profile={profile} onDelete={setDeleteRequest} onEdit={setEditor} />
           )}
@@ -285,7 +343,7 @@ export function CandidateProfilePage() {
           )}
         </div>
 
-        <ReadinessRail readiness={readiness} />
+        <ReadinessRail activeSection={activeSection} readiness={readiness} />
       </div>
 
       {editor && (
@@ -328,44 +386,46 @@ function ProfileCommandHeader({
   const isPublic = profile.profileVisibility === "PUBLIC";
 
   return (
-    <section className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
-      <div className="grid gap-7 px-5 py-6 sm:px-7 sm:py-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-        <div className="flex min-w-0 items-start gap-4 sm:items-center sm:gap-5">
-          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-lg font-bold sm:size-16 sm:text-xl">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-4 py-4 sm:items-center sm:gap-5 sm:px-6 sm:py-6">
+        <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-5">
+          <span className="border-brand/20 bg-brand-muted text-accent-foreground flex size-12 shrink-0 items-center justify-center rounded-xl border text-base font-bold sm:size-16 sm:rounded-2xl sm:text-xl">
             {getInitials(profile.account.fullName)}
           </span>
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-bold tracking-[-0.025em] sm:text-2xl">
+            <h2 className="truncate text-lg font-bold tracking-[-0.025em] text-slate-950 sm:text-2xl">
               {profile.account.fullName}
             </h2>
             <p
               className={cn(
                 "mt-1 text-sm font-semibold",
-                desiredPosition ? "text-emerald-300" : "text-slate-400",
+                desiredPosition ? "text-slate-700" : "text-slate-500",
               )}
             >
               {desiredPosition || t("header.headlineFallback")}
             </p>
-            <p className="mt-2 truncate text-xs font-medium text-slate-400">
+            <p className="mt-1.5 truncate text-xs font-medium text-slate-500 sm:mt-2">
               {profile.address || t("header.locationFallback")} · {profile.account.email}
             </p>
           </div>
         </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={onEdit}
-          className="w-fit border border-white/15 text-white hover:bg-white/10 hover:text-white"
+          className="hover:border-accent-foreground hover:text-accent-foreground w-fit"
         >
           <PencilSimple aria-hidden="true" />
-          {t("actions.editProfile")}
+          <span className="hidden sm:inline">{t("actions.editProfile")}</span>
+          <span className="sr-only sm:hidden">{t("actions.editProfile")}</span>
         </Button>
       </div>
 
-      <div className="grid border-t border-white/10 bg-white/[0.04] sm:grid-cols-2">
+      <div className="grid grid-cols-2 border-t border-slate-200 bg-slate-50/70">
         <HeaderControl
           active={isOpenToWork}
           activeLabel={t("status.openToWork")}
+          icon={<Briefcase weight={isOpenToWork ? "fill" : "regular"} />}
           inactiveLabel={t("status.notLooking")}
           isPending={pendingControl === "status"}
           label={t("status.title")}
@@ -374,6 +434,7 @@ function ProfileCommandHeader({
         <HeaderControl
           active={isPublic}
           activeLabel={t("visibility.public")}
+          icon={isPublic ? <Eye /> : <EyeSlash />}
           inactiveLabel={t("visibility.private")}
           isPending={pendingControl === "visibility"}
           label={t("visibility.title")}
@@ -387,6 +448,7 @@ function ProfileCommandHeader({
 function HeaderControl({
   active,
   activeLabel,
+  icon,
   inactiveLabel,
   isPending,
   label,
@@ -394,6 +456,7 @@ function HeaderControl({
 }: Readonly<{
   active: boolean;
   activeLabel: string;
+  icon: ReactNode;
   inactiveLabel: string;
   isPending: boolean;
   label: string;
@@ -405,30 +468,35 @@ function HeaderControl({
       aria-pressed={active}
       disabled={isPending}
       onClick={onClick}
-      className="group flex items-center justify-between gap-4 border-white/10 px-5 py-4 text-left first:border-b hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-400 disabled:cursor-wait disabled:opacity-70 sm:px-7 sm:first:border-r sm:first:border-b-0"
+      className="group hover:bg-brand-muted/60 focus-visible:outline-brand flex min-w-0 items-start justify-between gap-2 border-slate-200 px-4 py-3 text-left first:border-r focus-visible:outline-2 focus-visible:-outline-offset-2 disabled:cursor-wait disabled:opacity-70 sm:items-center sm:gap-4 sm:px-6 sm:py-3.5"
     >
-      <span>
-        <span className="block text-[11px] font-bold tracking-[0.14em] text-slate-400 uppercase">
+      <span className="min-w-0">
+        <span className="block text-[10px] font-bold tracking-[0.12em] text-slate-500 uppercase sm:text-[11px] sm:tracking-[0.14em]">
           {label}
         </span>
-        <span className="mt-1 block text-sm font-bold text-white">
+        <span
+          className={cn(
+            "mt-1 block text-xs leading-4 font-bold sm:text-sm sm:leading-5",
+            active ? "text-accent-foreground" : "text-slate-800",
+          )}
+        >
           {active ? activeLabel : inactiveLabel}
         </span>
       </span>
       <span
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-full border",
+          "flex size-8 shrink-0 items-center justify-center rounded-full border sm:size-9",
           active
-            ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-300"
-            : "border-white/15 bg-white/5 text-slate-400",
+            ? "border-brand/25 bg-brand-muted text-accent-foreground"
+            : "border-slate-200 bg-white text-slate-500",
         )}
       >
         {isPending ? (
           <SpinnerGap aria-hidden="true" className="animate-spin" size={17} />
-        ) : active ? (
-          <Check aria-hidden="true" size={17} weight="bold" />
         ) : (
-          <EyeSlash aria-hidden="true" size={17} />
+          <span aria-hidden="true" className="[&_svg]:size-[17px]">
+            {icon}
+          </span>
         )}
       </span>
     </button>
@@ -444,8 +512,8 @@ function ProfileNavigation({
 }>) {
   const t = useTranslations("CandidateProfile.content");
   return (
-    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain pr-1 lg:block">
-      <div className="mb-3 px-3">
+    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] lg:block">
+      <div className="mb-2 px-2.5 pt-2">
         <p
           id="profile-navigation-title"
           className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase"
@@ -470,18 +538,21 @@ function ProfileNavigation({
                 <Link
                   href={{ pathname: "/candidate/profile", query: { section } }}
                   aria-current={isActive ? "page" : undefined}
+                  scroll={false}
                   className={cn(
-                    "group flex items-start gap-3 rounded-xl px-3 py-3 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                    "group relative flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                     isActive
-                      ? "bg-slate-950 text-white"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+                      ? "border-brand/20 bg-brand-muted text-slate-950 before:bg-brand"
+                      : "border-transparent text-slate-600 before:bg-transparent hover:bg-slate-50 hover:text-slate-950",
                   )}
                 >
                   <Icon
                     aria-hidden="true"
                     className={cn(
-                      "mt-0.5 shrink-0",
-                      isActive ? "text-emerald-300" : "text-slate-400 group-hover:text-slate-700",
+                      "shrink-0",
+                      isActive
+                        ? "text-accent-foreground"
+                        : "text-slate-500 group-hover:text-slate-700",
                     )}
                     size={18}
                   />
@@ -489,24 +560,21 @@ function ProfileNavigation({
                     <span className="flex items-center justify-between gap-2 text-sm font-bold">
                       <span>{t(`sections.${section}.title`)}</span>
                       {typeof count === "number" && count > 0 && (
-                        <span
-                          className={cn(
-                            "text-[11px] tabular-nums",
-                            isActive ? "text-slate-300" : "text-slate-400",
-                          )}
-                        >
-                          {count}
-                        </span>
+                        <>
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "text-[11px] tabular-nums",
+                              isActive ? "text-accent-foreground" : "text-slate-500",
+                            )}
+                          >
+                            {count}
+                          </span>
+                          <span className="sr-only">{t("navigation.itemCount", { count })}</span>
+                        </>
                       )}
                     </span>
-                    <span
-                      className={cn(
-                        "mt-1 block text-[11px] leading-4 font-medium",
-                        isActive ? "text-slate-300" : "text-slate-500",
-                      )}
-                    >
-                      {t(`sections.${section}.navDescription`)}
-                    </span>
+                    <span className="sr-only">{t(`sections.${section}.navDescription`)}</span>
                   </span>
                 </Link>
               </li>
@@ -518,18 +586,24 @@ function ProfileNavigation({
   );
 }
 
-function ReadinessRail({ readiness }: Readonly<{ readiness: ProfileReadiness }>) {
+function ReadinessRail({
+  activeSection,
+  readiness,
+}: Readonly<{ activeSection: ProfileSectionId; readiness: ProfileReadiness }>) {
   const t = useTranslations("CandidateProfile.content");
-  const incompleteItems = readiness.items.filter((item) => !item.complete);
+  const incompleteItems = readiness.items.filter(
+    (item) => !item.complete && item.section !== activeSection,
+  );
   const prioritizedItems = incompleteItems
     .filter(
       (item, index, items) =>
         items.findIndex((candidate) => candidate.section === item.section) === index,
     )
     .slice(0, 4);
+  const isProfileIncomplete = readiness.completed < readiness.total;
 
   return (
-    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain pr-1 xl:block">
+    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] 2xl:block">
       <p className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">
         {t("readiness.title")}
       </p>
@@ -549,7 +623,7 @@ function ReadinessRail({ readiness }: Readonly<{ readiness: ProfileReadiness }>)
       />
       <div aria-hidden="true" className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200">
         <div
-          className="h-full rounded-full bg-emerald-600"
+          className="bg-brand h-full rounded-full"
           style={{ width: `${readiness.percentage}%` }}
         />
       </div>
@@ -559,7 +633,9 @@ function ReadinessRail({ readiness }: Readonly<{ readiness: ProfileReadiness }>)
         <h3 className="text-sm font-bold text-slate-900">
           {prioritizedItems.length > 0
             ? t("readiness.nextActions.title")
-            : t("readiness.nextActions.allDoneTitle")}
+            : isProfileIncomplete
+              ? t("readiness.nextActions.currentSectionTitle")
+              : t("readiness.nextActions.allDoneTitle")}
         </h3>
         {prioritizedItems.length > 0 ? (
           <>
@@ -571,7 +647,8 @@ function ReadinessRail({ readiness }: Readonly<{ readiness: ProfileReadiness }>)
                 <li key={item.id}>
                   <Link
                     href={{ pathname: "/candidate/profile", query: { section: item.section } }}
-                    className="focus-visible:outline-brand flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2"
+                    scroll={false}
+                    className="focus-visible:outline-brand hover:border-brand/20 hover:bg-brand-muted hover:text-accent-foreground flex items-center justify-between gap-3 rounded-xl border border-transparent bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
                     {t(`readiness.nextActions.${item.id}`)}
                     <span aria-hidden="true">→</span>
@@ -580,6 +657,10 @@ function ReadinessRail({ readiness }: Readonly<{ readiness: ProfileReadiness }>)
               ))}
             </ul>
           </>
+        ) : isProfileIncomplete ? (
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            {t("readiness.nextActions.currentSectionDescription")}
+          </p>
         ) : (
           <p className="mt-2 text-xs leading-5 text-slate-500">
             {t("readiness.nextActions.allDoneDescription")}
@@ -590,25 +671,69 @@ function ReadinessRail({ readiness }: Readonly<{ readiness: ProfileReadiness }>)
   );
 }
 
-function MobileReadinessSummary({ readiness }: Readonly<{ readiness: ProfileReadiness }>) {
+function MobileReadinessSummary({
+  activeSection,
+  embedded = false,
+  readiness,
+}: Readonly<{
+  activeSection?: ProfileSectionId;
+  embedded?: boolean;
+  readiness: ProfileReadiness;
+}>) {
   const t = useTranslations("CandidateProfile.content");
-  const nextItem = readiness.items.find((item) => !item.complete);
+  const nextItem = readiness.items.find((item) => !item.complete && item.section !== activeSection);
+  const isProfileIncomplete = readiness.completed < readiness.total;
+
+  if (embedded) {
+    return (
+      <div className="bg-brand-muted flex h-11 min-w-20 flex-col items-end justify-center rounded-lg px-3">
+        <span className="text-accent-foreground text-[10px] font-bold tracking-wide uppercase">
+          {t("readiness.shortTitle")}
+        </span>
+        <span className="text-accent-foreground text-sm font-bold tabular-nums">
+          {readiness.percentage}%
+        </span>
+        <progress
+          className="sr-only"
+          aria-label={t("readiness.completionLabel")}
+          max={100}
+          value={readiness.percentage}
+        />
+      </div>
+    );
+  }
 
   return (
-    <section className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 xl:hidden">
-      <div className="flex items-center justify-between gap-4">
-        <div>
+    <section className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] 2xl:hidden">
+      <div className="flex items-center gap-5">
+        <div className="min-w-0">
           <p className="text-[11px] font-bold tracking-[0.13em] text-slate-500 uppercase">
             {t("readiness.title")}
           </p>
-          <p className="mt-1 text-sm font-bold text-slate-900">
+          <p className="mt-0.5 text-sm font-bold text-slate-900">
             {t("readiness.criteriaCount", {
               completed: readiness.completed,
               total: readiness.total,
             })}
           </p>
         </div>
-        <p className="text-2xl font-bold tracking-[-0.04em] text-slate-950">
+        {nextItem ? (
+          <Link
+            href={{ pathname: "/candidate/profile", query: { section: nextItem.section } }}
+            scroll={false}
+            className="focus-visible:outline-brand text-accent-foreground ml-auto flex items-center gap-2 text-xs font-bold hover:text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-3"
+          >
+            {t(`readiness.nextActions.${nextItem.id}`)}
+            <span aria-hidden="true">→</span>
+          </Link>
+        ) : (
+          <p className="text-accent-foreground ml-auto text-xs font-semibold">
+            {isProfileIncomplete
+              ? t("readiness.nextActions.currentSectionTitle")
+              : t("readiness.nextActions.allDoneTitle")}
+          </p>
+        )}
+        <p className="text-accent-foreground ml-auto text-2xl font-bold tracking-[-0.04em] xl:ml-0">
           {readiness.percentage}%
         </p>
       </div>
@@ -618,19 +743,6 @@ function MobileReadinessSummary({ readiness }: Readonly<{ readiness: ProfileRead
         max={100}
         value={readiness.percentage}
       />
-      {nextItem ? (
-        <Link
-          href={{ pathname: "/candidate/profile", query: { section: nextItem.section } }}
-          className="focus-visible:outline-brand mt-3 flex items-center justify-between gap-3 rounded-lg text-xs font-bold text-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-3"
-        >
-          {t(`readiness.nextActions.${nextItem.id}`)}
-          <span aria-hidden="true">→</span>
-        </Link>
-      ) : (
-        <p className="mt-3 text-xs font-semibold text-emerald-700">
-          {t("readiness.nextActions.allDoneTitle")}
-        </p>
-      )}
     </section>
   );
 }
@@ -723,15 +835,14 @@ export function CandidateProfileLoading() {
   return (
     <div aria-busy="true" className="space-y-7 pb-12">
       <div className="space-y-3">
-        <Skeleton className="h-4 w-36 rounded" />
         <Skeleton className="h-10 w-72 rounded-lg" />
         <Skeleton className="h-5 w-full max-w-xl rounded" />
       </div>
-      <Skeleton className="h-52 w-full rounded-2xl" />
-      <div className="grid gap-8 lg:grid-cols-[210px_1fr_270px]">
-        <Skeleton className="hidden h-96 rounded-xl lg:block" />
-        <Skeleton className="h-[520px] rounded-xl" />
-        <Skeleton className="hidden h-96 rounded-xl xl:block" />
+      <Skeleton className="h-44 w-full rounded-2xl" />
+      <div className="grid gap-6 lg:grid-cols-[200px_1fr] 2xl:grid-cols-[200px_minmax(680px,1fr)_252px]">
+        <Skeleton className="hidden h-96 rounded-2xl lg:block" />
+        <Skeleton className="h-[440px] rounded-2xl" />
+        <Skeleton className="hidden h-80 rounded-2xl 2xl:block" />
       </div>
     </div>
   );
@@ -741,12 +852,27 @@ function ProfileState({
   action,
   description,
   icon,
+  tone = "neutral",
   title,
-}: Readonly<{ action: ReactNode; description: string; icon: ReactNode; title: string }>) {
+}: Readonly<{
+  action: ReactNode;
+  description: string;
+  icon: ReactNode;
+  title: string;
+  tone?: "error" | "neutral";
+}>) {
   return (
     <div className="flex min-h-[65vh] items-center justify-center py-12">
       <div className="max-w-lg text-center">
-        <span className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 [&_svg]:size-7">
+        <span
+          aria-hidden="true"
+          className={cn(
+            "mx-auto flex size-14 items-center justify-center rounded-2xl border [&_svg]:size-7",
+            tone === "error"
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-slate-200 bg-white text-slate-500",
+          )}
+        >
           {icon}
         </span>
         <h1 className="mt-5 text-2xl font-bold tracking-[-0.025em] text-slate-950">{title}</h1>

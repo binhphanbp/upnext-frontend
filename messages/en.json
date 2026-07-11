@@ -1149,7 +1149,8 @@
       "navigation": {
         "title": "Profile content",
         "description": "Choose a section to review and edit.",
-        "mobileLabel": "Current profile section"
+        "mobileLabel": "Current profile section",
+        "itemCount": "{count} items"
       },
       "sections": {
         "overview": {
@@ -1214,6 +1215,7 @@
       },
       "readiness": {
         "title": "Profile completeness",
+        "shortTitle": "Profile",
         "description": "Progress is based on the core information below. A criterion is complete only when the corresponding profile data is present.",
         "completionLabel": "Profile completion",
         "criteriaCount": "{completed} of {total} criteria completed",
@@ -1255,6 +1257,8 @@
         "nextActions": {
           "title": "Next steps",
           "description": "These suggestions are based on information missing from your profile.",
+          "currentSectionTitle": "Complete the current section",
+          "currentSectionDescription": "The remaining information is in the profile section you are viewing.",
           "allDoneTitle": "No required information is missing",
           "allDoneDescription": "Update your profile again when you have new experience, skills, or a new resume.",
           "basics": "Complete contact information",

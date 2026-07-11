@@ -1106,7 +1106,7 @@ function SkillForm({
           )}
         </div>
         {selectedSkillId && selectedSkillName && searchTerm === selectedSkillName && (
-          <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-emerald-700">
+          <div className="text-accent-foreground mt-2 flex items-center gap-2 text-sm font-semibold">
             <CheckCircle aria-hidden="true" size={17} weight="fill" />
             {selectedSkillName}
           </div>
@@ -1137,8 +1137,8 @@ function SkillForm({
                         disabled={isAlreadyAdded}
                         tabIndex={-1}
                         className={cn(
-                          "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent",
-                          isActive && "bg-emerald-50 text-emerald-800",
+                          "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent",
+                          isActive && "bg-brand-muted text-accent-foreground",
                         )}
                         onClick={() => selectSkill(skill)}
                         onMouseEnter={() => {
@@ -1558,7 +1558,7 @@ function EditorForm({
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="focus-visible:ring-brand/30 focus-visible:ring-2"
+          className="candidate-profile-primary-action focus-visible:ring-brand/30 focus-visible:ring-2"
         >
           {isSubmitting && <SpinnerGap aria-hidden="true" className="animate-spin" />}
           {isSubmitting ? t("actions.saving") : t("actions.saveChanges")}
@@ -1728,7 +1728,7 @@ const CheckboxField = forwardRef<
       ref={ref}
       type="checkbox"
       className={cn(
-        "mt-0.5 size-4 accent-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        "mt-0.5 size-4 accent-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
         className,
       )}
       {...props}

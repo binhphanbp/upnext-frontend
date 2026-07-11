@@ -1149,7 +1149,8 @@
       "navigation": {
         "title": "Nội dung hồ sơ",
         "description": "Chọn một mục để xem và chỉnh sửa.",
-        "mobileLabel": "Mục hồ sơ đang xem"
+        "mobileLabel": "Mục hồ sơ đang xem",
+        "itemCount": "{count} mục"
       },
       "sections": {
         "overview": {
@@ -1214,6 +1215,7 @@
       },
       "readiness": {
         "title": "Độ hoàn thiện hồ sơ",
+        "shortTitle": "Hồ sơ",
         "description": "Tiến độ được tính từ các thông tin cốt lõi bên dưới. Mỗi tiêu chí chỉ được đánh dấu hoàn thành khi hồ sơ có dữ liệu tương ứng.",
         "completionLabel": "Mức độ hoàn thiện hồ sơ",
         "criteriaCount": "Đã hoàn thành {completed}/{total} tiêu chí",
@@ -1255,6 +1257,8 @@
         "nextActions": {
           "title": "Gợi ý tiếp theo",
           "description": "Các gợi ý này dựa trên nội dung còn thiếu trong hồ sơ của bạn.",
+          "currentSectionTitle": "Hoàn thiện mục đang xem",
+          "currentSectionDescription": "Các thông tin còn thiếu nằm trong mục hồ sơ bạn đang mở.",
           "allDoneTitle": "Không còn mục bắt buộc cần bổ sung",
           "allDoneDescription": "Hãy cập nhật lại hồ sơ khi có kinh nghiệm, kỹ năng hoặc CV mới.",
           "basics": "Bổ sung thông tin liên hệ",

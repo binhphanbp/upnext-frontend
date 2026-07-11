@@ -177,29 +177,35 @@ export function ProfileDocuments({
   };
 
   return (
-    <section aria-labelledby="profile-documents-title">
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
+    <section aria-labelledby="profile-section-title">
+      <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:pb-6">
         <div className="max-w-2xl">
           <h2
-            id="profile-documents-title"
-            className="text-2xl font-bold tracking-[-0.025em] text-slate-950"
+            id="profile-section-title"
+            tabIndex={-1}
+            className="focus-visible:outline-brand scroll-mt-32 text-2xl font-bold tracking-[-0.025em] text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4"
           >
             {t("sections.documents.title")}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <p className="mt-1.5 text-sm leading-6 text-slate-600 sm:mt-2">
             {t("sections.documents.description")}
           </p>
         </div>
-        <Button asChild variant="outline" size="sm">
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="hover:border-accent-foreground hover:text-accent-foreground"
+        >
           <Link href="/candidate/cv-builder">{t("actions.openCvBuilder")}</Link>
         </Button>
       </div>
 
-      <div className="pt-7">
+      <div className="pt-5 sm:pt-7">
         <div
           className={cn(
             "rounded-2xl border border-dashed px-5 py-6 transition-colors sm:px-7",
-            isDragging ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-slate-50/70",
+            isDragging ? "border-brand bg-brand-muted" : "border-slate-300 bg-slate-50/70",
           )}
           onDragEnter={(event) => {
             event.preventDefault();
@@ -239,6 +245,7 @@ export function ProfileDocuments({
               type="button"
               variant="outline"
               size="sm"
+              className="hover:border-accent-foreground hover:text-accent-foreground"
               disabled={isUploading}
               onClick={() => inputRef.current?.click()}
             >
@@ -262,7 +269,13 @@ export function ProfileDocuments({
                   </p>
                 </div>
               </div>
-              <Button type="button" size="sm" disabled={isUploading} onClick={uploadSelectedFile}>
+              <Button
+                type="button"
+                size="sm"
+                className="candidate-profile-primary-action"
+                disabled={isUploading}
+                onClick={uploadSelectedFile}
+              >
                 {isUploading ? (
                   <SpinnerGap aria-hidden="true" className="animate-spin" />
                 ) : (
@@ -279,7 +292,7 @@ export function ProfileDocuments({
               aria-live="polite"
               className={cn(
                 "mt-4 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm font-semibold",
-                fileError ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800",
+                fileError ? "bg-red-50 text-red-700" : "bg-success-muted text-teal-800",
               )}
             >
               {fileError ? (
@@ -308,19 +321,28 @@ export function ProfileDocuments({
               <p className="text-sm font-semibold text-red-700">
                 {t("states.sectionErrorDescription")}
               </p>
-              <Button variant="outline" size="sm" className="mt-4" onClick={onRetry}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="hover:border-accent-foreground hover:text-accent-foreground mt-4"
+                onClick={onRetry}
+              >
                 {t("actions.retry")}
               </Button>
             </div>
           ) : cvs.length === 0 ? (
-            <div className="flex min-h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center">
-              <FilePdf aria-hidden="true" className="text-slate-400" size={30} />
-              <h3 className="mt-4 text-base font-bold text-slate-900">
-                {t("sections.documents.emptyTitle")}
-              </h3>
-              <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-                {t("sections.documents.emptyDescription")}
-              </p>
+            <div className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5 text-left">
+              <span className="border-brand/15 bg-brand-muted text-accent-foreground flex size-11 shrink-0 items-center justify-center rounded-xl border">
+                <FilePdf aria-hidden="true" size={22} />
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {t("sections.documents.emptyTitle")}
+                </h3>
+                <p className="mt-1 max-w-md text-sm leading-6 text-slate-600">
+                  {t("sections.documents.emptyDescription")}
+                </p>
+              </div>
             </div>
           ) : (
             <ul className="divide-y divide-slate-200 border-y border-slate-200">
@@ -347,7 +369,7 @@ export function ProfileDocuments({
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate text-sm font-bold text-slate-950">{cv.title}</p>
                           {cv.isDefault && (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700">
+                            <span className="bg-brand-muted text-accent-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold">
                               <Star aria-hidden="true" size={12} weight="fill" />
                               {t("documents.defaultLabel")}
                             </span>
@@ -401,7 +423,7 @@ export function ProfileDocuments({
                             ? t("deleteConfirmations.cv.defaultDescription")
                             : t("actions.delete")
                         }
-                        className="focus-visible:outline-brand rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-35"
+                        className="focus-visible:outline-brand rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-35"
                         onClick={() => onDelete(cv)}
                       >
                         <Trash aria-hidden="true" size={18} />

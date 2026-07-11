@@ -67,7 +67,12 @@ export function OverviewSection({ onDelete, onEdit, profile }: SectionProps) {
   return (
     <SectionFrame
       action={
-        <Button variant="outline" size="sm" onClick={() => onEdit({ kind: "profile" })}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="hover:border-accent-foreground hover:text-accent-foreground"
+          onClick={() => onEdit({ kind: "profile" })}
+        >
           <PencilSimple aria-hidden="true" />
           {t("actions.editProfile")}
         </Button>
@@ -89,8 +94,12 @@ export function OverviewSection({ onDelete, onEdit, profile }: SectionProps) {
           <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
             {contactItems.map(({ href, icon: Icon, label }) => {
               const content = (
-                <span className="flex min-w-0 items-center gap-3 text-sm font-semibold text-slate-700">
-                  <Icon aria-hidden="true" className="shrink-0 text-slate-400" size={18} />
+                <span className="group-hover:text-accent-foreground flex min-w-0 items-center gap-3 text-sm font-semibold text-slate-700 transition-colors">
+                  <Icon
+                    aria-hidden="true"
+                    className="group-hover:text-accent-foreground shrink-0 text-slate-500 transition-colors"
+                    size={18}
+                  />
                   <span className="truncate">{label}</span>
                 </span>
               );
@@ -98,7 +107,7 @@ export function OverviewSection({ onDelete, onEdit, profile }: SectionProps) {
                 <a
                   key={label}
                   href={href}
-                  className="focus-visible:outline-brand rounded-md hover:text-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-4"
+                  className="group focus-visible:outline-brand rounded-md focus-visible:outline-2 focus-visible:outline-offset-4"
                 >
                   {content}
                 </a>
@@ -137,7 +146,7 @@ export function OverviewSection({ onDelete, onEdit, profile }: SectionProps) {
                     href={link.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="focus-visible:outline-brand flex min-w-0 items-center gap-3 rounded-md text-sm font-semibold text-slate-700 hover:text-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-4"
+                    className="group hover:text-accent-foreground focus-visible:outline-brand flex min-w-0 items-center gap-3 rounded-md text-sm font-semibold text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-4"
                   >
                     <LinkTypeIcon type={link.type} />
                     <span className="min-w-0">
@@ -148,7 +157,7 @@ export function OverviewSection({ onDelete, onEdit, profile }: SectionProps) {
                     </span>
                     <ArrowSquareOut
                       aria-hidden="true"
-                      className="shrink-0 text-slate-400"
+                      className="group-hover:text-accent-foreground shrink-0 text-slate-500 transition-colors"
                       size={16}
                     />
                   </a>
@@ -236,7 +245,7 @@ function ExperienceRow({
 
   return (
     <li className={cn("relative ml-7 pb-9", isLast && "pb-0")}>
-      <span className="absolute top-1.5 -left-[34px] size-3 rounded-full border-2 border-white bg-emerald-600 ring-1 ring-emerald-200" />
+      <span className="bg-brand ring-brand/25 absolute top-1.5 -left-[34px] size-3 rounded-full border-2 border-white ring-1" />
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h3 className="text-lg font-bold tracking-[-0.01em] text-slate-950">
@@ -327,7 +336,7 @@ function ProjectRow({
         <div>
           <h3 className="text-lg font-bold text-slate-950">{project.name}</h3>
           {project.role && (
-            <p className="mt-1 text-sm font-semibold text-emerald-700">{project.role}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-600">{project.role}</p>
           )}
           {(project.startDate || project.endDate) && (
             <p className="mt-2 text-xs font-semibold text-slate-500">
@@ -344,7 +353,7 @@ function ProjectRow({
       )}
       {technologies.length > 0 && <TechnologyList values={technologies} />}
       {(project.projectUrl || project.deployUrl) && (
-        <div className="mt-4 flex flex-wrap gap-4 text-sm font-bold text-emerald-700">
+        <div className="text-accent-foreground mt-4 flex flex-wrap gap-4 text-sm font-bold">
           {project.projectUrl && (
             <ExternalLink
               href={project.projectUrl}
@@ -606,7 +615,7 @@ function CertificationRow({
 }>) {
   return (
     <article className="flex items-start gap-4 py-5 first:pt-0 last:pb-0">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+      <span className="bg-brand-muted text-accent-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
         <Certificate aria-hidden="true" size={21} />
       </span>
       <div className="min-w-0 flex-1">
@@ -660,7 +669,7 @@ function LanguageRow({
   return (
     <li className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 px-4 py-4">
       <div className="flex min-w-0 items-center gap-3">
-        <Translate aria-hidden="true" className="shrink-0 text-slate-400" size={20} />
+        <Translate aria-hidden="true" className="shrink-0 text-slate-500" size={20} />
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-slate-900">{language.language}</p>
           <p className="mt-0.5 text-xs font-semibold text-slate-500">{proficiency}</p>
@@ -680,7 +689,12 @@ export function PreferencesSection({ onEdit, profile }: SectionProps) {
     <SectionFrame
       action={
         preference ? (
-          <Button variant="outline" size="sm" onClick={() => onEdit({ kind: "preferences" })}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="hover:border-accent-foreground hover:text-accent-foreground"
+            onClick={() => onEdit({ kind: "preferences" })}
+          >
             <PencilSimple aria-hidden="true" />
             {t("actions.editPreferences")}
           </Button>
@@ -751,19 +765,20 @@ function SectionFrame({
 }>) {
   return (
     <section aria-labelledby="profile-section-title" className="min-w-0">
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:pb-6">
         <div className="max-w-2xl">
           <h2
             id="profile-section-title"
-            className="text-2xl font-bold tracking-[-0.025em] text-slate-950"
+            tabIndex={-1}
+            className="focus-visible:outline-brand scroll-mt-32 text-2xl font-bold tracking-[-0.025em] text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-4"
           >
             {title}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+          <p className="mt-1.5 text-sm leading-6 text-slate-600 sm:mt-2">{description}</p>
         </div>
         {action}
       </div>
-      <div className="pt-7">{children}</div>
+      <div className="pt-5 sm:pt-7">{children}</div>
     </section>
   );
 }
@@ -783,7 +798,9 @@ function ProfileBlock({
     <div className="grid gap-4 py-7 first:pt-0 last:pb-0 md:grid-cols-[180px_1fr]">
       <div>
         <h3 className="flex items-center gap-2.5 text-sm font-bold text-slate-900">
-          <span className="text-slate-400 [&_svg]:size-[18px]">{icon}</span>
+          <span aria-hidden="true" className="text-slate-500 [&_svg]:size-[18px]">
+            {icon}
+          </span>
           {title}
         </h3>
         {action && <div className="mt-3">{action}</div>}
@@ -807,13 +824,26 @@ function EmptyState({
   title: string;
 }>) {
   return (
-    <div className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-12 text-center">
-      <span className="flex size-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 [&_svg]:size-6">
-        {icon}
-      </span>
-      <h3 className="mt-5 text-base font-bold text-slate-900">{title}</h3>
-      <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">{description}</p>
-      <Button size="sm" className="mt-5" onClick={onAction}>
+    <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-left sm:min-h-44 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-6 sm:py-6">
+      <div className="flex min-w-0 items-start gap-4">
+        <span
+          aria-hidden="true"
+          className="border-brand/15 bg-brand-muted text-accent-foreground flex size-11 shrink-0 items-center justify-center rounded-xl border [&_svg]:size-5"
+        >
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-base font-bold text-slate-900">{title}</h3>
+          <p className="mt-1 max-w-lg text-sm leading-5 text-slate-600 sm:mt-1.5 sm:leading-6">
+            {description}
+          </p>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        className="candidate-profile-primary-action shrink-0 self-start sm:self-auto"
+        onClick={onAction}
+      >
         <Plus aria-hidden="true" />
         {actionLabel}
       </Button>
@@ -837,7 +867,7 @@ function InlineEmpty({
         <button
           type="button"
           onClick={onAction}
-          className="focus-visible:outline-brand mt-2 rounded-md text-sm font-bold text-emerald-700 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-3"
+          className="text-accent-foreground focus-visible:outline-brand mt-2 rounded-md text-sm font-bold hover:text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-3"
         >
           {actionLabel}
         </button>
@@ -848,8 +878,10 @@ function InlineEmpty({
 
 function MissingValue({ icon, label }: Readonly<{ icon: ReactNode; label: string }>) {
   return (
-    <span className="flex items-center gap-3 text-sm font-medium text-slate-400">
-      <span className="[&_svg]:size-[18px]">{icon}</span>
+    <span className="flex items-center gap-3 text-sm font-medium text-slate-500">
+      <span aria-hidden="true" className="[&_svg]:size-[18px]">
+        {icon}
+      </span>
       {label}: —
     </span>
   );
@@ -857,7 +889,7 @@ function MissingValue({ icon, label }: Readonly<{ icon: ReactNode; label: string
 
 function AddButton({ label, onClick }: Readonly<{ label: string; onClick: () => void }>) {
   return (
-    <Button size="sm" onClick={onClick}>
+    <Button size="sm" className="candidate-profile-primary-action" onClick={onClick}>
       <Plus aria-hidden="true" />
       {label}
     </Button>
@@ -876,7 +908,7 @@ function RecordActions({
         type="button"
         onClick={onEdit}
         aria-label={`${t("actions.edit")}: ${label}`}
-        className="focus-visible:outline-brand rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="focus-visible:outline-brand rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         <PencilSimple aria-hidden="true" size={17} />
       </button>
@@ -884,7 +916,7 @@ function RecordActions({
         type="button"
         onClick={onDelete}
         aria-label={`${t("actions.delete")}: ${label}`}
-        className="focus-visible:outline-brand rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="focus-visible:outline-brand rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         <Trash aria-hidden="true" size={17} />
       </button>
@@ -913,7 +945,7 @@ function ExternalLink({ href, label }: Readonly<{ href: string; label: string }>
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="focus-visible:outline-brand inline-flex max-w-full items-center gap-1.5 rounded-md text-sm font-bold text-emerald-700 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-3"
+      className="text-accent-foreground focus-visible:outline-brand inline-flex max-w-full items-center gap-1.5 rounded-md text-sm font-bold hover:text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-3"
     >
       <span className="truncate">{label}</span>
       <ArrowSquareOut aria-hidden="true" className="shrink-0" size={16} />
@@ -949,7 +981,7 @@ function DefinitionItem({ label, value }: Readonly<{ label: string; value: strin
   return (
     <div className="border-b border-slate-200 px-5 py-5 last:border-b-0 odd:sm:border-r sm:[&:nth-last-child(-n+2)]:border-b-0">
       <dt className="text-xs font-bold tracking-wide text-slate-500 uppercase">{label}</dt>
-      <dd className={cn("mt-2 text-sm font-bold", value ? "text-slate-900" : "text-slate-400")}>
+      <dd className={cn("mt-2 text-sm font-bold", value ? "text-slate-900" : "text-slate-500")}>
         {value || "—"}
       </dd>
     </div>
@@ -966,7 +998,13 @@ function LinkTypeIcon({ type }: Readonly<{ type: string }>) {
         : normalized === "WEBSITE"
           ? Globe
           : LinkSimple;
-  return <Icon aria-hidden="true" className="shrink-0 text-slate-400" size={20} />;
+  return (
+    <Icon
+      aria-hidden="true"
+      className="group-hover:text-accent-foreground shrink-0 text-slate-500 transition-colors"
+      size={20}
+    />
+  );
 }
 
 function formatLinkType(type: string, t: ReturnType<typeof useTranslations>) {

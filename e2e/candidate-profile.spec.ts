@@ -110,13 +110,20 @@ test("supports deep-linked profile sections and hydrated edit forms", async ({ p
   await expect(page.getByRole("heading", { name: "Hồ sơ nghề nghiệp" })).toBeVisible();
   await page.getByRole("link", { name: /Kinh nghiệm/ }).click();
   await expect(page).toHaveURL(/section=experience/);
-  await expect(page.getByRole("heading", { name: "Kinh nghiệm", exact: true })).toBeVisible();
+  const experienceHeading = page.getByRole("heading", { name: "Kinh nghiệm", exact: true });
+  await expect(experienceHeading).toBeVisible();
+  await expect(experienceHeading).toBeFocused();
 
   await page.getByRole("button", { name: "Chỉnh sửa: Frontend Engineer" }).click();
   await expect(page.getByRole("heading", { name: "Chỉnh sửa kinh nghiệm" })).toBeVisible();
   await expect(page.getByLabel(/Chức danh/)).toHaveValue("Frontend Engineer");
   await expect(page.getByLabel(/Công ty hoặc tổ chức/)).toHaveValue("Nimbus Labs");
   await page.keyboard.press("Escape");
+
+  await page.getByRole("link", { name: /CV & tài liệu/ }).click();
+  const documentsHeading = page.getByRole("heading", { name: "CV & tài liệu", exact: true });
+  await expect(documentsHeading).toBeVisible();
+  await expect(documentsHeading).toBeFocused();
 
   await page.goto("/vi/candidate/profile?section=preferences");
   await page.getByRole("button", { name: "Chỉnh sửa mong muốn" }).click();
@@ -189,7 +196,8 @@ test("renders honest empty states and a mobile section selector", async ({ page 
   await page.goto("/vi/candidate/profile?section=experience");
 
   await expect(page.getByRole("heading", { name: "Chưa có kinh nghiệm làm việc" })).toBeVisible();
-  await expect(page.getByText("Đã hoàn thành 0/7 tiêu chí").first()).toBeVisible();
+  await expect(page.getByText("0%", { exact: true }).filter({ visible: true })).toHaveCount(1);
+  await expect(page.getByText("Hồ sơ", { exact: true }).filter({ visible: true })).toBeVisible();
   await expect(page.getByLabel("Mục hồ sơ đang xem")).toHaveValue("experience");
   await expect(page.getByText(/Nguyễn Quốc Vương|Alex Johnson/)).toHaveCount(0);
 
@@ -197,6 +205,52 @@ test("renders honest empty states and a mobile section selector", async ({ page 
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
   expect(hasHorizontalOverflow).toBe(false);
+});
+
+test("keeps the active profile task in view across responsive breakpoints", async ({ page }) => {
+  await mockCandidateWorkspace(page, emptyProfile, false);
+
+  for (const viewport of [
+    { width: 1920, height: 1080 },
+    { width: 1440, height: 1000 },
+    { width: 1280, height: 768 },
+    { width: 1024, height: 768 },
+    { width: 768, height: 1024 },
+    { width: 390, height: 844 },
+  ]) {
+    await test.step(`${viewport.width}x${viewport.height}`, async () => {
+      await page.setViewportSize(viewport);
+      await page.goto("/vi/candidate/profile?section=experience");
+
+      const sectionHeading = page.getByRole("heading", { name: "Kinh nghiệm", exact: true });
+      const primaryAction = page.getByRole("button", { name: "Thêm kinh nghiệm", exact: true });
+      await expect(sectionHeading).toBeVisible();
+      await expect(primaryAction).toBeVisible();
+
+      const metrics = await page.evaluate(() => {
+        const header = document.querySelector("header");
+        const section = document.querySelector("#profile-section-title");
+        const action = Array.from(document.querySelectorAll("button")).find(
+          (button) => button.textContent?.trim() === "Thêm kinh nghiệm",
+        );
+        return {
+          actionTop: action?.getBoundingClientRect().top ?? null,
+          clientWidth: document.documentElement.clientWidth,
+          headerRight: header?.getBoundingClientRect().right ?? null,
+          scrollWidth: document.documentElement.scrollWidth,
+          sectionTop: section?.getBoundingClientRect().top ?? null,
+        };
+      });
+
+      expect(metrics.scrollWidth).toBe(metrics.clientWidth);
+      expect(metrics.headerRight).not.toBeNull();
+      expect(metrics.headerRight!).toBeLessThanOrEqual(viewport.width);
+      expect(metrics.sectionTop).not.toBeNull();
+      expect(metrics.sectionTop!).toBeLessThan(viewport.height);
+      expect(metrics.actionTop).not.toBeNull();
+      expect(metrics.actionTop!).toBeLessThan(viewport.height);
+    });
+  }
 });
 
 async function mockCandidateWorkspace(

@@ -32,7 +32,7 @@ export function ProfilePreview({ onOpenChange, open, profile }: ProfilePreviewPr
         className="flex max-h-[92dvh] max-w-4xl flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 p-0"
       >
         <DialogHeader className="border-b border-slate-200 px-6 py-5 pr-14 sm:px-8">
-          <div className="flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-emerald-700 uppercase">
+          <div className="text-accent-foreground flex items-center gap-2 text-xs font-bold tracking-[0.16em] uppercase">
             <Eye aria-hidden="true" size={16} />
             {t("recruiterPreview.previewLabel")}
           </div>
@@ -58,14 +58,14 @@ export function ProfilePreview({ onOpenChange, open, profile }: ProfilePreviewPr
           <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
             <header className="border-b border-slate-200 px-5 py-7 sm:px-8 sm:py-8">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-xl font-bold text-white">
+                <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-teal-700 text-xl font-bold text-white">
                   {getInitials(profile.account.fullName)}
                 </span>
                 <div className="min-w-0 flex-1">
                   <h2 className="text-2xl font-bold tracking-[-0.025em] text-slate-950">
                     {profile.account.fullName}
                   </h2>
-                  <p className="mt-1 text-sm font-bold text-emerald-700">
+                  <p className="mt-1 text-sm font-bold text-slate-600">
                     {desiredPosition || t("header.headlineFallback")}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-slate-500">
@@ -156,7 +156,7 @@ export function ProfilePreview({ onOpenChange, open, profile }: ProfilePreviewPr
                       <div key={project.id} className="rounded-xl border border-slate-200 p-4">
                         <h4 className="font-bold text-slate-950">{project.name}</h4>
                         {project.role && (
-                          <p className="mt-1 text-xs font-bold text-emerald-700">{project.role}</p>
+                          <p className="mt-1 text-xs font-bold text-slate-600">{project.role}</p>
                         )}
                         {project.description && (
                           <p className="mt-3 line-clamp-4 text-sm leading-6 text-slate-600">
@@ -178,7 +178,7 @@ export function ProfilePreview({ onOpenChange, open, profile }: ProfilePreviewPr
                       <div key={education.id} className="flex items-start gap-3">
                         <Briefcase
                           aria-hidden="true"
-                          className="mt-0.5 shrink-0 text-slate-400"
+                          className="mt-0.5 shrink-0 text-slate-500"
                           size={18}
                         />
                         <div>
@@ -206,7 +206,7 @@ export function ProfilePreview({ onOpenChange, open, profile }: ProfilePreviewPr
                         href={link.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="focus-visible:outline-brand rounded-md text-sm font-bold text-emerald-700 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-3"
+                        className="text-accent-foreground focus-visible:outline-brand rounded-md text-sm font-bold hover:text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-3"
                       >
                         {link.type}
                       </a>
