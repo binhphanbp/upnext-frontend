@@ -3,8 +3,6 @@
 import {
   Briefcase,
   Check,
-  CheckCircle,
-  Circle,
   Code,
   Eye,
   EyeSlash,
@@ -198,10 +196,7 @@ export function CandidateProfilePage() {
     <div className="pb-12">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-bold tracking-[0.18em] text-emerald-700 uppercase">
-            {t("page.eyebrow")}
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-[-0.035em] text-slate-950 sm:text-4xl">
+          <h1 className="text-3xl font-bold tracking-[-0.035em] text-balance text-slate-950 sm:text-4xl">
             {t("page.title")}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t("page.description")}</p>
@@ -252,11 +247,7 @@ export function CandidateProfilePage() {
       <MobileReadinessSummary readiness={readiness} />
 
       <div className="mt-7 grid items-start gap-8 lg:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[210px_minmax(0,1fr)_270px]">
-        <ProfileNavigation
-          activeSection={activeSection}
-          counts={sectionCounts}
-          readiness={readiness}
-        />
+        <ProfileNavigation activeSection={activeSection} counts={sectionCounts} />
 
         <div className="min-w-0 lg:min-h-[620px] lg:border-l lg:border-slate-200 lg:pl-8 xl:border-r xl:pr-8">
           {activeSection === "overview" && (
@@ -447,34 +438,28 @@ function HeaderControl({
 function ProfileNavigation({
   activeSection,
   counts,
-  readiness,
 }: Readonly<{
   activeSection: ProfileSectionId;
   counts: Partial<Record<ProfileSectionId, number | undefined>>;
-  readiness: ProfileReadiness;
 }>) {
   const t = useTranslations("CandidateProfile.content");
   return (
-    <aside className="sticky top-24 hidden lg:block">
-      <div className="mb-5">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-600">
-          <span>{t("navigation.progressLabel")}</span>
-          <span>{readiness.percentage}%</span>
-        </div>
-        <progress
-          className="sr-only"
-          aria-label={t("readiness.completionLabel")}
-          max={100}
-          value={readiness.percentage}
-        />
-        <div aria-hidden="true" className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
-          <div
-            className="h-full rounded-full bg-emerald-600 transition-[width]"
-            style={{ width: `${readiness.percentage}%` }}
-          />
-        </div>
+    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain pr-1 lg:block">
+      <div className="mb-3 px-3">
+        <p
+          id="profile-navigation-title"
+          className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase"
+        >
+          {t("navigation.title")}
+        </p>
+        <p id="profile-navigation-description" className="sr-only">
+          {t("navigation.description")}
+        </p>
       </div>
-      <nav aria-label={t("navigation.ariaLabel")}>
+      <nav
+        aria-labelledby="profile-navigation-title"
+        aria-describedby="profile-navigation-description"
+      >
         <ul className="space-y-1">
           {profileSectionIds.map((section) => {
             const Icon = sectionIcons[section];
@@ -503,7 +488,7 @@ function ProfileNavigation({
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2 text-sm font-bold">
                       <span>{t(`sections.${section}.title`)}</span>
-                      {typeof count === "number" && (
+                      {typeof count === "number" && count > 0 && (
                         <span
                           className={cn(
                             "text-[11px] tabular-nums",
@@ -535,19 +520,23 @@ function ProfileNavigation({
 
 function ReadinessRail({ readiness }: Readonly<{ readiness: ProfileReadiness }>) {
   const t = useTranslations("CandidateProfile.content");
-  const incompleteItems = readiness.items.filter((item) => !item.complete).slice(0, 3);
+  const incompleteItems = readiness.items.filter((item) => !item.complete);
+  const prioritizedItems = incompleteItems
+    .filter(
+      (item, index, items) =>
+        items.findIndex((candidate) => candidate.section === item.section) === index,
+    )
+    .slice(0, 4);
 
   return (
-    <aside className="sticky top-24 hidden xl:block">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">
-            {t("readiness.title")}
-          </p>
-          <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">
-            {readiness.percentage}%
-          </p>
-        </div>
+    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain pr-1 xl:block">
+      <p className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">
+        {t("readiness.title")}
+      </p>
+      <div className="mt-2 flex items-end justify-between gap-4">
+        <p className="text-3xl font-bold tracking-[-0.04em] text-slate-950">
+          {readiness.percentage}%
+        </p>
         <p className="pb-1 text-xs font-semibold text-slate-500">
           {t("readiness.criteriaCount", { completed: readiness.completed, total: readiness.total })}
         </p>
@@ -566,59 +555,31 @@ function ReadinessRail({ readiness }: Readonly<{ readiness: ProfileReadiness }>)
       </div>
       <p className="mt-4 text-xs leading-5 text-slate-500">{t("readiness.description")}</p>
 
-      <ul
-        aria-label={t("readiness.checklistLabel")}
-        className="mt-6 divide-y divide-slate-200 border-y border-slate-200"
-      >
-        {readiness.items.map((item) => (
-          <li key={item.id} className="flex items-start gap-2.5 py-3">
-            {item.complete ? (
-              <CheckCircle
-                aria-hidden="true"
-                className="mt-0.5 shrink-0 text-emerald-600"
-                size={17}
-                weight="fill"
-              />
-            ) : (
-              <Circle aria-hidden="true" className="mt-0.5 shrink-0 text-slate-300" size={17} />
-            )}
-            <div>
-              <p
-                className={cn(
-                  "text-xs font-bold",
-                  item.complete ? "text-slate-800" : "text-slate-600",
-                )}
-              >
-                {t(`readiness.criteria.${item.id}.title`)}
-              </p>
-              <p className="mt-1 text-[11px] leading-4 text-slate-500">
-                {t(`readiness.criteria.${item.id}.description`)}
-              </p>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-6">
+      <div className="mt-6 border-t border-slate-200 pt-5">
         <h3 className="text-sm font-bold text-slate-900">
-          {incompleteItems.length > 0
+          {prioritizedItems.length > 0
             ? t("readiness.nextActions.title")
             : t("readiness.nextActions.allDoneTitle")}
         </h3>
-        {incompleteItems.length > 0 ? (
-          <ul className="mt-3 space-y-2">
-            {incompleteItems.map((item) => (
-              <li key={item.id}>
-                <Link
-                  href={{ pathname: "/candidate/profile", query: { section: item.section } }}
-                  className="focus-visible:outline-brand flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2"
-                >
-                  {t(`readiness.nextActions.${item.id}`)}
-                  <span aria-hidden="true">→</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+        {prioritizedItems.length > 0 ? (
+          <>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              {t("readiness.nextActions.description")}
+            </p>
+            <ul className="mt-3 space-y-2">
+              {prioritizedItems.map((item) => (
+                <li key={item.id}>
+                  <Link
+                    href={{ pathname: "/candidate/profile", query: { section: item.section } }}
+                    className="focus-visible:outline-brand flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2"
+                  >
+                    {t(`readiness.nextActions.${item.id}`)}
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
         ) : (
           <p className="mt-2 text-xs leading-5 text-slate-500">
             {t("readiness.nextActions.allDoneDescription")}
@@ -634,7 +595,7 @@ function MobileReadinessSummary({ readiness }: Readonly<{ readiness: ProfileRead
   const nextItem = readiness.items.find((item) => !item.complete);
 
   return (
-    <section className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 xl:hidden">
+    <section className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 xl:hidden">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-[11px] font-bold tracking-[0.13em] text-slate-500 uppercase">
@@ -657,12 +618,6 @@ function MobileReadinessSummary({ readiness }: Readonly<{ readiness: ProfileRead
         max={100}
         value={readiness.percentage}
       />
-      <div aria-hidden="true" className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
-        <div
-          className="h-full rounded-full bg-emerald-600"
-          style={{ width: `${readiness.percentage}%` }}
-        />
-      </div>
       {nextItem ? (
         <Link
           href={{ pathname: "/candidate/profile", query: { section: nextItem.section } }}

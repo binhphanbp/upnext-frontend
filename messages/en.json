@@ -1131,7 +1131,6 @@
   "CandidateProfile": {
     "content": {
       "page": {
-        "eyebrow": "Candidate workspace",
         "title": "Professional profile",
         "description": "Manage what recruiters see and keep your profile accurate and consistent.",
         "lastUpdated": "Last updated {date}",
@@ -1150,9 +1149,7 @@
       "navigation": {
         "title": "Profile content",
         "description": "Choose a section to review and edit.",
-        "ariaLabel": "Profile section navigation",
-        "mobileLabel": "Current profile section",
-        "progressLabel": "Profile progress"
+        "mobileLabel": "Current profile section"
       },
       "sections": {
         "overview": {
@@ -1216,7 +1213,7 @@
         }
       },
       "readiness": {
-        "title": "Profile readiness",
+        "title": "Profile completeness",
         "description": "Progress is based on the core information below. A criterion is complete only when the corresponding profile data is present.",
         "completionLabel": "Profile completion",
         "criteriaCount": "{completed} of {total} criteria completed",

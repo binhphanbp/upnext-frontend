@@ -82,11 +82,7 @@ export function OverviewSection({ onDelete, onEdit, profile }: SectionProps) {
               {profile.description}
             </p>
           ) : (
-            <InlineEmpty
-              description={t("sections.overview.emptyDescription")}
-              actionLabel={t("actions.editProfile")}
-              onAction={() => onEdit({ kind: "profile" })}
-            />
+            <InlineEmpty description={t("sections.overview.emptyDescription")} />
           )}
         </ProfileBlock>
         <ProfileBlock icon={<Phone />} title={t("forms.profile.contactSection")}>
@@ -122,10 +118,12 @@ export function OverviewSection({ onDelete, onEdit, profile }: SectionProps) {
           icon={<LinkSimple />}
           title={t("sections.overview.linksTitle")}
           action={
-            <Button variant="ghost" size="sm" onClick={() => onEdit({ kind: "link" })}>
-              <Plus aria-hidden="true" />
-              {t("actions.addLink")}
-            </Button>
+            profile.links.length > 0 ? (
+              <Button variant="ghost" size="sm" onClick={() => onEdit({ kind: "link" })}>
+                <Plus aria-hidden="true" />
+                {t("actions.addLink")}
+              </Button>
+            ) : undefined
           }
         >
           {profile.links.length > 0 ? (
@@ -183,10 +181,12 @@ export function ExperienceSection({ onDelete, onEdit, profile }: SectionProps) {
   return (
     <SectionFrame
       action={
-        <AddButton
-          label={t("actions.addExperience")}
-          onClick={() => onEdit({ kind: "experience" })}
-        />
+        experiences.length > 0 ? (
+          <AddButton
+            label={t("actions.addExperience")}
+            onClick={() => onEdit({ kind: "experience" })}
+          />
+        ) : undefined
       }
       description={t("sections.experience.description")}
       title={t("sections.experience.title")}
@@ -276,7 +276,9 @@ export function ProjectsSection({ onDelete, onEdit, profile }: SectionProps) {
   return (
     <SectionFrame
       action={
-        <AddButton label={t("actions.addProject")} onClick={() => onEdit({ kind: "project" })} />
+        projects.length > 0 ? (
+          <AddButton label={t("actions.addProject")} onClick={() => onEdit({ kind: "project" })} />
+        ) : undefined
       }
       description={t("sections.projects.description")}
       title={t("sections.projects.title")}
@@ -369,10 +371,12 @@ export function EducationSection({ onDelete, onEdit, profile }: SectionProps) {
   return (
     <SectionFrame
       action={
-        <AddButton
-          label={t("actions.addEducation")}
-          onClick={() => onEdit({ kind: "education" })}
-        />
+        educations.length > 0 ? (
+          <AddButton
+            label={t("actions.addEducation")}
+            onClick={() => onEdit({ kind: "education" })}
+          />
+        ) : undefined
       }
       description={t("sections.education.description")}
       title={t("sections.education.title")}
@@ -454,7 +458,11 @@ export function SkillsSection({ onDelete, onEdit, profile }: SectionProps) {
 
   return (
     <SectionFrame
-      action={<AddButton label={t("actions.addSkill")} onClick={() => onEdit({ kind: "skill" })} />}
+      action={
+        skills.length > 0 ? (
+          <AddButton label={t("actions.addSkill")} onClick={() => onEdit({ kind: "skill" })} />
+        ) : undefined
+      }
       description={t("sections.skills.description")}
       title={t("sections.skills.title")}
     >
@@ -523,6 +531,7 @@ export function CredentialsSection({ onDelete, onEdit, profile }: SectionProps) 
           title={t("sections.credentials.certificationsTitle")}
           actionLabel={t("actions.addCertification")}
           onAction={() => onEdit({ kind: "certification" })}
+          showAction={certifications.length > 0}
         />
         {certifications.length > 0 ? (
           <div className="divide-y divide-slate-200 border-y border-slate-200">
@@ -554,6 +563,7 @@ export function CredentialsSection({ onDelete, onEdit, profile }: SectionProps) 
             title={t("sections.credentials.languagesTitle")}
             actionLabel={t("actions.addLanguage")}
             onAction={() => onEdit({ kind: "language" })}
+            showAction={profile.languages.length > 0}
           />
           {profile.languages.length > 0 ? (
             <ul className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -669,10 +679,12 @@ export function PreferencesSection({ onEdit, profile }: SectionProps) {
   return (
     <SectionFrame
       action={
-        <Button variant="outline" size="sm" onClick={() => onEdit({ kind: "preferences" })}>
-          <PencilSimple aria-hidden="true" />
-          {t("actions.editPreferences")}
-        </Button>
+        preference ? (
+          <Button variant="outline" size="sm" onClick={() => onEdit({ kind: "preferences" })}>
+            <PencilSimple aria-hidden="true" />
+            {t("actions.editPreferences")}
+          </Button>
+        ) : undefined
       }
       description={t("sections.preferences.description")}
       title={t("sections.preferences.title")}
@@ -770,10 +782,10 @@ function ProfileBlock({
   return (
     <div className="grid gap-4 py-7 first:pt-0 last:pb-0 md:grid-cols-[180px_1fr]">
       <div>
-        <div className="flex items-center gap-2.5 text-sm font-bold text-slate-900">
+        <h3 className="flex items-center gap-2.5 text-sm font-bold text-slate-900">
           <span className="text-slate-400 [&_svg]:size-[18px]">{icon}</span>
           {title}
-        </div>
+        </h3>
         {action && <div className="mt-3">{action}</div>}
       </div>
       <div className="min-w-0">{children}</div>
@@ -814,20 +826,22 @@ function InlineEmpty({
   description,
   onAction,
 }: Readonly<{
-  actionLabel: string;
+  actionLabel?: string;
   description: string;
-  onAction: () => void;
+  onAction?: () => void;
 }>) {
   return (
     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-4">
       <p className="text-sm leading-6 text-slate-600">{description}</p>
-      <button
-        type="button"
-        onClick={onAction}
-        className="focus-visible:outline-brand mt-2 rounded-md text-sm font-bold text-emerald-700 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-3"
-      >
-        {actionLabel}
-      </button>
+      {actionLabel && onAction ? (
+        <button
+          type="button"
+          onClick={onAction}
+          className="focus-visible:outline-brand mt-2 rounded-md text-sm font-bold text-emerald-700 hover:text-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-3"
+        >
+          {actionLabel}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -910,15 +924,23 @@ function ExternalLink({ href, label }: Readonly<{ href: string; label: string }>
 function SubsectionHeader({
   actionLabel,
   onAction,
+  showAction = true,
   title,
-}: Readonly<{ actionLabel: string; onAction: () => void; title: string }>) {
+}: Readonly<{
+  actionLabel: string;
+  onAction: () => void;
+  showAction?: boolean;
+  title: string;
+}>) {
   return (
     <div className="flex items-center justify-between gap-4">
       <h3 className="text-base font-bold text-slate-950">{title}</h3>
-      <Button variant="ghost" size="sm" onClick={onAction}>
-        <Plus aria-hidden="true" />
-        {actionLabel}
-      </Button>
+      {showAction ? (
+        <Button variant="ghost" size="sm" onClick={onAction}>
+          <Plus aria-hidden="true" />
+          {actionLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }

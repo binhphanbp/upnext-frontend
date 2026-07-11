@@ -154,6 +154,35 @@ test("supports explicit keyboard selection in the skill combobox", async ({ page
   await expect(selectedSkillId).toHaveValue("99999999-9999-4999-8999-999999999999");
 });
 
+test("uses one readiness indicator and one empty-state action on desktop", async ({ page }) => {
+  const browserErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(message.text());
+  });
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await mockCandidateWorkspace(page, emptyProfile, false);
+  await page.goto("/vi/candidate/profile?section=experience");
+
+  await expect(page.getByText("Không gian ứng viên", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Nội dung hồ sơ", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Độ hoàn thiện hồ sơ", { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
+  await expect(page.getByText("0%", { exact: true }).filter({ visible: true })).toHaveCount(1);
+  await expect(
+    page.getByRole("link", { name: "Bổ sung thông tin liên hệ" }).filter({ visible: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Viết phần giới thiệu nghề nghiệp", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Thêm kinh nghiệm", exact: true })).toHaveCount(1);
+
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(hasHorizontalOverflow).toBe(false);
+  expect(browserErrors).toEqual([]);
+});
+
 test("renders honest empty states and a mobile section selector", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockCandidateWorkspace(page, emptyProfile, false);

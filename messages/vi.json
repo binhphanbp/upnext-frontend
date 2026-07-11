@@ -1131,7 +1131,6 @@
   "CandidateProfile": {
     "content": {
       "page": {
-        "eyebrow": "Không gian ứng viên",
         "title": "Hồ sơ nghề nghiệp",
         "description": "Quản lý thông tin nhà tuyển dụng nhìn thấy và giữ hồ sơ của bạn luôn chính xác, nhất quán.",
         "lastUpdated": "Cập nhật gần nhất {date}",
@@ -1150,9 +1149,7 @@
       "navigation": {
         "title": "Nội dung hồ sơ",
         "description": "Chọn một mục để xem và chỉnh sửa.",
-        "ariaLabel": "Điều hướng các mục hồ sơ",
-        "mobileLabel": "Mục hồ sơ đang xem",
-        "progressLabel": "Tiến độ hồ sơ"
+        "mobileLabel": "Mục hồ sơ đang xem"
       },
       "sections": {
         "overview": {
@@ -1216,7 +1213,7 @@
         }
       },
       "readiness": {
-        "title": "Mức độ sẵn sàng của hồ sơ",
+        "title": "Độ hoàn thiện hồ sơ",
         "description": "Tiến độ được tính từ các thông tin cốt lõi bên dưới. Mỗi tiêu chí chỉ được đánh dấu hoàn thành khi hồ sơ có dữ liệu tương ứng.",
         "completionLabel": "Mức độ hoàn thiện hồ sơ",
         "criteriaCount": "Đã hoàn thành {completed}/{total} tiêu chí",
