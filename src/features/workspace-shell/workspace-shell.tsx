@@ -13,6 +13,8 @@ import {
   GridFour,
   Shield,
   CaretDown,
+  PencilSimple,
+  CaretDoubleRight,
 } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
@@ -82,6 +84,7 @@ export function WorkspaceShell({
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  const [showSecurityTooltip, setShowSecurityTooltip] = useState(false);
   const currentLocale = locale === "en" ? "en" : "vi";
 
   // Auto-expand menu if sub-menu child is active on mount / route change
@@ -134,63 +137,99 @@ export function WorkspaceShell({
     router.replace(pathname, { locale: nextLocale });
   }
 
+  // Find current active item/sub-item and construct breadcrumbs
+  let activeItemLabel = "";
+  let activeGroupLabel = "";
+
+  for (const group of navGroups) {
+    for (const item of group.items) {
+      if (item.children) {
+        for (const child of item.children) {
+          const isRootNode =
+            child.href === "/admin" || child.href === "/recruiter" || child.href === "/candidate";
+          const match = isRootNode
+            ? pathname === child.href
+            : pathname === child.href || pathname.startsWith(`${child.href}/`);
+          if (match) {
+            activeItemLabel = child.label;
+            activeGroupLabel = item.label;
+            break;
+          }
+        }
+      }
+      if (activeItemLabel) break;
+      const isRootNode =
+        item.href === "/admin" || item.href === "/recruiter" || item.href === "/candidate";
+      const match = isRootNode
+        ? pathname === item.href
+        : pathname === item.href || pathname.startsWith(`${item.href}/`);
+      if (match) {
+        activeItemLabel = item.label;
+        activeGroupLabel = group.label;
+        break;
+      }
+    }
+    if (activeItemLabel) break;
+  }
+
   return (
     <TooltipProvider delayDuration={120}>
       <div className="flex h-screen overflow-hidden overscroll-none bg-[#f4f6fa] font-sans text-[#2a3547] antialiased">
         {/* Sidebars Hover Wrapper */}
         <div
-          className="relative z-20 flex h-full flex-shrink-0"
+          className="relative z-20 flex h-full flex-shrink-0 bg-white"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* 1. MINI SIDEBAR (Lớp 1 ngoài cùng) */}
           <aside
             className={cn(
-              "relative z-20 flex hidden w-[80px] flex-shrink-0 flex-col items-center border-r border-slate-200 py-5 md:flex transition-colors duration-300",
-              collapsed ? "bg-white" : "bg-[#f4f6fa]",
+              "relative z-20 flex hidden w-[80px] flex-shrink-0 flex-col items-center md:flex transition-colors duration-300 bg-transparent",
             )}
           >
-            <button
-              onClick={handleToggleCollapse}
-              className="hover:text-primary mb-8 text-slate-800 transition"
-              aria-label="Toggle Sidebar"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-                className="iconify iconify--solar"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
+            <div className="flex h-[76px] w-full shrink-0 items-center justify-center bg-[#212f3f]">
+              <button
+                onClick={handleToggleCollapse}
+                className="cursor-pointer text-slate-300 transition hover:text-white"
+                aria-label="Toggle Sidebar"
               >
-                <g fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5">
-                  <path d="M20 7H4"></path>
-                  <path d="M20 12H4" opacity=".5"></path>
-                  <path d="M20 17H4"></path>
-                </g>
-              </svg>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                  className="iconify iconify--solar"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                >
+                  <g fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5">
+                    <path d="M20 7H4"></path>
+                    <path d="M20 12H4" opacity=".5"></path>
+                    <path d="M20 17H4"></path>
+                  </g>
+                </svg>
+              </button>
+            </div>
 
-            <nav className="flex flex-col gap-4">
+            <nav className="flex w-full flex-1 flex-col items-center gap-4 border-r border-slate-100 py-5">
               <button className="bg-primary flex h-12 w-12 items-center justify-center rounded-xl text-white">
                 <DiamondsFour size={24} />
               </button>
-              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+              <button className="flex h-12 w-12 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-900">
                 <Browser size={24} />
               </button>
-              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+              <button className="flex h-12 w-12 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-900">
                 <ChatCircleDots size={24} />
               </button>
-              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+              <button className="flex h-12 w-12 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-900">
                 <Sliders size={24} />
               </button>
-              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+              <button className="flex h-12 w-12 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-900">
                 <ChartBar size={24} />
               </button>
-              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+              <button className="flex h-12 w-12 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-900">
                 <GridFour size={24} />
               </button>
-              <button className="hover:text-primary flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 transition hover:bg-indigo-50">
+              <button className="flex h-12 w-12 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-900">
                 <Shield size={24} />
               </button>
             </nav>
@@ -199,23 +238,33 @@ export function WorkspaceShell({
           {/* 2. MAIN SIDEBAR (Lớp 2 màu trắng) */}
           <aside
             className={cn(
-              "bg-white flex-shrink-0 transition-[width,opacity] duration-300 ease-in-out h-full relative z-10 hidden lg:flex",
+              "bg-transparent flex-shrink-0 transition-[width,opacity] duration-300 ease-in-out h-full relative z-10 hidden lg:flex",
               !collapsed || isHovered
-                ? "w-[260px] opacity-100 border-slate-100"
+                ? "w-[260px] opacity-100 border-transparent"
                 : "w-0 opacity-0 overflow-hidden border-r-0 lg:w-0 lg:border-r-0",
             )}
           >
             <div className="flex h-full w-[260px] flex-shrink-0 flex-col">
-              <div className="flex h-[76px] items-center border-b border-transparent px-6">
-                <Logo className="w-[67%]" />
+              <div className="flex h-[76px] items-center border-b border-transparent bg-[#212f3f] px-6">
+                {workspaceRole === "recruiter" ? (
+                  <Link href="/recruiter" className="upnext-focus inline-flex rounded-md">
+                    <Image
+                      src="/upnext-logo/upnext-recruiter.svg"
+                      alt="UpNext Recruiter"
+                      width={150}
+                      height={38}
+                      priority
+                      className="h-8 w-auto object-contain"
+                    />
+                  </Link>
+                ) : (
+                  <Logo className="w-[67%]" />
+                )}
               </div>
               <ScrollArea className="flex-1 space-y-1 px-4 py-4">
-                <nav className="space-y-6" aria-label={`Điều hướng ${workspaceRole}`}>
+                <nav className="space-y-1" aria-label={`Điều hướng ${workspaceRole}`}>
                   {navGroups.map((group, groupIdx) => (
-                    <section key={group.label} className={groupIdx > 0 ? "mt-6" : "mt-2"}>
-                      <h2 className="mb-2 px-4 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-                        {group.label}
-                      </h2>
+                    <section key={group.label} className="mt-0">
                       <div className="space-y-1">
                         {group.items.map((item) => {
                           const hasChildren = item.children && item.children.length > 0;
@@ -240,8 +289,8 @@ export function WorkspaceShell({
                                   className={cn(
                                     "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
                                     isAnyChildActive
-                                      ? "bg-slate-50 text-primary font-semibold"
-                                      : "text-slate-700 hover:bg-slate-50 hover:text-primary",
+                                      ? "bg-slate-100 text-slate-900 font-semibold"
+                                      : "text-slate-600 hover:bg-slate-50 hover:text-primary",
                                   )}
                                 >
                                   <Icon size={20} />
@@ -266,8 +315,8 @@ export function WorkspaceShell({
                                           className={cn(
                                             "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
                                             active
-                                              ? "text-primary bg-emerald-50/50 font-semibold"
-                                              : "text-slate-600 hover:text-primary hover:bg-slate-50/50",
+                                              ? "text-primary bg-emerald-50 font-semibold"
+                                              : "text-slate-500 hover:text-primary hover:bg-slate-50",
                                           )}
                                         >
                                           <span className="truncate">{child.label}</span>
@@ -296,7 +345,7 @@ export function WorkspaceShell({
                                 "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
                                 active
                                   ? "bg-primary text-white"
-                                  : "text-slate-700 hover:bg-slate-50 hover:text-primary",
+                                  : "text-slate-600 hover:bg-slate-50 hover:text-primary",
                               )}
                             >
                               <Icon size={20} />
@@ -313,22 +362,92 @@ export function WorkspaceShell({
                 </nav>
               </ScrollArea>
 
-              <div className="border-border space-y-2 border-t p-3">
-                {workspaceRole !== "admin" ? (
-                  <Button className="w-full justify-start" variant="secondary" size="md">
-                    <Sparkle />
-                    {t("shell.proPackage")}
-                  </Button>
-                ) : null}
-                <Button
-                  className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/50"
-                  variant="ghost"
-                  size="md"
-                  onClick={onLogout}
-                >
-                  <SignOut />
-                  {t("shell.signOut")}
-                </Button>
+              {/* User Profile Card */}
+              <div className="border-t border-slate-100 p-4">
+                <div>
+                  {/* Top Row: Avatar + Info + Logout */}
+                  <div className="flex items-center gap-3">
+                    {identity.avatarUrl ? (
+                      <Image
+                        src={identity.avatarUrl}
+                        alt="Avatar"
+                        width={38}
+                        height={38}
+                        unoptimized
+                        className="size-[38px] shrink-0 rounded-full border border-slate-200 bg-white object-cover"
+                      />
+                    ) : (
+                      <div className="flex size-[38px] shrink-0 items-center justify-center rounded-full border border-slate-200 bg-emerald-50 text-xs font-bold text-emerald-600">
+                        {identity.initials}
+                      </div>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <h4 className="truncate text-[13px] font-bold text-slate-800">
+                        {identity.name}
+                      </h4>
+                      <p className="truncate text-[11px] font-semibold text-slate-500">
+                        {identity.roleLabel}
+                      </p>
+                    </div>
+
+                    <Button
+                      onClick={onLogout}
+                      className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg p-0 text-slate-400 hover:bg-slate-100 hover:text-red-500"
+                      variant="ghost"
+                      aria-label={t("shell.signOut")}
+                    >
+                      <SignOut size={18} />
+                    </Button>
+                  </div>
+
+                  <div
+                    className="relative mt-3"
+                    onMouseEnter={() => setShowSecurityTooltip(true)}
+                    onMouseLeave={() => setShowSecurityTooltip(false)}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setShowSecurityTooltip(!showSecurityTooltip)}
+                      className="flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-full bg-[#e03a3a] px-4 py-1.5 text-left text-[11px] font-bold text-white shadow-xs transition hover:bg-[#c62828]"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Shield size={14} weight="fill" className="shrink-0 text-white" />
+                        <span>Tài khoản chưa đủ an toàn</span>
+                      </div>
+                      <CaretDoubleRight
+                        size={10}
+                        weight="bold"
+                        className="shrink-0 text-white/80"
+                      />
+                    </button>
+
+                    {/* Popover */}
+                    {showSecurityTooltip && (
+                      <div className="absolute bottom-full left-1/2 z-50 w-[220px] -translate-x-1/2 cursor-default pb-2.5">
+                        {/* Actual visible box */}
+                        <div className="animate-in fade-in slide-in-from-bottom-2 relative rounded-lg bg-slate-900 p-3 text-white shadow-lg duration-200">
+                          {/* Arrow pointing down */}
+                          <div className="absolute top-full left-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 bg-slate-900" />
+                          <p className="text-[12px] leading-relaxed font-medium text-slate-100">
+                            Bật xác thực bảo mật 2 yếu tố để bảo vệ tài khoản tốt hơn.
+                          </p>
+                          <Link
+                            href={
+                              workspaceRole === "recruiter"
+                                ? "/recruiter/settings?tab=security"
+                                : "#"
+                            }
+                            className="mt-2.5 inline-block text-[12px] font-bold text-emerald-400 transition-colors hover:text-emerald-300"
+                            onClick={() => setShowSecurityTooltip(false)}
+                          >
+                            Bật ngay
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </aside>
@@ -345,15 +464,29 @@ export function WorkspaceShell({
         )}
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col bg-white border-r border-slate-100 transition-transform duration-200 lg:hidden",
+            "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-slate-800 transition-transform duration-200 lg:hidden",
             mobileOpen ? "translate-x-0" : "-translate-x-full",
           )}
+          style={{ background: "linear-gradient(180deg, #10243A 0%, #0F1F31 55%, #0B1B2D 100%)" }}
         >
-          <div className="flex h-[76px] items-center justify-between border-b border-slate-100 px-6">
-            <Logo className="w-[67%]" />
+          <div className="flex h-[76px] items-center justify-between border-b border-slate-800 bg-[#212f3f] px-6">
+            {workspaceRole === "recruiter" ? (
+              <Link href="/recruiter" className="upnext-focus inline-flex rounded-md">
+                <Image
+                  src="/upnext-logo/upnext-recruiter.svg"
+                  alt="UpNext Recruiter"
+                  width={150}
+                  height={38}
+                  priority
+                  className="h-9 w-auto object-contain"
+                />
+              </Link>
+            ) : (
+              <Logo className="w-[67%]" />
+            )}
             <button
               onClick={() => setMobileOpen(false)}
-              className="hover:text-primary text-slate-500"
+              className="text-slate-400 transition hover:text-white"
               aria-label="Close menu"
             >
               <X size={20} />
@@ -390,15 +523,15 @@ export function WorkspaceShell({
                               className={cn(
                                 "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
                                 isAnyChildActive
-                                  ? "bg-slate-50 text-primary font-semibold"
-                                  : "text-slate-700 hover:bg-slate-50 hover:text-primary",
+                                  ? "bg-slate-800 text-white font-semibold"
+                                  : "text-slate-300 hover:bg-slate-800 hover:text-white",
                               )}
                             >
                               <Icon
                                 size={18}
                                 className={cn(
                                   "flex-shrink-0",
-                                  isAnyChildActive ? "text-primary" : "text-slate-400",
+                                  isAnyChildActive ? "text-white" : "text-slate-400",
                                 )}
                               />
                               <span className="min-w-0 flex-1 truncate">{item.label}</span>
@@ -448,7 +581,7 @@ export function WorkspaceShell({
                             "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
                             active
                               ? "bg-primary text-white"
-                              : "text-slate-700 hover:bg-slate-50 hover:text-primary",
+                              : "text-slate-300 hover:bg-slate-800 hover:text-white",
                           )}
                         >
                           <Icon
@@ -479,12 +612,12 @@ export function WorkspaceShell({
           </ScrollArea>
           <div className="border-t border-slate-100 p-4">
             <Button
-              className="text-primary hover:text-primary/90 w-full justify-start gap-2 border-0 bg-indigo-50 font-bold hover:bg-indigo-100"
+              className="w-full justify-start gap-2 border-0 bg-slate-100 font-bold text-slate-700 hover:bg-slate-200"
               variant="outline"
               asChild
             >
               <Link href="#">
-                <Sparkle weight="fill" />
+                <Sparkle className="text-amber-500" weight="fill" />
                 <span>{t("shell.proPackage")}</span>
               </Link>
             </Button>
@@ -494,7 +627,7 @@ export function WorkspaceShell({
         {/* RIGHT CONTENT AREA */}
         <div className="relative flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-[#f4f6fa] dark:bg-slate-950">
           {/* TOP HEADER */}
-          <header className="relative z-30 flex h-[76px] flex-shrink-0 items-center justify-between bg-white px-8">
+          <header className="relative z-30 flex h-[76px] flex-shrink-0 items-center justify-between bg-[#212f3f] px-8">
             <div className="flex items-center gap-5 text-slate-500">
               {/* Mobile menu trigger */}
               <button
@@ -505,7 +638,7 @@ export function WorkspaceShell({
                 <List size={22} />
               </button>
 
-              <button className="hover:text-primary transition" aria-label="Search">
+              {/* <button className="hover:text-primary transition" aria-label="Search">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
@@ -546,10 +679,22 @@ export function WorkspaceShell({
                     <path d="M21.5 6.5a4 4 0 1 0-8 0a4 4 0 0 0 8 0Zm-11 11a4 4 0 1 0-8 0a4 4 0 0 0 8 0Z"></path>
                   </g>
                 </svg>
-              </button>
+              </button> */}
             </div>
 
             <div className="flex items-center gap-5 text-slate-500">
+              {workspaceRole === "recruiter" && (
+                <Button
+                  className="hidden h-10 items-center justify-center gap-1.5 rounded-full bg-[#10a778] px-4 font-semibold text-white hover:bg-[#0d966d] lg:flex"
+                  asChild
+                >
+                  <Link href="/recruiter/job-posts?action=create">
+                    <PencilSimple size={16} className="shrink-0" weight="bold" />
+                    <span>{t("shell.postJob")}</span>
+                  </Link>
+                </Button>
+              )}
+
               {/* Notification dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -662,7 +807,7 @@ export function WorkspaceShell({
                     aria-label="Select Language"
                     type="button"
                   >
-                    <span className="flex size-12 items-center justify-center overflow-hidden rounded-full bg-white">
+                    <span className="flex size-12 items-center justify-center overflow-hidden rounded-full">
                       <span className="block size-12 h-auto">
                         {currentLocale === "en" ? <UkFlag /> : <VnFlag />}
                       </span>
@@ -726,17 +871,20 @@ export function WorkspaceShell({
                     aria-label="Open profile menu"
                     type="button"
                   >
-                    <Image
-                      src={
-                        identity.avatarUrl ||
-                        `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(identity.name)}`
-                      }
-                      alt="Avatar"
-                      width={32}
-                      height={32}
-                      unoptimized
-                      className="size-8 rounded-full border border-white/40 bg-white object-cover"
-                    />
+                    {identity.avatarUrl ? (
+                      <Image
+                        src={identity.avatarUrl}
+                        alt="Avatar"
+                        width={32}
+                        height={32}
+                        unoptimized
+                        className="size-8 rounded-full border border-white/40 bg-white object-cover"
+                      />
+                    ) : (
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/40 bg-white text-xs font-bold text-[#10a778]">
+                        {identity.initials}
+                      </div>
+                    )}
 
                     <svg
                       aria-hidden="true"
@@ -758,17 +906,20 @@ export function WorkspaceShell({
                   className="z-50 w-[280px] overflow-hidden rounded-xl border-slate-100 bg-white p-0"
                 >
                   <div className="flex items-center gap-4 border-b border-slate-100 bg-slate-50/50 p-5">
-                    <Image
-                      src={
-                        identity.avatarUrl ||
-                        `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(identity.name)}`
-                      }
-                      alt="Avatar"
-                      width={56}
-                      height={56}
-                      unoptimized
-                      className="size-14 rounded-full border border-slate-200 bg-slate-100 object-cover"
-                    />
+                    {identity.avatarUrl ? (
+                      <Image
+                        src={identity.avatarUrl}
+                        alt="Avatar"
+                        width={56}
+                        height={56}
+                        unoptimized
+                        className="size-14 rounded-full border border-slate-200 bg-slate-100 object-cover"
+                      />
+                    ) : (
+                      <div className="flex size-14 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-emerald-50 text-lg font-bold text-emerald-600">
+                        {identity.initials}
+                      </div>
+                    )}
 
                     <div className="min-w-0">
                       <h4 className="flex items-center gap-1 truncate text-[15px] font-bold text-slate-800">
@@ -832,8 +983,20 @@ export function WorkspaceShell({
             </div>
           </header>
 
+          {/* PAGE TITLE & BREADCRUMB BAR */}
+          <div className="relative z-20 flex h-14 shrink-0 items-center bg-white px-8 transition-colors">
+            <div className="flex items-center gap-2">
+              <span className="text-[16px] font-semibold text-slate-800 dark:text-slate-200">
+                {activeItemLabel || t("dashboard.title")}
+              </span>
+            </div>
+          </div>
+
           {/* White square behind top-left corner to maintain the curve illusion */}
-          <div className="absolute top-[76px] left-0 z-0 h-8 w-8 bg-white" aria-hidden="true" />
+          <div
+            className="absolute top-[132px] left-0 z-0 h-8 w-8 bg-white dark:bg-[#0f1d30]"
+            aria-hidden="true"
+          />
 
           {/* MAIN DASHBOARD CONTENT AREA */}
           <main

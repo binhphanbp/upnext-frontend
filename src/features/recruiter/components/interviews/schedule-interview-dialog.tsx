@@ -1,0 +1,636 @@
+"use client";
+
+import { CaretDown, MagnifyingGlass, X } from "@phosphor-icons/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
+
+import {
+  createInterview,
+  getRecruiterInterviews,
+  type InterviewType,
+} from "@/features/recruiter/api/interviews";
+import {
+  getCompanyLocations,
+  getRecruiterAccount,
+  type CompanyLocation,
+} from "@/features/recruiter/api/onboarding";
+import { getCompanyMembers } from "@/features/recruiter/api/team";
+import { useRecruiterPipeline } from "@/features/recruiter/hooks/use-recruiter-pipeline";
+import type { RecruiterJobPost } from "@/features/recruiter/job-posts/api";
+import { getRecruiterSession } from "@/features/recruiter/session";
+import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+
+const toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 2600,
+  timerProgressBar: true,
+});
+
+type ScheduleInterviewDialogProps = Readonly<{
+  token: string | null;
+  jobs: RecruiterJobPost[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialValues?: { applicationId: string; interviewRound: number } | null;
+}>;
+
+export function ScheduleInterviewDialog({
+  token,
+  jobs,
+  open,
+  onOpenChange,
+  initialValues,
+}: ScheduleInterviewDialogProps) {
+  const t = useTranslations("Recruiter");
+  const locale = useLocale();
+  const queryClient = useQueryClient();
+
+  const [jobId, setJobId] = useState("all");
+  const [applicationId, setApplicationId] = useState("");
+  const [jobSearch, setJobSearch] = useState("");
+  const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
+  const [candidateSearch, setCandidateSearch] = useState("");
+  const [candidateDropdownOpen, setCandidateDropdownOpen] = useState(false);
+
+  const [interviewRound, setInterviewRound] = useState(1);
+  const [type, setType] = useState<InterviewType>("ONLINE");
+  const [startAt, setStartAt] = useState("");
+  const [endAt, setEndAt] = useState("");
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [location, setLocation] = useState("");
+  const [recruiterNote, setRecruiterNote] = useState("");
+  const [interviewerOptions, setInterviewerOptions] = useState<
+    { memberId: string; profileId: string; label: string; accountId: string }[]
+  >([]);
+  const [recruiterProfileId, setRecruiterProfileId] = useState("");
+  const [companyLocations, setCompanyLocations] = useState<CompanyLocation[]>([]);
+
+  const { data: pipeline } = useRecruiterPipeline(open ? token : null, { jobPostId: jobId });
+
+  const candidateOptions = useMemo(() => pipeline?.candidates ?? [], [pipeline]);
+
+  const { data: previousInterviews } = useQuery({
+    queryKey: ["recruiter", "interviews", { applicationId }],
+    queryFn: () => {
+      if (!token || !applicationId) return [];
+      return getRecruiterInterviews(token, { applicationId });
+    },
+    enabled: !!token && !!applicationId,
+  });
+
+  const hasPassedPreviousRound = useMemo(() => {
+    if (interviewRound <= 1) return true;
+    if (!previousInterviews) return true;
+    const prevRoundNum = interviewRound - 1;
+    const prevRoundInterview = previousInterviews.find((i) => i.interviewRound === prevRoundNum);
+    return prevRoundInterview?.result === "PASSED";
+  }, [interviewRound, previousInterviews]);
+
+  const filteredJobsForSelect = useMemo(() => {
+    const q = jobSearch.toLowerCase().trim();
+    if (!q) return jobs;
+    return jobs.filter((job) => job.title.toLowerCase().includes(q));
+  }, [jobs, jobSearch]);
+
+  const filteredCandidatesForSelect = useMemo(() => {
+    const q = candidateSearch.toLowerCase().trim();
+    if (!q) return candidateOptions;
+    return candidateOptions.filter(
+      (candidate) =>
+        candidate.name.toLowerCase().includes(q) ||
+        (candidate.role && candidate.role.toLowerCase().includes(q)),
+    );
+  }, [candidateOptions, candidateSearch]);
+
+  useEffect(() => {
+    if (!open) {
+      setJobId("all");
+      setApplicationId("");
+      setJobSearch("");
+      setJobDropdownOpen(false);
+      setCandidateSearch("");
+      setCandidateDropdownOpen(false);
+      setInterviewRound(1);
+      setType("ONLINE");
+      setStartAt("");
+      setEndAt("");
+      setMeetingUrl("");
+      setLocation("");
+      setRecruiterNote("");
+      setInterviewerOptions([]);
+      setRecruiterProfileId("");
+      setCompanyLocations([]);
+      return;
+    }
+
+    if (initialValues) {
+      setApplicationId(initialValues.applicationId);
+      setInterviewRound(initialValues.interviewRound);
+    }
+  }, [open, initialValues]);
+
+  useEffect(() => {
+    if (!open || !token) return;
+
+    const session = getRecruiterSession();
+    if (!session) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const account = await getRecruiterAccount(session.user.id, token);
+        if (!account.company?.id) return;
+
+        const [members, locations] = await Promise.all([
+          getCompanyMembers(account.company.id, token),
+          getCompanyLocations(account.company.id, token).catch(() => []),
+        ]);
+        if (cancelled) return;
+
+        setCompanyLocations(locations);
+
+        const activeInterviewers = members.flatMap((member) => {
+          const profileId = member.recruiterAccount?.profile?.id;
+          if (member.status !== "ACTIVE" || !profileId) return [];
+
+          return [
+            {
+              memberId: member.id,
+              profileId,
+              label:
+                member.recruiterAccount?.profile?.fullName ?? member.recruiterAccount?.email ?? "",
+              accountId: member.recruiterAccount?.id ?? "",
+            },
+          ];
+        });
+        setInterviewerOptions(activeInterviewers);
+
+        const currentInterviewer = activeInterviewers.find(
+          (member) => member.accountId === session.user.id,
+        );
+        setRecruiterProfileId(currentInterviewer?.profileId ?? "");
+      } catch {
+        // Backend falls back to the current recruiter when recruiterProfileId is omitted.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, token]);
+
+  useEffect(() => {
+    setApplicationId("");
+    setCandidateSearch("");
+  }, [jobId]);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!token) throw new Error("No token available");
+      return createInterview(
+        {
+          applicationId,
+          interviewRound,
+          type,
+          scheduledStartAt: new Date(startAt).toISOString(),
+          scheduledEndAt: new Date(endAt).toISOString(),
+          ...(recruiterProfileId ? { recruiterProfileId } : {}),
+          ...(type === "ONLINE" && meetingUrl ? { meetingUrl } : {}),
+          ...(type === "ONSITE" && location ? { location } : {}),
+          ...(recruiterNote ? { recruiterNote } : {}),
+        },
+        token,
+      );
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["recruiter", "interviews"] });
+      void queryClient.invalidateQueries({ queryKey: ["recruiter", "pipeline"] });
+      void toast.fire({ icon: "success", title: t("interviews.toasts.scheduleSuccess") });
+      onOpenChange(false);
+    },
+    onError: () => {
+      void toast.fire({ icon: "error", title: t("interviews.toasts.scheduleError") });
+    },
+  });
+
+  const canSubmit = Boolean(applicationId && startAt && endAt);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="flex max-h-[85vh] max-w-lg flex-col overflow-hidden p-0"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              .popup-scrollbar::-webkit-scrollbar {
+                width: 6px;
+              }
+              .popup-scrollbar::-webkit-scrollbar-track {
+                background: transparent;
+              }
+              .popup-scrollbar::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 99px;
+              }
+              .popup-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+              }
+            `,
+          }}
+        />
+        <DialogHeader className="shrink-0 border-b p-6 pb-4">
+          <DialogTitle>{t("interviews.scheduleForm.title")}</DialogTitle>
+        </DialogHeader>
+
+        <div className="popup-scrollbar flex-1 space-y-4 overflow-y-auto p-6 pt-0">
+          {/* Job Select */}
+          <div className="space-y-1.5">
+            <Label htmlFor="schedule-job" className="text-xs font-bold text-slate-600">
+              {t("interviews.scheduleForm.job")}
+            </Label>
+            <DropdownMenu
+              open={jobDropdownOpen}
+              onOpenChange={(open) => {
+                setJobDropdownOpen(open);
+                if (!open) setJobSearch("");
+              }}
+            >
+              <DropdownMenuTrigger asChild>
+                <button
+                  id="schedule-job"
+                  type="button"
+                  role="combobox"
+                  aria-expanded={jobDropdownOpen}
+                  className="border-input bg-background text-foreground flex h-11 w-full cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium shadow-none transition-colors hover:bg-slate-50/50 focus:outline-none"
+                >
+                  <span className="flex-1 truncate text-left">
+                    {jobId === "all"
+                      ? t("pipeline.filters.allJobs")
+                      : (jobs.find((j) => j.id === jobId)?.title ?? t("pipeline.filters.allJobs"))}
+                  </span>
+                  <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="z-50 flex max-h-80 w-[432px] flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+              >
+                <div className="relative flex items-center px-1 py-1">
+                  <MagnifyingGlass size={16} className="absolute left-3 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
+                    value={jobSearch}
+                    onChange={(e) => setJobSearch(e.target.value)}
+                    className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-8 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.key === " ") e.stopPropagation();
+                    }}
+                  />
+                  {jobSearch && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setJobSearch("");
+                      }}
+                      className="absolute right-3 rounded-full p-0.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setJobId("all");
+                      setJobDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "cursor-pointer flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium hover:bg-slate-50",
+                      jobId === "all" && "text-emerald-600 bg-emerald-50/30",
+                    )}
+                  >
+                    {t("pipeline.filters.allJobs")}
+                  </DropdownMenuItem>
+                  {filteredJobsForSelect.map((job) => (
+                    <DropdownMenuItem
+                      key={job.id}
+                      onClick={() => {
+                        setJobId(job.id);
+                        setJobDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "cursor-pointer flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium hover:bg-slate-50",
+                        jobId === job.id && "text-emerald-600 bg-emerald-50/30",
+                      )}
+                    >
+                      {job.title}
+                    </DropdownMenuItem>
+                  ))}
+                  {filteredJobsForSelect.length === 0 && (
+                    <div className="py-4 text-center text-xs font-medium text-slate-400">
+                      {locale === "vi" ? "Không tìm thấy tin tuyển dụng" : "No job posts found"}
+                    </div>
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Candidate Select */}
+          <div className="space-y-1.5">
+            <Label htmlFor="schedule-candidate" className="text-xs font-bold text-slate-600">
+              {t("interviews.scheduleForm.candidate")}
+            </Label>
+            {candidateOptions.length === 0 ? (
+              <button
+                id="schedule-candidate"
+                type="button"
+                disabled
+                className="border-input bg-background flex h-11 w-full cursor-not-allowed items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium text-slate-400 opacity-50 shadow-none"
+              >
+                <span className="flex-1 truncate text-left">
+                  {t("interviews.scheduleForm.noCandidates")}
+                </span>
+                <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
+              </button>
+            ) : (
+              <DropdownMenu
+                open={candidateDropdownOpen}
+                onOpenChange={(open) => {
+                  setCandidateDropdownOpen(open);
+                  if (!open) setCandidateSearch("");
+                }}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button
+                    id="schedule-candidate"
+                    type="button"
+                    role="combobox"
+                    aria-expanded={candidateDropdownOpen}
+                    className="border-input bg-background text-foreground flex h-11 w-full cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium shadow-none transition-colors hover:bg-slate-50/50 focus:outline-none"
+                  >
+                    <span className="flex-1 truncate text-left">
+                      {applicationId
+                        ? (() => {
+                            const selected = candidateOptions.find(
+                              (c) => c.applicationId === applicationId,
+                            );
+                            return selected
+                              ? `${selected.name} — ${selected.role}`
+                              : t("interviews.scheduleForm.candidatePlaceholder");
+                          })()
+                        : t("interviews.scheduleForm.candidatePlaceholder")}
+                    </span>
+                    <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="z-50 flex max-h-80 w-[432px] flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+                >
+                  <div className="relative flex items-center px-1 py-1">
+                    <MagnifyingGlass size={16} className="absolute left-3 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder={locale === "vi" ? "Tìm ứng viên..." : "Search candidates..."}
+                      value={candidateSearch}
+                      onChange={(e) => setCandidateSearch(e.target.value)}
+                      className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-8 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === " ") e.stopPropagation();
+                      }}
+                    />
+                    {candidateSearch && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCandidateSearch("");
+                        }}
+                        className="absolute right-3 rounded-full p-0.5 text-slate-400 hover:text-slate-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    {filteredCandidatesForSelect.map((candidate) => (
+                      <DropdownMenuItem
+                        key={candidate.applicationId}
+                        onClick={() => {
+                          setApplicationId(candidate.applicationId);
+                          setCandidateDropdownOpen(false);
+                        }}
+                        className={cn(
+                          "cursor-pointer flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium hover:bg-slate-50",
+                          applicationId === candidate.applicationId &&
+                            "text-emerald-600 bg-emerald-50/30",
+                        )}
+                      >
+                        {candidate.name} — {candidate.role}
+                      </DropdownMenuItem>
+                    ))}
+                    {filteredCandidatesForSelect.length === 0 && (
+                      <div className="py-4 text-center text-xs font-medium text-slate-400">
+                        {locale === "vi" ? "Không tìm thấy ứng viên" : "No candidates found"}
+                      </div>
+                    )}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+
+          {/* Interviewer Select */}
+          {interviewerOptions.length > 1 && (
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-interviewer" className="text-xs font-bold text-slate-600">
+                {t("interviews.scheduleForm.interviewer")}
+              </Label>
+              <Select value={recruiterProfileId} onValueChange={setRecruiterProfileId}>
+                <SelectTrigger id="schedule-interviewer" className="shadow-none">
+                  <SelectValue placeholder={t("interviews.scheduleForm.interviewerPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {interviewerOptions.map((member) => (
+                    <SelectItem key={member.memberId} value={member.profileId}>
+                      {member.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Round & Type Grid */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-round" className="text-xs font-bold text-slate-600">
+                {t("interviews.scheduleForm.round")}
+              </Label>
+              <Input
+                id="schedule-round"
+                type="number"
+                min={1}
+                value={interviewRound}
+                onChange={(e) => setInterviewRound(Number(e.target.value) || 1)}
+              />
+              {interviewRound > 1 && !hasPassedPreviousRound && (
+                <p className="mt-1 text-xs font-semibold text-rose-600">
+                  {locale === "vi"
+                    ? "Ứng viên chưa đạt (Pass) ở vòng trước đó."
+                    : "The candidate has not passed the previous round."}
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-type" className="text-xs font-bold text-slate-600">
+                {t("interviews.scheduleForm.type")}
+              </Label>
+              <Select value={type} onValueChange={(v) => setType(v as InterviewType)}>
+                <SelectTrigger id="schedule-type" className="shadow-none">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ONLINE">{t("interviews.type.ONLINE")}</SelectItem>
+                  <SelectItem value="ONSITE">{t("interviews.type.ONSITE")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Start & End Date Grid */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-start" className="text-xs font-bold text-slate-600">
+                {t("interviews.scheduleForm.startAt")}
+              </Label>
+              <Input
+                id="schedule-start"
+                type="datetime-local"
+                value={startAt}
+                onChange={(e) => setStartAt(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-end" className="text-xs font-bold text-slate-600">
+                {t("interviews.scheduleForm.endAt")}
+              </Label>
+              <Input
+                id="schedule-end"
+                type="datetime-local"
+                value={endAt}
+                onChange={(e) => setEndAt(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Meeting URL or Location */}
+          {type === "ONLINE" ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-meeting-url" className="text-xs font-bold text-slate-600">
+                {t("interviews.scheduleForm.meetingUrl")}
+              </Label>
+              <Input
+                id="schedule-meeting-url"
+                type="url"
+                value={meetingUrl}
+                onChange={(e) => setMeetingUrl(e.target.value)}
+                placeholder="https://meet.google.com/..."
+              />
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label htmlFor="schedule-location" className="text-xs font-bold text-slate-600">
+                {t("interviews.scheduleForm.location")}
+              </Label>
+              {companyLocations.length > 0 ? (
+                <Select value={location} onValueChange={setLocation}>
+                  <SelectTrigger id="schedule-location" className="shadow-none">
+                    <SelectValue placeholder={t("interviews.scheduleForm.locationPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companyLocations.map((companyLocation) => {
+                      const label = formatCompanyLocation(companyLocation);
+                      return (
+                        <SelectItem key={companyLocation.id} value={label}>
+                          {label}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="schedule-location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Recruiter Note */}
+          <div className="space-y-1.5">
+            <Label htmlFor="schedule-note" className="text-xs font-bold text-slate-600">
+              {t("interviews.scheduleForm.recruiterNote")}
+            </Label>
+            <textarea
+              id="schedule-note"
+              value={recruiterNote}
+              onChange={(e) => setRecruiterNote(e.target.value)}
+              rows={3}
+              className="upnext-focus border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="shrink-0 gap-3 border-t p-6 pt-4">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="h-10 rounded-lg px-4 text-sm font-semibold text-slate-600"
+          >
+            {t("interviews.scheduleForm.cancel")}
+          </Button>
+          <Button
+            type="button"
+            onClick={() => mutation.mutate()}
+            disabled={
+              !canSubmit || mutation.isPending || (interviewRound > 1 && !hasPassedPreviousRound)
+            }
+            className="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {t("interviews.scheduleForm.submit")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function formatCompanyLocation(location: CompanyLocation) {
+  const address = [location.city, location.district, location.address].filter(Boolean).join(" - ");
+  return location.name ? `${location.name}${address ? ` - ${address}` : ""}` : address;
+}

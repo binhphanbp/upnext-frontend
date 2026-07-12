@@ -30,6 +30,7 @@ export type CompanyMember = Readonly<{
     email: string;
     status: string;
     profile: {
+      id?: string;
       fullName: string | null;
       avatarUrl: string | null;
     } | null;

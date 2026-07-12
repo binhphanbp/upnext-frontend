@@ -2,18 +2,31 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  EnvelopeSimple,
-  ShieldCheck,
   UploadSimple,
-  User,
-  SquaresFour,
   Sparkle,
   Lightning,
   CircleNotch,
   ArrowRight,
+  CheckCircle,
+  Circle,
+  CaretLeft,
+  CaretRight,
+  Briefcase,
+  Users,
+  Eye,
+  ChartBar,
+  WarningCircle,
+  TrendUp,
+  FileDashed,
+  Crown,
+  Info,
+  X,
+  LockSimple,
+  Archive,
+  Clock,
 } from "@phosphor-icons/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useForm, type FieldErrors, type UseFormRegisterReturn } from "react-hook-form";
@@ -24,8 +37,10 @@ import {
   attachRecruiterCompany,
   createCompany,
   createRecruiterProfile,
+  getCompany,
   getRecruiterAccount,
   getRecruiterStats,
+  type CompanyDetail,
   type RecruiterAccountDetail,
   updateRecruiterProfile,
   uploadCompanyBusinessLicense,
@@ -36,6 +51,7 @@ import {
   getCompanyLocations,
   updateCompanyLocation,
 } from "@/features/recruiter/api/onboarding";
+import { getRecruiterPipeline, type PipelineCandidate } from "@/features/recruiter/api/pipeline";
 import {
   extractProvinceFromAddress,
   normalizeProvinceName,
@@ -47,6 +63,7 @@ import {
   PRIMARY_COMPANY_LOCATION_NAME,
   VIETNAM_PROVINCES,
 } from "@/features/recruiter/constants/vietnam-provinces";
+import { getRecruiterJobPosts, type RecruiterJobPost } from "@/features/recruiter/job-posts/api";
 import {
   clearRecruiterSession,
   getRecruiterSession,
@@ -54,9 +71,13 @@ import {
 } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
+import { cn } from "@/shared/lib/cn";
+import { formatAppDate, toDate } from "@/shared/lib/date";
 import { Button } from "@/shared/ui/button";
 import { FormInput, Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+
+import { RecruiterTableLayout } from "./recruiter-table-layout";
 
 function isValidPhoneNumber(phone: string): boolean {
   const cleanPhone = phone.trim().replace(/[\s.-]/g, "");
@@ -221,9 +242,83 @@ function RequiredLabel({ children, htmlFor }: { children: ReactNode; htmlFor?: s
   );
 }
 
+const JOB_STATUS_ORDER = ["PUBLISHED", "DRAFT", "CLOSED", "ARCHIVED"] as const;
+
+const JOB_STATUS_CARD_CONFIG: Record<
+  (typeof JOB_STATUS_ORDER)[number],
+  {
+    icon: typeof CheckCircle;
+    cardBg: string;
+    badgeBg: string;
+    barColor: string;
+    dotColor: string;
+    image: string;
+  }
+> = {
+  PUBLISHED: {
+    icon: CheckCircle,
+    cardBg: "bg-[#eafcf3]",
+    badgeBg: "bg-emerald-500",
+    barColor: "bg-emerald-500",
+    dotColor: "rgba(16,185,129,0.3)",
+    image: "/assets/recruiter/icon/3.png",
+  },
+  DRAFT: {
+    icon: FileDashed,
+    cardBg: "bg-[#eef1f7]",
+    badgeBg: "bg-slate-400",
+    barColor: "bg-slate-400",
+    dotColor: "rgba(100,116,139,0.3)",
+    image: "/assets/recruiter/icon/2.png",
+  },
+  CLOSED: {
+    icon: LockSimple,
+    cardBg: "bg-[#fdeeee]",
+    badgeBg: "bg-red-500",
+    barColor: "bg-red-500",
+    dotColor: "rgba(239,68,68,0.3)",
+    image: "/assets/recruiter/icon/4.png",
+  },
+  ARCHIVED: {
+    icon: Archive,
+    cardBg: "bg-[#fef6e6]",
+    badgeBg: "bg-amber-500",
+    barColor: "bg-amber-500",
+    dotColor: "rgba(245,158,11,0.3)",
+    image: "/assets/recruiter/icon/1.png",
+  },
+};
+
+type ReputationTier = "elite" | "trusted" | "standard" | "warning" | "locked";
+
+const REPUTATION_TIERS: ReadonlyArray<{
+  id: ReputationTier;
+  min: number;
+  barColor: string;
+  badgeClass: string;
+}> = [
+  { id: "locked", min: 0, barColor: "bg-red-500", badgeClass: "bg-red-50 text-red-600" },
+  { id: "warning", min: 30, barColor: "bg-amber-500", badgeClass: "bg-amber-50 text-amber-600" },
+  { id: "standard", min: 50, barColor: "bg-blue-500", badgeClass: "bg-blue-50 text-blue-600" },
+  {
+    id: "trusted",
+    min: 70,
+    barColor: "bg-emerald-500",
+    badgeClass: "bg-emerald-50 text-emerald-600",
+  },
+  { id: "elite", min: 90, barColor: "bg-amber-400", badgeClass: "bg-amber-50 text-amber-700" },
+];
+
+const REPUTATION_SCALE_MAX = 100;
+
+function getReputationTier(score: number) {
+  return [...REPUTATION_TIERS].reverse().find((tier) => score >= tier.min) ?? REPUTATION_TIERS[0]!;
+}
+
 export function RecruiterDashboardPage() {
   const router = useRouter();
   const t = useTranslations("Recruiter");
+  const locale = useLocale();
   const [token, setToken] = useState("");
   const [user, setUser] = useState<RecruiterSessionUser | null>(null);
   const [account, setAccount] = useState<RecruiterAccountDetail | null>(null);
@@ -231,6 +326,10 @@ export function RecruiterDashboardPage() {
   const [stats, setStats] = useState<{ totalJobPosts: number; totalCandidates: number } | null>(
     null,
   );
+  const [jobPosts, setJobPosts] = useState<RecruiterJobPost[]>([]);
+  const [pipelineCandidates, setPipelineCandidates] = useState<PipelineCandidate[]>([]);
+  const [companyDetail, setCompanyDetail] = useState<CompanyDetail | null>(null);
+  const [reputationDialogOpen, setReputationDialogOpen] = useState(false);
 
   const [skippedOnboarding, setSkippedOnboarding] = useState(false);
 
@@ -260,31 +359,25 @@ export function RecruiterDashboardPage() {
     return !isCompanyOnboarded;
   }, [account, skippedOnboarding]);
 
-  const progressPercentage = useMemo(() => {
-    if (account?.company?.verificationStatus === "PENDING") {
-      return 99;
-    }
-    let completed = 0;
-    if (account?.profile) completed++;
-    if (account?.company) completed++;
-    if (account?.company?.businessLicenseFileId) completed++;
-    return Math.round((completed / 3) * 100);
-  }, [account]);
-
-  const radius = 18;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progressPercentage / 100) * circumference;
-
   const loadAccount = useCallback(
     async (accountId: string, accessToken: string) => {
       try {
         setLoading(true);
-        const [accountData, statsData] = await Promise.all([
+        const [accountData, statsData, jobPostsData, pipelineData] = await Promise.all([
           getRecruiterAccount(accountId, accessToken),
           getRecruiterStats(accountId, accessToken),
+          getRecruiterJobPosts(accessToken, accountId).catch(() => [] as RecruiterJobPost[]),
+          getRecruiterPipeline(accessToken).catch(() => null),
         ]);
         setAccount(accountData);
         setStats(statsData);
+        setJobPosts(jobPostsData);
+        setPipelineCandidates(pipelineData?.candidates ?? []);
+
+        const companyId = accountData.company?.id;
+        setCompanyDetail(
+          companyId ? await getCompany(companyId, accessToken).catch(() => null) : null,
+        );
       } catch (error) {
         showToast("error", getOnboardingErrorMessage(error, t));
 
@@ -312,6 +405,109 @@ export function RecruiterDashboardPage() {
     void loadAccount(session.user.id, session.accessToken);
   }, [loadAccount, router]);
 
+  // Onboarding Checklist States & Logic
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [activeCardId, setActiveCardId] = useState("phone");
+
+  const hasPhone = Boolean(account?.profile?.phoneNumber);
+  const hasCompanyInfo = Boolean(
+    account?.company?.name && account?.company?.name !== DRAFT_COMPANY_NAME,
+  );
+  const hasPostedJob = Boolean(stats && stats.totalJobPosts > 0);
+
+  const publishedCount = useMemo(
+    () => jobPosts.filter((jp) => jp.status === "PUBLISHED").length,
+    [jobPosts],
+  );
+  const draftCount = useMemo(
+    () => jobPosts.filter((jp) => jp.status === "DRAFT").length,
+    [jobPosts],
+  );
+  const totalViews = useMemo(
+    () => jobPosts.reduce((sum, jp) => sum + (jp._count?.views ?? 0), 0),
+    [jobPosts],
+  );
+  const pendingModerationCount = useMemo(
+    () => jobPosts.filter((jp) => jp.moderationStatus === "PENDING").length,
+    [jobPosts],
+  );
+  const statusCounts = useMemo(() => {
+    const map: Record<(typeof JOB_STATUS_ORDER)[number], number> = {
+      PUBLISHED: 0,
+      DRAFT: 0,
+      CLOSED: 0,
+      ARCHIVED: 0,
+    };
+    for (const jp of jobPosts) {
+      if (jp.status in map) map[jp.status as (typeof JOB_STATUS_ORDER)[number]] += 1;
+    }
+    return map;
+  }, [jobPosts]);
+  const topJobs = useMemo(
+    () =>
+      [...jobPosts]
+        .sort((a, b) => (b._count?.applications ?? 0) - (a._count?.applications ?? 0))
+        .slice(0, 5),
+    [jobPosts],
+  );
+  const upcomingInterviews = useMemo(() => {
+    const now = Date.now();
+    return pipelineCandidates
+      .filter((c) => c.interview?.scheduledAt && new Date(c.interview.scheduledAt).getTime() >= now)
+      .sort(
+        (a, b) =>
+          new Date(a.interview!.scheduledAt).getTime() -
+          new Date(b.interview!.scheduledAt).getTime(),
+      )
+      .slice(0, 5);
+  }, [pipelineCandidates]);
+
+  const reputationScore = useMemo(() => {
+    const raw = Number(companyDetail?.reputationScore ?? 0);
+    return Number.isFinite(raw) ? Math.max(0, Math.min(REPUTATION_SCALE_MAX, raw)) : 0;
+  }, [companyDetail?.reputationScore]);
+  const reputationTier = useMemo(() => getReputationTier(reputationScore), [reputationScore]);
+  const reputationPercent = Math.round((reputationScore / REPUTATION_SCALE_MAX) * 100);
+
+  const tasks = useMemo(() => {
+    return [
+      {
+        id: "phone",
+        label: t("dashboard.onboardingWidget.phone"),
+        completed: hasPhone,
+        path: "/recruiter/settings",
+      },
+      {
+        id: "companyInfo",
+        label: t("dashboard.onboardingWidget.companyInfo"),
+        completed: hasCompanyInfo,
+        path: "/recruiter/company-profile",
+      },
+      {
+        id: "firstJob",
+        label: t("dashboard.onboardingWidget.firstJob"),
+        completed: hasPostedJob,
+        path: "/recruiter/job-posts",
+      },
+    ];
+  }, [t, hasPhone, hasCompanyInfo, hasPostedJob]);
+
+  const completedCount = useMemo(() => tasks.filter((task) => task.completed).length, [tasks]);
+  const progressPercent = useMemo(
+    () => Math.round((completedCount / tasks.length) * 100),
+    [completedCount, tasks.length],
+  );
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 250;
+      scrollContainerRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center text-sm font-bold text-slate-500">
@@ -325,93 +521,198 @@ export function RecruiterDashboardPage() {
 
   return (
     <div className="space-y-6 [font-family:var(--font-sans)] [--ring:#10a778]">
-      {/* <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">{t("dashboard.title")}</h1>
-          <p className="text-sm text-slate-500 mt-1">{t("dashboard.subtitle")}</p>
-        </div>
-      </div> */}
-
-      {/* ROW 1: Welcome Banner + Revenue Forecast */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        {/* Left: Welcome Banner + Mini Cards (Chiếm 5 cột) */}
-        <div className="flex flex-col gap-6 xl:col-span-5">
-          {/* Welcome Card (Có 3D bia phi tiêu) */}
-          <div className="bg-primary relative flex min-h-[200px] justify-between overflow-hidden rounded-2xl p-7 text-white">
-            <div className="relative z-10 flex h-full flex-col justify-between">
-              <div>
-                <div className="mb-4 flex items-center gap-4">
-                  <div className="relative flex size-12 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
-                    <svg
-                      className="absolute inset-0 -rotate-90"
-                      width="48"
-                      height="48"
-                      viewBox="0 0 48 48"
-                    >
-                      <circle cx="24" cy="24" r="18" fill="none" stroke="#dff7e8" strokeWidth="4" />
-
-                      <circle
-                        cx="24"
-                        cy="24"
-                        r="18"
-                        fill="none"
-                        stroke="#10a778"
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={strokeDashoffset}
-                        style={{ transition: "stroke-dashoffset 0.5s ease-in-out" }}
-                      />
-                    </svg>
-
-                    <span className="relative text-[11px] font-black text-emerald-600">
-                      {progressPercentage}%
-                    </span>
-                  </div>
-
-                  <h2 className="text-[20px] leading-tight font-semibold">
-                    {t("dashboard.welcomeBack")}
-                    <br />
-                    <span className="font-bold text-white">
-                      {account?.profile?.fullName || "David"}
-                    </span>
-                  </h2>
-                </div>
-              </div>
-
-              <div className="mt-2">
-                <p className="mb-0.5 text-xs font-semibold tracking-wider text-emerald-100 uppercase">
-                  {t("dashboard.companyCard.title")}
-                </p>
-                <p className="text-[20px] font-extrabold text-white">
-                  {account?.company?.verificationStatus === "VERIFIED" &&
-                    t("dashboard.companyCard.status.verified")}
-                  {account?.company?.verificationStatus === "PENDING" &&
-                    t("dashboard.companyCard.status.pending")}
-                  {account?.company?.verificationStatus === "REJECTED" &&
-                    t("dashboard.companyCard.status.rejected")}
-                  {(!account?.company?.verificationStatus ||
-                    account?.company?.verificationStatus === "UNVERIFIED") &&
-                    t("dashboard.companyCard.status.unverified")}
-                </p>
-              </div>
+      <div className="recruiter-onboarding-card upnext-shadow relative overflow-hidden rounded-2xl border border-slate-100/90 p-6 shadow-sm">
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+          .recruiter-onboarding-card {
+            background: radial-gradient(circle at 12% 50%, rgba(16, 185, 129, 0.1), transparent 35%),
+                        radial-gradient(circle at 88% 45%, rgba(178, 242, 232, 0.35), transparent 30%),
+                        radial-gradient(circle at 96% 70%, rgba(194, 231, 255, 0.4), transparent 32%),
+                        linear-gradient(135deg, #eefcf2 0%, #F7F9FD 65%, #EEF8FB 100%);
+          }
+          .onboarding-scrollbar::-webkit-scrollbar {
+            height: 4px;
+          }
+          .onboarding-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 99px;
+          }
+          .onboarding-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 99px;
+          }
+        `,
+          }}
+        />
+        <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
+          {/* Circular progress */}
+          <div className="flex flex-col items-center justify-center gap-2 text-center lg:col-span-2">
+            <div className="relative flex size-[96px] shrink-0 items-center justify-center rounded-full bg-slate-50/50">
+              <svg className="-rotate-90" width="96" height="96" viewBox="0 0 96 96">
+                <circle cx="48" cy="48" r="38" fill="none" stroke="#f1f5f9" strokeWidth="5.5" />
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="38"
+                  fill="none"
+                  stroke="#10b981"
+                  strokeWidth="5.5"
+                  strokeLinecap="round"
+                  strokeDasharray="238.76"
+                  strokeDashoffset={238.76 - (progressPercent / 100) * 238.76}
+                  className="transition-all duration-500 ease-in-out"
+                />
+              </svg>
+              <span className="absolute text-xl font-bold text-slate-800">{progressPercent}%</span>
             </div>
-            {/* Mockup 3D Target Image */}
-            <div className="absolute right-0 bottom-0 flex h-full w-1/2 items-end justify-end">
-              <div className="absolute -right-6 -bottom-6 flex h-48 w-48 items-center justify-center rounded-full border-[15px] border-emerald-400/50 shadow-inner">
-                <div className="bg-primary flex h-32 w-32 items-center justify-center rounded-full border-[15px] border-emerald-300/60">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-lg">
-                    <ShieldCheck size={32} className="text-emerald-600" weight="fill" />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <span className="text-[14px] font-semibold text-slate-700">Hoàn tất hồ sơ</span>
           </div>
 
-          {/* Mini Cards: Total Job Posts & Total Candidates */}
+          {/* Middle welcome text + step tasks */}
+          <div className="z-10 flex flex-col gap-4 lg:col-span-10">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-slate-800">
+                  Xin chào,{" "}
+                  <span className="text-emerald-600">
+                    {account?.profile?.fullName || t("dashboard.defaultName")}
+                  </span>{" "}
+                </h3>
+                <p className="max-w-xl text-[12px] leading-relaxed font-semibold text-slate-500">
+                  {t("dashboard.onboardingWidget.subtitle")}
+                </p>
+              </div>
+
+              {/* Navigation Arrows on Mobile */}
+              <div className="flex shrink-0 items-center gap-1.5 md:hidden">
+                <button
+                  type="button"
+                  onClick={() => scroll("left")}
+                  className="flex size-7 items-center justify-center rounded-full border border-emerald-600/30 bg-white/70 text-emerald-600 shadow-xs transition hover:bg-emerald-50 active:scale-95"
+                  aria-label="Scroll left"
+                >
+                  <CaretLeft size={15} weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scroll("right")}
+                  className="flex size-7 items-center justify-center rounded-full border border-emerald-600/30 bg-white/70 text-emerald-600 shadow-xs transition hover:bg-emerald-50 active:scale-95"
+                  aria-label="Scroll right"
+                >
+                  <CaretRight size={15} weight="bold" />
+                </button>
+              </div>
+            </div>
+
+            <div
+              ref={scrollContainerRef}
+              className="onboarding-scrollbar flex w-full gap-3 overflow-x-auto scroll-smooth pb-3 md:grid md:grid-cols-3 md:overflow-x-visible md:pb-0"
+              style={{
+                scrollSnapType: "x mandatory",
+              }}
+            >
+              {tasks.map((task, index) => {
+                const num = index + 1;
+                return (
+                  <div
+                    key={task.id}
+                    onClick={() => {
+                      setActiveCardId(task.id);
+                      router.push(task.path);
+                    }}
+                    className={cn(
+                      "group flex h-14 w-[280px] min-w-[280px] shrink-0 items-center justify-between rounded-xl border px-4 py-2 cursor-pointer transition-all duration-300 select-none md:w-full md:min-w-0 md:shrink",
+                      task.completed
+                        ? "border-emerald-500 bg-[#f4fcf8] hover:bg-[#ebfaf2]"
+                        : "border-slate-200 bg-white hover:border-slate-300",
+                    )}
+                    style={{ scrollSnapAlign: "start" }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all",
+                          task.completed
+                            ? "bg-emerald-500 text-white"
+                            : "bg-slate-100 text-slate-500 group-hover:bg-slate-200",
+                        )}
+                      >
+                        {num}
+                      </div>
+                      <span
+                        className={cn(
+                          "text-xs font-semibold leading-tight transition-colors",
+                          task.completed
+                            ? "text-emerald-700"
+                            : "text-slate-600 group-hover:text-slate-800",
+                        )}
+                      >
+                        {task.label}
+                      </span>
+                    </div>
+
+                    {task.completed ? (
+                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="size-3"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <ArrowRight
+                        size={14}
+                        className="text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-600"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Section: Illustration badge (Absolute positioned to cover full height) */}
+        <div className="pointer-events-none absolute top-0 right-0 bottom-0 z-0 flex h-full w-[50%] items-center justify-end overflow-hidden lg:w-[45%]">
+          {/* Sparkles */}
+          <div className="absolute top-6 right-56 hidden animate-pulse text-cyan-300/60 lg:block">
+            <Sparkle size={18} weight="fill" />
+          </div>
+          <div className="absolute right-8 bottom-6 hidden animate-pulse text-teal-400/40 delay-500 lg:block">
+            <Sparkle size={24} weight="fill" />
+          </div>
+          <div className="absolute top-1/2 right-72 hidden -translate-y-1/2 animate-pulse text-cyan-400/30 delay-1000 lg:block">
+            <Sparkle size={14} weight="fill" />
+          </div>
+
+          <Image
+            src="/assets/recruiter/icon-verify.png?v=2"
+            alt="Verification Badge"
+            width={420}
+            height={420}
+            priority
+            unoptimized
+            className="animate-fade-in h-full w-auto object-contain object-right opacity-20 duration-500 lg:opacity-100"
+          />
+        </div>
+      </div>
+
+      {/* ROW: Welcome + verification + job status distribution */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        {/* Left: Mini Cards (Chiếm 5 cột) */}
+        <div className="flex flex-col gap-6 xl:col-span-5">
+          {/* Mini Cards: Job posts & Candidates (real data) */}
           <div className="grid grid-cols-2 gap-6">
             {/* Total Job Posts */}
-            <div className="flex h-[160px] flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div className="upnext-shadow flex h-40 flex-col justify-between rounded-2xl bg-white p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="mb-1 text-sm text-slate-400">{t("dashboard.totalJobPosts")}</p>
@@ -419,26 +720,22 @@ export function RecruiterDashboardPage() {
                     {stats ? stats.totalJobPosts.toLocaleString() : "0"}
                   </h3>
                 </div>
-                <span className="rounded-md bg-green-50 px-2 py-1 text-[12px] font-bold text-green-500">
-                  Live
+                <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <Briefcase size={20} weight="bold" />
                 </span>
               </div>
-              {/* SVG Green Wave Line */}
-              <div className="mt-2 h-12 w-full">
-                <svg viewBox="0 0 100 30" className="h-full w-full" preserveAspectRatio="none">
-                  <path
-                    d="M0,20 C20,20 20,5 40,15 C60,25 70,5 90,15 L100,10"
-                    fill="none"
-                    stroke="#13deb9"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+              <div className="flex items-center gap-2 text-xs font-semibold">
+                <span className="text-emerald-600">
+                  {t("dashboard.miniCard.publishedCount", { count: publishedCount })}
+                </span>
+                <span className="text-slate-300">·</span>
+                <span className="text-slate-500">
+                  {t("dashboard.miniCard.draftCount", { count: draftCount })}
+                </span>
               </div>
             </div>
             {/* Total Candidates */}
-            <div className="flex h-[160px] flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div className="upnext-shadow flex h-40 flex-col justify-between rounded-2xl bg-white p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="mb-1 text-sm text-slate-400">{t("dashboard.totalCandidates")}</p>
@@ -446,191 +743,419 @@ export function RecruiterDashboardPage() {
                     {stats ? stats.totalCandidates.toLocaleString() : "0"}
                   </h3>
                 </div>
-                <span className="rounded-md bg-green-50 px-2 py-1 text-[12px] font-bold text-green-500">
-                  Live
+                <span className="flex size-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#5d87ff]">
+                  <Users size={20} weight="bold" />
                 </span>
               </div>
-              {/* SVG Pink Bar Chart */}
-              <div className="mt-2 flex h-10 w-full items-end justify-between gap-1">
-                <div className="h-[40%] w-full rounded-t bg-pink-100"></div>
-                <div className="h-[60%] w-full rounded-t bg-pink-100"></div>
-                <div className="h-[45%] w-full rounded-t bg-pink-100"></div>
-                <div className="h-[80%] w-full rounded-t bg-pink-100"></div>
-                <div className="h-[50%] w-full rounded-t bg-pink-100"></div>
-                <div className="h-[30%] w-full rounded-t bg-pink-100"></div>
-                <div className="h-[20%] w-full rounded-t bg-pink-100"></div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                <Eye size={15} weight="bold" className="text-slate-400" />
+                <span>{t("dashboard.miniCard.totalViews", { count: totalViews })}</span>
               </div>
             </div>
           </div>
+
+          {/* Reputation score (real data) */}
+          <div className="upnext-shadow flex flex-1 flex-col rounded-2xl bg-white p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Crown size={18} weight="fill" className="text-amber-500" />
+                <h3 className="text-base font-bold text-slate-800">
+                  {t("dashboard.reputation.title")}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReputationDialogOpen(true)}
+                className="flex items-center gap-1 text-xs font-bold text-[#5d87ff] hover:underline"
+              >
+                <Info size={14} weight="bold" />
+                {t("dashboard.reputation.learnMore")}
+              </button>
+            </div>
+
+            <div className="mb-4 flex items-end justify-between">
+              <div>
+                <span className="text-3xl font-extrabold text-slate-800">
+                  {Math.round(reputationScore)}
+                </span>
+                <span className="ml-1 text-sm font-semibold text-slate-400">/ 100</span>
+              </div>
+              <span
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-bold",
+                  reputationTier.badgeClass,
+                )}
+              >
+                {t(`dashboard.reputation.tier.${reputationTier.id}.label`)}
+              </span>
+            </div>
+
+            <div className="relative mb-1.5 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-500",
+                  reputationTier.barColor,
+                )}
+                style={{ width: `${reputationPercent}%` }}
+              />
+              {REPUTATION_TIERS.filter((tier) => tier.min > 0).map((tier) => (
+                <span
+                  key={tier.id}
+                  className="absolute top-0 h-full w-px bg-white/70"
+                  style={{ left: `${tier.min}%` }}
+                />
+              ))}
+            </div>
+            <div className="mb-4 flex justify-between text-[10px] font-semibold text-slate-400">
+              <span>0</span>
+              <span>30</span>
+              <span>50</span>
+              <span>70</span>
+              <span>90</span>
+              <span>100</span>
+            </div>
+
+            <p className="text-xs leading-relaxed text-slate-500">
+              {t(`dashboard.reputation.tier.${reputationTier.id}.description`)}
+            </p>
+          </div>
         </div>
 
-        {/* Right: Revenue Forecast (Chiếm 7 cột) */}
-        <div className="flex flex-col rounded-2xl border border-slate-100 bg-white p-7 shadow-sm xl:col-span-7">
+        {/* Right: Job status distribution (real data) */}
+        <div className="upnext-shadow flex flex-col rounded-2xl bg-white p-7 xl:col-span-7">
           <div className="mb-6 flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="text-primary flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
-                <SquaresFour size={24} weight="bold" />
+                <ChartBar size={24} weight="bold" />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-800">
-                  {t("dashboard.revenueForecast")}
+                  {t("dashboard.statusDistribution.title")}
                 </h3>
-                <p className="text-[13px] text-slate-400">{t("dashboard.overviewProfit")}</p>
+                <p className="text-[13px] text-slate-400">
+                  {t("dashboard.statusDistribution.subtitle", { count: jobPosts.length })}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-4 text-[13px] font-medium text-slate-800">
-              <span className="flex items-center gap-2">
-                <span className="bg-primary h-2.5 w-2.5 rounded-full"></span>2024
+            {pendingModerationCount > 0 ? (
+              <span className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-600">
+                <WarningCircle size={15} weight="bold" />
+                {t("dashboard.statusDistribution.pending", { count: pendingModerationCount })}
               </span>
-              <span className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-red-400"></span>2023
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-teal-400"></span>2022
-              </span>
-            </div>
+            ) : null}
           </div>
-          {/* Mock Multi-line Chart */}
-          <div className="relative mt-2 min-h-[220px] flex-1">
-            {/* Grid lines */}
-            <div className="absolute inset-0 flex flex-col justify-between pb-6 text-[11px] text-gray-400">
-              <div className="flex h-0 items-center border-b border-slate-100">
-                <span className="-mt-3 w-6">120</span>
-              </div>
-              <div className="flex h-0 items-center border-b border-slate-100">
-                <span className="-mt-3 w-6">100</span>
-              </div>
-              <div className="flex h-0 items-center border-b border-slate-100">
-                <span className="-mt-3 w-6">80</span>
-              </div>
-              <div className="flex h-0 items-center border-b border-slate-100">
-                <span className="-mt-3 w-6">60</span>
-              </div>
-              <div className="flex h-0 items-center border-b border-slate-100">
-                <span className="-mt-3 w-6">40</span>
-              </div>
-              <div className="flex h-0 items-center border-b border-slate-100">
-                <span className="-mt-3 w-6">20</span>
-              </div>
-              <div className="flex h-0 items-center border-b border-slate-100">
-                <span className="-mt-3 w-6">0</span>
-              </div>
-            </div>
-            {/* Lines drawn using SVG */}
-            <svg
-              className="absolute inset-0 h-full w-full pt-1 pb-6 pl-8"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-            >
-              {/* Red Line */}
-              <path
-                d="M0,70 C15,60 25,60 40,80 C60,50 70,30 85,20 L100,10"
-                fill="none"
-                stroke="#f87171"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              {/* Teal Line */}
-              <path
-                d="M0,85 C20,70 30,85 50,75 C60,65 70,80 85,85 L100,80"
-                fill="none"
-                stroke="#2dd4bf"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              {/* Blue Line */}
-              <path
-                d="M0,30 C15,50 30,30 45,60 C55,80 70,95 85,90 L100,60"
-                fill="none"
-                stroke="#6366f1"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-            {/* X Axis Labels */}
-            <div className="absolute bottom-0 flex w-full justify-between pl-8 text-[11px] text-gray-400">
-              <span>Jan</span>
-              <span>Feb</span>
-              <span>Mar</span>
-              <span>Apr</span>
-              <span>May</span>
-              <span>Jun</span>
-              <span>July</span>
-              <span>Aug</span>
-            </div>
+
+          <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
+            {jobPosts.length === 0 ? (
+              <p className="col-span-full py-8 text-center text-sm font-medium text-slate-400">
+                {t("dashboard.statusDistribution.empty")}
+              </p>
+            ) : (
+              JOB_STATUS_ORDER.map((status) => {
+                const count = statusCounts[status];
+                const pct = jobPosts.length ? Math.round((count / jobPosts.length) * 100) : 0;
+                const config = JOB_STATUS_CARD_CONFIG[status];
+                const Icon = config.icon;
+                return (
+                  <div
+                    key={status}
+                    className={cn(
+                      "relative flex min-h-[168px] flex-col overflow-hidden rounded-2xl p-5",
+                      config.cardBg,
+                    )}
+                  >
+                    <div
+                      className="pointer-events-none absolute top-0 right-0 size-24"
+                      style={{
+                        backgroundImage: `radial-gradient(${config.dotColor} 1.5px, transparent 1.5px)`,
+                        backgroundSize: "10px 10px",
+                        maskImage: "radial-gradient(circle at top right, black, transparent 70%)",
+                        WebkitMaskImage:
+                          "radial-gradient(circle at top right, black, transparent 70%)",
+                      }}
+                    />
+
+                    <div className="relative z-10">
+                      <span
+                        className={cn(
+                          "flex size-11 items-center justify-center rounded-full text-white",
+                          config.badgeBg,
+                        )}
+                      >
+                        <Icon size={20} weight="bold" />
+                      </span>
+                      <div className="mt-4 flex items-baseline gap-2">
+                        <p className="text-2xl font-extrabold text-slate-800">{count}</p>
+                        <p className="truncate text-sm font-semibold text-slate-600">
+                          {t(`dashboard.statusDistribution.status.${status}`)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <Image
+                      src={config.image}
+                      alt=""
+                      width={112}
+                      height={112}
+                      unoptimized
+                      className="pointer-events-none absolute right-1 bottom-7 size-20 object-contain"
+                    />
+
+                    <div className="relative z-10 mt-auto h-1.5 w-full overflow-hidden rounded-full bg-white/60">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-500",
+                          config.barColor,
+                        )}
+                        style={{ width: `${Math.max(pct, 4)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm">
-        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="group relative overflow-hidden rounded-2xl bg-[#ecf2ff] p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[#5d87ff] text-white">
-              <EnvelopeSimple size={24} weight="bold" />
+      {/* ROW: Top jobs by applications (real data, full width) */}
+      <div className="upnext-shadow flex flex-col rounded-2xl bg-white p-6">
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#5d87ff]">
+              <TrendUp size={22} weight="bold" />
             </div>
-            <p className="mt-4 text-center text-sm font-semibold text-slate-500">
-              {t("dashboard.accountCard.title")}
-            </p>
-            <p className="mt-2 text-center text-base font-extrabold break-all text-slate-800">
-              {user?.email}
-            </p>
-            <div className="mt-5 flex justify-center">
-              <button className="rounded-xl border border-[#5d87ff]/20 bg-white px-4 py-2 text-xs font-bold text-[#5d87ff] shadow-sm transition-colors hover:bg-slate-50">
-                {t("dashboard.accountCard.btnDetail")}
-              </button>
+            <div>
+              <h3 className="text-base font-bold text-slate-800">{t("dashboard.topJobs.title")}</h3>
+              <p className="text-xs text-slate-400">{t("dashboard.topJobs.subtitle")}</p>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => router.push("/recruiter/analytics")}
+            className="text-primary text-xs font-bold hover:underline"
+          >
+            {t("dashboard.viewAll")}
+          </button>
+        </div>
 
-          <div className="group relative overflow-hidden rounded-2xl bg-[#e6f4ea] p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[#10a778] text-white">
-              <User size={24} weight="bold" />
-            </div>
-            <p className="mt-4 text-center text-sm font-semibold text-slate-500">
-              {t("dashboard.profileCard.title")}
-            </p>
-            <p className="mt-2 text-center text-base font-extrabold text-slate-800">
-              {account?.profile?.fullName ?? t("dashboard.profileCard.notUpdated")}
-            </p>
-            <div className="mt-5 flex justify-center">
-              <button className="rounded-xl border border-[#10a778]/20 bg-white px-4 py-2 text-xs font-bold text-[#10a778] shadow-sm transition-colors hover:bg-slate-50">
-                {t("dashboard.profileCard.btnDetail")}
-              </button>
-            </div>
-          </div>
-
-          <div className="group relative overflow-hidden rounded-2xl bg-[#fef5e7] p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-[#ffa80a] text-white">
-              <ShieldCheck size={24} weight="bold" />
-            </div>
-            <p className="mt-4 text-center text-sm font-semibold text-slate-500">
-              {t("dashboard.companyCard.title")}
-            </p>
-            <p className="mt-2 text-center text-base font-extrabold text-slate-800">
-              {account?.company?.verificationStatus === "VERIFIED" &&
-                t("dashboard.companyCard.status.verified")}
-              {account?.company?.verificationStatus === "PENDING" &&
-                t("dashboard.companyCard.status.pending")}
-              {account?.company?.verificationStatus === "REJECTED" &&
-                t("dashboard.companyCard.status.rejected")}
-              {(!account?.company?.verificationStatus ||
-                account?.company?.verificationStatus === "UNVERIFIED") &&
-                t("dashboard.companyCard.status.unverified")}
-            </p>
-            <div className="mt-5 flex justify-center">
-              <button className="rounded-xl border border-[#ffa80a]/20 bg-white px-4 py-2 text-xs font-bold text-[#ffa80a] shadow-sm transition-colors hover:bg-slate-50">
-                {t("dashboard.companyCard.btnDetail")}
-              </button>
-            </div>
-          </div>
-        </section>
+        {topJobs.length === 0 ? (
+          <p className="py-6 text-center text-xs font-medium text-slate-400">
+            {t("dashboard.topJobs.empty")}
+          </p>
+        ) : (
+          <RecruiterTableLayout loading={false}>
+            <thead className="bg-slate-50/75 text-left text-xs font-bold tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-2.5" scope="col">
+                  {t("dashboard.topJobs.table.job")}
+                </th>
+                <th className="px-4 py-2.5" scope="col">
+                  {t("dashboard.topJobs.table.status")}
+                </th>
+                <th className="px-4 py-2.5 text-center" scope="col">
+                  {t("dashboard.topJobs.table.applicants")}
+                </th>
+                <th className="px-4 py-2.5 text-center" scope="col">
+                  {t("dashboard.topJobs.table.views")}
+                </th>
+                <th className="px-4 py-2.5 text-center" scope="col">
+                  {t("dashboard.topJobs.table.published")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {topJobs.map((jp) => {
+                const config = JOB_STATUS_CARD_CONFIG[jp.status];
+                const publishedDate = jp.publishedAt ?? jp.createdAt;
+                return (
+                  <tr key={jp.id} className="hover:bg-slate-50/50">
+                    <td className="max-w-[220px] px-4 py-3 font-semibold text-slate-600">
+                      <button
+                        type="button"
+                        onClick={() => router.push("/recruiter/job-posts")}
+                        className="hover:text-primary max-w-full truncate text-left text-slate-600 hover:underline"
+                      >
+                        {jp.title}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-1 text-[11px] font-semiĐịa điểm (trực tiếp) dropdow 1 công ty có nhiều chi nhanhs màbold text-white",
+                          config.badgeBg,
+                        )}
+                      >
+                        {t(`dashboard.statusDistribution.status.${jp.status}`)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center font-semibold text-slate-700">
+                      {jp._count?.applications ?? 0}
+                    </td>
+                    <td className="px-4 py-3 text-center font-semibold text-slate-700">
+                      {jp._count?.views ?? 0}
+                    </td>
+                    <td className="px-4 py-3 text-center font-semibold text-slate-700">
+                      {formatAppDate(publishedDate, locale === "en" ? "en" : "vi")}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </RecruiterTableLayout>
+        )}
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-900">{t("dashboard.instructionCard.title")}</h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          {t("dashboard.instructionCard.content")}
-        </p>
-      </section>
+      {/* ROW: Upcoming interviews (real data, full width) */}
+      <div className="upnext-shadow flex flex-col rounded-2xl bg-white p-6">
+        <div className="mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-[#eef6ff] text-[#0284c7]">
+              <Clock size={22} weight="bold" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-800">
+                {t("dashboard.upcomingInterviews.title")}
+              </h3>
+              <p className="text-xs text-slate-400">{t("dashboard.upcomingInterviews.subtitle")}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/recruiter/interviews")}
+            className="text-primary text-xs font-bold hover:underline"
+          >
+            {t("dashboard.viewAll")}
+          </button>
+        </div>
+
+        {upcomingInterviews.length === 0 ? (
+          <p className="py-6 text-center text-xs font-medium text-slate-400">
+            {t("dashboard.upcomingInterviews.empty")}
+          </p>
+        ) : (
+          <RecruiterTableLayout loading={false}>
+            <thead className="bg-slate-50/75 text-left text-xs font-bold tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-2.5" scope="col">
+                  {t("dashboard.upcomingInterviews.table.candidate")}
+                </th>
+                <th className="px-4 py-2.5" scope="col">
+                  {t("dashboard.upcomingInterviews.table.role")}
+                </th>
+                <th className="px-4 py-2.5" scope="col">
+                  {t("dashboard.upcomingInterviews.table.schedule")}
+                </th>
+                <th className="px-4 py-2.5" scope="col">
+                  {t("dashboard.upcomingInterviews.table.interviewer")}
+                </th>
+                <th className="px-4 py-2.5" scope="col">
+                  {t("dashboard.upcomingInterviews.table.mode")}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {upcomingInterviews.map((candidate) => {
+                const scheduledAt = toDate(candidate.interview!.scheduledAt);
+                return (
+                  <tr key={candidate.id} className="hover:bg-slate-50/50">
+                    <td className="max-w-[200px] truncate px-4 py-3 font-bold text-slate-800">
+                      {candidate.name}
+                    </td>
+                    <td className="max-w-[180px] truncate px-4 py-3 text-slate-600">
+                      {candidate.role}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {formatAppDate(scheduledAt, locale === "en" ? "en" : "vi")} ·{" "}
+                      {scheduledAt.toLocaleTimeString(locale === "en" ? "en-US" : "vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {candidate.interview!.interviewerName || "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-md bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-600">
+                        {candidate.interview!.mode || "—"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </RecruiterTableLayout>
+        )}
+      </div>
+
+      <DialogPrimitive.Root open={reputationDialogOpen} onOpenChange={setReputationDialogOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm" />
+          <DialogPrimitive.Content
+            aria-describedby="reputation-info-description"
+            className="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100vh-4rem)] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl bg-white p-6 shadow-2xl focus:outline-none"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <DialogPrimitive.Title className="text-lg font-bold text-slate-900">
+                {t("dashboard.reputation.dialog.title")}
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Close
+                aria-label={t("dashboard.reputation.dialog.close")}
+                className="flex size-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X size={18} weight="bold" />
+              </DialogPrimitive.Close>
+            </div>
+            <DialogPrimitive.Description id="reputation-info-description" className="sr-only">
+              {t("dashboard.reputation.dialog.title")}
+            </DialogPrimitive.Description>
+
+            <div className="flex-1 space-y-4 overflow-y-auto pr-1 text-sm leading-relaxed text-slate-600">
+              <p>{t("dashboard.reputation.dialog.intro")}</p>
+
+              <div>
+                <h4 className="mb-1 font-bold text-slate-800">
+                  {t("dashboard.reputation.dialog.gainTitle")}
+                </h4>
+                <p>{t("dashboard.reputation.dialog.gainText")}</p>
+              </div>
+
+              <div>
+                <h4 className="mb-1 font-bold text-slate-800">
+                  {t("dashboard.reputation.dialog.lossTitle")}
+                </h4>
+                <p>{t("dashboard.reputation.dialog.lossText")}</p>
+              </div>
+
+              <div>
+                <h4 className="mb-2 font-bold text-slate-800">
+                  {t("dashboard.reputation.dialog.tiersTitle")}
+                </h4>
+                <ul className="space-y-2">
+                  {[...REPUTATION_TIERS].reverse().map((tier) => (
+                    <li key={tier.id} className="flex gap-2 rounded-lg bg-slate-50 p-3">
+                      <span
+                        className={cn(
+                          "h-fit shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                          tier.badgeClass,
+                        )}
+                      >
+                        {t(`dashboard.reputation.tier.${tier.id}.range`)}
+                      </span>
+                      <span className="text-xs text-slate-600">
+                        <strong className="text-slate-800">
+                          {t(`dashboard.reputation.tier.${tier.id}.label`)}:
+                        </strong>{" "}
+                        {t(`dashboard.reputation.tier.${tier.id}.description`)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
 
       {account ? (
         <RecruiterOnboardingDialog

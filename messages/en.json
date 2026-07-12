@@ -827,7 +827,8 @@
       "subscription": "My Subscription",
       "invoice": "My Invoice",
       "settings": "Account Settings",
-      "signOut": "Sign Out"
+      "signOut": "Sign Out",
+      "postJob": "Post a Job"
     },
     "dashboard": {
       "title": "Recruitment Overview",
@@ -838,6 +839,99 @@
       "totalCandidates": "Total Candidates",
       "revenueForecast": "Revenue Forecast",
       "overviewProfit": "Overview of Profit",
+      "defaultName": "there",
+      "viewAll": "View all",
+      "miniCard": {
+        "publishedCount": "{count} published",
+        "draftCount": "{count} draft",
+        "totalViews": "{count} job post views"
+      },
+      "statusDistribution": {
+        "title": "Job posts by status",
+        "subtitle": "{count} total job posts",
+        "pending": "{count} awaiting moderation",
+        "empty": "No job posts yet",
+        "status": {
+          "PUBLISHED": "Published",
+          "DRAFT": "Draft",
+          "CLOSED": "Closed",
+          "ARCHIVED": "Archived"
+        }
+      },
+      "topJobs": {
+        "title": "Top attracting job posts",
+        "subtitle": "By number of applications",
+        "empty": "No job post data yet",
+        "table": {
+          "job": "Job post",
+          "status": "Status",
+          "applicants": "Applicants",
+          "views": "Views",
+          "published": "Published"
+        }
+      },
+      "upcomingInterviews": {
+        "title": "Upcoming interviews",
+        "subtitle": "Candidates scheduled for interview, soonest first",
+        "empty": "No upcoming interviews scheduled",
+        "table": {
+          "candidate": "Candidate",
+          "role": "Applied role",
+          "schedule": "Schedule",
+          "interviewer": "Interviewer",
+          "mode": "Mode"
+        }
+      },
+      "reputation": {
+        "title": "Reputation score",
+        "learnMore": "Learn more",
+        "tier": {
+          "elite": {
+            "label": "Elite business",
+            "range": "≥ 90",
+            "description": "Shown at the top of search results and tagged as a Trusted Recruiter (may be listed in Top Companies)."
+          },
+          "trusted": {
+            "label": "Trusted business",
+            "range": "70 - 89",
+            "description": "Full access to all purchased features."
+          },
+          "standard": {
+            "label": "Standard business",
+            "range": "50 - 69",
+            "description": "Usually a newly created account with incomplete verification. Limited access to platform features."
+          },
+          "warning": {
+            "label": "Warning",
+            "range": "30 - 49",
+            "description": "The system sends a warning notice and requires score improvement, or the account will be restricted soon. Only job posting is allowed."
+          },
+          "locked": {
+            "label": "Locked",
+            "range": "< 30",
+            "description": "The recruiter account is temporarily or permanently locked. Candidates visiting the company page see a locked notice and all job posts are hidden. The system sends a notice with the reason and allows an appeal, if applicable."
+          }
+        },
+        "dialog": {
+          "title": "About the reputation score",
+          "close": "Close",
+          "intro": "Your reputation score changes based on your actions and on feedback from candidates.",
+          "gainTitle": "How points are earned",
+          "gainText": "Points are added when a recruiter fully verifies their information, and when a recruiter keeps job post statuses up to date.",
+          "lossTitle": "How points are deducted",
+          "lossText": "Points are deducted for poor response rates to candidates and for job posts that violate community standards. Reaching a warning threshold lowers your company's visibility on the platform, and severe cases can lead to a permanent account lock. If a company is reported for fraud by a candidate with clear evidence (confirmed by the system), the account will be permanently deleted.",
+          "tiersTitle": "Score tiers"
+        }
+      },
+      "onboardingWidget": {
+        "title": "Hello, {name}",
+        "subtitle": "Please complete the verification steps below to start posting jobs and receiving applications for your job posts.",
+        "phone": "Phone number verification",
+        "companyInfo": "Update company profile",
+        "license": "Update business license",
+        "agreement": "Update Personal Data Processing Agreement with candidates",
+        "firstJob": "Post your first job"
+      },
       "accountCard": {
         "title": "Account",
         "btnDetail": "View Details"
@@ -893,6 +987,126 @@
         "title": "No candidates found",
         "description": "No candidates match your search or job criteria. Try adjustments or clear the filters.",
         "clearFilters": "Clear Filters"
+      }
+    },
+    "interviews": {
+      "title": "Interview Management",
+      "subtitle": "Track interview schedules, update outcomes, and handle rescheduling.",
+      "scheduleBtn": "Schedule Interview",
+      "metrics": {
+        "total": "Total Interviews",
+        "totalDesc": "All interviews across the company",
+        "upcoming": "Upcoming",
+        "upcomingDesc": "Scheduled or rescheduled",
+        "completed": "Completed",
+        "completedDesc": "Interviews with a recorded result",
+        "cancelled": "Cancelled",
+        "cancelledDesc": "Cancelled or no-show interviews"
+      },
+      "filters": {
+        "label": "Filters:",
+        "searchPlaceholder": "Search candidate name or role...",
+        "allStatus": "All Statuses",
+        "allTypes": "All Types",
+        "clearFilters": "Reset"
+      },
+      "status": {
+        "SCHEDULED": "Scheduled",
+        "RESCHEDULED": "Rescheduled",
+        "COMPLETED": "Completed",
+        "CANCELLED": "Cancelled",
+        "NO_SHOW": "No-show"
+      },
+      "type": {
+        "ONLINE": "Online",
+        "ONSITE": "Onsite"
+      },
+      "result": {
+        "PENDING": "Pending",
+        "PASSED": "Passed",
+        "FAILED": "Failed",
+        "UNDER_REVIEW": "Under review"
+      },
+      "table": {
+        "candidate": "Candidate",
+        "job": "Role",
+        "round": "Round",
+        "type": "Type",
+        "schedule": "Schedule",
+        "status": "Status",
+        "result": "Result",
+        "interviewer": "Interviewer",
+        "actions": "Actions"
+      },
+      "actions": {
+        "viewDetail": "Details",
+        "reschedule": "Reschedule",
+        "cancel": "Cancel",
+        "updateResult": "Update Result",
+        "scheduleNextRound": "Schedule Next Round"
+      },
+      "emptyState": {
+        "title": "No interviews scheduled yet",
+        "description": "No interviews match the current filters.",
+        "clearFilters": "Clear Filters"
+      },
+      "detail": {
+        "title": "Interview Details",
+        "roundLabel": "Round {round}",
+        "meetingUrl": "Meeting link",
+        "location": "Location",
+        "recruiterNote": "Internal note",
+        "rescheduleCount": "Rescheduled {count}/{max} times",
+        "logsTitle": "Change history",
+        "noLogs": "No change history yet"
+      },
+      "rescheduleForm": {
+        "startAt": "Start time",
+        "endAt": "End time",
+        "note": "Reason for rescheduling",
+        "submit": "Confirm Reschedule",
+        "cancel": "Back"
+      },
+      "cancelForm": {
+        "note": "Cancellation reason",
+        "notePlaceholder": "Enter the reason for cancelling this interview...",
+        "submit": "Confirm Cancellation",
+        "cancel": "Back"
+      },
+      "resultForm": {
+        "result": "Result",
+        "feedbackNote": "Feedback",
+        "submit": "Save Result",
+        "cancel": "Back"
+      },
+      "scheduleForm": {
+        "title": "Schedule New Interview",
+        "job": "Job Post",
+        "candidate": "Candidate",
+        "candidatePlaceholder": "Select a candidate",
+        "round": "Interview Round",
+        "type": "Type",
+        "interviewer": "Interviewer",
+        "interviewerPlaceholder": "Select an interviewer",
+        "startAt": "Start time",
+        "endAt": "End time",
+        "meetingUrl": "Meeting link (online)",
+        "location": "Location (onsite)",
+        "locationPlaceholder": "Select a branch/location",
+        "recruiterNote": "Internal note",
+        "submit": "Schedule",
+        "cancel": "Cancel",
+        "noCandidates": "No candidates available to schedule"
+      },
+      "toasts": {
+        "rescheduleSuccess": "Interview rescheduled",
+        "rescheduleError": "Failed to reschedule interview",
+        "cancelSuccess": "Interview cancelled",
+        "cancelError": "Failed to cancel interview",
+        "resultSuccess": "Interview result saved",
+        "resultError": "Failed to save interview result",
+        "scheduleSuccess": "Interview scheduled",
+        "scheduleError": "Failed to schedule interview"
       }
     },
     "onboarding": {

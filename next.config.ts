@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
+const apiProxyOrigin = process.env.API_PROXY_ORIGIN ?? "http://localhost:3636";
+
 const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
@@ -48,7 +50,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/v1/:path*",
-        destination: "https://api-staging.upnext.works/api/v1/:path*",
+        destination: `${apiProxyOrigin.replace(/\/$/u, "")}/api/v1/:path*`,
       },
     ];
   },
