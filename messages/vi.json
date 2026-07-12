@@ -827,7 +827,8 @@
       "subscription": "Gói đăng ký",
       "invoice": "Hóa đơn của tôi",
       "settings": "Cài đặt tài khoản",
-      "signOut": "Đăng xuất"
+      "signOut": "Đăng xuất",
+      "postJob": "Đăng tin"
     },
     "dashboard": {
       "title": "Tổng quan tuyển dụng",
@@ -838,6 +839,99 @@
       "totalCandidates": "Tổng ứng viên",
       "revenueForecast": "Dự báo doanh thu",
       "overviewProfit": "Tổng quan lợi nhuận",
+      "defaultName": "bạn",
+      "viewAll": "Xem tất cả",
+      "miniCard": {
+        "publishedCount": "{count} đang đăng",
+        "draftCount": "{count} nháp",
+        "totalViews": "{count} lượt xem tin"
+      },
+      "statusDistribution": {
+        "title": "Tin theo trạng thái",
+        "subtitle": "Tổng {count} tin tuyển dụng",
+        "pending": "{count} chờ duyệt",
+        "empty": "Chưa có tin tuyển dụng",
+        "status": {
+          "PUBLISHED": "Đang đăng",
+          "DRAFT": "Nháp",
+          "CLOSED": "Đã đóng",
+          "ARCHIVED": "Lưu trữ"
+        }
+      },
+      "topJobs": {
+        "title": "Tin tuyển dụng thu hút nhất",
+        "subtitle": "Theo số lượng hồ sơ ứng tuyển",
+        "empty": "Chưa có dữ liệu tin tuyển dụng",
+        "table": {
+          "job": "Tin tuyển dụng",
+          "status": "Trạng thái",
+          "applicants": "Ứng viên",
+          "views": "Lượt xem",
+          "published": "Ngày đăng"
+        }
+      },
+      "upcomingInterviews": {
+        "title": "Phỏng vấn sắp tới",
+        "subtitle": "Ứng viên có lịch phỏng vấn, sắp xếp theo thời gian gần nhất",
+        "empty": "Chưa có lịch phỏng vấn sắp tới",
+        "table": {
+          "candidate": "Ứng viên",
+          "role": "Vị trí ứng tuyển",
+          "schedule": "Thời gian",
+          "interviewer": "Người phỏng vấn",
+          "mode": "Hình thức"
+        }
+      },
+      "reputation": {
+        "title": "Điểm uy tín",
+        "learnMore": "Tìm hiểu thêm",
+        "tier": {
+          "elite": {
+            "label": "Doanh nghiệp ưu tú",
+            "range": "≥ 90",
+            "description": "Được hiển thị trên top đầu khi được tìm kiếm, được gắn tag Nhà tuyển dụng uy tín (có thể nằm trong danh sách Top Companies)."
+          },
+          "trusted": {
+            "label": "Doanh nghiệp tin cậy",
+            "range": "70 - 89",
+            "description": "Sử dụng được các tính năng đã mua."
+          },
+          "standard": {
+            "label": "Doanh nghiệp tiêu chuẩn",
+            "range": "50 - 69",
+            "description": "Thường là các doanh nghiệp mới tạo tài khoản nhưng chưa xác thực đầy đủ thông tin. Hệ thống cho phép sử dụng giới hạn các tính năng có trong hệ thống."
+          },
+          "warning": {
+            "label": "Cảnh báo",
+            "range": "30 - 49",
+            "description": "Hệ thống sẽ gửi thông báo cảnh báo đến doanh nghiệp và yêu cầu cải thiện điểm, hoặc sẽ sớm bị khóa. Chỉ cho phép sử dụng tính năng Đăng bài."
+          },
+          "locked": {
+            "label": "Bị khóa",
+            "range": "< 30",
+            "description": "Tài khoản nhà tuyển dụng bị khóa tạm thời hoặc vĩnh viễn. Ứng viên truy cập trang doanh nghiệp sẽ thấy thông báo tài khoản đã bị khóa, ẩn toàn bộ bài đăng. Hệ thống gửi thông báo lý do bị khóa và cho phép khiếu nại (nếu có)."
+          }
+        },
+        "dialog": {
+          "title": "Về điểm uy tín",
+          "close": "Đóng",
+          "intro": "Điểm uy tín của nhà tuyển dụng sẽ biến đổi theo hành động và theo đánh giá từ ứng viên.",
+          "gainTitle": "Cách tính điểm cộng",
+          "gainText": "Điểm cộng được tính khi nhà tuyển dụng xác thực đầy đủ thông tin, hoặc khi nhà tuyển dụng cập nhật trạng thái các bài tuyển dụng.",
+          "lossTitle": "Cách tính điểm trừ",
+          "lossText": "Điểm trừ được thực hiện khi tỷ lệ phản hồi với ứng viên kém, hoặc đăng tin tuyển dụng vi phạm tiêu chuẩn cộng đồng. Điểm trừ khi đạt tới mức cảnh báo sẽ làm giảm mức hiển thị của doanh nghiệp trên hệ thống, nặng hơn sẽ bị khóa tài khoản vĩnh viễn. Đặc biệt khi tài khoản công ty bị báo cáo lừa đảo từ ứng viên có minh chứng rõ ràng (hệ thống xác nhận lại) thì tài khoản sẽ bị xóa vĩnh viễn.",
+          "tiersTitle": "Các thang điểm"
+        }
+      },
+      "onboardingWidget": {
+        "title": "Xin chào, {name}",
+        "subtitle": "Vui lòng thực hiện các bước xác thực dưới đây để bắt đầu đăng tin và nhận hồ sơ ứng tuyển cho tin tuyển dụng của bạn.",
+        "phone": "Xác thực số điện thoại",
+        "companyInfo": "Cập nhật thông tin công ty",
+        "license": "Cập nhật Giấy đăng ký doanh nghiệp",
+        "agreement": "Cập nhật Thỏa thuận xử lý DLCN với ứng viên",
+        "firstJob": "Đăng tin tuyển dụng đầu tiên"
+      },
       "accountCard": {
         "title": "Tài khoản",
         "btnDetail": "Xem chi tiết"
@@ -893,6 +987,126 @@
         "title": "Không tìm thấy ứng viên nào",
         "description": "Không có ứng viên nào khớp với từ khóa tìm kiếm hoặc công việc đã chọn. Vui lòng thay đổi từ khóa hoặc xóa bộ lọc.",
         "clearFilters": "Xóa bộ lọc"
+      }
+    },
+    "interviews": {
+      "title": "Quản lý phỏng vấn",
+      "subtitle": "Theo dõi lịch phỏng vấn, cập nhật kết quả và xử lý các thay đổi lịch hẹn.",
+      "scheduleBtn": "Lên lịch phỏng vấn",
+      "metrics": {
+        "total": "Tổng số phỏng vấn",
+        "totalDesc": "Tất cả lịch phỏng vấn của công ty",
+        "upcoming": "Sắp diễn ra",
+        "upcomingDesc": "Đã lên lịch hoặc đã dời lịch",
+        "completed": "Đã hoàn thành",
+        "completedDesc": "Đã có kết quả đánh giá",
+        "cancelled": "Đã hủy",
+        "cancelledDesc": "Lịch phỏng vấn bị hủy hoặc vắng mặt"
+      },
+      "filters": {
+        "label": "Bộ lọc:",
+        "searchPlaceholder": "Tìm theo tên ứng viên hoặc vị trí...",
+        "allStatus": "Tất cả trạng thái",
+        "allTypes": "Tất cả hình thức",
+        "clearFilters": "Đặt lại"
+      },
+      "status": {
+        "SCHEDULED": "Đã lên lịch",
+        "RESCHEDULED": "Đã dời lịch",
+        "COMPLETED": "Hoàn thành",
+        "CANCELLED": "Đã hủy",
+        "NO_SHOW": "Vắng mặt"
+      },
+      "type": {
+        "ONLINE": "Trực tuyến",
+        "ONSITE": "Trực tiếp"
+      },
+      "result": {
+        "PENDING": "Chờ đánh giá",
+        "PASSED": "Đạt",
+        "FAILED": "Không đạt",
+        "UNDER_REVIEW": "Xem xét"
+      },
+      "table": {
+        "candidate": "Ứng viên",
+        "job": "Vị trí",
+        "round": "Vòng",
+        "type": "Hình thức",
+        "schedule": "Thời gian",
+        "status": "Trạng thái",
+        "result": "Kết quả",
+        "interviewer": "Người phỏng vấn",
+        "actions": "Thao tác"
+      },
+      "actions": {
+        "viewDetail": "Chi tiết",
+        "reschedule": "Đổi lịch",
+        "cancel": "Hủy lịch",
+        "updateResult": "Cập nhật kết quả",
+        "scheduleNextRound": "Lên lịch vòng tiếp theo"
+      },
+      "emptyState": {
+        "title": "Chưa có lịch phỏng vấn nào",
+        "description": "Không có lịch phỏng vấn nào khớp với bộ lọc hiện tại.",
+        "clearFilters": "Xóa bộ lọc"
+      },
+      "detail": {
+        "title": "Chi tiết phỏng vấn",
+        "roundLabel": "Vòng {round}",
+        "meetingUrl": "Link phỏng vấn",
+        "location": "Địa điểm",
+        "recruiterNote": "Ghi chú nội bộ",
+        "rescheduleCount": "Đã dời lịch {count}/{max} lần",
+        "logsTitle": "Lịch sử thay đổi",
+        "noLogs": "Chưa có lịch sử thay đổi"
+      },
+      "rescheduleForm": {
+        "startAt": "Thời gian bắt đầu",
+        "endAt": "Thời gian kết thúc",
+        "note": "Lý do đổi lịch",
+        "submit": "Xác nhận đổi lịch",
+        "cancel": "Quay lại"
+      },
+      "cancelForm": {
+        "note": "Lý do hủy",
+        "notePlaceholder": "Nhập lý do hủy lịch phỏng vấn...",
+        "submit": "Xác nhận hủy",
+        "cancel": "Quay lại"
+      },
+      "resultForm": {
+        "result": "Kết quả",
+        "feedbackNote": "Nhận xét",
+        "submit": "Lưu kết quả",
+        "cancel": "Quay lại"
+      },
+      "scheduleForm": {
+        "title": "Lên lịch phỏng vấn mới",
+        "job": "Vị trí tuyển dụng",
+        "candidate": "Ứng viên",
+        "candidatePlaceholder": "Chọn ứng viên",
+        "round": "Vòng phỏng vấn",
+        "type": "Hình thức",
+        "interviewer": "Người phỏng vấn",
+        "interviewerPlaceholder": "Chọn người phỏng vấn",
+        "startAt": "Thời gian bắt đầu",
+        "endAt": "Thời gian kết thúc",
+        "meetingUrl": "Link phỏng vấn (trực tuyến)",
+        "location": "Địa điểm (trực tiếp)",
+        "locationPlaceholder": "Chọn chi nhánh/địa điểm",
+        "recruiterNote": "Ghi chú nội bộ",
+        "submit": "Lên lịch",
+        "cancel": "Hủy bỏ",
+        "noCandidates": "Không có ứng viên phù hợp để lên lịch"
+      },
+      "toasts": {
+        "rescheduleSuccess": "Đã cập nhật lịch phỏng vấn",
+        "rescheduleError": "Không thể đổi lịch phỏng vấn",
+        "cancelSuccess": "Đã hủy lịch phỏng vấn",
+        "cancelError": "Không thể hủy lịch phỏng vấn",
+        "resultSuccess": "Đã lưu kết quả phỏng vấn",
+        "resultError": "Không thể lưu kết quả phỏng vấn",
+        "scheduleSuccess": "Đã lên lịch phỏng vấn mới",
+        "scheduleError": "Không thể lên lịch phỏng vấn"
       }
     },
     "onboarding": {

@@ -532,15 +532,7 @@ export function RecruiterJobPostsPage() {
             {companyVerified ? "Công ty đã xác thực" : "Công ty chờ xác thực"}
           </Badge>
           <Badge tone="neutral">{jobs.length} tin</Badge>
-          {view === "list" ? (
-            <Button
-              onClick={() => setView("create")}
-              className="bg-[#11a77a] font-bold text-white hover:bg-[#0d966d]"
-            >
-              <Plus size={16} className="mr-1" />
-              Tạo tin tuyển dụng
-            </Button>
-          ) : (
+          {view !== "list" ? (
             <Button
               variant="outline"
               onClick={() => {
@@ -552,7 +544,7 @@ export function RecruiterJobPostsPage() {
             >
               Quay lại danh sách
             </Button>
-          )}
+          ) : null}
         </div>
       </header>
 
@@ -808,63 +800,62 @@ export function RecruiterJobPostsPage() {
           onPageChange={setCurrentPage}
           onPageSizeChange={setPageSize}
           filterBar={
-            <div className="flex w-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-2">
-                <Briefcase size={19} className="text-emerald-700" />
-                <h2 className="text-lg font-extrabold text-slate-950">Danh sách tin</h2>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative flex w-64 items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 focus-within:border-emerald-500">
-                  <MagnifyingGlass size={16} className="mr-2 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Tìm kiếm tin tuyển dụng..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full bg-transparent text-xs font-semibold placeholder:text-slate-400 focus:outline-hidden"
-                  />
-                </div>
-                <Select
-                  value={statusFilter}
-                  onValueChange={(value) => {
-                    setStatusFilter(value);
+            <>
+              <div className="relative w-full sm:w-[320px]">
+                <MagnifyingGlass
+                  size={18}
+                  className="absolute top-1/2 left-3 z-10 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  aria-label="Tìm kiếm tin tuyển dụng"
+                  placeholder="Tìm kiếm tin tuyển dụng..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
                     setCurrentPage(1);
                   }}
-                >
-                  <SelectTrigger className="h-9 w-[150px] rounded-lg border-slate-200 bg-white text-xs font-bold shadow-none">
-                    <SelectValue placeholder="Trạng thái" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                    <SelectItem value="PUBLISHED">Đang đăng / Chờ duyệt</SelectItem>
-                    <SelectItem value="DRAFT">Bản nháp</SelectItem>
-                    <SelectItem value="CLOSED">Đã đóng</SelectItem>
-                  </SelectContent>
-                </Select>
+                  className="border-input focus:border-primary h-10 w-full rounded-xl border bg-white pl-10 text-sm shadow-none focus:outline-none"
+                />
               </div>
-            </div>
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[190px]">
+                  <SelectValue placeholder="Trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="PUBLISHED">Đang đăng / Chờ duyệt</SelectItem>
+                  <SelectItem value="DRAFT">Bản nháp</SelectItem>
+                  <SelectItem value="CLOSED">Đã đóng</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          }
+          actionBar={
+            <Button
+              onClick={() => setView("create")}
+              className="bg-[#11a77a] font-bold text-white hover:bg-[#0d966d]"
+            >
+              <Plus size={16} className="mr-1" />
+              Tạo tin tuyển dụng
+            </Button>
           }
         >
-          <thead className="bg-slate-50 text-left text-xs font-extrabold tracking-wide text-slate-500 uppercase">
+          <thead>
             <tr>
-              <th className="px-5 py-3" scope="col">
-                Tin tuyển dụng
-              </th>
-              <th className="px-5 py-3" scope="col">
-                Trạng thái
-              </th>
-              <th className="px-5 py-3" scope="col">
-                Ứng viên
-              </th>
-              <th className="px-5 py-3 text-center" scope="col">
-                Thao tác
-              </th>
+              <th scope="col">Tin tuyển dụng</th>
+              <th scope="col">Trạng thái</th>
+              <th scope="col">Ứng viên</th>
+              <th scope="col">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {paginatedJobs.map((job) => (
               <JobRow
                 actionJobId={actionJobId}
@@ -882,10 +873,7 @@ export function RecruiterJobPostsPage() {
             ))}
             {paginatedJobs.length === 0 ? (
               <tr>
-                <td
-                  colSpan={4}
-                  className="px-5 py-10 text-center text-sm font-semibold text-slate-500"
-                >
+                <td colSpan={4} className="text-center text-sm font-semibold text-slate-500">
                   {searchTerm || statusFilter !== "ALL"
                     ? "Không tìm thấy tin tuyển dụng phù hợp."
                     : "Chưa có tin tuyển dụng."}
@@ -950,8 +938,8 @@ function JobRow({
   const cleanDescription = job.description ? job.description.replace(/<[^>]*>/g, "") : "";
 
   return (
-    <tr className="align-top transition-colors hover:bg-slate-50/50" aria-label={job.title}>
-      <td className="px-5 py-4" aria-label="Job post details">
+    <tr aria-label={job.title}>
+      <td aria-label="Job post details">
         <div className="max-w-md">
           <p className="cursor-pointer text-sm font-extrabold text-slate-900 transition-colors hover:text-emerald-700">
             {job.title}
@@ -961,14 +949,14 @@ function JobRow({
           </p>
         </div>
       </td>
-      <td className="px-5 py-4" aria-label="Job post status">
+      <td aria-label="Job post status">
         <Badge tone={statusTone}>{statusText}</Badge>
       </td>
-      <td className="px-5 py-4">
+      <td>
         <div className="text-sm font-bold text-slate-800">{job._count?.applications ?? 0}</div>
         <p className="text-xs text-slate-500">{job._count?.views ?? 0} lượt xem</p>
       </td>
-      <td className="px-5 py-4 text-center">
+      <td>
         <div className="flex items-center justify-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

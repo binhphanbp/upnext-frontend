@@ -21,6 +21,10 @@ export function createApiUrl(path: string) {
     : `${env.NEXT_PUBLIC_API_BASE_URL}/`;
   const normalizedPath = path.replace(/^\/+/u, "");
 
+  if (baseUrl.startsWith("/")) {
+    return `${baseUrl}${normalizedPath}`;
+  }
+
   return new URL(normalizedPath, baseUrl).toString();
 }
 

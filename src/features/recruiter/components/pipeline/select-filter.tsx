@@ -13,6 +13,7 @@ type SelectFilterProps = Readonly<{
   placeholder?: string;
   options: SelectFilterOption[];
   className?: string;
+  triggerClassName?: string;
 }>;
 
 export function SelectFilter({
@@ -22,6 +23,7 @@ export function SelectFilter({
   placeholder = "Select option",
   options,
   className,
+  triggerClassName,
 }: SelectFilterProps) {
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
@@ -31,7 +33,12 @@ export function SelectFilter({
         </span>
       )}
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-10 min-w-[160px] cursor-pointer rounded-lg border-slate-200 bg-white text-slate-700 shadow-none">
+        <SelectTrigger
+          className={cn(
+            "h-10 w-full min-w-[160px] cursor-pointer rounded-lg border-slate-200 bg-white text-slate-700 shadow-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500",
+            triggerClassName,
+          )}
+        >
           <span className="flex-1 truncate pr-2 text-left">
             <SelectValue placeholder={placeholder} />
           </span>

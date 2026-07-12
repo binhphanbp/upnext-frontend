@@ -1,8 +1,0 @@
-[
-  "GET /api/v1/admin/reports - Lấy danh sách báo cáo vi phạm cho Admin",
-  "PATCH /api/v1/admin/reports/{id}/status - Duyệt báo cáo vi phạm (cập nhật trạng thái)",
-  "GET /api/v1/companies - Danh sách công ty",
-  "POST /api/v1/companies/{id}/verify - Xác thực doanh nghiệp",
-  "GET /api/v1/admin/job-posts - Danh sách tin tuyển dụng cho admin",
-  "PATCH /api/v1/applications/{id}/status - Cập nhật trạng thái hồ sơ ứng tuyển"
-]

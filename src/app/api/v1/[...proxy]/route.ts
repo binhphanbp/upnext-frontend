@@ -1,18 +1,35 @@
 import type { NextRequest } from "next/server";
 
-import { createApiUrl } from "@/shared/api/http";
+const apiProxyOrigin = process.env.API_PROXY_ORIGIN ?? "http://localhost:3636";
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ proxy: string[] }> }) {
+type ProxyRouteContext = {
+  params: Promise<{ proxy: string[] }>;
+};
+
+function createProxyUrl(path: string, search: string) {
+  const origin = apiProxyOrigin.replace(/\/$/u, "");
+  const normalizedPath = path.replace(/^\/+/u, "");
+
+  return `${origin}/api/v1/${normalizedPath}${search}`;
+}
+
+async function proxyApiRequest(req: NextRequest, { params }: ProxyRouteContext) {
   const { proxy } = await params;
   const slug = proxy.join("/");
-  const url = createApiUrl(`/${slug}`);
+  const url = createProxyUrl(slug, req.nextUrl.search);
 
-  // Clone the request body
-  const body = await req.text();
-
-  // We explicitly set a User-Agent to prevent Cloudflare/WAF from dropping the request (ECONNRESET)
   const headers = new Headers();
-  headers.set("Content-Type", "application/json");
+  const contentType = req.headers.get("Content-Type");
+  const authorization = req.headers.get("Authorization");
+
+  if (contentType) {
+    headers.set("Content-Type", contentType);
+  }
+
+  if (authorization) {
+    headers.set("Authorization", authorization);
+  }
+
   headers.set(
     "User-Agent",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -20,19 +37,31 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
   headers.set("Accept", "application/json");
 
   try {
-    const response = await fetch(url, {
-      method: "POST",
+    const requestInit: RequestInit = {
+      method: req.method,
       headers,
-      body: body || null,
-    });
+      redirect: "manual",
+    };
+
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      requestInit.body = await req.arrayBuffer();
+    }
+
+    const response = await fetch(url, requestInit);
 
     const responseBody = await response.text();
+    const responseHeaders = new Headers();
+    const location = response.headers.get("Location");
+
+    responseHeaders.set("Content-Type", response.headers.get("Content-Type") || "application/json");
+
+    if (location) {
+      responseHeaders.set("Location", location);
+    }
 
     return new Response(responseBody, {
       status: response.status,
-      headers: {
-        "Content-Type": response.headers.get("Content-Type") || "application/json",
-      },
+      headers: responseHeaders,
     });
   } catch (err: unknown) {
     console.error("[Proxy Error]", err);
@@ -41,3 +70,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
     return new Response(JSON.stringify({ error: message, type: "PROXY_ERROR" }), { status: 500 });
   }
 }
+
+export const GET = proxyApiRequest;
+export const POST = proxyApiRequest;
+export const PUT = proxyApiRequest;
+export const PATCH = proxyApiRequest;
+export const DELETE = proxyApiRequest;
