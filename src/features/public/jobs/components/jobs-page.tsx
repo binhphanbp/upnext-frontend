@@ -24,7 +24,7 @@ import { useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useSavedJobsStore } from "@/features/candidate/saved-jobs";
+import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
 import { apiRequest } from "@/shared/api/http";
 import { formatRelativeTime } from "@/shared/lib/date";
@@ -451,7 +451,12 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const [customMinSalary, setCustomMinSalary] = useState("");
   const [customMaxSalary, setCustomMaxSalary] = useState("");
   const [sort, setSort] = useState("relevant");
-  const { savedJobIds, toggleSaveJob } = useSavedJobsStore();
+  const {
+    isPending: isSavedJobPending,
+    isSessionResolved: isSavedJobsSessionResolved,
+    savedJobIds,
+    toggleSaveJob,
+  } = useCandidateSavedJobs();
   const [applyJob, setApplyJob] = useState<Job | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
@@ -547,7 +552,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
       };
     });
 
-    return [...mapped, ...staticJobs];
+    return mapped;
   }, [apiJobsData, locale]);
 
   const locationsList = useMemo(() => {
@@ -1208,13 +1213,19 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                           <div className="mt-auto flex w-full items-center gap-2 sm:w-auto">
                             <button
                               type="button"
-                              onClick={() => toggleSaveJob(job.id)}
+                              onClick={() => {
+                                if (!toggleSaveJob(job.id)) {
+                                  navigate(`/login?redirect=/jobs`);
+                                }
+                              }}
+                              disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
                               className={`flex cursor-pointer items-center justify-center rounded-lg border p-2 transition ${
                                 savedJobIds.includes(job.id)
                                   ? "border-emerald-200 bg-emerald-50 text-emerald-600"
                                   : "border-slate-200 bg-white text-slate-500 hover:text-slate-800"
                               }`}
                               aria-label={savedJobIds.includes(job.id) ? "Bỏ lưu tin" : "Lưu tin"}
+                              aria-pressed={savedJobIds.includes(job.id)}
                             >
                               <BookmarkSimple
                                 size={18}

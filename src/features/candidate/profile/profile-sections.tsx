@@ -824,7 +824,7 @@ function EmptyState({
   title: string;
 }>) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-left sm:min-h-44 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-6 sm:py-6">
+    <div className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-left sm:min-h-44 sm:items-center sm:gap-5 sm:px-6 sm:py-6">
       <div className="flex min-w-0 items-start gap-4">
         <span
           aria-hidden="true"
@@ -841,11 +841,12 @@ function EmptyState({
       </div>
       <Button
         size="sm"
-        className="candidate-profile-primary-action shrink-0 self-start sm:self-auto"
+        aria-label={actionLabel}
+        className="candidate-profile-primary-action w-10 shrink-0 self-start px-0 sm:w-auto sm:self-auto sm:px-4"
         onClick={onAction}
       >
         <Plus aria-hidden="true" />
-        {actionLabel}
+        <span className="sr-only sm:not-sr-only">{actionLabel}</span>
       </Button>
     </div>
   );

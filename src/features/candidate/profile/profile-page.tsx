@@ -34,6 +34,7 @@ import {
   deleteCandidateSkill,
   updateMyCandidateProfile,
 } from "@/features/candidate/api/profile";
+import { CandidatePageHeader } from "@/features/candidate/candidate-page-header";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
@@ -101,6 +102,7 @@ const sectionIcons: Record<ProfileSectionId, typeof IdentificationCard> = {
 
 export function CandidateProfilePage() {
   const t = useTranslations("CandidateProfile.content");
+  const workspaceT = useTranslations("CandidateWorkspace");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { cvsQuery, isSessionResolved, mutateCvs, mutateProfile, profileQuery, session } =
@@ -130,8 +132,25 @@ export function CandidateProfilePage() {
     return () => window.cancelAnimationFrame(frame);
   }, [activeSection]);
 
+  const stateHeader = (
+    <CandidatePageHeader
+      breadcrumbItems={[
+        { href: "/", label: workspaceT("common.home") },
+        { label: t("page.title") },
+      ]}
+      description={t("page.description")}
+      eyebrow={workspaceT("common.workspaceEyebrow")}
+      title={t("page.title")}
+    />
+  );
+
   if (!isSessionResolved || (session && profileQuery.isLoading)) {
-    return <CandidateProfileLoading />;
+    return (
+      <div className="space-y-7 pb-12">
+        {stateHeader}
+        <CandidateProfileLoading />
+      </div>
+    );
   }
 
   const isUnauthorized =
@@ -139,35 +158,41 @@ export function CandidateProfilePage() {
 
   if (!session || isUnauthorized) {
     return (
-      <ProfileState
-        icon={<LockKey />}
-        title={t("states.unauthenticatedTitle")}
-        description={t("states.unauthenticatedDescription")}
-        action={
-          <Button asChild className="candidate-profile-primary-action">
-            <Link href="/login">{t("actions.signIn")}</Link>
-          </Button>
-        }
-      />
+      <div className="space-y-7 pb-12">
+        {stateHeader}
+        <ProfileState
+          icon={<LockKey />}
+          title={t("states.unauthenticatedTitle")}
+          description={t("states.unauthenticatedDescription")}
+          action={
+            <Button asChild className="candidate-profile-primary-action">
+              <Link href="/login">{t("actions.signIn")}</Link>
+            </Button>
+          }
+        />
+      </div>
     );
   }
 
   if (profileQuery.isError || !profileQuery.data) {
     return (
-      <ProfileState
-        tone="error"
-        icon={<WarningCircle />}
-        title={t("states.errorTitle")}
-        description={t("states.errorDescription")}
-        action={
-          <Button
-            className="candidate-profile-primary-action"
-            onClick={() => profileQuery.refetch()}
-          >
-            {t("actions.retry")}
-          </Button>
-        }
-      />
+      <div className="space-y-7 pb-12">
+        {stateHeader}
+        <ProfileState
+          tone="error"
+          icon={<WarningCircle />}
+          title={t("states.errorTitle")}
+          description={t("states.errorDescription")}
+          action={
+            <Button
+              className="candidate-profile-primary-action"
+              onClick={() => profileQuery.refetch()}
+            >
+              {t("actions.retry")}
+            </Button>
+          }
+        />
+      </div>
     );
   }
 
@@ -221,30 +246,35 @@ export function CandidateProfilePage() {
 
   return (
     <div className="pb-12">
-      <div className="mb-5 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:mb-6 sm:flex sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-[-0.035em] text-balance text-slate-950 sm:text-4xl">
-            {t("page.title")}
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t("page.description")}</p>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label={t("actions.previewAsRecruiter")}
-          className="hover:border-accent-foreground hover:text-accent-foreground self-start bg-white sm:h-11 sm:w-auto sm:px-5"
-          onClick={() => setIsPreviewOpen(true)}
-        >
-          <Eye aria-hidden="true" />
-          <span className="hidden sm:inline">{t("actions.previewAsRecruiter")}</span>
-        </Button>
-      </div>
+      <CandidatePageHeader
+        breadcrumbItems={[
+          { href: "/", label: workspaceT("common.home") },
+          { label: t("page.title") },
+        ]}
+        description={t("page.description")}
+        eyebrow={workspaceT("common.workspaceEyebrow")}
+        title={t("page.title")}
+        action={
+          <Button
+            variant="outline"
+            aria-label={t("actions.previewAsRecruiter")}
+            className="hover:border-accent-foreground hover:text-accent-foreground w-full rounded-xl bg-white sm:w-auto"
+            onClick={() => setIsPreviewOpen(true)}
+          >
+            <Eye aria-hidden="true" />
+            <span>{t("actions.previewAsRecruiter")}</span>
+          </Button>
+        }
+        actionClassName="hidden sm:block"
+      />
 
-      <div className="relative">
+      <div className="relative mt-4 sm:mt-7">
         <ProfileCommandHeader
           pendingControl={pendingControl}
           profile={profile}
+          readiness={readiness}
           onEdit={() => setEditor({ kind: "profile" })}
+          onPreview={() => setIsPreviewOpen(true)}
           onStatusChange={updateStatus}
           onVisibilityChange={updateVisibility}
         />
@@ -298,10 +328,6 @@ export function CandidateProfilePage() {
           </div>
           <MobileReadinessSummary embedded readiness={readiness} />
         </div>
-      </div>
-
-      <div className="hidden lg:block 2xl:hidden">
-        <MobileReadinessSummary activeSection={activeSection} readiness={readiness} />
       </div>
 
       <div className="mt-5 grid items-start gap-6 sm:mt-7 lg:grid-cols-[200px_minmax(0,1fr)] 2xl:grid-cols-[200px_minmax(680px,1fr)_252px]">
@@ -369,16 +395,20 @@ export function CandidateProfilePage() {
 
 function ProfileCommandHeader({
   onEdit,
+  onPreview,
   onStatusChange,
   onVisibilityChange,
   pendingControl,
   profile,
+  readiness,
 }: Readonly<{
   onEdit: () => void;
+  onPreview: () => void;
   onStatusChange: () => void;
   onVisibilityChange: () => void;
   pendingControl: "status" | "visibility" | null;
   profile: NonNullable<ReturnType<typeof useCandidateProfileWorkspace>["profileQuery"]["data"]>;
+  readiness: ProfileReadiness;
 }>) {
   const t = useTranslations("CandidateProfile.content");
   const desiredPosition = profile.jobPreference?.desiredPosition;
@@ -409,16 +439,30 @@ function ProfileCommandHeader({
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onEdit}
-          className="hover:border-accent-foreground hover:text-accent-foreground w-fit"
-        >
-          <PencilSimple aria-hidden="true" />
-          <span className="hidden sm:inline">{t("actions.editProfile")}</span>
-          <span className="sr-only sm:hidden">{t("actions.editProfile")}</span>
-        </Button>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="hidden lg:block 2xl:hidden">
+            <MobileReadinessSummary embedded readiness={readiness} />
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={t("actions.previewAsRecruiter")}
+            className="hover:border-accent-foreground hover:text-accent-foreground bg-white sm:hidden"
+            onClick={onPreview}
+          >
+            <Eye aria-hidden="true" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEdit}
+            className="hover:border-accent-foreground hover:text-accent-foreground w-fit"
+          >
+            <PencilSimple aria-hidden="true" />
+            <span className="hidden sm:inline">{t("actions.editProfile")}</span>
+            <span className="sr-only sm:hidden">{t("actions.editProfile")}</span>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 border-t border-slate-200 bg-slate-50/70">
@@ -686,13 +730,23 @@ function MobileReadinessSummary({
 
   if (embedded) {
     return (
-      <div className="bg-brand-muted flex h-11 min-w-20 flex-col items-end justify-center rounded-lg px-3">
+      <div className="bg-brand-muted flex h-11 min-w-20 items-center justify-between gap-3 rounded-lg px-3 lg:min-w-[196px]">
         <span className="text-accent-foreground text-[10px] font-bold tracking-wide uppercase">
-          {t("readiness.shortTitle")}
+          <span className="lg:hidden">{t("readiness.shortTitle")}</span>
+          <span className="hidden lg:inline">{t("readiness.title")}</span>
         </span>
         <span className="text-accent-foreground text-sm font-bold tabular-nums">
           {readiness.percentage}%
         </span>
+        {nextItem ? (
+          <Link
+            href={{ pathname: "/candidate/profile", query: { section: nextItem.section } }}
+            scroll={false}
+            className="upnext-focus text-accent-foreground hidden max-w-36 truncate rounded px-1 text-[11px] font-bold hover:text-teal-800 xl:inline-flex"
+          >
+            {t(`readiness.nextActions.${nextItem.id}`)}
+          </Link>
+        ) : null}
         <progress
           className="sr-only"
           aria-label={t("readiness.completionLabel")}
@@ -833,11 +887,7 @@ function DeleteConfirmation({
 
 export function CandidateProfileLoading() {
   return (
-    <div aria-busy="true" className="space-y-7 pb-12">
-      <div className="space-y-3">
-        <Skeleton className="h-10 w-72 rounded-lg" />
-        <Skeleton className="h-5 w-full max-w-xl rounded" />
-      </div>
+    <div aria-busy="true" className="space-y-7">
       <Skeleton className="h-44 w-full rounded-2xl" />
       <div className="grid gap-6 lg:grid-cols-[200px_1fr] 2xl:grid-cols-[200px_minmax(680px,1fr)_252px]">
         <Skeleton className="hidden h-96 rounded-2xl lg:block" />

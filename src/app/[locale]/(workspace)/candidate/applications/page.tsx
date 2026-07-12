@@ -1,5 +1,14 @@
-import { CandidateApplicationsPage } from "@/features/candidate/applications";
+import { Suspense } from "react";
+
+import {
+  CandidateApplicationsLoading,
+  CandidateApplicationsPage,
+} from "@/features/candidate/applications";
 
 export default function ApplicationsPage() {
-  return <CandidateApplicationsPage />;
+  return (
+    <Suspense fallback={<CandidateApplicationsLoading />}>
+      <CandidateApplicationsPage />
+    </Suspense>
+  );
 }
