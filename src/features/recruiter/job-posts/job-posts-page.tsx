@@ -46,6 +46,7 @@ import {
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
+import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
@@ -129,6 +130,8 @@ const jobPostSchema = z
     applicationEmails: optionalEmailList,
     skillIds: z.array(z.string()).default([]),
     specializationIds: z.array(z.string()).default([]),
+    workingDays: z.string().trim().optional(),
+    expiredAt: z.string().trim().min(1, "Vui lòng chọn hạn nộp hồ sơ."),
   })
   .refine(
     (values) =>
@@ -238,6 +241,8 @@ export function RecruiterJobPostsPage() {
       applicationEmails: "",
       skillIds: [],
       specializationIds: [],
+      workingDays: "",
+      expiredAt: "",
     },
   });
 
@@ -341,6 +346,8 @@ export function RecruiterJobPostsPage() {
             title: values.title,
             vacanciesCount: values.vacanciesCount,
             educationLevel: values.educationLevel,
+            workingDays: values.workingDays || undefined,
+            expiredAt: values.expiredAt ? new Date(values.expiredAt).toISOString() : undefined,
           },
           token,
         );
@@ -403,6 +410,8 @@ export function RecruiterJobPostsPage() {
             title: values.title,
             vacanciesCount: values.vacanciesCount,
             educationLevel: values.educationLevel,
+            workingDays: values.workingDays || undefined,
+            expiredAt: values.expiredAt ? new Date(values.expiredAt).toISOString() : undefined,
           },
           token,
         );
@@ -455,6 +464,8 @@ export function RecruiterJobPostsPage() {
         ((job as any).jobPostSpecializations as any[] | undefined)?.map(
           (s) => s.specialization.id,
         ) ?? [],
+      workingDays: job.workingDays ?? "",
+      expiredAt: job.expiredAt ? job.expiredAt.substring(0, 10) : "",
     });
     setView("edit");
   }
@@ -681,6 +692,7 @@ export function RecruiterJobPostsPage() {
                   register={form.register("salaryMin")}
                   type="number"
                   error={form.formState.errors.salaryMin?.message}
+                  disabled={form.watch("salaryIsNegotiable")}
                 />
                 <JobInput
                   id="job-salary-max"
@@ -689,6 +701,7 @@ export function RecruiterJobPostsPage() {
                   register={form.register("salaryMax")}
                   type="number"
                   error={form.formState.errors.salaryMax?.message}
+                  disabled={form.watch("salaryIsNegotiable")}
                 />
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -696,14 +709,20 @@ export function RecruiterJobPostsPage() {
                   checked={form.watch("salaryIsNegotiable")}
                   id="job-salary-negotiable"
                   label="Lương thỏa thuận"
-                  onCheckedChange={(checked) =>
-                    form.setValue("salaryIsNegotiable", checked, { shouldDirty: true })
-                  }
+                  onCheckedChange={(checked) => {
+                    form.setValue("salaryIsNegotiable", checked, { shouldDirty: true });
+                    if (checked) {
+                      form.setValue("salaryMin", undefined, { shouldDirty: true });
+                      form.setValue("salaryMax", undefined, { shouldDirty: true });
+                      form.setValue("salaryIsVisible", true, { shouldDirty: true });
+                    }
+                  }}
                 />
                 <CheckboxRow
                   checked={form.watch("salaryIsVisible")}
                   id="job-salary-visible"
                   label="Hiển thị lương"
+                  disabled={form.watch("salaryIsNegotiable")}
                   onCheckedChange={(checked) =>
                     form.setValue("salaryIsVisible", checked, { shouldDirty: true })
                   }
@@ -719,6 +738,25 @@ export function RecruiterJobPostsPage() {
               type="number"
               error={form.formState.errors.vacanciesCount?.message}
             />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <JobInput
+                id="job-working-days"
+                label="Thời gian làm việc"
+                placeholder="Thứ 2 - Thứ 6"
+                register={form.register("workingDays")}
+                error={form.formState.errors.workingDays?.message}
+              />
+              <JobInput
+                id="job-expired-at"
+                label="Hạn nộp hồ sơ"
+                placeholder=""
+                register={form.register("expiredAt")}
+                type="date"
+                min={new Date().toLocaleDateString("sv-SE")}
+                error={form.formState.errors.expiredAt?.message}
+              />
+            </div>
 
             <JobInput
               id="job-application-emails"
@@ -908,7 +946,6 @@ function JobRow({
 }) {
   const pending = actionJobId === job.id;
   const { text: statusText, tone: statusTone } = getJobStatusBadge(job);
-  const salary = formatSalary(job);
 
   const cleanDescription = job.description ? job.description.replace(/<[^>]*>/g, "") : "";
 
@@ -922,22 +959,6 @@ function JobRow({
           <p className="mt-1 line-clamp-2 text-xs leading-5 font-medium text-slate-500">
             {cleanDescription}
           </p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {job.jobCategory ? <Badge tone="neutral">{job.jobCategory.name}</Badge> : null}
-            {job.experienceLevel ? <Badge tone="neutral">{job.experienceLevel.name}</Badge> : null}
-            {job.employmentType ? <Badge tone="neutral">{job.employmentType.name}</Badge> : null}
-            {job.jobPostSkills.slice(0, 3).map(({ skill }) => (
-              <Badge key={skill.id} tone="info">
-                {skill.name}
-              </Badge>
-            ))}
-            {job.jobPostLocations.slice(0, 2).map(({ jobLocation }) => (
-              <Badge key={jobLocation.id} tone="brand">
-                {formatLocation(jobLocation)}
-              </Badge>
-            ))}
-          </div>
-          <p className="mt-2 text-xs font-bold text-emerald-700">{salary}</p>
         </div>
       </td>
       <td className="px-5 py-4" aria-label="Job post status">
@@ -1203,6 +1224,26 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
                   </span>
                 </div>
               )}
+
+              {job.workingDays && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                    Thời gian làm việc
+                  </span>
+                  <span className="text-right font-semibold text-slate-700">{job.workingDays}</span>
+                </div>
+              )}
+
+              {job.expiredAt && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                    Hạn nộp hồ sơ
+                  </span>
+                  <span className="text-right font-semibold text-rose-600">
+                    {new Date(job.expiredAt).toLocaleDateString("vi-VN")}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Section: Địa điểm làm việc */}
@@ -1287,6 +1328,8 @@ function JobInput({
   placeholder,
   register,
   type = "text",
+  min,
+  disabled,
 }: {
   error?: string | undefined;
   helperText?: string;
@@ -1294,7 +1337,9 @@ function JobInput({
   label: string;
   placeholder: string;
   register: UseFormRegisterReturn;
-  type?: "number" | "text";
+  type?: "number" | "text" | "date";
+  min?: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-1">
@@ -1304,6 +1349,8 @@ function JobInput({
         className="h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400"
         placeholder={placeholder}
         type={type}
+        min={min}
+        disabled={disabled}
         {...register}
         {...(error ? { error } : {})}
       />
@@ -1388,11 +1435,13 @@ function CheckboxRow({
   id,
   label,
   onCheckedChange,
+  disabled,
 }: {
   checked: boolean;
   id: string;
   label: string;
   onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -1401,8 +1450,15 @@ function CheckboxRow({
         className="size-4 border-emerald-600 data-[state=checked]:bg-emerald-600"
         id={id}
         onCheckedChange={(value) => onCheckedChange(value === true)}
+        disabled={disabled}
       />
-      <Label htmlFor={id} className="cursor-pointer text-sm font-semibold text-slate-700">
+      <Label
+        htmlFor={id}
+        className={cn(
+          "cursor-pointer text-sm font-semibold text-slate-700",
+          disabled && "cursor-not-allowed opacity-50",
+        )}
+      >
         {label}
       </Label>
     </div>

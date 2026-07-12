@@ -50,6 +50,8 @@ export type RecruiterJobPost = Readonly<{
   jobPostLocations: ReadonlyArray<{
     jobLocation: JobLocationOption;
   }>;
+  workingDays: string | null;
+  expiredAt: string | null;
   _count?: {
     applications: number;
     views: number;
@@ -71,6 +73,8 @@ export type CreateRecruiterJobPostPayload = Readonly<{
   experienceLevelId?: string | undefined;
   employmentTypeId?: string | undefined;
   educationLevel?: string | undefined;
+  workingDays?: string | undefined;
+  expiredAt?: string | undefined;
 }>;
 
 export type JobPostCatalogs = Readonly<{
