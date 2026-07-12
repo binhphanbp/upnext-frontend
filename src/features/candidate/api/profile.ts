@@ -249,16 +249,78 @@ export type CandidateCvApi = Readonly<{
   }>;
 }>;
 
+export type CandidateApplicationStatus =
+  | "SUBMITTED"
+  | "VIEWED"
+  | "SHORTLISTED"
+  | "INTERVIEWING"
+  | "OFFERED"
+  | "HIRED"
+  | "REJECTED"
+  | "WITHDRAWN";
+
+export type CandidateActivityJobPostApi = Readonly<{
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  salaryMin: number | string | null;
+  salaryMax: number | string | null;
+  salaryCurrency: string;
+  salaryIsNegotiable: boolean;
+  salaryIsVisible: boolean;
+  status: string;
+  publishedAt: string | null;
+  expiredAt: string | null;
+  company: Readonly<{
+    id: string;
+    name: string;
+    logoUrl?: string | null;
+    logoFile?: Readonly<{ publicUrl: string }> | null;
+    verificationStatus?: string;
+  }>;
+  experienceLevel?: Readonly<{ id: string; name: string }> | null;
+  employmentType?: Readonly<{ id: string; name: string }> | null;
+  jobCategory?: Readonly<{ id: string; name: string }> | null;
+}>;
+
 export type CandidateApplicationApi = Readonly<{
   id: string;
-  status: string;
+  jobPostId: string;
+  candidateProfileId: string;
+  cvVersionId: string;
+  coverLetter: string | null;
+  status: CandidateApplicationStatus;
   submittedAt: string;
+  viewedAt: string | null;
+  rejectedAt: string | null;
+  hiredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  jobPost: CandidateActivityJobPostApi;
+  cvVersion: Readonly<{
+    id: string;
+    cvId: string;
+    versionNumber: number;
+    sourceFileId: string | null;
+    createdAt: string;
+  }>;
 }>;
+
+export type CandidateApplicationMutationApi = Pick<
+  CandidateApplicationApi,
+  "id" | "status" | "updatedAt"
+>;
 
 export type SavedJobApi = Readonly<{
   id: string;
+  candidateProfileId: string;
+  jobPostId: string;
   createdAt: string;
+  jobPost: CandidateActivityJobPostApi;
 }>;
+
+export type SavedJobMutationApi = Omit<SavedJobApi, "jobPost">;
 
 export type PaginatedResponse<TItem> = Readonly<{
   items: TItem[];
@@ -574,19 +636,46 @@ export function getMyCandidateCvs(
   });
 }
 
-export function getMyCandidateApplications(token: string, candidateAccountId: string) {
-  const params = new URLSearchParams({ candidateAccountId });
-
-  return apiRequest<CandidateApplicationApi[]>(`/applications/me?${params.toString()}`, {
+export function getMyCandidateApplications(token: string) {
+  return apiRequest<CandidateApplicationApi[]>("/applications/me", {
     headers: authHeaders(token),
   });
 }
 
-export function getMySavedJobs(token: string, candidateAccountId: string) {
-  const params = new URLSearchParams({ candidateAccountId });
-
-  return apiRequest<SavedJobApi[]>(`/saved-jobs?${params.toString()}`, {
+export function getCandidateApplication(token: string, applicationId: string) {
+  return apiRequest<CandidateApplicationApi>(`/applications/${applicationId}`, {
     headers: authHeaders(token),
+  });
+}
+
+export function withdrawCandidateApplication(token: string, applicationId: string) {
+  return apiRequest<CandidateApplicationMutationApi>(`/applications/${applicationId}/withdraw`, {
+    headers: authHeaders(token),
+    method: "PATCH",
+  });
+}
+
+export function getMySavedJobs(token: string) {
+  return apiRequest<SavedJobApi[]>("/saved-jobs", {
+    headers: authHeaders(token),
+  });
+}
+
+export function saveCandidateJob(token: string, jobPostId: string) {
+  return apiRequest<SavedJobMutationApi>("/saved-jobs", {
+    body: JSON.stringify({ jobPostId }),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+}
+
+export function unsaveCandidateJob(token: string, jobPostId: string) {
+  return apiRequest<void>(`/saved-jobs/${jobPostId}`, {
+    headers: authHeaders(token),
+    method: "DELETE",
   });
 }
 

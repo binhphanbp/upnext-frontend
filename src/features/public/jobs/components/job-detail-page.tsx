@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-import { useSavedJobsStore } from "@/features/candidate/saved-jobs";
+import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 
@@ -226,7 +226,12 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   }, [apiJobsData]);
 
   const job = jobsList.find((item) => item.id === jobId) ?? fallbackJob;
-  const { savedJobIds, toggleSaveJob } = useSavedJobsStore();
+  const {
+    isPending: isSavedJobPending,
+    isSessionResolved: isSavedJobsSessionResolved,
+    savedJobIds,
+    toggleSaveJob,
+  } = useCandidateSavedJobs();
   const saved = savedJobIds.includes(job.id);
   const [isOpenApply, setIsOpenApply] = useState(false);
 
@@ -332,7 +337,13 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 <button
                   type="button"
                   className={saved ? "is-saved" : ""}
-                  onClick={() => toggleSaveJob(job.id)}
+                  onClick={() => {
+                    if (!toggleSaveJob(job.id)) {
+                      navigate(`/login?redirect=/jobs/${job.id}`);
+                    }
+                  }}
+                  disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
+                  aria-pressed={saved}
                 >
                   <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
                   {saved ? "Đã lưu" : "Lưu tin"}
@@ -471,10 +482,16 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               <button
                 type="button"
                 className={saved ? "is-saved" : ""}
-                onClick={() => toggleSaveJob(job.id)}
+                onClick={() => {
+                  if (!toggleSaveJob(job.id)) {
+                    navigate(`/login?redirect=/jobs/${job.id}`);
+                  }
+                }}
+                disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
+                aria-pressed={saved}
               >
                 <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
-                {saved ? "Đã lưu tin" : "So sánh CV với JD"}
+                {saved ? "Đã lưu tin" : "Lưu tin"}
               </button>
               <div className="job-detail-deadline">
                 Hạn nộp hồ sơ: <b>15/06/2025</b> <span>(còn 13 ngày)</span>

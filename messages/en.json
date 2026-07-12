@@ -1338,6 +1338,261 @@
     "candidateTabsLabel": "Candidate workspace sections",
     "candidateMobileNavLabel": "Candidate mobile navigation"
   },
+  "CandidateWorkspace": {
+    "common": {
+      "home": "Home",
+      "exploreJobs": "Explore jobs",
+      "signIn": "Sign in",
+      "signInTitle": "Sign in to continue",
+      "signInDescription": "Sign in with a candidate account to manage your profile and job-search activity.",
+      "retry": "Try again",
+      "search": "Search",
+      "clearFilters": "Clear filters",
+      "locationFallback": "Location not updated",
+      "salaryHidden": "Salary not disclosed",
+      "salaryNegotiable": "Negotiable salary",
+      "supportingInfo": "Supporting information",
+      "pagination": "Pagination",
+      "pageCount": "Page {page}/{totalPages}",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "undo": "Undo",
+      "restoring": "Restoring…",
+      "loading": "Loading…"
+    },
+    "applications": {
+      "page": {
+        "title": "Applications",
+        "description": "Track each application, understand its current stage, and prepare for what comes next."
+      },
+      "summary": {
+        "label": "Application overview",
+        "total": "Total applications",
+        "inProgress": "In progress",
+        "positive": "Offers & hires"
+      },
+      "list": {
+        "title": "Application list",
+        "count": "{total} applications · {active} in progress"
+      },
+      "filters": {
+        "statusLabel": "Filter by application status",
+        "searchLabel": "Search applications",
+        "searchPlaceholder": "Role or company…",
+        "sortLabel": "Sort applications",
+        "newest": "Newest applications",
+        "oldest": "Oldest applications",
+        "groups": {
+          "all": "All",
+          "active": "In review",
+          "interview": "Interview",
+          "offer": "Positive outcome",
+          "closed": "Closed"
+        }
+      },
+      "status": {
+        "SUBMITTED": {
+          "label": "Submitted"
+        },
+        "VIEWED": {
+          "label": "Viewed"
+        },
+        "SHORTLISTED": {
+          "label": "Shortlisted"
+        },
+        "INTERVIEWING": {
+          "label": "Interviewing"
+        },
+        "OFFERED": {
+          "label": "Offer received"
+        },
+        "HIRED": {
+          "label": "Hired"
+        },
+        "REJECTED": {
+          "label": "Not selected"
+        },
+        "WITHDRAWN": {
+          "label": "Withdrawn"
+        }
+      },
+      "card": {
+        "appliedAt": "Applied {date}",
+        "viewDetail": "View progress"
+      },
+      "resume": {
+        "title": "Default resume",
+        "defaultBadge": "In use",
+        "description": "Your default resume is preselected when you begin a new application.",
+        "missing": "No default resume",
+        "missingDescription": "Choose a default resume to reduce steps and avoid sending the wrong version.",
+        "manage": "Manage resumes"
+      },
+      "guide": {
+        "title": "How progress works",
+        "submitted": {
+          "title": "Application sent",
+          "description": "UpNext recorded your application and sent it to the employer."
+        },
+        "review": {
+          "title": "Employer review",
+          "description": "The status changes when your application is viewed, shortlisted, or moved to interview."
+        },
+        "decision": {
+          "title": "Hiring outcome",
+          "description": "Offers, hires, and closed processes are shown clearly here."
+        }
+      },
+      "states": {
+        "errorTitle": "Applications could not be loaded",
+        "errorDescription": "UpNext could not be reached. Try again to see the latest application status.",
+        "emptyTitle": "You have not applied yet",
+        "emptyDescription": "Explore suitable roles and submit a resume to start tracking progress here.",
+        "noResultsTitle": "No matching applications",
+        "noResultsDescription": "Try another keyword or clear the status filter to see all applications."
+      }
+    },
+    "applicationDetail": {
+      "page": {
+        "eyebrow": "Application details",
+        "fallbackTitle": "Application",
+        "fallbackDescription": "Review the status and information you submitted."
+      },
+      "actions": {
+        "back": "Back to applications",
+        "viewJob": "View job posting"
+      },
+      "states": {
+        "errorTitle": "Application could not be opened",
+        "errorDescription": "The application may not exist, may not belong to you, or UpNext may be temporarily unavailable."
+      },
+      "history": {
+        "title": "Application history",
+        "description": "These milestones come from recorded application activity.",
+        "submitted": "Application submitted",
+        "submittedDescription": "UpNext received your application and sent it to the employer.",
+        "viewed": "Viewed by employer",
+        "viewedDescription": "The employer opened your application."
+      },
+      "submission": {
+        "title": "Submitted information",
+        "description": "The resume version and content recorded when you applied.",
+        "resume": "Resume used",
+        "resumeVersion": "Version {version}",
+        "submittedAt": "Submitted at",
+        "coverLetter": "Cover letter"
+      },
+      "current": {
+        "title": "Current status",
+        "SUBMITTED": {
+          "description": "Your application was sent successfully and is waiting for employer review.",
+          "nextStep": "Keep tracking this application; no further action is required yet."
+        },
+        "VIEWED": {
+          "description": "The employer opened your application and is reviewing fit.",
+          "nextStep": "Keep your contact details available and watch for the next update."
+        },
+        "SHORTLISTED": {
+          "description": "Your application passed the employer's initial screening.",
+          "nextStep": "Prepare your introduction and examples from relevant projects."
+        },
+        "INTERVIEWING": {
+          "description": "The process has moved to the interview stage.",
+          "nextStep": "Review the role, company, and concrete examples from your experience."
+        },
+        "OFFERED": {
+          "description": "The employer sent or is finalizing an employment offer.",
+          "nextStep": "Review responsibilities, compensation, benefits, and the response deadline."
+        },
+        "HIRED": {
+          "description": "The hiring process finished with a successful outcome.",
+          "nextStep": "Save your onboarding details and complete the employer's next steps."
+        },
+        "REJECTED": {
+          "description": "The employer closed your application for this process.",
+          "nextStep": "Review role fit and continue with opportunities closer to your goals."
+        },
+        "WITHDRAWN": {
+          "description": "You withdrew this application from the hiring process.",
+          "nextStep": "The employer will no longer process this application."
+        }
+      },
+      "job": {
+        "title": "Job information",
+        "employmentType": "Employment type",
+        "location": "Location",
+        "appliedAt": "Application date",
+        "unknown": "Not updated"
+      },
+      "withdraw": {
+        "title": "No longer interested?",
+        "description": "Only withdraw when you are sure you do not want to continue this process.",
+        "action": "Withdraw application",
+        "confirmTitle": "Confirm withdrawal",
+        "confirmDescription": "The employer will stop processing this application. This action cannot be undone on UpNext.",
+        "cancel": "Keep application",
+        "confirmAction": "Confirm withdrawal",
+        "withdrawing": "Withdrawing…",
+        "error": "The application could not be withdrawn. Its status may have changed; reload and try again."
+      }
+    },
+    "savedJobs": {
+      "page": {
+        "title": "Saved jobs",
+        "description": "Manage your shortlist, review fit, and apply before suitable opportunities close."
+      },
+      "summary": {
+        "label": "Saved jobs overview",
+        "total": "Saved",
+        "available": "Still open",
+        "closed": "Closed"
+      },
+      "list": {
+        "title": "Your shortlist",
+        "count": "{count} jobs shown"
+      },
+      "filters": {
+        "searchLabel": "Search saved jobs",
+        "searchPlaceholder": "Role or company…",
+        "sortLabel": "Sort saved jobs",
+        "newest": "Recently saved",
+        "oldest": "Oldest saved",
+        "company": "Company name A–Z"
+      },
+      "card": {
+        "savedAt": "Saved {date}",
+        "remove": "Remove {title} from saved jobs",
+        "viewAndApply": "View & apply",
+        "unavailable": "Job closed"
+      },
+      "resume": {
+        "title": "Ready to apply",
+        "description": "Your default resume is ready. Review it against each job description before applying.",
+        "missing": "No default resume",
+        "missingDescription": "Prepare and select a default resume before applying to shortlisted roles.",
+        "manage": "Manage resumes"
+      },
+      "nextStep": {
+        "title": "Before you apply",
+        "description": "Spend a few minutes reviewing each opportunity instead of applying in bulk.",
+        "fit": "Compare required skills with your real experience.",
+        "company": "Research the company, product, team, and environment.",
+        "deadline": "Check the deadline and prioritize roles that are still relevant."
+      },
+      "states": {
+        "errorTitle": "Saved jobs could not be loaded",
+        "errorDescription": "Your UpNext shortlist could not be synced. Try again to load the latest data.",
+        "emptyTitle": "Your shortlist is empty",
+        "emptyDescription": "Save genuinely relevant jobs so you can compare them and apply when ready.",
+        "noResultsTitle": "No saved jobs match",
+        "noResultsDescription": "Try another keyword or clear the search to see your full shortlist."
+      },
+      "feedback": {
+        "removed": "Job removed from your shortlist.",
+        "error": "Saved jobs could not be updated. Please try again."
+      }
+    }
+  },
   "CandidateProfile": {
     "content": {
       "page": {

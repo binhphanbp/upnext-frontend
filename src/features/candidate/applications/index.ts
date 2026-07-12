@@ -1,2 +1,2 @@
 export { CandidateApplicationDetailPage } from "./application-detail-page";
-export { CandidateApplicationsPage } from "./applications-page";
+export { CandidateApplicationsLoading, CandidateApplicationsPage } from "./applications-page";

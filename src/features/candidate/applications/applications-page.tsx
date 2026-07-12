@@ -1,632 +1,527 @@
 "use client";
 
 import {
-  Bell,
+  ArrowRight,
   Briefcase,
   CalendarBlank,
-  CaretDown,
-  Check,
-  CheckCircle,
-  DotsThreeVertical,
-  FilePdf,
-  FunnelSimple,
-  HourglassMedium,
-  MapPin,
-  MagnifyingGlass,
-  Monitor,
-  Prohibit,
-  SlidersHorizontal,
-  Star,
-  UsersThree,
-  VideoCamera,
-  Globe,
-  Moon,
-  Question,
-  Headset,
-  ArrowRight,
+  CaretLeft,
   CaretRight,
+  MagnifyingGlass,
+  MapPin,
   ShieldCheck,
+  WarningCircle,
 } from "@phosphor-icons/react";
-import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { PublicFooter } from "@/features/public/shared/public-footer";
-import { useRouter } from "@/i18n/navigation";
-import { Link } from "@/i18n/navigation";
+import {
+  getMyCandidateApplications,
+  type CandidateApplicationApi,
+} from "@/features/candidate/api/profile";
+import { CandidatePageHeader } from "@/features/candidate/candidate-page-header";
+import {
+  filterApplications,
+  formatJobSalary,
+  getApplicationStatusGroup,
+  getCompanyLogo,
+  getJobLocation,
+  getJobTags,
+  type ApplicationStatusGroup,
+} from "@/features/candidate/job-activity-model";
+import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
+import { getPublicJobs } from "@/features/public/home/api";
+import { Link, useRouter } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
-import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/shared/ui/dropdown-menu";
 import { Input } from "@/shared/ui/input";
+import { Skeleton } from "@/shared/ui/skeleton";
 
-import {
-  applicationTips,
-  applications,
-  statusMeta,
-  statusStyles,
-  upcomingInterview,
-  type Application,
-  type ApplicationStatus,
-} from "./applications-data";
+import { ApplicationStatusBadge } from "./application-status-badge";
 
-type StatusFilter = "all" | ApplicationStatus;
+const statusGroups: readonly ApplicationStatusGroup[] = [
+  "all",
+  "active",
+  "interview",
+  "offer",
+  "closed",
+];
+const pageSize = 6;
+const emptyApplications: CandidateApplicationApi[] = [];
 
-const sortOptions = ["Mới nhất", "Cũ nhất", "Công ty A-Z"] as const;
-const timeOptions = ["Tất cả", "7 ngày qua", "30 ngày qua"] as const;
-
-const statusIconMap = {
-  all: Briefcase,
-  reviewing: HourglassMedium,
-  interview: UsersThree,
-  offer: Star,
-  rejected: Prohibit,
-} as const;
-
-const tipIconMap = {
-  bell: Bell,
-  check: CheckCircle,
-  clock: CalendarBlank,
-} as const;
+type SortOrder = "newest" | "oldest";
 
 export function CandidateApplicationsPage() {
+  const t = useTranslations("CandidateWorkspace");
+  const locale = useLocale();
   const router = useRouter();
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [query, setQuery] = useState("");
-  const [timeRange, setTimeRange] = useState<(typeof timeOptions)[number]>("Tất cả");
-  const [sort, setSort] = useState<(typeof sortOptions)[number]>("Mới nhất");
+  const searchParams = useSearchParams();
+  const { isSessionResolved, session } = useCandidateProfileWorkspace();
 
-  const filteredApplications = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    const now = Math.max(
-      ...applications.map((application) => parseVietnameseDate(application.appliedAt).getTime()),
+  const statusParam = searchParams.get("status");
+  const status: ApplicationStatusGroup = statusGroups.includes(
+    statusParam as ApplicationStatusGroup,
+  )
+    ? (statusParam as ApplicationStatusGroup)
+    : "all";
+  const sort: SortOrder = searchParams.get("sort") === "oldest" ? "oldest" : "newest";
+  const query = searchParams.get("q") ?? "";
+  const requestedPage = Math.max(1, Math.floor(Number(searchParams.get("page")) || 1));
+  const [draftQuery, setDraftQuery] = useState(query);
+
+  useEffect(() => {
+    setDraftQuery(query);
+  }, [query]);
+
+  const applicationsQuery = useQuery({
+    enabled: Boolean(session),
+    queryFn: () => getMyCandidateApplications(session!.accessToken),
+    queryKey: ["candidate-applications", session?.user.id],
+  });
+  const publicJobsQuery = useQuery({
+    enabled: Boolean(session),
+    queryFn: getPublicJobs,
+    queryKey: ["public-jobs"],
+  });
+
+  const applications = applicationsQuery.data ?? emptyApplications;
+  const isUnauthorized =
+    applicationsQuery.error instanceof ApiError && applicationsQuery.error.status === 401;
+  const publicJobsById = useMemo(
+    () => new Map((publicJobsQuery.data ?? []).map((job) => [job.id, job])),
+    [publicJobsQuery.data],
+  );
+  const visibleApplications = useMemo(() => {
+    const filtered = filterApplications(applications, status, query);
+    return filtered.toSorted((left, right) => {
+      const difference =
+        new Date(right.submittedAt).getTime() - new Date(left.submittedAt).getTime();
+      return sort === "newest" ? difference : -difference;
+    });
+  }, [applications, query, sort, status]);
+  const totalPages = Math.max(1, Math.ceil(visibleApplications.length / pageSize));
+  const page = Math.min(requestedPage, totalPages);
+  const paginatedApplications = visibleApplications.slice((page - 1) * pageSize, page * pageSize);
+  const counts = useMemo(
+    () =>
+      statusGroups.reduce<Record<ApplicationStatusGroup, number>>(
+        (result, group) => {
+          result[group] =
+            group === "all"
+              ? applications.length
+              : applications.filter(
+                  (application) => getApplicationStatusGroup(application.status) === group,
+                ).length;
+          return result;
+        },
+        { active: 0, all: 0, closed: 0, interview: 0, offer: 0 },
+      ),
+    [applications],
+  );
+
+  const updateSearch = (changes: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams.toString());
+    Object.entries(changes).forEach(([key, value]) => {
+      if (!value || value === "all" || (key === "sort" && value === "newest")) next.delete(key);
+      else next.set(key, value);
+    });
+    if (!("page" in changes)) next.delete("page");
+    const suffix = next.toString();
+    router.replace(suffix ? `/candidate/applications?${suffix}` : "/candidate/applications", {
+      scroll: false,
+    });
+  };
+
+  const pageHeader = (
+    <CandidatePageHeader
+      breadcrumbItems={[
+        { href: "/", label: t("common.home") },
+        { label: t("applications.page.title") },
+      ]}
+      description={t("applications.page.description")}
+      title={t("applications.page.title")}
+      action={
+        <Button asChild className="w-full rounded-xl sm:w-auto">
+          <Link href="/jobs">
+            {t("common.exploreJobs")}
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </Button>
+      }
+    />
+  );
+
+  if (!isSessionResolved) {
+    return (
+      <div className="space-y-6 pb-4">
+        {pageHeader}
+        <CandidateApplicationsLoading />
+      </div>
     );
-    const maxAgeDays = timeRange === "7 ngày qua" ? 7 : timeRange === "30 ngày qua" ? 30 : null;
+  }
 
-    return applications
-      .filter((application) => status === "all" || application.status === status)
-      .filter((application) => {
-        if (!maxAgeDays) return true;
-        const appliedTime = parseVietnameseDate(application.appliedAt).getTime();
-        const ageInDays = Math.floor((now - appliedTime) / (1000 * 60 * 60 * 24));
-        return ageInDays >= 0 && ageInDays <= maxAgeDays;
-      })
-      .filter((application) => {
-        if (!normalizedQuery) return true;
-        return [application.role, application.company, application.location]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedQuery);
-      })
-      .toSorted((a, b) => {
-        if (sort === "Công ty A-Z") return a.company.localeCompare(b.company);
-        const aTime = parseVietnameseDate(a.appliedAt).getTime();
-        const bTime = parseVietnameseDate(b.appliedAt).getTime();
-        return sort === "Mới nhất" ? bTime - aTime : aTime - bTime;
-      });
-  }, [query, sort, status, timeRange]);
-
-  return (
-    <div className="flex flex-col gap-8">
-      {/* Breadcrumbs & Title */}
-      <div>
-        <Breadcrumb
-          className="mb-4"
-          items={[{ label: "Trang chủ", href: "/" }, { label: "Việc làm đã ứng tuyển" }]}
+  if (!session || isUnauthorized) {
+    return (
+      <div className="space-y-6 pb-4">
+        {pageHeader}
+        <ActivityState
+          icon={<ShieldCheck />}
+          title={t("common.signInTitle")}
+          description={t("common.signInDescription")}
+          action={
+            <Button asChild className="rounded-xl">
+              <Link href="/login">{t("common.signIn")}</Link>
+            </Button>
+          }
         />
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              Việc làm đã ứng tuyển
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Theo dõi trạng thái các đơn ứng tuyển của bạn tại UpNext.
-            </p>
-          </div>
-          <Button
-            asChild
-            className="cursor-pointer rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700"
-          >
-            <Link href="/jobs" className="flex items-center gap-1.5">
-              <SlidersHorizontal size={14} />
-              Khám phá thêm việc làm
-            </Link>
-          </Button>
-        </div>
       </div>
+    );
+  }
 
-      {/* Main 2-Column Content Section */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Left Column: List & Filters */}
-        <div className="flex flex-col gap-6 lg:col-span-2">
-          {/* Status Tabs */}
-          <StatusTabs value={status} onChange={setStatus} />
+  return (
+    <div className="space-y-6 pb-4">
+      {pageHeader}
 
-          {/* Search and Filters controls */}
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <MagnifyingGlass
-                className="absolute top-1/2 left-4 -translate-y-1/2 text-slate-400"
-                size={18}
-              />
-              <Input
-                id="candidate-application-search"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
+      {applicationsQuery.isLoading ? <CandidateApplicationsLoading /> : null}
+
+      {applicationsQuery.isError ? (
+        <ActivityState
+          tone="error"
+          icon={<WarningCircle />}
+          title={t("applications.states.errorTitle")}
+          description={t("applications.states.errorDescription")}
+          action={
+            <Button className="rounded-xl" onClick={() => applicationsQuery.refetch()}>
+              {t("common.retry")}
+            </Button>
+          }
+        />
+      ) : null}
+
+      {applicationsQuery.isSuccess ? (
+        <section className="min-w-0" aria-labelledby="applications-list-title">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-200 px-4 pt-4 sm:px-5 sm:pt-5">
+              <h2 id="applications-list-title" className="text-lg font-bold text-slate-950">
+                {t("applications.list.title")}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {t("applications.list.count", {
+                  active: counts.active + counts.interview,
+                  total: applications.length,
+                })}
+              </p>
+              <div
+                className="hide-scroll mt-4 flex gap-5 overflow-x-auto"
+                role="group"
+                aria-label={t("applications.filters.statusLabel")}
+              >
+                {statusGroups.map((group) => (
+                  <button
+                    key={group}
+                    type="button"
+                    aria-pressed={status === group}
+                    onClick={() => updateSearch({ status: group })}
+                    className={cn(
+                      "upnext-focus relative min-h-11 shrink-0 border-b-2 px-0.5 pb-3 text-sm font-bold transition-colors",
+                      status === group
+                        ? "border-brand text-accent-foreground"
+                        : "border-transparent text-slate-500 hover:text-slate-900",
+                    )}
+                  >
+                    {t(`applications.filters.groups.${group}`)}
+                    <span className="ml-1.5 text-xs tabular-nums">{counts[group]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-3 border-b border-slate-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_180px] sm:p-5">
+              <form
+                className="relative"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  updateSearch({ q: draftQuery.trim() || null });
                 }}
-                className="h-11 rounded-xl border-slate-200 bg-white pl-11 text-xs shadow-sm outline-none focus:border-emerald-500"
-                placeholder="Tìm kiếm theo tên việc làm, công ty..."
-              />
-            </div>
-            <div className="flex flex-wrap gap-3 sm:flex-nowrap">
-              <FilterMenu
-                label="Trạng thái"
-                value={
-                  status === "all"
-                    ? "Tất cả"
-                    : (statusMeta.find((item) => item.key === status)?.label ?? "Tất cả")
-                }
-                options={statusMeta.map((item) => ({ label: item.label, value: item.key }))}
-                onSelect={(value) => setStatus(value as StatusFilter)}
-              />
-              <FilterMenu
-                label="Thời gian"
-                value={timeRange}
-                options={timeOptions.map((item) => ({ label: item, value: item }))}
-                onSelect={(value) => setTimeRange(value as (typeof timeOptions)[number])}
-              />
-            </div>
-          </div>
-
-          {/* Job Applications List */}
-          <section className="flex flex-col gap-4" aria-label="Danh sách việc đã ứng tuyển">
-            {filteredApplications.length > 0 ? (
-              filteredApplications.map((application) => (
-                <ApplicationCard
-                  key={application.id}
-                  application={application}
-                  navigate={(path) => router.push(path)}
+              >
+                <label className="sr-only" htmlFor="candidate-application-search">
+                  {t("applications.filters.searchLabel")}
+                </label>
+                <MagnifyingGlass
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
                 />
-              ))
+                <Input
+                  id="candidate-application-search"
+                  name="application-search"
+                  type="search"
+                  autoComplete="off"
+                  value={draftQuery}
+                  onChange={(event) => setDraftQuery(event.target.value)}
+                  className="rounded-lg border-slate-200 bg-slate-50 pr-20 pl-10"
+                  placeholder={t("applications.filters.searchPlaceholder")}
+                />
+                <button
+                  type="submit"
+                  className="upnext-focus text-accent-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-lg px-2.5 py-1.5 text-xs font-bold hover:bg-emerald-50"
+                >
+                  {t("common.search")}
+                </button>
+              </form>
+              <div>
+                <label className="sr-only" htmlFor="application-sort">
+                  {t("applications.filters.sortLabel")}
+                </label>
+                <select
+                  id="application-sort"
+                  value={sort}
+                  onChange={(event) => updateSearch({ sort: event.target.value })}
+                  className="upnext-focus h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700"
+                >
+                  <option value="newest">{t("applications.filters.newest")}</option>
+                  <option value="oldest">{t("applications.filters.oldest")}</option>
+                </select>
+              </div>
+            </div>
+
+            {paginatedApplications.length > 0 ? (
+              <ul className="divide-y divide-slate-200">
+                {paginatedApplications.map((application) => {
+                  const publicJob = publicJobsById.get(application.jobPostId);
+                  return (
+                    <li key={application.id}>
+                      <ApplicationRow
+                        application={application}
+                        locale={locale}
+                        location={getJobLocation(publicJob, t("common.locationFallback"))}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
             ) : (
-              <EmptyApplicationsState />
+              <EmptyApplications hasApplications={applications.length > 0} />
             )}
-          </section>
 
-          {/* Simple Pagination */}
-          {filteredApplications.length > 0 && (
-            <div className="mt-4 flex items-center justify-center gap-2" aria-label="Phân trang">
-              <button
-                type="button"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"
-              >
-                <CaretRight size={14} className="rotate-180" />
-              </button>
-              <button
-                type="button"
-                className="h-9 w-9 rounded-lg bg-emerald-600 text-xs font-semibold text-white shadow-sm"
-              >
-                1
-              </button>
-              <button
-                type="button"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-              >
-                2
-              </button>
-              <button
-                type="button"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-              >
-                3
-              </button>
-              <span className="px-1 text-slate-400 select-none">...</span>
-              <button
-                type="button"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"
-              >
-                <CaretRight size={14} />
-              </button>
-            </div>
-          )}
-
-          <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-            <Question size={16} /> Bạn có thắc mắc về đơn ứng tuyển?{" "}
-            <a href="#" className="font-semibold text-emerald-600 hover:underline">
-              Liên hệ hỗ trợ
-            </a>
+            {visibleApplications.length > pageSize ? (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={(nextPage) => updateSearch({ page: String(nextPage) })}
+              />
+            ) : null}
           </div>
-        </div>
-
-        {/* Right Column: Sidebar */}
-        <aside className="flex flex-col gap-6 lg:sticky lg:top-24 lg:self-start">
-          {/* Default resume used */}
-          <ActiveResumeCard navigate={(path) => router.push(path)} />
-
-          {/* Upcoming Interview (if available) */}
-          <UpcomingInterviewCard />
-
-          {/* Tips card */}
-          <TipsCard />
-
-          {/* Support CTA card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="mb-2 text-base font-bold text-slate-900">Bạn cần hỗ trợ?</h3>
-            <p className="mb-5 text-xs leading-relaxed text-slate-500">
-              Đội ngũ UpNext luôn sẵn sàng hỗ trợ bạn trong quá trình tìm việc.
-            </p>
-            <button
-              type="button"
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
-            >
-              <Headset size={16} /> Liên hệ với chúng tôi
-            </button>
-          </div>
-        </aside>
-      </div>
-
-      {/* Find more opportunities Promo Banner */}
-      <div className="mt-6 flex flex-col items-center justify-between gap-6 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-6 shadow-sm sm:p-8 md:flex-row">
-        <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
-          <div className="relative h-20 w-24 flex-shrink-0">
-            <div className="absolute inset-0 -rotate-6 transform rounded-xl bg-emerald-500/10"></div>
-            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg">
-              <Briefcase size={36} />
-            </div>
-            <div className="absolute -right-2 -bottom-2 rounded-full bg-white p-1.5 shadow-md">
-              <MagnifyingGlass className="text-blue-500" size={20} />
-            </div>
-          </div>
-          <div>
-            <h2 className="mb-2 text-xl font-bold text-slate-900 sm:text-2xl">
-              Tìm thêm cơ hội phù hợp với bạn
-            </h2>
-            <p className="text-sm text-slate-600">
-              Hàng ngàn việc làm IT mới mỗi ngày đang chờ bạn khám phá.
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => router.push("/jobs")}
-          className="flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-xs font-bold whitespace-nowrap text-white shadow-md transition hover:bg-emerald-700"
-        >
-          Tìm việc ngay <ArrowRight size={14} />
-        </button>
-      </div>
-
-      {/* Public Footer */}
-      <div className="-mx-6 border-t border-slate-200/60 bg-white px-6 md:-mx-10 md:px-10 xl:-mx-16 xl:px-16">
-        <PublicFooter navigate={(path) => router.push(path)} />
-      </div>
+        </section>
+      ) : null}
     </div>
   );
 }
 
-function parseVietnameseDate(value: string) {
-  const [day = "1", month = "1", year = "1970"] = value.split("/");
-  return new Date(Number(year), Number(month) - 1, Number(day));
-}
-
-function StatusTabs({
-  onChange,
-  value,
-}: Readonly<{
-  onChange: (value: StatusFilter) => void;
-  value: StatusFilter;
-}>) {
-  return (
-    <div
-      className="hide-scroll flex items-center gap-6 overflow-x-auto border-b border-slate-200 text-sm font-medium"
-      role="tablist"
-      aria-label="Lọc trạng thái"
-    >
-      {statusMeta.map((item) => {
-        const active = value === item.key;
-        return (
-          <button
-            key={item.key}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(item.key)}
-            className={cn(
-              "pb-3 whitespace-nowrap transition cursor-pointer border-b-2 text-xs md:text-sm",
-              active
-                ? "border-emerald-600 text-emerald-600 font-bold"
-                : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300",
-            )}
-          >
-            {item.label} ({item.count})
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function FilterMenu({
-  label,
-  onSelect,
-  options,
-  value,
-}: Readonly<{
-  label: string;
-  value: string;
-  options: readonly { label: string; value: string }[];
-  onSelect: (value: string) => void;
-}>) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="flex h-11 min-w-[140px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:min-w-[160px]"
-        >
-          <span className="truncate">
-            {label}: {value}
-          </span>
-          <CaretDown size={14} className="text-slate-400" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-52 rounded-xl border border-slate-100 bg-white p-1 shadow-lg"
-      >
-        {options.map((option) => (
-          <DropdownMenuItem
-            key={option.value}
-            onClick={() => onSelect(option.value)}
-            className="cursor-pointer rounded-lg p-2 text-xs font-medium text-slate-600 transition hover:bg-emerald-50/20 hover:text-emerald-600"
-          >
-            {option.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function CompanyLogo({ application }: Readonly<{ application: Application }>) {
-  const toneBg = cn(
-    application.companyTone === "blue" && "bg-blue-50 text-blue-600",
-    application.companyTone === "orange" && "bg-orange-50 text-orange-600",
-    application.companyTone === "green" && "bg-emerald-50 text-emerald-600",
-    application.companyTone === "neutral" && "bg-slate-100 text-slate-800",
-  );
-  return (
-    <div
-      className={cn(
-        "w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center font-bold text-xl border border-slate-100",
-        toneBg,
-      )}
-    >
-      {application.companyMark.toUpperCase()}
-    </div>
-  );
-}
-
-function ApplicationCard({
+function ApplicationRow({
   application,
-  navigate,
+  locale,
+  location,
 }: Readonly<{
-  application: Application;
-  navigate: (path: string) => void;
+  application: CandidateApplicationApi;
+  locale: string;
+  location: string;
 }>) {
-  const badgeClass = cn(
-    "inline-flex text-xs font-semibold px-3 py-1 rounded-full w-fit transition-colors",
-    application.status === "reviewing" && "bg-blue-50 text-blue-600",
-    application.status === "interview" && "bg-orange-50 text-orange-600",
-    application.status === "offer" && "bg-emerald-50 text-emerald-700",
-    application.status === "rejected" && "bg-slate-100 text-slate-600",
+  const t = useTranslations("CandidateWorkspace");
+  const logo = getCompanyLogo(application.jobPost);
+  const tags = getJobTags(application.jobPost);
+  const formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
+    new Date(application.submittedAt),
   );
 
   return (
-    <div
-      onClick={() => navigate(`/candidate/applications/${application.id}`)}
-      className="group relative flex cursor-pointer flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition duration-200 hover:border-emerald-500 hover:shadow-lg sm:flex-row sm:items-center"
-    >
-      <CompanyLogo application={application} />
-
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="truncate text-base font-bold text-slate-900 transition group-hover:text-emerald-600">
-              {application.role}
-            </h3>
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="text-sm font-semibold text-slate-600">{application.company}</span>
-              <CheckCircle size={14} className="text-emerald-500" weight="fill" />
+    <article className="group p-5 transition-colors hover:bg-slate-50 sm:px-6">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <CompanyLogo logo={logo} name={application.jobPost.company.name} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <Link
+                href={`/candidate/applications/${application.id}`}
+                className="upnext-focus hover:text-accent-foreground block rounded text-base font-bold text-slate-950 sm:text-lg"
+              >
+                <span className="line-clamp-2">{application.jobPost.title}</span>
+              </Link>
+              <p className="mt-1 truncate text-sm font-semibold text-slate-600">
+                {application.jobPost.company.name}
+              </p>
             </div>
+            <ApplicationStatusBadge status={application.status} />
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            className="p-1 text-slate-400 hover:text-slate-600"
-            aria-label="Thao tác"
-          >
-            <DotsThreeVertical size={20} />
-          </button>
-        </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-          <span className="flex items-center gap-1">
-            <MapPin size={14} /> {application.location}
-          </span>
-          <span className="flex items-center gap-1">
-            <Monitor size={14} /> {application.workMode}
-          </span>
-          <span className="flex items-center gap-1">
-            <Star size={14} /> {application.salary || "Thỏa thuận"}
-          </span>
-        </div>
-
-        <div className="mt-3 text-xs font-medium text-slate-400">
-          Ứng tuyển ngày:{" "}
-          <span className="font-semibold text-slate-700">{application.appliedAt}</span>
-        </div>
-      </div>
-
-      <div className="mt-3 flex flex-col justify-center border-t border-slate-100 pt-3 sm:mt-0 sm:w-[220px] sm:items-end sm:border-t-0 sm:pt-0 sm:text-right">
-        <span className={badgeClass}>{application.statusTitle}</span>
-        <div className="mt-2 flex items-center justify-end gap-2 text-xs text-slate-500">
-          <span>{application.statusDescription}</span>
-          <CaretRight
-            size={14}
-            className="text-slate-400 transition group-hover:text-emerald-600"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyApplicationsState() {
-  return (
-    <Card className="rounded-2xl border-dashed border-slate-300 bg-white shadow-none">
-      <CardContent className="flex flex-col items-center justify-center px-6 py-14 text-center">
-        <span className="grid size-14 place-items-center rounded-2xl bg-slate-100 text-slate-500">
-          <MagnifyingGlass size={26} />
-        </span>
-        <h2 className="mt-4 text-base font-bold text-slate-800">
-          Không tìm thấy ứng tuyển phù hợp
-        </h2>
-        <p className="mt-2 max-w-md text-xs leading-6 font-medium text-slate-500">
-          Thử đổi từ khóa, trạng thái hoặc khoảng thời gian để xem thêm hồ sơ ứng tuyển.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ActiveResumeCard({ navigate }: { navigate: (path: string) => void }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-bold text-slate-900">Hồ sơ đang dùng</h3>
-        <button
-          type="button"
-          onClick={() => navigate("/candidate/profile")}
-          className="flex cursor-pointer items-center gap-0.5 text-xs font-semibold text-emerald-600 hover:underline"
-        >
-          Xem chi tiết <ArrowRight size={12} />
-        </button>
-      </div>
-      <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-xl text-emerald-600">
-          <FilePdf size={20} weight="fill" className="text-red-500" />
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h4 className="text-sm font-semibold text-slate-800">CV_NguyenQuocVuong.pdf</h4>
-            <span className="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-emerald-700 uppercase">
-              Mặc định
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-500">
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin aria-hidden="true" size={15} />
+              {location}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarBlank aria-hidden="true" size={15} />
+              {t("applications.card.appliedAt", { date: formattedDate })}
             </span>
           </div>
-          <p className="mt-1 text-xs text-slate-400">Cập nhật lần cuối: 10/06/2025</p>
+
+          <div className="mt-3 flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-wrap gap-1.5">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600"
+                >
+                  {tag}
+                </span>
+              ))}
+              <span className="text-accent-foreground px-1 py-1 text-xs font-bold">
+                {formatJobSalary(application.jobPost, locale, {
+                  hidden: t("common.salaryHidden"),
+                  negotiable: t("common.salaryNegotiable"),
+                })}
+              </span>
+            </div>
+            <Link
+              href={`/candidate/applications/${application.id}`}
+              className="upnext-focus text-accent-foreground inline-flex min-h-9 shrink-0 items-center gap-1.5 self-start rounded-lg px-2 text-sm font-bold hover:bg-emerald-50 sm:self-auto"
+            >
+              {t("applications.card.viewDetail")}
+              <CaretRight aria-hidden="true" />
+            </Link>
+          </div>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => navigate("/candidate/cv-builder")}
-        className="w-full cursor-pointer rounded-xl border border-emerald-600 py-2.5 text-xs font-bold text-emerald-600 transition hover:bg-emerald-50/40"
-      >
-        Quản lý hồ sơ
-      </button>
+    </article>
+  );
+}
+
+function CompanyLogo({ logo, name }: Readonly<{ logo: string | null; name: string }>) {
+  return (
+    <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 sm:size-14">
+      {logo ? (
+        <Image
+          alt=""
+          src={logo}
+          width={56}
+          height={56}
+          unoptimized
+          loading="lazy"
+          className="size-full object-contain p-2"
+        />
+      ) : (
+        name.slice(0, 2).toLocaleUpperCase()
+      )}
+    </span>
+  );
+}
+
+function EmptyApplications({ hasApplications }: Readonly<{ hasApplications: boolean }>) {
+  const t = useTranslations("CandidateWorkspace");
+  return (
+    <div className="px-5 py-14 text-center sm:py-16">
+      <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-100 text-slate-500">
+        <Briefcase aria-hidden="true" size={26} />
+      </span>
+      <h2 className="mt-4 text-lg font-bold text-slate-950">
+        {hasApplications
+          ? t("applications.states.noResultsTitle")
+          : t("applications.states.emptyTitle")}
+      </h2>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+        {hasApplications
+          ? t("applications.states.noResultsDescription")
+          : t("applications.states.emptyDescription")}
+      </p>
+      <Button asChild variant={hasApplications ? "outline" : "primary"} className="mt-5 rounded-xl">
+        <Link href={hasApplications ? "/candidate/applications" : "/jobs"}>
+          {hasApplications ? t("common.clearFilters") : t("common.exploreJobs")}
+        </Link>
+      </Button>
     </div>
   );
 }
 
-function UpcomingInterviewCard() {
-  if (!upcomingInterview) return null;
-
+function Pagination({
+  onPageChange,
+  page,
+  totalPages,
+}: Readonly<{ onPageChange: (page: number) => void; page: number; totalPages: number }>) {
+  const t = useTranslations("CandidateWorkspace");
   return (
-    <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900">
-            <CalendarBlank className="text-emerald-600" size={18} />
-            Lịch phỏng vấn sắp tới
-          </h2>
-          <button
-            type="button"
-            className="cursor-pointer text-xs font-semibold text-emerald-600 hover:underline"
-          >
-            Xem tất cả
-          </button>
-        </div>
-
-        <div className="mt-5 flex gap-4">
-          <CompanyLogo application={upcomingInterview} />
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-slate-800">{upcomingInterview.role}</h3>
-            <p className="mt-1 flex items-center gap-2 text-xs font-medium text-slate-500">
-              {upcomingInterview.company}
-              <CheckCircle size={12} className="text-emerald-500" weight="fill" />
-            </p>
-            <p className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-500">
-              <CalendarBlank size={14} />
-              {upcomingInterview.interviewAt}
-            </p>
-            <p className="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-500">
-              <VideoCamera size={14} />
-              Phỏng vấn kỹ thuật
-            </p>
-          </div>
-        </div>
-
+    <nav
+      className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-4 sm:px-5"
+      aria-label={t("common.pagination")}
+    >
+      <p className="text-xs font-semibold text-slate-500 tabular-nums">
+        {t("common.pageCount", { page, totalPages })}
+      </p>
+      <div className="flex gap-2">
         <Button
           variant="outline"
-          className="mt-5 h-10 w-full rounded-xl border-emerald-600 bg-white text-xs font-bold text-emerald-600 shadow-none hover:bg-emerald-50 hover:text-emerald-700"
+          size="icon"
+          aria-label={t("common.previousPage")}
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+          className="rounded-xl"
         >
-          Chuẩn bị phỏng vấn
+          <CaretLeft aria-hidden="true" />
         </Button>
-      </CardContent>
-    </Card>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={t("common.nextPage")}
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+          className="rounded-xl"
+        >
+          <CaretRight aria-hidden="true" />
+        </Button>
+      </div>
+    </nav>
   );
 }
 
-function TipsCard() {
-  return (
-    <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
-      <CardContent className="p-5">
-        <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900">
-          <FunnelSimple className="text-emerald-600" size={18} />
-          Mẹo theo dõi ứng tuyển
-        </h2>
-        <div className="mt-5 space-y-5">
-          {applicationTips.map((tip) => {
-            const Icon = tipIconMap[tip.icon];
+export function CandidateApplicationsLoading() {
+  const t = useTranslations("CandidateWorkspace");
 
-            return (
-              <div key={tip.title} className="flex gap-4">
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
-                  <Icon size={18} />
-                </span>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-800">{tip.title}</h3>
-                  <p className="mt-1 text-xs leading-relaxed font-medium text-slate-500">
-                    {tip.description}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <button
-          type="button"
-          className="mt-5 cursor-pointer text-xs font-semibold text-emerald-600 hover:underline"
-        >
-          Xem thêm mẹo hữu ích →
-        </button>
-      </CardContent>
-    </Card>
+  return (
+    <div aria-busy="true" className="space-y-5">
+      <span className="sr-only">{t("common.loading")}</span>
+      <Skeleton className="h-[560px] rounded-xl" />
+    </div>
+  );
+}
+
+function ActivityState({
+  action,
+  description,
+  icon,
+  title,
+  tone = "neutral",
+}: Readonly<{
+  action: ReactNode;
+  description: string;
+  icon: ReactNode;
+  title: string;
+  tone?: "error" | "neutral";
+}>) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center">
+      <span
+        aria-hidden="true"
+        className={cn(
+          "mx-auto grid size-14 place-items-center rounded-2xl [&_svg]:size-7",
+          tone === "error" ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600",
+        )}
+      >
+        {icon}
+      </span>
+      <h2 className="mt-4 text-xl font-bold text-slate-950">{title}</h2>
+      <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600">{description}</p>
+      <div className="mt-5 flex justify-center">{action}</div>
+    </section>
   );
 }
