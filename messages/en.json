@@ -1131,118 +1131,652 @@
   "CandidateProfile": {
     "content": {
       "page": {
-        "title": "My Profile",
-        "description": "Manage your professional profile and job-seeking information.",
-        "previewProfile": "Preview profile",
-        "saveChanges": "Save changes",
-        "save": "Save",
-        "mobileStatus": "82% complete · Visible to recruiters"
+        "title": "Professional profile",
+        "description": "Manage what recruiters see and keep your profile accurate and consistent.",
+        "lastUpdated": "Last updated {date}",
+        "notUpdated": "No update information available"
+      },
+      "header": {
+        "profileFallback": "Candidate profile",
+        "headlineFallback": "Add a desired position to make your career direction clear.",
+        "locationFallback": "Location not added",
+        "contactFallback": "Contact information is incomplete",
+        "applications": "{count} applications",
+        "savedJobs": "{count} saved jobs",
+        "documents": "{count} resumes",
+        "summaryLabel": "Profile summary"
+      },
+      "navigation": {
+        "title": "Profile content",
+        "description": "Choose a section to review and edit.",
+        "mobileLabel": "Current profile section",
+        "itemCount": "{count} items"
+      },
+      "sections": {
+        "overview": {
+          "title": "Overview",
+          "description": "Your identity, contact details, and introduction shown at the top of your profile.",
+          "navDescription": "Basics and introduction",
+          "linksTitle": "Professional links",
+          "emptyTitle": "Your basic information is incomplete",
+          "emptyDescription": "Add contact details and an introduction to complete the opening section of your profile."
+        },
+        "experience": {
+          "title": "Experience",
+          "description": "Present your work history, scope of responsibility, and the outcomes you delivered.",
+          "navDescription": "Work history",
+          "emptyTitle": "No work experience yet",
+          "emptyDescription": "Add your latest role, internship, or relevant professional experience."
+        },
+        "projects": {
+          "title": "Projects",
+          "description": "Showcase products, personal projects, or notable contributions that can be reviewed.",
+          "navDescription": "Products and portfolio",
+          "emptyTitle": "No projects yet",
+          "emptyDescription": "Add a project to show how you apply your skills in practice."
+        },
+        "education": {
+          "title": "Education",
+          "description": "Manage your education and professional learning background.",
+          "navDescription": "Schools and programs",
+          "emptyTitle": "No education information yet",
+          "emptyDescription": "Add a school, training program, or relevant qualification."
+        },
+        "skills": {
+          "title": "Skills",
+          "description": "List your professional capabilities and assess your current proficiency.",
+          "navDescription": "Professional capabilities",
+          "emptyTitle": "No skills yet",
+          "emptyDescription": "Add skills that accurately reflect your experience and direction."
+        },
+        "credentials": {
+          "title": "Credentials & languages",
+          "description": "Add professional certifications and the languages you can use.",
+          "navDescription": "Certifications and languages",
+          "certificationsTitle": "Professional certifications",
+          "languagesTitle": "Languages",
+          "emptyTitle": "No credentials or languages yet",
+          "emptyDescription": "Add these details when they are relevant to your professional profile."
+        },
+        "documents": {
+          "title": "Resumes & documents",
+          "description": "Manage the resumes you use for applications and choose a default version.",
+          "navDescription": "Uploaded and Builder resumes",
+          "emptyTitle": "No resume yet",
+          "emptyDescription": "Upload your current resume or create one with UpNext CV Builder."
+        },
+        "preferences": {
+          "title": "Job preferences",
+          "description": "Define the role, compensation, and working arrangement you are looking for.",
+          "navDescription": "Desired role and conditions",
+          "emptyTitle": "Job preferences are not set",
+          "emptyDescription": "Add your criteria to keep your career goals clear and consistent."
+        }
+      },
+      "readiness": {
+        "title": "Profile completeness",
+        "shortTitle": "Profile",
+        "description": "Progress is based on the core information below. A criterion is complete only when the corresponding profile data is present.",
+        "completionLabel": "Profile completion",
+        "criteriaCount": "{completed} of {total} criteria completed",
+        "checklistLabel": "Profile completion criteria",
+        "completeTitle": "Your core information is complete",
+        "completeDescription": "You can still review and update your profile whenever your experience or career goals change.",
+        "needsAttentionTitle": "Recommended next steps",
+        "needsAttentionDescription": "Prioritize missing sections so your profile accurately represents your current experience and preferences.",
+        "criteria": {
+          "basics": {
+            "title": "Contact information",
+            "description": "A phone number and current location are provided."
+          },
+          "summary": {
+            "title": "Professional introduction",
+            "description": "A short summary of your expertise and direction is provided."
+          },
+          "experience": {
+            "title": "Work experience",
+            "description": "At least one work experience is provided."
+          },
+          "education": {
+            "title": "Education",
+            "description": "At least one education record is provided."
+          },
+          "skills": {
+            "title": "Skills",
+            "description": "At least one professional skill is provided."
+          },
+          "documents": {
+            "title": "Default resume",
+            "description": "At least one resume is available and a default is selected."
+          },
+          "preferences": {
+            "title": "Job preferences",
+            "description": "A desired position and working model are provided."
+          }
+        },
+        "nextActions": {
+          "title": "Next steps",
+          "description": "These suggestions are based on information missing from your profile.",
+          "currentSectionTitle": "Complete the current section",
+          "currentSectionDescription": "The remaining information is in the profile section you are viewing.",
+          "allDoneTitle": "No required information is missing",
+          "allDoneDescription": "Update your profile again when you have new experience, skills, or a new resume.",
+          "basics": "Complete contact information",
+          "summary": "Write a professional introduction",
+          "experience": "Add work experience",
+          "education": "Add education",
+          "skills": "Add professional skills",
+          "documents": "Add and select a default resume",
+          "preferences": "Set job preferences"
+        }
       },
       "status": {
-        "title": "Your profile is almost complete",
-        "badge": "Needs attention",
-        "description": "Finish the high-impact sections below to improve search visibility and recruiter confidence.",
-        "completedTitle": "Completed sections",
-        "completedDescription": "These parts are ready and should not be repeated elsewhere.",
-        "completionLabel": "Profile completion"
+        "title": "Job search status",
+        "description": "Indicate whether you are currently open to discussing new opportunities.",
+        "openToWork": "Open to opportunities",
+        "openToWorkDescription": "Recruiters can see that you are considering new opportunities.",
+        "notLooking": "Not looking right now",
+        "notLookingDescription": "Your profile is kept, but an open-to-work status is not shown.",
+        "updating": "Updating status...",
+        "updateSuccess": "Job search status updated.",
+        "updateError": "Could not update your job search status. Please try again."
       },
-      "tasks": [
-        {
-          "title": "Add 2 more skills",
-          "description": "Skill coverage improves matching and helps recruiters filter your profile faster.",
-          "action": "Add now",
-          "tone": "warning"
-        },
-        {
-          "title": "Upload latest resume",
-          "description": "A current resume gives recruiters a reliable snapshot to compare with your profile.",
-          "action": "Upload",
-          "tone": "neutral"
-        }
-      ],
-      "highlights": [
-        {
-          "label": "Personal info",
-          "status": "Updated"
-        },
-        {
-          "label": "About summary",
-          "status": "Updated"
-        },
-        {
-          "label": "Work history",
-          "status": "2 roles added"
-        },
-        {
-          "label": "Education",
-          "status": "2 records"
-        }
-      ],
-      "sidebar": {
-        "verifiedProfile": "Verified profile",
-        "editPhoto": "Edit profile photo",
-        "resume": "Resume",
-        "primary": "Primary",
-        "resumeFile": "Alex_Johnson_Resume.pdf",
-        "resumeMeta": "Uploaded May 12, 2024 · 248 KB",
-        "downloadResume": "Download resume",
-        "uploadResume": "Upload new resume",
-        "resumeHint": "PDF, DOCX up to 5MB",
-        "preferencesTitle": "Job preferences summary",
-        "viewPreferences": "View full preferences",
-        "visibilityTitle": "Profile visibility",
-        "visibilityDescription": "Your profile is visible to recruiters.",
-        "visibilityEnabled": "Profile visibility is enabled",
-        "manageVisibility": "Manage visibility settings"
+      "visibility": {
+        "title": "Profile visibility",
+        "description": "Control whether recruiters can view your professional profile.",
+        "public": "Visible to recruiters",
+        "publicDescription": "Recruiters on UpNext can view your profile.",
+        "private": "Private",
+        "privateDescription": "Only you can view your profile; applications you already submitted are unchanged.",
+        "updating": "Updating visibility...",
+        "updateSuccess": "Profile visibility updated.",
+        "updateError": "Could not update profile visibility. Please try again."
       },
-      "labels": {
-        "fullName": "Full name",
-        "headline": "Professional headline",
-        "email": "Email",
-        "phone": "Phone",
-        "location": "Location",
-        "website": "Website",
-        "github": "GitHub",
-        "linkedin": "LinkedIn",
-        "basicInformation": "Basic Information",
-        "about": "About Me",
-        "skills": "Skills",
-        "workExperience": "Work Experience",
-        "education": "Education",
-        "projects": "Projects / Portfolio",
-        "certificationsLanguages": "Certifications & Languages",
-        "certifications": "Certifications",
-        "languages": "Languages",
-        "jobPreferences": "Job Preferences"
+      "states": {
+        "loadingTitle": "Loading your profile",
+        "loadingDescription": "UpNext is retrieving your professional information.",
+        "unauthenticatedTitle": "Sign in required",
+        "unauthenticatedDescription": "Sign in with a candidate account to manage your professional profile.",
+        "profileMissingTitle": "Your profile cannot be opened",
+        "profileMissingDescription": "This account does not have a candidate profile yet. Try again or contact support.",
+        "errorTitle": "Your profile could not be loaded",
+        "errorDescription": "An error occurred while retrieving your data. Sample content will not be shown in place of your profile.",
+        "sectionErrorTitle": "This section could not be loaded",
+        "sectionErrorDescription": "Other sections remain available. Try reloading the section you are viewing.",
+        "offlineTitle": "You are offline",
+        "offlineDescription": "Check your network connection before trying again."
       },
       "actions": {
+        "save": "Save",
+        "saveChanges": "Save changes",
+        "saving": "Saving...",
+        "cancel": "Cancel",
+        "close": "Close",
         "edit": "Edit",
-        "addSkill": "Add skill",
+        "delete": "Delete",
+        "deleting": "Deleting...",
+        "retry": "Try again",
+        "refresh": "Reload",
+        "continue": "Continue",
+        "back": "Back",
+        "done": "Done",
+        "preview": "Preview",
+        "previewAsRecruiter": "Preview as recruiter",
+        "openMenu": "Open actions menu",
+        "editProfile": "Edit basic information",
+        "editStatus": "Update status",
+        "manageVisibility": "Manage visibility",
         "addExperience": "Add experience",
-        "addEducation": "Add education",
         "addProject": "Add project",
+        "addEducation": "Add education",
+        "addCertification": "Add certification",
+        "addSkill": "Add skill",
         "addLanguage": "Add language",
-        "addPreference": "Add preference",
-        "missing": "Missing"
+        "addLink": "Add link",
+        "editPreferences": "Edit preferences",
+        "uploadCv": "Upload resume",
+        "openCvBuilder": "Open CV Builder",
+        "download": "Download",
+        "setDefault": "Set as default resume",
+        "replace": "Replace file",
+        "signIn": "Sign in"
       },
-      "about": "Passionate frontend developer with 5+ years of experience building responsive, accessible and performant web applications. I love turning complex problems into simple, beautiful and intuitive user experiences. Experienced in React, Next.js, TypeScript and performance optimization.",
-      "current": "Current",
-      "languages": [
-        ["English", "Native"],
-        ["Spanish", "Professional"],
-        ["French", "Basic"]
-      ],
-      "preferences": [
-        ["Desired role", "Frontend Developer"],
-        ["Employment type", "Full-time"],
-        ["Salary range", "$100,000 - $140,000"],
-        ["Work mode", "Hybrid, Remote"],
-        ["Preferred locations", "San Francisco, CA, USA · Austin, TX, USA"]
-      ],
-      "contact": {
-        "profileDetailsLabel": "Profile details",
-        "completedSectionsLabel": "Completed profile sections",
-        "bottomNavLabel": "Candidate mobile navigation"
+      "feedback": {
+        "created": "New information added.",
+        "updated": "Changes saved.",
+        "deleted": "Selected item deleted.",
+        "failed": "The action could not be completed. Please try again.",
+        "noChanges": "There are no changes to save.",
+        "unsavedTitle": "You have unsaved changes",
+        "unsavedDescription": "If you close now, the changes in this form will be lost."
+      },
+      "forms": {
+        "common": {
+          "requiredHint": "Fields marked with * are required.",
+          "optional": "Optional",
+          "current": "Current",
+          "present": "Present",
+          "selectPlaceholder": "Select a value",
+          "datePlaceholder": "Select a date",
+          "charactersRemaining": "{count} characters remaining"
+        },
+        "profile": {
+          "title": "Edit basic information",
+          "description": "Keep your contact details and introduction aligned with your current situation.",
+          "personalSection": "Personal information",
+          "contactSection": "Contact information",
+          "summarySection": "Professional introduction",
+          "fields": {
+            "fullName": {
+              "label": "Full name",
+              "placeholder": "Enter your full name",
+              "help": "This name comes from your UpNext account."
+            },
+            "email": {
+              "label": "Email",
+              "placeholder": "you@example.com",
+              "help": "Your sign-in email is managed in account settings."
+            },
+            "phoneNumber": {
+              "label": "Phone number",
+              "placeholder": "Enter your phone number",
+              "help": "Use a number where you can receive recruitment-related calls."
+            },
+            "gender": {
+              "label": "Gender",
+              "placeholder": "Select gender",
+              "help": "This information is optional."
+            },
+            "address": {
+              "label": "Current location",
+              "placeholder": "For example: Ho Chi Minh City",
+              "help": "A city or province is enough; do not enter your full home address."
+            },
+            "birthdate": {
+              "label": "Date of birth",
+              "placeholder": "Select your date of birth",
+              "help": "This information is optional."
+            },
+            "description": {
+              "label": "Professional introduction",
+              "placeholder": "Summarize your expertise, strengths, and career direction...",
+              "help": "Keep it concise and specific, and avoid sensitive information."
+            }
+          }
+        },
+        "experience": {
+          "addTitle": "Add experience",
+          "editTitle": "Edit experience",
+          "description": "Describe your role, scope of work, and outcomes that can be reviewed.",
+          "fields": {
+            "positionTitle": {
+              "label": "Job title",
+              "placeholder": "For example: Software Engineer"
+            },
+            "companyName": {
+              "label": "Company or organization",
+              "placeholder": "Enter the company name"
+            },
+            "employmentType": {
+              "label": "Employment type",
+              "placeholder": "Select a type"
+            },
+            "startDate": {
+              "label": "Start date"
+            },
+            "endDate": {
+              "label": "End date"
+            },
+            "isCurrent": {
+              "label": "I currently work here"
+            },
+            "description": {
+              "label": "Description",
+              "placeholder": "Describe your main responsibilities, scope, and notable outcomes...",
+              "help": "Prioritize concrete outcomes and do not include confidential company information."
+            },
+            "technologies": {
+              "label": "Technologies or skills used",
+              "placeholder": "For example: TypeScript, React, PostgreSQL",
+              "help": "Separate items with commas."
+            }
+          }
+        },
+        "project": {
+          "addTitle": "Add project",
+          "editTitle": "Edit project",
+          "description": "Add a personal or work project that you are allowed to share publicly.",
+          "fields": {
+            "name": {
+              "label": "Project name",
+              "placeholder": "Enter the project name"
+            },
+            "role": {
+              "label": "Your role",
+              "placeholder": "For example: Frontend Developer"
+            },
+            "description": {
+              "label": "Description",
+              "placeholder": "Describe the problem, your contribution, and the outcome..."
+            },
+            "projectUrl": {
+              "label": "Project link",
+              "placeholder": "https://example.com"
+            },
+            "deployUrl": {
+              "label": "Live product link",
+              "placeholder": "https://app.example.com"
+            },
+            "technologies": {
+              "label": "Technologies used",
+              "placeholder": "For example: Next.js, NestJS, PostgreSQL",
+              "help": "Separate items with commas."
+            },
+            "startDate": {
+              "label": "Start date"
+            },
+            "endDate": {
+              "label": "End date"
+            }
+          }
+        },
+        "education": {
+          "addTitle": "Add education",
+          "editTitle": "Edit education",
+          "description": "Add education or training relevant to your career direction.",
+          "fields": {
+            "schoolName": {
+              "label": "School or training provider",
+              "placeholder": "Enter the school name"
+            },
+            "degree": {
+              "label": "Degree",
+              "placeholder": "For example: Bachelor's degree"
+            },
+            "major": {
+              "label": "Field of study",
+              "placeholder": "For example: Information Technology"
+            },
+            "startDate": {
+              "label": "Start date"
+            },
+            "endDate": {
+              "label": "End date"
+            },
+            "isCurrent": {
+              "label": "I currently study here"
+            },
+            "gpa": {
+              "label": "GPA",
+              "placeholder": "Enter a score on a 10-point scale",
+              "help": "GPA is optional and must be between 0 and 10."
+            },
+            "description": {
+              "label": "Activities or achievements",
+              "placeholder": "Add details relevant to this program..."
+            }
+          }
+        },
+        "certification": {
+          "addTitle": "Add certification",
+          "editTitle": "Edit certification",
+          "description": "Only add certifications you have earned with accurate details.",
+          "fields": {
+            "name": {
+              "label": "Certification name",
+              "placeholder": "Enter the certification name"
+            },
+            "organization": {
+              "label": "Issuing organization",
+              "placeholder": "Enter the organization name"
+            },
+            "issuedDate": {
+              "label": "Issue date"
+            },
+            "expiredDate": {
+              "label": "Expiration date"
+            },
+            "credentialUrl": {
+              "label": "Verification link",
+              "placeholder": "https://example.com/credential"
+            }
+          }
+        },
+        "skill": {
+          "addTitle": "Add skill",
+          "editTitle": "Edit skill",
+          "description": "Choose a relevant skill and assess your actual proficiency.",
+          "fields": {
+            "skill": {
+              "label": "Skill",
+              "placeholder": "Search for a skill"
+            },
+            "proficiencyLevel": {
+              "label": "Proficiency level",
+              "placeholder": "Select a level"
+            },
+            "yearsOfExperience": {
+              "label": "Years of experience",
+              "placeholder": "For example: 2.5"
+            }
+          },
+          "searching": "Searching for skills...",
+          "noResults": "No matching skills found.",
+          "createNew": "Create “{name}”",
+          "alreadyAdded": "This skill is already in your profile.",
+          "yearsValue": "{count} years"
+        },
+        "language": {
+          "addTitle": "Add language",
+          "editTitle": "Edit language",
+          "description": "Choose the level that accurately reflects how you use this language.",
+          "fields": {
+            "language": {
+              "label": "Language",
+              "placeholder": "For example: English"
+            },
+            "proficiency": {
+              "label": "Proficiency",
+              "placeholder": "Select a level"
+            }
+          }
+        },
+        "link": {
+          "addTitle": "Add link",
+          "editTitle": "Edit link",
+          "description": "Direct recruiters to a public professional profile or work sample.",
+          "fields": {
+            "type": {
+              "label": "Link type",
+              "placeholder": "Select a link type"
+            },
+            "url": {
+              "label": "URL",
+              "placeholder": "https://example.com"
+            }
+          }
+        },
+        "preferences": {
+          "title": "Edit job preferences",
+          "description": "Use these details to keep your job search criteria consistent.",
+          "salarySection": "Desired compensation",
+          "workSection": "Working conditions",
+          "fields": {
+            "desiredPosition": {
+              "label": "Desired position",
+              "placeholder": "For example: Backend Developer"
+            },
+            "desiredSalaryMin": {
+              "label": "Minimum salary",
+              "placeholder": "Enter a minimum"
+            },
+            "desiredSalaryMax": {
+              "label": "Maximum salary",
+              "placeholder": "Enter a maximum"
+            },
+            "salaryCurrency": {
+              "label": "Currency",
+              "placeholder": "Select a currency"
+            },
+            "workingModel": {
+              "label": "Working model",
+              "placeholder": "Select a model"
+            },
+            "desiredLevelId": {
+              "label": "Desired seniority",
+              "placeholder": "Select a level"
+            },
+            "noticePeriodDays": {
+              "label": "Availability",
+              "placeholder": "Number of notice days",
+              "help": "Enter how many days you need before starting a new role."
+            },
+            "isRelocate": {
+              "label": "I am willing to relocate for work"
+            }
+          }
+        }
+      },
+      "options": {
+        "gender": {
+          "MALE": "Male",
+          "FEMALE": "Female"
+        },
+        "employmentType": {
+          "FULL_TIME": "Full-time",
+          "PART_TIME": "Part-time",
+          "CONTRACT": "Contract",
+          "INTERNSHIP": "Internship",
+          "FREELANCE": "Freelance",
+          "OTHER": "Other"
+        },
+        "workingModel": {
+          "ONSITE": "On-site",
+          "REMOTE": "Remote",
+          "HYBRID": "Hybrid"
+        },
+        "skillProficiency": {
+          "BEGINNER": "Beginner",
+          "INTERMEDIATE": "Intermediate",
+          "ADVANCED": "Advanced",
+          "EXPERT": "Expert"
+        },
+        "languageProficiency": {
+          "BASIC": "Basic",
+          "INTERMEDIATE": "Intermediate",
+          "PROFESSIONAL": "Professional working proficiency",
+          "FLUENT": "Fluent",
+          "NATIVE": "Native or bilingual"
+        },
+        "linkType": {
+          "WEBSITE": "Personal website",
+          "PORTFOLIO": "Portfolio",
+          "LINKEDIN": "LinkedIn",
+          "GITHUB": "GitHub",
+          "OTHER": "Other"
+        },
+        "currency": {
+          "VND": "VND",
+          "USD": "USD"
+        }
+      },
+      "validation": {
+        "required": "This field is required.",
+        "selectionRequired": "Select a value.",
+        "invalidEmail": "Enter a valid email address.",
+        "invalidPhone": "Enter a valid phone number.",
+        "invalidUrl": "Enter a complete URL beginning with http:// or https://.",
+        "invalidDate": "Enter a valid date.",
+        "startBeforeEnd": "The end date must be after the start date.",
+        "salaryRange": "The maximum salary must be greater than or equal to the minimum.",
+        "gpaRange": "GPA must be between 0 and 10.",
+        "noticePeriodRange": "Notice period must be between 0 and 365 days.",
+        "positiveNumber": "The value must be a non-negative number.",
+        "maxLength": "Content must not exceed {max} characters.",
+        "duplicate": "This information is already in your profile.",
+        "fileRequired": "Select a resume file.",
+        "fileType": "Only PDF and DOCX files are supported.",
+        "fileSize": "The file must be {size} MB or smaller."
+      },
+      "deleteConfirmations": {
+        "cancelAction": "Keep it",
+        "deleteAction": "Delete permanently",
+        "experience": {
+          "title": "Delete this experience?",
+          "description": "This experience will be removed from your profile and cannot be recovered."
+        },
+        "project": {
+          "title": "Delete this project?",
+          "description": "This project will be removed from your profile and cannot be recovered."
+        },
+        "education": {
+          "title": "Delete this education record?",
+          "description": "This education record will be removed from your profile and cannot be recovered."
+        },
+        "certification": {
+          "title": "Delete this certification?",
+          "description": "This certification will be removed from your profile and cannot be recovered."
+        },
+        "skill": {
+          "title": "Delete this skill?",
+          "description": "This skill will be removed from your profile."
+        },
+        "language": {
+          "title": "Delete this language?",
+          "description": "This language will be removed from your profile."
+        },
+        "link": {
+          "title": "Delete this link?",
+          "description": "This link will be removed from your profile."
+        },
+        "cv": {
+          "title": "Delete this resume?",
+          "description": "The file and all versions of this resume will be deleted. This action cannot be undone.",
+          "defaultDescription": "This is your default resume. Select a different default resume before deleting it."
+        }
+      },
+      "recruiterPreview": {
+        "title": "Recruiter preview",
+        "description": "This is how your existing professional information is presented. Unsaved changes are not included.",
+        "previewLabel": "Preview mode",
+        "privateNoticeTitle": "Your profile is private",
+        "privateNoticeDescription": "Recruiters cannot open this profile until you change its visibility to public.",
+        "contactTitle": "Contact information",
+        "aboutTitle": "About",
+        "noSummary": "The candidate has not added an introduction.",
+        "noExperience": "The candidate has not added work experience.",
+        "noProjects": "The candidate has not added projects.",
+        "noEducation": "The candidate has not added education.",
+        "noSkills": "The candidate has not added skills.",
+        "closePreview": "Close preview"
+      },
+      "documents": {
+        "uploadTitle": "Upload resume",
+        "uploadDescription": "Choose a resume you have reviewed before using it for applications.",
+        "dropzoneLabel": "Resume upload area",
+        "dropzoneTitle": "Drop your resume here",
+        "dropzoneDescription": "Or choose a file from your device.",
+        "chooseFile": "Choose file",
+        "supportedFormats": "Supported formats: PDF, DOCX",
+        "maximumSize": "Maximum size: {size} MB",
+        "selectedFile": "Selected file: {name}",
+        "uploading": "Uploading...",
+        "processing": "Processing",
+        "ready": "Ready",
+        "failed": "Processing failed",
+        "defaultLabel": "Default",
+        "uploadedLabel": "Uploaded resume",
+        "builderLabel": "Created with UpNext CV Builder",
+        "uploadedAt": "Uploaded {date}",
+        "updatedAt": "Updated {date}",
+        "fileSize": "{size}",
+        "version": "Version {version}",
+        "setDefaultSuccess": "Default resume updated.",
+        "uploadSuccess": "Resume uploaded.",
+        "deleteSuccess": "Resume deleted.",
+        "uploadError": "Could not upload the resume. Check the file and try again.",
+        "previewUnavailable": "A preview is not available for this file.",
+        "downloadUnavailable": "The file cannot be downloaded right now."
       }
     }
   },

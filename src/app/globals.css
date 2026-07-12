@@ -243,7 +243,30 @@
 
 @layer utilities {
   .upnext-focus {
-    @apply focus:border-primary focus-visible:border-primary focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:outline-none;
+    @apply focus-visible:border-primary focus-visible:ring-primary/25 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
+  }
+}
+
+@media (max-width: 1360px) {
+  .candidate-workspace .marketing-home-header-actions .marketing-home-employer,
+  .candidate-workspace .marketing-home-action-sep {
+    display: none;
+  }
+
+  .candidate-workspace .marketing-home-nav {
+    gap: 20px;
+  }
+}
+
+.candidate-profile-primary-action {
+  color: var(--color-text-inverse);
+  background-color: var(--color-action-primary-hover);
+}
+
+@media (hover: hover) {
+  .candidate-profile-primary-action:hover {
+    color: var(--color-text-inverse);
+    background-color: var(--color-action-primary-text);
   }
 }
 

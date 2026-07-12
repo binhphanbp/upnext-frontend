@@ -1,1 +1,1 @@
-export { CandidateProfilePage } from "./profile-page";
+export { CandidateProfileLoading, CandidateProfilePage } from "./profile-page";

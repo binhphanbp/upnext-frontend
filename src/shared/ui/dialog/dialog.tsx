@@ -18,7 +18,7 @@ const DialogOverlay = forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-slate-950/55 animate-dialog-overlay", className)}
+    className={cn("fixed inset-0 z-[90] bg-slate-950/55 animate-dialog-overlay", className)}
     {...props}
   />
 ));
@@ -26,44 +26,49 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = forwardRef<
   ElementRef<typeof DialogPrimitive.Content>,
-  ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, onPointerDownOutside, onInteractOutside, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
-      <DialogPrimitive.Content
-        ref={ref}
-        className={cn(
-          "pointer-events-auto relative z-50 grid w-full max-w-lg gap-4 rounded-2xl border border-border bg-background p-6 shadow-2xl animate-dialog-unfold",
-          className,
-        )}
-        onPointerDownOutside={(event) => {
-          const target = event.target as HTMLElement;
-          if (target?.closest(".swal2-container")) {
-            event.preventDefault();
-          } else {
-            onPointerDownOutside?.(event);
-          }
-        }}
-        onInteractOutside={(event) => {
-          const target = event.target as HTMLElement;
-          if (target?.closest(".swal2-container")) {
-            event.preventDefault();
-          } else {
-            onInteractOutside?.(event);
-          }
-        }}
-        {...props}
-      >
-        {children}
-        <DialogPrimitive.Close className="upnext-focus text-muted-foreground absolute top-4 right-4 rounded-full p-1 opacity-70 transition-opacity hover:opacity-100">
-          <X size={18} />
-          <span className="sr-only">Đóng</span>
-        </DialogPrimitive.Close>
-      </DialogPrimitive.Content>
-    </div>
-  </DialogPortal>
-));
+  ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { closeLabel?: string }
+>(
+  (
+    { className, children, closeLabel = "Đóng", onPointerDownOutside, onInteractOutside, ...props },
+    ref,
+  ) => (
+    <DialogPortal>
+      <DialogOverlay />
+      <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <DialogPrimitive.Content
+          ref={ref}
+          className={cn(
+            "pointer-events-auto relative z-50 grid w-full max-w-lg gap-4 rounded-2xl border border-border bg-background p-6 shadow-2xl animate-dialog-unfold",
+            className,
+          )}
+          onPointerDownOutside={(event) => {
+            const target = event.target as HTMLElement;
+            if (target?.closest(".swal2-container")) {
+              event.preventDefault();
+            } else {
+              onPointerDownOutside?.(event);
+            }
+          }}
+          onInteractOutside={(event) => {
+            const target = event.target as HTMLElement;
+            if (target?.closest(".swal2-container")) {
+              event.preventDefault();
+            } else {
+              onInteractOutside?.(event);
+            }
+          }}
+          {...props}
+        >
+          {children}
+          <DialogPrimitive.Close className="upnext-focus text-muted-foreground absolute top-4 right-4 rounded-full p-1 opacity-70 transition-opacity hover:opacity-100">
+            <X size={18} />
+            <span className="sr-only">{closeLabel}</span>
+          </DialogPrimitive.Close>
+        </DialogPrimitive.Content>
+      </div>
+    </DialogPortal>
+  ),
+);
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 function DialogHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {

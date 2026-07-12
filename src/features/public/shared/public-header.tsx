@@ -4,12 +4,9 @@ import {
   Bell,
   BookmarkSimple,
   ChatCircleText,
-  Eye,
   FileText as FileTextIcon,
-  GearSix,
   House,
   PaperPlaneTilt,
-  ShieldCheck as ShieldCheckIcon,
   SignOut,
   UserCircle,
 } from "@phosphor-icons/react";
@@ -89,15 +86,11 @@ type PublicHeaderCopy = {
   logoutLabel: string;
   accountGroup: string;
   activityGroup: string;
-  settingsGroup: string;
   overviewLabel: string;
   resumesLabel: string;
   jobPreferencesLabel: string;
   applicationsLabel: string;
   savedJobsLabel: string;
-  profileViewsLabel: string;
-  accountSettingsLabel: string;
-  privacyLabel: string;
 };
 
 type PublicHeaderProps = {
@@ -329,15 +322,11 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     logoutLabel: "Đăng xuất",
     accountGroup: "Tài khoản",
     activityGroup: "Hoạt động",
-    settingsGroup: "Cài đặt",
     overviewLabel: "Tổng quan",
     resumesLabel: "CV của tôi",
     jobPreferencesLabel: "Mong muốn việc làm",
     applicationsLabel: "Việc đã ứng tuyển",
     savedJobsLabel: "Việc đã lưu",
-    profileViewsLabel: "Lượt xem hồ sơ",
-    accountSettingsLabel: "Cài đặt tài khoản",
-    privacyLabel: "Quyền riêng tư",
   },
   en: {
     employerSmall: "Employer",
@@ -355,15 +344,11 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     logoutLabel: "Log out",
     accountGroup: "Account",
     activityGroup: "My activity",
-    settingsGroup: "Settings",
     overviewLabel: "Overview",
     resumesLabel: "Resumes",
     jobPreferencesLabel: "Job Preferences",
     applicationsLabel: "Applications",
     savedJobsLabel: "Saved Jobs",
-    profileViewsLabel: "Profile Views",
-    accountSettingsLabel: "Account Settings",
-    privacyLabel: "Privacy",
   },
 };
 
@@ -424,8 +409,6 @@ function createCandidateViewer(
     name,
     roleLabel: locale === "en" ? "Candidate" : "Ứng viên",
     workspaceHref: "/candidate/profile",
-    unreadMessages: 2,
-    unreadNotifications: 3,
   };
 }
 
@@ -446,6 +429,11 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
   const effectiveViewer = viewer === undefined ? storedViewer : viewer;
   const isCandidatePathActive = (path: string) =>
     pathname === path || pathname.startsWith(`${path}/`);
+  const isJobPreferencesActive =
+    accountOpen &&
+    pathname === "/candidate/profile" &&
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("section") === "preferences";
 
   useEffect(() => {
     if (!openMenu) return undefined;
@@ -696,30 +684,36 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
 
         {effectiveViewer ? (
           <div className="marketing-home-auth">
-            <button
-              type="button"
-              className="marketing-home-auth-icon"
-              aria-label={copy.notificationsLabel}
-              onClick={() => navigate("/candidate/notifications")}
-            >
-              <Bell size={20} aria-hidden="true" />
-              {effectiveViewer.unreadNotifications ? (
-                <span className="marketing-home-auth-badge">
-                  {effectiveViewer.unreadNotifications}
-                </span>
-              ) : null}
-            </button>
-            <button
-              type="button"
-              className="marketing-home-auth-icon"
-              aria-label={copy.messagesLabel}
-              onClick={() => navigate("/candidate/messages")}
-            >
-              <ChatCircleText size={20} aria-hidden="true" />
-              {effectiveViewer.unreadMessages ? (
-                <span className="marketing-home-auth-badge">{effectiveViewer.unreadMessages}</span>
-              ) : null}
-            </button>
+            {effectiveViewer.unreadNotifications !== undefined && (
+              <button
+                type="button"
+                className="marketing-home-auth-icon"
+                aria-label={copy.notificationsLabel}
+                onClick={() => navigate("/candidate/notifications")}
+              >
+                <Bell size={20} aria-hidden="true" />
+                {effectiveViewer.unreadNotifications ? (
+                  <span className="marketing-home-auth-badge">
+                    {effectiveViewer.unreadNotifications}
+                  </span>
+                ) : null}
+              </button>
+            )}
+            {effectiveViewer.unreadMessages !== undefined && (
+              <button
+                type="button"
+                className="marketing-home-auth-icon"
+                aria-label={copy.messagesLabel}
+                onClick={() => navigate("/candidate/messages")}
+              >
+                <ChatCircleText size={20} aria-hidden="true" />
+                {effectiveViewer.unreadMessages ? (
+                  <span className="marketing-home-auth-badge">
+                    {effectiveViewer.unreadMessages}
+                  </span>
+                ) : null}
+              </button>
+            )}
 
             <div
               className={`marketing-home-account${accountOpen ? " is-open" : ""}`}
@@ -762,22 +756,21 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                 </div>
 
                 <AccountMenuGroup label={copy.accountGroup}>
-                  <AccountMenuItem
-                    icon={<House size={18} aria-hidden="true" />}
-                    label={copy.overviewLabel}
-                    active={
-                      pathname === effectiveViewer.workspaceHref &&
-                      effectiveViewer.workspaceHref !== "/candidate/profile"
-                    }
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate(effectiveViewer.workspaceHref);
-                    }}
-                  />
+                  {effectiveViewer.workspaceHref !== "/candidate/profile" ? (
+                    <AccountMenuItem
+                      icon={<House size={18} aria-hidden="true" />}
+                      label={copy.overviewLabel}
+                      active={pathname === effectiveViewer.workspaceHref}
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate(effectiveViewer.workspaceHref);
+                      }}
+                    />
+                  ) : null}
                   <AccountMenuItem
                     icon={<UserCircle size={18} aria-hidden="true" />}
                     label={copy.profileLabel}
-                    active={isCandidatePathActive("/candidate/profile")}
+                    active={isCandidatePathActive("/candidate/profile") && !isJobPreferencesActive}
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/profile");
@@ -786,19 +779,19 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <AccountMenuItem
                     icon={<FileTextIcon size={18} aria-hidden="true" />}
                     label={copy.resumesLabel}
-                    active={isCandidatePathActive("/candidate/resume")}
+                    active={isCandidatePathActive("/candidate/cv-builder")}
                     onClick={() => {
                       setAccountOpen(false);
-                      navigate("/candidate/resume");
+                      navigate("/candidate/cv-builder");
                     }}
                   />
                   <AccountMenuItem
-                    icon={<GearSix size={18} aria-hidden="true" />}
+                    icon={<BriefcaseBusiness size={18} aria-hidden="true" />}
                     label={copy.jobPreferencesLabel}
-                    active={isCandidatePathActive("/candidate/settings")}
+                    active={isJobPreferencesActive}
                     onClick={() => {
                       setAccountOpen(false);
-                      navigate("/candidate/settings");
+                      navigate("/candidate/profile?section=preferences");
                     }}
                   />
                 </AccountMenuGroup>
@@ -820,45 +813,6 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                     onClick={() => {
                       setAccountOpen(false);
                       navigate("/candidate/saved-jobs");
-                    }}
-                  />
-                  <AccountMenuItem
-                    icon={<Eye size={18} aria-hidden="true" />}
-                    label={copy.profileViewsLabel}
-                    active={isCandidatePathActive("/candidate/profile-views")}
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate("/candidate/profile-views");
-                    }}
-                  />
-                </AccountMenuGroup>
-
-                <AccountMenuGroup label={copy.settingsGroup}>
-                  <AccountMenuItem
-                    icon={<GearSix size={18} aria-hidden="true" />}
-                    label={copy.accountSettingsLabel}
-                    active={isCandidatePathActive("/candidate/settings")}
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate("/candidate/settings");
-                    }}
-                  />
-                  <AccountMenuItem
-                    icon={<Bell size={18} aria-hidden="true" />}
-                    label={copy.notificationsLabel}
-                    active={isCandidatePathActive("/candidate/notifications")}
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate("/candidate/notifications");
-                    }}
-                  />
-                  <AccountMenuItem
-                    icon={<ShieldCheckIcon size={18} aria-hidden="true" />}
-                    label={copy.privacyLabel}
-                    active={isCandidatePathActive("/candidate/privacy")}
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate("/candidate/privacy");
                     }}
                   />
                 </AccountMenuGroup>
