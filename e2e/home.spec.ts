@@ -193,6 +193,22 @@ test("renders reference-inspired job detail and company profile sections", async
   await expect(page.getByRole("heading", { name: "Việc làm đang tuyển" })).toBeVisible();
 });
 
+test("updates company follow controls to the confirmed state", async ({ page }) => {
+  await page.goto("/vi/companies/fpt-software");
+
+  const followControls = page.locator("button.company-follow");
+  const followButton = followControls.first();
+  await expect(followButton).toHaveAttribute("aria-pressed", "false");
+  await followButton.click();
+
+  await expect(followButton).toHaveText("Đang theo dõi");
+  await expect(followButton).toHaveAttribute("aria-pressed", "true");
+  await expect(followButton.locator(".company-follow-icon svg")).toHaveCount(1);
+  await expect(followControls).toHaveCount(2);
+  await expect(followControls).toHaveText(["Đang theo dõi", "Đang theo dõi"]);
+  await expect(followControls.nth(1)).toHaveAttribute("aria-pressed", "true");
+});
+
 test("opens company culture gallery with overflow images", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi/companies/fpt-software");

@@ -13,11 +13,11 @@ import {
   Briefcase,
   Building2,
   Calendar,
+  Check,
   ChevronDown,
   Coins,
   Facebook,
   Github,
-  Heart,
   Linkedin,
   MapPin,
   MapTrifold,
@@ -239,8 +239,15 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
                     type="button"
                     className={`company-follow${following ? " is-following" : ""}`}
                     onClick={() => setFollowing((value) => !value)}
+                    aria-pressed={following}
                   >
-                    {following ? <Heart size={18} weight="fill" /> : <Plus size={18} />}
+                    <span className="company-follow-icon" aria-hidden="true">
+                      {following ? (
+                        <Check size={18} weight="bold" />
+                      ) : (
+                        <Plus size={18} weight="bold" />
+                      )}
+                    </span>
                     {following ? "Đang theo dõi" : "Theo dõi công ty"}
                   </button>
                   <a
@@ -446,8 +453,15 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
                   type="button"
                   className={`company-follow${following ? " is-following" : ""}`}
                   onClick={() => setFollowing((value) => !value)}
+                  aria-pressed={following}
                 >
-                  {following ? <Heart size={17} weight="fill" /> : <Plus size={17} weight="bold" />}
+                  <span className="company-follow-icon" aria-hidden="true">
+                    {following ? (
+                      <Check size={17} weight="bold" />
+                    ) : (
+                      <Plus size={17} weight="bold" />
+                    )}
+                  </span>
                   {following ? "Đang theo dõi" : "Theo dõi công ty"}
                 </button>
                 <span className="company-followers">12.3K người đã theo dõi</span>
