@@ -702,17 +702,6 @@
   font-weight: 600;
 }
 
-.marketing-home-account-menu-identity button {
-  min-height: 0;
-  width: auto;
-  margin-top: 6px;
-  padding: 0;
-  color: #0a9f6f;
-  font-size: 13px;
-  font-weight: 800;
-  border-radius: 0;
-}
-
 .marketing-home-account-menu-group {
   padding: 10px 8px;
   border-bottom: 1px solid #edf1f6;
