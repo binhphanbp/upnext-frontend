@@ -108,6 +108,9 @@ test("supports deep-linked profile sections and hydrated edit forms", async ({ p
   await page.goto("/vi/candidate/profile");
 
   await expect(page.getByRole("heading", { name: "Hồ sơ nghề nghiệp" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText(
+    "Hồ sơ nghề nghiệp",
+  );
   await page.getByRole("link", { name: /Kinh nghiệm/ }).click();
   await expect(page).toHaveURL(/section=experience/);
   const experienceHeading = page.getByRole("heading", { name: "Kinh nghiệm", exact: true });

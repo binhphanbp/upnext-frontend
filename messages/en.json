@@ -1341,7 +1341,6 @@
   "CandidateWorkspace": {
     "common": {
       "home": "Home",
-      "workspaceEyebrow": "Profile & activity",
       "exploreJobs": "Explore jobs",
       "signIn": "Sign in",
       "signInTitle": "Sign in to continue",
@@ -1373,7 +1372,8 @@
         "positive": "Offers & hires"
       },
       "list": {
-        "title": "Application list"
+        "title": "Application list",
+        "count": "{total} applications · {active} in progress"
       },
       "filters": {
         "statusLabel": "Filter by application status",

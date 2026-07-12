@@ -34,6 +34,7 @@ import {
   deleteCandidateSkill,
   updateMyCandidateProfile,
 } from "@/features/candidate/api/profile";
+import { CandidatePageHeader } from "@/features/candidate/candidate-page-header";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
@@ -101,6 +102,7 @@ const sectionIcons: Record<ProfileSectionId, typeof IdentificationCard> = {
 
 export function CandidateProfilePage() {
   const t = useTranslations("CandidateProfile.content");
+  const workspaceT = useTranslations("CandidateWorkspace");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { cvsQuery, isSessionResolved, mutateCvs, mutateProfile, profileQuery, session } =
@@ -110,6 +112,29 @@ export function CandidateProfilePage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [pendingControl, setPendingControl] = useState<"status" | "visibility" | null>(null);
   const [controlFeedback, setControlFeedback] = useState<ControlFeedback>(null);
+
+  const pageHeader = (
+    <CandidatePageHeader
+      breadcrumbItems={[
+        { href: "/", label: workspaceT("common.home") },
+        { label: t("page.title") },
+      ]}
+      description={t("page.description")}
+      descriptionClassName="hidden sm:block"
+      title={t("page.title")}
+      action={
+        <Button
+          variant="outline"
+          className="w-full rounded-xl bg-white sm:w-auto"
+          onClick={() => setIsPreviewOpen(true)}
+        >
+          <Eye aria-hidden="true" />
+          {t("actions.previewAsRecruiter")}
+        </Button>
+      }
+      actionClassName="hidden sm:block"
+    />
+  );
 
   const sectionParam = searchParams.get("section");
   const activeSection: ProfileSectionId = isProfileSectionId(sectionParam)
@@ -139,35 +164,41 @@ export function CandidateProfilePage() {
 
   if (!session || isUnauthorized) {
     return (
-      <ProfileState
-        icon={<LockKey />}
-        title={t("states.unauthenticatedTitle")}
-        description={t("states.unauthenticatedDescription")}
-        action={
-          <Button asChild className="candidate-profile-primary-action">
-            <Link href="/login">{t("actions.signIn")}</Link>
-          </Button>
-        }
-      />
+      <div className="space-y-7 pb-12">
+        {pageHeader}
+        <ProfileState
+          icon={<LockKey />}
+          title={t("states.unauthenticatedTitle")}
+          description={t("states.unauthenticatedDescription")}
+          action={
+            <Button asChild className="candidate-profile-primary-action">
+              <Link href="/login">{t("actions.signIn")}</Link>
+            </Button>
+          }
+        />
+      </div>
     );
   }
 
   if (profileQuery.isError || !profileQuery.data) {
     return (
-      <ProfileState
-        tone="error"
-        icon={<WarningCircle />}
-        title={t("states.errorTitle")}
-        description={t("states.errorDescription")}
-        action={
-          <Button
-            className="candidate-profile-primary-action"
-            onClick={() => profileQuery.refetch()}
-          >
-            {t("actions.retry")}
-          </Button>
-        }
-      />
+      <div className="space-y-7 pb-12">
+        {pageHeader}
+        <ProfileState
+          tone="error"
+          icon={<WarningCircle />}
+          title={t("states.errorTitle")}
+          description={t("states.errorDescription")}
+          action={
+            <Button
+              className="candidate-profile-primary-action"
+              onClick={() => profileQuery.refetch()}
+            >
+              {t("actions.retry")}
+            </Button>
+          }
+        />
+      </div>
     );
   }
 
@@ -220,31 +251,15 @@ export function CandidateProfilePage() {
   };
 
   return (
-    <div className="pb-12">
-      <div className="mb-5 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:mb-6 sm:flex sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-[-0.035em] text-balance text-slate-950 sm:text-4xl">
-            {t("page.title")}
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t("page.description")}</p>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label={t("actions.previewAsRecruiter")}
-          className="hover:border-accent-foreground hover:text-accent-foreground self-start bg-white sm:h-11 sm:w-auto sm:px-5"
-          onClick={() => setIsPreviewOpen(true)}
-        >
-          <Eye aria-hidden="true" />
-          <span className="hidden sm:inline">{t("actions.previewAsRecruiter")}</span>
-        </Button>
-      </div>
+    <div className="space-y-6 pb-12">
+      {pageHeader}
 
       <div className="relative">
         <ProfileCommandHeader
           pendingControl={pendingControl}
           profile={profile}
           onEdit={() => setEditor({ kind: "profile" })}
+          onPreview={() => setIsPreviewOpen(true)}
           onStatusChange={updateStatus}
           onVisibilityChange={updateVisibility}
         />
@@ -300,14 +315,10 @@ export function CandidateProfilePage() {
         </div>
       </div>
 
-      <div className="hidden lg:block 2xl:hidden">
-        <MobileReadinessSummary activeSection={activeSection} readiness={readiness} />
-      </div>
-
-      <div className="mt-5 grid items-start gap-6 sm:mt-7 lg:grid-cols-[200px_minmax(0,1fr)] 2xl:grid-cols-[200px_minmax(680px,1fr)_252px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[196px_minmax(0,1fr)] xl:grid-cols-[196px_minmax(0,1fr)_252px]">
         <ProfileNavigation activeSection={activeSection} counts={sectionCounts} />
 
-        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-7">
+        <div className="min-w-0 rounded-xl border border-slate-200/90 bg-white p-4 sm:p-6">
           {activeSection === "overview" && (
             <OverviewSection profile={profile} onDelete={setDeleteRequest} onEdit={setEditor} />
           )}
@@ -369,12 +380,14 @@ export function CandidateProfilePage() {
 
 function ProfileCommandHeader({
   onEdit,
+  onPreview,
   onStatusChange,
   onVisibilityChange,
   pendingControl,
   profile,
 }: Readonly<{
   onEdit: () => void;
+  onPreview: () => void;
   onStatusChange: () => void;
   onVisibilityChange: () => void;
   pendingControl: "status" | "visibility" | null;
@@ -386,7 +399,7 @@ function ProfileCommandHeader({
   const isPublic = profile.profileVisibility === "PUBLIC";
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-4 py-4 sm:items-center sm:gap-5 sm:px-6 sm:py-6">
         <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-5">
           <span className="border-brand/20 bg-brand-muted text-accent-foreground flex size-12 shrink-0 items-center justify-center rounded-xl border text-base font-bold sm:size-16 sm:rounded-2xl sm:text-xl">
@@ -409,16 +422,27 @@ function ProfileCommandHeader({
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onEdit}
-          className="hover:border-accent-foreground hover:text-accent-foreground w-fit"
-        >
-          <PencilSimple aria-hidden="true" />
-          <span className="hidden sm:inline">{t("actions.editProfile")}</span>
-          <span className="sr-only sm:hidden">{t("actions.editProfile")}</span>
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label={t("actions.previewAsRecruiter")}
+            onClick={onPreview}
+            className="bg-white sm:hidden"
+          >
+            <Eye aria-hidden="true" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEdit}
+            className="hover:border-accent-foreground hover:text-accent-foreground w-fit"
+          >
+            <PencilSimple aria-hidden="true" />
+            <span className="hidden sm:inline">{t("actions.editProfile")}</span>
+            <span className="sr-only sm:hidden">{t("actions.editProfile")}</span>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 border-t border-slate-200 bg-slate-50/70">
@@ -471,7 +495,7 @@ function HeaderControl({
       className="group hover:bg-brand-muted/60 focus-visible:outline-brand flex min-w-0 items-start justify-between gap-2 border-slate-200 px-4 py-3 text-left first:border-r focus-visible:outline-2 focus-visible:-outline-offset-2 disabled:cursor-wait disabled:opacity-70 sm:items-center sm:gap-4 sm:px-6 sm:py-3.5"
     >
       <span className="min-w-0">
-        <span className="block text-[10px] font-bold tracking-[0.12em] text-slate-500 uppercase sm:text-[11px] sm:tracking-[0.14em]">
+        <span className="block text-[11px] font-semibold tracking-[0.02em] text-slate-500">
           {label}
         </span>
         <span
@@ -512,12 +536,9 @@ function ProfileNavigation({
 }>) {
   const t = useTranslations("CandidateProfile.content");
   return (
-    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] lg:block">
+    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-2 lg:block">
       <div className="mb-2 px-2.5 pt-2">
-        <p
-          id="profile-navigation-title"
-          className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase"
-        >
+        <p id="profile-navigation-title" className="text-xs font-semibold text-slate-500">
           {t("navigation.title")}
         </p>
         <p id="profile-navigation-description" className="sr-only">
@@ -540,7 +561,7 @@ function ProfileNavigation({
                   aria-current={isActive ? "page" : undefined}
                   scroll={false}
                   className={cn(
-                    "group relative flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                    "group relative flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                     isActive
                       ? "border-brand/20 bg-brand-muted text-slate-950 before:bg-brand"
                       : "border-transparent text-slate-600 before:bg-transparent hover:bg-slate-50 hover:text-slate-950",
@@ -603,10 +624,8 @@ function ReadinessRail({
   const isProfileIncomplete = readiness.completed < readiness.total;
 
   return (
-    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] 2xl:block">
-      <p className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">
-        {t("readiness.title")}
-      </p>
+    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-5 xl:block">
+      <p className="text-xs font-semibold text-slate-500">{t("readiness.title")}</p>
       <div className="mt-2 flex items-end justify-between gap-4">
         <p className="text-3xl font-bold tracking-[-0.04em] text-slate-950">
           {readiness.percentage}%
@@ -621,7 +640,7 @@ function ReadinessRail({
         max={100}
         value={readiness.percentage}
       />
-      <div aria-hidden="true" className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200">
+      <div aria-hidden="true" className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200">
         <div
           className="bg-brand h-full rounded-full"
           style={{ width: `${readiness.percentage}%` }}
@@ -704,12 +723,10 @@ function MobileReadinessSummary({
   }
 
   return (
-    <section className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] 2xl:hidden">
+    <section className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 2xl:hidden">
       <div className="flex items-center gap-5">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold tracking-[0.13em] text-slate-500 uppercase">
-            {t("readiness.title")}
-          </p>
+          <p className="text-[11px] font-semibold text-slate-500">{t("readiness.title")}</p>
           <p className="mt-0.5 text-sm font-bold text-slate-900">
             {t("readiness.criteriaCount", {
               completed: readiness.completed,
@@ -875,7 +892,7 @@ function ProfileState({
         >
           {icon}
         </span>
-        <h1 className="mt-5 text-2xl font-bold tracking-[-0.025em] text-slate-950">{title}</h1>
+        <h2 className="mt-5 text-2xl font-bold tracking-[-0.025em] text-slate-950">{title}</h2>
         <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
         <div className="mt-6 flex justify-center">{action}</div>
       </div>

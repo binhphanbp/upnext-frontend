@@ -78,6 +78,7 @@ test("renders API-backed applications with consistent navigation and detail", as
   await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toContainText(
     "Việc đã ứng tuyển",
   );
+  await expect(page.getByText("Hồ sơ & hoạt động", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Đang xử lý/ })).toContainText("1");
   await expect(page.getByRole("link", { name: "Frontend Engineer" })).toBeVisible();
   await expect(page.getByText("Đã xem", { exact: true })).toBeVisible();

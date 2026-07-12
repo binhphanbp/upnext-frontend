@@ -6,12 +6,8 @@ import {
   CalendarBlank,
   CaretLeft,
   CaretRight,
-  CheckCircle,
-  Clock,
-  FileText,
   MagnifyingGlass,
   MapPin,
-  PaperPlaneTilt,
   ShieldCheck,
   WarningCircle,
 } from "@phosphor-icons/react";
@@ -63,7 +59,7 @@ export function CandidateApplicationsPage() {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { cvsQuery, isSessionResolved, session } = useCandidateProfileWorkspace();
+  const { isSessionResolved, session } = useCandidateProfileWorkspace();
 
   const statusParam = searchParams.get("status");
   const status: ApplicationStatusGroup = statusGroups.includes(
@@ -109,8 +105,6 @@ export function CandidateApplicationsPage() {
   const totalPages = Math.max(1, Math.ceil(visibleApplications.length / pageSize));
   const page = Math.min(requestedPage, totalPages);
   const paginatedApplications = visibleApplications.slice((page - 1) * pageSize, page * pageSize);
-  const defaultCv = cvsQuery.data?.items.find((cv) => cv.isDefault);
-
   const counts = useMemo(
     () =>
       statusGroups.reduce<Record<ApplicationStatusGroup, number>>(
@@ -148,7 +142,6 @@ export function CandidateApplicationsPage() {
         { label: t("applications.page.title") },
       ]}
       description={t("applications.page.description")}
-      eyebrow={t("common.workspaceEyebrow")}
       title={t("applications.page.title")}
       action={
         <Button asChild className="w-full rounded-xl sm:w-auto">
@@ -163,7 +156,7 @@ export function CandidateApplicationsPage() {
 
   if (!isSessionResolved) {
     return (
-      <div className="space-y-7 pb-4">
+      <div className="space-y-6 pb-4">
         {pageHeader}
         <CandidateApplicationsLoading />
       </div>
@@ -172,7 +165,7 @@ export function CandidateApplicationsPage() {
 
   if (!session || isUnauthorized) {
     return (
-      <div className="space-y-7 pb-4">
+      <div className="space-y-6 pb-4">
         {pageHeader}
         <ActivityState
           icon={<ShieldCheck />}
@@ -189,7 +182,7 @@ export function CandidateApplicationsPage() {
   }
 
   return (
-    <div className="space-y-7 pb-4">
+    <div className="space-y-6 pb-4">
       {pageHeader}
 
       {applicationsQuery.isLoading ? <CandidateApplicationsLoading /> : null}
@@ -209,197 +202,119 @@ export function CandidateApplicationsPage() {
       ) : null}
 
       {applicationsQuery.isSuccess ? (
-        <>
-          <section
-            className="grid gap-3 sm:grid-cols-3"
-            aria-label={t("applications.summary.label")}
-          >
-            <SummaryCard
-              icon={<PaperPlaneTilt />}
-              label={t("applications.summary.total")}
-              value={applications.length}
-            />
-            <SummaryCard
-              icon={<Clock />}
-              label={t("applications.summary.inProgress")}
-              value={counts.active + counts.interview}
-              tone="brand"
-            />
-            <SummaryCard
-              icon={<CheckCircle />}
-              label={t("applications.summary.positive")}
-              value={counts.offer}
-              tone="success"
-            />
-          </section>
-
-          <div className="grid items-start gap-7 xl:grid-cols-[minmax(0,1fr)_304px]">
-            <section className="min-w-0 space-y-5" aria-labelledby="applications-list-title">
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-                <div className="border-b border-slate-200 px-4 pt-4 sm:px-5 sm:pt-5">
-                  <h2 id="applications-list-title" className="text-lg font-bold text-slate-950">
-                    {t("applications.list.title")}
-                  </h2>
-                  <div
-                    className="hide-scroll mt-4 flex gap-5 overflow-x-auto"
-                    role="group"
-                    aria-label={t("applications.filters.statusLabel")}
+        <section className="min-w-0" aria-labelledby="applications-list-title">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-200 px-4 pt-4 sm:px-5 sm:pt-5">
+              <h2 id="applications-list-title" className="text-lg font-bold text-slate-950">
+                {t("applications.list.title")}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {t("applications.list.count", {
+                  active: counts.active + counts.interview,
+                  total: applications.length,
+                })}
+              </p>
+              <div
+                className="hide-scroll mt-4 flex gap-5 overflow-x-auto"
+                role="group"
+                aria-label={t("applications.filters.statusLabel")}
+              >
+                {statusGroups.map((group) => (
+                  <button
+                    key={group}
+                    type="button"
+                    aria-pressed={status === group}
+                    onClick={() => updateSearch({ status: group })}
+                    className={cn(
+                      "upnext-focus relative min-h-11 shrink-0 border-b-2 px-0.5 pb-3 text-sm font-bold transition-colors",
+                      status === group
+                        ? "border-brand text-accent-foreground"
+                        : "border-transparent text-slate-500 hover:text-slate-900",
+                    )}
                   >
-                    {statusGroups.map((group) => (
-                      <button
-                        key={group}
-                        type="button"
-                        aria-pressed={status === group}
-                        onClick={() => updateSearch({ status: group })}
-                        className={cn(
-                          "upnext-focus relative min-h-11 shrink-0 border-b-2 px-0.5 pb-3 text-sm font-bold transition-colors",
-                          status === group
-                            ? "border-brand text-accent-foreground"
-                            : "border-transparent text-slate-500 hover:text-slate-900",
-                        )}
-                      >
-                        {t(`applications.filters.groups.${group}`)}
-                        <span className="ml-1.5 text-xs tabular-nums">{counts[group]}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid gap-3 border-b border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-[minmax(0,1fr)_180px] sm:p-5">
-                  <form
-                    className="relative"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      updateSearch({ q: draftQuery.trim() || null });
-                    }}
-                  >
-                    <label className="sr-only" htmlFor="candidate-application-search">
-                      {t("applications.filters.searchLabel")}
-                    </label>
-                    <MagnifyingGlass
-                      aria-hidden="true"
-                      className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
-                    />
-                    <Input
-                      id="candidate-application-search"
-                      name="application-search"
-                      type="search"
-                      autoComplete="off"
-                      value={draftQuery}
-                      onChange={(event) => setDraftQuery(event.target.value)}
-                      className="rounded-xl bg-white pr-20 pl-10"
-                      placeholder={t("applications.filters.searchPlaceholder")}
-                    />
-                    <button
-                      type="submit"
-                      className="upnext-focus text-accent-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-lg px-2.5 py-1.5 text-xs font-bold hover:bg-emerald-50"
-                    >
-                      {t("common.search")}
-                    </button>
-                  </form>
-                  <div>
-                    <label className="sr-only" htmlFor="application-sort">
-                      {t("applications.filters.sortLabel")}
-                    </label>
-                    <select
-                      id="application-sort"
-                      value={sort}
-                      onChange={(event) => updateSearch({ sort: event.target.value })}
-                      className="upnext-focus h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
-                    >
-                      <option value="newest">{t("applications.filters.newest")}</option>
-                      <option value="oldest">{t("applications.filters.oldest")}</option>
-                    </select>
-                  </div>
-                </div>
-
-                {paginatedApplications.length > 0 ? (
-                  <ul className="divide-y divide-slate-200">
-                    {paginatedApplications.map((application) => {
-                      const publicJob = publicJobsById.get(application.jobPostId);
-                      return (
-                        <li key={application.id}>
-                          <ApplicationRow
-                            application={application}
-                            locale={locale}
-                            location={getJobLocation(publicJob, t("common.locationFallback"))}
-                          />
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <EmptyApplications hasApplications={applications.length > 0} />
-                )}
-
-                {visibleApplications.length > pageSize ? (
-                  <Pagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={(nextPage) => updateSearch({ page: String(nextPage) })}
-                  />
-                ) : null}
+                    {t(`applications.filters.groups.${group}`)}
+                    <span className="ml-1.5 text-xs tabular-nums">{counts[group]}</span>
+                  </button>
+                ))}
               </div>
-            </section>
+            </div>
 
-            <aside
-              className="space-y-4 xl:sticky xl:top-24"
-              aria-label={t("common.supportingInfo")}
-            >
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="bg-brand-muted text-accent-foreground grid size-10 place-items-center rounded-xl">
-                    <FileText aria-hidden="true" size={20} />
-                  </span>
-                  {defaultCv ? (
-                    <span className="bg-success-muted text-accent-foreground rounded-full px-2.5 py-1 text-[11px] font-bold">
-                      {t("applications.resume.defaultBadge")}
-                    </span>
-                  ) : null}
-                </div>
-                <h2 className="mt-4 text-base font-bold text-slate-950">
-                  {t("applications.resume.title")}
-                </h2>
-                <p className="mt-1 text-sm font-semibold break-words text-slate-700">
-                  {defaultCv?.title ?? t("applications.resume.missing")}
-                </p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  {defaultCv
-                    ? t("applications.resume.description")
-                    : t("applications.resume.missingDescription")}
-                </p>
-                <Button asChild variant="outline" className="mt-4 w-full rounded-xl">
-                  <Link href="/candidate/profile?section=documents">
-                    {t("applications.resume.manage")}
-                  </Link>
-                </Button>
+            <div className="grid gap-3 border-b border-slate-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_180px] sm:p-5">
+              <form
+                className="relative"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  updateSearch({ q: draftQuery.trim() || null });
+                }}
+              >
+                <label className="sr-only" htmlFor="candidate-application-search">
+                  {t("applications.filters.searchLabel")}
+                </label>
+                <MagnifyingGlass
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
+                />
+                <Input
+                  id="candidate-application-search"
+                  name="application-search"
+                  type="search"
+                  autoComplete="off"
+                  value={draftQuery}
+                  onChange={(event) => setDraftQuery(event.target.value)}
+                  className="rounded-lg border-slate-200 bg-slate-50 pr-20 pl-10"
+                  placeholder={t("applications.filters.searchPlaceholder")}
+                />
+                <button
+                  type="submit"
+                  className="upnext-focus text-accent-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-lg px-2.5 py-1.5 text-xs font-bold hover:bg-emerald-50"
+                >
+                  {t("common.search")}
+                </button>
+              </form>
+              <div>
+                <label className="sr-only" htmlFor="application-sort">
+                  {t("applications.filters.sortLabel")}
+                </label>
+                <select
+                  id="application-sort"
+                  value={sort}
+                  onChange={(event) => updateSearch({ sort: event.target.value })}
+                  className="upnext-focus h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700"
+                >
+                  <option value="newest">{t("applications.filters.newest")}</option>
+                  <option value="oldest">{t("applications.filters.oldest")}</option>
+                </select>
               </div>
+            </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-                <h2 className="text-base font-bold text-slate-950">
-                  {t("applications.guide.title")}
-                </h2>
-                <ol className="mt-4 space-y-4">
-                  {["submitted", "review", "decision"].map((step, index) => (
-                    <li key={step} className="grid grid-cols-[28px_minmax(0,1fr)] gap-3">
-                      <span className="bg-brand-muted text-accent-foreground grid size-7 place-items-center rounded-full text-xs font-bold tabular-nums">
-                        {index + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-800">
-                          {t(`applications.guide.${step}.title`)}
-                        </p>
-                        <p className="mt-0.5 text-xs leading-5 text-slate-500">
-                          {t(`applications.guide.${step}.description`)}
-                        </p>
-                      </div>
+            {paginatedApplications.length > 0 ? (
+              <ul className="divide-y divide-slate-200">
+                {paginatedApplications.map((application) => {
+                  const publicJob = publicJobsById.get(application.jobPostId);
+                  return (
+                    <li key={application.id}>
+                      <ApplicationRow
+                        application={application}
+                        locale={locale}
+                        location={getJobLocation(publicJob, t("common.locationFallback"))}
+                      />
                     </li>
-                  ))}
-                </ol>
-              </div>
-            </aside>
+                  );
+                })}
+              </ul>
+            ) : (
+              <EmptyApplications hasApplications={applications.length > 0} />
+            )}
+
+            {visibleApplications.length > pageSize ? (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={(nextPage) => updateSearch({ page: String(nextPage) })}
+              />
+            ) : null}
           </div>
-        </>
+        </section>
       ) : null}
     </div>
   );
@@ -422,7 +337,7 @@ function ApplicationRow({
   );
 
   return (
-    <article className="group p-4 transition-colors hover:bg-slate-50/70 sm:p-5">
+    <article className="group p-5 transition-colors hover:bg-slate-50 sm:px-6">
       <div className="flex items-start gap-3 sm:gap-4">
         <CompanyLogo logo={logo} name={application.jobPost.company.name} />
         <div className="min-w-0 flex-1">
@@ -485,7 +400,7 @@ function ApplicationRow({
 
 function CompanyLogo({ logo, name }: Readonly<{ logo: string | null; name: string }>) {
   return (
-    <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 shadow-sm sm:size-14">
+    <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 sm:size-14">
       {logo ? (
         <Image
           alt=""
@@ -500,38 +415,6 @@ function CompanyLogo({ logo, name }: Readonly<{ logo: string | null; name: strin
         name.slice(0, 2).toLocaleUpperCase()
       )}
     </span>
-  );
-}
-
-function SummaryCard({
-  icon,
-  label,
-  tone = "neutral",
-  value,
-}: Readonly<{
-  icon: ReactNode;
-  label: string;
-  tone?: "brand" | "neutral" | "success";
-  value: number;
-}>) {
-  return (
-    <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-5">
-      <span
-        aria-hidden="true"
-        className={cn(
-          "grid size-10 shrink-0 place-items-center rounded-xl [&_svg]:size-5",
-          tone === "neutral" && "bg-slate-100 text-slate-600",
-          tone === "brand" && "bg-brand-muted text-accent-foreground",
-          tone === "success" && "bg-emerald-50 text-emerald-700",
-        )}
-      >
-        {icon}
-      </span>
-      <div>
-        <p className="text-2xl font-bold tracking-[-0.03em] text-slate-950 tabular-nums">{value}</p>
-        <p className="mt-0.5 text-xs font-semibold text-slate-500">{label}</p>
-      </div>
-    </div>
   );
 }
 
@@ -607,15 +490,7 @@ export function CandidateApplicationsLoading() {
   return (
     <div aria-busy="true" className="space-y-5">
       <span className="sr-only">{t("common.loading")}</span>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {Array.from({ length: 3 }, (_, index) => (
-          <Skeleton key={index} className="h-24 rounded-2xl" />
-        ))}
-      </div>
-      <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_304px]">
-        <Skeleton className="h-[560px] rounded-2xl" />
-        <Skeleton className="hidden h-72 rounded-2xl xl:block" />
-      </div>
+      <Skeleton className="h-[560px] rounded-xl" />
     </div>
   );
 }
@@ -634,7 +509,7 @@ function ActivityState({
   tone?: "error" | "neutral";
 }>) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <section className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center">
       <span
         aria-hidden="true"
         className={cn(

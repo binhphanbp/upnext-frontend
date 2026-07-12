@@ -104,7 +104,6 @@ export function CandidateApplicationDetailPage({
       description={
         application?.jobPost.company.name ?? t("applicationDetail.page.fallbackDescription")
       }
-      eyebrow={t("applicationDetail.page.eyebrow")}
       title={title}
       action={
         <Button asChild variant="outline" className="w-full rounded-xl bg-white sm:w-auto">

@@ -3,10 +3,7 @@
 import {
   ArrowRight,
   BookmarkSimple,
-  Briefcase,
   CalendarBlank,
-  CheckCircle,
-  FileText,
   MagnifyingGlass,
   MapPin,
   ShieldCheck,
@@ -52,7 +49,7 @@ export function CandidateSavedJobsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { cvsQuery, isSessionResolved, session } = useCandidateProfileWorkspace();
+  const { isSessionResolved, session } = useCandidateProfileWorkspace();
   const query = searchParams.get("q") ?? "";
   const sortParam = searchParams.get("sort");
   const sort: SavedJobsSort =
@@ -138,9 +135,6 @@ export function CandidateSavedJobsPage() {
         return sort === "newest" ? difference : -difference;
       });
   }, [locale, query, savedJobs, sort]);
-  const availableCount = savedJobs.filter((savedJob) => isJobAvailable(savedJob.jobPost)).length;
-  const defaultCv = cvsQuery.data?.items.find((cv) => cv.isDefault);
-
   const updateSearch = (changes: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams.toString());
     Object.entries(changes).forEach(([key, value]) => {
@@ -160,7 +154,6 @@ export function CandidateSavedJobsPage() {
         { label: t("savedJobs.page.title") },
       ]}
       description={t("savedJobs.page.description")}
-      eyebrow={t("common.workspaceEyebrow")}
       title={t("savedJobs.page.title")}
       action={
         <Button asChild className="w-full rounded-xl sm:w-auto">
@@ -175,7 +168,7 @@ export function CandidateSavedJobsPage() {
 
   if (!isSessionResolved) {
     return (
-      <div className="space-y-7 pb-4">
+      <div className="space-y-6 pb-4">
         {pageHeader}
         <CandidateSavedJobsLoading />
       </div>
@@ -184,7 +177,7 @@ export function CandidateSavedJobsPage() {
 
   if (!session || isUnauthorized) {
     return (
-      <div className="space-y-7 pb-4">
+      <div className="space-y-6 pb-4">
         {pageHeader}
         <SavedJobsState
           icon={<ShieldCheck />}
@@ -201,7 +194,7 @@ export function CandidateSavedJobsPage() {
   }
 
   return (
-    <div className="space-y-7 pb-4">
+    <div className="space-y-6 pb-4">
       {pageHeader}
 
       {savedJobsQuery.isLoading ? <CandidateSavedJobsLoading /> : null}
@@ -220,166 +213,94 @@ export function CandidateSavedJobsPage() {
       ) : null}
 
       {savedJobsQuery.isSuccess ? (
-        <>
-          <section className="grid gap-3 sm:grid-cols-3" aria-label={t("savedJobs.summary.label")}>
-            <SavedMetric
-              icon={<BookmarkSimple weight="fill" />}
-              label={t("savedJobs.summary.total")}
-              value={savedJobs.length}
-            />
-            <SavedMetric
-              icon={<CheckCircle />}
-              label={t("savedJobs.summary.available")}
-              value={availableCount}
-              tone="brand"
-            />
-            <SavedMetric
-              icon={<Briefcase />}
-              label={t("savedJobs.summary.closed")}
-              value={savedJobs.length - availableCount}
-            />
-          </section>
-
-          <div className="grid items-start gap-7 xl:grid-cols-[minmax(0,1fr)_304px]">
-            <section className="min-w-0" aria-labelledby="saved-jobs-list-title">
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-                <div className="border-b border-slate-200 p-4 sm:p-5">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h2 id="saved-jobs-list-title" className="text-lg font-bold text-slate-950">
-                        {t("savedJobs.list.title")}
-                      </h2>
-                      <p className="mt-1 text-xs font-medium text-slate-500">
-                        {t("savedJobs.list.count", { count: visibleJobs.length })}
-                      </p>
-                    </div>
-                  </div>
+        <section className="min-w-0" aria-labelledby="saved-jobs-list-title">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-200 p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 id="saved-jobs-list-title" className="text-lg font-bold text-slate-950">
+                    {t("savedJobs.list.title")}
+                  </h2>
+                  <p className="mt-1 text-xs font-medium text-slate-500">
+                    {t("savedJobs.list.count", { count: visibleJobs.length })}
+                  </p>
                 </div>
+              </div>
+            </div>
 
-                <div className="grid gap-3 border-b border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-[minmax(0,1fr)_180px] sm:p-5">
-                  <form
-                    className="relative"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      updateSearch({ q: draftQuery.trim() || null });
-                    }}
-                  >
-                    <label className="sr-only" htmlFor="candidate-saved-jobs-search">
-                      {t("savedJobs.filters.searchLabel")}
-                    </label>
-                    <MagnifyingGlass
-                      aria-hidden="true"
-                      className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
+            <div className="grid gap-3 border-b border-slate-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_180px] sm:p-5">
+              <form
+                className="relative"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  updateSearch({ q: draftQuery.trim() || null });
+                }}
+              >
+                <label className="sr-only" htmlFor="candidate-saved-jobs-search">
+                  {t("savedJobs.filters.searchLabel")}
+                </label>
+                <MagnifyingGlass
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
+                />
+                <Input
+                  id="candidate-saved-jobs-search"
+                  name="saved-job-search"
+                  type="search"
+                  autoComplete="off"
+                  value={draftQuery}
+                  onChange={(event) => setDraftQuery(event.target.value)}
+                  className="rounded-lg border-slate-200 bg-slate-50 pr-20 pl-10"
+                  placeholder={t("savedJobs.filters.searchPlaceholder")}
+                />
+                <button
+                  type="submit"
+                  className="upnext-focus text-accent-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-lg px-2.5 py-1.5 text-xs font-bold hover:bg-emerald-50"
+                >
+                  {t("common.search")}
+                </button>
+              </form>
+              <div>
+                <label className="sr-only" htmlFor="saved-jobs-sort">
+                  {t("savedJobs.filters.sortLabel")}
+                </label>
+                <select
+                  id="saved-jobs-sort"
+                  value={sort}
+                  onChange={(event) => updateSearch({ sort: event.target.value })}
+                  className="upnext-focus h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700"
+                >
+                  <option value="newest">{t("savedJobs.filters.newest")}</option>
+                  <option value="oldest">{t("savedJobs.filters.oldest")}</option>
+                  <option value="company">{t("savedJobs.filters.company")}</option>
+                </select>
+              </div>
+            </div>
+
+            {visibleJobs.length > 0 ? (
+              <ul className="divide-y divide-slate-200">
+                {visibleJobs.map((savedJob) => (
+                  <li key={savedJob.id}>
+                    <SavedJobRow
+                      isRemoving={
+                        unsaveMutation.isPending && unsaveMutation.variables === savedJob.jobPostId
+                      }
+                      locale={locale}
+                      location={getJobLocation(
+                        publicJobsById.get(savedJob.jobPostId),
+                        t("common.locationFallback"),
+                      )}
+                      savedJob={savedJob}
+                      onRemove={() => unsaveMutation.mutate(savedJob.jobPostId)}
                     />
-                    <Input
-                      id="candidate-saved-jobs-search"
-                      name="saved-job-search"
-                      type="search"
-                      autoComplete="off"
-                      value={draftQuery}
-                      onChange={(event) => setDraftQuery(event.target.value)}
-                      className="rounded-xl bg-white pr-20 pl-10"
-                      placeholder={t("savedJobs.filters.searchPlaceholder")}
-                    />
-                    <button
-                      type="submit"
-                      className="upnext-focus text-accent-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-lg px-2.5 py-1.5 text-xs font-bold hover:bg-emerald-50"
-                    >
-                      {t("common.search")}
-                    </button>
-                  </form>
-                  <div>
-                    <label className="sr-only" htmlFor="saved-jobs-sort">
-                      {t("savedJobs.filters.sortLabel")}
-                    </label>
-                    <select
-                      id="saved-jobs-sort"
-                      value={sort}
-                      onChange={(event) => updateSearch({ sort: event.target.value })}
-                      className="upnext-focus h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
-                    >
-                      <option value="newest">{t("savedJobs.filters.newest")}</option>
-                      <option value="oldest">{t("savedJobs.filters.oldest")}</option>
-                      <option value="company">{t("savedJobs.filters.company")}</option>
-                    </select>
-                  </div>
-                </div>
-
-                {visibleJobs.length > 0 ? (
-                  <ul className="divide-y divide-slate-200">
-                    {visibleJobs.map((savedJob) => (
-                      <li key={savedJob.id}>
-                        <SavedJobRow
-                          isRemoving={
-                            unsaveMutation.isPending &&
-                            unsaveMutation.variables === savedJob.jobPostId
-                          }
-                          locale={locale}
-                          location={getJobLocation(
-                            publicJobsById.get(savedJob.jobPostId),
-                            t("common.locationFallback"),
-                          )}
-                          savedJob={savedJob}
-                          onRemove={() => unsaveMutation.mutate(savedJob.jobPostId)}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <EmptySavedJobs hasSavedJobs={savedJobs.length > 0} />
-                )}
-              </div>
-            </section>
-
-            <aside
-              className="space-y-4 xl:sticky xl:top-24"
-              aria-label={t("common.supportingInfo")}
-            >
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-                <span className="bg-brand-muted text-accent-foreground grid size-10 place-items-center rounded-xl">
-                  <FileText aria-hidden="true" size={20} />
-                </span>
-                <h2 className="mt-4 text-base font-bold text-slate-950">
-                  {t("savedJobs.resume.title")}
-                </h2>
-                <p className="mt-1 text-sm font-semibold break-words text-slate-700">
-                  {defaultCv?.title ?? t("savedJobs.resume.missing")}
-                </p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  {defaultCv
-                    ? t("savedJobs.resume.description")
-                    : t("savedJobs.resume.missingDescription")}
-                </p>
-                <Button asChild variant="outline" className="mt-4 w-full rounded-xl">
-                  <Link href="/candidate/profile?section=documents">
-                    {t("savedJobs.resume.manage")}
-                  </Link>
-                </Button>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-                <h2 className="text-base font-bold text-slate-950">
-                  {t("savedJobs.nextStep.title")}
-                </h2>
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  {t("savedJobs.nextStep.description")}
-                </p>
-                <ul className="mt-4 space-y-3 text-xs font-semibold text-slate-600">
-                  {["fit", "company", "deadline"].map((item) => (
-                    <li key={item} className="flex items-start gap-2.5">
-                      <CheckCircle
-                        aria-hidden="true"
-                        className="text-brand mt-0.5 shrink-0"
-                        size={16}
-                      />
-                      {t(`savedJobs.nextStep.${item}`)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </aside>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptySavedJobs hasSavedJobs={savedJobs.length > 0} />
+            )}
           </div>
-        </>
+        </section>
       ) : null}
 
       <div
@@ -437,9 +358,9 @@ function SavedJobRow({
   );
 
   return (
-    <article className="group p-4 transition-colors hover:bg-slate-50/70 sm:p-5">
+    <article className="group p-5 transition-colors hover:bg-slate-50 sm:px-6">
       <div className="flex items-start gap-3 sm:gap-4">
-        <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 shadow-sm sm:size-14">
+        <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-700 sm:size-14">
           {logo ? (
             <Image
               src={logo}
@@ -554,53 +475,13 @@ function EmptySavedJobs({ hasSavedJobs }: Readonly<{ hasSavedJobs: boolean }>) {
   );
 }
 
-function SavedMetric({
-  icon,
-  label,
-  tone = "neutral",
-  value,
-}: Readonly<{
-  icon: ReactNode;
-  label: string;
-  tone?: "brand" | "neutral";
-  value: number;
-}>) {
-  return (
-    <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-5">
-      <span
-        aria-hidden="true"
-        className={cn(
-          "grid size-10 shrink-0 place-items-center rounded-xl [&_svg]:size-5",
-          tone === "brand"
-            ? "bg-brand-muted text-accent-foreground"
-            : "bg-slate-100 text-slate-600",
-        )}
-      >
-        {icon}
-      </span>
-      <div>
-        <p className="text-2xl font-bold tracking-[-0.03em] text-slate-950 tabular-nums">{value}</p>
-        <p className="mt-0.5 text-xs font-semibold text-slate-500">{label}</p>
-      </div>
-    </div>
-  );
-}
-
 export function CandidateSavedJobsLoading() {
   const t = useTranslations("CandidateWorkspace");
 
   return (
     <div aria-busy="true" className="space-y-5">
       <span className="sr-only">{t("common.loading")}</span>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {Array.from({ length: 3 }, (_, index) => (
-          <Skeleton key={index} className="h-24 rounded-2xl" />
-        ))}
-      </div>
-      <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_304px]">
-        <Skeleton className="h-[520px] rounded-2xl" />
-        <Skeleton className="hidden h-72 rounded-2xl xl:block" />
-      </div>
+      <Skeleton className="h-[520px] rounded-xl" />
     </div>
   );
 }
@@ -619,7 +500,7 @@ function SavedJobsState({
   tone?: "error" | "neutral";
 }>) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <section className="rounded-xl border border-slate-200 bg-white px-6 py-16 text-center">
       <span
         aria-hidden="true"
         className={cn(

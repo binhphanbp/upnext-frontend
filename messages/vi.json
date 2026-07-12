@@ -1341,7 +1341,6 @@
   "CandidateWorkspace": {
     "common": {
       "home": "Trang chủ",
-      "workspaceEyebrow": "Hồ sơ & hoạt động",
       "exploreJobs": "Khám phá việc làm",
       "signIn": "Đăng nhập",
       "signInTitle": "Bạn cần đăng nhập",
@@ -1373,7 +1372,8 @@
         "positive": "Offer & trúng tuyển"
       },
       "list": {
-        "title": "Danh sách ứng tuyển"
+        "title": "Danh sách ứng tuyển",
+        "count": "{total} hồ sơ · {active} đang xử lý"
       },
       "filters": {
         "statusLabel": "Lọc theo trạng thái ứng tuyển",
