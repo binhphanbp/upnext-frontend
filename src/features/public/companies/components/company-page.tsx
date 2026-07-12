@@ -13,12 +13,11 @@ import {
   Briefcase,
   Building2,
   Calendar,
+  Check,
   ChevronDown,
-  ChevronRight,
   Coins,
   Facebook,
   Github,
-  Heart,
   Linkedin,
   MapPin,
   MapTrifold,
@@ -33,6 +32,7 @@ import {
 } from "../../home/marketing-icons";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
+import { CompanyGalleryDialog } from "./company-gallery-dialog";
 
 import "../company-page.css";
 
@@ -195,47 +195,6 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
   const visibleCultureImages = cultureImages.slice(0, 3);
   const hiddenCultureImageCount = Math.max(cultureImages.length - visibleCultureImages.length, 0);
 
-  useEffect(() => {
-    if (activeCultureImage === null) {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setActiveCultureImage(null);
-        return;
-      }
-
-      if (event.key === "ArrowLeft") {
-        setActiveCultureImage((current) =>
-          current === null ? current : (current - 1 + cultureImages.length) % cultureImages.length,
-        );
-        return;
-      }
-
-      if (event.key === "ArrowRight") {
-        setActiveCultureImage((current) =>
-          current === null ? current : (current + 1) % cultureImages.length,
-        );
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [activeCultureImage]);
-
-  function showPreviousCultureImage() {
-    setActiveCultureImage((current) =>
-      current === null ? current : (current - 1 + cultureImages.length) % cultureImages.length,
-    );
-  }
-
-  function showNextCultureImage() {
-    setActiveCultureImage((current) =>
-      current === null ? current : (current + 1) % cultureImages.length,
-    );
-  }
-
   return (
     <main className="company-page">
       <PublicHeader navigate={navigate} />
@@ -280,8 +239,15 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
                     type="button"
                     className={`company-follow${following ? " is-following" : ""}`}
                     onClick={() => setFollowing((value) => !value)}
+                    aria-pressed={following}
                   >
-                    {following ? <Heart size={18} weight="fill" /> : <Plus size={18} />}
+                    <span className="company-follow-icon" aria-hidden="true">
+                      {following ? (
+                        <Check size={18} weight="bold" />
+                      ) : (
+                        <Plus size={18} weight="bold" />
+                      )}
+                    </span>
                     {following ? "Đang theo dõi" : "Theo dõi công ty"}
                   </button>
                   <a
@@ -487,8 +453,15 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
                   type="button"
                   className={`company-follow${following ? " is-following" : ""}`}
                   onClick={() => setFollowing((value) => !value)}
+                  aria-pressed={following}
                 >
-                  {following ? <Heart size={17} weight="fill" /> : <Plus size={17} weight="bold" />}
+                  <span className="company-follow-icon" aria-hidden="true">
+                    {following ? (
+                      <Check size={17} weight="bold" />
+                    ) : (
+                      <Plus size={17} weight="bold" />
+                    )}
+                  </span>
                   {following ? "Đang theo dõi" : "Theo dõi công ty"}
                 </button>
                 <span className="company-followers">12.3K người đã theo dõi</span>
@@ -529,70 +502,12 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
         </div>
       </section>
 
-      {activeCultureImage !== null && (
-        <dialog open className="company-gallery-lightbox" aria-label="Ảnh môi trường làm việc">
-          <button
-            type="button"
-            className="company-gallery-lightbox-backdrop"
-            aria-label="Đóng bộ sưu tập ảnh"
-            onClick={() => setActiveCultureImage(null)}
-          />
-          <div className="company-gallery-lightbox-panel">
-            <div className="company-gallery-lightbox-head">
-              <span className="company-gallery-lightbox-count">
-                {activeCultureImage + 1}/{cultureImages.length}
-              </span>
-              <button
-                type="button"
-                className="company-gallery-lightbox-close"
-                aria-label="Đóng bộ sưu tập ảnh"
-                onClick={() => setActiveCultureImage(null)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="company-gallery-lightbox-stage">
-              <button
-                type="button"
-                className="company-gallery-lightbox-nav is-prev"
-                aria-label="Xem ảnh trước"
-                onClick={showPreviousCultureImage}
-              >
-                <ChevronRight size={22} />
-              </button>
-              <Image
-                src={cultureImages[activeCultureImage]!}
-                alt={`Môi trường làm việc ${activeCultureImage + 1}`}
-                width={1120}
-                height={700}
-                priority
-              />
-              <button
-                type="button"
-                className="company-gallery-lightbox-nav"
-                aria-label="Xem ảnh tiếp theo"
-                onClick={showNextCultureImage}
-              >
-                <ChevronRight size={22} />
-              </button>
-            </div>
-            <div className="company-gallery-lightbox-thumbs" aria-label="Danh sách ảnh">
-              {cultureImages.map((src, index) => (
-                <button
-                  key={`${src}-thumb-${index}`}
-                  type="button"
-                  className={index === activeCultureImage ? "is-active" : ""}
-                  onClick={() => setActiveCultureImage(index)}
-                  aria-label={`Chọn ảnh ${index + 1}`}
-                  aria-current={index === activeCultureImage ? "true" : undefined}
-                >
-                  <Image src={src} alt="" width={120} height={80} />
-                </button>
-              ))}
-            </div>
-          </div>
-        </dialog>
-      )}
+      <CompanyGalleryDialog
+        activeIndex={activeCultureImage}
+        images={cultureImages}
+        label="Ảnh môi trường làm việc"
+        onActiveIndexChange={setActiveCultureImage}
+      />
 
       <PublicFooter navigate={navigate} />
     </main>
