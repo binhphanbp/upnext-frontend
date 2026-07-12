@@ -2,352 +2,560 @@
 
 import {
   ArrowLeft,
+  ArrowRight,
   Briefcase,
   CalendarBlank,
   Check,
-  CheckCircle,
   Clock,
-  FilePdf,
-  HourglassMedium,
+  FileText,
   MapPin,
-  Monitor,
-  PaperPlaneTilt,
-  Prohibit,
-  Star,
-  UsersThree,
-  UserCircle,
-  VideoCamera,
+  ShieldCheck,
+  SpinnerGap,
+  WarningCircle,
 } from "@phosphor-icons/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
+import Image from "next/image";
+import { useState, type ReactNode } from "react";
 
+import {
+  getCandidateApplication,
+  type CandidateApplicationApi,
+  withdrawCandidateApplication,
+} from "@/features/candidate/api/profile";
+import { CandidatePageHeader } from "@/features/candidate/candidate-page-header";
+import {
+  canWithdrawApplication,
+  formatJobSalary,
+  getCompanyLogo,
+  getJobLocation,
+  getJobTags,
+} from "@/features/candidate/job-activity-model";
+import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
+import { getPublicJobs } from "@/features/public/home/api";
 import { Link } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog";
+import { Skeleton } from "@/shared/ui/skeleton";
 
-import { applications, statusStyles, type Application } from "./applications-data";
+import { ApplicationStatusBadge } from "./application-status-badge";
 
-type CandidateApplicationDetailPageProps = Readonly<{
-  applicationId: string;
-}>;
-
-const statusIconMap = {
-  reviewing: HourglassMedium,
-  interview: UsersThree,
-  offer: Star,
-  rejected: Prohibit,
-} as const;
+type CandidateApplicationDetailPageProps = Readonly<{ applicationId: string }>;
 
 export function CandidateApplicationDetailPage({
   applicationId,
 }: CandidateApplicationDetailPageProps) {
-  const application = applications.find((item) => item.id === applicationId);
+  const t = useTranslations("CandidateWorkspace");
+  const locale = useLocale();
+  const queryClient = useQueryClient();
+  const { isSessionResolved, session } = useCandidateProfileWorkspace();
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const detailQueryKey = ["candidate-application", session?.user.id, applicationId] as const;
+  const applicationQuery = useQuery({
+    enabled: Boolean(session),
+    queryFn: () => getCandidateApplication(session!.accessToken, applicationId),
+    queryKey: detailQueryKey,
+  });
+  const publicJobsQuery = useQuery({
+    enabled: Boolean(session),
+    queryFn: getPublicJobs,
+    queryKey: ["public-jobs"],
+  });
+  const withdrawMutation = useMutation({
+    mutationFn: () => withdrawCandidateApplication(session!.accessToken, applicationId),
+    onSuccess: async (updatedApplication) => {
+      setWithdrawOpen(false);
+      queryClient.setQueryData<CandidateApplicationApi>(detailQueryKey, (current) =>
+        current
+          ? {
+              ...current,
+              status: updatedApplication.status,
+              updatedAt: updatedApplication.updatedAt,
+            }
+          : current,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["candidate-applications", session?.user.id],
+      });
+    },
+  });
 
-  if (!application) {
+  const application = applicationQuery.data;
+  const isUnauthorized =
+    applicationQuery.error instanceof ApiError && applicationQuery.error.status === 401;
+  const publicJob = publicJobsQuery.data?.find((job) => job.id === application?.jobPostId);
+  const title = application?.jobPost.title ?? t("applicationDetail.page.fallbackTitle");
+  const header = (
+    <CandidatePageHeader
+      breadcrumbItems={[
+        { href: "/", label: t("common.home") },
+        { href: "/candidate/applications", label: t("applications.page.title") },
+        { label: title },
+      ]}
+      description={
+        application?.jobPost.company.name ?? t("applicationDetail.page.fallbackDescription")
+      }
+      eyebrow={t("applicationDetail.page.eyebrow")}
+      title={title}
+      action={
+        <Button asChild variant="outline" className="w-full rounded-xl bg-white sm:w-auto">
+          <Link href="/candidate/applications">
+            <ArrowLeft aria-hidden="true" />
+            {t("applicationDetail.actions.back")}
+          </Link>
+        </Button>
+      }
+    />
+  );
+
+  if (!isSessionResolved || (session && applicationQuery.isLoading)) {
     return (
-      <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-        <CardContent className="p-6">
-          <h1 className="text-xl font-extrabold text-slate-950">Không tìm thấy ứng tuyển</h1>
-          <p className="mt-2 text-sm font-medium text-slate-600">
-            Hồ sơ ứng tuyển này không tồn tại hoặc đã bị xoá.
-          </p>
-          <Button asChild className="bg-brand mt-5 rounded-lg font-extrabold shadow-none">
-            <Link href="/candidate/applications">Quay lại danh sách</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-7 pb-4">
+        {header}
+        <DetailLoading />
+      </div>
     );
   }
 
-  const style = statusStyles[application.status];
-  const StatusIcon = statusIconMap[application.status];
+  if (!session || isUnauthorized) {
+    return (
+      <div className="space-y-7 pb-4">
+        {header}
+        <DetailState
+          icon={<ShieldCheck />}
+          title={t("common.signInTitle")}
+          description={t("common.signInDescription")}
+          action={
+            <Button asChild className="rounded-xl">
+              <Link href="/login">{t("common.signIn")}</Link>
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (applicationQuery.isError || !application) {
+    return (
+      <div className="space-y-7 pb-4">
+        {header}
+        <DetailState
+          tone="error"
+          icon={<WarningCircle />}
+          title={t("applicationDetail.states.errorTitle")}
+          description={t("applicationDetail.states.errorDescription")}
+          action={
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => applicationQuery.refetch()}
+              >
+                {t("common.retry")}
+              </Button>
+              <Button asChild className="rounded-xl">
+                <Link href="/candidate/applications">{t("applicationDetail.actions.back")}</Link>
+              </Button>
+            </div>
+          }
+        />
+      </div>
+    );
+  }
+
+  const logo = getCompanyLogo(application.jobPost);
+  const location = getJobLocation(publicJob, t("common.locationFallback"));
+  const tags = getJobTags(application.jobPost);
+  const history = getApplicationHistory(application, locale, t);
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Button
-          asChild
-          variant="ghost"
-          className="h-10 w-fit rounded-lg px-0 font-extrabold text-slate-600 hover:bg-transparent hover:text-slate-950"
-        >
-          <Link href="/candidate/applications">
-            <ArrowLeft size={18} />
-            Quay lại danh sách
-          </Link>
-        </Button>
-        <Button
-          variant="outline"
-          className="border-brand text-brand h-11 w-fit rounded-lg bg-white px-5 font-extrabold shadow-none hover:bg-emerald-50 hover:text-emerald-700"
-        >
-          <PaperPlaneTilt size={18} />
-          Gửi tin nhắn cho nhà tuyển dụng
-        </Button>
-      </div>
+    <div className="space-y-7 pb-4">
+      {header}
 
-      <ApplicationHero application={application} />
-
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <main className="space-y-5">
-          <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <CardHeader className="flex-row items-center gap-3 space-y-0 p-5 pb-3">
-              <span className="text-brand grid size-10 place-items-center rounded-xl bg-emerald-50">
-                <Clock size={21} />
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[72px_minmax(0,1fr)_auto] lg:items-center">
+          <span className="grid size-[72px] place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-white text-lg font-bold text-slate-700 shadow-sm">
+            {logo ? (
+              <Image
+                src={logo}
+                alt=""
+                width={72}
+                height={72}
+                unoptimized
+                className="size-full object-contain p-3"
+              />
+            ) : (
+              application.jobPost.company.name.slice(0, 2).toLocaleUpperCase()
+            )}
+          </span>
+          <div className="min-w-0">
+            <ApplicationStatusBadge status={application.status} />
+            <h2 className="mt-3 text-xl font-bold text-slate-950 sm:text-2xl">
+              {application.jobPost.title}
+            </h2>
+            <p className="mt-1 text-sm font-semibold text-slate-600">
+              {application.jobPost.company.name}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-500">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin aria-hidden="true" size={15} />
+                {location}
               </span>
-              <CardTitle className="text-lg">Tiến trình ứng tuyển</CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 pt-2">
-              <ol className="space-y-0">
-                {application.timeline.map((item, index) => (
-                  <li
-                    key={`${item.title}-${item.date}`}
-                    className="grid grid-cols-[32px_1fr] gap-4"
-                  >
-                    <div className="relative flex justify-center">
-                      <span
-                        className={cn(
-                          "z-10 mt-1 grid size-5 place-items-center rounded-full border bg-white",
-                          item.done
-                            ? "border-emerald-200 text-emerald-700"
-                            : "border-slate-300 text-slate-400",
-                        )}
-                      >
-                        {item.done ? <Check size={12} weight="bold" /> : null}
-                      </span>
-                      {index < application.timeline.length - 1 ? (
-                        <span className="absolute top-7 bottom-0 w-px bg-slate-200" />
-                      ) : null}
-                    </div>
-                    <div className="pb-6">
-                      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                        <h2 className="font-extrabold text-slate-950">{item.title}</h2>
-                        <span className="text-sm font-bold text-slate-500">{item.date}</span>
-                      </div>
-                      <p className="mt-1 text-sm leading-6 font-medium text-slate-600">
-                        {item.description}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <CardHeader className="flex-row items-center gap-3 space-y-0 p-5 pb-3">
-              <span className="text-brand grid size-10 place-items-center rounded-xl bg-emerald-50">
-                <FilePdf size={21} />
+              <span className="inline-flex items-center gap-1.5">
+                <Briefcase aria-hidden="true" size={15} />
+                {formatJobSalary(application.jobPost, locale, {
+                  hidden: t("common.salaryHidden"),
+                  negotiable: t("common.salaryNegotiable"),
+                })}
               </span>
-              <CardTitle className="text-lg">Hồ sơ đã gửi</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 p-5 pt-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-              <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <span className="grid size-12 place-items-center rounded-lg bg-white text-red-500 ring-1 ring-slate-200">
-                  <FilePdf size={23} weight="fill" />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate font-extrabold text-slate-950">{application.resume}</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-500">
-                    CV Backend · Cập nhật 10/06/2025 · 356 KB
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                className="border-slate-200 bg-white font-extrabold shadow-none hover:bg-slate-50 hover:text-slate-950"
-              >
-                Xem CV
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <CardHeader className="flex-row items-center gap-3 space-y-0 p-5 pb-3">
-              <span className="text-brand grid size-10 place-items-center rounded-xl bg-emerald-50">
-                <CheckCircle size={21} />
-              </span>
-              <CardTitle className="text-lg">Ghi chú trạng thái</CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 pt-2">
-              <p className="text-sm leading-7 font-medium text-slate-600">{application.note}</p>
-            </CardContent>
-          </Card>
-        </main>
-
-        <aside className="space-y-5 lg:sticky lg:top-28 lg:self-start">
-          <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <CardContent className="p-5">
-              <h2 className="text-base font-extrabold text-slate-950">Bước tiếp theo</h2>
+            </div>
+          </div>
+          <Button asChild className="w-full rounded-xl lg:w-auto">
+            <Link href={`/jobs/${application.jobPostId}`}>
+              {t("applicationDetail.actions.viewJob")}
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
+        </div>
+        {tags.length > 0 ? (
+          <div className="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50/70 px-5 py-3 sm:px-6">
+            {tags.map((tag) => (
               <span
-                className={cn(
-                  "mt-4 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-extrabold ring-1",
-                  style.badge,
-                )}
+                key={tag}
+                className="rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200"
               >
-                <StatusIcon size={17} weight="bold" />
-                {application.statusTitle}
+                {tag}
               </span>
-              <p className="mt-4 text-sm leading-6 font-medium text-slate-600">
-                {application.nextStep ?? application.statusDescription}
-              </p>
-              <Button className="bg-brand mt-5 h-11 w-full rounded-lg font-extrabold shadow-none hover:bg-emerald-700">
-                {application.status === "interview" ? "Chuẩn bị phỏng vấn" : "Cập nhật hồ sơ"}
-              </Button>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
+        ) : null}
+      </section>
 
-          <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <CardContent className="p-5">
-              <h2 className="text-base font-extrabold text-slate-950">Thông tin ứng tuyển</h2>
-              <dl className="mt-4 space-y-4 text-sm">
-                <InfoRow
-                  label="Ngày ứng tuyển"
-                  value={application.appliedAt}
-                  icon={CalendarBlank}
-                />
-                <InfoRow
-                  label="Recruiter"
-                  value={application.recruiter ?? "Hiring Team"}
-                  icon={UserCircle}
-                />
-                <InfoRow
-                  label="Mức lương"
-                  value={application.salary ?? "Chưa công bố"}
-                  icon={Briefcase}
-                />
-                <InfoRow
-                  label="Độ khớp hồ sơ"
-                  value={`${application.matchScore}%`}
-                  icon={CheckCircle}
-                />
-              </dl>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            <CardContent className="p-5">
-              <h2 className="text-base font-extrabold text-slate-950">Thông tin công ty</h2>
-              <div className="mt-4 flex items-center gap-4">
-                <CompanyLogo application={application} />
-                <div>
-                  <p className="font-extrabold text-slate-950">{application.company}</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-500">
-                    {application.location}
-                  </p>
-                </div>
+      <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-5">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6">
+            <div className="flex items-start gap-3">
+              <span className="bg-brand-muted text-accent-foreground grid size-10 shrink-0 place-items-center rounded-xl">
+                <Clock aria-hidden="true" size={20} />
+              </span>
+              <div>
+                <h2 className="text-lg font-bold text-slate-950">
+                  {t("applicationDetail.history.title")}
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  {t("applicationDetail.history.description")}
+                </p>
               </div>
+            </div>
+            <ol className="mt-6 space-y-0">
+              {history.map((event, index) => (
+                <li key={event.key} className="grid grid-cols-[28px_minmax(0,1fr)] gap-3">
+                  <div className="relative flex justify-center">
+                    <span className="bg-brand text-brand-foreground z-10 mt-0.5 grid size-6 place-items-center rounded-full">
+                      <Check aria-hidden="true" size={13} weight="bold" />
+                    </span>
+                    {index < history.length - 1 ? (
+                      <span
+                        aria-hidden="true"
+                        className="absolute top-7 bottom-0 w-px bg-slate-200"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="pb-6">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                      <h3 className="text-sm font-bold text-slate-900">{event.title}</h3>
+                      <time
+                        className="text-xs font-semibold text-slate-500"
+                        dateTime={event.dateTime}
+                      >
+                        {event.date}
+                      </time>
+                    </div>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">{event.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6">
+            <div className="flex items-start gap-3">
+              <span className="bg-brand-muted text-accent-foreground grid size-10 shrink-0 place-items-center rounded-xl">
+                <FileText aria-hidden="true" size={20} />
+              </span>
+              <div>
+                <h2 className="text-lg font-bold text-slate-950">
+                  {t("applicationDetail.submission.title")}
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  {t("applicationDetail.submission.description")}
+                </p>
+              </div>
+            </div>
+            <dl className="mt-5 divide-y divide-slate-200 rounded-xl border border-slate-200">
+              <DetailRow
+                label={t("applicationDetail.submission.resume")}
+                value={t("applicationDetail.submission.resumeVersion", {
+                  version: application.cvVersion.versionNumber,
+                })}
+              />
+              <DetailRow
+                label={t("applicationDetail.submission.submittedAt")}
+                value={formatDateTime(application.submittedAt, locale)}
+              />
+            </dl>
+            {application.coverLetter ? (
+              <div className="mt-5">
+                <h3 className="text-sm font-bold text-slate-900">
+                  {t("applicationDetail.submission.coverLetter")}
+                </h3>
+                <p className="mt-2 rounded-xl bg-slate-50 p-4 text-sm leading-7 break-words whitespace-pre-wrap text-slate-600">
+                  {application.coverLetter}
+                </p>
+              </div>
+            ) : null}
+          </section>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-24" aria-label={t("common.supportingInfo")}>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-bold tracking-[0.12em] text-slate-500 uppercase">
+              {t("applicationDetail.current.title")}
+            </p>
+            <div className="mt-3">
+              <ApplicationStatusBadge status={application.status} />
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              {t(`applicationDetail.current.${application.status}.description`)}
+            </p>
+            <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs leading-5 font-semibold text-slate-600">
+              {t(`applicationDetail.current.${application.status}.nextStep`)}
+            </p>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <h2 className="text-base font-bold text-slate-950">
+              {t("applicationDetail.job.title")}
+            </h2>
+            <dl className="mt-4 space-y-4">
+              <InfoItem
+                icon={<Briefcase />}
+                label={t("applicationDetail.job.employmentType")}
+                value={
+                  application.jobPost.employmentType?.name ?? t("applicationDetail.job.unknown")
+                }
+              />
+              <InfoItem
+                icon={<MapPin />}
+                label={t("applicationDetail.job.location")}
+                value={location}
+              />
+              <InfoItem
+                icon={<CalendarBlank />}
+                label={t("applicationDetail.job.appliedAt")}
+                value={formatDate(application.submittedAt, locale)}
+              />
+            </dl>
+          </section>
+
+          {canWithdrawApplication(application.status) ? (
+            <section className="rounded-2xl border border-red-200 bg-red-50/60 p-5">
+              <h2 className="text-sm font-bold text-red-900">
+                {t("applicationDetail.withdraw.title")}
+              </h2>
+              <p className="mt-2 text-xs leading-5 text-red-800">
+                {t("applicationDetail.withdraw.description")}
+              </p>
               <Button
                 variant="outline"
-                className="border-brand text-brand mt-5 h-11 w-full rounded-lg bg-white font-extrabold shadow-none hover:bg-emerald-50 hover:text-emerald-700"
+                className="mt-4 w-full rounded-xl border-red-200 bg-white text-red-700 hover:border-red-300 hover:text-red-800"
+                onClick={() => setWithdrawOpen(true)}
               >
-                Xem công ty
+                {t("applicationDetail.withdraw.action")}
               </Button>
-            </CardContent>
-          </Card>
+              <WithdrawDialog
+                isPending={withdrawMutation.isPending}
+                isError={withdrawMutation.isError}
+                open={withdrawOpen}
+                onConfirm={() => withdrawMutation.mutate()}
+                onOpenChange={setWithdrawOpen}
+              />
+            </section>
+          ) : null}
         </aside>
       </div>
     </div>
   );
 }
 
-function ApplicationHero({ application }: Readonly<{ application: Application }>) {
-  const style = statusStyles[application.status];
-  const StatusIcon = statusIconMap[application.status];
-
+function WithdrawDialog({
+  isError,
+  isPending,
+  onOpenChange,
+  onConfirm,
+  open,
+}: Readonly<{
+  isError: boolean;
+  isPending: boolean;
+  onConfirm: () => void;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}>) {
+  const t = useTranslations("CandidateWorkspace");
   return (
-    <Card className="rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.05)]">
-      <CardContent className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[92px_minmax(0,1fr)_280px] lg:items-center">
-        <CompanyLogo application={application} />
-        <div className="min-w-0">
-          <span
-            className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-extrabold ring-1",
-              style.badge,
-            )}
-          >
-            <StatusIcon size={17} weight="bold" />
-            {application.statusTitle}
-          </span>
-          <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-            {application.role}
-          </h1>
-          <p className="mt-2 text-base font-bold text-slate-700">{application.company}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold text-slate-500">
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin size={17} />
-              {application.location}
-            </span>
-            <span className="text-slate-300">·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <Monitor size={17} />
-              {application.workMode}
-            </span>
-            {application.interviewAt ? (
-              <>
-                <span className="text-slate-300">·</span>
-                <span className="inline-flex items-center gap-1.5">
-                  <VideoCamera size={17} />
-                  {application.interviewAt}
-                </span>
-              </>
-            ) : null}
-          </div>
-        </div>
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
-          <p className="text-sm font-bold text-slate-600">Độ khớp hồ sơ</p>
-          <div className="mt-3 flex items-center gap-4">
-            <div
-              className="grid size-20 place-items-center rounded-full"
-              style={{
-                background: `conic-gradient(var(--brand) ${application.matchScore}%, #e2e8f0 0)`,
-              }}
-            >
-              <div className="grid size-14 place-items-center rounded-full bg-white">
-                <span className="text-brand text-base font-extrabold">
-                  {application.matchScore}%
-                </span>
-              </div>
-            </div>
-            <p className="text-sm leading-6 font-semibold text-slate-600">
-              Hồ sơ phù hợp với yêu cầu chính của vị trí này.
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent closeLabel={t("applicationDetail.withdraw.cancel")} className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("applicationDetail.withdraw.confirmTitle")}</DialogTitle>
+          <DialogDescription className="pt-1 leading-6">
+            {t("applicationDetail.withdraw.confirmDescription")}
+          </DialogDescription>
+        </DialogHeader>
+        {isError ? (
+          <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">
+            {t("applicationDetail.withdraw.error")}
+          </p>
+        ) : null}
+        <DialogFooter>
+          <Button variant="ghost" disabled={isPending} onClick={() => onOpenChange(false)}>
+            {t("applicationDetail.withdraw.cancel")}
+          </Button>
+          <Button variant="destructive" disabled={isPending} onClick={onConfirm}>
+            {isPending ? <SpinnerGap aria-hidden="true" className="animate-spin" /> : null}
+            {isPending
+              ? t("applicationDetail.withdraw.withdrawing")
+              : t("applicationDetail.withdraw.confirmAction")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function CompanyLogo({ application }: Readonly<{ application: Application }>) {
+function getApplicationHistory(
+  application: CandidateApplicationApi,
+  locale: string,
+  t: ReturnType<typeof useTranslations>,
+) {
+  const events = [
+    {
+      dateTime: application.submittedAt,
+      description: t("applicationDetail.history.submittedDescription"),
+      key: "submitted",
+      title: t("applicationDetail.history.submitted"),
+    },
+  ];
+
+  if (application.viewedAt) {
+    events.push({
+      dateTime: application.viewedAt,
+      description: t("applicationDetail.history.viewedDescription"),
+      key: "viewed",
+      title: t("applicationDetail.history.viewed"),
+    });
+  }
+
+  if (application.status !== "SUBMITTED" && application.status !== "VIEWED") {
+    const eventDate = application.hiredAt ?? application.rejectedAt ?? application.updatedAt;
+    events.push({
+      dateTime: eventDate,
+      description: t(`applicationDetail.current.${application.status}.description`),
+      key: application.status,
+      title: t(`applications.status.${application.status}.label`),
+    });
+  }
+
+  return events.map((event) => ({ ...event, date: formatDateTime(event.dateTime, locale) }));
+}
+
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(value));
+}
+
+function formatDateTime(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
+    new Date(value),
+  );
+}
+
+function DetailRow({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
-    <div
-      className={cn(
-        "grid size-20 place-items-center rounded-xl border border-slate-200 bg-white text-lg font-black shadow-sm",
-        application.companyTone === "blue" && "text-blue-700",
-        application.companyTone === "orange" && "text-orange-600",
-        application.companyTone === "green" && "text-emerald-700",
-        application.companyTone === "neutral" && "text-slate-950",
-      )}
-    >
-      {application.companyMark}
+    <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center sm:gap-4">
+      <dt className="text-xs font-semibold text-slate-500">{label}</dt>
+      <dd className="text-sm font-bold text-slate-800 sm:text-right">{value}</dd>
     </div>
   );
 }
 
-function InfoRow({
-  icon: Icon,
+function InfoItem({
+  icon,
   label,
   value,
+}: Readonly<{ icon: ReactNode; label: string; value: string }>) {
+  return (
+    <div className="grid grid-cols-[28px_minmax(0,1fr)] gap-2.5">
+      <span aria-hidden="true" className="text-brand mt-0.5 [&_svg]:size-[18px]">
+        {icon}
+      </span>
+      <div>
+        <dt className="text-xs font-semibold text-slate-500">{label}</dt>
+        <dd className="mt-0.5 text-sm font-bold break-words text-slate-800">{value}</dd>
+      </div>
+    </div>
+  );
+}
+
+function DetailLoading() {
+  const t = useTranslations("CandidateWorkspace");
+
+  return (
+    <div aria-busy="true" className="space-y-5">
+      <span className="sr-only">{t("common.loading")}</span>
+      <Skeleton className="h-48 rounded-2xl" />
+      <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <Skeleton className="h-[440px] rounded-2xl" />
+        <Skeleton className="h-72 rounded-2xl" />
+      </div>
+    </div>
+  );
+}
+
+function DetailState({
+  action,
+  description,
+  icon,
+  title,
+  tone = "neutral",
 }: Readonly<{
-  icon: typeof CalendarBlank;
-  label: string;
-  value: string;
+  action: ReactNode;
+  description: string;
+  icon: ReactNode;
+  title: string;
+  tone?: "error" | "neutral";
 }>) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <dt className="flex items-center gap-2 font-semibold text-slate-500">
-        <Icon size={17} />
-        {label}
-      </dt>
-      <dd className="text-right font-extrabold text-slate-950">{value}</dd>
-    </div>
+    <section className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
+      <span
+        aria-hidden="true"
+        className={cn(
+          "mx-auto grid size-14 place-items-center rounded-2xl [&_svg]:size-7",
+          tone === "error" ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600",
+        )}
+      >
+        {icon}
+      </span>
+      <h2 className="mt-4 text-xl font-bold text-slate-950">{title}</h2>
+      <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600">{description}</p>
+      <div className="mt-5 flex justify-center">{action}</div>
+    </section>
   );
 }

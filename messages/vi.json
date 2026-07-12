@@ -1338,6 +1338,261 @@
     "candidateTabsLabel": "Các mục trong không gian ứng viên",
     "candidateMobileNavLabel": "Điều hướng mobile của ứng viên"
   },
+  "CandidateWorkspace": {
+    "common": {
+      "home": "Trang chủ",
+      "workspaceEyebrow": "Hồ sơ & hoạt động",
+      "exploreJobs": "Khám phá việc làm",
+      "signIn": "Đăng nhập",
+      "signInTitle": "Bạn cần đăng nhập",
+      "signInDescription": "Đăng nhập bằng tài khoản ứng viên để quản lý hồ sơ và hoạt động tìm việc.",
+      "retry": "Thử lại",
+      "search": "Tìm",
+      "clearFilters": "Xóa bộ lọc",
+      "locationFallback": "Địa điểm chưa cập nhật",
+      "salaryHidden": "Lương không công khai",
+      "salaryNegotiable": "Lương thỏa thuận",
+      "supportingInfo": "Thông tin hỗ trợ",
+      "pagination": "Phân trang",
+      "pageCount": "Trang {page}/{totalPages}",
+      "previousPage": "Trang trước",
+      "nextPage": "Trang sau",
+      "undo": "Hoàn tác",
+      "restoring": "Đang khôi phục…",
+      "loading": "Đang tải…"
+    },
+    "applications": {
+      "page": {
+        "title": "Việc đã ứng tuyển",
+        "description": "Theo dõi tiến trình từng hồ sơ, hiểu rõ bước hiện tại và chủ động chuẩn bị cho bước tiếp theo."
+      },
+      "summary": {
+        "label": "Tổng quan hồ sơ ứng tuyển",
+        "total": "Tổng hồ sơ",
+        "inProgress": "Đang tiến hành",
+        "positive": "Offer & trúng tuyển"
+      },
+      "list": {
+        "title": "Danh sách ứng tuyển"
+      },
+      "filters": {
+        "statusLabel": "Lọc theo trạng thái ứng tuyển",
+        "searchLabel": "Tìm hồ sơ ứng tuyển",
+        "searchPlaceholder": "Tên vị trí hoặc công ty…",
+        "sortLabel": "Sắp xếp hồ sơ ứng tuyển",
+        "newest": "Ứng tuyển mới nhất",
+        "oldest": "Ứng tuyển lâu nhất",
+        "groups": {
+          "all": "Tất cả",
+          "active": "Đang xử lý",
+          "interview": "Phỏng vấn",
+          "offer": "Kết quả tốt",
+          "closed": "Đã kết thúc"
+        }
+      },
+      "status": {
+        "SUBMITTED": {
+          "label": "Đã nộp"
+        },
+        "VIEWED": {
+          "label": "Đã xem"
+        },
+        "SHORTLISTED": {
+          "label": "Qua vòng hồ sơ"
+        },
+        "INTERVIEWING": {
+          "label": "Đang phỏng vấn"
+        },
+        "OFFERED": {
+          "label": "Đã nhận offer"
+        },
+        "HIRED": {
+          "label": "Đã tuyển"
+        },
+        "REJECTED": {
+          "label": "Chưa phù hợp"
+        },
+        "WITHDRAWN": {
+          "label": "Đã rút hồ sơ"
+        }
+      },
+      "card": {
+        "appliedAt": "Nộp {date}",
+        "viewDetail": "Xem tiến trình"
+      },
+      "resume": {
+        "title": "CV mặc định",
+        "defaultBadge": "Đang dùng",
+        "description": "CV mặc định sẽ được chọn trước khi bạn bắt đầu một lượt ứng tuyển mới.",
+        "missing": "Chưa chọn CV mặc định",
+        "missingDescription": "Chọn một CV mặc định để giảm thao tác và tránh gửi nhầm phiên bản.",
+        "manage": "Quản lý CV"
+      },
+      "guide": {
+        "title": "Cách đọc tiến trình",
+        "submitted": {
+          "title": "Đã gửi hồ sơ",
+          "description": "UpNext đã ghi nhận hồ sơ và chuyển đến nhà tuyển dụng."
+        },
+        "review": {
+          "title": "Nhà tuyển dụng đánh giá",
+          "description": "Trạng thái thay đổi khi hồ sơ được xem, chọn lọc hoặc mời phỏng vấn."
+        },
+        "decision": {
+          "title": "Kết quả tuyển dụng",
+          "description": "Offer, tuyển dụng hoặc kết thúc quy trình sẽ được thể hiện rõ tại đây."
+        }
+      },
+      "states": {
+        "errorTitle": "Không thể tải danh sách ứng tuyển",
+        "errorDescription": "Kết nối đến UpNext chưa thành công. Hãy thử tải lại để xem trạng thái mới nhất.",
+        "emptyTitle": "Bạn chưa ứng tuyển công việc nào",
+        "emptyDescription": "Khám phá việc làm phù hợp và nộp CV để bắt đầu theo dõi tiến trình tại đây.",
+        "noResultsTitle": "Không tìm thấy hồ sơ phù hợp",
+        "noResultsDescription": "Thử từ khóa khác hoặc xóa bộ lọc trạng thái để xem toàn bộ hồ sơ."
+      }
+    },
+    "applicationDetail": {
+      "page": {
+        "eyebrow": "Chi tiết ứng tuyển",
+        "fallbackTitle": "Hồ sơ ứng tuyển",
+        "fallbackDescription": "Xem trạng thái và thông tin hồ sơ đã gửi."
+      },
+      "actions": {
+        "back": "Quay lại danh sách",
+        "viewJob": "Xem tin tuyển dụng"
+      },
+      "states": {
+        "errorTitle": "Không thể mở hồ sơ ứng tuyển",
+        "errorDescription": "Hồ sơ không tồn tại, bạn không có quyền xem hoặc kết nối đến UpNext đang gián đoạn."
+      },
+      "history": {
+        "title": "Lịch sử ứng tuyển",
+        "description": "Các mốc bên dưới được ghi nhận từ hoạt động thực tế của hồ sơ.",
+        "submitted": "Đã nộp hồ sơ",
+        "submittedDescription": "UpNext đã tiếp nhận và chuyển hồ sơ đến nhà tuyển dụng.",
+        "viewed": "Nhà tuyển dụng đã xem",
+        "viewedDescription": "Nhà tuyển dụng đã mở hồ sơ ứng tuyển của bạn."
+      },
+      "submission": {
+        "title": "Thông tin đã gửi",
+        "description": "Phiên bản CV và nội dung được lưu tại thời điểm ứng tuyển.",
+        "resume": "CV đã dùng",
+        "resumeVersion": "Phiên bản {version}",
+        "submittedAt": "Thời điểm nộp",
+        "coverLetter": "Thư giới thiệu"
+      },
+      "current": {
+        "title": "Trạng thái hiện tại",
+        "SUBMITTED": {
+          "description": "Hồ sơ đã được gửi thành công và đang chờ nhà tuyển dụng xem.",
+          "nextStep": "Tiếp tục theo dõi; bạn chưa cần thực hiện thêm thao tác."
+        },
+        "VIEWED": {
+          "description": "Nhà tuyển dụng đã mở hồ sơ và đang đánh giá mức độ phù hợp.",
+          "nextStep": "Giữ thông tin liên hệ sẵn sàng và theo dõi cập nhật tiếp theo."
+        },
+        "SHORTLISTED": {
+          "description": "Hồ sơ đã qua bước sàng lọc ban đầu của nhà tuyển dụng.",
+          "nextStep": "Chuẩn bị nội dung giới thiệu bản thân và các dự án liên quan."
+        },
+        "INTERVIEWING": {
+          "description": "Quy trình đã chuyển sang giai đoạn phỏng vấn.",
+          "nextStep": "Rà soát mô tả công việc, công ty và các ví dụ kinh nghiệm cụ thể."
+        },
+        "OFFERED": {
+          "description": "Nhà tuyển dụng đã gửi hoặc đang hoàn tất đề nghị tuyển dụng.",
+          "nextStep": "Đọc kỹ phạm vi công việc, thu nhập, phúc lợi và thời hạn phản hồi."
+        },
+        "HIRED": {
+          "description": "Quy trình tuyển dụng đã hoàn tất với kết quả trúng tuyển.",
+          "nextStep": "Lưu lại thông tin nhận việc và hoàn tất các thủ tục với nhà tuyển dụng."
+        },
+        "REJECTED": {
+          "description": "Nhà tuyển dụng đã kết thúc hồ sơ ở quy trình này.",
+          "nextStep": "Rà soát mức độ phù hợp và tiếp tục với những cơ hội sát mục tiêu hơn."
+        },
+        "WITHDRAWN": {
+          "description": "Bạn đã chủ động rút hồ sơ khỏi quy trình tuyển dụng.",
+          "nextStep": "Hồ sơ này không còn được nhà tuyển dụng tiếp tục xử lý."
+        }
+      },
+      "job": {
+        "title": "Thông tin công việc",
+        "employmentType": "Loại hình",
+        "location": "Địa điểm",
+        "appliedAt": "Ngày ứng tuyển",
+        "unknown": "Chưa cập nhật"
+      },
+      "withdraw": {
+        "title": "Không tiếp tục ứng tuyển?",
+        "description": "Chỉ rút hồ sơ khi bạn chắc chắn không muốn tiếp tục quy trình này.",
+        "action": "Rút hồ sơ",
+        "confirmTitle": "Xác nhận rút hồ sơ",
+        "confirmDescription": "Nhà tuyển dụng sẽ không tiếp tục xử lý hồ sơ này. Thao tác không thể hoàn tác trên UpNext.",
+        "cancel": "Giữ hồ sơ",
+        "confirmAction": "Xác nhận rút",
+        "withdrawing": "Đang rút hồ sơ…",
+        "error": "Chưa thể rút hồ sơ. Trạng thái có thể vừa thay đổi; hãy tải lại và thử lại."
+      }
+    },
+    "savedJobs": {
+      "page": {
+        "title": "Việc đã lưu",
+        "description": "Quản lý shortlist cơ hội của bạn, rà soát mức độ phù hợp và ứng tuyển trước khi tin hết hạn."
+      },
+      "summary": {
+        "label": "Tổng quan việc đã lưu",
+        "total": "Đã lưu",
+        "available": "Còn tuyển",
+        "closed": "Đã đóng"
+      },
+      "list": {
+        "title": "Shortlist của bạn",
+        "count": "{count} việc làm đang hiển thị"
+      },
+      "filters": {
+        "searchLabel": "Tìm trong việc đã lưu",
+        "searchPlaceholder": "Tên vị trí hoặc công ty…",
+        "sortLabel": "Sắp xếp việc đã lưu",
+        "newest": "Lưu gần đây",
+        "oldest": "Lưu lâu nhất",
+        "company": "Tên công ty A–Z"
+      },
+      "card": {
+        "savedAt": "Lưu {date}",
+        "remove": "Bỏ lưu {title}",
+        "viewAndApply": "Xem & ứng tuyển",
+        "unavailable": "Tin đã đóng"
+      },
+      "resume": {
+        "title": "Sẵn sàng ứng tuyển",
+        "description": "CV mặc định đã sẵn sàng. Bạn vẫn nên rà soát nội dung theo từng mô tả công việc.",
+        "missing": "Chưa có CV mặc định",
+        "missingDescription": "Chuẩn bị và chọn CV mặc định trước khi ứng tuyển các cơ hội trong shortlist.",
+        "manage": "Quản lý CV"
+      },
+      "nextStep": {
+        "title": "Trước khi ứng tuyển",
+        "description": "Dành vài phút kiểm tra từng cơ hội thay vì nộp hồ sơ hàng loạt.",
+        "fit": "Đối chiếu kỹ năng bắt buộc với kinh nghiệm thực tế.",
+        "company": "Tìm hiểu sản phẩm, đội ngũ và môi trường công ty.",
+        "deadline": "Kiểm tra hạn tuyển và ưu tiên cơ hội còn phù hợp."
+      },
+      "states": {
+        "errorTitle": "Không thể tải việc đã lưu",
+        "errorDescription": "Danh sách trên tài khoản UpNext chưa tải được. Hãy thử lại để đồng bộ dữ liệu mới nhất.",
+        "emptyTitle": "Shortlist của bạn đang trống",
+        "emptyDescription": "Lưu những công việc thật sự phù hợp để so sánh và quay lại ứng tuyển khi sẵn sàng.",
+        "noResultsTitle": "Không có việc làm khớp từ khóa",
+        "noResultsDescription": "Thử một từ khóa khác hoặc xóa tìm kiếm để xem toàn bộ shortlist."
+      },
+      "feedback": {
+        "removed": "Đã bỏ việc làm khỏi shortlist.",
+        "error": "Không thể cập nhật việc đã lưu. Vui lòng thử lại."
+      }
+    }
+  },
   "CandidateProfile": {
     "content": {
       "page": {

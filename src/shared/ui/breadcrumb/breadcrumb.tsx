@@ -30,7 +30,9 @@ export function Breadcrumb({ items, showHomeIcon = true, className }: Breadcrumb
 
         return (
           <React.Fragment key={index}>
-            {index > 0 && <CaretRight size={10} className="shrink-0 text-slate-400" />}
+            {index > 0 && (
+              <CaretRight aria-hidden="true" size={10} className="shrink-0 text-slate-400" />
+            )}
 
             {isLast ? (
               <span className="max-w-[240px] truncate font-medium text-slate-900 sm:max-w-none">
@@ -39,18 +41,22 @@ export function Breadcrumb({ items, showHomeIcon = true, className }: Breadcrumb
             ) : item.href ? (
               <Link
                 href={item.href}
-                className="flex items-center gap-1.5 transition hover:text-emerald-600 focus-visible:text-emerald-600 focus-visible:outline-none"
+                className="flex items-center gap-1.5 rounded transition-colors hover:text-emerald-600 focus-visible:text-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:outline-none"
               >
-                {isHome && showHomeIcon && <House size={14} className="shrink-0 text-slate-400" />}
+                {isHome && showHomeIcon && (
+                  <House aria-hidden="true" size={14} className="shrink-0 text-slate-400" />
+                )}
                 <span>{item.label}</span>
               </Link>
             ) : (
               <button
                 type="button"
                 onClick={item.onClick}
-                className="flex cursor-pointer items-center gap-1.5 transition hover:text-emerald-600 focus-visible:text-emerald-600 focus-visible:outline-none"
+                className="flex cursor-pointer items-center gap-1.5 rounded transition-colors hover:text-emerald-600 focus-visible:text-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:outline-none"
               >
-                {isHome && showHomeIcon && <House size={14} className="shrink-0 text-slate-400" />}
+                {isHome && showHomeIcon && (
+                  <House aria-hidden="true" size={14} className="shrink-0 text-slate-400" />
+                )}
                 <span>{item.label}</span>
               </button>
             )}
