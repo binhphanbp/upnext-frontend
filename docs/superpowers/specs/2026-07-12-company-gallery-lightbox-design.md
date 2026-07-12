@@ -36,6 +36,7 @@ UpNext emerald is reserved for active thumbnails, focus rings, and deliberate ho
 
 - The stage uses all remaining viewport space and reserves only safe breathing room for the top controls and filmstrip.
 - The image uses `object-fit: contain`, has no frame or dark card, and receives only a restrained shadow.
+- A three-slide track keeps the previous, current, and next images mounted so pointer dragging reveals the adjacent image continuously instead of moving over an empty stage.
 - Previous/next controls are absolutely positioned near the viewport edges and never consume image grid columns.
 - Image changes use a short opacity transition; reduced-motion users get an immediate change.
 - Clicking the empty stage closes the lightbox without treating image, toolbar, navigation, drag, or swipe interactions as backdrop clicks.
@@ -53,8 +54,10 @@ UpNext emerald is reserved for active thumbnails, focus rings, and deliberate ho
 - Previous/next buttons wrap from first to last and last to first.
 - `ArrowLeft`, `ArrowRight`, `Home`, and `End` navigate.
 - `+`, `-`, and `0` control zoom/reset.
-- A deliberate horizontal swipe navigates when the image is at fit scale.
+- Mouse, touch, and pen can drag the three-slide track when the image is at fit scale. The track follows the pointer, commits after a distance/velocity threshold, and otherwise snaps back.
+- Gesture axis locking ignores vertically dominant movement. First/last images use the same wrapping behavior as buttons and keyboard navigation.
 - Zoom supports toolbar control, double-click/tap, pointer pan while enlarged, and reset on image change.
+- When zoom is above fit scale, pointer dragging pans the image and never changes slides.
 - Fullscreen uses the browser Fullscreen API when available and exits cleanly when the dialog closes.
 - Direct thumbnail selection remains available.
 - Escape closes the dialog, focus stays trapped while open, and focus returns to the gallery item that opened it.
@@ -85,6 +88,8 @@ Playwright coverage must verify:
 - navigation to `15/18` centers the active thumbnail
 - first/last wrapping and Arrow/Home/End behavior
 - zoom in/out/reset and reset after image navigation
+- mouse drag follows the pointer, reveals the adjacent slide, commits navigation, and snaps back below threshold
+- touch drag navigation, velocity decision, vertical-axis rejection, and zoom-pan arbitration
 - filmstrip hide/show state
 - Escape closure and opener focus restoration
 - no document horizontal overflow at `390 × 844`

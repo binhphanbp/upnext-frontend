@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -27,6 +27,71 @@ async function backgroundAlpha(locator: Locator) {
 
     return channels.length > 3 ? (channels[3] ?? 1) : 1;
   });
+}
+
+async function dragGalleryStage(
+  page: Page,
+  stage: Locator,
+  deltaX: number,
+  options: { holdMs?: number; steps?: number } = {},
+) {
+  const stageBox = await stage.boundingBox();
+  expect(stageBox).not.toBeNull();
+
+  const startX = stageBox!.x + stageBox!.width / 2;
+  const startY = stageBox!.y + stageBox!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + deltaX, startY, { steps: options.steps ?? 4 });
+
+  if (options.holdMs) {
+    await page.waitForTimeout(options.holdMs);
+  }
+
+  await page.mouse.up();
+}
+
+async function dragGalleryStageWithTouch(page: Page, stage: Locator, deltaX: number) {
+  const stageBox = await stage.boundingBox();
+  expect(stageBox).not.toBeNull();
+
+  const startX = stageBox!.x + stageBox!.width / 2;
+  const startY = stageBox!.y + stageBox!.height / 2;
+  const cdpSession = await page.context().newCDPSession(page);
+
+  try {
+    await cdpSession.send("Emulation.setTouchEmulationEnabled", {
+      enabled: true,
+      maxTouchPoints: 1,
+    });
+    await cdpSession.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: startX, y: startY, id: 1, radiusX: 1, radiusY: 1, force: 1 }],
+    });
+
+    for (let step = 1; step <= 6; step += 1) {
+      await cdpSession.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [
+          {
+            x: startX + (deltaX * step) / 6,
+            y: startY,
+            id: 1,
+            radiusX: 1,
+            radiusY: 1,
+            force: 1,
+          },
+        ],
+      });
+    }
+
+    await cdpSession.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  } finally {
+    await cdpSession.detach();
+  }
 }
 
 test("renders the localized UpNext homepage", async ({ page }) => {
@@ -241,6 +306,72 @@ test("opens company culture gallery with overflow images", async ({ page }) => {
   await expect.soft(galleryOpener).toBeFocused();
 });
 
+test("supports direct drag navigation and keeps zoom drag as pan", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/vi/companies/fpt-software");
+  await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
+
+  const galleryDialog = page.getByRole("dialog", { name: "Ảnh môi trường làm việc" });
+  const stage = galleryDialog.locator(".company-gallery-lightbox-stage");
+  const currentSlide = galleryDialog.locator('[data-gallery-slide="current"]');
+  const nextSlide = galleryDialog.locator('[data-gallery-slide="next"]');
+  await expect(currentSlide).toBeVisible();
+
+  const stageBox = await stage.boundingBox();
+  const currentBoxBeforeDrag = await currentSlide.boundingBox();
+  expect(stageBox).not.toBeNull();
+  expect(currentBoxBeforeDrag).not.toBeNull();
+
+  const startX = stageBox!.x + stageBox!.width / 2;
+  const startY = stageBox!.y + stageBox!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX - 180, startY, { steps: 6 });
+
+  const currentBoxDuringDrag = await currentSlide.boundingBox();
+  const nextBoxDuringDrag = await nextSlide.boundingBox();
+  expect(currentBoxDuringDrag).not.toBeNull();
+  expect(nextBoxDuringDrag).not.toBeNull();
+  expect(currentBoxDuringDrag!.x).toBeLessThan(currentBoxBeforeDrag!.x - 120);
+  expect(nextBoxDuringDrag!.x).toBeLessThan(stageBox!.x + stageBox!.width);
+  expect(nextBoxDuringDrag!.x + nextBoxDuringDrag!.width).toBeGreaterThan(stageBox!.x);
+  await expect(galleryDialog.getByText("3/18")).toBeVisible();
+
+  await page.mouse.up();
+  await expect(galleryDialog.getByText("4/18")).toBeVisible();
+  await expect.poll(async () => (await currentSlide.boundingBox())?.x).toBeCloseTo(stageBox!.x, 0);
+
+  const currentBoxBeforeSnapBack = await currentSlide.boundingBox();
+  expect(currentBoxBeforeSnapBack).not.toBeNull();
+  await dragGalleryStage(page, stage, 36, { holdMs: 260, steps: 6 });
+  await expect(galleryDialog.getByText("4/18")).toBeVisible();
+  await expect
+    .poll(async () => (await currentSlide.boundingBox())?.x)
+    .toBeCloseTo(currentBoxBeforeSnapBack!.x, 0);
+
+  await page.mouse.move(stageBox!.x + 5, stageBox!.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(stageBox!.x + 5, stageBox!.y + 140, { steps: 6 });
+  await page.mouse.up();
+  await expect(galleryDialog).toBeVisible();
+  await expect(galleryDialog.getByText("4/18")).toBeVisible();
+
+  await galleryDialog.getByRole("button", { name: "Phóng to ảnh" }).click();
+  await expect(galleryDialog.getByRole("button", { name: "Đặt lại thu phóng về 100%" })).toHaveText(
+    "125%",
+  );
+
+  const zoomedSlideBoxBeforeDrag = await currentSlide.boundingBox();
+  const zoomedImage = currentSlide.locator("img");
+  const imageTransformBeforePan = await zoomedImage.evaluate((image) => image.style.transform);
+  await dragGalleryStage(page, stage, -160, { steps: 6 });
+  await expect(galleryDialog.getByText("4/18")).toBeVisible();
+  expect((await currentSlide.boundingBox())?.x).toBeCloseTo(zoomedSlideBoxBeforeDrag!.x, 0);
+  expect(await zoomedImage.evaluate((image) => image.style.transform)).not.toBe(
+    imageTransformBeforePan,
+  );
+});
+
 test("keeps the company culture gallery usable on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/vi/companies/fpt-software");
@@ -272,7 +403,11 @@ test("keeps the company culture gallery usable on mobile", async ({ page }) => {
     await expect(control).toBeInViewport();
   }
 
-  for (let imageNumber = 3; imageNumber < 15; imageNumber += 1) {
+  const stage = galleryDialog.locator(".company-gallery-lightbox-stage");
+  await dragGalleryStageWithTouch(page, stage, -90);
+  await expect(galleryDialog.getByText("4/18")).toBeVisible();
+
+  for (let imageNumber = 4; imageNumber < 15; imageNumber += 1) {
     await galleryDialog.getByRole("button", { name: "Xem ảnh tiếp theo" }).click();
   }
 

@@ -14,9 +14,11 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
+  TransitionEvent as ReactTransitionEvent,
 } from "react";
 
 import { ChevronLeft, ChevronRight, X } from "../../home/marketing-icons";
+import { getSlideReleaseDirection } from "./company-gallery-gesture";
 
 type CompanyGalleryDialogProps = {
   activeIndex: number | null;
@@ -31,19 +33,28 @@ type PanPosition = {
 };
 
 type PointerSession = {
+  axis: "horizontal" | "pending" | "vertical";
+  mode: "pan" | "slide";
   pointerId: number;
-  pointerType: string;
   startX: number;
   startY: number;
+  startTime: number;
+  lastX: number;
+  lastTime: number;
+  velocityX: number;
   originPan: PanPosition;
   moved: boolean;
 };
 
+type SlideGesturePhase = "dragging" | "idle" | "settling";
+
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.25;
-const SWIPE_THRESHOLD = 48;
 const DRAG_THRESHOLD = 5;
+const AXIS_LOCK_THRESHOLD = 10;
+const FLICK_SAMPLE_MAX_AGE = 80;
+const SLIDE_SETTLE_DURATION = 220;
 
 function wrapIndex(index: number, imageCount: number) {
   return (index + imageCount) % imageCount;
@@ -66,10 +77,18 @@ export function CompanyGalleryDialog({
   const filmstripId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const filmstripRef = useRef<HTMLDivElement>(null);
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const pointerSessionRef = useRef<PointerSession | null>(null);
+  const trackOffsetRef = useRef(0);
+  const settleActiveRef = useRef(false);
+  const settleDirectionRef = useRef<-1 | 0 | 1>(0);
+  const settleAnimationFrameRef = useRef(0);
+  const settleFallbackRef = useRef<number | null>(null);
+  const resetTrackAfterSelectionRef = useRef(false);
+  const reduceMotionRef = useRef(false);
   const suppressStageCloseRef = useRef(false);
   const focusFilmstripOnSelectionRef = useRef(false);
   const focusReturnRef = useRef<HTMLElement | null>(null);
@@ -77,10 +96,36 @@ export function CompanyGalleryDialog({
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [pan, setPan] = useState<PanPosition>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [slideGesturePhase, setSlideGesturePhase] = useState<SlideGesturePhase>("idle");
   const [showFilmstrip, setShowFilmstrip] = useState(true);
   const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+
+  function clearSlideSettleScheduling() {
+    window.cancelAnimationFrame(settleAnimationFrameRef.current);
+    settleAnimationFrameRef.current = 0;
+
+    if (settleFallbackRef.current !== null) {
+      window.clearTimeout(settleFallbackRef.current);
+      settleFallbackRef.current = null;
+    }
+  }
+
+  function setTrackOffset(offset: number) {
+    trackOffsetRef.current = offset;
+    trackRef.current?.style.setProperty("--gallery-track-offset", `${offset}px`);
+  }
+
+  function resetSlideTrack() {
+    clearSlideSettleScheduling();
+    pointerSessionRef.current = null;
+    settleActiveRef.current = false;
+    settleDirectionRef.current = 0;
+    resetTrackAfterSelectionRef.current = false;
+    setTrackOffset(0);
+    setSlideGesturePhase("idle");
+  }
 
   function resetView() {
     setZoom(MIN_ZOOM);
@@ -118,35 +163,59 @@ export function CompanyGalleryDialog({
     setPan((currentPan) => clampPan(currentPan, clampedZoom));
   }
 
-  function selectImage(index: number) {
+  function selectImage(index: number, preserveSlideTrack = false) {
     if (images.length === 0) {
       return;
     }
 
     const nextIndex = wrapIndex(index, images.length);
+    if (!preserveSlideTrack) {
+      resetSlideTrack();
+    }
     focusFilmstripOnSelectionRef.current =
       nextIndex !== activeIndex && Boolean(filmstripRef.current?.contains(document.activeElement));
     resetView();
     onActiveIndexChange(nextIndex);
   }
 
-  function selectRelativeImage(offset: number) {
+  function selectRelativeImage(offset: number, preserveSlideTrack = false) {
     if (activeIndex === null) {
       return;
     }
 
-    selectImage(activeIndex + offset);
+    selectImage(activeIndex + offset, preserveSlideTrack);
   }
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncReducedMotion = () => {
+      reduceMotionRef.current = mediaQuery.matches;
+    };
+
+    syncReducedMotion();
+    mediaQuery.addEventListener("change", syncReducedMotion);
+
+    return () => mediaQuery.removeEventListener("change", syncReducedMotion);
+  }, []);
+
+  useEffect(
+    () => () => {
+      clearSlideSettleScheduling();
+    },
+    [],
+  );
 
   useEffect(() => {
     const wasClosed = previousActiveIndexRef.current === null;
 
     if (activeIndex !== null && wasClosed) {
       setShowFilmstrip(true);
+      resetSlideTrack();
       resetView();
     }
 
     if (activeIndex === null) {
+      resetSlideTrack();
       resetView();
 
       const fullscreenElement = document.fullscreenElement;
@@ -159,6 +228,10 @@ export function CompanyGalleryDialog({
   }, [activeIndex]);
 
   useLayoutEffect(() => {
+    if (resetTrackAfterSelectionRef.current) {
+      resetSlideTrack();
+    }
+
     if (activeIndex === null || !showFilmstrip) {
       focusFilmstripOnSelectionRef.current = false;
       return;
@@ -303,8 +376,72 @@ export function CompanyGalleryDialog({
     }
   }
 
+  function completeSlideSettle() {
+    if (!settleActiveRef.current) {
+      return;
+    }
+
+    clearSlideSettleScheduling();
+    settleActiveRef.current = false;
+    const direction = settleDirectionRef.current;
+    settleDirectionRef.current = 0;
+
+    if (direction === 0) {
+      setTrackOffset(0);
+      setSlideGesturePhase("idle");
+      return;
+    }
+
+    resetTrackAfterSelectionRef.current = true;
+    selectRelativeImage(direction, true);
+  }
+
+  function settleSlide(direction: -1 | 0 | 1) {
+    const stageWidth = stageRef.current?.clientWidth ?? 0;
+
+    if (reduceMotionRef.current || stageWidth === 0) {
+      if (direction === 0) {
+        resetSlideTrack();
+      } else {
+        selectRelativeImage(direction);
+      }
+      return;
+    }
+
+    clearSlideSettleScheduling();
+    settleActiveRef.current = true;
+    settleDirectionRef.current = direction;
+    setSlideGesturePhase("settling");
+
+    const targetOffset = direction === 0 ? 0 : direction > 0 ? -stageWidth : stageWidth;
+    settleAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      setTrackOffset(targetOffset);
+      settleFallbackRef.current = window.setTimeout(
+        completeSlideSettle,
+        SLIDE_SETTLE_DURATION + 100,
+      );
+    });
+  }
+
+  function handleTrackTransitionEnd(event: ReactTransitionEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget && event.propertyName === "transform") {
+      completeSlideSettle();
+    }
+  }
+
+  function suppressNextStageClick() {
+    suppressStageCloseRef.current = true;
+    window.setTimeout(() => {
+      suppressStageCloseRef.current = false;
+    }, 0);
+  }
+
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) {
+    if (
+      slideGesturePhase === "settling" ||
+      !event.isPrimary ||
+      (event.pointerType === "mouse" && event.button !== 0)
+    ) {
       return;
     }
 
@@ -314,16 +451,21 @@ export function CompanyGalleryDialog({
     }
 
     const canPan = zoom > MIN_ZOOM;
-    const canSwipe = event.pointerType === "touch" && zoom === MIN_ZOOM;
-    if (!canPan && !canSwipe) {
+    const canSlide = zoom === MIN_ZOOM && images.length > 1;
+    if (!canPan && !canSlide) {
       return;
     }
 
     pointerSessionRef.current = {
+      axis: "pending",
+      mode: canPan ? "pan" : "slide",
       pointerId: event.pointerId,
-      pointerType: event.pointerType,
       startX: event.clientX,
       startY: event.clientY,
+      startTime: event.timeStamp,
+      lastX: event.clientX,
+      lastTime: event.timeStamp,
+      velocityX: 0,
       originPan: pan,
       moved: false,
     };
@@ -332,18 +474,52 @@ export function CompanyGalleryDialog({
     if (canPan) {
       event.preventDefault();
       setIsDragging(true);
+    } else if (event.pointerType === "mouse") {
+      event.preventDefault();
     }
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     const session = pointerSessionRef.current;
-    if (!session || session.pointerId !== event.pointerId || zoom <= MIN_ZOOM) {
+    if (!session || session.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const travelX = event.clientX - session.startX;
+    const travelY = event.clientY - session.startY;
+
+    if (session.mode === "slide") {
+      if (session.axis === "pending") {
+        if (Math.hypot(travelX, travelY) < AXIS_LOCK_THRESHOLD) {
+          return;
+        }
+
+        session.axis = Math.abs(travelX) > Math.abs(travelY) ? "horizontal" : "vertical";
+        if (session.axis === "horizontal") {
+          setSlideGesturePhase("dragging");
+        } else {
+          session.moved = true;
+          suppressStageCloseRef.current = true;
+        }
+      }
+
+      if (session.axis !== "horizontal") {
+        return;
+      }
+
+      event.preventDefault();
+      session.moved = true;
+      suppressStageCloseRef.current = true;
+      const sampleDuration = Math.max(1, event.timeStamp - session.lastTime);
+      session.velocityX = (event.clientX - session.lastX) / sampleDuration;
+      session.lastX = event.clientX;
+      session.lastTime = event.timeStamp;
+      const stageWidth = stageRef.current?.clientWidth ?? 0;
+      setTrackOffset(clamp(travelX, -stageWidth, stageWidth));
       return;
     }
 
     event.preventDefault();
-    const travelX = event.clientX - session.startX;
-    const travelY = event.clientY - session.startY;
     if (Math.hypot(travelX, travelY) >= DRAG_THRESHOLD) {
       session.moved = true;
       suppressStageCloseRef.current = true;
@@ -367,36 +543,40 @@ export function CompanyGalleryDialog({
     }
 
     pointerSessionRef.current = null;
-    setIsDragging(false);
-
-    if (session.moved) {
-      window.setTimeout(() => {
-        suppressStageCloseRef.current = false;
-      }, 0);
-    }
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
-    if (cancelled || session.pointerType !== "touch" || zoom > MIN_ZOOM) {
+    if (session.moved) {
+      suppressNextStageClick();
+    }
+
+    if (session.mode === "pan") {
+      setIsDragging(false);
+      return;
+    }
+
+    if (cancelled || session.axis !== "horizontal") {
+      resetSlideTrack();
       return;
     }
 
     const horizontalTravel = event.clientX - session.startX;
     const verticalTravel = event.clientY - session.startY;
-    if (
-      Math.abs(horizontalTravel) < SWIPE_THRESHOLD ||
-      Math.abs(horizontalTravel) <= Math.abs(verticalTravel)
-    ) {
-      return;
-    }
-
-    suppressStageCloseRef.current = true;
-    window.setTimeout(() => {
-      suppressStageCloseRef.current = false;
-    }, 0);
-    selectRelativeImage(horizontalTravel > 0 ? -1 : 1);
+    const stageWidth = stageRef.current?.clientWidth ?? 0;
+    const elapsed = Math.max(1, event.timeStamp - session.startTime);
+    const sampleAge = event.timeStamp - session.lastTime;
+    const velocity =
+      sampleAge <= FLICK_SAMPLE_MAX_AGE ? session.velocityX : horizontalTravel / elapsed;
+    settleSlide(
+      getSlideReleaseDirection({
+        horizontalTravel,
+        verticalTravel,
+        releaseVelocity: velocity,
+        stageWidth,
+      }),
+    );
   }
 
   function pointIsOnImage(clientX: number, clientY: number) {
@@ -466,6 +646,20 @@ export function CompanyGalleryDialog({
   }
 
   const zoomPercentage = Math.round(zoom * 100);
+  const gallerySlides =
+    activeIndex === null || images.length === 0
+      ? []
+      : [
+          {
+            index: wrapIndex(activeIndex - 1, images.length),
+            position: "previous" as const,
+          },
+          { index: activeIndex, position: "current" as const },
+          {
+            index: wrapIndex(activeIndex + 1, images.length),
+            position: "next" as const,
+          },
+        ];
 
   return (
     <DialogPrimitive.Root
@@ -504,8 +698,8 @@ export function CompanyGalleryDialog({
                 {label}
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="company-gallery-lightbox-sr-only">
-                Dùng phím mũi tên, vuốt hoặc dải ảnh thu nhỏ để chuyển ảnh. Dùng các nút thu phóng
-                để xem chi tiết.
+                Dùng phím mũi tên, kéo hoặc vuốt ảnh, hoặc chọn trong dải ảnh thu nhỏ để chuyển ảnh.
+                Dùng các nút thu phóng để xem chi tiết.
               </DialogPrimitive.Description>
 
               <span
@@ -593,28 +787,52 @@ export function CompanyGalleryDialog({
 
               <div
                 ref={stageRef}
-                className={`company-gallery-lightbox-stage${isDragging ? " is-dragging" : ""}${zoom > MIN_ZOOM ? " is-zoomed" : ""}`}
+                className={`company-gallery-lightbox-stage${isDragging ? " is-dragging" : ""}${zoom > MIN_ZOOM ? " is-zoomed" : ""}${slideGesturePhase === "dragging" ? " is-slide-dragging" : ""}${slideGesturePhase === "settling" ? " is-slide-settling" : ""}`}
+                data-gallery-gesture={slideGesturePhase}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={(event) => finishPointerSession(event)}
                 onPointerCancel={(event) => finishPointerSession(event, true)}
               >
-                <Image
-                  key={activeIndex}
-                  ref={imageRef}
-                  className="company-gallery-lightbox-image"
-                  src={images[activeIndex]}
-                  alt={`Môi trường làm việc ${activeIndex + 1}`}
-                  fill
-                  sizes="100vw"
-                  priority
-                  draggable={false}
-                  onLoad={() => setImageFailed(false)}
-                  onError={() => setImageFailed(true)}
-                  style={{
-                    transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
-                  }}
-                />
+                <div
+                  ref={trackRef}
+                  className="company-gallery-lightbox-track"
+                  onTransitionEnd={handleTrackTransitionEnd}
+                >
+                  {gallerySlides.map(({ index, position }) => {
+                    const isCurrent = position === "current";
+
+                    return (
+                      <div
+                        key={`${position}-${index}`}
+                        className={`company-gallery-lightbox-slide is-${position}`}
+                        data-gallery-slide={position}
+                        aria-hidden={isCurrent ? undefined : "true"}
+                      >
+                        <Image
+                          ref={isCurrent ? imageRef : undefined}
+                          className="company-gallery-lightbox-image"
+                          src={images[index]!}
+                          alt={isCurrent ? `Môi trường làm việc ${index + 1}` : ""}
+                          fill
+                          sizes="100vw"
+                          priority={isCurrent}
+                          loading={isCurrent ? undefined : "eager"}
+                          draggable={false}
+                          onLoad={isCurrent ? () => setImageFailed(false) : undefined}
+                          onError={isCurrent ? () => setImageFailed(true) : undefined}
+                          style={
+                            isCurrent
+                              ? {
+                                  transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+                                }
+                              : undefined
+                          }
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
                 {imageFailed ? (
                   <output
                     className="company-gallery-lightbox-error"

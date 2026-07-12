@@ -9,6 +9,7 @@ Build a custom, flat full-viewport company gallery with a translucent UpNext ove
 ### 1. Lock behavior with Playwright
 
 - Extend the company-gallery tests for translucent overlay, toolbar controls, zoom/reset, filmstrip visibility, wrap navigation, focus restoration, and mobile viewport geometry.
+- Cover mouse and touch drag, adjacent-slide reveal, below-threshold snap-back, velocity decisions, and zoom-pan arbitration.
 - Preserve the regression that navigates to image `15/18` and confirms its active thumbnail is fully visible.
 - Confirm the old/first-redesign behavior fails at least one of the new flat-layout or toolbar assertions before implementation.
 
@@ -19,6 +20,8 @@ Build a custom, flat full-viewport company gallery with a translucent UpNext ove
 - Make Content full viewport and visually hide Title/Description.
 - Consolidate navigation paths through wrap-aware helpers.
 - Add zoom controls, fit reset, pointer pan, double-click/tap zoom, fullscreen state, and filmstrip visibility.
+- Render a dependency-free previous/current/next track and drive it with unified Pointer Events at fit scale.
+- Use axis locking plus distance/velocity release decisions; reserve pointer dragging for pan whenever zoom is above fit scale.
 - Reset view state on image changes and close.
 - Center the active thumbnail on selection and resize.
 
