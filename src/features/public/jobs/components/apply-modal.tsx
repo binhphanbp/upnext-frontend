@@ -36,6 +36,8 @@ type ApplyModalProps = Readonly<{
   };
 }>;
 
+const looseUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
 export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,7 +65,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     refetch: refetchCvs,
   } = useQuery({
     queryKey: ["candidate-cvs", session?.user.id],
-    queryFn: () => getMyCandidateCvs(session!.accessToken, session!.user.id),
+    queryFn: () => getMyCandidateCvs(session!.accessToken),
     enabled: !!session && mounted,
   });
 
@@ -97,6 +99,17 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     }
   }, [profileData]);
 
+  const selectedCvVersionId = useMemo(() => {
+    const selectedCv = cvsData?.items.find((cv) => cv.id === selectedCvId);
+    if (!selectedCv) return null;
+
+    return (
+      [...selectedCv.versions].sort(
+        (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+      )[0]?.id ?? null
+    );
+  }, [cvsData, selectedCvId]);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !session) return;
@@ -108,7 +121,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       // 1. Upload file
       const uploadRes = await uploadCandidateCvFile(file, session.accessToken);
       // 2. Create CV record
-      const cvRes = await createCandidateCv(session.accessToken, session.user.id, {
+      const cvRes = await createCandidateCv(session.accessToken, {
         title: file.name,
         source: "UPLOAD",
         sourceFileId: uploadRes.file.id,
@@ -127,7 +140,14 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!session) return;
+    if (!session || !selectedCvVersionId) return;
+
+    if (!looseUuidPattern.test(job.id)) {
+      setErrorMessage(
+        "Tin tuyển dụng này không còn khả dụng. Vui lòng chọn một tin tuyển dụng khác.",
+      );
+      return;
+    }
 
     setSubmitting(true);
     setErrorMessage(null);
@@ -135,16 +155,13 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     try {
       await submitApplication(session.accessToken, {
         jobPostId: job.id,
-        candidateAccountId: session.user.id,
-        cvId: selectedCvId,
+        cvVersionId: selectedCvVersionId,
         coverLetter: coverLetter || null,
       });
       setIsSuccess(true);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to submit application", err);
-      // Staging might fail, fall back to success for demonstration if staging rejects
-      console.warn("Staging endpoint error, falling back to mock success for demo");
-      setIsSuccess(true);
+      setErrorMessage("Không thể nộp hồ sơ. Vui lòng kiểm tra lại thông tin và thử lại.");
     } finally {
       setSubmitting(false);
     }
@@ -396,7 +413,9 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
               </Button>
               <Button
                 type="submit"
-                disabled={submitting || uploading || !selectedCvId || !phoneNumber || !fullName}
+                disabled={
+                  submitting || uploading || !selectedCvVersionId || !phoneNumber || !fullName
+                }
                 className="w-full cursor-pointer rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? (

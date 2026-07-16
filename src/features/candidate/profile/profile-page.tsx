@@ -340,7 +340,6 @@ export function CandidateProfilePage() {
           {activeSection === "documents" && (
             <ProfileDocuments
               accessToken={session.accessToken}
-              candidateAccountId={profile.candidateAccountId}
               cvs={cvs}
               isError={cvsQuery.isError}
               isLoading={cvsQuery.isLoading}

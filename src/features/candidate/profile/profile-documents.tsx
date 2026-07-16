@@ -39,7 +39,6 @@ type RunCvMutation = <TResult>(
 
 type ProfileDocumentsProps = Readonly<{
   accessToken: string;
-  candidateAccountId: string;
   cvs: CandidateCvApi[];
   isError: boolean;
   isLoading: boolean;
@@ -50,7 +49,6 @@ type ProfileDocumentsProps = Readonly<{
 
 export function ProfileDocuments({
   accessToken,
-  candidateAccountId,
   cvs,
   isError,
   isLoading,
@@ -68,6 +66,7 @@ export function ProfileDocuments({
   const [isUploading, setIsUploading] = useState(false);
   const [pendingDefaultId, setPendingDefaultId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
 
   const chooseFile = (file: File | undefined) => {
     setFeedback(null);
@@ -114,7 +113,7 @@ export function ProfileDocuments({
     try {
       await mutateCvs(async (token) => {
         const upload = await uploadCandidateCvFile(selectedFile, token);
-        return createCandidateCv(token, candidateAccountId, {
+        return createCandidateCv(token, {
           isDefault: !cvs.some((cv) => cv.isDefault),
           source: "UPLOAD",
           sourceFileId: upload.file.id,
@@ -145,9 +144,7 @@ export function ProfileDocuments({
   };
 
   const download = async (cv: CandidateCvApi) => {
-    const version = [...cv.versions].sort(
-      (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
-    )[0];
+    const version = getLatestCvVersion(cv);
     if (!version) {
       setFeedback(t("documents.downloadUnavailable"));
       return;
@@ -173,6 +170,39 @@ export function ProfileDocuments({
       setFeedback(t("documents.downloadUnavailable"));
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const preview = async (cv: CandidateCvApi) => {
+    const version = getLatestCvVersion(cv);
+    if (!version) {
+      setFeedback(t("documents.downloadUnavailable"));
+      return;
+    }
+
+    const previewWindow = window.open("about:blank", "_blank");
+    if (!previewWindow) {
+      setFeedback(t("documents.downloadUnavailable"));
+      return;
+    }
+    previewWindow.opener = null;
+
+    setPreviewingId(cv.id);
+    setFeedback(null);
+    try {
+      const response = await fetch(createApiUrl(`/cv-versions/${version.id}/download`), {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) throw new Error("CV preview failed");
+
+      const objectUrl = URL.createObjectURL(await response.blob());
+      previewWindow.location.replace(objectUrl);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5 * 60 * 1000);
+    } catch {
+      previewWindow.close();
+      setFeedback(t("documents.downloadUnavailable"));
+    } finally {
+      setPreviewingId(null);
     }
   };
 
@@ -367,7 +397,14 @@ export function ProfileDocuments({
                       </span>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate text-sm font-bold text-slate-950">{cv.title}</p>
+                          <button
+                            type="button"
+                            className="hover:text-accent-foreground max-w-full cursor-pointer truncate text-left text-sm font-bold text-slate-950 underline-offset-4 hover:underline disabled:cursor-wait disabled:opacity-60"
+                            disabled={previewingId === cv.id}
+                            onClick={() => void preview(cv)}
+                          >
+                            {cv.title}
+                          </button>
                           {cv.isDefault && (
                             <span className="bg-brand-muted text-accent-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold">
                               <Star aria-hidden="true" size={12} weight="fill" />
@@ -437,6 +474,12 @@ export function ProfileDocuments({
       </div>
     </section>
   );
+}
+
+function getLatestCvVersion(cv: CandidateCvApi) {
+  return [...cv.versions].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  )[0];
 }
 
 function formatFileSize(bytes: number, locale: string) {

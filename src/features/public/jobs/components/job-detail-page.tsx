@@ -222,7 +222,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
       };
     });
 
-    return [...mapped, ...jobs];
+    return mapped;
   }, [apiJobsData]);
 
   const job = jobsList.find((item) => item.id === jobId) ?? fallbackJob;

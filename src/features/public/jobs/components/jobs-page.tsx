@@ -552,7 +552,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
       };
     });
 
-    return [...mapped, ...staticJobs];
+    return mapped;
   }, [apiJobsData, locale]);
 
   const locationsList = useMemo(() => {

@@ -446,7 +446,7 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
   const jobs = useMemo(() => {
     if (!apiJobsData || apiJobsData.length === 0) return staticJobs;
     const mapped = apiJobsData.map((job, idx) => mapPublicJobToJobCard(job, idx));
-    return [...mapped, ...staticJobs];
+    return mapped;
   }, [apiJobsData]);
 
   const filtered = useMemo(() => {

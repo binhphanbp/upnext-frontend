@@ -335,9 +335,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
       };
     });
 
-    if (mapped.length < 4) {
-      return [...mapped, ...urgentJobs.slice(0, 4 - mapped.length)];
-    }
     return mapped;
   }, [apiJobsData]);
 
