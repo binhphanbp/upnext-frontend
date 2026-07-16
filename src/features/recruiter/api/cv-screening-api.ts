@@ -33,6 +33,8 @@ export interface CvScreeningResultItem {
   jobTitle: string;
   finalScore: number;
   semanticScore: number;
+  skillMatchScore: number;
+  retrievalScore: number;
   aiScore: number;
   skillScore: number;
   experienceScore: number;
@@ -51,6 +53,8 @@ export interface ApplicationAiScoreResponse {
   jobTitle: string;
   finalScore: number;
   semanticScore: number;
+  skillMatchScore: number;
+  retrievalScore: number;
   aiScore: number;
   skillScore: number;
   experienceScore: number;

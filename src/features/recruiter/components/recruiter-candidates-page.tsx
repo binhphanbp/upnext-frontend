@@ -1005,6 +1005,15 @@ function CvRankingTable({
     startScreening,
   } = cvScreening;
 
+  // Pre-calculate retrieval ranks for pre-screening display
+  const retrievalSorted = [...results].sort(
+    (a, b) => (b.retrievalScore || 0) - (a.retrievalScore || 0),
+  );
+  const getRetrievalRank = (applicationId: string) => {
+    const idx = retrievalSorted.findIndex((r) => r.applicationId === applicationId);
+    return idx !== -1 ? idx + 1 : "-";
+  };
+
   useEffect(() => {
     if (!activeApplicationId || !token) {
       setAiScoreDetail(null);
@@ -1286,6 +1295,9 @@ function CvRankingTable({
             <th className="w-16 border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Hạng" : "Rank"}
             </th>
+            <th className="w-[110px] min-w-[100px] border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
+              {locale === "vi" ? "Hạng sơ tuyển" : "Pre-screen Rank"}
+            </th>
             <th className="w-[160px] min-w-[150px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Ứng viên" : "Candidate"}
             </th>
@@ -1294,6 +1306,12 @@ function CvRankingTable({
             </th>
             <th className="min-w-[280px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Lý do phù hợp / summary" : "Matching Summary"}
+            </th>
+            <th className="w-[100px] min-w-[90px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+              {locale === "vi" ? "Khớp kỹ năng" : "Skill Match"}
+            </th>
+            <th className="w-[110px] min-w-[100px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+              {locale === "vi" ? "Điểm lọc hybrid" : "Hybrid Score"}
             </th>
             <th className="w-[120px] min-w-[120px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Độ phù hợp" : "AI Score"}
@@ -1306,7 +1324,7 @@ function CvRankingTable({
         <tbody>
           {isRunning ? (
             <tr>
-              <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
+              <td colSpan={9} className="px-4 !py-16 text-center text-sm text-slate-500">
                 <div className="flex flex-col items-center justify-center space-y-4">
                   <CircleNotch className="size-10 animate-spin text-emerald-600" />
                   <div className="space-y-1">
@@ -1337,7 +1355,7 @@ function CvRankingTable({
             </tr>
           ) : error ? (
             <tr>
-              <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
+              <td colSpan={9} className="px-4 !py-16 text-center text-sm text-slate-500">
                 <div className="flex flex-col items-center justify-center space-y-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
                     <WarningCircle size={24} />
@@ -1359,7 +1377,7 @@ function CvRankingTable({
             </tr>
           ) : !hasFiltered ? (
             <tr>
-              <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
+              <td colSpan={9} className="px-4 !py-16 text-center text-sm text-slate-500">
                 <div className="flex flex-col items-center justify-center">
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
                     <MagnifyingGlass size={28} />
@@ -1377,7 +1395,7 @@ function CvRankingTable({
             </tr>
           ) : results.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 !py-12 text-center text-sm text-slate-500">
+              <td colSpan={9} className="px-4 !py-12 text-center text-sm text-slate-500">
                 {locale === "vi"
                   ? "Không tìm thấy ứng viên nào đạt điểm lọc."
                   : "No candidates found."}
@@ -1397,6 +1415,11 @@ function CvRankingTable({
                     )}
                   >
                     #{index + 1}
+                  </span>
+                </td>
+                <td className="w-[110px] min-w-[100px] border-r border-slate-100/50 px-4 py-2.5 text-center last:border-r-0">
+                  <span className="inline-flex size-6 items-center justify-center rounded-full border border-indigo-200 bg-indigo-50 text-[10px] font-bold tracking-tight text-indigo-700">
+                    #{getRetrievalRank(cand.applicationId)}
                   </span>
                 </td>
                 <td className="w-[160px] min-w-[150px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
@@ -1426,6 +1449,26 @@ function CvRankingTable({
                       )}
                     </div>
                   </div>
+                </td>
+                <td className="w-[100px] min-w-[90px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 rounded-md font-extrabold border text-[10px] leading-none shrink-0 inline-block",
+                      getScoreColorClass(cand.skillMatchScore),
+                    )}
+                  >
+                    {cand.skillMatchScore}%
+                  </span>
+                </td>
+                <td className="w-[110px] min-w-[100px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 rounded-md font-extrabold border text-[10px] leading-none shrink-0 inline-block",
+                      getScoreColorClass(cand.retrievalScore),
+                    )}
+                  >
+                    {cand.retrievalScore}%
+                  </span>
                 </td>
                 <td className="w-[120px] min-w-[120px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
                   <div className="w-full space-y-1">
