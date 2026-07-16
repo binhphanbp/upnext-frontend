@@ -619,14 +619,8 @@ export function createSkillOption(name: string) {
   });
 }
 
-export function getMyCandidateCvs(
-  token: string,
-  candidateAccountId: string,
-  page = 1,
-  limit = 100,
-) {
+export function getMyCandidateCvs(token: string, page = 1, limit = 100) {
   const params = new URLSearchParams({
-    candidateAccountId,
     limit: String(limit),
     page: String(page),
   });
@@ -716,7 +710,6 @@ export function uploadCandidateCvFile(file: File, token: string) {
 
 export function createCandidateCv(
   token: string,
-  candidateAccountId: string,
   payload: {
     title: string;
     source: "UPLOAD" | "BUILDER";
@@ -724,8 +717,7 @@ export function createCandidateCv(
     sourceFileId?: string;
   },
 ) {
-  const params = new URLSearchParams({ candidateAccountId });
-  return apiRequest<CandidateCvApi>(`/cvs?${params.toString()}`, {
+  return apiRequest<CandidateCvApi>("/cvs", {
     body: JSON.stringify(payload),
     headers: {
       ...authHeaders(token),
@@ -739,8 +731,7 @@ export function submitApplication(
   token: string,
   payload: {
     jobPostId: string;
-    candidateAccountId: string;
-    cvId?: string | null;
+    cvVersionId: string;
     coverLetter?: string | null;
   },
 ) {
