@@ -72,6 +72,7 @@ export type CompanyDetail = Readonly<{
   status: string;
   verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
   businessLicenseFileId: string | null;
+  reputationScore: string;
   logoFileId?: string | null;
   logoFile?: {
     id: string;

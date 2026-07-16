@@ -9,6 +9,7 @@ type SearchInputProps = Readonly<{
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  inputClassName?: string;
 }>;
 
 export function SearchInput({
@@ -16,6 +17,7 @@ export function SearchInput({
   onChange,
   placeholder = "Search...",
   className,
+  inputClassName,
 }: SearchInputProps) {
   return (
     <div className={cn("relative flex items-center w-full", className)}>
@@ -24,7 +26,10 @@ export function SearchInput({
         value={value}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 w-full rounded-lg border-slate-200 bg-white pl-9 text-slate-700 placeholder:text-slate-400"
+        className={cn(
+          "h-10 w-full rounded-lg border-slate-200 bg-white pl-9 text-slate-700 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:border-emerald-500",
+          inputClassName,
+        )}
       />
     </div>
   );

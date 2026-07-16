@@ -134,8 +134,8 @@ export function RecruiterRoleFormPage({ mode, roleId }: RecruiterRoleFormPagePro
         if (!account.company?.id) {
           void Swal.fire({
             icon: "warning",
-            title: t("companyProfile.errors.noProfileTitle"),
-            text: t("companyProfile.errors.noProfileText"),
+            title: t("onboarding.companyProfile.errors.noProfileTitle"),
+            text: t("onboarding.companyProfile.errors.noProfileText"),
           });
           router.replace("/recruiter");
           return;
