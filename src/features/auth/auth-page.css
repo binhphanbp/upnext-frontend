@@ -23,20 +23,22 @@
 .login-showcase::after {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 1;
   content: "";
-  background: linear-gradient(120deg, rgb(0 83 68 / 0.18), transparent 55%);
+  background: linear-gradient(120deg, rgb(0 83 68 / 0.05), transparent 58%);
 }
 
 .login-showcase-pattern {
-  z-index: -2;
+  z-index: 0;
   object-fit: cover;
   mix-blend-mode: screen;
-  opacity: 0.14;
-  transform: scale(1.06);
+  opacity: 0.78;
+  transform: scale(1.03);
 }
 
 .login-showcase-content {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -47,22 +49,9 @@
   color: #fff;
 }
 
-.login-showcase-eyebrow,
-.login-showcase-candidate-label {
-  width: fit-content;
-  border: 1px solid rgb(255 255 255 / 0.3);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.1);
-  padding: 7px 11px;
-  color: rgb(255 255 255 / 0.86);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-}
-
 .login-showcase-heading {
   max-width: 500px;
-  margin: 28px 0 14px;
+  margin: 0 0 14px;
   font-size: clamp(40px, 3.45vw, 52px);
   font-weight: 750;
   letter-spacing: -0.052em;
@@ -79,16 +68,19 @@
   line-height: 1.55;
 }
 
-.login-showcase-candidate-label {
-  margin-top: 32px;
-  font-size: 10px;
+.login-showcase-brand {
+  width: 216px;
+  height: 50px;
+  margin-top: 50px;
+  overflow: hidden;
 }
 
 .login-showcase-wordmark {
-  width: 174px;
-  height: auto;
-  margin-top: 36px;
-  object-fit: contain;
+  display: block;
+  width: 300px;
+  max-width: none;
+  height: 300px;
+  transform: translate(-38px, -126px);
 }
 
 .login-auth {
@@ -102,7 +94,7 @@
 }
 
 .login-logo {
-  display: inline-flex;
+  display: none;
   width: fit-content;
   border-radius: 8px;
 }
@@ -130,7 +122,7 @@
 }
 
 .login-subtitle {
-  margin: 10px 0 30px;
+  margin: 10px 0 24px;
   color: #64748b;
   font-size: 15px;
   line-height: 1.55;
@@ -141,15 +133,82 @@
   flex-direction: column;
 }
 
+.login-social-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.login-social-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+  touch-action: manipulation;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+
+.login-social-button-google {
+  background: #0da678;
+}
+
+.login-social-button-google:hover {
+  background: #078b65;
+  box-shadow: 0 8px 18px rgb(13 166 120 / 0.18);
+  transform: translateY(-1px);
+}
+
+.login-social-button-github {
+  background: #182033;
+}
+
+.login-social-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.login-social-button svg {
+  flex: none;
+}
+
+.login-email-divider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin: 24px 0;
+  color: #94a3b8;
+}
+
+.login-email-divider span {
+  height: 1px;
+  background: #dbe3ec;
+}
+
+.login-email-divider p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1;
+}
+
 .login-field {
   min-width: 0;
   margin: 0 0 18px;
 }
 
 .login-password-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  display: block;
 }
 
 .login-password-grid .login-field {
@@ -306,7 +365,8 @@
 .login-logo:focus-visible,
 .login-switch a:focus-visible,
 .login-eye:focus-visible,
-.login-submit:focus-visible {
+.login-submit:focus-visible,
+.login-social-button:focus-visible {
   outline: 3px solid rgb(16 185 129 / 0.34);
   outline-offset: 3px;
 }
@@ -324,6 +384,10 @@
   .login-auth {
     min-height: 100svh;
     padding-inline: clamp(24px, 8vw, 64px);
+  }
+
+  .login-logo {
+    display: inline-flex;
   }
 }
 
@@ -350,23 +414,37 @@
   }
 
   .login-password-grid {
-    grid-template-columns: 1fr;
-    gap: 0;
+    display: block;
   }
 
   .login-password-grid .login-field {
     margin-bottom: 18px;
+  }
+
+  .login-social-actions {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .login-input,
   .login-eye,
-  .login-submit {
+  .login-submit,
+  .login-social-button {
     transition: none;
   }
 
-  .login-submit:hover:not(:disabled) {
+  .login-submit:hover:not(:disabled),
+  .login-social-button-google:hover {
     transform: none;
   }
+}
+
+.login-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

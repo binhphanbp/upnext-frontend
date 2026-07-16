@@ -390,14 +390,20 @@
       "employerCta": "For employers"
     },
     "showcase": {
-      "eyebrow": "THE IT CAREER PLATFORM",
       "title": "Find the right IT role. Build your next chapter.",
-      "description": "Discover opportunities that match your skills, experience, and career direction.",
-      "candidateLabel": "Built for technology talent"
+      "description": "Discover opportunities that match your skills, experience, and career direction."
     },
     "social": {
       "google": "Continue with Google",
-      "github": "Continue with GitHub"
+      "github": "Continue with GitHub",
+      "githubUnavailable": "GitHub sign-in will be available when the authentication service is ready."
+    },
+    "oauth": {
+      "processingTitle": "Completing your sign-in",
+      "processingDescription": "Please wait a moment…",
+      "failedTitle": "We could not complete your sign-in",
+      "failedDescription": "This sign-in link is invalid or has expired. Please try again.",
+      "returnToLogin": "Back to login"
     },
     "fields": {
       "fullName": "Full name",
@@ -414,6 +420,9 @@
       "ariaLabel": "Log in to UpNext",
       "title": "Welcome back",
       "subtitle": "Log in to continue your career journey.",
+      "google": "Log in with Google",
+      "github": "Log in with GitHub",
+      "emailDivider": "or log in with email",
       "forgotPassword": "Forgot password?",
       "submit": "Log in",
       "submitting": "Logging in…",
@@ -424,6 +433,9 @@
       "ariaLabel": "Sign up for UpNext",
       "title": "Create your account",
       "subtitle": "Start finding IT opportunities that fit you.",
+      "google": "Sign up with Google",
+      "github": "Sign up with GitHub",
+      "emailDivider": "or sign up with email",
       "submit": "Create account",
       "submitting": "Creating account…",
       "loginPrompt": "Already have an account?",

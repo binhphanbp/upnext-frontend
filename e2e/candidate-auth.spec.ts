@@ -27,8 +27,10 @@ test("logs a candidate in through the API and stores the returned session", asyn
   await page.waitForTimeout(250);
 
   await expect(page.getByRole("heading", { name: "Chào mừng trở lại" })).toBeVisible();
-  await expect(page.getByRole("img", { name: "UpNext" })).toBeVisible();
   await expect(page.locator(".login-showcase")).toBeVisible();
+  await expect(page.locator(".login-showcase-brand")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đăng nhập với Google" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đăng nhập với GitHub" })).toBeDisabled();
 
   await page.getByLabel("Email").fill("minh.anh@example.com");
   await page.getByLabel("Mật khẩu", { exact: true }).fill("correct-password");
@@ -47,6 +49,41 @@ test("logs a candidate in through the API and stores the returned session", asyn
       })),
     )
     .toEqual({ accessToken: candidateSession.accessToken, role: "candidate" });
+});
+
+test("starts the supported Google OAuth flow from the candidate login", async ({ page }) => {
+  await page.route("**/candidate/auth/google", async (route) => {
+    await route.fulfill({ body: "Google OAuth started", contentType: "text/plain", status: 200 });
+  });
+
+  await page.goto("/vi/login");
+  await page.waitForTimeout(250);
+  await page.getByRole("button", { name: "Đăng nhập với Google" }).click();
+
+  await expect(page).toHaveURL(/\/candidate\/auth\/google$/);
+});
+
+test("stores the candidate session after the Google OAuth callback", async ({ page }) => {
+  const callbackToken = [
+    "header",
+    Buffer.from(
+      JSON.stringify({
+        sub: "11111111-1111-4111-8111-111111111111",
+        email: "minh.anh@example.com",
+        role: "CANDIDATE",
+      }),
+    )
+      .toString("base64")
+      .replace(/=/g, ""),
+    "signature",
+  ].join(".");
+
+  await page.goto(`/vi/candidate/auth/callback?token=${callbackToken}`);
+
+  await expect(page).toHaveURL(/\/vi\/candidate\/profile$/);
+  await expect
+    .poll(() => page.evaluate(() => window.localStorage.getItem("upnext.candidate.accessToken")))
+    .toBe(callbackToken);
 });
 
 test("validates registration before sending the API request and submits the required payload", async ({

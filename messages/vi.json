@@ -390,14 +390,20 @@
       "employerCta": "Dành cho nhà tuyển dụng"
     },
     "showcase": {
-      "eyebrow": "NỀN TẢNG VIỆC LÀM IT",
       "title": "Tìm đúng việc IT. Bật tăng sự nghiệp.",
-      "description": "Khám phá cơ hội phù hợp với kỹ năng, kinh nghiệm và định hướng phát triển của bạn.",
-      "candidateLabel": "Dành cho ứng viên công nghệ"
+      "description": "Khám phá cơ hội phù hợp với kỹ năng, kinh nghiệm và định hướng phát triển của bạn."
     },
     "social": {
       "google": "Tiếp tục với Google",
-      "github": "Tiếp tục với GitHub"
+      "github": "Tiếp tục với GitHub",
+      "githubUnavailable": "Đăng nhập bằng GitHub sẽ khả dụng khi dịch vụ xác thực được hoàn tất."
+    },
+    "oauth": {
+      "processingTitle": "Đang hoàn tất đăng nhập",
+      "processingDescription": "Vui lòng chờ trong giây lát…",
+      "failedTitle": "Không thể hoàn tất đăng nhập",
+      "failedDescription": "Liên kết đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.",
+      "returnToLogin": "Quay lại đăng nhập"
     },
     "fields": {
       "fullName": "Họ và tên",
@@ -414,6 +420,9 @@
       "ariaLabel": "Đăng nhập UpNext",
       "title": "Chào mừng trở lại",
       "subtitle": "Đăng nhập để tiếp tục hành trình sự nghiệp của bạn.",
+      "google": "Đăng nhập với Google",
+      "github": "Đăng nhập với GitHub",
+      "emailDivider": "hoặc đăng nhập bằng email",
       "forgotPassword": "Quên mật khẩu?",
       "submit": "Đăng nhập",
       "submitting": "Đang đăng nhập…",
@@ -424,6 +433,9 @@
       "ariaLabel": "Đăng ký UpNext",
       "title": "Tạo tài khoản",
       "subtitle": "Bắt đầu tìm những cơ hội IT phù hợp với bạn.",
+      "google": "Đăng ký với Google",
+      "github": "Đăng ký với GitHub",
+      "emailDivider": "hoặc đăng ký bằng email",
       "submit": "Tạo tài khoản",
       "submitting": "Đang tạo tài khoản…",
       "loginPrompt": "Đã có tài khoản?",

@@ -1,7 +1,15 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { EnvelopeSimple, Eye, EyeSlash, LockKey, User } from "@phosphor-icons/react";
+import {
+  EnvelopeSimple,
+  Eye,
+  EyeSlash,
+  GithubLogo,
+  GoogleLogo,
+  LockKey,
+  User,
+} from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState } from "react";
@@ -11,7 +19,7 @@ import { loginCandidate, registerCandidate } from "@/features/candidate/api/auth
 import { saveCandidateSession } from "@/features/candidate/session";
 import { upnextLogo } from "@/features/public/home/brand";
 import { Link, useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/shared/api/http";
+import { ApiError, createApiUrl } from "@/shared/api/http";
 
 import "./auth-page.css";
 import {
@@ -87,6 +95,13 @@ function LoginPage() {
       <div className="login-auth-inner">
         <h1 className="login-title">{t("login.title")}</h1>
         <p className="login-subtitle">{t("login.subtitle")}</p>
+
+        <SocialAuthOptions
+          dividerLabel={t("login.emailDivider")}
+          googleLabel={t("login.google")}
+          githubLabel={t("login.github")}
+          githubUnavailableLabel={t("social.githubUnavailable")}
+        />
 
         <form
           className="login-form"
@@ -206,6 +221,13 @@ function RegisterPage() {
       <div className="login-auth-inner">
         <h1 className="login-title">{t("register.title")}</h1>
         <p className="login-subtitle">{t("register.subtitle")}</p>
+
+        <SocialAuthOptions
+          dividerLabel={t("register.emailDivider")}
+          googleLabel={t("register.google")}
+          githubLabel={t("register.github")}
+          githubUnavailableLabel={t("social.githubUnavailable")}
+        />
 
         <form
           className="login-form"
@@ -349,17 +371,17 @@ function AuthShell({ label, children }: Readonly<{ label: string; children: Reac
           className="login-showcase-pattern"
         />
         <div className="login-showcase-content">
-          <span className="login-showcase-eyebrow">{t("showcase.eyebrow")}</span>
           <p className="login-showcase-heading">{t("showcase.title")}</p>
           <p className="login-showcase-description">{t("showcase.description")}</p>
-          <span className="login-showcase-candidate-label">{t("showcase.candidateLabel")}</span>
-          <Image
-            src={upnextLogo.whiteWordmark}
-            alt=""
-            width={174}
-            height={42}
-            className="login-showcase-wordmark"
-          />
+          <div className="login-showcase-brand">
+            <Image
+              src={upnextLogo.whiteWordmark}
+              alt=""
+              width={300}
+              height={300}
+              className="login-showcase-wordmark"
+            />
+          </div>
         </div>
       </aside>
 
@@ -370,6 +392,51 @@ function AuthShell({ label, children }: Readonly<{ label: string; children: Reac
         {children}
       </section>
     </main>
+  );
+}
+
+function SocialAuthOptions({
+  dividerLabel,
+  googleLabel,
+  githubLabel,
+  githubUnavailableLabel,
+}: Readonly<{
+  dividerLabel: string;
+  googleLabel: string;
+  githubLabel: string;
+  githubUnavailableLabel: string;
+}>) {
+  return (
+    <>
+      <div className="login-social-actions">
+        <button
+          type="button"
+          className="login-social-button login-social-button-google"
+          onClick={() => window.location.assign(createApiUrl("candidate/auth/google"))}
+        >
+          <GoogleLogo size={18} weight="bold" aria-hidden="true" />
+          <span>{googleLabel}</span>
+        </button>
+        <button
+          type="button"
+          className="login-social-button login-social-button-github"
+          disabled
+          aria-describedby="github-auth-availability"
+          title={githubUnavailableLabel}
+        >
+          <GithubLogo size={18} weight="fill" aria-hidden="true" />
+          <span>{githubLabel}</span>
+        </button>
+      </div>
+      <span id="github-auth-availability" className="login-visually-hidden">
+        {githubUnavailableLabel}
+      </span>
+      <div className="login-email-divider" aria-hidden="true">
+        <span />
+        <p>{dividerLabel}</p>
+        <span />
+      </div>
+    </>
   );
 }
 
