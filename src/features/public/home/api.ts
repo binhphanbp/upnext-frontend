@@ -30,6 +30,12 @@ export interface PublicJob {
       address?: string | null;
     };
   }>;
+  jobPostSkills?: Array<{
+    skill: {
+      id: string;
+      name: string;
+    };
+  }>;
 }
 
 export interface PublicCompany {

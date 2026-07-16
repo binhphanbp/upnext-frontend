@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
 
 import { getCandidateSession } from "@/features/candidate/session";
 
@@ -17,14 +16,11 @@ import {
   ChevronRight,
   Clock,
   Coins,
-  Flame,
   Globe,
   LayoutGrid,
   MapPin,
   Monitor,
   ShieldCheck,
-  Sparkles,
-  Star,
 } from "./marketing-icons";
 
 type FeaturedJobsProps = {
@@ -54,16 +50,7 @@ type JobCard = {
   filters: FilterKey[];
 };
 
-const MAX_TAGS = 4;
 const PAGE_SIZE = 6;
-
-const badgeIcon: Record<BadgeTone, ReactNode> = {
-  featured: <Star size={13} />,
-  new: <Sparkles size={13} />,
-  urgent: <Flame size={13} />,
-  remote: <Globe size={13} />,
-  salary: <Coins size={13} />,
-};
 
 const verifyPoints = [
   "Đã xác thực email tên miền công ty",
@@ -414,9 +401,12 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
     location: "Việt Nam",
     mode: job.employmentType?.name || "Full-time",
     experience: job.experienceLevel?.name || "1 - 3 năm",
-    tags: [job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
-      Boolean,
-    ) as string[],
+    tags:
+      job.jobPostSkills && job.jobPostSkills.length > 0
+        ? job.jobPostSkills.map((s) => s.skill.name)
+        : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+            Boolean,
+          ) as string[]),
     deadline: "Còn 30 ngày để nộp",
     filters: Array.from(new Set(filters)),
   };
@@ -579,31 +569,23 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
             >
               <div className="marketing-home-jobs-grid">
                 {slideJobs.map((job) => {
-                  const shownTags = job.tags.slice(0, MAX_TAGS);
+                  const maxTags = 3;
+                  const maxChars = 22;
+                  const shownTags: string[] = [];
+                  let currentChars = 0;
+                  for (const tag of job.tags) {
+                    if (shownTags.length >= maxTags) break;
+                    if (shownTags.length >= 1 && currentChars + tag.length > maxChars) {
+                      break;
+                    }
+                    shownTags.push(tag);
+                    currentChars += tag.length;
+                  }
                   const extraTags = job.tags.length - shownTags.length;
 
                   return (
                     <article key={job.id} className="featured-job-card">
-                      <header className="featured-job-top">
-                        <span className={`featured-job-badge featured-job-badge-${job.badge.tone}`}>
-                          {badgeIcon[job.badge.tone]}
-                          {job.badge.label}
-                        </span>
-                        <button
-                          type="button"
-                          className={`featured-job-save${saved[job.id] ? " is-saved" : ""}`}
-                          aria-label={saved[job.id] ? "Bỏ lưu tin" : "Lưu tin"}
-                          aria-pressed={saved[job.id] ?? false}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            toggleSaved(job.id);
-                          }}
-                        >
-                          <Bookmark size={18} fill={saved[job.id] ? "currentColor" : "none"} />
-                        </button>
-                      </header>
-
-                      <div className="featured-job-company">
+                      <div className="featured-job-company" style={{ marginTop: 0 }}>
                         <CompanyLogo src={job.logo} name={job.company} color={job.logoColor} />
                         <span className="featured-job-company-row">
                           <span className="featured-job-company-name" title={job.company}>
@@ -611,6 +593,18 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
                           </span>
                           {job.verified && <VerifiedBadge />}
                         </span>
+                        <button
+                          type="button"
+                          className={`featured-job-save ml-auto${saved[job.id] ? " is-saved" : ""}`}
+                          aria-label={saved[job.id] ? "Bỏ lưu tin" : "Lưu tin"}
+                          aria-pressed={saved[job.id] ?? false}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleSaved(job.id);
+                          }}
+                        >
+                          <Bookmark size={18} weight={saved[job.id] ? "fill" : "regular"} />
+                        </button>
                       </div>
 
                       <h3>
@@ -650,7 +644,7 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
                         {extraTags > 0 && (
                           <i
                             className="featured-job-tag-more"
-                            title={job.tags.slice(MAX_TAGS).join(", ")}
+                            title={job.tags.slice(shownTags.length).join(", ")}
                           >
                             +{extraTags}
                           </i>
