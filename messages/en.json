@@ -389,6 +389,12 @@
       "hidePassword": "Hide password",
       "employerCta": "For employers"
     },
+    "showcase": {
+      "eyebrow": "THE IT CAREER PLATFORM",
+      "title": "Find the right IT role. Build your next chapter.",
+      "description": "Discover opportunities that match your skills, experience, and career direction.",
+      "candidateLabel": "Built for technology talent"
+    },
     "social": {
       "google": "Continue with Google",
       "github": "Continue with GitHub"
@@ -406,18 +412,28 @@
     },
     "login": {
       "ariaLabel": "Log in to UpNext",
-      "title": "Log in",
+      "title": "Welcome back",
+      "subtitle": "Log in to continue your career journey.",
       "forgotPassword": "Forgot password?",
       "submit": "Log in",
+      "submitting": "Logging in…",
       "signupPrompt": "Don't have an account?",
       "signupLink": "Sign up"
     },
     "register": {
       "ariaLabel": "Sign up for UpNext",
-      "title": "Sign up",
+      "title": "Create your account",
+      "subtitle": "Start finding IT opportunities that fit you.",
       "submit": "Create account",
+      "submitting": "Creating account…",
       "loginPrompt": "Already have an account?",
       "loginLink": "Log in"
+    },
+    "errors": {
+      "invalidCredentials": "The email or password is incorrect.",
+      "emailInUse": "This email is already in use.",
+      "requestFailed": "We could not complete your request. Please try again.",
+      "connectionFailed": "We could not reach the server. Please try again."
     },
     "validation": {
       "invalidEmail": "Enter a valid email",
