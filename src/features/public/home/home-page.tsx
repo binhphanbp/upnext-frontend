@@ -308,9 +308,12 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             : "Thỏa thuận",
         location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
         mode: job.employmentType?.name || "Full-time",
-        tags: [job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
-          Boolean,
-        ) as string[],
+        tags:
+          job.jobPostSkills && job.jobPostSkills.length > 0
+            ? job.jobPostSkills.map((s) => s.skill.name)
+            : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+                Boolean,
+              ) as string[]),
         deadline: "Còn 15 ngày",
         deadlineTone: isUrgent ? "red" : "amber",
         applicants: "12 ứng viên",
@@ -607,14 +610,16 @@ function UrgentJobsSection({
         {urgentJobs.map((job) => (
           <article className="urgent-job-card" key={job.id}>
             <div className="urgent-job-top">
-              <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
+              <span
+                className={`urgent-job-logo ${job.logo ? "border border-slate-100 bg-white" : job.bgClass || "bg-emerald-600"}`}
+              >
                 {job.logo ? (
                   <img
                     src={job.logo}
                     alt={`Logo ${job.company}`}
                     width={46}
                     height={46}
-                    className="rounded-lg object-contain p-1"
+                    className="rounded-lg object-contain"
                   />
                 ) : job.company === "SkySoft" ? (
                   <span className="flex size-full items-center justify-center rounded-lg bg-sky-100 text-sky-600">
@@ -658,9 +663,36 @@ function UrgentJobsSection({
             </div>
 
             <div className="urgent-job-tags">
-              {job.tags.map((tag) => (
-                <i key={tag}>{tag}</i>
-              ))}
+              {(() => {
+                const maxTags = 3;
+                const maxChars = 22;
+                const shown: string[] = [];
+                let currentChars = 0;
+                for (const tag of job.tags) {
+                  if (shown.length >= maxTags) break;
+                  if (shown.length >= 1 && currentChars + tag.length > maxChars) {
+                    break;
+                  }
+                  shown.push(tag);
+                  currentChars += tag.length;
+                }
+                const extraCount = job.tags.length - shown.length;
+                return (
+                  <>
+                    {shown.map((tag) => (
+                      <i key={tag}>{tag}</i>
+                    ))}
+                    {extraCount > 0 && (
+                      <i
+                        className="urgent-job-tag-more text-slate-400"
+                        title={job.tags.slice(shown.length).join(", ")}
+                      >
+                        +{extraCount}
+                      </i>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             <div className="urgent-job-footer">
