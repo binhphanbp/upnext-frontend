@@ -343,14 +343,16 @@ export function WorkspaceHeader({
             </div>
 
             <div className="py-2">
-              <DropdownMenuItem asChild>
-                <Link
-                  href={workspaceRole === "recruiter" ? "/recruiter/settings" : "#"}
-                  className="hover:text-primary flex cursor-pointer items-center px-5 py-2.5 text-[14px] text-slate-700 transition hover:bg-indigo-50"
-                >
-                  {t("account.profile")}
-                </Link>
-              </DropdownMenuItem>
+              {workspaceRole !== "admin" && (
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={workspaceRole === "recruiter" ? "/recruiter/settings" : "/admin/settings"}
+                    className="hover:text-primary flex cursor-pointer items-center px-5 py-2.5 text-[14px] text-slate-700 transition hover:bg-indigo-50"
+                  >
+                    {tShell("account.profile")}
+                  </Link>
+                </DropdownMenuItem>
+              )}
 
               {workspaceRole !== "admin" && (
                 <>
@@ -372,10 +374,10 @@ export function WorkspaceHeader({
                 className="hover:text-primary flex cursor-pointer items-center p-0 text-[14px] text-slate-700 transition hover:bg-indigo-50"
               >
                 <Link
-                  href={workspaceRole === "recruiter" ? "/recruiter/settings" : "#"}
+                  href={workspaceRole === "recruiter" ? "/recruiter/settings" : "/admin/settings"}
                   className="flex w-full items-center px-5 py-2.5"
                 >
-                  {t("account.settings")}
+                  {tShell("account.settings")}
                 </Link>
               </DropdownMenuItem>
 
@@ -386,7 +388,7 @@ export function WorkspaceHeader({
                 className="flex w-full cursor-pointer items-center px-5 py-2.5 text-left text-[14px] text-red-500 transition hover:bg-red-50 hover:text-red-600"
               >
                 <SignOut className="mr-2" size={16} />
-                {t("account.logout")}
+                {tShell("account.logout")}
               </DropdownMenuItem>
             </div>
           </DropdownMenuContent>

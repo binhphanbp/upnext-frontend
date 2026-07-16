@@ -456,7 +456,9 @@ export function WorkspaceSidebar({
           "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-slate-800 transition-transform duration-200 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
-        style={{ background: "linear-gradient(180deg, #10243A 0%, #0F1F31 55%, #0B1B2D 100%)" }}
+        style={{
+          background: "linear-gradient(180deg, #10243A 0%, #0F1F31 55%, #0B1B2D 100%)",
+        }}
       >
         <div
           className={cn(
