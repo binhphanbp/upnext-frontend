@@ -389,9 +389,21 @@
       "hidePassword": "Ẩn mật khẩu",
       "employerCta": "Dành cho nhà tuyển dụng"
     },
+    "showcase": {
+      "title": "Tìm đúng việc IT. Bật tăng sự nghiệp.",
+      "description": "Khám phá cơ hội phù hợp với kỹ năng, kinh nghiệm và định hướng phát triển của bạn."
+    },
     "social": {
       "google": "Tiếp tục với Google",
-      "github": "Tiếp tục với GitHub"
+      "github": "Tiếp tục với GitHub",
+      "githubUnavailable": "Đăng nhập bằng GitHub sẽ khả dụng khi dịch vụ xác thực được hoàn tất."
+    },
+    "oauth": {
+      "processingTitle": "Đang hoàn tất đăng nhập",
+      "processingDescription": "Vui lòng chờ trong giây lát…",
+      "failedTitle": "Không thể hoàn tất đăng nhập",
+      "failedDescription": "Liên kết đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.",
+      "returnToLogin": "Quay lại đăng nhập"
     },
     "fields": {
       "fullName": "Họ và tên",
@@ -406,18 +418,34 @@
     },
     "login": {
       "ariaLabel": "Đăng nhập UpNext",
-      "title": "Đăng nhập",
+      "title": "Chào mừng trở lại",
+      "subtitle": "Đăng nhập để tiếp tục hành trình sự nghiệp của bạn.",
+      "google": "Đăng nhập với Google",
+      "github": "Đăng nhập với GitHub",
+      "emailDivider": "hoặc đăng nhập bằng email",
       "forgotPassword": "Quên mật khẩu?",
       "submit": "Đăng nhập",
+      "submitting": "Đang đăng nhập…",
       "signupPrompt": "Chưa có tài khoản?",
       "signupLink": "Đăng ký"
     },
     "register": {
       "ariaLabel": "Đăng ký UpNext",
-      "title": "Đăng ký",
+      "title": "Tạo tài khoản",
+      "subtitle": "Bắt đầu tìm những cơ hội IT phù hợp với bạn.",
+      "google": "Đăng ký với Google",
+      "github": "Đăng ký với GitHub",
+      "emailDivider": "hoặc đăng ký bằng email",
       "submit": "Tạo tài khoản",
+      "submitting": "Đang tạo tài khoản…",
       "loginPrompt": "Đã có tài khoản?",
       "loginLink": "Đăng nhập"
+    },
+    "errors": {
+      "invalidCredentials": "Email hoặc mật khẩu không chính xác.",
+      "emailInUse": "Email này đã được sử dụng.",
+      "requestFailed": "Không thể hoàn tất yêu cầu. Vui lòng thử lại.",
+      "connectionFailed": "Không thể kết nối đến máy chủ. Vui lòng thử lại."
     },
     "validation": {
       "invalidEmail": "Email không hợp lệ",

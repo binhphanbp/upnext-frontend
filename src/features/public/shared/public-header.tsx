@@ -743,15 +743,6 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                   <span className="marketing-home-account-menu-identity">
                     <b>{effectiveViewer.name}</b>
                     <small>{effectiveViewer.email ?? effectiveViewer.name}</small>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAccountOpen(false);
-                        navigate("/candidate/profile");
-                      }}
-                    >
-                      {copy.profileLabel}
-                    </button>
                   </span>
                 </div>
 
