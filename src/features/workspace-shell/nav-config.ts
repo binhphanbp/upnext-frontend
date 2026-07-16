@@ -24,6 +24,7 @@ import type { WorkspaceIdentity, WorkspaceNavGroup } from "./types";
 export const recruiterNavGroups: WorkspaceNavGroup[] = [
   {
     label: "Tuyển dụng",
+    icon: Briefcase,
     items: [
       { label: "Báo cáo tuyển dụng", href: "/recruiter", icon: Gauge },
       {
@@ -39,6 +40,7 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
   },
   {
     label: "Công ty",
+    icon: Buildings,
     items: [
       {
         label: "Hồ sơ công ty",
@@ -67,10 +69,12 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
 export const adminNavGroups: WorkspaceNavGroup[] = [
   {
     label: "overview.title",
+    icon: Gauge,
     items: [{ label: "overview.platformStats", href: "/admin", icon: Gauge }],
   },
   {
     label: "userManagement.title",
+    icon: UsersThree,
     items: [
       {
         label: "userManagement.employers",
@@ -82,6 +86,7 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
   },
   {
     label: "operationsAndContent.title",
+    icon: Article,
     items: [
       { label: "operationsAndContent.companies", href: "/admin/users/employers", icon: Buildings },
       { label: "operationsAndContent.jobs", href: "/admin/content/jobs", icon: Briefcase },
@@ -96,6 +101,7 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
   },
   {
     label: "financeAndBusiness.title",
+    icon: Receipt,
     items: [
       { label: "financeAndBusiness.plans", href: "/admin/finance/plans", icon: Package },
       {
@@ -107,6 +113,7 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
   },
   {
     label: "systemAdmin.title",
+    icon: Database,
     items: [
       { label: "systemAdmin.masterData", href: "/admin/system/master-data", icon: Database },
       { label: "systemAdmin.roles", href: "/admin/system/roles", icon: IdentificationBadge },

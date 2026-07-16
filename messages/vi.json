@@ -2898,7 +2898,8 @@
             "edit": "Chỉnh sửa gói",
             "viewSubscribers": "Xem danh sách người mua",
             "publish": "Phát hành (Đưa lên bán)",
-            "retire": "Ngừng bán (Legacy)"
+            "retire": "Ngừng bán (Legacy)",
+            "viewDetails": "Xem chi tiết gói"
           },
           "planNames": {
             "PLAN-EMP-PRO": "Employer Pro",
@@ -2911,8 +2912,16 @@
             "PLAN-EMP-ENT": "Employer Enterprise",
             "PLAN-EMP-CRED-10": "Gói 10 Tin Tuyển Dụng",
             "PLAN-CAN-MENTOR": "1:1 Mentorship",
-            "PLAN-EMP-CV": "Gói xem 100 CV"
-          }
+            "PLAN-EMP-CV": "Gói xem 100 CV",
+            "EMP-FREE": "Basic",
+            "EMP-STARTER": "Pro",
+            "EMP-GROWTH": "Premium",
+            "EMP-SCALE": "Enterprise",
+            "CAN-FREE": "Basic",
+            "CAN-PRO": "Talent",
+            "CAN-CAREER-PLUS": "Elite"
+          },
+          "features": "Tính năng nổi bật"
         },
         "dialog": {
           "title": "Tạo Gói Dịch Vụ Mới",
@@ -2925,12 +2934,27 @@
             "price": "Đơn giá (VNĐ)",
             "pricePlaceholder": "VD: 2500000",
             "billingCycle": "Chu kỳ thanh toán",
-            "billingCyclePlaceholder": "Chọn chu kỳ"
+            "billingCyclePlaceholder": "Chọn chu kỳ",
+            "featuresEmployer": "Tính năng dành cho Nhà tuyển dụng",
+            "featuresCandidate": "Tính năng dành cho Ứng viên",
+            "empPostingLimit": "Giới hạn đăng tin",
+            "empVisibility": "Hiển thị",
+            "empInteraction": "Tương tác ứng viên",
+            "empAiLimit": "Giới hạn AI",
+            "empSystem": "Hệ thống",
+            "canCoreFunctions": "Chức năng cốt lõi",
+            "canAiLimit": "Giới hạn AI CV",
+            "canOptimization": "Tối ưu hóa",
+            "canInterview": "Luyện phỏng vấn",
+            "canVisibility": "Hiển thị"
           },
           "billingCycleOptions": {
             "monthly": "Hàng tháng (Monthly)",
             "yearly": "Hàng năm (Yearly)",
-            "oneTime": "Gói tín dụng (One-time)"
+            "oneTime": "Gói tín dụng (One-time)",
+            "weekly": "Hàng tuần (Weekly)",
+            "quarterly": "Hàng quý (Quarterly)",
+            "biannual": "6 tháng (Biannual)"
           },
           "buttons": {
             "cancel": "Hủy",

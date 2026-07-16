@@ -2877,7 +2877,8 @@
             "edit": "Edit Plan",
             "viewSubscribers": "View Subscribers",
             "publish": "Publish",
-            "retire": "Retire Plan"
+            "retire": "Retire Plan",
+            "viewDetails": "View Details"
           },
           "planNames": {
             "PLAN-EMP-PRO": "Employer Pro",
@@ -2890,8 +2891,16 @@
             "PLAN-EMP-ENT": "Employer Enterprise",
             "PLAN-EMP-CRED-10": "10 Job Posts Credit",
             "PLAN-CAN-MENTOR": "1:1 Mentorship",
-            "PLAN-EMP-CV": "View 100 CVs Credit"
-          }
+            "PLAN-EMP-CV": "View 100 CVs Credit",
+            "EMP-FREE": "Basic",
+            "EMP-STARTER": "Pro",
+            "EMP-GROWTH": "Premium",
+            "EMP-SCALE": "Enterprise",
+            "CAN-FREE": "Basic",
+            "CAN-PRO": "Talent",
+            "CAN-CAREER-PLUS": "Elite"
+          },
+          "features": "Key Features"
         },
         "dialog": {
           "title": "Create New Service Plan",
@@ -2904,12 +2913,27 @@
             "price": "Price (VND)",
             "pricePlaceholder": "Ex: 2500000",
             "billingCycle": "Billing Cycle",
-            "billingCyclePlaceholder": "Select billing cycle"
+            "billingCyclePlaceholder": "Select billing cycle",
+            "featuresEmployer": "Employer Features",
+            "featuresCandidate": "Candidate Features",
+            "empPostingLimit": "Job Posting Limit",
+            "empVisibility": "Visibility",
+            "empInteraction": "Candidate Interaction",
+            "empAiLimit": "AI Limit",
+            "empSystem": "System",
+            "canCoreFunctions": "Core Functions",
+            "canAiLimit": "AI CV Limit",
+            "canOptimization": "Optimization",
+            "canInterview": "Interview Prep",
+            "canVisibility": "Visibility"
           },
           "billingCycleOptions": {
             "monthly": "Monthly",
             "yearly": "Yearly",
-            "oneTime": "One-time Credit"
+            "oneTime": "One-time Credit",
+            "weekly": "Weekly",
+            "quarterly": "Quarterly",
+            "biannual": "Biannual"
           },
           "buttons": {
             "cancel": "Cancel",
