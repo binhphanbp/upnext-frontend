@@ -56,8 +56,17 @@ import { type Locale } from "@/i18n/routing";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { toDate } from "@/shared/lib/date";
+import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
+import { Card, CardContent } from "@/shared/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,7 +74,9 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { FormInput } from "@/shared/ui/input";
+import { ScrollArea } from "@/shared/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { Separator } from "@/shared/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
 import { RecruiterTableLayout } from "./recruiter-table-layout";
@@ -1141,6 +1152,15 @@ function CvRankingTable({
     return "bg-rose-500";
   };
 
+  const scoreMetrics = aiScoreDetail
+    ? [
+        { label: "Kỹ năng", score: aiScoreDetail.skillScore, maximum: 40 },
+        { label: "Kinh nghiệm", score: aiScoreDetail.experienceScore, maximum: 30 },
+        { label: "Dự án liên quan", score: aiScoreDetail.projectScore, maximum: 20 },
+        { label: "Học vấn", score: aiScoreDetail.educationScore, maximum: 10 },
+      ]
+    : [];
+
   return (
     <div className="space-y-4">
       <RecruiterTableLayout
@@ -1519,209 +1539,273 @@ function CvRankingTable({
         open={!!activeApplicationId}
         onOpenChange={(open) => !open && setActiveApplicationId(null)}
       >
-        <DialogContent className="flex max-w-2xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <DialogContent className="flex h-[calc(100dvh-2rem)] max-h-[850px] w-[calc(100vw-2rem)] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-xl">
           {loadingAiScore && (
-            <div className="flex h-[40vh] flex-col items-center justify-center space-y-3">
-              <CircleNotch className="size-8 animate-spin text-emerald-600" />
-              <span className="text-sm font-bold text-slate-500">
+            <output
+              className="flex min-h-[360px] flex-col items-center justify-center gap-3"
+              aria-live="polite"
+            >
+              <CircleNotch className="size-7 animate-spin text-emerald-600" aria-hidden="true" />
+              <span className="text-sm font-medium text-slate-500">
                 Đang tải đánh giá chi tiết...
               </span>
-            </div>
+            </output>
           )}
 
           {!loadingAiScore && aiScoreDetail && (
-            <div className="text-slate-655 max-h-[75vh] space-y-5 overflow-y-auto pr-2 text-left text-sm leading-relaxed">
-              <DialogHeader className="flex flex-row items-center justify-between gap-4 border-b border-slate-100 pb-3">
-                <div>
-                  <DialogTitle className="text-lg font-extrabold text-slate-900">
-                    Đánh giá mức độ phù hợp: {aiScoreDetail.candidateName}
-                  </DialogTitle>
-                  <p className="mt-1 text-xs font-semibold text-slate-400">
-                    Vị trí ứng tuyển: {aiScoreDetail.jobTitle}
-                  </p>
-                </div>
-                <div
-                  className={cn(
-                    "px-4 py-2 rounded-xl border text-center flex flex-col items-center justify-center shrink-0",
-                    getScoreColorClass(aiScoreDetail.finalScore),
-                  )}
-                >
-                  <span className="text-[10px] font-bold tracking-wider uppercase opacity-80">
-                    Độ phù hợp
-                  </span>
-                  <span className="text-xl font-black">{aiScoreDetail.finalScore}%</span>
+            <>
+              <DialogHeader className="shrink-0 border-b border-slate-200 px-6 py-5 pr-14 text-left">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <DialogTitle className="truncate text-xl font-semibold text-slate-950">
+                      Đánh giá ứng viên
+                    </DialogTitle>
+                    <DialogDescription className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                      <span className="font-medium text-slate-700">
+                        {aiScoreDetail.candidateName}
+                      </span>
+                      <span aria-hidden="true" className="text-slate-300">
+                        •
+                      </span>
+                      <span>{aiScoreDetail.jobTitle}</span>
+                    </DialogDescription>
+                  </div>
+                  <Badge
+                    tone="neutral"
+                    className={cn(
+                      "w-fit shrink-0 rounded-lg border px-3 py-2 text-sm font-semibold tabular-nums",
+                      getScoreColorClass(aiScoreDetail.finalScore),
+                    )}
+                    aria-label={`Độ phù hợp ${aiScoreDetail.finalScore}%`}
+                  >
+                    {aiScoreDetail.finalScore}% phù hợp
+                  </Badge>
                 </div>
               </DialogHeader>
 
-              <div className="space-y-1.5">
-                <h4 className="text-xs font-extrabold tracking-wider text-slate-900 uppercase">
-                  1. Tổng quan đánh giá
-                </h4>
-                <p className="text-slate-650 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 text-xs leading-relaxed font-semibold">
-                  {aiScoreDetail.summary}
-                </p>
-              </div>
+              <ScrollArea className="h-0 min-h-0 flex-1" data-testid="evaluation-scroll-area">
+                <div className="space-y-6 p-5 sm:p-6">
+                  <section aria-labelledby="evaluation-overview-heading" className="space-y-3">
+                    <h3
+                      id="evaluation-overview-heading"
+                      className="text-sm font-semibold text-slate-950"
+                    >
+                      Tổng quan
+                    </h3>
+                    <p className="text-sm leading-6 text-slate-600">{aiScoreDetail.summary}</p>
+                  </section>
 
-              <div className="space-y-1.5">
-                <h4 className="text-xs font-extrabold tracking-wider text-slate-900 uppercase">
-                  2. Tiêu chí chấm điểm
-                </h4>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-center">
-                    <span className="mb-0.5 block text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                      Kỹ năng
-                    </span>
-                    <span className="text-sm font-extrabold text-emerald-700">
-                      {aiScoreDetail.skillScore}/40
-                    </span>
-                  </div>
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-center">
-                    <span className="mb-0.5 block text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                      Kinh nghiệm
-                    </span>
-                    <span className="text-sm font-extrabold text-emerald-700">
-                      {aiScoreDetail.experienceScore}/30
-                    </span>
-                  </div>
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-center">
-                    <span className="mb-0.5 block text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                      Dự án liên quan
-                    </span>
-                    <span className="text-sm font-extrabold text-emerald-700">
-                      {aiScoreDetail.projectScore}/20
-                    </span>
-                  </div>
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-center">
-                    <span className="mb-0.5 block text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                      Học vấn
-                    </span>
-                    <span className="text-sm font-extrabold text-emerald-700">
-                      {aiScoreDetail.educationScore}/10
-                    </span>
-                  </div>
+                  <Separator />
+
+                  <section aria-labelledby="evaluation-score-heading" className="space-y-3">
+                    <div className="flex items-end justify-between gap-3">
+                      <h3
+                        id="evaluation-score-heading"
+                        className="text-sm font-semibold text-slate-950"
+                      >
+                        Chi tiết điểm
+                      </h3>
+                      <span className="text-xs text-slate-500">Tổng trọng số 100 điểm</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                      {scoreMetrics.map((metric) => {
+                        const percentage = Math.round((metric.score / metric.maximum) * 100);
+
+                        return (
+                          <Card key={metric.label} className="border-slate-200 shadow-none">
+                            <CardContent className="space-y-3 p-4">
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span className="text-xs font-medium text-slate-500">
+                                  {metric.label}
+                                </span>
+                                <span className="text-sm font-semibold text-slate-900 tabular-nums">
+                                  {metric.score}
+                                  <span className="font-normal text-slate-400">
+                                    /{metric.maximum}
+                                  </span>
+                                </span>
+                              </div>
+                              <progress
+                                className="sr-only"
+                                aria-label={`${metric.label}: ${metric.score} trên ${metric.maximum} điểm`}
+                                max={metric.maximum}
+                                value={metric.score}
+                              />
+                              <div
+                                className="h-1.5 overflow-hidden rounded-full bg-slate-100"
+                                aria-hidden="true"
+                              >
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full",
+                                    getProgressBarColor(percentage),
+                                  )}
+                                  style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+                                />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <section
+                    aria-labelledby="evaluation-skills-heading"
+                    className="grid gap-3 md:grid-cols-2"
+                  >
+                    <h3 id="evaluation-skills-heading" className="sr-only">
+                      Đối chiếu kỹ năng
+                    </h3>
+                    <Card className="border-slate-200 shadow-none">
+                      <CardContent className="p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h4 className="text-sm font-semibold text-slate-900">Kỹ năng phù hợp</h4>
+                          <span className="text-xs text-slate-500 tabular-nums">
+                            {aiScoreDetail.matchedSkills.length}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {aiScoreDetail.matchedSkills.length > 0 ? (
+                            aiScoreDetail.matchedSkills.map((skill) => (
+                              <Badge key={skill} tone="success" className="rounded-md px-2.5 py-1">
+                                {skill}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-sm text-slate-500">Chưa ghi nhận</span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-slate-200 shadow-none">
+                      <CardContent className="p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h4 className="text-sm font-semibold text-slate-900">
+                            Kỹ năng cần bổ sung
+                          </h4>
+                          <span className="text-xs text-slate-500 tabular-nums">
+                            {aiScoreDetail.missingSkills.length}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {aiScoreDetail.missingSkills.length > 0 ? (
+                            aiScoreDetail.missingSkills.map((skill) => (
+                              <Badge key={skill} tone="neutral" className="rounded-md px-2.5 py-1">
+                                {skill}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-sm text-slate-500">Không có</span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </section>
+
+                  <section className="grid gap-3 md:grid-cols-2" aria-label="Nhận xét chi tiết">
+                    <Card className="border-slate-200 shadow-none">
+                      <CardContent className="p-4">
+                        <div className="mb-3 flex items-center gap-2">
+                          <CheckCircle
+                            className="size-5 text-emerald-600"
+                            weight="fill"
+                            aria-hidden="true"
+                          />
+                          <h3 className="text-sm font-semibold text-slate-900">Điểm mạnh</h3>
+                        </div>
+                        {aiScoreDetail.strengths.length > 0 ? (
+                          <ul className="space-y-2 pl-5 text-sm leading-5 text-slate-600 marker:text-slate-300">
+                            {aiScoreDetail.strengths.map((strength) => (
+                              <li key={strength} className="list-disc pl-1">
+                                {strength}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-slate-500">Chưa ghi nhận</p>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-slate-200 shadow-none">
+                      <CardContent className="p-4">
+                        <div className="mb-3 flex items-center gap-2">
+                          <WarningCircle
+                            className="size-5 text-amber-600"
+                            weight="fill"
+                            aria-hidden="true"
+                          />
+                          <h3 className="text-sm font-semibold text-slate-900">Điểm cần lưu ý</h3>
+                        </div>
+                        {aiScoreDetail.weaknesses.length > 0 ? (
+                          <ul className="space-y-2 pl-5 text-sm leading-5 text-slate-600 marker:text-slate-300">
+                            {aiScoreDetail.weaknesses.map((weakness) => (
+                              <li key={weakness} className="list-disc pl-1">
+                                {weakness}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-slate-500">Không có</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </section>
+
+                  <Card className="border-indigo-100 bg-indigo-50/40 shadow-none">
+                    <CardContent className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:gap-4">
+                      <Badge tone="premium" className="w-fit shrink-0 rounded-md px-2.5 py-1">
+                        Khuyến nghị
+                      </Badge>
+                      <p className="text-sm leading-6 font-medium text-slate-800">
+                        {aiScoreDetail.recommendation}
+                      </p>
+                    </CardContent>
+                  </Card>
                 </div>
-              </div>
+              </ScrollArea>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-extrabold tracking-wider text-slate-900 uppercase">
-                    3. Kỹ năng khớp
-                  </h4>
-                  <div className="flex min-h-11 flex-wrap gap-1.5 rounded-xl border border-emerald-100/50 bg-emerald-50/10 p-3">
-                    {aiScoreDetail.matchedSkills.length > 0 ? (
-                      aiScoreDetail.matchedSkills.map((s: string, idx: number) => (
-                        <span
-                          key={idx}
-                          className="rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700"
-                        >
-                          {s}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs font-semibold text-slate-400 italic">Không có</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-extrabold tracking-wider text-slate-900 uppercase">
-                    4. Kỹ năng còn thiếu
-                  </h4>
-                  <div className="flex min-h-11 flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-slate-50/40 p-3">
-                    {aiScoreDetail.missingSkills.length > 0 ? (
-                      aiScoreDetail.missingSkills.map((s: string, idx: number) => (
-                        <span
-                          key={idx}
-                          className="rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400 line-through"
-                        >
-                          {s}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs font-semibold text-slate-400 italic">Không có</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-extrabold tracking-wider text-slate-900 uppercase">
-                    5. Điểm mạnh nổi bật
-                  </h4>
-                  <div className="min-h-[100px] rounded-xl border border-emerald-100 bg-emerald-50/10 p-3.5">
-                    <ul className="text-slate-655 list-disc space-y-1.5 pl-4 text-xs font-semibold">
-                      {aiScoreDetail.strengths.length > 0 ? (
-                        aiScoreDetail.strengths.map((str: string, idx: number) => (
-                          <li key={idx}>{str}</li>
-                        ))
-                      ) : (
-                        <li className="list-none text-slate-400 italic">Không có</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-extrabold tracking-wider text-slate-900 uppercase">
-                    6. Điểm hạn chế / cần lưu ý
-                  </h4>
-                  <div className="min-h-[100px] rounded-xl border border-rose-100 bg-rose-50/10 p-3.5">
-                    <ul className="text-slate-655 list-disc space-y-1.5 pl-4 text-xs font-semibold">
-                      {aiScoreDetail.weaknesses.length > 0 ? (
-                        aiScoreDetail.weaknesses.map((weak: string, idx: number) => (
-                          <li key={idx}>{weak}</li>
-                        ))
-                      ) : (
-                        <li className="list-none text-slate-400 italic">Không có</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <h4 className="text-xs font-extrabold tracking-wider text-slate-900 uppercase">
-                  7. Khuyến nghị xử lý
-                </h4>
-                <p className="rounded-xl border border-indigo-100 bg-indigo-50/30 p-3.5 text-xs leading-relaxed font-bold text-indigo-900">
-                  {aiScoreDetail.recommendation}
-                </p>
-              </div>
-
-              <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
+              <DialogFooter className="grid shrink-0 grid-cols-2 gap-2 border-t border-slate-200 bg-slate-50/70 px-5 py-4 sm:flex sm:px-6">
                 <Button
-                  variant="outline"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setActiveApplicationId(null)}
-                  className="h-10 cursor-pointer rounded-lg border-slate-200 px-4 font-semibold text-slate-700 hover:bg-slate-50"
+                  className="rounded-lg px-4 font-medium"
                 >
                   Đóng
                 </Button>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => handleViewCv(aiScoreDetail.applicationId, aiScoreDetail.cvFileUrl)}
-                  className="h-10 cursor-pointer rounded-lg border-slate-200 px-4 font-semibold text-slate-700 hover:bg-slate-50"
+                  className="rounded-lg border-slate-200 px-4 font-medium"
                 >
+                  <FileArrowDown aria-hidden="true" />
                   Xem CV
                 </Button>
                 <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={() => handleAction(aiScoreDetail.applicationId, "REJECTED")}
                   disabled={saving}
-                  className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-4 font-bold text-rose-700 hover:bg-rose-100"
+                  className="rounded-lg px-4"
                 >
-                  <XCircle size={16} />
+                  <XCircle aria-hidden="true" />
                   Từ chối
                 </Button>
                 <Button
+                  size="sm"
                   onClick={() => handleAction(aiScoreDetail.applicationId, "INTERVIEWING")}
                   disabled={saving}
-                  className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-4 font-bold text-white shadow-none hover:bg-emerald-700"
+                  className="rounded-lg px-4"
                 >
-                  <CheckCircle size={16} />
+                  <CheckCircle aria-hidden="true" />
                   Mời phỏng vấn
                 </Button>
-              </div>
-            </div>
+              </DialogFooter>
+            </>
           )}
         </DialogContent>
       </Dialog>
