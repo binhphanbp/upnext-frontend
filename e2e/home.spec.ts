@@ -99,7 +99,7 @@ test("renders the localized UpNext homepage", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/vi/);
   await expect(page.getByRole("heading", { name: /tìm đúng việc it/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Tìm việc", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tìm việc ngay", exact: true })).toBeVisible();
   await expect(page.getByText("FPT Software").first()).toBeVisible();
 });
 
@@ -107,27 +107,25 @@ test("submits homepage job search with query params", async ({ page }) => {
   await page.goto("/vi");
 
   await page.getByLabel("Từ khóa tìm việc").fill("React");
-  await page.getByRole("button", { name: "Tìm việc", exact: true }).click();
+  await page.getByRole("button", { name: "Tìm việc ngay", exact: true }).click();
 
   await expect(page).toHaveURL(/\/vi\/jobs\?keyword=React/);
 });
 
 test("popular keyword chips route to jobs search", async ({ page }) => {
   await page.goto("/vi");
-  await expect(page.locator(".marketing-home-popular-viewport")).toBeVisible();
+  await expect(page.locator(".marketing-home-popular-links")).toBeVisible();
   await page
-    .locator(".marketing-home-popular-row")
-    .first()
-    .getByRole("button", { name: "Frontend" })
+    .locator(".marketing-home-popular-links")
+    .getByRole("link", { name: "Frontend" })
     .click();
   await expect(page).toHaveURL(/\/vi\/jobs\?keyword=Frontend/);
 
   await page.goto("/en");
-  await expect(page.locator(".marketing-home-popular-viewport")).toBeVisible();
+  await expect(page.locator(".marketing-home-popular-links")).toBeVisible();
   await page
-    .locator(".marketing-home-popular-row")
-    .first()
-    .getByRole("button", { name: "Frontend" })
+    .locator(".marketing-home-popular-links")
+    .getByRole("link", { name: "Frontend" })
     .click();
   await expect(page).toHaveURL(/\/en\/jobs\?keyword=Frontend/);
 });
@@ -148,6 +146,28 @@ test("uses one shared public header across public marketing pages", async ({ pag
 
   await page.goto("/vi/login");
   await expect(page.locator(".marketing-home-header")).toHaveCount(0);
+});
+
+test("keeps the homepage header above page content while scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/vi");
+
+  const header = page.locator(".marketing-home-header");
+  await page.evaluate(() => window.scrollTo({ top: 900 }));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+  const headerState = await header.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const topElement = document.elementFromPoint(window.innerWidth / 2, 24);
+
+    return {
+      top: rect.top,
+      isTopLayer: topElement === element || element.contains(topElement),
+    };
+  });
+
+  expect(headerState.top).toBeCloseTo(0, 0);
+  expect(headerState.isTopLayer).toBe(true);
 });
 
 test("keeps every public header mega menu readable and inside the viewport", async ({ page }) => {

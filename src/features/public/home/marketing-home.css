@@ -7,7 +7,7 @@
 
 .marketing-home-page {
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   color: #111827;
   background: #ffffff;
 }
@@ -22,7 +22,8 @@
   top: 0;
   right: 0;
   left: 0;
-  z-index: 80;
+  z-index: 1000;
+  isolation: isolate;
   min-height: 72px;
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
@@ -1303,7 +1304,7 @@ button.marketing-home-control {
 
 .marketing-home-dropdown {
   position: absolute;
-  z-index: 20;
+  z-index: 30;
   top: calc(100% + 8px);
   left: 0;
   right: 0;
@@ -1417,7 +1418,8 @@ button.marketing-home-control {
   min-height: var(--popular-panel-height);
 }
 
-.marketing-home-popular-row button {
+.marketing-home-popular-row button,
+.marketing-home-popular-row a {
   min-height: 31px;
   padding: 0 15px;
   max-width: min(150px, 100%);
@@ -1430,6 +1432,7 @@ button.marketing-home-control {
   border: 0;
   border-radius: 999px;
   background: #f3f5f7;
+  text-decoration: none;
 }
 
 .marketing-home-popular-viewport:hover .marketing-home-popular-track {
@@ -4927,5 +4930,274 @@ button.marketing-home-control {
 
   .marketing-home-footer-newsletter {
     max-width: 390px;
+  }
+}
+
+/* Centered discovery hero with a compact trust strip below the search. */
+.marketing-home-content {
+  width: min(1280px, calc(100vw - 96px));
+  padding-top: 0;
+}
+
+.marketing-home-hero {
+  position: relative;
+  z-index: 10;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100vw;
+  min-height: 670px;
+  margin-right: calc(50% - 50vw);
+  margin-left: calc(50% - 50vw);
+  gap: 0;
+  padding: clamp(56px, 6.2vw, 96px) 0 0;
+  overflow: visible;
+}
+
+.marketing-home-hero::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 36% 56% at -4% 66%, rgba(174, 241, 214, 0.44), transparent 70%),
+    radial-gradient(ellipse 38% 52% at 104% 66%, rgba(174, 241, 214, 0.4), transparent 70%),
+    linear-gradient(180deg, rgba(248, 254, 251, 0.8), rgba(255, 255, 255, 0.3));
+}
+
+.marketing-home-copy {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(920px, 100%);
+  padding: 0;
+  text-align: center;
+}
+
+.marketing-home-eyebrow {
+  min-height: 38px;
+  padding: 0 16px;
+  color: #087456;
+  font-size: 13px;
+  border: 1px solid #ccefe0;
+  background: linear-gradient(100deg, #f0fcf6, #e6f9f0);
+  box-shadow: 0 5px 16px rgba(16, 185, 129, 0.08);
+}
+
+.marketing-home-eyebrow svg {
+  color: #0aa56f;
+}
+
+.marketing-home-copy h1 {
+  max-width: 860px;
+  margin: 20px 0 16px;
+  font-size: clamp(48px, 5.4vw, 76px);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1.03;
+}
+
+.marketing-home-copy p {
+  max-width: 650px;
+  margin: 0 0 30px;
+  color: #64748b;
+  font-size: 17px;
+  line-height: 1.62;
+}
+
+.marketing-home-search-card {
+  width: min(900px, 100%);
+  margin-bottom: 14px;
+  padding: 8px;
+  border-color: rgba(16, 185, 129, 0.32);
+  border-radius: 18px;
+  box-shadow:
+    0 18px 44px rgba(15, 23, 42, 0.09),
+    0 0 0 7px rgba(16, 185, 129, 0.06);
+}
+
+.marketing-home-search-card:focus-within {
+  z-index: 20;
+}
+
+.marketing-home-search-grid {
+  grid-template-columns: minmax(0, 1.6fr) minmax(205px, 0.95fr) auto;
+  gap: 4px;
+}
+
+.marketing-home-control,
+.marketing-home-search-submit {
+  min-height: 54px;
+}
+
+.marketing-home-search-submit {
+  min-width: 184px;
+  padding: 0 24px;
+  border-radius: 12px;
+}
+
+.marketing-home-popular {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  width: min(100%, 860px);
+}
+
+.marketing-home-popular > span {
+  color: #64748b;
+}
+
+.marketing-home-popular-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.marketing-home-popular-links a {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 15px;
+  color: #0b8a63;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #d7f1e5;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  text-decoration: none;
+}
+
+.marketing-home-popular-links a:hover {
+  color: #087456;
+  border-color: #9edfc4;
+  background: #f1fcf6;
+}
+
+.marketing-home-popular-links a:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.45);
+  outline-offset: 3px;
+}
+
+.marketing-home-hero-orbit {
+  position: absolute;
+  z-index: -1;
+  width: clamp(360px, 40vw, 640px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(113, 222, 174, 0.22);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.marketing-home-hero-orbit::before,
+.marketing-home-hero-orbit::after {
+  content: "";
+  position: absolute;
+  border: 1px solid rgba(113, 222, 174, 0.16);
+  border-radius: inherit;
+}
+
+.marketing-home-hero-orbit::before {
+  inset: -22%;
+}
+
+.marketing-home-hero-orbit::after {
+  inset: 18%;
+  border-style: dashed;
+}
+
+.marketing-home-hero-orbit-left {
+  top: 245px;
+  right: calc(50% + min(620px, 42vw));
+}
+
+.marketing-home-hero-orbit-right {
+  top: 275px;
+  left: calc(50% + min(620px, 42vw));
+}
+
+.marketing-home-trust-strip {
+  width: min(1260px, 100%);
+  margin: 2px auto 0;
+}
+
+@media (max-width: 760px) {
+  .marketing-home-content {
+    width: min(100%, calc(100vw - 32px));
+  }
+
+  .marketing-home-hero {
+    width: 100%;
+    min-height: 0;
+    margin-right: 0;
+    margin-left: 0;
+    padding-top: 42px;
+  }
+
+  .marketing-home-copy h1 {
+    margin: 17px 0 14px;
+    font-size: clamp(38px, 10vw, 54px);
+    line-height: 1.08;
+  }
+
+  .marketing-home-copy p {
+    margin-bottom: 24px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .marketing-home-search-card {
+    width: 100%;
+    margin-bottom: 0;
+    padding: 8px;
+  }
+
+  .marketing-home-search-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .marketing-home-field:not(.marketing-home-field-keyword)::before {
+    display: none;
+  }
+
+  .marketing-home-control {
+    border: 1px solid #e5e9f0;
+  }
+
+  .marketing-home-search-submit {
+    width: 100%;
+  }
+
+  .marketing-home-popular {
+    display: block;
+    margin-top: 14px;
+    text-align: center;
+  }
+
+  .marketing-home-popular-links {
+    margin-top: 11px;
+  }
+
+  .marketing-home-hero-orbit {
+    opacity: 0.7;
+  }
+
+  .marketing-home-hero-orbit-left {
+    top: 330px;
+    right: 76%;
+  }
+
+  .marketing-home-hero-orbit-right {
+    top: 410px;
+    left: 78%;
+  }
+
+  .marketing-home-trust-strip {
+    margin-top: 8px;
   }
 }
