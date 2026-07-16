@@ -260,7 +260,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       router.replace("/recruiter/login");
       setLoading(false);
     }
-  }, [pathname, isAuthPage, router]);
+  }, [isAuthPage, router]);
 
   function handleLogout() {
     localStorage.removeItem("upnext.recruiter.accessToken");

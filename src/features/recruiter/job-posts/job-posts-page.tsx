@@ -1034,13 +1034,26 @@ function getEducationLevelLabel(level?: string) {
   }
 }
 
+function getCleanHtml(html: string | null | undefined) {
+  if (!html) return "";
+  let cleaned = html.replace(/<summary[^>]*>([\s\S]*?)<\/summary>/gi, "");
+  cleaned = cleaned.replace(/<details[^>]*>/gi, "").replace(/<\/details>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Mô tả công việc\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Yêu cầu ứng viên\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Quyền lợi\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Mô tả công việc\s*<\/p>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Yêu cầu ứng viên\s*<\/p>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Quyền lợi\s*<\/p>/gi, "");
+  return cleaned.trim();
+}
+
 function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack: () => void }) {
   const router = useRouter();
   const salary = formatSalary(job);
 
-  const cleanDescription = job.description || "Chưa có mô tả";
-  const cleanRequirements = job.requirements || "Chưa có yêu cầu";
-  const cleanBenefits = job.benefits || "Chưa có quyền lợi";
+  const cleanDescription = getCleanHtml(job.description) || "Chưa có mô tả";
+  const cleanRequirements = getCleanHtml(job.requirements) || "Chưa có yêu cầu";
+  const cleanBenefits = getCleanHtml(job.benefits) || "Chưa có quyền lợi";
 
   // Calculate moderation status badge tone & text
   const modTone =
