@@ -155,7 +155,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     return useMemo(() => {
       if (typeof window === "undefined") return null;
       return getCandidateSession();
-    }, [mounted]);
+    }, []);
   }
 
   if (!isOpen || !mounted) return null;

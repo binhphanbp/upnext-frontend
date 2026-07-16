@@ -7,25 +7,18 @@ import { usePathname } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
 import { TooltipProvider } from "@/shared/ui/tooltip";
 
-import type { WorkspaceIdentity, WorkspaceNavGroup, WorkspaceRole } from "./types";
+import type { WorkspaceIdentity, WorkspaceNavGroup } from "./types";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceSidebar } from "./workspace-sidebar";
 
-type WorkspaceShellProps = Readonly<{
-  workspaceRole: WorkspaceRole;
+type AdminShellProps = Readonly<{
   navGroups: WorkspaceNavGroup[];
   identity: WorkspaceIdentity;
   onLogout?: () => void;
   children: React.ReactNode;
 }>;
 
-export function WorkspaceShell({
-  workspaceRole,
-  navGroups,
-  identity,
-  onLogout,
-  children,
-}: WorkspaceShellProps) {
+export function AdminShell({ navGroups, identity, onLogout, children }: AdminShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -33,10 +26,7 @@ export function WorkspaceShell({
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setIsScrolled(e.currentTarget.scrollTop > 0);
   };
-
-  const tNamespace = workspaceRole.charAt(0).toUpperCase() + workspaceRole.slice(1);
-  const t = useTranslations(tNamespace as any);
-  const tShell = useTranslations("WorkspaceShell");
+  const t = useTranslations("Admin");
 
   // Find current active item/sub-item and construct breadcrumbs
   let activeItemLabel = "";
@@ -45,11 +35,7 @@ export function WorkspaceShell({
     for (const item of group.items) {
       if (item.children) {
         for (const child of item.children) {
-          const isRootNode =
-            child.href === "/admin" || child.href === "/recruiter" || child.href === "/candidate";
-          const match = isRootNode
-            ? pathname === child.href
-            : pathname === child.href || pathname.startsWith(`${child.href}/`);
+          const match = pathname === child.href || pathname.startsWith(`${child.href}/`);
           if (match) {
             activeItemLabel = child.label;
             break;
@@ -57,8 +43,7 @@ export function WorkspaceShell({
         }
       }
       if (activeItemLabel) break;
-      const isRootNode =
-        item.href === "/admin" || item.href === "/recruiter" || item.href === "/candidate";
+      const isRootNode = item.href === "/admin";
       const match = isRootNode
         ? pathname === item.href
         : pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -74,7 +59,7 @@ export function WorkspaceShell({
     <TooltipProvider delayDuration={120}>
       <div className="flex h-screen overflow-hidden overscroll-none bg-[#f4f6fa] font-sans text-[#2a3547] antialiased">
         <WorkspaceSidebar
-          workspaceRole={workspaceRole}
+          workspaceRole="admin"
           navGroups={navGroups}
           identity={identity}
           mobileOpen={mobileOpen}
@@ -85,7 +70,7 @@ export function WorkspaceShell({
         {/* RIGHT CONTENT AREA */}
         <div className="relative flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-[#f4f6fa] dark:bg-slate-950">
           <WorkspaceHeader
-            workspaceRole={workspaceRole}
+            workspaceRole="admin"
             identity={identity}
             setMobileOpen={setMobileOpen}
             onLogout={onLogout}
