@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Users,
   UsersThree,
+  ChatCircleDots,
 } from "@phosphor-icons/react";
 
 import type { WorkspaceIdentity, WorkspaceNavGroup } from "./types";
@@ -62,6 +63,23 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
       },
       { label: "Phân tích", href: "/recruiter/analytics", icon: ChartLineUp },
       { label: "Thanh toán", href: "/recruiter/billing", icon: CreditCard },
+    ],
+  },
+  {
+    label: "Tin nhắn",
+    icon: ChatCircleDots,
+    items: [
+      {
+        label: "Tin nhắn ứng viên",
+        href: "/recruiter/messages?tab=candidates",
+        icon: ChatCircleDots,
+        badge: "3",
+      },
+      {
+        label: "Hỗ trợ (Tickets)",
+        href: "/recruiter/messages?tab=support",
+        icon: Headset,
+      },
     ],
   },
 ];
@@ -122,6 +140,18 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
         label: "systemAdmin.searchKeywords",
         href: "/admin/system/search-keywords",
         icon: MagnifyingGlass,
+      },
+    ],
+  },
+  {
+    label: "messages.title",
+    icon: ChatCircleDots,
+    items: [
+      {
+        label: "messages.supportChat",
+        href: "/admin/content/support",
+        icon: ChatCircleDots,
+        badge: "3",
       },
     ],
   },

@@ -409,6 +409,8 @@ function createCandidateViewer(
     name,
     roleLabel: locale === "en" ? "Candidate" : "Ứng viên",
     workspaceHref: "/candidate/profile",
+    unreadMessages: 2,
+    unreadNotifications: 5,
   };
 }
 

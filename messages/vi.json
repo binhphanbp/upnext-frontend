@@ -2516,6 +2516,10 @@
       "roles": "Phân quyền",
       "auditLog": "Nhật ký hệ thống",
       "searchKeywords": "Phân tích từ khóa"
+    },
+    "messages": {
+      "title": "Tin nhắn",
+      "supportChat": "Hỗ trợ & Chat"
     }
   },
   "Admin": {

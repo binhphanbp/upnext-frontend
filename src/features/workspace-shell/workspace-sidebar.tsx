@@ -176,6 +176,14 @@ export function WorkspaceSidebar({
                   onClick={() => {
                     setActiveGroupIndex(index);
                     if (collapsed) setCollapsed(false);
+
+                    if (workspaceRole !== "admin") {
+                      // Navigate to the first item of the group for quick access
+                      const firstItem = group.items[0];
+                      if (firstItem && firstItem.href) {
+                        router.push(firstItem.href);
+                      }
+                    }
                   }}
                   className={cn(
                     "flex h-12 w-12 items-center justify-center rounded-xl transition",
