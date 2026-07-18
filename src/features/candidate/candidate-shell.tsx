@@ -1,8 +1,18 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import {
+  candidateChatSeenStorageKey,
+  ChatSocketProvider,
+  hasNewCandidateMessage,
+  useChatSocket,
+  useConversations,
+} from "@/features/chat";
 import { usePathname, useRouter } from "@/i18n/navigation";
 
 import { PublicHeader } from "../public/shared/public-header";
+import { getCandidateSession } from "./session";
 
 type CandidateShellProps = Readonly<{
   children: React.ReactNode;
@@ -15,12 +25,72 @@ export function CandidateShell({ children }: CandidateShellProps) {
   const isCvBuilder = pathname.endsWith("/cv-builder");
 
   if (isCvBuilder) {
-    return <div className="min-h-screen bg-slate-50">{children}</div>;
+    return (
+      <ChatSocketProvider actor="CANDIDATE">
+        <div className="min-h-screen bg-slate-50">{children}</div>
+      </ChatSocketProvider>
+    );
   }
 
   return (
+    <ChatSocketProvider actor="CANDIDATE">
+      <CandidateWorkspace onNavigate={(path) => router.push(path)}>{children}</CandidateWorkspace>
+    </ChatSocketProvider>
+  );
+}
+
+function CandidateWorkspace({
+  children,
+  onNavigate,
+}: Readonly<{
+  children: React.ReactNode;
+  onNavigate: (path: string) => void;
+}>) {
+  const { identity } = useChatSocket();
+  const conversations = useConversations();
+  const [candidateId, setCandidateId] = useState<string | null>(null);
+  const [lastChatSeenAt, setLastChatSeenAt] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    const resolvedCandidateId = identity?.id ?? getCandidateSession()?.user.id ?? null;
+    setCandidateId(resolvedCandidateId);
+    if (!resolvedCandidateId) {
+      setLastChatSeenAt(undefined);
+      return undefined;
+    }
+
+    const storageKey = candidateChatSeenStorageKey(resolvedCandidateId);
+    setLastChatSeenAt(window.localStorage.getItem(storageKey));
+    const syncSeenState = (event: StorageEvent) => {
+      if (event.key === storageKey) setLastChatSeenAt(event.newValue);
+    };
+    window.addEventListener("storage", syncSeenState);
+    return () => window.removeEventListener("storage", syncSeenState);
+  }, [identity?.id]);
+
+  const hasNewRecruiterMessages = useMemo(
+    () =>
+      lastChatSeenAt !== undefined &&
+      hasNewCandidateMessage(conversations.conversations, identity, lastChatSeenAt),
+    [conversations.conversations, identity, lastChatSeenAt],
+  );
+
+  const markRecruiterChatViewed = useCallback(() => {
+    const seenAt = new Date().toISOString();
+    const resolvedCandidateId = candidateId ?? getCandidateSession()?.user.id ?? null;
+    if (resolvedCandidateId) {
+      window.localStorage.setItem(candidateChatSeenStorageKey(resolvedCandidateId), seenAt);
+    }
+    setLastChatSeenAt(seenAt);
+  }, [candidateId]);
+
+  return (
     <div className="candidate-workspace min-h-screen bg-slate-50 text-slate-950">
-      <PublicHeader navigate={(path) => router.push(path)} />
+      <PublicHeader
+        navigate={onNavigate}
+        hasNewRecruiterMessages={hasNewRecruiterMessages}
+        onRecruiterChatViewed={markRecruiterChatViewed}
+      />
 
       <main className="mx-auto w-[min(1400px,calc(100vw-32px))] pt-6 pb-10 md:w-[min(1400px,calc(100vw-60px))] md:pt-8 md:pb-14 xl:w-[min(1400px,calc(100vw-96px))]">
         {children}

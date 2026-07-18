@@ -34,6 +34,7 @@ export function getRecruiterSession(): RecruiterSession | null {
 
 export function clearRecruiterSession() {
   localStorage.removeItem("upnext.recruiter.accessToken");
+  localStorage.removeItem("upnext.recruiter.refreshToken");
   localStorage.removeItem("upnext.recruiter.tokenType");
   localStorage.removeItem("upnext.recruiter.user");
 }

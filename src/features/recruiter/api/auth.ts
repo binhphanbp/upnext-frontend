@@ -8,6 +8,7 @@ export type RecruiterAuthUser = Readonly<{
 
 export type RecruiterLoginResponse = Readonly<{
   accessToken: string;
+  refreshToken: string;
   tokenType: string;
   user: RecruiterAuthUser;
 }>;
@@ -32,6 +33,14 @@ export function loginRecruiter(payload: RecruiterLoginPayload) {
     headers: {
       "Content-Type": "application/json",
     },
+    method: "POST",
+  });
+}
+
+export function refreshRecruiter(refreshToken: string) {
+  return apiRequest<RecruiterLoginResponse>("/recruiter/auth/refresh", {
+    body: JSON.stringify({ refreshToken }),
+    headers: { "Content-Type": "application/json" },
     method: "POST",
   });
 }

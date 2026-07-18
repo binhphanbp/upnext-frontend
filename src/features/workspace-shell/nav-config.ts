@@ -4,6 +4,7 @@ import {
   Briefcase,
   Buildings,
   ChartLineUp,
+  ChatCircleDots,
   CreditCard,
   Database,
   Gauge,
@@ -36,6 +37,7 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
       { label: "Ứng viên", href: "/recruiter/candidates", icon: Users, badge: "1.2k" },
       { label: "Pipeline", href: "/recruiter/pipeline", icon: ListChecks, badge: "82" },
       { label: "Phỏng vấn", href: "/recruiter/interviews", icon: Bell, badge: "18" },
+      { label: "Tin nhắn", href: "/recruiter/messages", icon: ChatCircleDots },
     ],
   },
   {

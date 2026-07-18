@@ -553,6 +553,23 @@
   background: #10a778;
 }
 
+.marketing-home-new-message-dot,
+.marketing-home-menu-message-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.14);
+}
+
+.marketing-home-new-message-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+
 .marketing-home-account {
   position: relative;
 }
@@ -734,6 +751,19 @@
   font-weight: 700;
   text-align: left;
   border-radius: 9px;
+}
+
+.marketing-home-account-menu-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.marketing-home-menu-message-dot {
+  position: absolute;
+  top: -5px;
+  right: -6px;
 }
 
 .marketing-home-account-menu button.is-active {
