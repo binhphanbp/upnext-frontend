@@ -828,6 +828,7 @@
       "candidates": "Ứng viên",
       "pipeline": "Pipeline",
       "interviews": "Phỏng vấn",
+      "messages": "Tin nhắn",
       "company": "Công ty",
       "companyProfile": "Hồ sơ công ty",
       "team": "Đội ngũ & quyền",
@@ -2519,6 +2520,11 @@
     }
   },
   "Admin": {
+    "account": {
+      "profile": "Hồ sơ",
+      "settings": "Cài đặt",
+      "logout": "Đăng xuất"
+    },
     "dashboard": {
       "title": "Thống kê nền tảng",
       "subtitle": "Tổng quan hiệu suất hoạt động và doanh thu của hệ thống UpNext.",

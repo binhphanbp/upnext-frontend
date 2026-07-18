@@ -1,6 +1,6 @@
 import { apiRequest } from "@/shared/api/http";
 
-export type NotificationActorType = "CANDIDATE" | "RECRUITER";
+export type NotificationActorType = "CANDIDATE" | "RECRUITER" | "ADMIN";
 
 export type Notification = Readonly<{
   id: string;
@@ -8,20 +8,21 @@ export type Notification = Readonly<{
   recipientType: NotificationActorType;
   title: string;
   body: string;
-  read: boolean;
+  readAt: string | null;
+  metadata: unknown;
   targetId: string | null;
   targetType: string | null;
   createdAt: string;
 }>;
 
 export type GetNotificationsResponse = Readonly<{
-  items: Notification[];
-  unreadCount: number;
+  data: Notification[];
   meta: {
     page: number;
     limit: number;
     total: number;
     totalPages: number;
+    unreadCount: number;
   };
 }>;
 

@@ -828,6 +828,7 @@
       "candidates": "Candidates",
       "pipeline": "Pipeline",
       "interviews": "Interviews",
+      "messages": "Messages",
       "company": "Company",
       "companyProfile": "Company Profile",
       "team": "Team & Permissions",
@@ -2519,6 +2520,11 @@
     }
   },
   "Admin": {
+    "account": {
+      "profile": "Profile",
+      "settings": "Settings",
+      "logout": "Log out"
+    },
     "dashboard": {
       "title": "Platform Statistics",
       "subtitle": "Overview of UpNext system performance and revenue.",

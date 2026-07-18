@@ -90,12 +90,15 @@ type PublicHeaderCopy = {
   resumesLabel: string;
   jobPreferencesLabel: string;
   applicationsLabel: string;
+  recruiterChatLabel: string;
   savedJobsLabel: string;
 };
 
 type PublicHeaderProps = {
   navigate: (path: string) => void;
   viewer?: PublicHeaderViewer | null;
+  hasNewRecruiterMessages?: boolean;
+  onRecruiterChatViewed?: () => void;
 };
 
 export type PublicHeaderViewer = {
@@ -326,6 +329,7 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     resumesLabel: "CV của tôi",
     jobPreferencesLabel: "Mong muốn việc làm",
     applicationsLabel: "Việc đã ứng tuyển",
+    recruiterChatLabel: "Chat với nhà tuyển dụng",
     savedJobsLabel: "Việc đã lưu",
   },
   en: {
@@ -348,6 +352,7 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     resumesLabel: "Resumes",
     jobPreferencesLabel: "Job Preferences",
     applicationsLabel: "Applications",
+    recruiterChatLabel: "Chat with recruiters",
     savedJobsLabel: "Saved Jobs",
   },
 };
@@ -412,7 +417,12 @@ function createCandidateViewer(
   };
 }
 
-export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
+export function PublicHeader({
+  navigate,
+  viewer,
+  hasNewRecruiterMessages,
+  onRecruiterChatViewed,
+}: PublicHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
@@ -427,6 +437,12 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
   const lang: Language["code"] = currentLocale === "en" ? "EN" : "VI";
   const copy = copyByLocale[currentLocale];
   const effectiveViewer = viewer === undefined ? storedViewer : viewer;
+  const recruiterChatAvailable =
+    hasNewRecruiterMessages !== undefined ||
+    onRecruiterChatViewed !== undefined ||
+    effectiveViewer?.unreadMessages !== undefined;
+  const recruiterChatHasNewMessage =
+    hasNewRecruiterMessages ?? Boolean(effectiveViewer?.unreadMessages);
   const isCandidatePathActive = (path: string) =>
     pathname === path || pathname.startsWith(`${path}/`);
   const isJobPreferencesActive =
@@ -548,6 +564,12 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
     setLangOpen(false);
     if (language.locale === locale) return;
     router.replace(pathname, { locale: language.locale });
+  }
+
+  function openRecruiterChat() {
+    setAccountOpen(false);
+    onRecruiterChatViewed?.();
+    window.open("/conversations/chat", "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -699,21 +721,23 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                 ) : null}
               </button>
             )}
-            {effectiveViewer.unreadMessages !== undefined && (
+            {recruiterChatAvailable ? (
               <button
                 type="button"
                 className="marketing-home-auth-icon"
                 aria-label={copy.messagesLabel}
-                onClick={() => navigate("/candidate/messages")}
+                onClick={openRecruiterChat}
               >
                 <ChatCircleText size={20} aria-hidden="true" />
-                {effectiveViewer.unreadMessages ? (
+                {hasNewRecruiterMessages !== undefined && recruiterChatHasNewMessage ? (
+                  <span className="marketing-home-new-message-dot" aria-label="Có tin nhắn mới" />
+                ) : effectiveViewer.unreadMessages ? (
                   <span className="marketing-home-auth-badge">
                     {effectiveViewer.unreadMessages}
                   </span>
                 ) : null}
               </button>
-            )}
+            ) : null}
 
             <div
               className={`marketing-home-account${accountOpen ? " is-open" : ""}`}
@@ -798,6 +822,12 @@ export function PublicHeader({ navigate, viewer }: PublicHeaderProps) {
                     }}
                   />
                   <AccountMenuItem
+                    icon={<ChatCircleText size={18} aria-hidden="true" />}
+                    label={copy.recruiterChatLabel}
+                    indicator={recruiterChatHasNewMessage}
+                    onClick={openRecruiterChat}
+                  />
+                  <AccountMenuItem
                     icon={<BookmarkSimple size={18} aria-hidden="true" />}
                     label={copy.savedJobsLabel}
                     active={isCandidatePathActive("/candidate/saved-jobs")}
@@ -861,11 +891,13 @@ function AccountMenuItem({
   icon,
   label,
   active = false,
+  indicator = false,
   onClick,
 }: Readonly<{
   icon: ReactNode;
   label: string;
   active?: boolean;
+  indicator?: boolean;
   onClick: () => void;
 }>) {
   return (
@@ -875,7 +907,12 @@ function AccountMenuItem({
       className={active ? "is-active" : undefined}
       onClick={onClick}
     >
-      {icon}
+      <span className="marketing-home-account-menu-icon">
+        {icon}
+        {indicator ? (
+          <span className="marketing-home-menu-message-dot" aria-label="Có tin nhắn mới" />
+        ) : null}
+      </span>
       {label}
     </button>
   );

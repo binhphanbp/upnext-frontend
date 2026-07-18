@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const envSchema = z.object({
   NEXT_PUBLIC_API_BASE_URL: z.union([z.url(), z.string().regex(/^\/[^/]/u)]).default("/api/v1"),
+  NEXT_PUBLIC_SOCKET_URL: z.url().default("http://localhost:3636"),
   NEXT_PUBLIC_API_MOCKING: z.enum(["enabled", "disabled"]).default("disabled"),
   NEXT_PUBLIC_RECRUITER_COMPANY_ID: z
     .string()
@@ -11,6 +12,7 @@ const envSchema = z.object({
 
 export const env = envSchema.parse({
   NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL,
   NEXT_PUBLIC_API_MOCKING: process.env.NEXT_PUBLIC_API_MOCKING,
   NEXT_PUBLIC_RECRUITER_COMPANY_ID: process.env.NEXT_PUBLIC_RECRUITER_COMPANY_ID,
 });
