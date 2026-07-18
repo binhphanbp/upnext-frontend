@@ -20,7 +20,6 @@ type RecruiterLayoutProps = Readonly<{
 const routePermissionMap: Record<string, string[]> = {
   "/recruiter/job-posts": ["jobs_manage"],
   "/recruiter/candidates": ["applications_manage", "applications_review_assigned"],
-  "/recruiter/pipeline": ["applications_manage", "applications_review_assigned"],
   "/recruiter/interviews": ["interviews_manage", "interviews_review_assigned"],
   "/recruiter/company-profile": ["company_manage"],
   "/recruiter/company-addresses": ["company_manage"],
@@ -73,9 +72,6 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       } else if (item.label === "Ứng viên") {
         itemLabel = t("nav.candidates");
         if (stats) badge = String(stats.totalCandidates);
-      } else if (item.label === "Pipeline") {
-        itemLabel = t("nav.pipeline");
-        badge = undefined;
       } else if (item.label === "Phỏng vấn") {
         itemLabel = t("nav.interviews");
         badge = undefined;
@@ -145,7 +141,21 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
     pathname.includes("/auth/callback") ||
     pathname.includes("/company-invitations");
 
+  // Chỉ chặn ngược lại /login và /register — các trang auth khác (quên mật khẩu,
+  // xác thực email, lời mời công ty...) vẫn phải xem được kể cả khi đã đăng nhập.
+  const isLoginOrRegisterPage =
+    pathname === "/recruiter/login" || pathname === "/recruiter/register";
+
   useEffect(() => {
+    if (isLoginOrRegisterPage) {
+      const accessToken = localStorage.getItem("upnext.recruiter.accessToken");
+      const rawUser = localStorage.getItem("upnext.recruiter.user");
+      if (accessToken && rawUser) {
+        router.replace("/recruiter");
+        return;
+      }
+    }
+
     if (isAuthPage) {
       setLoading(false);
       return;
@@ -260,7 +270,14 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       router.replace("/recruiter/login");
       setLoading(false);
     }
-  }, [pathname, isAuthPage, router]);
+  }, [pathname, isAuthPage, isLoginOrRegisterPage, router]);
+
+  useEffect(() => {
+    document.body.classList.add("recruiter-workspace");
+    return () => {
+      document.body.classList.remove("recruiter-workspace");
+    };
+  }, []);
 
   function handleLogout() {
     localStorage.removeItem("upnext.recruiter.accessToken");

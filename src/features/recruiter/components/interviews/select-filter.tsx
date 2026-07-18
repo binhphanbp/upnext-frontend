@@ -27,15 +27,15 @@ export function SelectFilter({
 }: SelectFilterProps) {
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      {label && (
+      {label ? (
         <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
           {label}
         </span>
-      )}
+      ) : null}
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger
           className={cn(
-            "h-10 w-full min-w-[160px] cursor-pointer rounded-lg border-slate-200 bg-white text-slate-700 shadow-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500",
+            "h-10 w-full min-w-[160px] cursor-pointer rounded-lg border-slate-200 bg-white text-slate-700 shadow-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500",
             triggerClassName,
           )}
         >

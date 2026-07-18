@@ -45,6 +45,7 @@ import {
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
   getCompanyApplications,
+  isRecruiterMissingCompanyError,
   updateApplicationStatus,
   type Application,
 } from "@/features/recruiter/api/team";
@@ -150,6 +151,7 @@ export function RecruiterCandidatesPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [missingCompany, setMissingCompany] = useState(false);
 
   // Filter States
   const [search, setSearch] = useState("");
@@ -275,14 +277,38 @@ export function RecruiterCandidatesPage() {
         if (status) queryParams.status = status;
         if (search.trim()) queryParams.search = search.trim();
 
-        const [applicantsData, jobPostsData] = await Promise.all([
-          getCompanyApplications(accessToken, queryParams),
-          getRecruiterJobPosts(accessToken, nextAccountId),
-        ]);
+        const jobPostsPromise = getRecruiterJobPosts(accessToken, nextAccountId);
+        const applicationsPromise = getCompanyApplications(accessToken, queryParams);
 
-        setCandidates(applicantsData);
-        setJobs(jobPostsData);
+        const [applicantsResult, jobPostsData] = await Promise.allSettled([
+          applicationsPromise,
+          jobPostsPromise,
+        ] as const);
+
+        if (jobPostsData.status === "fulfilled") {
+          setJobs(jobPostsData.value);
+        }
+
+        if (applicantsResult.status === "fulfilled") {
+          setMissingCompany(false);
+          setCandidates(applicantsResult.value);
+          return;
+        }
+
+        if (isRecruiterMissingCompanyError(applicantsResult.reason)) {
+          setMissingCompany(true);
+          setCandidates([]);
+          return;
+        }
+
+        throw applicantsResult.reason;
       } catch (error) {
+        if (isRecruiterMissingCompanyError(error)) {
+          setMissingCompany(true);
+          setCandidates([]);
+          return;
+        }
+
         handleAuthError(error, router, locale);
       } finally {
         setInitialLoading(false);
@@ -377,8 +403,14 @@ export function RecruiterCandidatesPage() {
       if (search.trim()) queryParams.search = search.trim();
 
       const applicantsData = await getCompanyApplications(token, queryParams);
+      setMissingCompany(false);
       setCandidates(applicantsData);
     } catch (error) {
+      if (isRecruiterMissingCompanyError(error)) {
+        setMissingCompany(true);
+        setCandidates([]);
+        return;
+      }
       showActionError(error, t);
     } finally {
       setSaving(false);
@@ -454,7 +486,7 @@ export function RecruiterCandidatesPage() {
 
   return (
     <div className="w-full min-w-0 space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-950">{t("candidates.title")}</h1>
           <p className="mt-1 text-sm text-slate-500">{t("candidates.subtitle")}</p>
@@ -465,7 +497,7 @@ export function RecruiterCandidatesPage() {
             {candidates.length} {t("nav.candidates").toLowerCase()}
           </span>
         </div>
-      </header>
+      </header> */}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6 flex h-auto w-full justify-start gap-3 rounded-none border-none bg-transparent p-0">
@@ -732,9 +764,22 @@ export function RecruiterCandidatesPage() {
                         style={{ height: "auto", width: "auto" }}
                         className="opacity-90"
                       />
-                      <span className="font-medium text-slate-500">
-                        {t("candidates.table.empty")}
-                      </span>
+                      {missingCompany ? (
+                        <>
+                          <span className="font-bold text-slate-800">
+                            {locale === "vi" ? "Chưa có hồ sơ công ty" : "No company profile yet"}
+                          </span>
+                          <span className="mt-1 max-w-md text-sm font-medium text-slate-500">
+                            {locale === "vi"
+                              ? "Vui lòng cập nhật hồ sơ công ty trước khi xem danh sách ứng viên."
+                              : "Please complete your company profile before viewing applications."}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-medium text-slate-500">
+                          {t("candidates.table.empty")}
+                        </span>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -917,6 +962,10 @@ export function RecruiterCandidatesPage() {
 }
 
 function showActionError(error: unknown, t: any) {
+  if (isRecruiterMissingCompanyError(error)) {
+    return;
+  }
+
   void Swal.fire({
     icon: "error",
     title: t("team.messages.errorTitle"),
@@ -950,6 +999,10 @@ function getTeamErrorMessage(error: unknown, t: any) {
 }
 
 function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>, locale: string) {
+  if (isRecruiterMissingCompanyError(error)) {
+    return;
+  }
+
   if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
     clearRecruiterSession();
     router.replace("/recruiter/login");

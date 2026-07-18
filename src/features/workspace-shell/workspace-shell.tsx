@@ -174,7 +174,12 @@ export function WorkspaceShell({
 
   return (
     <TooltipProvider delayDuration={120}>
-      <div className="flex h-screen overflow-hidden overscroll-none bg-[#f4f6fa] font-sans text-[#2a3547] antialiased">
+      <div
+        className={cn(
+          "flex h-screen overflow-hidden overscroll-none bg-[#f4f6fa] font-sans text-[#2a3547] antialiased",
+          workspaceRole === "recruiter" && "recruiter-workspace",
+        )}
+      >
         {/* Sidebars Hover Wrapper */}
         <div
           className="relative z-20 flex h-full flex-shrink-0 bg-white"

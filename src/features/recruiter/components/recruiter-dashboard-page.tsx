@@ -8,7 +8,6 @@ import {
   CircleNotch,
   ArrowRight,
   CheckCircle,
-  Circle,
   CaretLeft,
   CaretRight,
   Briefcase,
@@ -21,9 +20,10 @@ import {
   Crown,
   Info,
   X,
-  LockSimple,
   Archive,
   Clock,
+  User,
+  LockSimple,
 } from "@phosphor-icons/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useLocale, useTranslations } from "next-intl";
@@ -33,25 +33,25 @@ import { useForm, type FieldErrors, type UseFormRegisterReturn } from "react-hoo
 import Swal, { type SweetAlertIcon } from "sweetalert2";
 import { z } from "zod";
 
+import { getRecruiterInterviews, type Interview } from "@/features/recruiter/api/interviews";
 import {
-  attachRecruiterCompany,
   createCompany,
   createRecruiterProfile,
   getCompany,
   getRecruiterAccount,
   getRecruiterStats,
   type CompanyDetail,
+  type CompanyLocation,
   type RecruiterAccountDetail,
   updateRecruiterProfile,
   uploadCompanyBusinessLicense,
   uploadFile,
-  scanCompanyBusinessLicense,
+  scanCompanyBusinessLicensePreview,
   updateCompany,
   createCompanyLocation,
   getCompanyLocations,
   updateCompanyLocation,
 } from "@/features/recruiter/api/onboarding";
-import { getRecruiterPipeline, type PipelineCandidate } from "@/features/recruiter/api/pipeline";
 import {
   extractProvinceFromAddress,
   normalizeProvinceName,
@@ -166,6 +166,8 @@ type OnboardingValues = z.infer<ReturnType<typeof createOnboardingSchema>>;
 
 type OnboardingStep = 0 | 1 | 2;
 
+const COMPANY_ONBOARDING_SKIP_KEY_PREFIX = "skippedRecruiterCompanyOnboarding";
+
 const stepFields: Record<OnboardingStep, Array<keyof OnboardingValues>> = {
   0: ["fullName", "phoneNumber", "gender", "avatar"],
   1: [
@@ -240,6 +242,72 @@ function RequiredLabel({ children, htmlFor }: { children: ReactNode; htmlFor?: s
       <span className="ml-1 text-red-500">*</span>
     </Label>
   );
+}
+
+function getCompanyOnboardingSkipKey(userId: string) {
+  return `${COMPANY_ONBOARDING_SKIP_KEY_PREFIX}_${userId}`;
+}
+
+function isOwnerRecruiterAccount(account: RecruiterAccountDetail) {
+  const roleCode = account.recruiterRole?.code?.trim().toUpperCase();
+  const roleName = account.recruiterRole?.name?.trim().toUpperCase();
+
+  return !account.recruiterRole || roleCode === "OWNER" || roleName === "OWNER";
+}
+
+function isRecruiterProfileComplete(account: RecruiterAccountDetail) {
+  const profile = account.profile;
+
+  return Boolean(
+    profile?.fullName?.trim() &&
+    profile.phoneNumber?.trim() &&
+    (profile.gender === "MALE" || profile.gender === "FEMALE") &&
+    profile.avatarUrl,
+  );
+}
+
+function isCompanyProfileComplete(
+  account: RecruiterAccountDetail,
+  companyDetail: CompanyDetail | null,
+) {
+  const company = account.company;
+
+  if (!company || !company.name || company.name === DRAFT_COMPANY_NAME) {
+    return false;
+  }
+
+  if (!companyDetail) {
+    return true;
+  }
+
+  return Boolean(
+    companyDetail.name?.trim() &&
+    companyDetail.name !== DRAFT_COMPANY_NAME &&
+    companyDetail.taxCode?.trim() &&
+    companyDetail.address?.trim() &&
+    companyDetail.email?.trim() &&
+    companyDetail.phone?.trim() &&
+    companyDetail.companySize?.trim() &&
+    companyDetail.description?.trim(),
+  );
+}
+
+function isCompanyLicenseSubmitted(account: RecruiterAccountDetail) {
+  return Boolean(
+    account.company &&
+    (account.company.verificationStatus === "VERIFIED" ||
+      account.company.verificationStatus === "PENDING" ||
+      account.company.businessLicenseFileId),
+  );
+}
+
+function getInitialOnboardingStep(
+  account: RecruiterAccountDetail,
+  companyDetail: CompanyDetail | null,
+): OnboardingStep {
+  if (!isRecruiterProfileComplete(account)) return 0;
+  if (!isCompanyProfileComplete(account, companyDetail)) return 1;
+  return 2;
 }
 
 const JOB_STATUS_ORDER = ["PUBLISHED", "DRAFT", "CLOSED", "ARCHIVED"] as const;
@@ -327,52 +395,52 @@ export function RecruiterDashboardPage() {
     null,
   );
   const [jobPosts, setJobPosts] = useState<RecruiterJobPost[]>([]);
-  const [pipelineCandidates, setPipelineCandidates] = useState<PipelineCandidate[]>([]);
+  const [interviews, setInterviews] = useState<Interview[]>([]);
   const [companyDetail, setCompanyDetail] = useState<CompanyDetail | null>(null);
   const [reputationDialogOpen, setReputationDialogOpen] = useState(false);
 
-  const [skippedOnboarding, setSkippedOnboarding] = useState(false);
+  const [skippedCompanyOnboarding, setSkippedCompanyOnboarding] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
-      const isSkipped = localStorage.getItem(`skippedOnboarding_${user.id}`) === "true";
-      setSkippedOnboarding(isSkipped);
+      setSkippedCompanyOnboarding(
+        localStorage.getItem(getCompanyOnboardingSkipKey(user.id)) === "true",
+      );
     } else {
-      setSkippedOnboarding(false);
+      setSkippedCompanyOnboarding(false);
     }
   }, [user?.id]);
 
   const onboardingRequired = useMemo(() => {
     if (!account) return false;
-    if (skippedOnboarding) return false;
 
-    // Only OWNER accounts need to perform company onboarding
-    const isOwner = account.recruiterRole?.code === "OWNER";
-    if (!isOwner) return false;
+    // Only OWNER accounts (or newly registered accounts without a role yet) perform onboarding.
+    if (!isOwnerRecruiterAccount(account)) return false;
 
-    const isCompanyOnboarded =
-      account.company &&
-      (account.company.verificationStatus === "VERIFIED" ||
-        account.company.verificationStatus === "PENDING" ||
-        account.company.businessLicenseFileId);
+    if (!isRecruiterProfileComplete(account)) return true;
+    if (skippedCompanyOnboarding) return false;
 
-    return !isCompanyOnboarded;
-  }, [account, skippedOnboarding]);
+    return !isCompanyProfileComplete(account, companyDetail) || !isCompanyLicenseSubmitted(account);
+  }, [account, companyDetail, skippedCompanyOnboarding]);
+
+  const initialOnboardingStep = useMemo<OnboardingStep>(() => {
+    return account ? getInitialOnboardingStep(account, companyDetail) : 0;
+  }, [account, companyDetail]);
 
   const loadAccount = useCallback(
     async (accountId: string, accessToken: string) => {
       try {
         setLoading(true);
-        const [accountData, statsData, jobPostsData, pipelineData] = await Promise.all([
+        const [accountData, statsData, jobPostsData, interviewsData] = await Promise.all([
           getRecruiterAccount(accountId, accessToken),
           getRecruiterStats(accountId, accessToken),
           getRecruiterJobPosts(accessToken, accountId).catch(() => [] as RecruiterJobPost[]),
-          getRecruiterPipeline(accessToken).catch(() => null),
+          getRecruiterInterviews(accessToken).catch(() => [] as Interview[]),
         ]);
         setAccount(accountData);
         setStats(statsData);
         setJobPosts(jobPostsData);
-        setPipelineCandidates(pipelineData?.candidates ?? []);
+        setInterviews(interviewsData);
 
         const companyId = accountData.company?.id;
         setCompanyDetail(
@@ -410,9 +478,7 @@ export function RecruiterDashboardPage() {
   const [activeCardId, setActiveCardId] = useState("phone");
 
   const hasPhone = Boolean(account?.profile?.phoneNumber);
-  const hasCompanyInfo = Boolean(
-    account?.company?.name && account?.company?.name !== DRAFT_COMPANY_NAME,
-  );
+  const hasCompanyInfo = Boolean(account && isCompanyProfileComplete(account, companyDetail));
   const hasPostedJob = Boolean(stats && stats.totalJobPosts > 0);
 
   const publishedCount = useMemo(
@@ -452,15 +518,13 @@ export function RecruiterDashboardPage() {
   );
   const upcomingInterviews = useMemo(() => {
     const now = Date.now();
-    return pipelineCandidates
-      .filter((c) => c.interview?.scheduledAt && new Date(c.interview.scheduledAt).getTime() >= now)
+    return interviews
+      .filter((interview) => new Date(interview.scheduledStartAt).getTime() >= now)
       .sort(
-        (a, b) =>
-          new Date(a.interview!.scheduledAt).getTime() -
-          new Date(b.interview!.scheduledAt).getTime(),
+        (a, b) => new Date(a.scheduledStartAt).getTime() - new Date(b.scheduledStartAt).getTime(),
       )
       .slice(0, 5);
-  }, [pipelineCandidates]);
+  }, [interviews]);
 
   const reputationScore = useMemo(() => {
     const raw = Number(companyDetail?.reputationScore ?? 0);
@@ -507,6 +571,23 @@ export function RecruiterDashboardPage() {
       });
     }
   };
+
+  const handleOnboardingCompleted = useCallback(
+    (nextAccount: RecruiterAccountDetail) => {
+      setAccount(nextAccount);
+
+      const companyId = nextAccount.company?.id;
+      if (!companyId || !token) {
+        setCompanyDetail(null);
+        return;
+      }
+
+      void getCompany(companyId, token)
+        .then(setCompanyDetail)
+        .catch(() => setCompanyDetail(null));
+    },
+    [token],
+  );
 
   if (loading) {
     return (
@@ -566,7 +647,9 @@ export function RecruiterDashboardPage() {
               </svg>
               <span className="absolute text-xl font-bold text-slate-800">{progressPercent}%</span>
             </div>
-            <span className="text-[14px] font-semibold text-slate-700">Hoàn tất hồ sơ</span>
+            <span className="text-[14px] font-semibold text-slate-700">
+              {t("dashboard.onboardingWidget.progressLabel")}
+            </span>
           </div>
 
           {/* Middle welcome text + step tasks */}
@@ -574,10 +657,10 @@ export function RecruiterDashboardPage() {
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-1">
                 <h3 className="text-lg font-bold text-slate-800">
-                  Xin chào,{" "}
+                  {t("dashboard.onboardingWidget.title", { name: "" })}
                   <span className="text-emerald-600">
                     {account?.profile?.fullName || t("dashboard.defaultName")}
-                  </span>{" "}
+                  </span>
                 </h3>
                 <p className="max-w-xl text-[12px] leading-relaxed font-semibold text-slate-500">
                   {t("dashboard.onboardingWidget.subtitle")}
@@ -945,32 +1028,44 @@ export function RecruiterDashboardPage() {
           </p>
         ) : (
           <RecruiterTableLayout loading={false}>
-            <thead className="bg-slate-50/75 text-left text-xs font-bold tracking-wide text-slate-500">
+            <thead className="text-left text-xs font-bold text-slate-900">
               <tr>
-                <th className="px-4 py-2.5" scope="col">
+                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
                   {t("dashboard.topJobs.table.job")}
                 </th>
-                <th className="px-4 py-2.5" scope="col">
+                <th
+                  className="border-r border-slate-300 px-4 py-2.5 !text-center last:border-r-0"
+                  scope="col"
+                >
                   {t("dashboard.topJobs.table.status")}
                 </th>
-                <th className="px-4 py-2.5 text-center" scope="col">
+                <th
+                  className="border-r border-slate-300 px-4 py-2.5 !text-center last:border-r-0"
+                  scope="col"
+                >
                   {t("dashboard.topJobs.table.applicants")}
                 </th>
-                <th className="px-4 py-2.5 text-center" scope="col">
+                <th
+                  className="border-r border-slate-300 px-4 py-2.5 !text-center last:border-r-0"
+                  scope="col"
+                >
                   {t("dashboard.topJobs.table.views")}
                 </th>
-                <th className="px-4 py-2.5 text-center" scope="col">
+                <th
+                  className="border-r border-slate-300 px-4 py-2.5 !text-center last:border-r-0"
+                  scope="col"
+                >
                   {t("dashboard.topJobs.table.published")}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {topJobs.map((jp) => {
                 const config = JOB_STATUS_CARD_CONFIG[jp.status];
                 const publishedDate = jp.publishedAt ?? jp.createdAt;
                 return (
-                  <tr key={jp.id} className="hover:bg-slate-50/50">
-                    <td className="max-w-[220px] px-4 py-3 font-semibold text-slate-600">
+                  <tr key={jp.id}>
+                    <td className="max-w-[220px] border-r border-slate-100/50 px-4 py-3 font-semibold text-slate-600 last:border-r-0">
                       <button
                         type="button"
                         onClick={() => router.push("/recruiter/job-posts")}
@@ -979,23 +1074,23 @@ export function RecruiterDashboardPage() {
                         {jp.title}
                       </button>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center last:border-r-0">
                       <span
                         className={cn(
-                          "rounded-full px-2 py-1 text-[11px] font-semiĐịa điểm (trực tiếp) dropdow 1 công ty có nhiều chi nhanhs màbold text-white",
+                          "rounded-full px-2 py-1 text-[11px] font-semibold text-white",
                           config.badgeBg,
                         )}
                       >
                         {t(`dashboard.statusDistribution.status.${jp.status}`)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center font-semibold text-slate-700">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-semibold text-slate-600 last:border-r-0">
                       {jp._count?.applications ?? 0}
                     </td>
-                    <td className="px-4 py-3 text-center font-semibold text-slate-700">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-semibold text-slate-600 last:border-r-0">
                       {jp._count?.views ?? 0}
                     </td>
-                    <td className="px-4 py-3 text-center font-semibold text-slate-700">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-semibold text-slate-600 last:border-r-0">
                       {formatAppDate(publishedDate, locale === "en" ? "en" : "vi")}
                     </td>
                   </tr>
@@ -1035,49 +1130,49 @@ export function RecruiterDashboardPage() {
           </p>
         ) : (
           <RecruiterTableLayout loading={false}>
-            <thead className="bg-slate-50/75 text-left text-xs font-bold tracking-wide text-slate-500">
+            <thead className="text-left text-xs font-bold text-slate-900">
               <tr>
-                <th className="px-4 py-2.5" scope="col">
+                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
                   {t("dashboard.upcomingInterviews.table.candidate")}
                 </th>
-                <th className="px-4 py-2.5" scope="col">
+                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
                   {t("dashboard.upcomingInterviews.table.role")}
                 </th>
-                <th className="px-4 py-2.5" scope="col">
+                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
                   {t("dashboard.upcomingInterviews.table.schedule")}
                 </th>
-                <th className="px-4 py-2.5" scope="col">
+                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
                   {t("dashboard.upcomingInterviews.table.interviewer")}
                 </th>
-                <th className="px-4 py-2.5" scope="col">
+                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
                   {t("dashboard.upcomingInterviews.table.mode")}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {upcomingInterviews.map((candidate) => {
-                const scheduledAt = toDate(candidate.interview!.scheduledAt);
+            <tbody>
+              {upcomingInterviews.map((interview) => {
+                const scheduledAt = toDate(interview.scheduledStartAt);
                 return (
-                  <tr key={candidate.id} className="hover:bg-slate-50/50">
-                    <td className="max-w-[200px] truncate px-4 py-3 font-bold text-slate-800">
-                      {candidate.name}
+                  <tr key={interview.id}>
+                    <td className="max-w-[200px] truncate border-r border-slate-100/50 px-4 py-3 font-bold text-slate-800 last:border-r-0">
+                      {interview.application?.candidateProfile.account.fullName ?? "—"}
                     </td>
-                    <td className="max-w-[180px] truncate px-4 py-3 text-slate-600">
-                      {candidate.role}
+                    <td className="max-w-[180px] truncate border-r border-slate-100/50 px-4 py-3 text-slate-600 last:border-r-0">
+                      {interview.application?.jobPost.title ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-slate-600 last:border-r-0">
                       {formatAppDate(scheduledAt, locale === "en" ? "en" : "vi")} ·{" "}
                       {scheduledAt.toLocaleTimeString(locale === "en" ? "en-US" : "vi-VN", {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {candidate.interview!.interviewerName || "—"}
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-slate-600 last:border-r-0">
+                      {interview.recruiterProfile?.fullName || "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="border-r border-slate-100/50 px-4 py-3 last:border-r-0">
                       <span className="rounded-md bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-600">
-                        {candidate.interview!.mode || "—"}
+                        {t(`interviews.type.${interview.type}` as any)}
                       </span>
                     </td>
                   </tr>
@@ -1160,14 +1255,16 @@ export function RecruiterDashboardPage() {
       {account ? (
         <RecruiterOnboardingDialog
           account={account}
-          onCompleted={(nextAccount) => setAccount(nextAccount)}
+          companyDetail={companyDetail}
+          initialStep={initialOnboardingStep}
+          onCompleted={handleOnboardingCompleted}
           open={onboardingRequired}
           token={token}
-          onSkip={() => {
+          onSkipCompanyOnboarding={() => {
             if (user?.id) {
-              localStorage.setItem(`skippedOnboarding_${user.id}`, "true");
+              localStorage.setItem(getCompanyOnboardingSkipKey(user.id), "true");
             }
-            setSkippedOnboarding(true);
+            setSkippedCompanyOnboarding(true);
           }}
         />
       ) : null}
@@ -1177,19 +1274,24 @@ export function RecruiterDashboardPage() {
 
 function RecruiterOnboardingDialog({
   account,
+  companyDetail,
+  initialStep,
   onCompleted,
   open,
   token,
-  onSkip,
+  onSkipCompanyOnboarding,
 }: {
   account: RecruiterAccountDetail;
+  companyDetail: CompanyDetail | null;
+  initialStep: OnboardingStep;
   onCompleted: (account: RecruiterAccountDetail) => void;
   open: boolean;
   token: string;
-  onSkip: () => void;
+  onSkipCompanyOnboarding: () => void;
 }) {
   const t = useTranslations("Recruiter");
-  const [step, setStep] = useState<OnboardingStep>(0);
+  const [step, setStep] = useState<OnboardingStep>(initialStep);
+  const [isLicenseDeleted, setIsLicenseDeleted] = useState(false);
 
   const companySizeOptions = [
     { value: "", label: t("onboarding.companyProfile.companySizes.placeholder") },
@@ -1222,9 +1324,9 @@ function RecruiterOnboardingDialog({
     return createOnboardingSchema(
       t,
       Boolean(profile?.avatarUrl),
-      Boolean(account.company?.businessLicenseFileId),
+      Boolean(account.company?.businessLicenseFileId) && !isLicenseDeleted,
     );
-  }, [t, account.company?.businessLicenseFileId, profile?.avatarUrl]);
+  }, [t, account.company?.businessLicenseFileId, profile?.avatarUrl, isLicenseDeleted]);
 
   const form = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
@@ -1233,16 +1335,18 @@ function RecruiterOnboardingDialog({
       phoneNumber: profile?.phoneNumber ?? "",
       gender: (profile?.gender as "MALE" | "FEMALE") ?? undefined,
       companyName:
-        account.company?.name === DRAFT_COMPANY_NAME ? "" : (account.company?.name ?? ""),
-      taxCode: "",
-      address: "",
+        companyDetail?.name === DRAFT_COMPANY_NAME
+          ? ""
+          : (companyDetail?.name ?? account.company?.name ?? ""),
+      taxCode: companyDetail?.taxCode ?? "",
+      address: companyDetail?.address ?? "",
       city: "",
-      companyEmail: account.email,
-      companyPhone: "",
-      website: "",
-      companySize: "",
-      description: "",
-      benefits: "",
+      companyEmail: companyDetail?.email ?? account.email,
+      companyPhone: companyDetail?.phone ?? "",
+      website: companyDetail?.website ?? "",
+      companySize: companyDetail?.companySize ?? "",
+      description: companyDetail?.description ?? "",
+      benefits: companyDetail?.benefits ?? "",
     },
   });
 
@@ -1253,7 +1357,74 @@ function RecruiterOnboardingDialog({
   const [onboardingCompanyId, setOnboardingCompanyId] = useState(account.company?.id || "");
   const [scanning, setScanning] = useState(false);
   const [aiLicenseFile, setAiLicenseFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const aiLicenseInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLLabelElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        if (!file) return;
+        const fileExtension = file.name.split(".").pop()?.toLowerCase();
+        if (fileExtension && ["pdf", "png", "jpg", "jpeg"].includes(fileExtension)) {
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          form.setValue("businessLicense", dataTransfer.files, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          });
+        } else {
+          void Swal.fire({
+            icon: "error",
+            title:
+              t("onboarding.companyProfile.errors.invalidFileType") ||
+              "Định dạng file không hợp lệ",
+            text: t("onboarding.validation.invalidFileType") || "Chỉ chấp nhận file PDF, PNG, JPG.",
+          });
+        }
+      }
+    },
+    [form, t],
+  );
+
+  useEffect(() => {
+    if (open) {
+      setStep(initialStep);
+    }
+  }, [initialStep, open]);
+
+  useEffect(() => {
+    const companyId = onboardingCompanyId || account.company?.id;
+    if (companyId && token) {
+      getCompanyLocations(companyId, token)
+        .then((locs) => {
+          const primaryLocation =
+            locs.find((loc) => loc.name === PRIMARY_COMPANY_LOCATION_NAME) ?? locs[0];
+          if (primaryLocation?.city) {
+            form.setValue("city", primaryLocation.city, { shouldValidate: true });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [onboardingCompanyId, account.company?.id, token, form]);
 
   const handleScanLicense = async () => {
     if (!aiLicenseFile) {
@@ -1267,18 +1438,11 @@ function RecruiterOnboardingDialog({
       return;
     }
 
-    let currentCompanyId = onboardingCompanyId;
     try {
       setScanning(true);
-      if (!currentCompanyId) {
-        // Create draft company first
-        const draftCompany = await createCompany({ name: DRAFT_COMPANY_NAME }, token);
-        currentCompanyId = draftCompany.id;
-        setOnboardingCompanyId(currentCompanyId);
-        await attachRecruiterCompany(account.id, currentCompanyId, token);
-      }
+      // Quét trước khi công ty được tạo — không tạo company nháp nào trong DB.
+      const data = await scanCompanyBusinessLicensePreview(aiLicenseFile, token);
 
-      const data = await scanCompanyBusinessLicense(currentCompanyId, aiLicenseFile, token);
       const normalizedCity =
         normalizeProvinceName(data.city) || extractProvinceFromAddress(data.address);
       const normalizedAddress = stripProvinceFromAddress(data.address, normalizedCity);
@@ -1369,6 +1533,46 @@ function RecruiterOnboardingDialog({
 
   const isFirstStep = step === 0;
   const isLastStep = step === onboardingSteps.length - 1;
+  const [skipping, setSkipping] = useState(false);
+
+  async function saveRecruiterProfile(values: OnboardingValues) {
+    let avatarUrl = profile?.avatarUrl ?? null;
+    const avatarFile = values.avatar?.item(0);
+
+    if (avatarFile) {
+      const uploadResult = await uploadFile(avatarFile, "AVATAR", "PUBLIC", token);
+      avatarUrl = uploadResult.file.publicUrl;
+    }
+
+    const genderValue =
+      values.gender === "MALE" || values.gender === "FEMALE"
+        ? (values.gender as "MALE" | "FEMALE")
+        : undefined;
+
+    if (!profile) {
+      await createRecruiterProfile(
+        {
+          fullName: values.fullName,
+          phoneNumber: values.phoneNumber,
+          recruiterAccountId: account.id,
+          gender: genderValue,
+          avatarUrl: avatarUrl || undefined,
+        },
+        token,
+      );
+    } else {
+      await updateRecruiterProfile(
+        profile.id,
+        {
+          fullName: values.fullName,
+          phoneNumber: values.phoneNumber,
+          gender: genderValue,
+          avatarUrl: avatarUrl || undefined,
+        },
+        token,
+      );
+    }
+  }
 
   async function goNext() {
     const valid = await form.trigger(stepFields[step], {
@@ -1380,14 +1584,94 @@ function RecruiterOnboardingDialog({
       return;
     }
 
+    if (step === 0) {
+      setSkipping(true);
+      try {
+        await saveRecruiterProfile(form.getValues());
+        const nextAccount = await getRecruiterAccount(account.id, token);
+        onCompleted(nextAccount);
+      } catch (error) {
+        showToast("error", getOnboardingErrorMessage(error, t));
+        return;
+      } finally {
+        setSkipping(false);
+      }
+    }
+
+    if (step === 1) {
+      setSkipping(true);
+      try {
+        const values = form.getValues();
+        const currentCompanyId = onboardingCompanyId || account.company?.id;
+        const companyPayload = {
+          address: values.address,
+          companySize: values.companySize,
+          description: values.description,
+          benefits: values.benefits ?? "",
+          email: values.companyEmail,
+          name: values.companyName,
+          phone: values.companyPhone,
+          taxCode: values.taxCode,
+          website: values.website ?? "",
+        };
+
+        const canRecoverCompanyOwnership = isOwnerRecruiterAccount(account);
+        let companyId: string;
+
+        if (currentCompanyId) {
+          try {
+            await updateCompany(currentCompanyId, companyPayload, token);
+            await syncPrimaryCompanyLocation(
+              currentCompanyId,
+              token,
+              values.city.trim(),
+              values.address.trim(),
+            );
+            companyId = currentCompanyId;
+          } catch (error) {
+            if (
+              !(error instanceof ApiError && error.status === 403 && canRecoverCompanyOwnership)
+            ) {
+              throw error;
+            }
+            const newCompany = await createCompany(companyPayload, token);
+            companyId = newCompany.id;
+            setOnboardingCompanyId(companyId);
+            await syncPrimaryCompanyLocation(
+              companyId,
+              token,
+              values.city.trim(),
+              values.address.trim(),
+            );
+          }
+        } else {
+          const newCompany = await createCompany(companyPayload, token);
+          companyId = newCompany.id;
+          setOnboardingCompanyId(companyId);
+          await syncPrimaryCompanyLocation(
+            companyId,
+            token,
+            values.city.trim(),
+            values.address.trim(),
+          );
+        }
+
+        const nextAccount = await getRecruiterAccount(account.id, token);
+        onCompleted(nextAccount);
+      } catch (error) {
+        showToast("error", getOnboardingErrorMessage(error, t));
+        return;
+      } finally {
+        setSkipping(false);
+      }
+    }
+
     setStep((current) => Math.min(current + 1, onboardingSteps.length - 1) as OnboardingStep);
   }
 
   function goBack() {
     setStep((current) => Math.max(current - 1, 0) as OnboardingStep);
   }
-
-  const [skipping, setSkipping] = useState(false);
 
   async function handleSkipAndSaveProfile() {
     const valid = await form.trigger(stepFields[0], {
@@ -1403,47 +1687,12 @@ function RecruiterOnboardingDialog({
     setSkipping(true);
     try {
       const values = form.getValues();
-      let avatarUrl = profile?.avatarUrl ?? null;
-      const avatarFile = values.avatar?.item(0);
-
-      if (avatarFile) {
-        const uploadResult = await uploadFile(avatarFile, "AVATAR", "PUBLIC", token);
-        avatarUrl = uploadResult.file.publicUrl;
-      }
-
-      const genderValue =
-        values.gender === "MALE" || values.gender === "FEMALE"
-          ? (values.gender as "MALE" | "FEMALE")
-          : undefined;
-
-      if (!profile) {
-        await createRecruiterProfile(
-          {
-            fullName: values.fullName,
-            phoneNumber: values.phoneNumber,
-            recruiterAccountId: account.id,
-            gender: genderValue,
-            avatarUrl: avatarUrl || undefined,
-          },
-          token,
-        );
-      } else {
-        await updateRecruiterProfile(
-          profile.id,
-          {
-            fullName: values.fullName,
-            phoneNumber: values.phoneNumber,
-            gender: genderValue,
-            avatarUrl: avatarUrl || undefined,
-          },
-          token,
-        );
-      }
+      await saveRecruiterProfile(values);
 
       const nextAccount = await getRecruiterAccount(account.id, token);
       onCompleted(nextAccount);
       showToast("success", t("onboarding.messages.success"));
-      onSkip();
+      onSkipCompanyOnboarding();
     } catch (error) {
       showToast("error", getOnboardingErrorMessage(error, t));
     } finally {
@@ -1469,57 +1718,57 @@ function RecruiterOnboardingDialog({
       }
 
       const currentCompanyId = onboardingCompanyId || account.company?.id;
+      const companyPayload = {
+        address: values.address,
+        companySize: values.companySize,
+        description: values.description,
+        benefits: values.benefits ?? "",
+        email: values.companyEmail,
+        name: values.companyName,
+        phone: values.companyPhone,
+        taxCode: values.taxCode,
+        website: values.website ?? "",
+      };
+      const canRecoverCompanyOwnership = isOwnerRecruiterAccount(account);
 
       let companyId: string;
       if (currentCompanyId) {
-        await updateCompany(
-          currentCompanyId,
-          {
-            address: values.address,
-            companySize: values.companySize,
-            description: values.description,
-            benefits: values.benefits ?? "",
-            email: values.companyEmail,
-            name: values.companyName,
-            phone: values.companyPhone,
-            taxCode: values.taxCode,
-            website: values.website ?? "",
-          },
-          token,
-        );
-        await syncPrimaryCompanyLocation(
-          currentCompanyId,
-          token,
-          values.city.trim(),
-          values.address.trim(),
-        );
-        companyId = currentCompanyId;
+        try {
+          await updateCompany(currentCompanyId, companyPayload, token);
+          await syncPrimaryCompanyLocation(
+            currentCompanyId,
+            token,
+            values.city.trim(),
+            values.address.trim(),
+          );
+          companyId = currentCompanyId;
+        } catch (error) {
+          if (!(error instanceof ApiError && error.status === 403 && canRecoverCompanyOwnership)) {
+            throw error;
+          }
+
+          // createCompany đã tự gắn recruiter làm OWNER ở server, không cần PATCH thêm
+          // (recruiter không được phép tự đổi companyId nên gọi lại sẽ luôn bị 403).
+          const newCompany = await createCompany(companyPayload, token);
+          companyId = newCompany.id;
+          setOnboardingCompanyId(companyId);
+          await syncPrimaryCompanyLocation(
+            companyId,
+            token,
+            values.city.trim(),
+            values.address.trim(),
+          );
+        }
       } else {
-        const newCompany = await createCompany(
-          {
-            address: values.address,
-            companySize: values.companySize,
-            description: values.description,
-            benefits: values.benefits ?? "",
-            email: values.companyEmail,
-            name: values.companyName,
-            phone: values.companyPhone,
-            taxCode: values.taxCode,
-            website: values.website ?? "",
-          },
-          token,
-        );
+        const newCompany = await createCompany(companyPayload, token);
         companyId = newCompany.id;
+        setOnboardingCompanyId(companyId);
         await syncPrimaryCompanyLocation(
           companyId,
           token,
           values.city.trim(),
           values.address.trim(),
         );
-      }
-
-      if (!account.company) {
-        await attachRecruiterCompany(account.id, companyId, token);
       }
 
       const genderValue =
@@ -1551,7 +1800,7 @@ function RecruiterOnboardingDialog({
         );
       }
 
-      if (!account.company?.businessLicenseFileId && file) {
+      if ((!account.company?.businessLicenseFileId || isLicenseDeleted) && file) {
         await uploadCompanyBusinessLicense(companyId, file, token);
       }
 
@@ -1564,6 +1813,47 @@ function RecruiterOnboardingDialog({
     }
   }
 
+  async function finishOnboarding() {
+    if (isCompanyProfileComplete(account, companyDetail)) {
+      const valid = await form.trigger(stepFields[2], {
+        shouldFocus: true,
+      });
+
+      if (!valid) {
+        showToast("error", getFirstErrorMessage(form.formState.errors, t));
+        return;
+      }
+
+      const file = form.getValues("businessLicense")?.item(0);
+      const companyId = onboardingCompanyId || account.company?.id;
+
+      if (!companyId || ((!account.company?.businessLicenseFileId || isLicenseDeleted) && !file)) {
+        showToast("error", t("onboarding.validation.businessLicenseRequired"));
+        return;
+      }
+
+      setSkipping(true);
+      try {
+        if ((!account.company?.businessLicenseFileId || isLicenseDeleted) && file) {
+          await uploadCompanyBusinessLicense(companyId, file, token);
+        }
+
+        const nextAccount = await getRecruiterAccount(account.id, token);
+        onCompleted(nextAccount);
+        showToast("success", t("onboarding.messages.submittingSuccess"));
+      } catch (error) {
+        showToast("error", getOnboardingErrorMessage(error, t));
+      } finally {
+        setSkipping(false);
+      }
+      return;
+    }
+
+    await form.handleSubmit(submit, (errors) =>
+      showToast("error", getFirstErrorMessage(errors, t)),
+    )();
+  }
+
   return (
     <DialogPrimitive.Root open={open} modal={false}>
       <DialogPrimitive.Portal>
@@ -1574,14 +1864,62 @@ function RecruiterOnboardingDialog({
             aria-describedby="recruiter-onboarding-dialog-description"
             className="animate-dialog-unfold pointer-events-auto relative flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white p-0 shadow-2xl [--ring:#10a778] focus:outline-none"
           >
-            <div className="bg-header relative shrink-0 overflow-hidden border-b border-slate-200 px-4 py-6 sm:px-6 sm:py-8">
-              {/* Grid pattern overlay */}
+            {!isFirstStep && (
+              <button
+                type="button"
+                onClick={handleSkipAndSaveProfile}
+                disabled={skipping || form.formState.isSubmitting}
+                className="absolute top-4 right-4 z-50 inline-flex size-9 cursor-pointer items-center justify-center rounded-full border border-transparent bg-transparent text-white/80 shadow-none transition-all hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-50 md:border-slate-100 md:bg-white/95 md:text-slate-700 md:shadow-md md:hover:bg-white md:hover:text-slate-900"
+                aria-label={t("onboarding.buttons.skip")}
+              >
+                <X size={18} className="font-bold" />
+              </button>
+            )}
+            <div className="bg-header relative shrink-0 overflow-hidden border-b border-white/10 px-4 py-6 sm:px-6 sm:py-8">
+              {/* Grid effect on the left */}
               <div
-                className="pointer-events-none absolute inset-0 opacity-15"
+                className="pointer-events-none absolute top-0 left-0 hidden h-full w-[240px] opacity-30 md:block"
                 style={{
                   backgroundImage: `
-                  linear-gradient(to right, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
-                  linear-gradient(to bottom, rgba(255, 255, 255, 0.2) 1px, transparent 1px)
+                    linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px)
+                  `,
+                  backgroundSize: "36px 36px, 36px 36px",
+                }}
+              />
+
+              {/* Leaf pattern decoration on the left */}
+              <div className="pointer-events-none absolute bottom-0 left-0 hidden opacity-30 sm:block">
+                <Image
+                  src="/assets/recruiter/icon/5.png"
+                  alt="Leaf decoration graphic left"
+                  width={180}
+                  height={180}
+                  className="object-contain object-left-bottom"
+                  priority
+                  unoptimized
+                />
+              </div>
+
+              {/* Building icon on the right */}
+              <div className="pointer-events-none absolute right-0 bottom-0 hidden opacity-25 md:block">
+                <Image
+                  src="/assets/recruiter/icon/6.png"
+                  alt="Building graphic right"
+                  width={180}
+                  height={180}
+                  priority
+                  unoptimized
+                />
+              </div>
+
+              {/* Grid pattern overlay */}
+              <div
+                className="pointer-events-none absolute inset-0 opacity-10"
+                style={{
+                  backgroundImage: `
+                  linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px)
                 `,
                   backgroundSize: "20px 20px",
                 }}
@@ -1591,7 +1929,7 @@ function RecruiterOnboardingDialog({
               <div className="pointer-events-none absolute -right-10 -bottom-10 size-40 rounded-full bg-teal-300/15 blur-2xl" />
 
               <div className="relative z-10">
-                <DialogPrimitive.Title className="text-center text-lg font-bold text-white sm:text-xl">
+                <DialogPrimitive.Title className="text-center text-lg font-semibold text-white sm:text-xl">
                   {t("onboarding.updateProfile")}
                 </DialogPrimitive.Title>
 
@@ -1605,12 +1943,12 @@ function RecruiterOnboardingDialog({
                 <div className="mt-6 w-full">
                   <div className="relative mx-auto grid w-full grid-cols-3 items-start px-2 sm:px-8">
                     {/* Background track line */}
-                    <div className="absolute top-4 right-[16.666%] left-[16.666%] h-0.5 bg-white/20" />
+                    <div className="absolute top-[18px] right-[16.666%] left-[16.666%] h-0.5 bg-white/20" />
 
                     {/* Active progress line */}
                     <div
                       className={[
-                        "absolute left-[16.666%] top-4 h-0.5 bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-500",
+                        "absolute left-[16.666%] top-[18px] h-0.5 bg-gradient-to-r from-emerald-400 to-[#10b981] transition-all duration-500",
                         step === 0 ? "w-0" : "",
                         step === 1 ? "w-[33.333%]" : "",
                         step === 2 ? "w-[66.666%]" : "",
@@ -1621,6 +1959,7 @@ function RecruiterOnboardingDialog({
                       const active = index === step;
                       const completed = index < step;
                       const reached = active || completed;
+                      const inactiveBgs = ["bg-[#004852]", "bg-[#00685f]", "bg-[#058a7f]"];
 
                       return (
                         <div
@@ -1631,10 +1970,10 @@ function RecruiterOnboardingDialog({
                             className={[
                               "flex size-9 items-center justify-center rounded-full border-2 text-sm font-black transition-all duration-300",
                               completed
-                                ? "border-emerald-400 bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                                ? "border-emerald-500 bg-[#10b981] text-white shadow-md shadow-emerald-500/20"
                                 : active
-                                  ? "border-emerald-400 bg-white text-emerald-600 shadow-lg shadow-emerald-400/30 scale-110"
-                                  : "border-white/20 bg-[#0b5b47] text-white/50",
+                                  ? "border-emerald-400 bg-white text-[#0f766e] shadow-lg shadow-emerald-400/30 scale-110 ring-4 ring-emerald-400/30"
+                                  : `border-white/40 ${inactiveBgs[index]} text-white/50`,
                             ].join(" ")}
                           >
                             {completed ? "✓" : index + 1}
@@ -1642,8 +1981,8 @@ function RecruiterOnboardingDialog({
 
                           <p
                             className={[
-                              "mt-2 text-center text-[12px] sm:text-xs leading-4 sm:leading-5 transition-colors duration-300",
-                              reached ? "text-white font-extrabold" : "text-white/60 font-semibold",
+                              "mt-2 text-center text-[11px] sm:text-xs leading-4 sm:leading-5 transition-colors duration-300",
+                              reached ? "text-white font-semibold" : "text-white/50 font-medium",
                             ].join(" ")}
                           >
                             {item}
@@ -1661,13 +2000,24 @@ function RecruiterOnboardingDialog({
               onSubmit={form.handleSubmit(submit, (errors) =>
                 showToast("error", getFirstErrorMessage(errors, t)),
               )}
+              onKeyDown={(event) => {
+                // Nhấn Enter trong input 1 dòng (VD: số điện thoại ở bước 1) sẽ submit
+                // toàn bộ form (bước cuối), bỏ qua goNext()/handleSkipAndSaveProfile() và
+                // làm mất dữ liệu vừa nhập ở các bước trước. Chặn Enter, chỉ cho phép
+                // qua nút bấm hoặc xuống dòng trong textarea.
+                if (event.key === "Enter" && event.target instanceof HTMLElement) {
+                  if (event.target.tagName !== "TEXTAREA") {
+                    event.preventDefault();
+                  }
+                }
+              }}
               noValidate
             >
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
                 {step === 0 ? (
                   <section className="space-y-5">
-                    <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                      <div className="w-full shrink-0 sm:w-40">
+                    <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+                      <div className="w-full shrink-0 sm:w-[220px]">
                         <RequiredLabel htmlFor="recruiter-onboarding-avatar">
                           {t("onboarding.labels.avatar")}
                         </RequiredLabel>
@@ -1684,37 +2034,43 @@ function RecruiterOnboardingDialog({
                             {...form.register("avatar")}
                           />
 
-                          <div className="relative size-20 overflow-hidden rounded-full bg-slate-100">
+                          <div className="relative flex h-[120px] w-[120px] shrink-0 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/40 p-3 text-center transition-all duration-300 hover:border-emerald-500">
                             {avatarPreview ? (
-                              <Image
-                                src={avatarPreview}
-                                alt="Avatar"
-                                width={80}
-                                height={80}
-                                unoptimized
-                                className="h-full w-full object-cover"
-                              />
+                              <>
+                                <Image
+                                  src={avatarPreview}
+                                  alt="Avatar"
+                                  fill
+                                  unoptimized
+                                  className="h-full w-full rounded-2xl object-cover"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                  <div className="flex size-9 items-center justify-center rounded-full bg-white text-emerald-600 shadow-sm">
+                                    <UploadSimple size={18} weight="bold" />
+                                  </div>
+                                </div>
+                              </>
                             ) : (
-                              <div className="flex h-full w-full items-center justify-center text-xl font-extrabold text-slate-300">
-                                +
+                              <div className="flex flex-col items-center justify-center">
+                                <div className="flex size-10 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 transition-transform group-hover:scale-105">
+                                  <UploadSimple size={16} weight="bold" />
+                                </div>
+                                <span className="mt-2 text-[11px] font-bold text-slate-700">
+                                  Tải lên ảnh
+                                </span>
+                                <span className="mt-0.5 text-[9px] font-semibold text-slate-400">
+                                  PNG, JPG, JPEG.
+                                </span>
                               </div>
                             )}
-
-                            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/20 transition-colors group-hover:bg-slate-950/35">
-                              <div className="flex size-8 items-center justify-center rounded-full bg-white text-emerald-700 shadow-sm">
-                                <UploadSimple size={16} weight="bold" />
-                              </div>
-                            </div>
                           </div>
                         </label>
-
-                        <p className="mt-2 text-xs leading-4 text-slate-500">PNG, JPG, JPEG.</p>
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <RequiredLabel>{t("onboarding.labels.gender")}</RequiredLabel>
 
-                        <div className="mt-3 flex flex-wrap gap-5">
+                        <div className="mt-2 flex flex-wrap gap-4">
                           {[
                             { label: t("onboarding.gender.male"), value: "MALE" },
                             { label: t("onboarding.gender.female"), value: "FEMALE" },
@@ -1732,20 +2088,34 @@ function RecruiterOnboardingDialog({
                                     shouldValidate: true,
                                   })
                                 }
-                                className="flex items-center gap-2 text-sm font-semibold text-slate-700"
+                                className={cn(
+                                  "flex items-center justify-between px-4 py-3 rounded-2xl border transition-all duration-300 w-36 h-[50px] select-none",
+                                  selected
+                                    ? "border-emerald-500 bg-white text-slate-800 shadow-xs"
+                                    : "border-slate-100 bg-white text-slate-600 hover:border-slate-200",
+                                )}
                               >
-                                <span
-                                  className={[
-                                    "flex size-4 items-center justify-center rounded-full border",
-                                    selected ? "border-emerald-600" : "border-slate-300",
-                                  ].join(" ")}
-                                >
-                                  {selected ? (
-                                    <span className="size-2 rounded-full bg-emerald-600" />
-                                  ) : null}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <User
+                                    size={18}
+                                    className={selected ? "text-emerald-600" : "text-slate-400"}
+                                    weight="bold"
+                                  />
+                                  <span className="text-xs font-bold">{option.label}</span>
+                                </div>
 
-                                {option.label}
+                                <div
+                                  className={cn(
+                                    "flex size-4 items-center justify-center rounded-full border transition-all",
+                                    selected
+                                      ? "border-emerald-500 bg-white"
+                                      : "border-slate-300 bg-white",
+                                  )}
+                                >
+                                  {selected && (
+                                    <div className="size-2 rounded-full bg-emerald-500" />
+                                  )}
+                                </div>
                               </button>
                             );
                           })}
@@ -2000,66 +2370,153 @@ function RecruiterOnboardingDialog({
                   </section>
                 ) : null}
 
-                {step === 2 ? (
-                  <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-extrabold text-slate-950">
-                      <UploadSimple size={18} />
-                      {t("onboarding.step2")}
-                    </div>
-
-                    <div className="rounded-lg border border-dashed border-emerald-300 bg-emerald-50/50 p-4">
-                      <RequiredLabel htmlFor="recruiter-onboarding-license">
-                        {t("onboarding.labels.businessLicense")}
-                      </RequiredLabel>
-
-                      <Input
-                        id="recruiter-onboarding-license"
-                        className="mt-2 h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none file:mr-3 file:rounded-md file:border-0 file:bg-emerald-100 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-emerald-800"
-                        type="file"
-                        accept=".pdf,.png,.jpg,.jpeg"
-                        {...form.register("businessLicense")}
-                      />
-
-                      <p className="mt-2 text-xs leading-5 text-slate-500">
-                        {t("onboarding.upload.helpText")}
-                      </p>
-
-                      {(() => {
-                        const watchedLicense = form.watch("businessLicense");
-                        const selectedLicenseFile = watchedLicense?.item?.(0) || null;
-                        if (!selectedLicenseFile) return null;
-                        return (
-                          <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-100 bg-white p-3 shadow-xs">
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-emerald-600">📎</span>
-                              <div className="flex flex-col">
-                                <span className="max-w-[250px] truncate text-sm font-bold text-slate-700 sm:max-w-[400px]">
-                                  {selectedLicenseFile.name}
-                                </span>
-                                <span className="text-xs text-slate-400">
-                                  {(selectedLicenseFile.size / 1024 / 1024).toFixed(2)} MB
-                                </span>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                form.setValue("businessLicense", undefined as any, {
-                                  shouldDirty: true,
-                                  shouldTouch: true,
-                                  shouldValidate: true,
-                                });
-                              }}
-                              className="text-xs font-bold text-red-500 transition-colors hover:text-red-700"
-                            >
-                              Xóa
-                            </button>
+                {step === 2
+                  ? (() => {
+                      const watchedLicense = form.watch("businessLicense");
+                      const selectedLicenseFile = watchedLicense?.item?.(0) || null;
+                      const hasExistingLicense =
+                        Boolean(account.company?.businessLicenseFileId) && !isLicenseDeleted;
+                      return (
+                        <section className="space-y-4">
+                          <div className="flex items-center gap-2 text-sm font-extrabold text-slate-950">
+                            <UploadSimple size={18} />
+                            {t("onboarding.step2")}
                           </div>
-                        );
-                      })()}
-                    </div>
-                  </section>
-                ) : null}
+
+                          <div className="flex flex-col gap-2">
+                            <RequiredLabel htmlFor="recruiter-onboarding-license">
+                              {t("onboarding.labels.businessLicense")}
+                            </RequiredLabel>
+
+                            <label
+                              htmlFor="recruiter-onboarding-license"
+                              className={cn(
+                                "relative block rounded-2xl border border-dashed p-6 transition-all duration-200 cursor-pointer overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:ring-offset-2",
+                                isDragging
+                                  ? "border-emerald-500 bg-emerald-100/30"
+                                  : "border-emerald-300 bg-gradient-to-r from-emerald-50/20 via-emerald-50/10 to-emerald-50/40 hover:bg-emerald-50/60",
+                              )}
+                              onDragOver={handleDragOver}
+                              onDragLeave={handleDragLeave}
+                              onDrop={handleDrop}
+                            >
+                              {/* Hidden Input */}
+                              <input
+                                id="recruiter-onboarding-license"
+                                type="file"
+                                accept=".pdf,.png,.jpg,.jpeg"
+                                className="sr-only"
+                                {...form.register("businessLicense")}
+                              />
+
+                              <div className="relative z-10 flex flex-col justify-between gap-4 pr-0 md:flex-row md:items-center md:pr-[160px]">
+                                <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                                  {/* Buttons */}
+                                  {selectedLicenseFile || hasExistingLicense ? (
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          document
+                                            .getElementById("recruiter-onboarding-license")
+                                            ?.click();
+                                        }}
+                                        className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#009b5a] px-4 py-2 text-sm font-semibold text-white shadow-xs transition-all hover:bg-[#00864e] active:scale-[0.98]"
+                                      >
+                                        {t("onboarding.upload.change")}
+                                      </div>
+                                      <div
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setIsLicenseDeleted(true);
+                                          form.setValue("businessLicense", undefined as any, {
+                                            shouldDirty: true,
+                                            shouldTouch: true,
+                                            shouldValidate: true,
+                                          });
+                                        }}
+                                        className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-xs transition-all hover:border-red-300 hover:bg-red-50 active:scale-[0.98]"
+                                      >
+                                        {t("onboarding.upload.delete")}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#009b5a] px-5 py-2.5 text-sm font-extrabold text-white shadow-xs transition-all hover:bg-[#00864e] active:scale-[0.98]">
+                                      <UploadSimple size={18} className="text-white" />
+                                      <span>{t("onboarding.upload.chooseFile")}</span>
+                                    </div>
+                                  )}
+
+                                  {/* Text labels */}
+                                  <div className="flex flex-col">
+                                    {selectedLicenseFile ? (
+                                      <>
+                                        <span className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                                          <span className="shrink-0 text-emerald-600">📎</span>
+                                          <span
+                                            className="max-w-[200px] truncate sm:max-w-[300px]"
+                                            title={selectedLicenseFile.name}
+                                          >
+                                            {selectedLicenseFile.name}
+                                          </span>
+                                        </span>
+                                        <span className="mt-0.5 text-xs font-semibold text-slate-400">
+                                          {(selectedLicenseFile.size / 1024 / 1024).toFixed(2)} MB
+                                        </span>
+                                      </>
+                                    ) : hasExistingLicense ? (
+                                      <>
+                                        <span className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                                          <span className="shrink-0 text-emerald-600">📎</span>
+                                          <span
+                                            className="max-w-[200px] truncate sm:max-w-[300px]"
+                                            title={t("onboarding.upload.existingLicense")}
+                                          >
+                                            {t("onboarding.upload.existingLicense")}
+                                          </span>
+                                        </span>
+                                        <span className="mt-0.5 text-xs font-semibold text-slate-400">
+                                          {t("onboarding.upload.replaceHelpText")}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="text-sm font-bold text-slate-800">
+                                          {t("onboarding.upload.dragDropText")}
+                                        </span>
+                                        <span className="mt-0.5 text-xs font-medium text-slate-500">
+                                          {t("onboarding.upload.supportedFormats")}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Envelope graphic on the right */}
+                              <div className="pointer-events-none absolute top-0 right-0 bottom-0 hidden h-full w-[160px] opacity-100 select-none md:block">
+                                <Image
+                                  src="/assets/recruiter/icon/7.png"
+                                  alt="Upload illustration graphic"
+                                  fill
+                                  className="object-contain object-right"
+                                  sizes="160px"
+                                  priority
+                                  unoptimized
+                                />
+                              </div>
+                            </label>
+
+                            <p className="mt-0.5 text-xs leading-5 text-slate-500">
+                              {t("onboarding.upload.helpText")}
+                            </p>
+                          </div>
+                        </section>
+                      );
+                    })()
+                  : null}
               </div>
 
               <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
@@ -2077,25 +2534,14 @@ function RecruiterOnboardingDialog({
                 )}
 
                 <div className="flex items-center gap-3">
-                  {!isFirstStep && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="font-semibold text-slate-500 hover:text-slate-800"
-                      disabled={skipping || form.formState.isSubmitting}
-                      onClick={handleSkipAndSaveProfile}
-                    >
-                      {skipping ? "Đang xử lý..." : t("onboarding.buttons.skip")}
-                    </Button>
-                  )}
-
                   {isLastStep ? (
                     <Button
-                      type="submit"
+                      type="button"
                       disabled={skipping || form.formState.isSubmitting}
-                      className="h-11 rounded-full bg-[#11a77a] px-6 text-sm font-extrabold hover:bg-[#0d966d]"
+                      className="h-11 rounded-full bg-[#11a77a] px-6 text-sm font-bold hover:bg-[#0d966d]"
+                      onClick={finishOnboarding}
                     >
-                      {form.formState.isSubmitting
+                      {skipping || form.formState.isSubmitting
                         ? t("onboarding.buttons.submitting")
                         : t("onboarding.buttons.finish")}
                     </Button>
@@ -2103,7 +2549,7 @@ function RecruiterOnboardingDialog({
                     <Button
                       type="button"
                       disabled={skipping || form.formState.isSubmitting}
-                      className="h-11 rounded-full bg-[#11a77a] px-6 text-sm font-extrabold hover:bg-[#0d966d]"
+                      className="h-11 rounded-full bg-[#11a77a] px-6 text-sm font-bold hover:bg-[#0d966d]"
                       onClick={goNext}
                     >
                       {t("onboarding.buttons.next")}

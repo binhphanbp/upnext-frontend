@@ -17,6 +17,12 @@ import {
   registerRecruiter,
   requestRecruiterPasswordReset,
 } from "@/features/recruiter/api/auth";
+import {
+  clearRecruiterEmailVerificationPending,
+  clearRecruiterSession,
+  isRecruiterEmailVerificationPending,
+  markRecruiterEmailVerificationPending,
+} from "@/features/recruiter/session";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { env } from "@/shared/lib/env";
@@ -55,8 +61,23 @@ const Toast = Swal.mixin({
   timerProgressBar: true,
 });
 
+const COMPANY_ONBOARDING_SKIP_KEY_PREFIX = "skippedRecruiterCompanyOnboarding";
+
 function showToast(icon: SweetAlertIcon, title: string) {
   void Toast.fire({ icon, title });
+}
+
+function isRecruiterAuthEmailUnverified(response: unknown) {
+  const user = (response as { user?: Record<string, unknown> })?.user;
+  const emailVerified = user?.emailVerified ?? user?.email_verified;
+  const status = typeof user?.status === "string" ? user.status.toUpperCase() : "";
+
+  return (
+    emailVerified === false ||
+    status.includes("UNVERIFIED") ||
+    status.includes("PENDING_EMAIL") ||
+    status.includes("EMAIL_VERIFICATION")
+  );
 }
 
 function getAuthErrorMessage(
@@ -161,6 +182,18 @@ export function RecruiterLoginPage() {
     try {
       const response = await loginRecruiter(values);
 
+      if (
+        isRecruiterEmailVerificationPending(values.email) ||
+        isRecruiterAuthEmailUnverified(response)
+      ) {
+        clearRecruiterSession();
+        showToast("warning", t("login.emailVerificationRequired"));
+        router.push(`/recruiter/register/success?email=${encodeURIComponent(values.email)}`);
+        return;
+      }
+
+      clearRecruiterEmailVerificationPending(values.email);
+      localStorage.removeItem(`${COMPANY_ONBOARDING_SKIP_KEY_PREFIX}_${response.user.id}`);
       localStorage.setItem("upnext.recruiter.accessToken", response.accessToken);
       localStorage.setItem("upnext.recruiter.tokenType", response.tokenType);
       localStorage.setItem("upnext.recruiter.user", JSON.stringify(response.user));
@@ -271,6 +304,7 @@ export function RecruiterRegisterPage() {
         email: values.email,
         password: values.password,
       });
+      markRecruiterEmailVerificationPending(values.email);
 
       showToast("success", t("register.success"));
       router.push(`/recruiter/register/success?email=${encodeURIComponent(values.email)}`);
@@ -618,7 +652,7 @@ function SocialButtons({ mode }: { mode: "login" | "register" }) {
   const label = mode === "login" ? t("login.google") : t("register.google");
 
   function handleGoogleLogin() {
-    window.location.href = `${env.NEXT_PUBLIC_API_BASE_URL}/recruiter/auth/google?locale=${locale}`;
+    window.location.href = `${env.NEXT_PUBLIC_API_BASE_URL}/recruiter/auth/google?locale=${locale}&mode=${mode}`;
   }
 
   return (
@@ -722,7 +756,7 @@ function SubmitButton({
     <Button
       type="submit"
       disabled={pending}
-      className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-extrabold hover:bg-[#0d966d]"
+      className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-semibold hover:bg-[#0d966d]"
     >
       {pending ? pendingLabel : children}
     </Button>

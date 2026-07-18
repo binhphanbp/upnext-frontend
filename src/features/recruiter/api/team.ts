@@ -1,5 +1,5 @@
 import { authHeaders, jsonAuthHeaders, removeEmptyFields } from "@/features/recruiter/api/client";
-import { apiRequest } from "@/shared/api/http";
+import { ApiError, apiRequest } from "@/shared/api/http";
 
 export type RecruiterPermission = Readonly<{
   id: string;
@@ -227,6 +227,22 @@ export function getCompanyApplications(
   return apiRequest<Application[]>(url, {
     headers: authHeaders(token),
   });
+}
+
+export function isRecruiterMissingCompanyError(error: unknown) {
+  if (!(error instanceof ApiError) || error.status !== 400) {
+    return false;
+  }
+
+  const payload = error.payload as { message?: unknown } | undefined;
+  const message =
+    typeof payload?.message === "string"
+      ? payload.message
+      : Array.isArray(payload?.message)
+        ? payload.message.join(" ")
+        : error.message;
+
+  return message.toLowerCase().includes("recruiter does not belong to any company");
 }
 
 export function updateApplicationStatus(

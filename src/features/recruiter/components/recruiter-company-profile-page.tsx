@@ -15,7 +15,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 
 import {
-  attachRecruiterCompany,
   createCompanyLocation,
   createCompany,
   deleteCompanyPhoto,
@@ -137,23 +136,26 @@ export function RecruiterCompanyProfilePage() {
         setLoading(true);
         const account = await getRecruiterAccount(nextAccountId, accessToken);
 
-        let currentCompanyId = account.company?.id;
+        const currentCompanyId = account.company?.id;
 
         if (!currentCompanyId) {
-          try {
-            const draftResult = await createCompany({ name: DRAFT_COMPANY_NAME }, accessToken);
-            currentCompanyId = draftResult.id;
-            await attachRecruiterCompany(nextAccountId, currentCompanyId, accessToken);
-          } catch (createErr) {
-            console.error("Failed to auto-create draft company for profile editing", createErr);
-            void Swal.fire({
-              icon: "warning",
-              title: t("errors.noProfileTitle"),
-              text: t("errors.noProfileText"),
+          setCompanyId("");
+          setCompany(null);
+          setLogoFile(null);
+          setLogoPreviewUrl("");
+          setCoverFile(null);
+          setCoverPreviewUrl("");
+          setLicenseFile(null);
+          setForm(emptyForm);
+          setTempPhotos((current) => {
+            current.forEach((p) => {
+              if (p.file) {
+                URL.revokeObjectURL(p.publicUrl);
+              }
             });
-            router.replace("/recruiter");
-            return;
-          }
+            return [];
+          });
+          return;
         }
 
         const [nextCompany, companyLocations] = await Promise.all([
@@ -338,36 +340,47 @@ export function RecruiterCompanyProfilePage() {
     try {
       setSaving(true);
       // 1. Lưu thông tin cơ bản
-      await updateCompany(companyId, payload, token);
-      await syncPrimaryCompanyLocation(companyId, token, trimmedCity, trimmedAddress);
+      let nextCompanyId = companyId;
+
+      if (nextCompanyId) {
+        await updateCompany(nextCompanyId, payload, token);
+      } else {
+        // createCompany đã tự gắn recruiter làm OWNER ở server, không cần PATCH thêm
+        // (recruiter không được phép tự đổi companyId nên gọi lại sẽ luôn bị 403).
+        const createdCompany = await createCompany(payload, token);
+        nextCompanyId = createdCompany.id;
+        setCompanyId(nextCompanyId);
+      }
+
+      await syncPrimaryCompanyLocation(nextCompanyId, token, trimmedCity, trimmedAddress);
 
       // Upload Logo if selected
       if (logoFile) {
-        await uploadCompanyLogo(companyId, logoFile, token);
+        await uploadCompanyLogo(nextCompanyId, logoFile, token);
       }
 
       // Upload Cover if selected
       if (coverFile) {
-        await uploadCompanyCover(companyId, coverFile, token);
+        await uploadCompanyCover(nextCompanyId, coverFile, token);
       }
 
       // Upload License if selected
       if (licenseFile) {
-        await uploadCompanyBusinessLicense(companyId, licenseFile, token);
+        await uploadCompanyBusinessLicense(nextCompanyId, licenseFile, token);
       }
 
       // 2. Tải lên ảnh mới (tuần tự)
       const toUpload = tempPhotos.filter((p) => p.file && !p.isDeleted);
       for (const p of toUpload) {
         if (p.file) {
-          await uploadCompanyPhoto(companyId, p.file, token);
+          await uploadCompanyPhoto(nextCompanyId, p.file, token);
         }
       }
 
       // 3. Xóa ảnh được đánh dấu xóa (tuần tự)
       const toDelete = tempPhotos.filter((p) => p.isDeleted);
       for (const p of toDelete) {
-        await deleteCompanyPhoto(companyId, p.id, token);
+        await deleteCompanyPhoto(nextCompanyId, p.id, token);
       }
 
       await loadCompany(accountId, token);

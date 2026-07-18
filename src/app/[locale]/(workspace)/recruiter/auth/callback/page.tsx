@@ -30,7 +30,7 @@ function decodeJwt(token: string) {
         .join(""),
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -42,16 +42,23 @@ export default function RecruiterAuthCallbackPage() {
   const t = useTranslations("RecruiterAuth");
 
   useEffect(() => {
-    if (token) {
+    async function handleCallback() {
+      if (!token) {
+        router.push("/recruiter/login");
+        return;
+      }
+
       const decoded = decodeJwt(token);
       if (decoded && decoded.role === "RECRUITER") {
+        const email = typeof decoded.email === "string" ? decoded.email : "";
+
         localStorage.setItem("upnext.recruiter.accessToken", token);
         localStorage.setItem("upnext.recruiter.tokenType", "Bearer");
         localStorage.setItem(
           "upnext.recruiter.user",
           JSON.stringify({
             id: decoded.sub,
-            email: decoded.email,
+            email,
             role: decoded.role,
           }),
         );
@@ -67,9 +74,11 @@ export default function RecruiterAuthCallbackPage() {
         router.push("/recruiter");
         return;
       }
+
+      router.push("/recruiter/login");
     }
 
-    router.push("/recruiter/login");
+    void handleCallback();
   }, [token, router, t]);
 
   return (

@@ -30,11 +30,9 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
         label: "Tin tuyển dụng",
         href: "/recruiter/job-posts",
         icon: Briefcase,
-        badge: "36",
       },
-      { label: "Ứng viên", href: "/recruiter/candidates", icon: Users, badge: "1.2k" },
-      { label: "Pipeline", href: "/recruiter/pipeline", icon: ListChecks, badge: "82" },
-      { label: "Phỏng vấn", href: "/recruiter/interviews", icon: Bell, badge: "18" },
+      { label: "Ứng viên", href: "/recruiter/candidates", icon: Users },
+      { label: "Phỏng vấn", href: "/recruiter/interviews", icon: Bell },
     ],
   },
   {
@@ -121,13 +119,13 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
 ];
 
 export const recruiterIdentity: WorkspaceIdentity = {
-  name: "Bình Nguyễn",
+  name: "Nhà tuyển dụng",
   roleLabel: "Nhà tuyển dụng",
-  initials: "BN",
+  initials: "NTD",
 };
 
 export const adminIdentity: WorkspaceIdentity = {
-  name: "Bình Nguyễn",
+  name: "Quản trị viên",
   roleLabel: "Quản trị viên",
-  initials: "BN",
+  initials: "QTV",
 };

@@ -20,14 +20,14 @@ export function SearchInput({
   inputClassName,
 }: SearchInputProps) {
   return (
-    <div className={cn("relative flex items-center w-full", className)}>
+    <div className={cn("relative flex w-full items-center", className)}>
       <MagnifyingGlass size={18} className="pointer-events-none absolute left-3 text-slate-400" />
       <Input
         value={value}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}
         className={cn(
-          "h-10 w-full rounded-lg border-slate-200 bg-white pl-9 text-slate-700 placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-emerald-500 focus-visible:border-emerald-500",
+          "h-10 w-full rounded-lg border-slate-200 bg-white pl-9 text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus-visible:ring-1 focus-visible:ring-emerald-500",
           inputClassName,
         )}
       />
