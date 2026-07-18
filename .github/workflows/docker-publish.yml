@@ -45,6 +45,7 @@ jobs:
           if [ "${GITHUB_REF_NAME}" = "main" ]; then
             {
               echo "api_url=https://api.upnext.works/api/v1"
+              echo "socket_url=https://api.upnext.works"
               echo "tags<<EOF"
               echo "${IMAGE_NAME}:production"
               echo "${IMAGE_NAME}:sha-${SHORT_SHA}"
@@ -53,6 +54,7 @@ jobs:
           elif [ "${GITHUB_REF_NAME}" = "develop" ]; then
             {
               echo "api_url=https://api-staging.upnext.works/api/v1"
+              echo "socket_url=https://api-staging.upnext.works"
               echo "tags<<EOF"
               echo "${IMAGE_NAME}:staging"
               echo "${IMAGE_NAME}:develop"
@@ -73,6 +75,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ steps.vars.outputs.api_url }}
             NEXT_PUBLIC_API_BASE_URL=${{ steps.vars.outputs.api_url }}
+            NEXT_PUBLIC_SOCKET_URL=${{ steps.vars.outputs.socket_url }}
             NEXT_PUBLIC_API_MOCKING=disabled
 
   deploy:
