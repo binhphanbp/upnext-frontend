@@ -76,7 +76,7 @@ function LoginPage() {
       const session = await loginCandidate(values);
       saveCandidateSession(session);
       rememberCandidateSession();
-      router.replace("/candidate/profile");
+      router.push("/candidate/profile");
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         form.setError("password", { message: t("errors.invalidCredentials") });
@@ -202,7 +202,7 @@ function RegisterPage() {
       });
       saveCandidateSession(session);
       rememberCandidateSession();
-      router.replace("/candidate/profile");
+      router.push("/candidate/profile");
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         form.setError("email", { message: t("errors.emailInUse") });
