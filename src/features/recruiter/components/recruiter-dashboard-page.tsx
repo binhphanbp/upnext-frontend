@@ -982,7 +982,7 @@ export function RecruiterDashboardPage() {
                     <td className="px-4 py-3">
                       <span
                         className={cn(
-                          "rounded-full px-2 py-1 text-[11px] font-semiĐịa điểm (trực tiếp) dropdow 1 công ty có nhiều chi nhanhs màbold text-white",
+                          "rounded-full px-2 py-1 text-[11px] font-semibold text-white",
                           config.badgeBg,
                         )}
                       >
