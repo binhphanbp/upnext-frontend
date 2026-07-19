@@ -7,11 +7,11 @@ const scoreDetail = {
   applicationId,
   candidateName: "Nguyễn Minh Anh",
   jobTitle: "Full-stack Developer",
-  finalScore: 41.89,
+  finalScore: 31,
   semanticScore: 46,
   skillMatchScore: 42,
   retrievalScore: 44,
-  aiScore: 41.89,
+  aiScore: 31,
   skillScore: 10,
   experienceScore: 5,
   projectScore: 8,
@@ -36,6 +36,110 @@ const scoreDetail = {
   summary:
     "Ứng viên có nền tảng Full-stack tốt và kinh nghiệm phát triển sản phẩm, nhưng chưa có đủ bằng chứng về năng lực quản lý dự án cho vị trí này.",
   recommendation: "Chưa phù hợp với vị trí hiện tại. Có thể cân nhắc cho vai trò kỹ thuật.",
+  criteriaBreakdown: [
+    {
+      key: "skills",
+      summary: "Ứng viên mới đáp ứng một phần kỹ năng bắt buộc.",
+      items: [
+        {
+          key: "required-skills",
+          awardedScore: 10,
+          reason: "Có JavaScript nhưng thiếu TypeScript và Next.js theo yêu cầu.",
+          evidence: "CV ghi nhận kinh nghiệm JavaScript và React.",
+        },
+      ],
+    },
+    {
+      key: "experience",
+      summary: "Kinh nghiệm liên quan còn thấp hơn yêu cầu.",
+      items: [
+        {
+          key: "relevant-years",
+          awardedScore: 5,
+          reason: "Chỉ có một năm kinh nghiệm liên quan so với ba năm yêu cầu.",
+          evidence: "CV ghi nhận một năm làm Frontend Developer.",
+        },
+      ],
+    },
+    {
+      key: "projects",
+      summary: "Có dự án liên quan nhưng thiếu số liệu tác động.",
+      items: [
+        {
+          key: "project-relevance",
+          awardedScore: 8,
+          reason: "Dự án dùng React nhưng chưa chứng minh quy mô triển khai.",
+          evidence: "CV mô tả một ứng dụng quản lý công việc bằng React.",
+        },
+      ],
+    },
+    {
+      key: "education",
+      summary: "Chuyên ngành phù hợp, chưa có chứng chỉ bổ sung.",
+      items: [
+        {
+          key: "degree-major",
+          awardedScore: 8,
+          reason: "Bằng cấp liên quan nhưng thiếu chứng chỉ chuyên môn.",
+          evidence: "CV ghi nhận bằng Công nghệ thông tin.",
+        },
+      ],
+    },
+  ],
+  evaluationRubric: [
+    {
+      key: "skills",
+      label: "Kỹ năng",
+      maxScore: 40,
+      criteria: [
+        {
+          key: "required-skills",
+          label: "Kỹ năng bắt buộc",
+          maxScore: 40,
+          description: "Đối chiếu kỹ năng cốt lõi trong tin tuyển dụng.",
+        },
+      ],
+    },
+    {
+      key: "experience",
+      label: "Kinh nghiệm",
+      maxScore: 30,
+      criteria: [
+        {
+          key: "relevant-years",
+          label: "Số năm kinh nghiệm liên quan",
+          maxScore: 30,
+          description: "Đối chiếu thời lượng kinh nghiệm liên quan.",
+        },
+      ],
+    },
+    {
+      key: "projects",
+      label: "Dự án liên quan",
+      maxScore: 20,
+      criteria: [
+        {
+          key: "project-relevance",
+          label: "Mức liên quan của dự án",
+          maxScore: 20,
+          description: "Đối chiếu dự án với bài toán của vị trí.",
+        },
+      ],
+    },
+    {
+      key: "education",
+      label: "Học vấn",
+      maxScore: 10,
+      criteria: [
+        {
+          key: "degree-major",
+          label: "Bằng cấp và chuyên ngành",
+          maxScore: 10,
+          description: "Đối chiếu bằng cấp và chuyên ngành.",
+        },
+      ],
+    },
+  ],
   cvFileUrl: null,
 };
 
@@ -43,90 +147,92 @@ test.beforeEach(async ({ page }) => {
   await mockRecruiterWorkspace(page);
 });
 
-test("keeps the evaluation dialog clean and usable on desktop", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await openScoreDialog(page);
+test("shows only the final CV ranking columns", async ({ page }) => {
+  await page.goto("/vi/recruiter/candidates");
+  await page.getByRole("tab", { name: "AI lọc CV" }).click();
 
-  const dialog = page.getByRole("dialog", { name: "Đánh giá ứng viên" });
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByText("41.89% phù hợp")).toBeVisible();
-  await expect(dialog.getByRole("heading", { name: "Chi tiết điểm" })).toBeVisible();
-  await expect(dialog.getByRole("progressbar")).toHaveCount(4);
-  await expect(dialog.getByText("Kinh nghiệm Project Manager hoặc Tech Lead")).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Mời phỏng vấn" })).toBeVisible();
-
-  await expectContentToScroll(page, dialog);
-
-  const dialogBox = await dialog.boundingBox();
-  expect(dialogBox).not.toBeNull();
-  expect(dialogBox!.width).toBeLessThanOrEqual(768);
-  expect(dialogBox!.height).toBeLessThanOrEqual(868);
-
-  await page.screenshot({ path: "test-results/recruiter-ai-score-dialog-desktop.png" });
+  await expect(page.getByRole("columnheader", { name: "Hạng", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Độ phù hợp" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Hạng sơ tuyển" })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "Khớp kỹ năng" })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "Điểm lọc hybrid" })).toHaveCount(0);
 });
 
-test("keeps actions visible and avoids horizontal overflow on mobile", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await openScoreDialog(page);
+test("opens a complete evaluation page on desktop", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openScorePage(page);
 
-  const dialog = page.getByRole("dialog", { name: "Đánh giá ứng viên" });
-  const inviteButton = dialog.getByRole("button", { name: "Mời phỏng vấn" });
-  await expect(dialog).toBeVisible();
-  await expect(inviteButton).toBeVisible();
+  await expect(page).toHaveURL(`/vi/recruiter/candidates/${applicationId}/evaluation`);
+  await expect(page.getByRole("heading", { name: scoreDetail.candidateName })).toBeVisible();
+  await expect(page.getByText("31% phù hợp")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Chi tiết điểm" })).toBeVisible();
+  await expect(page.getByText("Vì sao kỹ năng được 10/40 điểm?")).toBeVisible();
+  await expect(page.getByText("-30 điểm")).toBeVisible();
+  await expect(
+    page.getByText("Có JavaScript nhưng thiếu TypeScript và Next.js theo yêu cầu."),
+  ).toBeVisible();
+  await expect(page.getByText("CV ghi nhận kinh nghiệm JavaScript và React.")).toBeVisible();
 
-  const metrics = await dialog.evaluate((element) => {
-    const bounds = element.getBoundingClientRect();
-    return {
-      bottom: bounds.bottom,
-      left: bounds.left,
-      right: bounds.right,
-      top: bounds.top,
-      viewportHeight: window.innerHeight,
-      viewportWidth: window.innerWidth,
-    };
+  await page.getByRole("button", { name: /Kinh nghiệm/ }).click();
+  await expect(page.getByText("Vì sao kinh nghiệm được 5/30 điểm?")).toBeVisible();
+  await expect(page.getByText("-25 điểm")).toBeVisible();
+
+  const rubricButton = page.locator('summary[aria-label="Xem toàn bộ tiêu chí đánh giá"]');
+  await rubricButton.click();
+  const rubric = page.getByRole("dialog", { name: "Toàn bộ tiêu chí đánh giá" });
+  await expect(rubric).toBeVisible();
+  await expect(rubric.getByText("Kỹ năng bắt buộc")).toBeVisible();
+  await expect(rubric.getByText("Số năm kinh nghiệm liên quan")).toBeVisible();
+  await expect(page.getByText("Kinh nghiệm Project Manager hoặc Tech Lead")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mời phỏng vấn" })).toBeVisible();
+
+  await page.screenshot({
+    path: "test-results/recruiter-ai-score-page-desktop.png",
+    fullPage: true,
   });
 
-  expect(metrics.left).toBeGreaterThanOrEqual(0);
-  expect(metrics.right).toBeLessThanOrEqual(metrics.viewportWidth);
-  expect(metrics.top).toBeGreaterThanOrEqual(0);
-  expect(metrics.bottom).toBeLessThanOrEqual(metrics.viewportHeight);
+  await rubricButton.click();
+  await page.getByRole("button", { name: "Quay lại kết quả AI lọc CV" }).click();
+  await expect(page).toHaveURL(/\/vi\/recruiter\/candidates\?tab=cv-ranking$/);
+  await expect(page.getByRole("tab", { name: "AI lọc CV" })).toHaveAttribute(
+    "data-state",
+    "active",
+  );
+});
 
-  await expectContentToScroll(page, dialog);
+test("keeps the evaluation page readable without horizontal overflow on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openScorePage(page);
 
-  const recommendation = dialog.getByText(
+  await expect(page.getByRole("heading", { name: scoreDetail.candidateName })).toBeVisible();
+  const horizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(horizontalOverflow).toBeLessThanOrEqual(1);
+
+  const recommendation = page.getByText(
     "Chưa phù hợp với vị trí hiện tại. Có thể cân nhắc cho vai trò kỹ thuật.",
   );
   await recommendation.scrollIntoViewIfNeeded();
   await expect(recommendation).toBeVisible();
+  const inviteButton = page.getByRole("button", { name: "Mời phỏng vấn" });
+  await inviteButton.scrollIntoViewIfNeeded();
   await expect(inviteButton).toBeVisible();
 
-  await page.screenshot({ path: "test-results/recruiter-ai-score-dialog-mobile.png" });
+  await page.screenshot({
+    path: "test-results/recruiter-ai-score-page-mobile.png",
+    fullPage: true,
+  });
 });
 
-async function expectContentToScroll(page: Page, dialog: ReturnType<Page["getByRole"]>) {
-  const viewport = dialog.locator('[data-radix-scroll-area-viewport=""]');
-  await expect(viewport).toBeVisible();
-
-  const initialScroll = await viewport.evaluate((element) => ({
-    clientHeight: element.clientHeight,
-    scrollHeight: element.scrollHeight,
-    scrollTop: element.scrollTop,
-  }));
-  expect(initialScroll.scrollHeight).toBeGreaterThan(initialScroll.clientHeight);
-
-  await viewport.hover();
-  await page.mouse.wheel(0, 600);
-  await expect
-    .poll(() => viewport.evaluate((element) => element.scrollTop))
-    .toBeGreaterThan(initialScroll.scrollTop);
-}
-
-async function openScoreDialog(page: Page) {
+async function openScorePage(page: Page) {
   await page.goto("/vi/recruiter/candidates");
   await expect(page.getByRole("heading", { name: "Ứng viên" })).toBeVisible();
   await page.getByRole("tab", { name: "AI lọc CV" }).click();
   await page.getByTitle("Xem đánh giá chi tiết").click();
-  await expect(page.getByRole("dialog", { name: "Đánh giá ứng viên" })).toBeVisible();
+  await expect(page).toHaveURL(`/vi/recruiter/candidates/${applicationId}/evaluation`);
 }
 
 async function mockRecruiterWorkspace(page: Page) {

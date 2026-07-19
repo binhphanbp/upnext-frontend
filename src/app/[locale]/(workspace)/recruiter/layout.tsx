@@ -4,8 +4,9 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { ChatSocketProvider } from "@/features/chat";
-import { getCurrentIdentity } from "@/features/chat/api/conversations";
-import { getRecruiterAccount, getRecruiterStats } from "@/features/recruiter/api/onboarding";
+import { recruiterApiRequest } from "@/features/recruiter/api/client";
+import type { RecruiterAccountDetail } from "@/features/recruiter/api/onboarding";
+import { clearRecruiterSession } from "@/features/recruiter/session";
 import {
   recruiterNavGroups,
   WorkspaceShell,
@@ -178,8 +179,11 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       const loadRecruiterData = async () => {
         try {
           const [account, currentIdentity] = await Promise.all([
-            getRecruiterAccount(parsedUser.id, accessToken),
-            getCurrentIdentity(accessToken),
+            recruiterApiRequest<RecruiterAccountDetail>(
+              `/recruiter-accounts/${parsedUser.id}`,
+              accessToken,
+            ),
+            recruiterApiRequest<{ data: { permissions: string[] } }>("/auth/me", accessToken),
           ]);
           setUserPermissions(currentIdentity.data.permissions);
 
@@ -201,14 +205,12 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
             });
           }
         } catch (error) {
-          console.error("loadRecruiterData error in layout:", error);
           if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-            localStorage.removeItem("upnext.recruiter.accessToken");
-            localStorage.removeItem("upnext.recruiter.refreshToken");
-            localStorage.removeItem("upnext.recruiter.tokenType");
-            localStorage.removeItem("upnext.recruiter.user");
+            clearRecruiterSession();
             router.replace("/recruiter/login");
+            return;
           }
+          console.error("loadRecruiterData error in layout:", error);
         } finally {
           setLoading(false);
         }
@@ -216,29 +218,27 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
 
       void loadRecruiterData();
 
-      void getRecruiterStats(parsedUser.id, accessToken)
+      void recruiterApiRequest<{ totalJobPosts: number; totalCandidates: number }>(
+        `/recruiter-accounts/${parsedUser.id}/dashboard-stats`,
+        accessToken,
+      )
         .then((statsData) => {
           setStats(statsData);
         })
         .catch((err) => {
+          if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return;
           console.error("getRecruiterStats error in layout:", err);
         });
     } catch (e) {
       console.error("Error in recruiter layout try-catch:", e);
-      localStorage.removeItem("upnext.recruiter.accessToken");
-      localStorage.removeItem("upnext.recruiter.refreshToken");
-      localStorage.removeItem("upnext.recruiter.tokenType");
-      localStorage.removeItem("upnext.recruiter.user");
+      clearRecruiterSession();
       router.replace("/recruiter/login");
       setLoading(false);
     }
   }, [isAuthPage, router]);
 
   function handleLogout() {
-    localStorage.removeItem("upnext.recruiter.accessToken");
-    localStorage.removeItem("upnext.recruiter.refreshToken");
-    localStorage.removeItem("upnext.recruiter.tokenType");
-    localStorage.removeItem("upnext.recruiter.user");
+    clearRecruiterSession();
     router.replace("/recruiter/login");
   }
 

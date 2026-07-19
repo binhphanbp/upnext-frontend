@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-const apiProxyOrigin = process.env.API_PROXY_ORIGIN ?? "http://localhost:3636";
+const apiProxyOrigin = process.env.API_PROXY_ORIGIN ?? "http://localhost:3001";
 
 type ProxyRouteContext = {
   params: Promise<{ proxy: string[] }>;

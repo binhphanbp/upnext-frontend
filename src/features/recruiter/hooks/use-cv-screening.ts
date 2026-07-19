@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+import { ApiError } from "@/shared/api/http";
+
 import {
   runCvScreening,
   getCvScreeningRun,
@@ -8,7 +10,7 @@ import {
   type RunStatus,
 } from "../api/cv-screening-api";
 
-export function useCvScreening(token: string) {
+export function useCvScreening(token: string, onUnauthorized?: () => void) {
   const [selectedJobId, setSelectedJobId] = useState("");
   const [limit, setLimit] = useState("10");
   const [runId, setRunId] = useState<string | null>(null);
@@ -81,11 +83,15 @@ export function useCvScreening(token: string) {
         const data = await getCvScreeningResults(currentRunId, token);
         setResults(data);
       } catch (err: any) {
+        if (err instanceof ApiError && err.status === 401) {
+          onUnauthorized?.();
+          return;
+        }
         console.error("Failed to fetch results:", err);
         setError(err.message || "Không thể lấy kết quả xếp hạng.");
       }
     },
-    [token],
+    [token, onUnauthorized],
   );
 
   const pollRun = useCallback(
@@ -116,10 +122,15 @@ export function useCvScreening(token: string) {
           }
         }
       } catch (err: any) {
+        if (err instanceof ApiError && err.status === 401) {
+          setIsRunning(false);
+          onUnauthorized?.();
+          return;
+        }
         console.error("Error polling run status:", err);
       }
     },
-    [token, fetchResults],
+    [token, fetchResults, onUnauthorized],
   );
 
   const startScreening = useCallback(async () => {
@@ -158,12 +169,18 @@ export function useCvScreening(token: string) {
         void pollRun(res.runId);
       }, 2500);
     } catch (err: any) {
+      if (err instanceof ApiError && err.status === 401) {
+        setIsRunning(false);
+        setRunStatus(null);
+        onUnauthorized?.();
+        return;
+      }
       console.error("Failed to start CV screening:", err);
       setIsRunning(false);
       setRunStatus("FAILED");
       setError(err.message || "Không thể chạy xếp hạng CV. Vui lòng thử lại.");
     }
-  }, [selectedJobId, limit, token, pollRun]);
+  }, [selectedJobId, limit, token, pollRun, onUnauthorized]);
 
   // Resume polling on mount if a run is running
   useEffect(() => {
