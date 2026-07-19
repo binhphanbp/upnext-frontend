@@ -32,12 +32,14 @@ export async function apiRequest<TResponse>(
   path: string,
   init: RequestInit = {},
 ): Promise<TResponse> {
+  const headers = new Headers(init.headers);
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+
   const response = await fetch(createApiUrl(path), {
     ...init,
-    headers: {
-      Accept: "application/json",
-      ...init.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {

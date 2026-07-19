@@ -36,11 +36,12 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 
-import { authHeaders } from "@/features/recruiter/api/client";
+import { authHeaders, RECRUITER_SESSION_REFRESHED_EVENT } from "@/features/recruiter/api/client";
 import {
   getApplicationAiScore,
   getApplicationCvUrl,
   type ApplicationAiScoreResponse,
+  type ScoreCriterionKey,
 } from "@/features/recruiter/api/cv-screening-api";
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
@@ -172,17 +173,40 @@ export function RecruiterCandidatesPage() {
   const [pageSize, setPageSize] = useState(10);
 
   // AI CV Screening Tab States (preserved across tab switches & page navigation)
-  const [activeTab, setActiveTab] = useState("candidates");
+  const requestedTab = searchParams?.get("tab");
+  const [activeTab, setActiveTab] = useState(() =>
+    requestedTab === "cv-ranking" ? "cv-ranking" : "candidates",
+  );
 
-  const cvScreening = useCvScreening(token);
+  const handleScreeningUnauthorized = useCallback(() => {
+    clearRecruiterSession();
+    router.replace("/recruiter/login");
+  }, [router]);
+
+  const cvScreening = useCvScreening(token, handleScreeningUnauthorized);
+
+  useEffect(() => {
+    const handleSessionRefresh = (event: Event) => {
+      const { accessToken } = (event as CustomEvent<{ accessToken: string }>).detail;
+      setToken(accessToken);
+    };
+
+    window.addEventListener(RECRUITER_SESSION_REFRESHED_EVENT, handleSessionRefresh);
+    return () =>
+      window.removeEventListener(RECRUITER_SESSION_REFRESHED_EVENT, handleSessionRefresh);
+  }, []);
 
   // Load from sessionStorage on client mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedTab = sessionStorage.getItem("upnext_activeTab");
-      if (savedTab) setActiveTab(savedTab);
+      if (requestedTab === "cv-ranking") {
+        setActiveTab("cv-ranking");
+      } else if (savedTab) {
+        setActiveTab(savedTab);
+      }
     }
-  }, []);
+  }, [requestedTab]);
 
   // Save changes to sessionStorage
   useEffect(() => {
@@ -868,6 +892,7 @@ export function RecruiterCandidatesPage() {
             onStatusChange={handleStatusChange}
             token={token}
             cvScreening={cvScreening}
+            onUnauthorized={handleScreeningUnauthorized}
           />
         </TabsContent>
       </Tabs>
@@ -985,6 +1010,7 @@ function CvRankingTable({
   onStatusChange,
   token,
   cvScreening,
+  onUnauthorized,
 }: {
   jobs: RecruiterJobPost[];
   t: any;
@@ -993,10 +1019,15 @@ function CvRankingTable({
   onStatusChange: (applicationId: string, nextStatus: string) => Promise<void>;
   token: string;
   cvScreening: ReturnType<typeof useCvScreening>;
+  onUnauthorized: () => void;
 }) {
+  const router = useRouter();
   const [activeApplicationId, setActiveApplicationId] = useState<string | null>(null);
   const [aiScoreDetail, setAiScoreDetail] = useState<ApplicationAiScoreResponse | null>(null);
   const [loadingAiScore, setLoadingAiScore] = useState(false);
+  const [selectedScoreCriterion, setSelectedScoreCriterion] = useState<ScoreCriterionKey>("skills");
+  const [rubricOpen, setRubricOpen] = useState(false);
+  const rubricCloseTimer = useRef<number | null>(null);
 
   // Dropdown states
   const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
@@ -1016,14 +1047,41 @@ function CvRankingTable({
     startScreening,
   } = cvScreening;
 
-  // Pre-calculate retrieval ranks for pre-screening display
-  const retrievalSorted = [...results].sort(
-    (a, b) => (b.retrievalScore || 0) - (a.retrievalScore || 0),
-  );
-  const getRetrievalRank = (applicationId: string) => {
-    const idx = retrievalSorted.findIndex((r) => r.applicationId === applicationId);
-    return idx !== -1 ? idx + 1 : "-";
+  useEffect(() => {
+    if (rubricCloseTimer.current !== null) {
+      window.clearTimeout(rubricCloseTimer.current);
+      rubricCloseTimer.current = null;
+    }
+    setSelectedScoreCriterion("skills");
+    setRubricOpen(false);
+  }, [activeApplicationId]);
+
+  const openRubric = () => {
+    if (rubricCloseTimer.current !== null) {
+      window.clearTimeout(rubricCloseTimer.current);
+      rubricCloseTimer.current = null;
+    }
+    setRubricOpen(true);
   };
+
+  const scheduleRubricClose = () => {
+    if (rubricCloseTimer.current !== null) {
+      window.clearTimeout(rubricCloseTimer.current);
+    }
+    rubricCloseTimer.current = window.setTimeout(() => {
+      setRubricOpen(false);
+      rubricCloseTimer.current = null;
+    }, 120);
+  };
+
+  useEffect(
+    () => () => {
+      if (rubricCloseTimer.current !== null) {
+        window.clearTimeout(rubricCloseTimer.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!activeApplicationId || !token) {
@@ -1040,17 +1098,27 @@ function CvRankingTable({
           setAiScoreDetail(data);
         }
       } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          if (active) {
+            setActiveApplicationId(null);
+            onUnauthorized();
+          }
+          return;
+        }
+
         console.error("Failed to load AI score detail:", err);
-        void Swal.fire({
-          icon: "error",
-          title: locale === "vi" ? "Lỗi tải đánh giá" : "Failed to load evaluation",
-          text:
-            locale === "vi"
-              ? "Không thể tải chi tiết đánh giá từ hệ thống."
-              : "Could not fetch evaluation details.",
-        });
         if (active) {
           setActiveApplicationId(null);
+          window.setTimeout(() => {
+            void Swal.fire({
+              icon: "error",
+              title: locale === "vi" ? "Lỗi tải đánh giá" : "Failed to load evaluation",
+              text:
+                locale === "vi"
+                  ? "Không thể tải chi tiết đánh giá từ hệ thống."
+                  : "Could not fetch evaluation details.",
+            });
+          }, 0);
         }
       } finally {
         if (active) {
@@ -1063,7 +1131,7 @@ function CvRankingTable({
     return () => {
       active = false;
     };
-  }, [activeApplicationId, token, locale]);
+  }, [activeApplicationId, token, locale, onUnauthorized]);
 
   const handleViewCv = async (applicationId: string, customCvUrl?: string | null) => {
     if (customCvUrl && !customCvUrl.includes("/applications/")) {
@@ -1154,12 +1222,39 @@ function CvRankingTable({
 
   const scoreMetrics = aiScoreDetail
     ? [
-        { label: "Kỹ năng", score: aiScoreDetail.skillScore, maximum: 40 },
-        { label: "Kinh nghiệm", score: aiScoreDetail.experienceScore, maximum: 30 },
-        { label: "Dự án liên quan", score: aiScoreDetail.projectScore, maximum: 20 },
-        { label: "Học vấn", score: aiScoreDetail.educationScore, maximum: 10 },
+        {
+          key: "skills" as const,
+          label: "Kỹ năng",
+          score: aiScoreDetail.skillScore,
+          maximum: 40,
+        },
+        {
+          key: "experience" as const,
+          label: "Kinh nghiệm",
+          score: aiScoreDetail.experienceScore,
+          maximum: 30,
+        },
+        {
+          key: "projects" as const,
+          label: "Dự án liên quan",
+          score: aiScoreDetail.projectScore,
+          maximum: 20,
+        },
+        {
+          key: "education" as const,
+          label: "Học vấn",
+          score: aiScoreDetail.educationScore,
+          maximum: 10,
+        },
       ]
     : [];
+  const selectedMetric = scoreMetrics.find((metric) => metric.key === selectedScoreCriterion);
+  const selectedBreakdown = aiScoreDetail?.criteriaBreakdown?.find(
+    (criterion) => criterion.key === selectedScoreCriterion,
+  );
+  const selectedRubric = aiScoreDetail?.evaluationRubric?.find(
+    (criterion) => criterion.key === selectedScoreCriterion,
+  );
 
   return (
     <div className="space-y-4">
@@ -1315,9 +1410,6 @@ function CvRankingTable({
             <th className="w-16 border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Hạng" : "Rank"}
             </th>
-            <th className="w-[110px] min-w-[100px] border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
-              {locale === "vi" ? "Hạng sơ tuyển" : "Pre-screen Rank"}
-            </th>
             <th className="w-[160px] min-w-[150px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Ứng viên" : "Candidate"}
             </th>
@@ -1326,12 +1418,6 @@ function CvRankingTable({
             </th>
             <th className="min-w-[280px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Lý do phù hợp / summary" : "Matching Summary"}
-            </th>
-            <th className="w-[100px] min-w-[90px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
-              {locale === "vi" ? "Khớp kỹ năng" : "Skill Match"}
-            </th>
-            <th className="w-[110px] min-w-[100px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
-              {locale === "vi" ? "Điểm lọc hybrid" : "Hybrid Score"}
             </th>
             <th className="w-[120px] min-w-[120px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Độ phù hợp" : "AI Score"}
@@ -1344,7 +1430,7 @@ function CvRankingTable({
         <tbody>
           {isRunning ? (
             <tr>
-              <td colSpan={9} className="px-4 !py-16 text-center text-sm text-slate-500">
+              <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
                 <div className="flex flex-col items-center justify-center space-y-4">
                   <CircleNotch className="size-10 animate-spin text-emerald-600" />
                   <div className="space-y-1">
@@ -1375,7 +1461,7 @@ function CvRankingTable({
             </tr>
           ) : error ? (
             <tr>
-              <td colSpan={9} className="px-4 !py-16 text-center text-sm text-slate-500">
+              <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
                 <div className="flex flex-col items-center justify-center space-y-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
                     <WarningCircle size={24} />
@@ -1397,7 +1483,7 @@ function CvRankingTable({
             </tr>
           ) : !hasFiltered ? (
             <tr>
-              <td colSpan={9} className="px-4 !py-16 text-center text-sm text-slate-500">
+              <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
                 <div className="flex flex-col items-center justify-center">
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
                     <MagnifyingGlass size={28} />
@@ -1415,7 +1501,7 @@ function CvRankingTable({
             </tr>
           ) : results.length === 0 ? (
             <tr>
-              <td colSpan={9} className="px-4 !py-12 text-center text-sm text-slate-500">
+              <td colSpan={6} className="px-4 !py-12 text-center text-sm text-slate-500">
                 {locale === "vi"
                   ? "Không tìm thấy ứng viên nào đạt điểm lọc."
                   : "No candidates found."}
@@ -1435,11 +1521,6 @@ function CvRankingTable({
                     )}
                   >
                     #{index + 1}
-                  </span>
-                </td>
-                <td className="w-[110px] min-w-[100px] border-r border-slate-100/50 px-4 py-2.5 text-center last:border-r-0">
-                  <span className="inline-flex size-6 items-center justify-center rounded-full border border-indigo-200 bg-indigo-50 text-[10px] font-bold tracking-tight text-indigo-700">
-                    #{getRetrievalRank(cand.applicationId)}
                   </span>
                 </td>
                 <td className="w-[160px] min-w-[150px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
@@ -1470,26 +1551,6 @@ function CvRankingTable({
                     </div>
                   </div>
                 </td>
-                <td className="w-[100px] min-w-[90px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
-                  <span
-                    className={cn(
-                      "px-1.5 py-0.5 rounded-md font-extrabold border text-[10px] leading-none shrink-0 inline-block",
-                      getScoreColorClass(cand.skillMatchScore),
-                    )}
-                  >
-                    {cand.skillMatchScore}%
-                  </span>
-                </td>
-                <td className="w-[110px] min-w-[100px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
-                  <span
-                    className={cn(
-                      "px-1.5 py-0.5 rounded-md font-extrabold border text-[10px] leading-none shrink-0 inline-block",
-                      getScoreColorClass(cand.retrievalScore),
-                    )}
-                  >
-                    {cand.retrievalScore}%
-                  </span>
-                </td>
                 <td className="w-[120px] min-w-[120px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
                   <div className="w-full space-y-1">
                     <span
@@ -1514,7 +1575,10 @@ function CvRankingTable({
                 <td className="w-20 min-w-[80px] px-4 py-2.5 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <button
-                      onClick={() => setActiveApplicationId(cand.applicationId)}
+                      onClick={() =>
+                        router.push(`/recruiter/candidates/${cand.applicationId}/evaluation`)
+                      }
+                      aria-label="Xem đánh giá chi tiết"
                       className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
                       title="Xem đánh giá chi tiết"
                     >
@@ -1522,6 +1586,7 @@ function CvRankingTable({
                     </button>
                     <button
                       onClick={() => handleViewCv(cand.applicationId, cand.cvFileUrl)}
+                      aria-label="Xem CV"
                       className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-emerald-600 transition-colors hover:bg-slate-50 hover:text-emerald-700"
                       title="Xem CV"
                     >
@@ -1570,16 +1635,125 @@ function CvRankingTable({
                       <span>{aiScoreDetail.jobTitle}</span>
                     </DialogDescription>
                   </div>
-                  <Badge
-                    tone="neutral"
-                    className={cn(
-                      "w-fit shrink-0 rounded-lg border px-3 py-2 text-sm font-semibold tabular-nums",
-                      getScoreColorClass(aiScoreDetail.finalScore),
-                    )}
-                    aria-label={`Độ phù hợp ${aiScoreDetail.finalScore}%`}
-                  >
-                    {aiScoreDetail.finalScore}% phù hợp
-                  </Badge>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <details
+                      open={rubricOpen}
+                      className="relative"
+                      aria-label="Điều khiển tiêu chí đánh giá"
+                    >
+                      <summary
+                        className="upnext-focus inline-flex size-9 cursor-pointer list-none items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors marker:hidden hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                        aria-label="Xem toàn bộ tiêu chí đánh giá"
+                        aria-haspopup="dialog"
+                        aria-expanded={rubricOpen}
+                        aria-controls="evaluation-rubric-panel"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setRubricOpen((open) => !open);
+                        }}
+                        onMouseEnter={openRubric}
+                        onMouseLeave={scheduleRubricClose}
+                        onFocus={openRubric}
+                        onBlur={scheduleRubricClose}
+                        onKeyDown={(event) => {
+                          if (event.key === "Escape") {
+                            setRubricOpen(false);
+                          }
+                        }}
+                      >
+                        <Info size={19} aria-hidden="true" />
+                      </summary>
+
+                      {rubricOpen && (
+                        <dialog
+                          open
+                          id="evaluation-rubric-panel"
+                          aria-label="Toàn bộ tiêu chí đánh giá"
+                          className="absolute top-11 right-0 z-[120] max-h-[62vh] w-[min(34rem,calc(100vw-3rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 text-left shadow-2xl"
+                          onMouseEnter={openRubric}
+                          onMouseLeave={scheduleRubricClose}
+                          onFocus={openRubric}
+                          onBlur={scheduleRubricClose}
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                              setRubricOpen(false);
+                            }
+                          }}
+                        >
+                          <div className="mb-4 flex items-start justify-between gap-4">
+                            <div>
+                              <h3 className="text-sm font-semibold text-slate-950">
+                                Tiêu chí đánh giá CV
+                              </h3>
+                              <p className="mt-1 text-xs leading-5 text-slate-500">
+                                Tổng 100 điểm. Không có bằng chứng trong CV thì không cộng điểm.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="upnext-focus -mt-1 -mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                              aria-label="Đóng tiêu chí đánh giá"
+                              onClick={() => setRubricOpen(false)}
+                            >
+                              <X size={16} aria-hidden="true" />
+                            </button>
+                          </div>
+
+                          <div className="space-y-4">
+                            {aiScoreDetail.evaluationRubric?.map((criterion) => (
+                              <section
+                                key={criterion.key}
+                                aria-labelledby={`rubric-${criterion.key}`}
+                              >
+                                <div className="mb-2 flex items-center justify-between gap-3">
+                                  <h4
+                                    id={`rubric-${criterion.key}`}
+                                    className="text-xs font-semibold text-slate-900"
+                                  >
+                                    {criterion.label}
+                                  </h4>
+                                  <span className="text-xs font-semibold text-emerald-700 tabular-nums">
+                                    {criterion.maxScore} điểm
+                                  </span>
+                                </div>
+                                <ul className="space-y-2">
+                                  {criterion.criteria.map((item) => (
+                                    <li
+                                      key={item.key}
+                                      className="rounded-lg border border-slate-100 bg-slate-50 p-2.5"
+                                    >
+                                      <div className="flex items-start justify-between gap-3">
+                                        <span className="text-xs font-medium text-slate-800">
+                                          {item.label}
+                                        </span>
+                                        <span className="shrink-0 text-xs font-semibold text-emerald-700 tabular-nums">
+                                          Tối đa {item.maxScore} điểm
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                                        {item.description}
+                                      </p>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </section>
+                            ))}
+                          </div>
+                        </dialog>
+                      )}
+                    </details>
+
+                    <Badge
+                      tone="neutral"
+                      className={cn(
+                        "w-fit rounded-lg border px-3 py-2 text-sm font-semibold tabular-nums",
+                        getScoreColorClass(aiScoreDetail.finalScore),
+                      )}
+                      aria-label={`Độ phù hợp ${aiScoreDetail.finalScore}%`}
+                    >
+                      {aiScoreDetail.finalScore}% phù hợp
+                    </Badge>
+                  </div>
                 </div>
               </DialogHeader>
 
@@ -1610,43 +1784,160 @@ function CvRankingTable({
                     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                       {scoreMetrics.map((metric) => {
                         const percentage = Math.round((metric.score / metric.maximum) * 100);
+                        const selected = selectedScoreCriterion === metric.key;
 
                         return (
-                          <Card key={metric.label} className="border-slate-200 shadow-none">
-                            <CardContent className="space-y-3 p-4">
-                              <div className="flex items-baseline justify-between gap-2">
-                                <span className="text-xs font-medium text-slate-500">
-                                  {metric.label}
-                                </span>
-                                <span className="text-sm font-semibold text-slate-900 tabular-nums">
-                                  {metric.score}
-                                  <span className="font-normal text-slate-400">
-                                    /{metric.maximum}
+                          <Card
+                            key={metric.key}
+                            className={cn(
+                              "overflow-hidden shadow-none transition-colors",
+                              selected ? "border-emerald-400 bg-emerald-50/40" : "border-slate-200",
+                            )}
+                          >
+                            <button
+                              type="button"
+                              className="upnext-focus block w-full rounded-xl text-left"
+                              aria-pressed={selected}
+                              aria-controls="score-criterion-explanation"
+                              onClick={() => setSelectedScoreCriterion(metric.key)}
+                            >
+                              <CardContent className="space-y-3 p-4">
+                                <div className="flex items-baseline justify-between gap-2">
+                                  <span className="text-xs font-medium text-slate-500">
+                                    {metric.label}
                                   </span>
-                                </span>
-                              </div>
-                              <progress
-                                className="sr-only"
-                                aria-label={`${metric.label}: ${metric.score} trên ${metric.maximum} điểm`}
-                                max={metric.maximum}
-                                value={metric.score}
-                              />
-                              <div
-                                className="h-1.5 overflow-hidden rounded-full bg-slate-100"
-                                aria-hidden="true"
-                              >
-                                <div
-                                  className={cn(
-                                    "h-full rounded-full",
-                                    getProgressBarColor(percentage),
-                                  )}
-                                  style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+                                  <span className="text-sm font-semibold text-slate-900 tabular-nums">
+                                    {metric.score}
+                                    <span className="font-normal text-slate-400">
+                                      /{metric.maximum}
+                                    </span>
+                                  </span>
+                                </div>
+                                <progress
+                                  className="sr-only"
+                                  aria-label={`${metric.label}: ${metric.score} trên ${metric.maximum} điểm`}
+                                  max={metric.maximum}
+                                  value={metric.score}
                                 />
-                              </div>
-                            </CardContent>
+                                <div
+                                  className="h-1.5 overflow-hidden rounded-full bg-slate-100"
+                                  aria-hidden="true"
+                                >
+                                  <div
+                                    className={cn(
+                                      "h-full rounded-full",
+                                      getProgressBarColor(percentage),
+                                    )}
+                                    style={{
+                                      width: `${Math.min(100, Math.max(0, percentage))}%`,
+                                    }}
+                                  />
+                                </div>
+                                <span
+                                  className={cn(
+                                    "block text-[11px] font-medium",
+                                    selected ? "text-emerald-700" : "text-slate-400",
+                                  )}
+                                >
+                                  {selected ? "Đang xem lý do" : "Xem lý do chấm điểm"}
+                                </span>
+                              </CardContent>
+                            </button>
                           </Card>
                         );
                       })}
+                    </div>
+
+                    <div
+                      id="score-criterion-explanation"
+                      className="rounded-xl border border-slate-200 bg-slate-50/70 p-4"
+                      aria-live="polite"
+                    >
+                      {selectedBreakdown && selectedMetric ? (
+                        <div className="space-y-4">
+                          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+                            <div>
+                              <h4 className="text-sm font-semibold text-slate-950">
+                                Vì sao {selectedMetric.label.toLocaleLowerCase("vi")} được{" "}
+                                {selectedMetric.score}/{selectedMetric.maximum} điểm?
+                              </h4>
+                              <p className="mt-1 text-xs leading-5 text-slate-600">
+                                {selectedBreakdown.summary}
+                              </p>
+                            </div>
+                            <Badge
+                              tone="neutral"
+                              className="w-fit shrink-0 rounded-md tabular-nums"
+                            >
+                              Trừ {Math.max(0, selectedMetric.maximum - selectedMetric.score)} điểm
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-3">
+                            {selectedBreakdown.items.map((item) => {
+                              const rubricItem = selectedRubric?.criteria.find(
+                                (criterion) => criterion.key === item.key,
+                              );
+                              const maximum = rubricItem?.maxScore ?? item.awardedScore;
+                              const deduction = Math.max(
+                                0,
+                                Math.round((maximum - item.awardedScore) * 100) / 100,
+                              );
+
+                              return (
+                                <article
+                                  key={item.key}
+                                  className="rounded-lg border border-slate-200 bg-white p-3.5"
+                                >
+                                  <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                      <h5 className="text-xs font-semibold text-slate-900">
+                                        {rubricItem?.label ?? item.key}
+                                      </h5>
+                                      <span className="mt-1 block text-xs text-slate-500 tabular-nums">
+                                        Đạt {item.awardedScore}/{maximum} điểm
+                                      </span>
+                                    </div>
+                                    <span
+                                      className={cn(
+                                        "rounded-md border px-2 py-1 text-xs font-semibold tabular-nums",
+                                        deduction > 0
+                                          ? "border-rose-200 bg-rose-50 text-rose-700"
+                                          : "border-emerald-200 bg-emerald-50 text-emerald-700",
+                                      )}
+                                    >
+                                      {deduction > 0 ? `-${deduction} điểm` : "Không bị trừ"}
+                                    </span>
+                                  </div>
+                                  <p className="mt-3 text-xs leading-5 text-slate-700">
+                                    <span className="font-semibold text-slate-900">Lý do: </span>
+                                    {item.reason}
+                                  </p>
+                                  <p className="mt-1.5 text-xs leading-5 text-slate-500">
+                                    <span className="font-semibold text-slate-700">
+                                      Bằng chứng CV:{" "}
+                                    </span>
+                                    {item.evidence}
+                                  </p>
+                                </article>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-3">
+                          <Info className="mt-0.5 shrink-0 text-amber-600" aria-hidden="true" />
+                          <div>
+                            <h4 className="text-sm font-semibold text-slate-900">
+                              Chưa có giải thích chi tiết
+                            </h4>
+                            <p className="mt-1 text-xs leading-5 text-slate-600">
+                              Kết quả này được tạo bằng phiên bản chấm điểm cũ. Hãy chạy “Lọc xếp
+                              hạng” lại để xem lý do cộng và trừ điểm cho từng hạng mục.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </section>
 
