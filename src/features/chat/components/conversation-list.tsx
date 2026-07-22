@@ -68,7 +68,7 @@ export function ConversationList({
             aria-label="Tìm hội thoại"
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Tìm hội thoại"
-            className="pl-9"
+            className="focus-visible:ring-primary rounded-full bg-slate-50 pl-9 transition-colors focus-visible:bg-white"
           />
         </div>
         <Select
@@ -76,7 +76,10 @@ export function ConversationList({
           onValueChange={(value) => onTagChange(value === "__all_tags__" ? "" : value)}
           disabled={tagsLoading}
         >
-          <SelectTrigger className="mt-2" aria-label="Lọc theo tag hội thoại">
+          <SelectTrigger
+            className="focus:ring-primary mt-2 rounded-full bg-slate-50 transition-colors focus:bg-white"
+            aria-label="Lọc theo tag hội thoại"
+          >
             <SelectValue placeholder="Lọc theo tag" />
           </SelectTrigger>
           <SelectContent>
@@ -95,8 +98,11 @@ export function ConversationList({
           <p className="p-6 text-center text-sm text-red-600">Không thể tải hội thoại.</p>
         ) : null}
         {!loading && !error && filtered.length === 0 ? (
-          <div className="grid h-48 place-items-center p-6 text-center text-sm text-slate-500">
-            Chưa có hội thoại phù hợp.
+          <div className="flex h-48 flex-col items-center justify-center p-6 text-center text-sm text-slate-500">
+            <div className="mb-3 rounded-full bg-slate-50 p-3">
+              <MagnifyingGlass className="text-slate-300" size={24} />
+            </div>
+            <p>Chưa có hội thoại phù hợp.</p>
           </div>
         ) : null}
         {filtered.map((conversation) => {

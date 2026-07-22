@@ -29,13 +29,18 @@ export function RecentActivity({ activities }: { activities?: AdminRecentActivit
             validActivities.map((task) => {
               const status = task.status?.toLowerCase() || "neutral";
               return (
-                <div key={task.id} className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <p className="text-foreground text-sm leading-none font-bold">{task.title}</p>
-                    <p className="text-muted-foreground text-sm">{task.subtitle}</p>
+                <div key={task.id} className="flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p
+                      className="text-foreground line-clamp-2 text-sm leading-tight font-bold"
+                      title={task.title}
+                    >
+                      {task.title}
+                    </p>
+                    <p className="text-muted-foreground truncate text-sm">{task.subtitle}</p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
+                  <div className="flex shrink-0 items-center gap-4">
+                    <div className="text-right whitespace-nowrap">
                       <Badge
                         tone={
                           status === "pending"
