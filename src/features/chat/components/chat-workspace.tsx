@@ -74,23 +74,25 @@ export function ChatWorkspace({
           <ChatCircleDots className="text-primary shrink-0" size={24} weight="fill" />
           <h1 className="font-bold text-slate-900">Tin nhắn</h1>
         </div>
-        <div
-          className="flex min-w-0 gap-1 overflow-x-auto py-2"
-          role="tablist"
-          aria-label="Loại hội thoại"
-        >
-          {tabs.map((tab) => (
-            <button
-              key={tab.type}
-              type="button"
-              role="tab"
-              aria-selected={type === tab.type}
-              onClick={() => setType(tab.type)}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${type === tab.type ? "bg-primary text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex items-center rounded-full bg-slate-100 p-1">
+          <div
+            className="flex min-w-0 gap-1 overflow-x-auto"
+            role="tablist"
+            aria-label="Loại hội thoại"
+          >
+            {tabs.map((tab) => (
+              <button
+                key={tab.type}
+                type="button"
+                role="tab"
+                aria-selected={type === tab.type}
+                onClick={() => setType(tab.type)}
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold whitespace-nowrap transition-all duration-200 ${type === tab.type ? "text-primary bg-white shadow-sm" : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-800"}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       {connectionCopy ? (
@@ -134,8 +136,11 @@ export function ChatWorkspace({
           {detail.data ? (
             <ConversationContextPanel conversation={detail.data} />
           ) : (
-            <div className="grid h-full place-items-center p-6 text-center text-sm text-slate-400">
-              Chọn hội thoại để xem thông tin.
+            <div className="flex h-full flex-col items-center justify-center p-6 text-center text-slate-400">
+              <div className="mb-3 rounded-full bg-slate-50 p-4">
+                <ChatCircleDots className="text-slate-300" size={32} weight="duotone" />
+              </div>
+              <p className="text-sm">Chọn hội thoại để xem thông tin.</p>
             </div>
           )}
         </div>
@@ -170,12 +175,14 @@ export function ChatWorkspace({
 
 function EmptyThread() {
   return (
-    <div className="grid h-full place-items-center bg-slate-50 p-8 text-center">
-      <div>
-        <ChatCircleDots className="mx-auto mb-3 text-slate-300" size={56} />
-        <p className="font-semibold text-slate-600">Chọn một hội thoại</p>
-        <p className="mt-1 text-sm text-slate-400">Tin nhắn của bạn sẽ xuất hiện tại đây.</p>
+    <div className="flex h-full flex-col items-center justify-center bg-slate-50/50 p-8 text-center">
+      <div className="bg-primary/10 mb-4 rounded-full p-6">
+        <ChatCircleDots className="text-primary/40" size={48} weight="duotone" />
       </div>
+      <p className="text-lg font-semibold text-slate-700">Chọn một hội thoại</p>
+      <p className="mt-2 max-w-sm text-sm text-slate-500">
+        Tin nhắn của bạn sẽ xuất hiện tại đây. Hãy chọn một cuộc trò chuyện để bắt đầu.
+      </p>
     </div>
   );
 }
