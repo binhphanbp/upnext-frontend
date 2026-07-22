@@ -18,6 +18,7 @@ export type WorkspaceNavGroup = Readonly<{
   label: string;
   icon?: Icon;
   items: WorkspaceNavItem[];
+  href?: string;
 }>;
 
 export type WorkspaceIdentity = Readonly<{

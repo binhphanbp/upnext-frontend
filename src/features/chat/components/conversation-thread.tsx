@@ -87,7 +87,7 @@ export function ConversationThread({ conversationId }: { conversationId: string 
   if (detail.isLoading || history.isLoading) {
     return (
       <div className="grid min-h-0 place-items-center bg-slate-50">
-        <SpinnerGap className="animate-spin text-blue-600" size={28} />
+        <SpinnerGap className="text-primary animate-spin" size={28} />
       </div>
     );
   }

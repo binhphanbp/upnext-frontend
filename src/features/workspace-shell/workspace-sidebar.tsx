@@ -48,38 +48,43 @@ export function WorkspaceSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [showSecurityTooltip, setShowSecurityTooltip] = useState(false);
 
   const [activeGroupIndex, setActiveGroupIndex] = useState(() => {
     if (!navGroups || navGroups.length === 0) return 0;
-    const index = navGroups.findIndex((group) =>
-      group.items.some(
-        (item) =>
-          item.href === pathname ||
-          (!["/admin", "/recruiter", "/candidate"].includes(item.href) &&
-            pathname.startsWith(`${item.href}/`)) ||
-          item.children?.some(
-            (child) => pathname === child.href || pathname.startsWith(`${child.href}/`),
-          ),
-      ),
+    const index = navGroups.findIndex(
+      (group) =>
+        group.href === pathname ||
+        (group.href && pathname.startsWith(`${group.href}/`)) ||
+        group.items.some(
+          (item) =>
+            item.href === pathname ||
+            (!["/admin", "/recruiter", "/candidate"].includes(item.href) &&
+              pathname.startsWith(`${item.href}/`)) ||
+            item.children?.some(
+              (child) => pathname === child.href || pathname.startsWith(`${child.href}/`),
+            ),
+        ),
     );
     return index >= 0 ? index : 0;
   });
 
   useEffect(() => {
     if (!navGroups || navGroups.length === 0) return;
-    const index = navGroups.findIndex((group) =>
-      group.items.some(
-        (item) =>
-          item.href === pathname ||
-          (!["/admin", "/recruiter", "/candidate"].includes(item.href) &&
-            pathname.startsWith(`${item.href}/`)) ||
-          item.children?.some(
-            (child) => pathname === child.href || pathname.startsWith(`${child.href}/`),
-          ),
-      ),
+    const index = navGroups.findIndex(
+      (group) =>
+        group.href === pathname ||
+        (group.href && pathname.startsWith(`${group.href}/`)) ||
+        group.items.some(
+          (item) =>
+            item.href === pathname ||
+            (!["/admin", "/recruiter", "/candidate"].includes(item.href) &&
+              pathname.startsWith(`${item.href}/`)) ||
+            item.children?.some(
+              (child) => pathname === child.href || pathname.startsWith(`${child.href}/`),
+            ),
+        ),
     );
     if (index >= 0) {
       setActiveGroupIndex(index);
@@ -106,16 +111,13 @@ export function WorkspaceSidebar({
   }, []);
 
   useEffect(() => {
-    setIsHovered(false);
+    // Remove hover reset logic
   }, [pathname]);
 
   const handleToggleCollapse = () => {
     setCollapsed((prev) => {
       const next = !prev;
       localStorage.setItem("workspace_sidebar_collapsed", JSON.stringify(next));
-      if (next) {
-        setIsHovered(false);
-      }
       return next;
     });
   };
@@ -124,13 +126,17 @@ export function WorkspaceSidebar({
   const t = useTranslations(tNamespace as any);
   const tShell = useTranslations("WorkspaceShell");
 
+  const isMessagesPage =
+    pathname.startsWith("/recruiter/messages") || pathname.startsWith("/candidate/messages");
+  const isCurrentGroupStandalone = !!(
+    navGroups[activeGroupIndex]?.href && navGroups[activeGroupIndex]?.items?.length === 0
+  );
+  const displayGroupIndex =
+    (navGroups[activeGroupIndex]?.items?.length ?? 0) > 0 ? activeGroupIndex : 0;
+
   return (
     <>
-      <div
-        className="relative z-20 flex h-full flex-shrink-0 bg-white"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+      <div className="relative z-20 flex h-full flex-shrink-0 bg-white">
         <aside
           className={cn(
             "relative z-20 flex hidden w-[80px] flex-shrink-0 flex-col items-center md:flex transition-colors duration-300 bg-transparent",
@@ -174,11 +180,15 @@ export function WorkspaceSidebar({
                 <button
                   key={group.label}
                   onClick={() => {
-                    setActiveGroupIndex(index);
-                    if (collapsed) setCollapsed(false);
+                    if (group.href) {
+                      router.push(group.href);
+                    } else {
+                      setActiveGroupIndex(index);
+                      if (collapsed) setCollapsed(false);
+                    }
                   }}
                   className={cn(
-                    "flex h-12 w-12 items-center justify-center rounded-xl transition",
+                    "flex h-12 w-12 items-center justify-center rounded-xl transition cursor-pointer",
                     isActive
                       ? "bg-primary text-white"
                       : "text-slate-400 hover:bg-slate-100 hover:text-slate-900",
@@ -203,7 +213,7 @@ export function WorkspaceSidebar({
         <aside
           className={cn(
             "bg-transparent flex-shrink-0 transition-[width,opacity] duration-300 ease-in-out h-full relative z-10 hidden lg:flex",
-            !collapsed || isHovered
+            !collapsed && !isCurrentGroupStandalone
               ? "w-[260px] opacity-100 border-transparent"
               : "w-0 opacity-0 overflow-hidden border-r-0 lg:w-0 lg:border-r-0",
           )}
@@ -236,8 +246,8 @@ export function WorkspaceSidebar({
             </div>
             <ScrollArea className="flex-1 space-y-1 px-4 py-4">
               <nav className="space-y-6" aria-label={`Điều hướng ${workspaceRole}`}>
-                {(workspaceRole === "admin" && navGroups[activeGroupIndex]
-                  ? [navGroups[activeGroupIndex]]
+                {(workspaceRole === "admin" && navGroups[displayGroupIndex]
+                  ? [navGroups[displayGroupIndex]]
                   : navGroups
                 ).map((group, groupIdx) => (
                   <section
