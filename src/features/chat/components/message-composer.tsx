@@ -149,7 +149,7 @@ export function MessageComposer({
             }
           }}
           placeholder="Nhập tin nhắn…"
-          className="max-h-32 min-h-10 resize-none"
+          className="focus-visible:ring-primary focus-visible:border-primary max-h-32 min-h-10 resize-none rounded-xl border-slate-200 bg-slate-50 px-4 py-2 text-sm shadow-sm transition-all focus-visible:ring-1"
         />
         <Button
           type="button"

@@ -71,7 +71,7 @@ export function ChatWorkspace({
     >
       <div className="flex min-h-14 items-center justify-between gap-3 border-b border-slate-200 px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <ChatCircleDots className="shrink-0 text-blue-600" size={24} weight="fill" />
+          <ChatCircleDots className="text-primary shrink-0" size={24} weight="fill" />
           <h1 className="font-bold text-slate-900">Tin nhắn</h1>
         </div>
         <div
@@ -86,7 +86,7 @@ export function ChatWorkspace({
               role="tab"
               aria-selected={type === tab.type}
               onClick={() => setType(tab.type)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${type === tab.type ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${type === tab.type ? "bg-primary text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
             >
               {tab.label}
             </button>

@@ -118,10 +118,16 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
         let groupLabel = group.label;
         if (group.label === "Tuyển dụng") groupLabel = t("nav.recruitment");
         else if (group.label === "Công ty") groupLabel = t("nav.company");
+        else if (group.label === "Tin nhắn") groupLabel = t("nav.messages");
+
+        // If the group itself has an href, check permission for it.
+        if (group.href && !hasPermissionForHref(group.href, userPermissions)) {
+          return null;
+        }
 
         const filteredItems = group.items.map(checkItem).filter(Boolean);
 
-        if (filteredItems.length === 0) {
+        if (filteredItems.length === 0 && !group.href) {
           return null;
         }
 

@@ -32,7 +32,7 @@ export function MessageItem({
         className={cn(
           "max-w-[min(78%,620px)] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm",
           mine
-            ? "rounded-br-md bg-blue-600 text-white"
+            ? "rounded-br-md bg-primary text-white"
             : "rounded-bl-md border border-slate-200 bg-white text-slate-800",
         )}
       >
@@ -49,7 +49,7 @@ export function MessageItem({
         <div
           className={cn(
             "mt-1 flex items-center justify-end gap-1 text-[10px]",
-            mine ? "text-blue-100" : "text-slate-400",
+            mine ? "text-emerald-100/90" : "text-slate-400",
           )}
         >
           <time dateTime={message.createdAt}>
@@ -85,7 +85,10 @@ function linkify(content: string, light: boolean) {
         href={part}
         target="_blank"
         rel="noopener noreferrer"
-        className={cn("underline", light ? "text-white" : "text-blue-700")}
+        className={cn(
+          "underline font-medium",
+          light ? "text-white" : "text-primary hover:text-emerald-700",
+        )}
       >
         {part}
       </a>

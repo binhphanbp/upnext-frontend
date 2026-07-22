@@ -38,6 +38,9 @@ export function WorkspaceShell({
   const t = useTranslations(tNamespace as any);
   const tShell = useTranslations("WorkspaceShell");
 
+  const isMessagesPage =
+    pathname.startsWith("/recruiter/messages") || pathname.startsWith("/candidate/messages");
+
   // Find current active item/sub-item and construct breadcrumbs
   let activeItemLabel = "";
 
@@ -92,29 +95,45 @@ export function WorkspaceShell({
           />
 
           {/* PAGE TITLE & BREADCRUMB BAR */}
-          <div className="relative z-20 flex h-14 shrink-0 items-center bg-white px-8 transition-colors">
-            <div className="flex items-center gap-2">
-              <span className="text-[16px] font-semibold text-slate-800 dark:text-slate-200">
-                {activeItemLabel || t("dashboard.title")}
-              </span>
+          {!isMessagesPage && (
+            <div className="relative z-20 flex h-14 shrink-0 items-center bg-white px-8 transition-colors">
+              <div className="flex items-center gap-2">
+                <span className="text-[16px] font-semibold text-slate-800 dark:text-slate-200">
+                  {activeItemLabel || t("dashboard.title")}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* White square behind top-left corner to maintain the curve illusion */}
-          <div
-            className="absolute top-[132px] left-0 z-0 h-8 w-8 bg-white dark:bg-[#0f1d30]"
-            aria-hidden="true"
-          />
+          {!isMessagesPage && (
+            <div
+              className="absolute top-[132px] left-0 z-0 h-8 w-8 bg-white dark:bg-[#0f1d30]"
+              aria-hidden="true"
+            />
+          )}
 
           {/* MAIN DASHBOARD CONTENT AREA */}
           <main
             onScroll={handleScroll}
             className={cn(
-              "relative z-10 flex-1 overflow-y-auto overflow-x-hidden min-w-0 min-h-0 overscroll-none p-4 md:p-8 bg-[#f4f6fa] dark:bg-slate-900 transition-all duration-200",
-              isScrolled ? "rounded-tl-none" : "rounded-tl-[24px] lg:rounded-tl-[32px]",
+              "relative z-10 flex-1 overflow-y-auto overflow-x-hidden min-w-0 min-h-0 overscroll-none transition-all duration-200",
+              isMessagesPage
+                ? "bg-white p-0 rounded-none"
+                : cn(
+                    "bg-[#f4f6fa] dark:bg-slate-900 p-4 md:p-8",
+                    isScrolled ? "rounded-tl-none" : "rounded-tl-[24px] lg:rounded-tl-[32px]",
+                  ),
             )}
           >
-            <div className="mx-auto w-full max-w-[1400px] min-w-0">{children}</div>
+            <div
+              className={cn(
+                "mx-auto w-full min-w-0",
+                isMessagesPage ? "max-w-none h-full" : "max-w-[1400px]",
+              )}
+            >
+              {children}
+            </div>
           </main>
         </div>
       </div>

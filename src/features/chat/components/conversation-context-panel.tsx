@@ -126,7 +126,7 @@ export function ConversationContextPanel({ conversation }: { conversation: Conve
         ) : null}
         <div className="border-t border-slate-100 pt-4">
           <div className="mb-2 flex items-center gap-2">
-            <Tag className="text-violet-600" />
+            <Tag className="text-slate-500" />
             <p className="text-xs font-semibold text-slate-700">Tag của bạn</p>
           </div>
           {tags.length ? (
@@ -134,13 +134,13 @@ export function ConversationContextPanel({ conversation }: { conversation: Conve
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1 rounded-full bg-violet-100 py-1 pr-1 pl-2.5 text-xs font-semibold text-violet-700"
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 py-1 pr-1 pl-2.5 text-xs font-semibold text-slate-600"
                 >
                   {tag}
                   <button
                     type="button"
                     aria-label={`Gỡ tag ${tag}`}
-                    className="grid h-5 w-5 place-items-center rounded-full hover:bg-violet-200 disabled:opacity-50"
+                    className="grid h-5 w-5 place-items-center rounded-full text-slate-500 hover:bg-slate-200 hover:text-slate-700 disabled:opacity-50"
                     disabled={mutation.isPending}
                     onClick={() => mutation.mutate(tags.filter((item) => item !== tag))}
                   >

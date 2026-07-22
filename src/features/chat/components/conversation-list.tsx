@@ -109,10 +109,10 @@ export function ConversationList({
               onClick={() => setActive(conversation.id)}
               className={cn(
                 "flex w-full gap-3 border-b border-slate-100 px-4 py-4 text-left transition hover:bg-slate-50",
-                activeId === conversation.id && "bg-blue-50 hover:bg-blue-50",
+                activeId === conversation.id && "bg-emerald-50 hover:bg-emerald-50",
               )}
             >
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
                 {initials(conversationTitle(conversation, identity))}
               </span>
               <span className="min-w-0 flex-1">
@@ -146,7 +146,7 @@ export function ConversationList({
                     {conversation.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700"
+                        className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600"
                       >
                         {tag}
                       </span>
