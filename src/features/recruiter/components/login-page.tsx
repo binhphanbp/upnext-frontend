@@ -195,6 +195,7 @@ export function RecruiterLoginPage() {
       clearRecruiterEmailVerificationPending(values.email);
       localStorage.removeItem(`${COMPANY_ONBOARDING_SKIP_KEY_PREFIX}_${response.user.id}`);
       localStorage.setItem("upnext.recruiter.accessToken", response.accessToken);
+      localStorage.setItem("upnext.recruiter.refreshToken", response.refreshToken);
       localStorage.setItem("upnext.recruiter.tokenType", response.tokenType);
       localStorage.setItem("upnext.recruiter.user", JSON.stringify(response.user));
       showToast("success", t("login.success"));

@@ -1,5 +1,4 @@
-import { authHeaders, jsonAuthHeaders } from "@/features/recruiter/api/client";
-import { apiRequest } from "@/shared/api/http";
+import { recruiterApiRequest } from "@/features/recruiter/api/client";
 
 export type RunStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "PARTIAL_FAILED";
 
@@ -33,6 +32,8 @@ export interface CvScreeningResultItem {
   jobTitle: string;
   finalScore: number;
   semanticScore: number;
+  skillMatchScore: number;
+  retrievalScore: number;
   aiScore: number;
   skillScore: number;
   experienceScore: number;
@@ -45,12 +46,43 @@ export interface CvScreeningResultItem {
   cvFileUrl?: string | null;
 }
 
+export type ScoreCriterionKey = "skills" | "experience" | "projects" | "education";
+
+export interface EvaluationRubricItem {
+  key: string;
+  label: string;
+  maxScore: number;
+  description: string;
+}
+
+export interface EvaluationRubricCriterion {
+  key: ScoreCriterionKey;
+  label: string;
+  maxScore: number;
+  criteria: EvaluationRubricItem[];
+}
+
+export interface ScoreBreakdownItem {
+  key: string;
+  awardedScore: number;
+  reason: string;
+  evidence: string;
+}
+
+export interface ScoreCriterionBreakdown {
+  key: ScoreCriterionKey;
+  summary: string;
+  items: ScoreBreakdownItem[];
+}
+
 export interface ApplicationAiScoreResponse {
   applicationId: string;
   candidateName: string;
   jobTitle: string;
   finalScore: number;
   semanticScore: number;
+  skillMatchScore: number;
+  retrievalScore: number;
   aiScore: number;
   skillScore: number;
   experienceScore: number;
@@ -62,35 +94,37 @@ export interface ApplicationAiScoreResponse {
   weaknesses: string[];
   summary: string;
   recommendation: string;
+  criteriaBreakdown: ScoreCriterionBreakdown[];
+  evaluationRubric: EvaluationRubricCriterion[];
   cvFileUrl?: string | null;
 }
 
 export function runCvScreening(payload: RunCvScreeningPayload, token: string) {
-  return apiRequest<RunCvScreeningResponse>("/recruiter/cv-screening/run", {
+  return recruiterApiRequest<RunCvScreeningResponse>("/recruiter/cv-screening/run", token, {
     method: "POST",
     body: JSON.stringify(payload),
-    headers: jsonAuthHeaders(token),
+    headers: { "Content-Type": "application/json" },
   });
 }
 
 export function getCvScreeningRun(runId: string, token: string) {
-  return apiRequest<CvScreeningRunResponse>(`/recruiter/cv-screening/runs/${runId}`, {
-    headers: authHeaders(token),
-  });
+  return recruiterApiRequest<CvScreeningRunResponse>(
+    `/recruiter/cv-screening/runs/${runId}`,
+    token,
+  );
 }
 
 export function getCvScreeningResults(runId: string, token: string) {
-  return apiRequest<CvScreeningResultItem[]>(`/recruiter/cv-screening/runs/${runId}/results`, {
-    headers: authHeaders(token),
-  });
+  return recruiterApiRequest<CvScreeningResultItem[]>(
+    `/recruiter/cv-screening/runs/${runId}/results`,
+    token,
+  );
 }
 
 export function getApplicationAiScore(applicationId: string, token: string) {
-  return apiRequest<ApplicationAiScoreResponse>(
+  return recruiterApiRequest<ApplicationAiScoreResponse>(
     `/recruiter/applications/${applicationId}/ai-score`,
-    {
-      headers: authHeaders(token),
-    },
+    token,
   );
 }
 

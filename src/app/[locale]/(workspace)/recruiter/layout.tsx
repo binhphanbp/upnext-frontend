@@ -3,8 +3,10 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
-import { getRecruiterAccount, getRecruiterStats } from "@/features/recruiter/api/onboarding";
-import { getCompanyMembers, getRecruiterRoles } from "@/features/recruiter/api/team";
+import { ChatSocketProvider } from "@/features/chat";
+import { recruiterApiRequest } from "@/features/recruiter/api/client";
+import type { RecruiterAccountDetail } from "@/features/recruiter/api/onboarding";
+import { clearRecruiterSession } from "@/features/recruiter/session";
 import {
   recruiterNavGroups,
   WorkspaceShell,
@@ -18,26 +20,21 @@ type RecruiterLayoutProps = Readonly<{
 }>;
 
 const routePermissionMap: Record<string, string[]> = {
-  "/recruiter/job-posts": ["jobs_manage"],
-  "/recruiter/candidates": ["applications_manage", "applications_review_assigned"],
-  "/recruiter/interviews": ["interviews_manage", "interviews_review_assigned"],
-  "/recruiter/company-profile": ["company_manage"],
-  "/recruiter/company-addresses": ["company_manage"],
-  "/recruiter/team": ["members_manage"],
-  "/recruiter/team/members": ["members_manage"],
-  "/recruiter/team/roles": ["members_manage"],
-  "/recruiter/analytics": ["jobs_manage", "company_manage"],
-  "/recruiter/billing": ["billing_manage"],
+  "/recruiter/job-posts": ["jobs:manage"],
+  "/recruiter/candidates": ["applications:manage", "applications:review_assigned"],
+  "/recruiter/pipeline": ["applications:manage", "applications:review_assigned"],
+  "/recruiter/interviews": ["interviews:manage", "interviews:review_assigned"],
+  "/recruiter/messages": ["applications:manage", "applications:review_assigned"],
+  "/recruiter/company-profile": ["company:manage"],
+  "/recruiter/company-addresses": ["company:manage"],
+  "/recruiter/team": ["members:manage"],
+  "/recruiter/team/members": ["members:manage"],
+  "/recruiter/team/roles": ["members:manage"],
+  "/recruiter/analytics": ["jobs:manage", "company:manage"],
+  "/recruiter/billing": ["billing:manage"],
 };
 
-function isOwnerRole(role: { code?: string | null; name?: string | null } | null | undefined) {
-  const code = role?.code?.trim().toUpperCase();
-  const name = role?.name?.trim().toUpperCase();
-  return code === "OWNER" || name === "OWNER";
-}
-
-function hasPermissionForHref(href: string, userPermissions: string[], isOwner: boolean): boolean {
-  if (isOwner) return true;
+function hasPermissionForHref(href: string, userPermissions: string[]): boolean {
   if (href === "/recruiter") return true;
   const required = routePermissionMap[href];
   if (!required) return true;
@@ -49,7 +46,6 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [identity, setIdentity] = useState<WorkspaceIdentity | null>(null);
-  const [isOwner, setIsOwner] = useState(true);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [stats, setStats] = useState<{ totalJobPosts: number; totalCandidates: number } | null>(
     null,
@@ -58,7 +54,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
 
   const translatedNavGroups = useMemo(() => {
     const checkItem = (item: any): any | null => {
-      if (!hasPermissionForHref(item.href, userPermissions, isOwner)) {
+      if (!hasPermissionForHref(item.href, userPermissions)) {
         return null;
       }
 
@@ -72,8 +68,14 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       } else if (item.label === "Ứng viên") {
         itemLabel = t("nav.candidates");
         if (stats) badge = String(stats.totalCandidates);
+      } else if (item.label === "Pipeline") {
+        itemLabel = t("nav.pipeline");
+        badge = undefined;
       } else if (item.label === "Phỏng vấn") {
         itemLabel = t("nav.interviews");
+        badge = undefined;
+      } else if (item.label === "Tin nhắn") {
+        itemLabel = t("nav.messages");
         badge = undefined;
       } else if (item.label === "Hồ sơ công ty") itemLabel = t("nav.companyProfile");
       else if (item.label === "Đội ngũ & quyền") itemLabel = t("nav.team");
@@ -89,7 +91,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       if (item.children) {
         const filteredChildren = item.children
           .map((child: any) => {
-            if (!hasPermissionForHref(child.href, userPermissions, isOwner)) {
+            if (!hasPermissionForHref(child.href, userPermissions)) {
               return null;
             }
             let childLabel = child.label;
@@ -116,10 +118,16 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
         let groupLabel = group.label;
         if (group.label === "Tuyển dụng") groupLabel = t("nav.recruitment");
         else if (group.label === "Công ty") groupLabel = t("nav.company");
+        else if (group.label === "Tin nhắn") groupLabel = t("nav.messages");
+
+        // If the group itself has an href, check permission for it.
+        if (group.href && !hasPermissionForHref(group.href, userPermissions)) {
+          return null;
+        }
 
         const filteredItems = group.items.map(checkItem).filter(Boolean);
 
-        if (filteredItems.length === 0) {
+        if (filteredItems.length === 0 && !group.href) {
           return null;
         }
 
@@ -130,7 +138,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
         };
       })
       .filter(Boolean) as any[];
-  }, [t, userPermissions, isOwner, stats]);
+  }, [t, userPermissions, stats]);
 
   const isAuthPage =
     pathname.includes("/login") ||
@@ -190,7 +198,14 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
 
       const loadRecruiterData = async () => {
         try {
-          const account = await getRecruiterAccount(parsedUser.id, accessToken);
+          const [account, currentIdentity] = await Promise.all([
+            recruiterApiRequest<RecruiterAccountDetail>(
+              `/recruiter-accounts/${parsedUser.id}`,
+              accessToken,
+            ),
+            recruiterApiRequest<{ data: { permissions: string[] } }>("/auth/me", accessToken),
+          ]);
+          setUserPermissions(currentIdentity.data.permissions);
 
           if (account && account.profile) {
             const profileName = account.profile.fullName || name;
@@ -209,45 +224,13 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
               avatarUrl: account.profile.avatarUrl ?? undefined,
             });
           }
-
-          if (account.company?.id) {
-            const companyId = account.company.id;
-            const [members, roles] = await Promise.all([
-              getCompanyMembers(companyId, accessToken),
-              getRecruiterRoles(accessToken),
-            ]);
-
-            const currentMember = members.find(
-              (m) =>
-                (m.recruiterAccount?.id && m.recruiterAccount.id === parsedUser.id) ||
-                (m.recruiterAccount?.email &&
-                  m.recruiterAccount.email.toLowerCase() === account.email.toLowerCase()) ||
-                (m.invitedEmail && m.invitedEmail.toLowerCase() === account.email.toLowerCase()),
-            );
-
-            const owner = isOwnerRole(currentMember?.role) || !currentMember?.role;
-            setIsOwner(owner);
-
-            if (!owner && currentMember.role) {
-              const roleDetails = roles.find((r) => r.id === currentMember.role?.id);
-              if (roleDetails?.rolePermissions) {
-                const permCodes = roleDetails.rolePermissions.map(
-                  (rp) => rp.recruiterPermission.code,
-                );
-                setUserPermissions(permCodes);
-              }
-            }
-          } else {
-            setIsOwner(true);
-          }
         } catch (error) {
-          console.error("loadRecruiterData error in layout:", error);
           if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-            localStorage.removeItem("upnext.recruiter.accessToken");
-            localStorage.removeItem("upnext.recruiter.tokenType");
-            localStorage.removeItem("upnext.recruiter.user");
+            clearRecruiterSession();
             router.replace("/recruiter/login");
+            return;
           }
+          console.error("loadRecruiterData error in layout:", error);
         } finally {
           setLoading(false);
         }
@@ -255,18 +238,20 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
 
       void loadRecruiterData();
 
-      void getRecruiterStats(parsedUser.id, accessToken)
+      void recruiterApiRequest<{ totalJobPosts: number; totalCandidates: number }>(
+        `/recruiter-accounts/${parsedUser.id}/dashboard-stats`,
+        accessToken,
+      )
         .then((statsData) => {
           setStats(statsData);
         })
         .catch((err) => {
+          if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return;
           console.error("getRecruiterStats error in layout:", err);
         });
     } catch (e) {
       console.error("Error in recruiter layout try-catch:", e);
-      localStorage.removeItem("upnext.recruiter.accessToken");
-      localStorage.removeItem("upnext.recruiter.tokenType");
-      localStorage.removeItem("upnext.recruiter.user");
+      clearRecruiterSession();
       router.replace("/recruiter/login");
       setLoading(false);
     }
@@ -280,9 +265,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
   }, []);
 
   function handleLogout() {
-    localStorage.removeItem("upnext.recruiter.accessToken");
-    localStorage.removeItem("upnext.recruiter.tokenType");
-    localStorage.removeItem("upnext.recruiter.user");
+    clearRecruiterSession();
     router.replace("/recruiter/login");
   }
 
@@ -299,13 +282,17 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
   }
 
   return (
-    <WorkspaceShell
-      workspaceRole="recruiter"
-      navGroups={translatedNavGroups}
-      identity={identity || { name: t("nav.recruitment"), roleLabel: "Recruiter", initials: "RE" }}
-      onLogout={handleLogout}
-    >
-      {children}
-    </WorkspaceShell>
+    <ChatSocketProvider actor="RECRUITER">
+      <WorkspaceShell
+        workspaceRole="recruiter"
+        navGroups={translatedNavGroups}
+        identity={
+          identity || { name: t("nav.recruitment"), roleLabel: "Recruiter", initials: "RE" }
+        }
+        onLogout={handleLogout}
+      >
+        {children}
+      </WorkspaceShell>
+    </ChatSocketProvider>
   );
 }

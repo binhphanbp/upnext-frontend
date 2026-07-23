@@ -210,9 +210,12 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
         type: job.employmentType?.name || "Full-time",
         posted: "Mới đăng",
         applicants: 12,
-        tags: [job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
-          Boolean,
-        ) as string[],
+        tags:
+          job.jobPostSkills && job.jobPostSkills.length > 0
+            ? job.jobPostSkills.map((s) => s.skill.name)
+            : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+                Boolean,
+              ) as string[]),
         description: job.description || "",
         categories,
         urgent: false,
@@ -222,7 +225,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
       };
     });
 
-    return [...mapped, ...jobs];
+    return mapped;
   }, [apiJobsData]);
 
   const job = jobsList.find((item) => item.id === jobId) ?? fallbackJob;

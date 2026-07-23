@@ -370,9 +370,17 @@ export function PublicCompanyPage({ navigate }: PublicCompanyPageProps) {
                       <MapPin size={14} /> {job.location}
                     </span>
                     <div className="company-job-tags">
-                      {job.tags.map((tag) => (
+                      {job.tags.slice(0, 3).map((tag) => (
                         <i key={tag}>{tag}</i>
                       ))}
+                      {job.tags.length > 3 && (
+                        <i
+                          className="company-job-tag-more text-slate-400"
+                          title={job.tags.slice(3).join(", ")}
+                        >
+                          +{job.tags.length - 3}
+                        </i>
+                      )}
                     </div>
                     <small className="company-job-time">{job.posted}</small>
                   </button>

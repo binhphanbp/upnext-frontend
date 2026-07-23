@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
-import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -15,9 +14,10 @@ import { PublicHeader } from "../shared/public-header";
 import { getPublicCompanies, getPublicJobs } from "./api";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
+import { InsightsCarousel } from "./insights-carousel";
 import { JobMarket } from "./job-market";
 import {
-  Bookmark,
+  ArrowRight,
   BriefcaseBusiness,
   Building2,
   Check,
@@ -28,14 +28,12 @@ import {
   MapPin,
   Search,
   Sparkles,
-  TrendingUp,
   UsersRound,
   User,
   Globe,
   Cloud,
 } from "./marketing-icons";
-import { buildPopularKeywordSlides, getPopularKeywordsForLocale } from "./popular-keywords";
-import { TechOrbit } from "./tech-orbit";
+import { getPopularKeywordsForLocale } from "./popular-keywords";
 
 type MarketingHomeExperienceProps = {
   navigate: (path: string) => void;
@@ -169,7 +167,7 @@ const homeCopy = {
     languageLabel: "Chọn ngôn ngữ",
     login: "Đăng nhập",
     register: "Đăng ký",
-    eyebrow: "Nền tảng tuyển dụng IT hàng đầu",
+    eyebrow: "Nền tảng tuyển dụng IT hiện đại",
     titleLine1: "Tìm đúng việc IT.",
     titleLine2: "Bật tăng",
     titleAccent: "sự nghiệp.",
@@ -180,7 +178,7 @@ const homeCopy = {
     keywordAria: "Từ khóa tìm việc",
     locationLabel: "Địa điểm",
     locationPlaceholder: "Chọn tỉnh, thành phố",
-    submit: "Tìm việc",
+    submit: "Tìm việc ngay",
     popular: "Tìm kiếm phổ biến:",
     statsJobs: "Việc làm IT đang tuyển",
     statsCompanies: "Công ty công nghệ",
@@ -204,7 +202,7 @@ const homeCopy = {
     languageLabel: "Choose language",
     login: "Log in",
     register: "Sign up",
-    eyebrow: "Leading IT recruitment platform",
+    eyebrow: "Modern IT recruitment platform",
     titleLine1: "Find the right IT job.",
     titleLine2: "Accelerate",
     titleAccent: "your career.",
@@ -249,10 +247,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     () => getPopularKeywordsForLocale(locale === "en" ? "en" : "vi"),
     [locale],
   );
-  const popularKeywordSlides = useMemo(
-    () => buildPopularKeywordSlides(popularKeywords, { itemsPerSlide: 6 }),
-    [popularKeywords],
-  );
+  const heroPopularKeywords = popularKeywords.slice(0, 6);
 
   const searchCardRef = useRef<HTMLElement | null>(null);
 
@@ -314,9 +309,12 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             : "Thỏa thuận",
         location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
         mode: job.employmentType?.name || "Full-time",
-        tags: [job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
-          Boolean,
-        ) as string[],
+        tags:
+          job.jobPostSkills && job.jobPostSkills.length > 0
+            ? job.jobPostSkills.map((s) => s.skill.name)
+            : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+                Boolean,
+              ) as string[]),
         deadline: "Còn 15 ngày",
         deadlineTone: isUrgent ? "red" : "amber",
         applicants: "12 ứng viên",
@@ -335,9 +333,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
       };
     });
 
-    if (mapped.length < 4) {
-      return [...mapped, ...urgentJobs.slice(0, 4 - mapped.length)];
-    }
     return mapped;
   }, [apiJobsData]);
 
@@ -376,7 +371,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     if (location) params.set("location", location);
     setOpenField(null);
     const query = params.toString();
-    navigate(query ? `/jobs?${query}` : "/jobs");
+    window.location.assign(`/${locale}/jobs${query ? `?${query}` : ""}`);
   }
 
   function toggleField(field: FieldKey) {
@@ -389,7 +384,19 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
       <section className="marketing-home-content">
         <section className="marketing-home-hero">
+          <span
+            className="marketing-home-hero-orbit marketing-home-hero-orbit-left"
+            aria-hidden="true"
+          />
+          <span
+            className="marketing-home-hero-orbit marketing-home-hero-orbit-right"
+            aria-hidden="true"
+          />
           <div className="marketing-home-copy">
+            <span className="marketing-home-eyebrow">
+              <Sparkles size={15} weight="fill" />
+              {copy.eyebrow}
+            </span>
             <h1>
               {copy.titleLine1}
               <br />
@@ -406,19 +413,14 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
               aria-label={copy.searchAria}
               ref={searchCardRef}
             >
-              <form
-                className="marketing-home-search-grid"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  runSearch();
-                }}
-              >
+              <form className="marketing-home-search-grid" action={`/${locale}/jobs`} method="get">
                 <div
                   className={`marketing-home-field marketing-home-field-keyword${openField === "keyword" ? " is-open" : ""}`}
                 >
                   <div className="marketing-home-control">
                     <Search size={20} />
                     <input
+                      name="keyword"
                       value={keyword}
                       onChange={(event) => setKeyword(event.target.value)}
                       onFocus={() => setOpenField("keyword")}
@@ -462,161 +464,27 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                   }}
                 />
 
+                <input type="hidden" name="location" value={location} />
+
                 <button type="submit" className="marketing-home-search-submit">
-                  <Search size={19} /> {copy.submit}
+                  {copy.submit} <ArrowRight size={19} />
                 </button>
               </form>
             </section>
 
             <div className="marketing-home-popular">
               <span>{copy.popular}</span>
-              <div className="marketing-home-popular-viewport">
-                <div className="marketing-home-popular-track">
-                  {popularKeywordSlides.map((group, index) => (
-                    <div
-                      className="marketing-home-popular-row"
-                      key={`${group.map((keyword) => keyword.query).join("-")}-${index}`}
-                      aria-hidden={index === popularKeywordSlides.length - 1 ? "true" : undefined}
-                    >
-                      {group.map((keyword) => (
-                        <button
-                          key={keyword.query}
-                          type="button"
-                          title={keyword.label}
-                          aria-label={keyword.label}
-                          tabIndex={index === popularKeywordSlides.length - 1 ? -1 : undefined}
-                          onClick={() => {
-                            setKeyword(keyword.query);
-                            runSearch({ keyword: keyword.query });
-                          }}
-                        >
-                          {keyword.shortLabel ?? keyword.label}
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="marketing-home-visual" aria-label="Ứng viên IT trên nền tảng UpNext">
-            <div className="marketing-home-stage">
-              <svg
-                className="marketing-home-stage-bg"
-                viewBox="0 0 600 600"
-                fill="none"
-                aria-hidden="true"
-                preserveAspectRatio="xMidYMid slice"
-              >
-                <defs>
-                  <linearGradient id="v2blobA" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stopColor="#d6f5e6" />
-                    <stop offset="1" stopColor="#eafaf2" stopOpacity="0.35" />
-                  </linearGradient>
-                  <linearGradient id="v2blobB" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stopColor="#c7f0de" stopOpacity="0.7" />
-                    <stop offset="1" stopColor="#eafaf2" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-
-                {/* Large soft organic blobs flowing in from the right. */}
-                <path
-                  d="M392 60c70-26 150-8 178 64 30 74-6 150-58 196-56 50-58 118-126 140-64 20-150 6-198-48-44-50-36-118 0-176 40-64 26-140 92-178 36-22 76-22 112-2z"
-                  fill="url(#v2blobA)"
-                />
-                <path
-                  d="M470 360c54-8 104 22 116 74 12 50-14 104-64 124-46 18-104 4-130-40-24-42-12-100 28-130 16-12 32-26 50-28z"
-                  fill="url(#v2blobB)"
-                />
-
-                {/* Thin concentric connector arcs centered behind the figure. */}
-                <circle
-                  cx="300"
-                  cy="300"
-                  r="210"
-                  stroke="#bfe9d6"
-                  strokeWidth="1.5"
-                  strokeDasharray="2 9"
-                />
-                <circle cx="300" cy="300" r="262" stroke="#d6efe3" strokeWidth="1.5" />
-
-                {/* Connector dots sitting on the arcs near the tech bubbles. */}
-                <circle cx="455" cy="150" r="6" fill="#10b981" />
-                <circle cx="520" cy="300" r="5" fill="#34d399" />
-                <circle cx="250" cy="120" r="5" fill="#10b981" opacity="0.7" />
-                <circle cx="150" cy="430" r="6" fill="#10b981" />
-              </svg>
-              <span
-                className="marketing-home-stage-dot marketing-home-stage-dot-1"
-                aria-hidden="true"
-              />
-              <span
-                className="marketing-home-stage-dot marketing-home-stage-dot-2"
-                aria-hidden="true"
-              />
-
-              <Image
-                className="marketing-home-hero-banner"
-                src="/assets/marketing/home/hero-banner.png"
-                alt="Ứng viên IT đang làm việc trên nền tảng UpNext"
-                width={720}
-                height={520}
-                draggable={false}
-                priority
-              />
-
-              {/* Floating job card */}
-              <div className="marketing-home-float marketing-home-float-job" aria-hidden="true">
-                <div className="float-job-head">
-                  <span className="float-job-badge">
-                    <Sparkles size={12} /> Nổi bật
-                  </span>
-                  <Bookmark size={16} />
-                </div>
-                <b className="float-job-title">Senior Frontend Developer</b>
-                <span className="float-job-company">
-                  <Building2 size={13} /> UpNext • Hà Nội
-                </span>
-                <div className="float-job-tags">
-                  <i>React</i>
-                  <i>TypeScript</i>
-                  <i>Tailwind</i>
-                </div>
-                <strong className="float-job-salary">25 - 40 triệu VND</strong>
-              </div>
-
-              {/* Interactive orbit of tech skills — drag to spin. */}
-              <TechOrbit />
-
-              {/* Salary insight card */}
-              <div className="marketing-home-float marketing-home-float-salary" aria-hidden="true">
-                <span className="float-salary-label">Mức lương trung bình</span>
-                <span className="float-salary-role">Frontend Developer</span>
-                <strong className="float-salary-value">24.5 triệu</strong>
-                <span className="float-salary-trend">
-                  <TrendingUp size={13} /> 12% so với tháng trước
-                </span>
-                <span className="float-salary-spark" aria-hidden="true">
-                  <i style={{ height: "38%" }} />
-                  <i style={{ height: "54%" }} />
-                  <i style={{ height: "46%" }} />
-                  <i style={{ height: "70%" }} />
-                  <i style={{ height: "60%" }} />
-                  <i style={{ height: "88%" }} />
-                </span>
-              </div>
-
-              {/* Profile suggestion pill */}
-              <div className="marketing-home-float marketing-home-float-match" aria-hidden="true">
-                <span className="float-match-icon">
-                  <Check size={16} />
-                </span>
-                <span className="float-match-text">
-                  <b>Phù hợp với bạn</b>
-                  <small>Gợi ý theo kỹ năng &amp; kinh nghiệm đã chọn</small>
-                </span>
-                <ChevronRight size={18} />
+              <div className="marketing-home-popular-links">
+                {heroPopularKeywords.map((keyword) => (
+                  <a
+                    key={keyword.query}
+                    href={`/${locale}/jobs?keyword=${encodeURIComponent(keyword.query)}`}
+                    title={keyword.label}
+                    aria-label={keyword.label}
+                  >
+                    {keyword.shortLabel ?? keyword.label}
+                  </a>
+                ))}
               </div>
             </div>
           </div>
@@ -683,6 +551,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         <FeaturedJobs navigate={navigate} onApply={setApplyJob} />
         <FeaturedCompanies navigate={navigate} />
         <JobMarket navigate={navigate} />
+        <InsightsCarousel />
 
         <PublicFooter navigate={navigate} />
 
@@ -740,14 +609,16 @@ function UrgentJobsSection({
         {urgentJobs.map((job) => (
           <article className="urgent-job-card" key={job.id}>
             <div className="urgent-job-top">
-              <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
+              <span
+                className={`urgent-job-logo ${job.logo ? "border border-slate-100 bg-white" : job.bgClass || "bg-emerald-600"}`}
+              >
                 {job.logo ? (
                   <img
                     src={job.logo}
                     alt={`Logo ${job.company}`}
                     width={46}
                     height={46}
-                    className="rounded-lg object-contain p-1"
+                    className="rounded-lg object-contain"
                   />
                 ) : job.company === "SkySoft" ? (
                   <span className="flex size-full items-center justify-center rounded-lg bg-sky-100 text-sky-600">
@@ -791,9 +662,36 @@ function UrgentJobsSection({
             </div>
 
             <div className="urgent-job-tags">
-              {job.tags.map((tag) => (
-                <i key={tag}>{tag}</i>
-              ))}
+              {(() => {
+                const maxTags = 3;
+                const maxChars = 22;
+                const shown: string[] = [];
+                let currentChars = 0;
+                for (const tag of job.tags) {
+                  if (shown.length >= maxTags) break;
+                  if (shown.length >= 1 && currentChars + tag.length > maxChars) {
+                    break;
+                  }
+                  shown.push(tag);
+                  currentChars += tag.length;
+                }
+                const extraCount = job.tags.length - shown.length;
+                return (
+                  <>
+                    {shown.map((tag) => (
+                      <i key={tag}>{tag}</i>
+                    ))}
+                    {extraCount > 0 && (
+                      <i
+                        className="urgent-job-tag-more text-slate-400"
+                        title={job.tags.slice(shown.length).join(", ")}
+                      >
+                        +{extraCount}
+                      </i>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             <div className="urgent-job-footer">
@@ -862,6 +760,7 @@ function SelectField({
       <button
         type="button"
         className="marketing-home-control"
+        aria-label={label}
         aria-haspopup="true"
         aria-expanded={open}
         onClick={onToggle}

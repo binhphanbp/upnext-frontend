@@ -1,8 +1,6 @@
 import { useTranslations } from "next-intl";
-import { Suspense } from "react";
 
-import { SupportTable } from "@/features/admin/components/content/support/support-table";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { AdminSupportQueue } from "@/features/chat/components/admin-support-queue";
 
 export default function AdminSupportPage() {
   const t = useTranslations("Admin.content.support");
@@ -14,9 +12,7 @@ export default function AdminSupportPage() {
         <p className="text-muted-foreground">{t("subtitle")}</p>
       </div>
 
-      <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
-        <SupportTable />
-      </Suspense>
+      <AdminSupportQueue />
     </div>
   );
 }

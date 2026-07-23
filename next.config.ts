@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
-const apiProxyOrigin = process.env.API_PROXY_ORIGIN ?? "http://localhost:3636";
+const apiProxyOrigin = process.env.API_PROXY_ORIGIN ?? "http://localhost:3001";
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -11,7 +11,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
-  transpilePackages: ["@phosphor-icons/react"],
   images: {
     remotePatterns: [
       {
@@ -41,6 +40,12 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "**.itviec.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "ui-avatars.com",
         port: "",
         pathname: "/**",
       },

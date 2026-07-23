@@ -20,6 +20,7 @@ import Swal, { type SweetAlertIcon } from "sweetalert2";
 import { z } from "zod";
 
 import {
+  getCompany,
   getCompanyLocations,
   getRecruiterAccount,
   type CompanyLocation,
@@ -63,6 +64,7 @@ import { RichTextEditor } from "@/shared/ui/rich-text-editor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
 import { RecruiterTableLayout } from "../components/recruiter-table-layout";
+import { RecruiterJobPostPreview } from "./recruiter-job-post-preview";
 
 const Toast = Swal.mixin({
   toast: true,
@@ -207,6 +209,7 @@ export function RecruiterJobPostsPage() {
   const [token, setToken] = useState("");
   const [accountId, setAccountId] = useState("");
   const [account, setAccount] = useState<RecruiterAccountDetail | null>(null);
+  const [companyLogoUrl, setCompanyLogoUrl] = useState("");
   const [catalogs, setCatalogs] = useState<JobPostCatalogs>(emptyCatalogs);
   const [companyLocations, setCompanyLocations] = useState<CompanyLocation[]>([]);
   const [jobs, setJobs] = useState<RecruiterJobPost[]>([]);
@@ -216,6 +219,7 @@ export function RecruiterJobPostsPage() {
 
   const [editorResetKey, setEditorResetKey] = useState(0);
   const [view, setView] = useState<"list" | "create" | "details" | "edit">("list");
+  const [editorTab, setEditorTab] = useState<"compose" | "preview">("compose");
   const [activeJob, setActiveJob] = useState<RecruiterJobPost | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -247,6 +251,7 @@ export function RecruiterJobPostsPage() {
   });
 
   const companyVerified = account?.company?.verificationStatus === "VERIFIED";
+  const previewValues = form.watch();
 
   const loadPageData = useCallback(
     async (id: string, token: string) => {
@@ -284,11 +289,15 @@ export function RecruiterJobPostsPage() {
           return;
         }
 
-        const nextCompanyLocations = nextAccount.company?.id
-          ? await getCompanyLocations(nextAccount.company.id, token)
-          : [];
+        const [nextCompanyLocations, nextCompany] = nextAccount.company?.id
+          ? await Promise.all([
+              getCompanyLocations(nextAccount.company.id, token),
+              getCompany(nextAccount.company.id, token),
+            ])
+          : [[], null];
 
         setAccount(nextAccount);
+        setCompanyLogoUrl(nextCompany?.logoFile?.publicUrl ?? "");
         setCompanyLocations(nextCompanyLocations);
         setCatalogs(nextCatalogs);
         setJobs(nextJobs);
@@ -467,6 +476,7 @@ export function RecruiterJobPostsPage() {
       workingDays: job.workingDays ?? "",
       expiredAt: job.expiredAt ? job.expiredAt.substring(0, 10) : "",
     });
+    setEditorTab("compose");
     setView("edit");
   }
 
@@ -500,7 +510,17 @@ export function RecruiterJobPostsPage() {
     const matchesSearch =
       job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (job.description && job.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === "ALL" || job.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "ALL" ||
+      (statusFilter === "ACTIVE" &&
+        job.status === "PUBLISHED" &&
+        job.moderationStatus === "APPROVED") ||
+      (statusFilter === "PENDING_REVIEW" &&
+        job.status === "PUBLISHED" &&
+        job.moderationStatus === "PENDING") ||
+      (statusFilter !== "ACTIVE" &&
+        statusFilter !== "PENDING_REVIEW" &&
+        job.status === statusFilter);
     return matchesSearch && matchesStatus;
   });
 
@@ -537,6 +557,7 @@ export function RecruiterJobPostsPage() {
               variant="outline"
               onClick={() => {
                 form.reset();
+                setEditorTab("compose");
                 setView("list");
                 setActiveJob(null);
               }}
@@ -549,246 +570,310 @@ export function RecruiterJobPostsPage() {
       </header>
 
       {(view === "create" || view === "edit") && (
-        <Card className="overflow-hidden rounded-lg border border-slate-200 bg-white p-0 shadow-sm">
-          <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-4">
-            <div className="flex items-center gap-2">
-              {view === "create" ? (
-                <Plus size={18} className="text-emerald-700" />
-              ) : (
-                <PencilSimple size={18} className="text-emerald-700" />
+        <>
+          <div
+            className="inline-flex w-fit rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+            role="tablist"
+            aria-label="Chế độ tạo tin tuyển dụng"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={editorTab === "compose"}
+              aria-controls="job-post-compose-panel"
+              id="job-post-compose-tab"
+              onClick={() => setEditorTab("compose")}
+              className={cn(
+                "upnext-focus rounded-lg px-5 py-2.5 text-sm font-bold transition-colors",
+                editorTab === "compose"
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
               )}
-              <h2 className="text-base font-bold text-slate-950">
-                {view === "create" ? "Mô tả công việc" : "Chỉnh sửa mô tả công việc"}
-              </h2>
-            </div>
+            >
+              Soạn tin
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={editorTab === "preview"}
+              aria-controls="job-post-preview-panel"
+              id="job-post-preview-tab"
+              onClick={() => setEditorTab("preview")}
+              className={cn(
+                "upnext-focus inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-colors",
+                editorTab === "preview"
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
+              )}
+            >
+              <Eye size={17} aria-hidden="true" />
+              Xem trước
+            </button>
           </div>
 
-          <form
-            onSubmit={form.handleSubmit(submit, (errors) =>
-              showToast("error", getFirstErrorMessage(errors)),
+          <Card
+            id="job-post-compose-panel"
+            role="tabpanel"
+            aria-labelledby="job-post-compose-tab"
+            className={cn(
+              "overflow-hidden rounded-lg border border-slate-200 bg-white p-0 shadow-sm",
+              editorTab === "preview" && "hidden",
             )}
-            noValidate
-            className="space-y-5 p-5"
           >
-            <JobInput
-              id="job-title"
-              label="Chức danh"
-              placeholder="Senior Frontend Engineer"
-              register={form.register("title")}
-              error={form.formState.errors.title?.message}
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <JobSelect
-                label="Ngành nghề"
-                options={catalogs.categories}
-                placeholder="Chọn ngành nghề"
-                value={form.watch("jobCategoryId") ?? ""}
-                onValueChange={(value) =>
-                  form.setValue("jobCategoryId", value, { shouldDirty: true })
-                }
-                error={form.formState.errors.jobCategoryId?.message}
-              />
-              <JobSelect
-                label="Cấp bậc"
-                options={catalogs.experienceLevels}
-                placeholder="Chọn cấp bậc"
-                value={form.watch("experienceLevelId") ?? ""}
-                onValueChange={(value) =>
-                  form.setValue("experienceLevelId", value, { shouldDirty: true })
-                }
-                error={form.formState.errors.experienceLevelId?.message}
-              />
-              <JobSelect
-                label="Loại việc làm"
-                options={catalogs.employmentTypes}
-                placeholder="Chọn loại việc làm"
-                value={form.watch("employmentTypeId") ?? ""}
-                onValueChange={(value) =>
-                  form.setValue("employmentTypeId", value, { shouldDirty: true })
-                }
-                error={form.formState.errors.employmentTypeId?.message}
-              />
-              <JobSelect
-                label="Trình độ học vấn"
-                options={EDUCATION_LEVEL_OPTIONS}
-                placeholder="Chọn trình độ học vấn"
-                value={form.watch("educationLevel") ?? "ANY"}
-                onValueChange={(value) =>
-                  form.setValue("educationLevel", value, { shouldDirty: true })
-                }
-                error={form.formState.errors.educationLevel?.message}
-              />
+            <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-4">
+              <div className="flex items-center gap-2">
+                {view === "create" ? (
+                  <Plus size={18} className="text-emerald-700" />
+                ) : (
+                  <PencilSimple size={18} className="text-emerald-700" />
+                )}
+                <h2 className="text-base font-bold text-slate-950">
+                  {view === "create" ? "Mô tả công việc" : "Chỉnh sửa mô tả công việc"}
+                </h2>
+              </div>
             </div>
 
-            <LocationRelationPicker
-              locations={companyLocations}
-              selectedIds={form.watch("jobLocationIds") ?? []}
-              onChange={(ids) => form.setValue("jobLocationIds", ids, { shouldDirty: true })}
-            />
+            <form
+              onSubmit={form.handleSubmit(submit, (errors) =>
+                showToast("error", getFirstErrorMessage(errors)),
+              )}
+              noValidate
+              className="space-y-5 p-5"
+            >
+              <JobInput
+                id="job-title"
+                label="Chức danh"
+                placeholder="Senior Frontend Engineer"
+                register={form.register("title")}
+                error={form.formState.errors.title?.message}
+              />
 
-            <SearchTagPicker
-              id="job-skills"
-              label="Kỹ năng"
-              placeholder="Nhập từ khóa để tìm kiếm kỹ năng..."
-              options={catalogs.skills}
-              selectedIds={form.watch("skillIds") ?? []}
-              onChange={(ids) => form.setValue("skillIds", ids, { shouldDirty: true })}
-            />
-
-            <SearchTagPicker
-              id="job-specializations"
-              label="Chuyên ngành"
-              placeholder="Nhập từ khóa để tìm kiếm chuyên ngành..."
-              options={catalogs.specializations}
-              selectedIds={form.watch("specializationIds") ?? []}
-              onChange={(ids) => form.setValue("specializationIds", ids, { shouldDirty: true })}
-            />
-
-            <RichTextField
-              key={`job-description-${editorResetKey}`}
-              label="Mô tả"
-              placeholder="Mô tả phạm vi công việc, sản phẩm và trách nhiệm chính..."
-              value={form.watch("description") ?? ""}
-              onChange={(value) =>
-                form.setValue("description", value, { shouldDirty: true, shouldValidate: true })
-              }
-              error={form.formState.errors.description?.message}
-            />
-
-            <RichTextField
-              key={`job-requirements-${editorResetKey}`}
-              label="Yêu cầu công việc"
-              placeholder="Kinh nghiệm, kỹ năng bắt buộc, năng lực ưu tiên..."
-              value={form.watch("requirements") ?? ""}
-              onChange={(value) => form.setValue("requirements", value, { shouldDirty: true })}
-              error={form.formState.errors.requirements?.message}
-            />
-
-            <RichTextField
-              key={`job-benefits-${editorResetKey}`}
-              label="Quyền lợi / Phúc lợi"
-              placeholder="Lương thưởng, bảo hiểm, chế độ làm việc, lộ trình phát triển..."
-              value={form.watch("benefits") ?? ""}
-              onChange={(value) => form.setValue("benefits", value, { shouldDirty: true })}
-              error={form.formState.errors.benefits?.message}
-            />
-
-            <section className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
-              <Label className="text-sm font-bold text-slate-700">Mức lương</Label>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <JobInput
-                  id="job-salary-min"
-                  label="Từ"
-                  placeholder="20000000"
-                  register={form.register("salaryMin")}
-                  type="number"
-                  error={form.formState.errors.salaryMin?.message}
-                  disabled={form.watch("salaryIsNegotiable")}
-                />
-                <JobInput
-                  id="job-salary-max"
-                  label="Đến"
-                  placeholder="40000000"
-                  register={form.register("salaryMax")}
-                  type="number"
-                  error={form.formState.errors.salaryMax?.message}
-                  disabled={form.watch("salaryIsNegotiable")}
-                />
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <CheckboxRow
-                  checked={form.watch("salaryIsNegotiable")}
-                  id="job-salary-negotiable"
-                  label="Lương thỏa thuận"
-                  onCheckedChange={(checked) => {
-                    form.setValue("salaryIsNegotiable", checked, { shouldDirty: true });
-                    if (checked) {
-                      form.setValue("salaryMin", undefined, { shouldDirty: true });
-                      form.setValue("salaryMax", undefined, { shouldDirty: true });
-                      form.setValue("salaryIsVisible", true, { shouldDirty: true });
-                    }
-                  }}
-                />
-                <CheckboxRow
-                  checked={form.watch("salaryIsVisible")}
-                  id="job-salary-visible"
-                  label="Hiển thị lương"
-                  disabled={form.watch("salaryIsNegotiable")}
-                  onCheckedChange={(checked) =>
-                    form.setValue("salaryIsVisible", checked, { shouldDirty: true })
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <JobSelect
+                  label="Ngành nghề"
+                  options={catalogs.categories}
+                  placeholder="Chọn ngành nghề"
+                  value={form.watch("jobCategoryId") ?? ""}
+                  onValueChange={(value) =>
+                    form.setValue("jobCategoryId", value, { shouldDirty: true })
                   }
+                  error={form.formState.errors.jobCategoryId?.message}
+                />
+                <JobSelect
+                  label="Cấp bậc"
+                  options={catalogs.experienceLevels}
+                  placeholder="Chọn cấp bậc"
+                  value={form.watch("experienceLevelId") ?? ""}
+                  onValueChange={(value) =>
+                    form.setValue("experienceLevelId", value, { shouldDirty: true })
+                  }
+                  error={form.formState.errors.experienceLevelId?.message}
+                />
+                <JobSelect
+                  label="Loại việc làm"
+                  options={catalogs.employmentTypes}
+                  placeholder="Chọn loại việc làm"
+                  value={form.watch("employmentTypeId") ?? ""}
+                  onValueChange={(value) =>
+                    form.setValue("employmentTypeId", value, { shouldDirty: true })
+                  }
+                  error={form.formState.errors.employmentTypeId?.message}
+                />
+                <JobSelect
+                  label="Trình độ học vấn"
+                  options={EDUCATION_LEVEL_OPTIONS}
+                  placeholder="Chọn trình độ học vấn"
+                  value={form.watch("educationLevel") ?? "ANY"}
+                  onValueChange={(value) =>
+                    form.setValue("educationLevel", value, { shouldDirty: true })
+                  }
+                  error={form.formState.errors.educationLevel?.message}
                 />
               </div>
-            </section>
 
-            <JobInput
-              id="job-vacancies"
-              label="Số lượng tuyển dụng"
-              placeholder="1"
-              register={form.register("vacanciesCount")}
-              type="number"
-              error={form.formState.errors.vacanciesCount?.message}
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <JobInput
-                id="job-working-days"
-                label="Thời gian làm việc"
-                placeholder="Thứ 2 - Thứ 6"
-                register={form.register("workingDays")}
-                error={form.formState.errors.workingDays?.message}
+              <LocationRelationPicker
+                locations={companyLocations}
+                selectedIds={form.watch("jobLocationIds") ?? []}
+                onChange={(ids) => form.setValue("jobLocationIds", ids, { shouldDirty: true })}
               />
+
+              <SearchTagPicker
+                id="job-skills"
+                label="Kỹ năng"
+                placeholder="Nhập từ khóa để tìm kiếm kỹ năng..."
+                options={catalogs.skills}
+                selectedIds={form.watch("skillIds") ?? []}
+                onChange={(ids) => form.setValue("skillIds", ids, { shouldDirty: true })}
+              />
+
+              <SearchTagPicker
+                id="job-specializations"
+                label="Chuyên ngành"
+                placeholder="Nhập từ khóa để tìm kiếm chuyên ngành..."
+                options={catalogs.specializations}
+                selectedIds={form.watch("specializationIds") ?? []}
+                onChange={(ids) => form.setValue("specializationIds", ids, { shouldDirty: true })}
+              />
+
+              <RichTextField
+                key={`job-description-${editorResetKey}`}
+                label="Mô tả"
+                placeholder="Mô tả phạm vi công việc, sản phẩm và trách nhiệm chính..."
+                value={form.watch("description") ?? ""}
+                onChange={(value) =>
+                  form.setValue("description", value, { shouldDirty: true, shouldValidate: true })
+                }
+                error={form.formState.errors.description?.message}
+              />
+
+              <RichTextField
+                key={`job-requirements-${editorResetKey}`}
+                label="Yêu cầu công việc"
+                placeholder="Kinh nghiệm, kỹ năng bắt buộc, năng lực ưu tiên..."
+                value={form.watch("requirements") ?? ""}
+                onChange={(value) => form.setValue("requirements", value, { shouldDirty: true })}
+                error={form.formState.errors.requirements?.message}
+              />
+
+              <RichTextField
+                key={`job-benefits-${editorResetKey}`}
+                label="Quyền lợi / Phúc lợi"
+                placeholder="Lương thưởng, bảo hiểm, chế độ làm việc, lộ trình phát triển..."
+                value={form.watch("benefits") ?? ""}
+                onChange={(value) => form.setValue("benefits", value, { shouldDirty: true })}
+                error={form.formState.errors.benefits?.message}
+              />
+
+              <section className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+                <Label className="text-sm font-bold text-slate-700">Mức lương</Label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <JobInput
+                    id="job-salary-min"
+                    label="Từ"
+                    placeholder="20000000"
+                    register={form.register("salaryMin")}
+                    type="number"
+                    error={form.formState.errors.salaryMin?.message}
+                    disabled={form.watch("salaryIsNegotiable")}
+                  />
+                  <JobInput
+                    id="job-salary-max"
+                    label="Đến"
+                    placeholder="40000000"
+                    register={form.register("salaryMax")}
+                    type="number"
+                    error={form.formState.errors.salaryMax?.message}
+                    disabled={form.watch("salaryIsNegotiable")}
+                  />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <CheckboxRow
+                    checked={form.watch("salaryIsNegotiable")}
+                    id="job-salary-negotiable"
+                    label="Lương thỏa thuận"
+                    onCheckedChange={(checked) => {
+                      form.setValue("salaryIsNegotiable", checked, { shouldDirty: true });
+                      if (checked) {
+                        form.setValue("salaryMin", undefined, { shouldDirty: true });
+                        form.setValue("salaryMax", undefined, { shouldDirty: true });
+                        form.setValue("salaryIsVisible", true, { shouldDirty: true });
+                      }
+                    }}
+                  />
+                  <CheckboxRow
+                    checked={form.watch("salaryIsVisible")}
+                    id="job-salary-visible"
+                    label="Hiển thị lương"
+                    disabled={form.watch("salaryIsNegotiable")}
+                    onCheckedChange={(checked) =>
+                      form.setValue("salaryIsVisible", checked, { shouldDirty: true })
+                    }
+                  />
+                </div>
+              </section>
+
               <JobInput
-                id="job-expired-at"
-                label="Hạn nộp hồ sơ"
-                placeholder=""
-                register={form.register("expiredAt")}
-                type="date"
-                min={new Date().toLocaleDateString("sv-SE")}
-                error={form.formState.errors.expiredAt?.message}
+                id="job-vacancies"
+                label="Số lượng tuyển dụng"
+                placeholder="1"
+                register={form.register("vacanciesCount")}
+                type="number"
+                error={form.formState.errors.vacanciesCount?.message}
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <JobInput
+                  id="job-working-days"
+                  label="Thời gian làm việc"
+                  placeholder="Thứ 2 - Thứ 6"
+                  register={form.register("workingDays")}
+                  error={form.formState.errors.workingDays?.message}
+                />
+                <JobInput
+                  id="job-expired-at"
+                  label="Hạn nộp hồ sơ"
+                  placeholder=""
+                  register={form.register("expiredAt")}
+                  type="date"
+                  min={new Date().toLocaleDateString("sv-SE")}
+                  error={form.formState.errors.expiredAt?.message}
+                />
+              </div>
+
+              <JobInput
+                id="job-application-emails"
+                label="Địa chỉ email nhận hồ sơ"
+                placeholder="hr@company.com, recruitment@company.com"
+                register={form.register("applicationEmails")}
+                helperText="Địa chỉ email sẽ được ẩn với người tìm việc. Bạn có thể nhập nhiều địa chỉ cách nhau bằng dấu phẩy hoặc chấm phẩy."
+                error={form.formState.errors.applicationEmails?.message}
+              />
+
+              <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={form.formState.isSubmitting}
+                  onClick={() => {
+                    form.reset();
+                    setEditorTab("compose");
+                    setView("list");
+                    setActiveJob(null);
+                  }}
+                  className="h-11 px-6 font-bold text-slate-500 hover:bg-slate-50"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={form.formState.isSubmitting}
+                  className="h-11 bg-[#11a77a] px-6 font-bold text-white shadow-none hover:bg-[#0d966d]"
+                >
+                  {form.formState.isSubmitting
+                    ? view === "edit"
+                      ? "Đang lưu..."
+                      : "Đang tạo..."
+                    : view === "edit"
+                      ? "Lưu thay đổi"
+                      : "Tạo bản nháp"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          {editorTab === "preview" ? (
+            <div id="job-post-preview-panel" role="tabpanel" aria-labelledby="job-post-preview-tab">
+              <RecruiterJobPostPreview
+                companyName={account?.company?.name || "Doanh nghiệp của bạn"}
+                companyLogoUrl={companyLogoUrl}
+                companyVerified={companyVerified}
+                values={previewValues}
+                catalogs={catalogs}
+                locations={companyLocations}
               />
             </div>
-
-            <JobInput
-              id="job-application-emails"
-              label="Địa chỉ email nhận hồ sơ"
-              placeholder="hr@company.com, recruitment@company.com"
-              register={form.register("applicationEmails")}
-              helperText="Địa chỉ email sẽ được ẩn với người tìm việc. Bạn có thể nhập nhiều địa chỉ cách nhau bằng dấu phẩy hoặc chấm phẩy."
-              error={form.formState.errors.applicationEmails?.message}
-            />
-
-            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-5">
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={form.formState.isSubmitting}
-                onClick={() => {
-                  form.reset();
-                  setView("list");
-                  setActiveJob(null);
-                }}
-                className="h-11 px-6 font-bold text-slate-500 hover:bg-slate-50"
-              >
-                Hủy
-              </Button>
-              <Button
-                type="submit"
-                disabled={form.formState.isSubmitting}
-                className="h-11 bg-[#11a77a] px-6 font-bold text-white shadow-none hover:bg-[#0d966d]"
-              >
-                {form.formState.isSubmitting
-                  ? view === "edit"
-                    ? "Đang lưu..."
-                    : "Đang tạo..."
-                  : view === "edit"
-                    ? "Lưu thay đổi"
-                    : "Tạo bản nháp"}
-              </Button>
-            </div>
-          </form>
-        </Card>
+          ) : null}
+        </>
       )}
 
       {view === "list" && (
@@ -825,12 +910,16 @@ export function RecruiterJobPostsPage() {
                   setCurrentPage(1);
                 }}
               >
-                <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[190px]">
+                <SelectTrigger
+                  aria-label="Lọc theo trạng thái tin tuyển dụng"
+                  className="bg-card h-10 w-full rounded-xl sm:w-[190px]"
+                >
                   <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="PUBLISHED">Đang đăng / Chờ duyệt</SelectItem>
+                  <SelectItem value="ACTIVE">Đang đăng</SelectItem>
+                  <SelectItem value="PENDING_REVIEW">Chờ duyệt</SelectItem>
                   <SelectItem value="DRAFT">Bản nháp</SelectItem>
                   <SelectItem value="CLOSED">Đã đóng</SelectItem>
                 </SelectContent>
@@ -839,7 +928,10 @@ export function RecruiterJobPostsPage() {
           }
           actionBar={
             <Button
-              onClick={() => setView("create")}
+              onClick={() => {
+                setEditorTab("compose");
+                setView("create");
+              }}
               className="bg-[#11a77a] font-bold text-white hover:bg-[#0d966d]"
             >
               <Plus size={16} className="mr-1" />
@@ -1034,13 +1126,26 @@ function getEducationLevelLabel(level?: string) {
   }
 }
 
+function getCleanHtml(html: string | null | undefined) {
+  if (!html) return "";
+  let cleaned = html.replace(/<summary[^>]*>([\s\S]*?)<\/summary>/gi, "");
+  cleaned = cleaned.replace(/<details[^>]*>/gi, "").replace(/<\/details>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Mô tả công việc\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Yêu cầu ứng viên\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Quyền lợi\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Mô tả công việc\s*<\/p>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Yêu cầu ứng viên\s*<\/p>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Quyền lợi\s*<\/p>/gi, "");
+  return cleaned.trim();
+}
+
 function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack: () => void }) {
   const router = useRouter();
   const salary = formatSalary(job);
 
-  const cleanDescription = job.description || "Chưa có mô tả";
-  const cleanRequirements = job.requirements || "Chưa có yêu cầu";
-  const cleanBenefits = job.benefits || "Chưa có quyền lợi";
+  const cleanDescription = getCleanHtml(job.description) || "Chưa có mô tả";
+  const cleanRequirements = getCleanHtml(job.requirements) || "Chưa có yêu cầu";
+  const cleanBenefits = getCleanHtml(job.benefits) || "Chưa có quyền lợi";
 
   // Calculate moderation status badge tone & text
   const modTone =

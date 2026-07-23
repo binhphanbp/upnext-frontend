@@ -540,9 +540,12 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         type: job.employmentType?.name || "Full-time",
         posted: job.publishedAt ? formatRelativeTime(job.publishedAt, locale as any) : "Mới đăng",
         applicants: 12,
-        tags: [job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
-          Boolean,
-        ) as string[],
+        tags:
+          job.jobPostSkills && job.jobPostSkills.length > 0
+            ? job.jobPostSkills.map((s) => s.skill.name)
+            : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+                Boolean,
+              ) as string[]),
         description: job.description || "",
         categories,
         urgent: false,
@@ -552,7 +555,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
       };
     });
 
-    return [...mapped, ...staticJobs];
+    return mapped;
   }, [apiJobsData, locale]);
 
   const locationsList = useMemo(() => {
@@ -1194,14 +1197,41 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                             </span>
                           </div>
                           <div className="mt-3 flex flex-wrap gap-1.5">
-                            {job.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600"
-                              >
-                                {tag}
-                              </span>
-                            ))}
+                            {(() => {
+                              const maxTags = 3;
+                              const maxChars = 22;
+                              const shown: string[] = [];
+                              let currentChars = 0;
+                              for (const tag of job.tags) {
+                                if (shown.length >= maxTags) break;
+                                if (shown.length >= 1 && currentChars + tag.length > maxChars) {
+                                  break;
+                                }
+                                shown.push(tag);
+                                currentChars += tag.length;
+                              }
+                              const extraCount = job.tags.length - shown.length;
+                              return (
+                                <>
+                                  {shown.map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {extraCount > 0 && (
+                                    <span
+                                      className="rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-400"
+                                      title={job.tags.slice(shown.length).join(", ")}
+                                    >
+                                      +{extraCount}
+                                    </span>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
 

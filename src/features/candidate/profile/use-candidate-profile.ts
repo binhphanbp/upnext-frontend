@@ -8,15 +8,15 @@ import { getCandidateSession, type CandidateSession } from "@/features/candidate
 
 const candidateCvsPageLimit = 100;
 
-async function getAllCandidateCvs(token: string, candidateAccountId: string) {
-  const firstPage = await getMyCandidateCvs(token, candidateAccountId, 1, candidateCvsPageLimit);
+async function getAllCandidateCvs(token: string) {
+  const firstPage = await getMyCandidateCvs(token, 1, candidateCvsPageLimit);
   const remainingPageCount = Math.max(0, firstPage.meta.totalPages - 1);
 
   if (remainingPageCount === 0) return firstPage;
 
   const remainingPages = await Promise.all(
     Array.from({ length: remainingPageCount }, (_, index) =>
-      getMyCandidateCvs(token, candidateAccountId, index + 2, candidateCvsPageLimit),
+      getMyCandidateCvs(token, index + 2, candidateCvsPageLimit),
     ),
   );
 
@@ -52,7 +52,7 @@ export function useCandidateProfileWorkspace() {
 
   const cvsQuery = useQuery({
     enabled: Boolean(session),
-    queryFn: () => getAllCandidateCvs(session!.accessToken, session!.user.id),
+    queryFn: () => getAllCandidateCvs(session!.accessToken),
     queryKey: cvsQueryKey,
   });
 

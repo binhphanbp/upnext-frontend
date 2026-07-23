@@ -389,9 +389,21 @@
       "hidePassword": "Hide password",
       "employerCta": "For employers"
     },
+    "showcase": {
+      "title": "Find the right IT role. Build your next chapter.",
+      "description": "Discover opportunities that match your skills, experience, and career direction."
+    },
     "social": {
       "google": "Continue with Google",
-      "github": "Continue with GitHub"
+      "github": "Continue with GitHub",
+      "githubUnavailable": "GitHub sign-in will be available when the authentication service is ready."
+    },
+    "oauth": {
+      "processingTitle": "Completing your sign-in",
+      "processingDescription": "Please wait a moment…",
+      "failedTitle": "We could not complete your sign-in",
+      "failedDescription": "This sign-in link is invalid or has expired. Please try again.",
+      "returnToLogin": "Back to login"
     },
     "fields": {
       "fullName": "Full name",
@@ -406,18 +418,34 @@
     },
     "login": {
       "ariaLabel": "Log in to UpNext",
-      "title": "Log in",
+      "title": "Welcome back",
+      "subtitle": "Log in to continue your career journey.",
+      "google": "Log in with Google",
+      "github": "Log in with GitHub",
+      "emailDivider": "or log in with email",
       "forgotPassword": "Forgot password?",
       "submit": "Log in",
+      "submitting": "Logging in…",
       "signupPrompt": "Don't have an account?",
       "signupLink": "Sign up"
     },
     "register": {
       "ariaLabel": "Sign up for UpNext",
-      "title": "Sign up",
+      "title": "Create your account",
+      "subtitle": "Start finding IT opportunities that fit you.",
+      "google": "Sign up with Google",
+      "github": "Sign up with GitHub",
+      "emailDivider": "or sign up with email",
       "submit": "Create account",
+      "submitting": "Creating account…",
       "loginPrompt": "Already have an account?",
       "loginLink": "Log in"
+    },
+    "errors": {
+      "invalidCredentials": "The email or password is incorrect.",
+      "emailInUse": "This email is already in use.",
+      "requestFailed": "We could not complete your request. Please try again.",
+      "connectionFailed": "We could not reach the server. Please try again."
     },
     "validation": {
       "invalidEmail": "Enter a valid email",
@@ -799,6 +827,7 @@
       "jobPosts": "Job Posts",
       "candidates": "Candidates",
       "interviews": "Interviews",
+      "messages": "Messages",
       "company": "Company",
       "companyProfile": "Company Profile",
       "team": "Team & Permissions",
@@ -2464,6 +2493,11 @@
     }
   },
   "Admin": {
+    "account": {
+      "profile": "Profile",
+      "settings": "Settings",
+      "logout": "Log out"
+    },
     "dashboard": {
       "title": "Platform Statistics",
       "subtitle": "Overview of UpNext system performance and revenue.",
@@ -2822,7 +2856,8 @@
             "edit": "Edit Plan",
             "viewSubscribers": "View Subscribers",
             "publish": "Publish",
-            "retire": "Retire Plan"
+            "retire": "Retire Plan",
+            "viewDetails": "View Details"
           },
           "planNames": {
             "PLAN-EMP-PRO": "Employer Pro",
@@ -2835,8 +2870,16 @@
             "PLAN-EMP-ENT": "Employer Enterprise",
             "PLAN-EMP-CRED-10": "10 Job Posts Credit",
             "PLAN-CAN-MENTOR": "1:1 Mentorship",
-            "PLAN-EMP-CV": "View 100 CVs Credit"
-          }
+            "PLAN-EMP-CV": "View 100 CVs Credit",
+            "EMP-FREE": "Basic",
+            "EMP-STARTER": "Pro",
+            "EMP-GROWTH": "Premium",
+            "EMP-SCALE": "Enterprise",
+            "CAN-FREE": "Basic",
+            "CAN-PRO": "Talent",
+            "CAN-CAREER-PLUS": "Elite"
+          },
+          "features": "Key Features"
         },
         "dialog": {
           "title": "Create New Service Plan",
@@ -2849,12 +2892,27 @@
             "price": "Price (VND)",
             "pricePlaceholder": "Ex: 2500000",
             "billingCycle": "Billing Cycle",
-            "billingCyclePlaceholder": "Select billing cycle"
+            "billingCyclePlaceholder": "Select billing cycle",
+            "featuresEmployer": "Employer Features",
+            "featuresCandidate": "Candidate Features",
+            "empPostingLimit": "Job Posting Limit",
+            "empVisibility": "Visibility",
+            "empInteraction": "Candidate Interaction",
+            "empAiLimit": "AI Limit",
+            "empSystem": "System",
+            "canCoreFunctions": "Core Functions",
+            "canAiLimit": "AI CV Limit",
+            "canOptimization": "Optimization",
+            "canInterview": "Interview Prep",
+            "canVisibility": "Visibility"
           },
           "billingCycleOptions": {
             "monthly": "Monthly",
             "yearly": "Yearly",
-            "oneTime": "One-time Credit"
+            "oneTime": "One-time Credit",
+            "weekly": "Weekly",
+            "quarterly": "Quarterly",
+            "biannual": "Biannual"
           },
           "buttons": {
             "cancel": "Cancel",

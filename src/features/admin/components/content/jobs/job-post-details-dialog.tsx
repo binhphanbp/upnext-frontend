@@ -32,6 +32,19 @@ const toast = Swal.mixin({
   timerProgressBar: true,
 });
 
+function getCleanHtml(html: string | null | undefined) {
+  if (!html) return "";
+  let cleaned = html.replace(/<summary[^>]*>([\s\S]*?)<\/summary>/gi, "");
+  cleaned = cleaned.replace(/<details[^>]*>/gi, "").replace(/<\/details>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Mô tả công việc\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Yêu cầu ứng viên\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<li>\s*Quyền lợi\s*<\/li>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Mô tả công việc\s*<\/p>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Yêu cầu ứng viên\s*<\/p>/gi, "");
+  cleaned = cleaned.replace(/<p>\s*Quyền lợi\s*<\/p>/gi, "");
+  return cleaned.trim();
+}
+
 export function JobPostDetailsDialog({
   id,
   open,
@@ -286,7 +299,8 @@ export function JobPostDetailsDialog({
                       <div
                         className="prose prose-sm max-w-none text-slate-600"
                         dangerouslySetInnerHTML={{
-                          __html: jobPost.description || "<p>Chưa có mô tả chi tiết.</p>",
+                          __html:
+                            getCleanHtml(jobPost.description) || "<p>Chưa có mô tả chi tiết.</p>",
                         }}
                       />
                     </div>
@@ -296,7 +310,7 @@ export function JobPostDetailsDialog({
                         <h3 className="mb-3 text-lg font-bold">{t("requirements")}</h3>
                         <div
                           className="prose prose-sm max-w-none text-slate-600"
-                          dangerouslySetInnerHTML={{ __html: jobPost.requirements }}
+                          dangerouslySetInnerHTML={{ __html: getCleanHtml(jobPost.requirements) }}
                         />
                       </div>
                     )}
@@ -306,7 +320,7 @@ export function JobPostDetailsDialog({
                         <h3 className="mb-3 text-lg font-bold">{t("benefits")}</h3>
                         <div
                           className="prose prose-sm max-w-none text-slate-600"
-                          dangerouslySetInnerHTML={{ __html: jobPost.benefits }}
+                          dangerouslySetInnerHTML={{ __html: getCleanHtml(jobPost.benefits) }}
                         />
                       </div>
                     )}

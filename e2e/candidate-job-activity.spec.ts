@@ -96,6 +96,22 @@ test("renders API-backed applications with consistent navigation and detail", as
   expect(browserErrors).toEqual([]);
 });
 
+test("keeps profile as a single destination in the account menu", async ({ page }) => {
+  await page.goto("/vi");
+
+  const accountTrigger = page.getByRole("button", { name: "Tài khoản" });
+  await expect(accountTrigger).toBeVisible();
+  await accountTrigger.focus();
+  await page.keyboard.press("Enter");
+
+  const accountMenu = page.getByRole("menu");
+  await expect(accountMenu).toBeVisible();
+  await expect(accountMenu.getByRole("menuitem", { name: "Hồ sơ", exact: true })).toHaveCount(1);
+
+  await page.keyboard.press("Escape");
+  await expect(accountMenu).not.toBeVisible();
+});
+
 test("removes a saved job optimistically and supports undo", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/vi/candidate/saved-jobs");

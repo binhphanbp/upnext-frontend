@@ -4,6 +4,7 @@ import {
   Briefcase,
   Buildings,
   ChartLineUp,
+  ChatCircleDots,
   CreditCard,
   Database,
   Gauge,
@@ -24,6 +25,7 @@ import type { WorkspaceIdentity, WorkspaceNavGroup } from "./types";
 export const recruiterNavGroups: WorkspaceNavGroup[] = [
   {
     label: "Tuyển dụng",
+    icon: Briefcase,
     items: [
       { label: "Báo cáo tuyển dụng", href: "/recruiter", icon: Gauge },
       {
@@ -32,11 +34,13 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
         icon: Briefcase,
       },
       { label: "Ứng viên", href: "/recruiter/candidates", icon: Users },
+      { label: "Pipeline", href: "/recruiter/pipeline", icon: ListChecks, badge: "82" },
       { label: "Phỏng vấn", href: "/recruiter/interviews", icon: Bell },
     ],
   },
   {
     label: "Công ty",
+    icon: Buildings,
     items: [
       {
         label: "Hồ sơ công ty",
@@ -60,15 +64,23 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
       { label: "Thanh toán", href: "/recruiter/billing", icon: CreditCard },
     ],
   },
+  {
+    label: "Tin nhắn",
+    href: "/recruiter/messages",
+    icon: ChatCircleDots,
+    items: [],
+  },
 ];
 
 export const adminNavGroups: WorkspaceNavGroup[] = [
   {
     label: "overview.title",
+    icon: Gauge,
     items: [{ label: "overview.platformStats", href: "/admin", icon: Gauge }],
   },
   {
     label: "userManagement.title",
+    icon: UsersThree,
     items: [
       {
         label: "userManagement.employers",
@@ -80,6 +92,7 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
   },
   {
     label: "operationsAndContent.title",
+    icon: Article,
     items: [
       { label: "operationsAndContent.companies", href: "/admin/users/employers", icon: Buildings },
       { label: "operationsAndContent.jobs", href: "/admin/content/jobs", icon: Briefcase },
@@ -94,6 +107,7 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
   },
   {
     label: "financeAndBusiness.title",
+    icon: Receipt,
     items: [
       { label: "financeAndBusiness.plans", href: "/admin/finance/plans", icon: Package },
       {
@@ -105,6 +119,7 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
   },
   {
     label: "systemAdmin.title",
+    icon: Database,
     items: [
       { label: "systemAdmin.masterData", href: "/admin/system/master-data", icon: Database },
       { label: "systemAdmin.roles", href: "/admin/system/roles", icon: IdentificationBadge },

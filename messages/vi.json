@@ -389,9 +389,21 @@
       "hidePassword": "Ẩn mật khẩu",
       "employerCta": "Dành cho nhà tuyển dụng"
     },
+    "showcase": {
+      "title": "Tìm đúng việc IT. Bật tăng sự nghiệp.",
+      "description": "Khám phá cơ hội phù hợp với kỹ năng, kinh nghiệm và định hướng phát triển của bạn."
+    },
     "social": {
       "google": "Tiếp tục với Google",
-      "github": "Tiếp tục với GitHub"
+      "github": "Tiếp tục với GitHub",
+      "githubUnavailable": "Đăng nhập bằng GitHub sẽ khả dụng khi dịch vụ xác thực được hoàn tất."
+    },
+    "oauth": {
+      "processingTitle": "Đang hoàn tất đăng nhập",
+      "processingDescription": "Vui lòng chờ trong giây lát…",
+      "failedTitle": "Không thể hoàn tất đăng nhập",
+      "failedDescription": "Liên kết đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.",
+      "returnToLogin": "Quay lại đăng nhập"
     },
     "fields": {
       "fullName": "Họ và tên",
@@ -406,18 +418,34 @@
     },
     "login": {
       "ariaLabel": "Đăng nhập UpNext",
-      "title": "Đăng nhập",
+      "title": "Chào mừng trở lại",
+      "subtitle": "Đăng nhập để tiếp tục hành trình sự nghiệp của bạn.",
+      "google": "Đăng nhập với Google",
+      "github": "Đăng nhập với GitHub",
+      "emailDivider": "hoặc đăng nhập bằng email",
       "forgotPassword": "Quên mật khẩu?",
       "submit": "Đăng nhập",
+      "submitting": "Đang đăng nhập…",
       "signupPrompt": "Chưa có tài khoản?",
       "signupLink": "Đăng ký"
     },
     "register": {
       "ariaLabel": "Đăng ký UpNext",
-      "title": "Đăng ký",
+      "title": "Tạo tài khoản",
+      "subtitle": "Bắt đầu tìm những cơ hội IT phù hợp với bạn.",
+      "google": "Đăng ký với Google",
+      "github": "Đăng ký với GitHub",
+      "emailDivider": "hoặc đăng ký bằng email",
       "submit": "Tạo tài khoản",
+      "submitting": "Đang tạo tài khoản…",
       "loginPrompt": "Đã có tài khoản?",
       "loginLink": "Đăng nhập"
+    },
+    "errors": {
+      "invalidCredentials": "Email hoặc mật khẩu không chính xác.",
+      "emailInUse": "Email này đã được sử dụng.",
+      "requestFailed": "Không thể hoàn tất yêu cầu. Vui lòng thử lại.",
+      "connectionFailed": "Không thể kết nối đến máy chủ. Vui lòng thử lại."
     },
     "validation": {
       "invalidEmail": "Email không hợp lệ",
@@ -799,6 +827,7 @@
       "jobPosts": "Tin tuyển dụng",
       "candidates": "Ứng viên",
       "interviews": "Phỏng vấn",
+      "messages": "Tin nhắn",
       "company": "Công ty",
       "companyProfile": "Hồ sơ công ty",
       "team": "Đội ngũ & quyền",
@@ -2464,6 +2493,11 @@
     }
   },
   "Admin": {
+    "account": {
+      "profile": "Hồ sơ",
+      "settings": "Cài đặt",
+      "logout": "Đăng xuất"
+    },
     "dashboard": {
       "title": "Thống kê nền tảng",
       "subtitle": "Tổng quan hiệu suất hoạt động và doanh thu của hệ thống UpNext.",
@@ -2843,7 +2877,8 @@
             "edit": "Chỉnh sửa gói",
             "viewSubscribers": "Xem danh sách người mua",
             "publish": "Phát hành (Đưa lên bán)",
-            "retire": "Ngừng bán (Legacy)"
+            "retire": "Ngừng bán (Legacy)",
+            "viewDetails": "Xem chi tiết gói"
           },
           "planNames": {
             "PLAN-EMP-PRO": "Employer Pro",
@@ -2856,8 +2891,16 @@
             "PLAN-EMP-ENT": "Employer Enterprise",
             "PLAN-EMP-CRED-10": "Gói 10 Tin Tuyển Dụng",
             "PLAN-CAN-MENTOR": "1:1 Mentorship",
-            "PLAN-EMP-CV": "Gói xem 100 CV"
-          }
+            "PLAN-EMP-CV": "Gói xem 100 CV",
+            "EMP-FREE": "Basic",
+            "EMP-STARTER": "Pro",
+            "EMP-GROWTH": "Premium",
+            "EMP-SCALE": "Enterprise",
+            "CAN-FREE": "Basic",
+            "CAN-PRO": "Talent",
+            "CAN-CAREER-PLUS": "Elite"
+          },
+          "features": "Tính năng nổi bật"
         },
         "dialog": {
           "title": "Tạo Gói Dịch Vụ Mới",
@@ -2870,12 +2913,27 @@
             "price": "Đơn giá (VNĐ)",
             "pricePlaceholder": "VD: 2500000",
             "billingCycle": "Chu kỳ thanh toán",
-            "billingCyclePlaceholder": "Chọn chu kỳ"
+            "billingCyclePlaceholder": "Chọn chu kỳ",
+            "featuresEmployer": "Tính năng dành cho Nhà tuyển dụng",
+            "featuresCandidate": "Tính năng dành cho Ứng viên",
+            "empPostingLimit": "Giới hạn đăng tin",
+            "empVisibility": "Hiển thị",
+            "empInteraction": "Tương tác ứng viên",
+            "empAiLimit": "Giới hạn AI",
+            "empSystem": "Hệ thống",
+            "canCoreFunctions": "Chức năng cốt lõi",
+            "canAiLimit": "Giới hạn AI CV",
+            "canOptimization": "Tối ưu hóa",
+            "canInterview": "Luyện phỏng vấn",
+            "canVisibility": "Hiển thị"
           },
           "billingCycleOptions": {
             "monthly": "Hàng tháng (Monthly)",
             "yearly": "Hàng năm (Yearly)",
-            "oneTime": "Gói tín dụng (One-time)"
+            "oneTime": "Gói tín dụng (One-time)",
+            "weekly": "Hàng tuần (Weekly)",
+            "quarterly": "Hàng quý (Quarterly)",
+            "biannual": "6 tháng (Biannual)"
           },
           "buttons": {
             "cancel": "Hủy",

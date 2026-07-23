@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "proxy": "vite",
     "build": "next build",
     "start": "next start",
@@ -57,6 +57,7 @@
     "react-dom": "19.2.4",
     "react-hook-form": "^7.78.0",
     "recharts": "^3.8.1",
+    "socket.io-client": "4.8.1",
     "sweetalert2": "^11.26.25",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3",

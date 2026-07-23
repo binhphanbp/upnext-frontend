@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import Swal from "sweetalert2";
 
@@ -37,12 +36,15 @@ function decodeJwt(token: string) {
 
 export default function RecruiterAuthCallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
   const t = useTranslations("RecruiterAuth");
 
   useEffect(() => {
     async function handleCallback() {
+      const credentials = new URLSearchParams(window.location.hash.replace(/^#/u, ""));
+      const token = credentials.get("token");
+      const refreshToken = credentials.get("refreshToken");
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+
       if (!token) {
         router.push("/recruiter/login");
         return;
@@ -53,6 +55,7 @@ export default function RecruiterAuthCallbackPage() {
         const email = typeof decoded.email === "string" ? decoded.email : "";
 
         localStorage.setItem("upnext.recruiter.accessToken", token);
+        if (refreshToken) localStorage.setItem("upnext.recruiter.refreshToken", refreshToken);
         localStorage.setItem("upnext.recruiter.tokenType", "Bearer");
         localStorage.setItem(
           "upnext.recruiter.user",
@@ -79,7 +82,7 @@ export default function RecruiterAuthCallbackPage() {
     }
 
     void handleCallback();
-  }, [token, router, t]);
+  }, [router, t]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50">
