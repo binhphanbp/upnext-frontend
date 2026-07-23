@@ -34,7 +34,6 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
         icon: Briefcase,
       },
       { label: "Ứng viên", href: "/recruiter/candidates", icon: Users },
-      { label: "Pipeline", href: "/recruiter/pipeline", icon: ListChecks, badge: "82" },
       { label: "Phỏng vấn", href: "/recruiter/interviews", icon: Bell },
     ],
   },

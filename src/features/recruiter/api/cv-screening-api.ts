@@ -81,6 +81,7 @@ export interface ScoreCriterionBreakdown {
 
 export interface ApplicationAiScoreResponse {
   applicationId: string;
+  status?: string | null;
   candidateName: string;
   jobTitle: string;
   finalScore: number;
