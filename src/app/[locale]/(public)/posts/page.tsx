@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { PostsPageContent } from "@/features/posts/components/posts-page-content";
 
 export const metadata = {
@@ -7,5 +9,9 @@ export const metadata = {
 };
 
 export default function PostsPage() {
-  return <PostsPageContent />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f8fafc]" />}>
+      <PostsPageContent />
+    </Suspense>
+  );
 }
