@@ -149,7 +149,21 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
     pathname.includes("/auth/callback") ||
     pathname.includes("/company-invitations");
 
+  // Chỉ chặn ngược lại /login và /register — các trang auth khác (quên mật khẩu,
+  // xác thực email, lời mời công ty...) vẫn phải xem được kể cả khi đã đăng nhập.
+  const isLoginOrRegisterPage =
+    pathname === "/recruiter/login" || pathname === "/recruiter/register";
+
   useEffect(() => {
+    if (isLoginOrRegisterPage) {
+      const accessToken = localStorage.getItem("upnext.recruiter.accessToken");
+      const rawUser = localStorage.getItem("upnext.recruiter.user");
+      if (accessToken && rawUser) {
+        router.replace("/recruiter");
+        return;
+      }
+    }
+
     if (isAuthPage) {
       setLoading(false);
       return;
@@ -241,7 +255,14 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       router.replace("/recruiter/login");
       setLoading(false);
     }
-  }, [isAuthPage, router]);
+  }, [pathname, isAuthPage, isLoginOrRegisterPage, router]);
+
+  useEffect(() => {
+    document.body.classList.add("recruiter-workspace");
+    return () => {
+      document.body.classList.remove("recruiter-workspace");
+    };
+  }, []);
 
   function handleLogout() {
     clearRecruiterSession();

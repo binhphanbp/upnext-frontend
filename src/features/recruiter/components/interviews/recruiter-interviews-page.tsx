@@ -29,11 +29,11 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 
-import { SearchInput } from "../pipeline/search-input";
-import { SelectFilter } from "../pipeline/select-filter";
 import { InterviewResultBadge, InterviewStatusBadge, InterviewTypeBadge } from "./interview-badges";
 import { InterviewDetailDialog } from "./interview-detail-dialog";
 import { ScheduleInterviewDialog } from "./schedule-interview-dialog";
+import { SearchInput } from "./search-input";
+import { SelectFilter } from "./select-filter";
 
 export function RecruiterInterviewsPage() {
   const t = useTranslations("Recruiter");
@@ -87,14 +87,6 @@ export function RecruiterInterviewsPage() {
     { label: t("interviews.type.ONLINE"), value: "ONLINE" },
     { label: t("interviews.type.ONSITE"), value: "ONSITE" },
   ];
-
-  const jobOptions = useMemo(
-    () => [
-      { label: t("pipeline.filters.allJobs"), value: "all" },
-      ...jobs.map((job) => ({ label: job.title, value: job.id })),
-    ],
-    [jobs, t],
-  );
 
   const filteredJobsForSelect = useMemo(() => {
     const query = jobSearch.trim().toLowerCase();
@@ -258,7 +250,7 @@ export function RecruiterInterviewsPage() {
                           ? "Chọn tin tuyển dụng"
                           : "Select Job Post"
                         : (jobs.find((j) => j.id === jobFilter)?.title ??
-                          t("pipeline.filters.allJobs"))}
+                          t("candidates.filters.allJobs"))}
                     </span>
                     <CaretDown
                       size={16}
@@ -309,7 +301,7 @@ export function RecruiterInterviewsPage() {
                         jobFilter === "all" && "text-emerald-600 bg-emerald-50/30",
                       )}
                     >
-                      {t("pipeline.filters.allJobs")}
+                      {t("candidates.filters.allJobs")}
                     </DropdownMenuItem>
                     {filteredJobsForSelect.map((job) => (
                       <DropdownMenuItem
@@ -397,7 +389,7 @@ export function RecruiterInterviewsPage() {
                           ? "Chọn tin tuyển dụng"
                           : "Select Job Post"
                         : (jobs.find((j) => j.id === jobFilter)?.title ??
-                          t("pipeline.filters.allJobs"))}
+                          t("candidates.filters.allJobs"))}
                     </span>
                     <CaretDown
                       size={16}
@@ -448,7 +440,7 @@ export function RecruiterInterviewsPage() {
                         jobFilter === "all" && "text-emerald-600 bg-emerald-50/30",
                       )}
                     >
-                      {t("pipeline.filters.allJobs")}
+                      {t("candidates.filters.allJobs")}
                     </DropdownMenuItem>
                     {filteredJobsForSelect.map((job) => (
                       <DropdownMenuItem

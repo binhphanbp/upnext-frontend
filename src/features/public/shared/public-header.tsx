@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import { useLocale } from "next-intl";
 import Image from "next/image";
+import { useRouter as useNativeRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -424,6 +425,7 @@ export function PublicHeader({
   onRecruiterChatViewed,
 }: PublicHeaderProps) {
   const router = useRouter();
+  const nativeRouter = useNativeRouter();
   const pathname = usePathname();
   const locale = useLocale();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -437,10 +439,7 @@ export function PublicHeader({
   const lang: Language["code"] = currentLocale === "en" ? "EN" : "VI";
   const copy = copyByLocale[currentLocale];
   const effectiveViewer = viewer === undefined ? storedViewer : viewer;
-  const recruiterChatAvailable =
-    hasNewRecruiterMessages !== undefined ||
-    onRecruiterChatViewed !== undefined ||
-    effectiveViewer?.unreadMessages !== undefined;
+  const recruiterChatAvailable = !!effectiveViewer;
   const recruiterChatHasNewMessage =
     hasNewRecruiterMessages ?? Boolean(effectiveViewer?.unreadMessages);
   const isCandidatePathActive = (path: string) =>
@@ -569,7 +568,7 @@ export function PublicHeader({
   function openRecruiterChat() {
     setAccountOpen(false);
     onRecruiterChatViewed?.();
-    window.open("/conversations/chat", "_blank", "noopener,noreferrer");
+    nativeRouter.push("/conversations/chat");
   }
 
   return (

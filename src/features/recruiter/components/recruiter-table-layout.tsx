@@ -122,7 +122,7 @@ export function RecruiterTableLayout({
     totalItems > 0;
 
   return (
-    <Card className="upnext-shadow w-full min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white p-0">
+    <Card className="upnext-shadow w-full min-w-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0">
       {/* Filters & Actions Section */}
       {(filterBar || actionBar) && (
         <div className="border-b border-slate-200 bg-white p-4">
@@ -155,7 +155,7 @@ export function RecruiterTableLayout({
         )}
 
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-full border-collapse text-sm whitespace-nowrap [&_tbody_td[colspan]]:sticky [&_tbody_td[colspan]]:left-0 [&_tbody_td[colspan]]:w-[calc(100vw-48px)] sm:[&_tbody_td[colspan]]:w-[calc(100vw-280px)] lg:[&_tbody_td[colspan]]:w-full [&_tbody_tr]:border-b [&_tbody_tr]:border-slate-200 hover:[&_tbody_tr]:bg-slate-50/40 [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-sm [&_th]:font-bold [&_th]:text-slate-800 [&_thead_tr]:border-b [&_thead_tr]:border-slate-300 [&_thead_tr]:bg-slate-200">
+          <table className="w-full min-w-full border-collapse text-sm whitespace-nowrap [&_tbody_td[colspan]]:sticky [&_tbody_td[colspan]]:left-0 [&_tbody_td[colspan]]:w-[calc(100vw-48px)] sm:[&_tbody_td[colspan]]:w-[calc(100vw-280px)] lg:[&_tbody_td[colspan]]:w-full [&_tbody_tr]:border-b [&_tbody_tr]:border-slate-200 hover:[&_tbody_tr]:bg-slate-50/40 [&_tbody_tr:nth-child(even)]:bg-slate-50/80 [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-sm [&_th]:font-bold [&_th]:text-slate-800 [&_thead_tr]:border-b [&_thead_tr]:border-slate-300 [&_thead_tr]:bg-slate-200">
             {children}
           </table>
         </div>

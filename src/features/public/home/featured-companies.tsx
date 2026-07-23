@@ -309,17 +309,17 @@ function CoverImage({ company }: { company: FeaturedCompany }) {
 }
 
 /** Responsive small-card count, aligned with the CSS breakpoints:
-   - desktop (>1180px): full bento — featured + 11 cards
+   - desktop (>1180px): full bento — featured + 8 cards
    - tablet (821-1180px): featured hidden, 6 small cards + slider
    - mobile (<=820px): featured only (0 small cards) + slider */
 function useVisibleCount() {
   const getCount = () => {
-    if (typeof window === "undefined") return 11;
+    if (typeof window === "undefined") return 8;
     if (window.matchMedia("(max-width: 820px)").matches) return 0;
     if (window.matchMedia("(max-width: 1180px)").matches) return 6;
-    return 11;
+    return 8;
   };
-  const [count, setCount] = useState(11);
+  const [count, setCount] = useState(8);
 
   useEffect(() => {
     const update = () => setCount(getCount());

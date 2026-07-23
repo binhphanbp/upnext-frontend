@@ -275,9 +275,7 @@
 }
 
 .bg-header {
-  background:
-    linear-gradient(180deg, #002b33, rgba(0, 43, 51, 0.25)),
-    linear-gradient(90deg, #008060 21.86%, #2bab60 78.13%);
+  background: linear-gradient(110deg, #003d4a 0%, #00685f 52%, #08a695 100%);
 }
 
 .bg-header-table {
@@ -360,4 +358,37 @@ body.swal2-shown {
 }
 .swal2-container {
   pointer-events: auto !important;
+}
+
+/* Custom scrollbar for recruiter workspace */
+.recruiter-workspace,
+.recruiter-workspace * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+.recruiter-workspace::-webkit-scrollbar,
+.recruiter-workspace *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.recruiter-workspace::-webkit-scrollbar-track,
+.recruiter-workspace *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.recruiter-workspace::-webkit-scrollbar-thumb,
+.recruiter-workspace *::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3); /* Slate 400 with opacity */
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.recruiter-workspace::-webkit-scrollbar-thumb:hover,
+.recruiter-workspace *::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.55); /* Slate 400 with hover opacity */
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
