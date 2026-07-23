@@ -40,7 +40,7 @@ function renderForm() {
 
 async function chooseCategory(name: string) {
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "Tạo yêu cầu hỗ trợ" }));
+  await user.click(screen.getByRole("button", { name: "Tạo yêu cầu" }));
   await user.click(screen.getByRole("combobox"));
   await user.click(screen.getByRole("option", { name }));
   return user;

@@ -4,6 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Button } from "@/shared/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
@@ -99,133 +107,142 @@ export function SupportCaseForm({ onCreated }: { onCreated?: (conversationId: st
     (!needsRelated || relatedId.length > 0) &&
     hasEligibleContext;
 
-  if (!open)
-    return (
-      <div className="border-b border-slate-200 bg-white p-3">
-        <Button type="button" className="w-full" onClick={() => setOpen(true)}>
-          Tạo yêu cầu hỗ trợ
-        </Button>
-      </div>
-    );
   return (
-    <form
-      className="space-y-3 border-b border-slate-200 bg-white p-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        mutation.mutate();
-      }}
-    >
-      <h3 className="font-semibold">Yêu cầu hỗ trợ mới</h3>
-      <Select
-        value={categoryCode}
-        onValueChange={(value) => {
-          setCategory(value);
-          setRelatedId("");
-        }}
-      >
-        <SelectTrigger>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {categories.map(([value, label]) => (
-            <SelectItem key={value} value={value}>
-              {label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {needsCreationOptions && creationOptionsQuery.isLoading ? (
-        <output className="block text-xs text-slate-500">Đang tải dữ liệu liên quan…</output>
-      ) : null}
-      {needsCreationOptions && creationOptionsQuery.isError ? (
-        <p role="alert" className="text-xs text-red-600">
-          Không thể tải dữ liệu liên quan. Vui lòng thử lại.
-        </p>
-      ) : null}
-      {categoryCode === "JOB_REVIEW" &&
-      creationOptionsQuery.isSuccess &&
-      eligibleJobPosts.length === 0 ? (
-        <output className="block text-sm font-medium text-emerald-700">
-          Tất cả tin tuyển dụng của bạn đã được duyệt.
-        </output>
-      ) : null}
-      {categoryCode === "JOB_REVIEW" && eligibleJobPosts.length > 0 ? (
-        <Select value={relatedId} onValueChange={setRelatedId}>
-          <SelectTrigger aria-label="Tin tuyển dụng cần hỗ trợ">
-            <SelectValue placeholder="Chọn tin tuyển dụng chưa được duyệt" />
-          </SelectTrigger>
-          <SelectContent>
-            {eligibleJobPosts.map((jobPost) => (
-              <SelectItem key={jobPost.id} value={jobPost.id}>
-                {jobPost.title} — {jobReviewStatusLabels[jobPost.moderationStatus]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : null}
-      {isBilling && creationOptionsQuery.isSuccess && invoices.length === 0 ? (
-        <output className="block text-sm font-medium text-amber-700">
-          Công ty của bạn chưa có hóa đơn để yêu cầu hỗ trợ.
-        </output>
-      ) : null}
-      {isBilling && invoices.length > 0 ? (
-        <Select value={relatedId} onValueChange={setRelatedId}>
-          <SelectTrigger aria-label="Hóa đơn cần hỗ trợ">
-            <SelectValue placeholder="Chọn hóa đơn cần hỗ trợ" />
-          </SelectTrigger>
-          <SelectContent>
-            {invoices.map((invoice) => (
-              <SelectItem key={invoice.id} value={invoice.id}>
-                {invoice.invoiceCode} — {invoiceStatusLabels[invoice.paymentStatus]} —{` `}
-                {formatInvoiceAmount(invoice.amount)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : null}
-      {categoryCode === "COMPANY_VERIFICATION" &&
-      creationOptionsQuery.isSuccess &&
-      options?.company.eligibleForVerificationSupport ? (
-        <output className="block rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-          {options.company.name} — {companyVerificationStatus(options.company)}
-        </output>
-      ) : null}
-      {categoryCode === "COMPANY_VERIFICATION" &&
-      creationOptionsQuery.isSuccess &&
-      options &&
-      !options.company.eligibleForVerificationSupport ? (
-        <output className="block text-sm font-medium text-emerald-700">
-          {companyVerificationUnavailableMessage(options.company.verificationStatus)}
-        </output>
-      ) : null}
-      <Input
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        maxLength={200}
-        placeholder="Tiêu đề (ít nhất 5 ký tự)"
-        required
-      />
-      <Textarea
-        value={description}
-        onChange={(event) => setDescription(event.target.value)}
-        maxLength={5_000}
-        placeholder="Mô tả chi tiết (ít nhất 10 ký tự)"
-        required
-      />
-      {mutation.error ? (
-        <p role="alert" className="text-xs text-red-600">
-          {mutation.error.message}
-        </p>
-      ) : null}
-      <div className="flex gap-2">
-        <Button type="submit" disabled={!valid || mutation.isPending}>
-          {mutation.isPending ? "Đang tạo…" : "Gửi yêu cầu"}
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" size="sm" className="h-9 shrink-0 rounded-full px-4">
+          Tạo yêu cầu
         </Button>
-        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-          Hủy
-        </Button>
-      </div>
-    </form>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>Yêu cầu hỗ trợ mới</DialogTitle>
+          <DialogDescription>
+            Vui lòng chọn loại yêu cầu và cung cấp thông tin chi tiết để chúng tôi có thể hỗ trợ bạn
+            tốt nhất.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="mt-4 flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            mutation.mutate();
+          }}
+        >
+          <div className="space-y-4">
+            <Select
+              value={categoryCode}
+              onValueChange={(value) => {
+                setCategory(value);
+                setRelatedId("");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {needsCreationOptions && creationOptionsQuery.isLoading ? (
+              <output className="block text-xs text-slate-500">Đang tải dữ liệu liên quan…</output>
+            ) : null}
+            {needsCreationOptions && creationOptionsQuery.isError ? (
+              <p role="alert" className="text-xs text-red-600">
+                Không thể tải dữ liệu liên quan. Vui lòng thử lại.
+              </p>
+            ) : null}
+            {categoryCode === "JOB_REVIEW" &&
+            creationOptionsQuery.isSuccess &&
+            eligibleJobPosts.length === 0 ? (
+              <output className="block text-sm font-medium text-emerald-700">
+                Tất cả tin tuyển dụng của bạn đã được duyệt.
+              </output>
+            ) : null}
+            {categoryCode === "JOB_REVIEW" && eligibleJobPosts.length > 0 ? (
+              <Select value={relatedId} onValueChange={setRelatedId}>
+                <SelectTrigger aria-label="Tin tuyển dụng cần hỗ trợ">
+                  <SelectValue placeholder="Chọn tin tuyển dụng chưa được duyệt" />
+                </SelectTrigger>
+                <SelectContent>
+                  {eligibleJobPosts.map((jobPost) => (
+                    <SelectItem key={jobPost.id} value={jobPost.id}>
+                      {jobPost.title} — {jobReviewStatusLabels[jobPost.moderationStatus]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
+            {isBilling && creationOptionsQuery.isSuccess && invoices.length === 0 ? (
+              <output className="block text-sm font-medium text-amber-700">
+                Công ty của bạn chưa có hóa đơn để yêu cầu hỗ trợ.
+              </output>
+            ) : null}
+            {isBilling && invoices.length > 0 ? (
+              <Select value={relatedId} onValueChange={setRelatedId}>
+                <SelectTrigger aria-label="Hóa đơn cần hỗ trợ">
+                  <SelectValue placeholder="Chọn hóa đơn cần hỗ trợ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {invoices.map((invoice) => (
+                    <SelectItem key={invoice.id} value={invoice.id}>
+                      {invoice.invoiceCode} — {invoiceStatusLabels[invoice.paymentStatus]} —{` `}
+                      {formatInvoiceAmount(invoice.amount)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
+            {categoryCode === "COMPANY_VERIFICATION" &&
+            creationOptionsQuery.isSuccess &&
+            options?.company.eligibleForVerificationSupport ? (
+              <output className="block rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                {options.company.name} — {companyVerificationStatus(options.company)}
+              </output>
+            ) : null}
+            {categoryCode === "COMPANY_VERIFICATION" &&
+            creationOptionsQuery.isSuccess &&
+            options &&
+            !options.company.eligibleForVerificationSupport ? (
+              <output className="block text-sm font-medium text-emerald-700">
+                {companyVerificationUnavailableMessage(options.company.verificationStatus)}
+              </output>
+            ) : null}
+            <Input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              maxLength={200}
+              placeholder="Tiêu đề (ít nhất 5 ký tự)"
+              required
+            />
+            <Textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              maxLength={5_000}
+              placeholder="Mô tả chi tiết (ít nhất 10 ký tự)"
+              required
+            />
+            {mutation.error ? (
+              <p role="alert" className="text-xs text-red-600">
+                {mutation.error.message}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={!valid || mutation.isPending}>
+              {mutation.isPending ? "Đang tạo…" : "Gửi yêu cầu"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

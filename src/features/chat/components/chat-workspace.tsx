@@ -69,30 +69,37 @@ export function ChatWorkspace({
           : "overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
       }
     >
-      <div className="flex min-h-14 items-center justify-between gap-3 border-b border-slate-200 px-4">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-h-14 items-center gap-3 border-b border-slate-200 px-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <ChatCircleDots className="text-primary shrink-0" size={24} weight="fill" />
-          <h1 className="font-bold text-slate-900">Tin nhắn</h1>
+          <h1 className="hidden font-bold text-slate-900 sm:block">Tin nhắn</h1>
         </div>
-        <div className="flex items-center rounded-full bg-slate-100 p-1">
-          <div
-            className="flex min-w-0 gap-1 overflow-x-auto"
-            role="tablist"
-            aria-label="Loại hội thoại"
-          >
-            {tabs.map((tab) => (
-              <button
-                key={tab.type}
-                type="button"
-                role="tab"
-                aria-selected={type === tab.type}
-                onClick={() => setType(tab.type)}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold whitespace-nowrap transition-all duration-200 ${type === tab.type ? "text-primary bg-white shadow-sm" : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-800"}`}
-              >
-                {tab.label}
-              </button>
-            ))}
+        <div className="flex max-w-full shrink-0 items-center justify-center">
+          <div className="flex items-center overflow-hidden rounded-full bg-slate-100 p-1">
+            <div
+              className="flex min-w-0 gap-1 overflow-x-auto"
+              role="tablist"
+              aria-label="Loại hội thoại"
+            >
+              {tabs.map((tab) => (
+                <button
+                  key={tab.type}
+                  type="button"
+                  role="tab"
+                  aria-selected={type === tab.type}
+                  onClick={() => setType(tab.type)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-semibold whitespace-nowrap transition-all duration-200 ${type === tab.type ? "text-primary bg-white shadow-sm" : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-800"}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
+        </div>
+        <div className="flex flex-1 items-center justify-end">
+          {actor === "RECRUITER" && type === "SUPPORT" ? (
+            <SupportCaseForm onCreated={setActive} />
+          ) : null}
         </div>
       </div>
       {connectionCopy ? (
@@ -101,9 +108,6 @@ export function ChatWorkspace({
         >
           {connectionCopy}
         </output>
-      ) : null}
-      {actor === "RECRUITER" && type === "SUPPORT" ? (
-        <SupportCaseForm onCreated={setActive} />
       ) : null}
       <div
         className={`grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)_320px] ${
