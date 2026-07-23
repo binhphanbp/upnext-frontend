@@ -826,7 +826,6 @@
       "report": "Báo cáo tuyển dụng",
       "jobPosts": "Tin tuyển dụng",
       "candidates": "Ứng viên",
-      "pipeline": "Pipeline",
       "interviews": "Phỏng vấn",
       "messages": "Tin nhắn",
       "company": "Công ty",
@@ -959,7 +958,8 @@
         "companyInfo": "Cập nhật thông tin công ty",
         "license": "Cập nhật Giấy đăng ký doanh nghiệp",
         "agreement": "Cập nhật Thỏa thuận xử lý DLCN với ứng viên",
-        "firstJob": "Đăng tin tuyển dụng đầu tiên"
+        "firstJob": "Đăng tin tuyển dụng đầu tiên",
+        "progressLabel": "Hoàn tất hồ sơ"
       },
       "accountCard": {
         "title": "Tài khoản",
@@ -983,39 +983,6 @@
       "instructionCard": {
         "title": "Hướng dẫn kích hoạt tài khoản",
         "content": "Hồ sơ của bạn hiện đang ở trạng thái kích hoạt từng phần. Sau khi hoàn tất 3 bước cập nhật thông tin trong hộp thoại (Thông tin nhà tuyển dụng, hồ sơ công ty và tải lên minh chứng doanh nghiệp hợp lệ), hệ thống sẽ gửi yêu cầu phê duyệt đến quản trị viên. Công ty của bạn sẽ được kích hoạt đầy đủ tính năng tuyển dụng ngay khi hồ sơ được xác minh thành công."
-      }
-    },
-    "pipeline": {
-      "title": "Quy trình ứng viên",
-      "subtitle": "Quản lý trạng thái ứng viên, theo dõi các giai đoạn tuyển dụng và đánh giá kết quả kiểm tra.",
-      "metrics": {
-        "totalCandidates": "Tổng số ứng viên",
-        "totalCandidatesDesc": "Ứng viên khớp điều kiện lọc",
-        "inInterview": "Đang phỏng vấn",
-        "inInterviewDesc": "Giai đoạn phỏng vấn trực tiếp",
-        "offersSent": "Đề xuất đã gửi",
-        "offersSentDesc": "Đã gửi đề nghị thử việc",
-        "hiredRate": "Tỉ lệ tuyển dụng",
-        "hiredRateDesc": "Đã tuyển / tổng số ứng viên"
-      },
-      "filters": {
-        "searchPlaceholder": "Tìm theo tên ứng viên, vị trí, công nghệ...",
-        "allJobs": "Tất cả công việc",
-        "clearFilters": "Xóa bộ lọc",
-        "exportBtn": "Xuất file",
-        "addCandidateBtn": "Thêm ứng viên",
-        "showingFiltered": "Đang hiển thị kết quả lọc theo lựa chọn của bạn."
-      },
-      "column": {
-        "noCandidates": "Không có ứng viên",
-        "emptyDescription": "Kéo thả hoặc ghép ứng viên phù hợp.",
-        "yearsExp": "{count} năm kinh nghiệm",
-        "yrsExp": "{count} năm kinh nghiệm"
-      },
-      "emptyState": {
-        "title": "Không tìm thấy ứng viên nào",
-        "description": "Không có ứng viên nào khớp với từ khóa tìm kiếm hoặc công việc đã chọn. Vui lòng thay đổi từ khóa hoặc xóa bộ lọc.",
-        "clearFilters": "Xóa bộ lọc"
       }
     },
     "interviews": {
@@ -1179,12 +1146,18 @@
         "other": "Khác"
       },
       "upload": {
-        "chooseFile": "Chọn tệp tin",
+        "chooseFile": "Chọn tệp",
         "noFile": "Chưa chọn tệp",
         "uploading": "Đang tải lên...",
         "onlyImages": "Chỉ chấp nhận file hình ảnh.",
         "onlyPdfs": "Chỉ chấp nhận file PDF.",
-        "helpText": "Chấp nhận PDF, PNG, JPG. Sau khi gửi, công ty sẽ ở trạng thái chờ duyệt."
+        "helpText": "Chấp nhận PDF, PNG, JPG. Sau khi gửi, công ty sẽ ở trạng thái chờ duyệt.",
+        "dragDropText": "Kéo & thả tệp vào đây hoặc chọn tệp từ máy tính",
+        "supportedFormats": "Hỗ trợ định dạng: PDF, PNG, JPG",
+        "change": "Thay đổi",
+        "delete": "Xóa",
+        "existingLicense": "Giấy phép kinh doanh đã tải lên",
+        "replaceHelpText": "Bạn có thể tải tệp mới để thay thế"
       },
       "buttons": {
         "back": "Quay lại",
@@ -1287,9 +1260,9 @@
         "aiScan": {
           "title": "Tự động điền thông tin nhanh bằng AI",
           "badgeNew": "Mới",
-          "helpText": "Tải lên Giấy đăng ký kinh doanh (GPKD), hệ thống AI của UpNext sẽ tự động phân tích và điền nhanh các thông tin như Tên công ty, Mã số thuế, Địa chỉ, SĐT, Email...",
+          "helpText": "Tải lên Giấy đăng ký kinh doanh, hệ thống AI của UpNext sẽ tự động phân tích và điền nhanh các thông tin.",
           "uploadBtn": "Tải lên GPKD để quét",
-          "scanning": "Đang quét bằng AI...",
+          "scanning": "Đang quét...",
           "startBtn": "Bắt đầu quét AI",
           "cancelBtn": "Hủy"
         },
@@ -1498,7 +1471,7 @@
       },
       "permissionNames": {
         "jobs_manage": "Quản lý tin tuyển dụng",
-        "applications_manage": "Quản lý tất cả hồ sơ ứng viên & pipeline",
+        "applications_manage": "Quản lý tất cả hồ sơ ứng viên",
         "applications_review_assigned": "Đánh giá ứng viên được phân công",
         "interviews_manage": "Quản lý lịch phỏng vấn",
         "interviews_review_assigned": "Đánh giá phỏng vấn được phân công",

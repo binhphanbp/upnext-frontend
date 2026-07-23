@@ -16,8 +16,12 @@ import {
   getRecruiterAccount,
   type CompanyLocation,
 } from "@/features/recruiter/api/onboarding";
-import { getCompanyMembers } from "@/features/recruiter/api/team";
-import { useRecruiterPipeline } from "@/features/recruiter/hooks/use-recruiter-pipeline";
+import {
+  getCompanyApplications,
+  getCompanyMembers,
+  isRecruiterMissingCompanyError,
+  type Application,
+} from "@/features/recruiter/api/team";
 import type { RecruiterJobPost } from "@/features/recruiter/job-posts/api";
 import { getRecruiterSession } from "@/features/recruiter/session";
 import { cn } from "@/shared/lib/cn";
@@ -80,9 +84,24 @@ export function ScheduleInterviewDialog({
   const [recruiterProfileId, setRecruiterProfileId] = useState("");
   const [companyLocations, setCompanyLocations] = useState<CompanyLocation[]>([]);
 
-  const { data: pipeline } = useRecruiterPipeline(open ? token : null, { jobPostId: jobId });
+  const { data: applications } = useQuery({
+    queryKey: ["recruiter", "company-applications", { jobId }],
+    queryFn: () => {
+      if (!token) return Promise.resolve([] as Application[]);
+      return getCompanyApplications(token, {
+        ...(jobId !== "all" ? { jobPostId: jobId } : {}),
+      }).catch((error) => {
+        if (isRecruiterMissingCompanyError(error)) {
+          return [] as Application[];
+        }
 
-  const candidateOptions = useMemo(() => pipeline?.candidates ?? [], [pipeline]);
+        throw error;
+      });
+    },
+    enabled: open && !!token,
+  });
+
+  const candidateOptions = useMemo(() => applications ?? [], [applications]);
 
   const { data: previousInterviews } = useQuery({
     queryKey: ["recruiter", "interviews", { applicationId }],
@@ -110,11 +129,14 @@ export function ScheduleInterviewDialog({
   const filteredCandidatesForSelect = useMemo(() => {
     const q = candidateSearch.toLowerCase().trim();
     if (!q) return candidateOptions;
-    return candidateOptions.filter(
-      (candidate) =>
-        candidate.name.toLowerCase().includes(q) ||
-        (candidate.role && candidate.role.toLowerCase().includes(q)),
-    );
+    return candidateOptions.filter((application) => {
+      const candidateName =
+        application.candidateProfile.account.fullName ?? application.candidateProfile.account.email;
+      return (
+        candidateName.toLowerCase().includes(q) ||
+        application.jobPost.title.toLowerCase().includes(q)
+      );
+    });
   }, [candidateOptions, candidateSearch]);
 
   useEffect(() => {
@@ -220,7 +242,7 @@ export function ScheduleInterviewDialog({
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["recruiter", "interviews"] });
-      void queryClient.invalidateQueries({ queryKey: ["recruiter", "pipeline"] });
+      void queryClient.invalidateQueries({ queryKey: ["recruiter", "company-applications"] });
       void toast.fire({ icon: "success", title: t("interviews.toasts.scheduleSuccess") });
       onOpenChange(false);
     },
@@ -283,8 +305,9 @@ export function ScheduleInterviewDialog({
                 >
                   <span className="flex-1 truncate text-left">
                     {jobId === "all"
-                      ? t("pipeline.filters.allJobs")
-                      : (jobs.find((j) => j.id === jobId)?.title ?? t("pipeline.filters.allJobs"))}
+                      ? t("candidates.filters.allJobs")
+                      : (jobs.find((j) => j.id === jobId)?.title ??
+                        t("candidates.filters.allJobs"))}
                   </span>
                   <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
                 </button>
@@ -329,7 +352,7 @@ export function ScheduleInterviewDialog({
                       jobId === "all" && "text-emerald-600 bg-emerald-50/30",
                     )}
                   >
-                    {t("pipeline.filters.allJobs")}
+                    {t("candidates.filters.allJobs")}
                   </DropdownMenuItem>
                   {filteredJobsForSelect.map((job) => (
                     <DropdownMenuItem
@@ -392,11 +415,9 @@ export function ScheduleInterviewDialog({
                     <span className="flex-1 truncate text-left">
                       {applicationId
                         ? (() => {
-                            const selected = candidateOptions.find(
-                              (c) => c.applicationId === applicationId,
-                            );
+                            const selected = candidateOptions.find((c) => c.id === applicationId);
                             return selected
-                              ? `${selected.name} — ${selected.role}`
+                              ? `${selected.candidateProfile.account.fullName ?? selected.candidateProfile.account.email} — ${selected.jobPost.title}`
                               : t("interviews.scheduleForm.candidatePlaceholder");
                           })()
                         : t("interviews.scheduleForm.candidatePlaceholder")}
@@ -436,18 +457,19 @@ export function ScheduleInterviewDialog({
                   <div className="min-h-0 flex-1 overflow-y-auto">
                     {filteredCandidatesForSelect.map((candidate) => (
                       <DropdownMenuItem
-                        key={candidate.applicationId}
+                        key={candidate.id}
                         onClick={() => {
-                          setApplicationId(candidate.applicationId);
+                          setApplicationId(candidate.id);
                           setCandidateDropdownOpen(false);
                         }}
                         className={cn(
                           "cursor-pointer flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium hover:bg-slate-50",
-                          applicationId === candidate.applicationId &&
-                            "text-emerald-600 bg-emerald-50/30",
+                          applicationId === candidate.id && "text-emerald-600 bg-emerald-50/30",
                         )}
                       >
-                        {candidate.name} — {candidate.role}
+                        {candidate.candidateProfile.account.fullName ??
+                          candidate.candidateProfile.account.email}{" "}
+                        — {candidate.jobPost.title}
                       </DropdownMenuItem>
                     ))}
                     {filteredCandidatesForSelect.length === 0 && (

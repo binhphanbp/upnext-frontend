@@ -29,7 +29,7 @@ function decodeJwt(token: string) {
         .join(""),
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -39,13 +39,21 @@ export default function RecruiterAuthCallbackPage() {
   const t = useTranslations("RecruiterAuth");
 
   useEffect(() => {
-    const credentials = new URLSearchParams(window.location.hash.replace(/^#/u, ""));
-    const token = credentials.get("token");
-    const refreshToken = credentials.get("refreshToken");
-    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
-    if (token) {
+    async function handleCallback() {
+      const credentials = new URLSearchParams(window.location.hash.replace(/^#/u, ""));
+      const token = credentials.get("token");
+      const refreshToken = credentials.get("refreshToken");
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+
+      if (!token) {
+        router.push("/recruiter/login");
+        return;
+      }
+
       const decoded = decodeJwt(token);
       if (decoded && decoded.role === "RECRUITER") {
+        const email = typeof decoded.email === "string" ? decoded.email : "";
+
         localStorage.setItem("upnext.recruiter.accessToken", token);
         if (refreshToken) localStorage.setItem("upnext.recruiter.refreshToken", refreshToken);
         localStorage.setItem("upnext.recruiter.tokenType", "Bearer");
@@ -53,7 +61,7 @@ export default function RecruiterAuthCallbackPage() {
           "upnext.recruiter.user",
           JSON.stringify({
             id: decoded.sub,
-            email: decoded.email,
+            email,
             role: decoded.role,
           }),
         );
@@ -69,9 +77,11 @@ export default function RecruiterAuthCallbackPage() {
         router.push("/recruiter");
         return;
       }
+
+      router.push("/recruiter/login");
     }
 
-    router.push("/recruiter/login");
+    void handleCallback();
   }, [router, t]);
 
   return (

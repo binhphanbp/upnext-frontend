@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -19,6 +20,7 @@ import {
 
 export default function RecruiterRegisterSuccessPage() {
   const router = useRouter();
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
   const [resending, setResending] = useState(false);
@@ -43,7 +45,7 @@ export default function RecruiterRegisterSuccessPage() {
 
     setResending(true);
     try {
-      await requestRecruiterEmailVerification(email);
+      await requestRecruiterEmailVerification(email, locale);
       void Swal.fire({
         icon: "success",
         title: "Đã gửi lại email",

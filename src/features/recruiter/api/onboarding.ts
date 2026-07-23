@@ -166,19 +166,33 @@ export function uploadCompanyBusinessLicense(companyId: string, file: File, toke
   });
 }
 
+export type ScanCompanyLicenseResult = {
+  name: string;
+  taxCode: string;
+  city: string | null;
+  address: string;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+};
+
 export function scanCompanyBusinessLicense(companyId: string, file: File, token: string) {
   const formData = new FormData();
   formData.append("file", file);
 
-  return apiRequest<{
-    name: string;
-    taxCode: string;
-    city: string | null;
-    address: string;
-    email: string | null;
-    phone: string | null;
-    website: string | null;
-  }>(`/companies/${companyId}/scan-license`, {
+  return apiRequest<ScanCompanyLicenseResult>(`/companies/${companyId}/scan-license`, {
+    body: formData,
+    headers: authHeaders(token),
+    method: "POST",
+  });
+}
+
+// Quét trước khi công ty được tạo (onboarding) — không đọc/ghi dữ liệu công ty nào.
+export function scanCompanyBusinessLicensePreview(file: File, token: string) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiRequest<ScanCompanyLicenseResult>("/companies/scan-license", {
     body: formData,
     headers: authHeaders(token),
     method: "POST",
