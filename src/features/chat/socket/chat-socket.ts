@@ -77,13 +77,36 @@ export type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 let socket: ChatSocket | null = null;
 let disconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
+export function getSocketBaseUrl(): string {
+  if (env.NEXT_PUBLIC_SOCKET_URL && env.NEXT_PUBLIC_SOCKET_URL.trim() !== "") {
+    return env.NEXT_PUBLIC_SOCKET_URL;
+  }
+
+  const apiBase = env.NEXT_PUBLIC_API_BASE_URL;
+  if (apiBase.startsWith("http://") || apiBase.startsWith("https://")) {
+    try {
+      const url = new URL(apiBase);
+      return url.origin;
+    } catch {
+      // Fallback
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+
+  return "http://localhost:3000";
+}
+
 export function acquireChatSocket(token: string): ChatSocket {
   if (disconnectTimer) {
     clearTimeout(disconnectTimer);
     disconnectTimer = null;
   }
   if (!socket) {
-    socket = io(`${env.NEXT_PUBLIC_SOCKET_URL.replace(/\/$/u, "")}/chat`, {
+    const socketBaseUrl = getSocketBaseUrl();
+    socket = io(`${socketBaseUrl.replace(/\/$/u, "")}/chat`, {
       autoConnect: false,
       transports: ["websocket", "polling"],
       auth: { token },
