@@ -13,6 +13,7 @@
 ### Task 1: Write and run the failing composition test
 
 **Files:**
+
 - Create: `e2e/home-featured-companies.spec.ts`
 
 - [ ] At viewport 1440×1200, navigate to `/vi`, scope to `.marketing-home-companies`, assert 8 `.featured-company-card` elements, and assert the spotlight's computed `grid-row` is `2 / span 3`.
@@ -21,6 +22,7 @@
 ### Task 2: Render four complete rows only at desktop
 
 **Files:**
+
 - Modify: `src/features/public/home/featured-companies.tsx`
 - Test: `e2e/home-featured-companies.spec.ts`
 
@@ -30,6 +32,7 @@
 ### Task 3: Shorten and rebalance the spotlight panel
 
 **Files:**
+
 - Modify: `src/features/public/home/marketing-home.css`
 - Test: `e2e/home-featured-companies.spec.ts`
 
@@ -40,6 +43,7 @@
 ### Task 4: Verify and publish
 
 **Files:**
+
 - Modify: none
 
 - [ ] Run `pnpm typecheck` and `pnpm lint`.
