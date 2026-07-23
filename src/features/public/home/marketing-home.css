@@ -5850,7 +5850,9 @@ button.marketing-home-control {
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  width: min(1400px, calc(100vw - 96px));
+  /* The rail intentionally spans the viewport, but its context (title + CTA)
+     must stay aligned with every other homepage section. */
+  width: min(1280px, calc(100vw - 96px));
   margin: 0 auto 56px;
 }
 
