@@ -42,6 +42,7 @@ export interface PublicJob {
 export interface PublicCompany {
   id: string;
   name: string;
+  slug?: string;
   type: string;
   logoUrl?: string | null;
   logoFile?: {
@@ -50,6 +51,13 @@ export interface PublicCompany {
   website?: string | null;
   address?: string | null;
   description?: string | null;
+}
+
+export interface PublicCompanyDetail extends PublicCompany {
+  slug: string;
+  coverFile?: {
+    publicUrl: string;
+  } | null;
 }
 
 export interface PublicCompanyListResponse {
@@ -68,4 +76,8 @@ export function getPublicJobs() {
 
 export function getPublicCompanies() {
   return apiRequest<PublicCompanyListResponse>("/companies");
+}
+
+export function getPublicCompanyDetail(slug: string) {
+  return apiRequest<PublicCompanyDetail>(`/companies/${slug}`);
 }
