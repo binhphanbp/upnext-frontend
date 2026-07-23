@@ -1,22 +1,42 @@
 "use client";
 
-import { Buildings, Briefcase, Headset, Info, Plus, Tag, X } from "@phosphor-icons/react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Buildings,
+  Briefcase,
+  Headset,
+  Info,
+  Plus,
+  Tag,
+  UsersThree,
+  X,
+} from "@phosphor-icons/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
-import { updateConversationTags } from "../api/conversations";
+import {
+  addRecruiterToConversation,
+  addRecruiterToHiringTeam,
+  getConversationRecruiters,
+  getHiringTeam,
+  updateConversationTags,
+} from "../api/conversations";
 import { useChatSocket } from "../socket/chat-socket-provider";
 import type { ConversationDetail } from "../types/contracts";
 
 export function ConversationContextPanel({ conversation }: { conversation: ConversationDetail }) {
-  const { actor, token } = useChatSocket();
+  const { actor, identity, token } = useChatSocket();
   const queryClient = useQueryClient();
   const [draftTag, setDraftTag] = useState("");
+  const [recruiterId, setRecruiterId] = useState("");
   const tags = conversation.tags ?? [];
+  const canManageHiring =
+    actor === "RECRUITER" &&
+    conversation.type === "APPLICATION_CHAT" &&
+    Boolean(identity?.permissions.includes("applications:manage"));
   const recruiter = conversation.participants.find(
     (participant) => participant.recruiterAccount,
   )?.recruiterAccount;
@@ -28,6 +48,35 @@ export function ConversationContextPanel({ conversation }: { conversation: Conve
         queryClient.invalidateQueries({ queryKey: ["chat", "conversation", conversation.id] }),
         queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] }),
         queryClient.invalidateQueries({ queryKey: ["chat", "conversation-tags"] }),
+      ]);
+    },
+  });
+  const recruiters = useQuery({
+    queryKey: ["chat", "conversation-recruiters", conversation.id],
+    enabled: Boolean(token && canManageHiring),
+    queryFn: () => getConversationRecruiters(token!, conversation.id),
+    select: (response) => response.data,
+  });
+  const hiringTeam = useQuery({
+    queryKey: ["chat", "hiring-team", conversation.id],
+    enabled: Boolean(token && canManageHiring),
+    queryFn: () => getHiringTeam(token!, conversation.id),
+    select: (response) => response.data,
+  });
+  const memberMutation = useMutation({
+    mutationFn: ({ scope, id }: { scope: "conversation" | "team"; id: string }) =>
+      scope === "conversation"
+        ? addRecruiterToConversation(token!, conversation.id, id)
+        : addRecruiterToHiringTeam(token!, conversation.id, id),
+    onSuccess: async () => {
+      setRecruiterId("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["chat", "conversation", conversation.id] }),
+        queryClient.invalidateQueries({ queryKey: ["chat", "conversations"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["chat", "conversation-recruiters", conversation.id],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["chat", "hiring-team", conversation.id] }),
       ]);
     },
   });
@@ -123,6 +172,71 @@ export function ConversationContextPanel({ conversation }: { conversation: Conve
               <Badge>{statusLabel(conversation.supportCase.status)}</Badge>
             </div>
           </>
+        ) : null}
+        {canManageHiring ? (
+          <div className="border-t border-slate-100 pt-4">
+            <div className="mb-2 flex items-center gap-2">
+              <UsersThree className="text-slate-500" />
+              <p className="text-xs font-semibold text-slate-700">Nhóm tuyển dụng</p>
+            </div>
+            <p className="mb-3 text-xs leading-5 text-slate-500">
+              Thêm đồng nghiệp cho riêng cuộc trao đổi này, hoặc cho toàn bộ hồ sơ ứng tuyển của tin
+              tuyển dụng.
+            </p>
+            <select
+              aria-label="Chọn đồng nghiệp"
+              value={recruiterId}
+              disabled={recruiters.isLoading || memberMutation.isPending}
+              onChange={(event) => setRecruiterId(event.target.value)}
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-500"
+            >
+              <option value="">Chọn đồng nghiệp</option>
+              {(recruiters.data ?? []).map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.profile?.fullName ?? entry.email}
+                  {entry.isHiringTeamMember ? " · đã ở nhóm tuyển dụng" : ""}
+                  {!entry.isHiringTeamMember && entry.isConversationParticipant
+                    ? " · đã ở hội thoại"
+                    : ""}
+                </option>
+              ))}
+            </select>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!recruiterId || memberMutation.isPending}
+                onClick={() => memberMutation.mutate({ scope: "conversation", id: recruiterId })}
+              >
+                Thêm vào chat
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={!recruiterId || memberMutation.isPending}
+                onClick={() => memberMutation.mutate({ scope: "team", id: recruiterId })}
+              >
+                Thêm vào team
+              </Button>
+            </div>
+            {hiringTeam.data?.length ? (
+              <p className="mt-3 text-xs text-slate-500">
+                Team hiện tại:{" "}
+                {hiringTeam.data
+                  .map(
+                    (member) =>
+                      member.recruiterAccount.profile?.fullName ?? member.recruiterAccount.email,
+                  )
+                  .join(", ")}
+              </p>
+            ) : null}
+            {memberMutation.error ? (
+              <p role="alert" className="mt-2 text-xs text-red-600">
+                {memberMutation.error.message}
+              </p>
+            ) : null}
+          </div>
         ) : null}
         <div className="border-t border-slate-100 pt-4">
           <div className="mb-2 flex items-center gap-2">
