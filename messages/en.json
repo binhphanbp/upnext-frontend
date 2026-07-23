@@ -826,7 +826,6 @@
       "report": "Recruitment Report",
       "jobPosts": "Job Posts",
       "candidates": "Candidates",
-      "pipeline": "Pipeline",
       "interviews": "Interviews",
       "messages": "Messages",
       "company": "Company",
@@ -959,7 +958,8 @@
         "companyInfo": "Update company profile",
         "license": "Update business license",
         "agreement": "Update Personal Data Processing Agreement with candidates",
-        "firstJob": "Post your first job"
+        "firstJob": "Post your first job",
+        "progressLabel": "Profile Completion"
       },
       "accountCard": {
         "title": "Account",
@@ -983,39 +983,6 @@
       "instructionCard": {
         "title": "Account Activation Guide",
         "content": "Your profile is currently partially activated. After completing the 3 update steps in the dialog (Recruiter Info, Company Profile, and uploading a valid business verification file), the system will submit a request to the administrator. Your company will be fully activated for recruitment as soon as your profile is successfully verified."
-      }
-    },
-    "pipeline": {
-      "title": "Candidate Pipeline",
-      "subtitle": "Manage candidate status, track recruitment stages, and evaluate scoring metrics.",
-      "metrics": {
-        "totalCandidates": "Total Candidates",
-        "totalCandidatesDesc": "Candidates matching criteria",
-        "inInterview": "In Interview",
-        "inInterviewDesc": "Active interviewing phase",
-        "offersSent": "Offers Sent",
-        "offersSentDesc": "Extended salary proposals",
-        "hiredRate": "Hired Rate",
-        "hiredRateDesc": "Hired vs total candidates"
-      },
-      "filters": {
-        "searchPlaceholder": "Search candidate name, role, tech stack...",
-        "allJobs": "All Jobs",
-        "clearFilters": "Clear Filters",
-        "exportBtn": "Export",
-        "addCandidateBtn": "Add Candidate",
-        "showingFiltered": "Showing filtered results based on your selection."
-      },
-      "column": {
-        "noCandidates": "No candidates",
-        "emptyDescription": "Drag candidates here or match candidates.",
-        "yearsExp": "{count} years experience",
-        "yrsExp": "{count} yrs exp"
-      },
-      "emptyState": {
-        "title": "No candidates found",
-        "description": "No candidates match your search or job criteria. Try adjustments or clear the filters.",
-        "clearFilters": "Clear Filters"
       }
     },
     "interviews": {
@@ -1184,7 +1151,13 @@
         "uploading": "Uploading...",
         "onlyImages": "Only image files are accepted.",
         "onlyPdfs": "Only PDF files are accepted.",
-        "helpText": "Accepts PDF, PNG, JPG. After submission, the company status will be pending."
+        "helpText": "Accepts PDF, PNG, JPG. After submission, the company status will be pending.",
+        "dragDropText": "Drag & drop file here or choose file from computer",
+        "supportedFormats": "Supported formats: PDF, PNG, JPG",
+        "change": "Change",
+        "delete": "Delete",
+        "existingLicense": "Uploaded business license",
+        "replaceHelpText": "You can upload a new file to replace it"
       },
       "buttons": {
         "back": "Back",
@@ -1498,7 +1471,7 @@
       },
       "permissionNames": {
         "jobs_manage": "Manage job posts",
-        "applications_manage": "Manage all candidate profiles & pipeline",
+        "applications_manage": "Manage all candidate profiles",
         "applications_review_assigned": "Review assigned candidates",
         "interviews_manage": "Manage interview schedules",
         "interviews_review_assigned": "Review assigned interviews",
@@ -3264,7 +3237,7 @@
     },
     "showcase": {
       "slide1Title": "Smart Candidate Management",
-      "slide1Description": "Optimize your hiring pipeline with leading AI candidate management tools.",
+      "slide1Description": "Optimize your hiring workflow with leading AI candidate management tools.",
       "slide2Title": "Intuitive Data Analytics",
       "slide2Description": "Visual analytics help recruiters track hiring campaign performance easily.",
       "prev": "Previous slide",

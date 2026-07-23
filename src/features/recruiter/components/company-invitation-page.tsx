@@ -191,7 +191,7 @@ export function RecruiterCompanyInvitationPage() {
           <div className="mt-8">
             <Button
               onClick={() => router.push("/recruiter/login")}
-              className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-extrabold hover:bg-[#0d966d]"
+              className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-bold hover:bg-[#0d966d]"
             >
               {t("companyInvitation.backToLogin")}
             </Button>
@@ -222,7 +222,7 @@ export function RecruiterCompanyInvitationPage() {
           <div className="mt-8 space-y-3">
             <Button
               onClick={handleLogoutAndRedirect}
-              className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-extrabold hover:bg-[#0d966d]"
+              className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-bold hover:bg-[#0d966d]"
             >
               {t("companyInvitation.logoutAndUseOther")}
             </Button>
@@ -261,7 +261,7 @@ export function RecruiterCompanyInvitationPage() {
             <Button
               disabled={acceptingExisting}
               onClick={handleAcceptExisting}
-              className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-extrabold hover:bg-[#0d966d]"
+              className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-bold hover:bg-[#0d966d]"
             >
               {acceptingExisting
                 ? t("companyInvitation.submitting")
@@ -294,7 +294,7 @@ export function RecruiterCompanyInvitationPage() {
           <div className="mt-8">
             <Button
               onClick={handleLoginRedirect}
-              className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-extrabold hover:bg-[#0d966d]"
+              className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-bold hover:bg-[#0d966d]"
             >
               {t("companyInvitation.backToLogin")}
             </Button>
@@ -374,7 +374,7 @@ export function RecruiterCompanyInvitationPage() {
             <Button
               type="submit"
               disabled={form.formState.isSubmitting}
-              className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-extrabold hover:bg-[#0d966d]"
+              className="h-11 w-full rounded-lg bg-[#11a77a] text-sm font-bold hover:bg-[#0d966d]"
             >
               {form.formState.isSubmitting
                 ? t("companyInvitation.submitting")

@@ -23,6 +23,12 @@ export type RecruiterRegisterPayload = Readonly<{
   password: string;
 }>;
 
+export type RecruiterRegisterResponse = Readonly<{
+  email: string;
+  emailVerified: boolean;
+  message: string;
+}>;
+
 export type PasswordResetMessageResponse = Readonly<{
   message: string;
 }>;
@@ -46,7 +52,7 @@ export function refreshRecruiter(refreshToken: string) {
 }
 
 export function registerRecruiter(payload: RecruiterRegisterPayload) {
-  return apiRequest<RecruiterLoginResponse>("/recruiter/auth/register", {
+  return apiRequest<RecruiterRegisterResponse>("/recruiter/auth/register", {
     body: JSON.stringify(payload),
     headers: {
       "Content-Type": "application/json",
@@ -76,13 +82,14 @@ export function confirmRecruiterPasswordReset(payload: { token: string; password
   });
 }
 
-export function requestRecruiterEmailVerification(email: string) {
+export function requestRecruiterEmailVerification(email: string, locale?: string) {
   return apiRequest<{ message: string }>(
     "/recruiter-accounts/email-verification/request-unauthenticated",
     {
       body: JSON.stringify({ email }),
       headers: {
         "Content-Type": "application/json",
+        ...(locale ? { "x-locale": locale } : {}),
       },
       method: "POST",
     },

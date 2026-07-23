@@ -1,7 +1,7 @@
 "use client";
 
 import { XCircle, Spinner } from "@phosphor-icons/react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -11,6 +11,7 @@ import {
   verifyRecruiterEmail,
   requestRecruiterEmailVerification,
 } from "@/features/recruiter/api/auth";
+import { clearRecruiterEmailVerificationPending } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/shared/ui/button";
 import {
@@ -25,6 +26,7 @@ import { FormInput } from "@/shared/ui/input";
 
 export default function RecruiterEmailVerificationPage() {
   const router = useRouter();
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
   const t = useTranslations("RecruiterAuth.emailVerification");
@@ -53,7 +55,8 @@ export default function RecruiterEmailVerificationPage() {
 
     async function verify() {
       try {
-        await verifyRecruiterEmail(token);
+        const result = await verifyRecruiterEmail(token);
+        clearRecruiterEmailVerificationPending(result.email);
         setSuccess(true);
       } catch (error) {
         setSuccess(false);
@@ -79,7 +82,7 @@ export default function RecruiterEmailVerificationPage() {
 
     setResending(true);
     try {
-      await requestRecruiterEmailVerification(emailInput.trim());
+      await requestRecruiterEmailVerification(emailInput.trim(), locale);
       void Swal.fire({
         icon: "success",
         title: t("sendSuccessTitle"),
