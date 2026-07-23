@@ -2057,23 +2057,28 @@ button.marketing-home-control {
 
 .urgent-job-chips {
   display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .urgent-job-chips > span {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  min-height: 26px;
-  padding: 0 10px;
+  gap: 4px;
+  min-height: 25px;
+  padding: 0 9px;
   color: #334155;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   white-space: nowrap;
   border-radius: 999px;
   background: #f0f3f5;
+  max-width: 135px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .urgent-job-chips svg {

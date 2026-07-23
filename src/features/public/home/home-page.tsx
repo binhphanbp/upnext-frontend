@@ -96,6 +96,14 @@ function formatDeadlineWithDate(expiredAt: string | Date | null | undefined) {
   return `Còn ${remainingDays} ngày`;
 }
 
+function formatCompactLocation(city?: string | null) {
+  if (!city) return "Việt Nam";
+  if (city.includes("Hồ Chí Minh") || city.includes("HCM") || city.includes("Hcm")) return "TP.HCM";
+  if (city.includes("Hà Nội")) return "Hà Nội";
+  if (city.includes("Đà Nẵng")) return "Đà Nẵng";
+  return city;
+}
+
 function getCompanyInitials(companyName: string) {
   const ignoredWords = new Set([
     "công",
@@ -526,7 +534,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           job.salaryIsVisible && job.salaryMin && job.salaryMax
             ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu`
             : "Thỏa thuận",
-        location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
+        location: formatCompactLocation(job.jobPostLocations?.[0]?.jobLocation?.city),
         mode: job.employmentType?.name || "Full-time",
         tags:
           job.jobPostSkills && job.jobPostSkills.length > 0
