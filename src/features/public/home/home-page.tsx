@@ -5,7 +5,6 @@ import { useLocale } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
-import { getCandidateSession } from "@/features/candidate/session";
 import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
 import { useRouter } from "@/i18n/navigation";
 
@@ -18,20 +17,18 @@ import { InsightsCarousel } from "./insights-carousel";
 import { JobMarket } from "./job-market";
 import {
   ArrowRight,
+  Bookmark,
   BriefcaseBusiness,
   Building2,
   Check,
   ChevronDown,
   ChevronRight,
-  Clock,
   Coins,
   MapPin,
   Search,
   Sparkles,
   UsersRound,
-  User,
-  Globe,
-  Cloud,
+  Zap,
 } from "./marketing-icons";
 import { getPopularKeywordsForLocale } from "./popular-keywords";
 
@@ -84,6 +81,36 @@ const trustedCompanies = [
   ["tiki", ""],
   ["momo", ""],
 ];
+
+function getCompanyInitials(companyName: string) {
+  const ignoredWords = new Set([
+    "công",
+    "ty",
+    "tnhh",
+    "cổ",
+    "phần",
+    "trách",
+    "nhiệm",
+    "hữu",
+    "hạn",
+    "company",
+    "joint",
+    "stock",
+    "co",
+    "ltd",
+  ]);
+  const words = companyName
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word && !ignoredWords.has(word.toLocaleLowerCase("vi")));
+  const source = words.length > 0 ? words : companyName.trim().split(/\s+/);
+
+  return source
+    .slice(0, 2)
+    .map((word) => word.charAt(0))
+    .join("")
+    .toLocaleUpperCase("vi");
+}
 
 const urgentJobs = [
   {
@@ -296,7 +323,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
   const urgentJobsList = useMemo(() => {
     if (!apiJobsData || apiJobsData.length === 0) return urgentJobs;
-    const mapped = apiJobsData.slice(0, 4).map((job, index) => {
+    const mapped = apiJobsData.slice(0, 9).map((job, index) => {
       const isUrgent = index % 2 === 0;
       return {
         id: job.id,
@@ -546,7 +573,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           </div>
         </section>
 
-        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} onApply={setApplyJob} />
+        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} />
 
         <FeaturedJobs navigate={navigate} onApply={setApplyJob} />
         <FeaturedCompanies navigate={navigate} />
@@ -566,7 +593,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 function UrgentJobsSection({
   navigate,
   urgentJobs,
-  onApply,
 }: {
   navigate: (path: string) => void;
   urgentJobs: Array<{
@@ -587,14 +613,33 @@ function UrgentJobsSection({
     level: string;
     bgClass: string;
   }>;
-  onApply: (job: { id: string; title: string; company: string }) => void;
 }) {
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => new Set());
+
+  function toggleSavedJob(jobId: string) {
+    setSavedJobIds((current) => {
+      const next = new Set(current);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
+      return next;
+    });
+  }
+
   return (
     <section className="marketing-home-urgent" aria-label="Việc cần tuyển gấp">
       <header className="marketing-home-urgent-head">
         <div>
+          <span className="marketing-home-urgent-eyebrow">
+            <Zap size={14} weight="fill" />
+            Tuyển gấp hôm nay
+          </span>
           <h2>Việc cần tuyển gấp</h2>
-          <p>Các vị trí đang đóng đơn sớm - nộp hồ sơ ngay để không bỏ lỡ cơ hội.</p>
+          <p>
+            Các vị trí đang cần tuyển gấp – nộp hồ sơ ngay để không bỏ lỡ cơ hội nghề nghiệp tốt.
+          </p>
         </div>
         <button
           type="button"
@@ -608,118 +653,66 @@ function UrgentJobsSection({
       <div className="marketing-home-urgent-grid">
         {urgentJobs.map((job) => (
           <article className="urgent-job-card" key={job.id}>
-            <div className="urgent-job-top">
-              <span
-                className={`urgent-job-logo ${job.logo ? "border border-slate-100 bg-white" : job.bgClass || "bg-emerald-600"}`}
-              >
-                {job.logo ? (
+            <div className="urgent-job-main">
+              <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
+                <span className="urgent-job-logo-fallback" aria-hidden="true">
+                  {getCompanyInitials(job.company)}
+                </span>
+                {job.logo && (
                   <img
                     src={job.logo}
                     alt={`Logo ${job.company}`}
                     width={46}
                     height={46}
                     className="rounded-lg object-contain"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
                   />
-                ) : job.company === "SkySoft" ? (
-                  <span className="flex size-full items-center justify-center rounded-lg bg-sky-100 text-sky-600">
-                    <Cloud size={24} weight="fill" />
-                  </span>
-                ) : (
-                  <span className="flex size-full items-center justify-center rounded-lg text-lg font-bold text-white">
-                    {job.company.charAt(0)}
-                  </span>
                 )}
               </span>
-              <span className={`urgent-job-deadline is-${job.deadlineTone}`}>
-                <Clock size={13} />
-                {job.deadline}
-              </span>
+
+              <div className="urgent-job-content">
+                <div className="urgent-job-heading">
+                  <h3>
+                    <button
+                      type="button"
+                      className="urgent-job-title"
+                      onClick={() => navigate(`/jobs/${job.id}`)}
+                    >
+                      {job.title}
+                    </button>
+                  </h3>
+                </div>
+                <strong className="urgent-job-company">{job.company}</strong>
+              </div>
             </div>
 
-            <h3>
+            <div className="urgent-job-compact-footer">
+              <div className="urgent-job-chips">
+                <span className="urgent-job-salary">
+                  <Coins size={14} />
+                  {job.salary}
+                </span>
+                <span className="urgent-job-location">
+                  <MapPin size={14} />
+                  {job.location}
+                </span>
+              </div>
               <button
                 type="button"
-                className="urgent-job-title"
-                onClick={() => navigate(`/jobs/${job.id}`)}
+                className="urgent-job-save"
+                aria-label={
+                  savedJobIds.has(job.id)
+                    ? `Bỏ lưu công việc ${job.title}`
+                    : `Lưu công việc ${job.title}`
+                }
+                aria-pressed={savedJobIds.has(job.id)}
+                onClick={() => toggleSavedJob(job.id)}
               >
-                {job.title}
+                <Bookmark size={20} weight={savedJobIds.has(job.id) ? "fill" : "regular"} />
               </button>
-            </h3>
-            <strong className="urgent-job-company">{job.company}</strong>
-
-            <div className="urgent-job-meta">
-              <span className="urgent-job-salary">
-                <Coins size={15} />
-                {job.salary}
-              </span>
-              <span className="urgent-job-loc-mode">
-                <MapPin size={14} />
-                {job.location}
-                <span className="mx-1.5 text-slate-300">•</span>
-                {job.mode === "Remote" ? <Globe size={14} /> : <Building2 size={14} />}
-                {job.mode}
-              </span>
             </div>
-
-            <div className="urgent-job-tags">
-              {(() => {
-                const maxTags = 3;
-                const maxChars = 22;
-                const shown: string[] = [];
-                let currentChars = 0;
-                for (const tag of job.tags) {
-                  if (shown.length >= maxTags) break;
-                  if (shown.length >= 1 && currentChars + tag.length > maxChars) {
-                    break;
-                  }
-                  shown.push(tag);
-                  currentChars += tag.length;
-                }
-                const extraCount = job.tags.length - shown.length;
-                return (
-                  <>
-                    {shown.map((tag) => (
-                      <i key={tag}>{tag}</i>
-                    ))}
-                    {extraCount > 0 && (
-                      <i
-                        className="urgent-job-tag-more text-slate-400"
-                        title={job.tags.slice(shown.length).join(", ")}
-                      >
-                        +{extraCount}
-                      </i>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-
-            <div className="urgent-job-footer">
-              <span className="urgent-job-level">
-                <User size={14} />
-                {job.level}
-              </span>
-              <span className="mx-1.5 text-slate-300">•</span>
-              <span className="urgent-job-applicants">
-                <UsersRound size={14} />
-                {job.applicants}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              className="urgent-job-apply"
-              onClick={() => {
-                const session = getCandidateSession();
-                if (session) {
-                  onApply(job);
-                } else {
-                  navigate(`/register?job=${job.id}`);
-                }
-              }}
-            >
-              Ứng tuyển ngay <ChevronRight size={16} />
-            </button>
           </article>
         ))}
       </div>
