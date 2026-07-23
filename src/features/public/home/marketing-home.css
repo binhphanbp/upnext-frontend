@@ -2307,7 +2307,7 @@ button.marketing-home-control {
 }
 
 .marketing-home-jobs-head p {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   color: #5f6979;
   font-size: 16px;
   font-weight: 500;
@@ -2336,6 +2336,7 @@ button.marketing-home-control {
 /* --- Carousel: a sliding track of full-width page slides. --- */
 .marketing-home-jobs-viewport {
   overflow: hidden;
+  margin-top: 24px;
 }
 
 .marketing-home-jobs-track {
