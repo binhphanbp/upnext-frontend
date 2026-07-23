@@ -52,16 +52,16 @@ const PAGE_SIZE = 6;
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
 function formatApplicationDeadline(expiredAt: string | null | undefined) {
-  if (!expiredAt) return "Không giới hạn thời gian nộp";
+  if (!expiredAt) return "Không giới hạn";
 
   const expirationTime = new Date(expiredAt).getTime();
-  if (Number.isNaN(expirationTime)) return "Chưa cập nhật hạn nộp";
+  if (Number.isNaN(expirationTime)) return "Chưa cập nhật";
 
   const remainingTime = expirationTime - Date.now();
   if (remainingTime < 0) return "Đã hết hạn";
 
   const remainingDays = Math.max(1, Math.ceil(remainingTime / DAY_IN_MILLISECONDS));
-  return `Còn ${remainingDays} ngày để nộp`;
+  return `Còn ${remainingDays} ngày`;
 }
 
 const verifyPoints = [

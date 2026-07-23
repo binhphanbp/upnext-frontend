@@ -29,6 +29,7 @@ import { getCandidateSession } from "@/features/candidate/session";
 import { apiRequest } from "@/shared/api/http";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
+import { matchNaturalLanguageSearch } from "@/shared/utils/natural-search";
 
 import { getPublicJobs } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
@@ -62,6 +63,7 @@ export type Job = {
   featured?: boolean;
   requirements?: string | null;
   benefits?: string | null;
+  expiredAt?: string | null;
 };
 
 type FilterGroup = {
@@ -512,14 +514,62 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
       if (isRemote) categories.push("remote");
       if (isHighSalary) categories.push("high-salary");
       const categoryCode = job.jobCategory?.name.toLowerCase() || "";
-      if (categoryCode.includes("frontend")) categories.push("frontend");
-      if (categoryCode.includes("backend")) categories.push("backend");
-      if (categoryCode.includes("mobile")) categories.push("mobile");
-      if (categoryCode.includes("data") || categoryCode.includes("ai")) {
+      const titleLower = job.title.toLowerCase();
+      const skillsLower = job.jobPostSkills?.map((s) => s.skill.name.toLowerCase()) || [];
+      const allText = `${categoryCode} ${titleLower} ${skillsLower.join(" ")}`;
+
+      if (
+        allText.includes("frontend") ||
+        allText.includes("front-end") ||
+        allText.includes("react") ||
+        allText.includes("vue") ||
+        allText.includes("angular") ||
+        allText.includes("next")
+      ) {
+        categories.push("frontend");
+      }
+      if (
+        allText.includes("backend") ||
+        allText.includes("back-end") ||
+        allText.includes("node") ||
+        allText.includes("java") ||
+        allText.includes("python") ||
+        allText.includes(".net") ||
+        allText.includes("php") ||
+        allText.includes("golang") ||
+        allText.includes("express") ||
+        allText.includes("nest")
+      ) {
+        categories.push("backend");
+      }
+      if (
+        allText.includes("mobile") ||
+        allText.includes("flutter") ||
+        allText.includes("ios") ||
+        allText.includes("android") ||
+        allText.includes("react native") ||
+        allText.includes("swift")
+      ) {
+        categories.push("mobile");
+      }
+      if (
+        allText.includes("data") ||
+        allText.includes("ai") ||
+        allText.includes("machine learning") ||
+        allText.includes("spark")
+      ) {
         categories.push("data-ai");
       }
-      if (categoryCode.includes("devops")) categories.push("devops");
-      if (categoryCode.includes("qa") || categoryCode.includes("test")) {
+      if (
+        allText.includes("devops") ||
+        allText.includes("cloud") ||
+        allText.includes("aws") ||
+        allText.includes("docker") ||
+        allText.includes("kubernetes")
+      ) {
+        categories.push("devops");
+      }
+      if (allText.includes("qa") || allText.includes("test") || allText.includes("qc")) {
         categories.push("qa");
       }
 
@@ -552,6 +602,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         featured: false,
         requirements: job.requirements,
         benefits: job.benefits,
+        expiredAt: job.expiredAt,
       };
     });
 
@@ -628,12 +679,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const filteredJobs = useMemo(() => {
     return jobs
       .filter((job) => {
-        const matchesKeyword =
-          !keyword.trim() ||
-          job.title.toLowerCase().includes(keyword.toLowerCase()) ||
-          job.company.toLowerCase().includes(keyword.toLowerCase()) ||
-          job.tags.some((tag) => tag.toLowerCase().includes(keyword.toLowerCase())) ||
-          job.description.toLowerCase().includes(keyword.toLowerCase());
+        const matchesKeyword = matchNaturalLanguageSearch(keyword, job);
 
         const matchesLocation =
           location === "Tất cả địa điểm" ||
