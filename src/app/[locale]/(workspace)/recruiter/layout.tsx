@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
 
 import { ChatSocketProvider } from "@/features/chat";
 import { recruiterApiRequest } from "@/features/recruiter/api/client";
@@ -40,16 +41,63 @@ function hasPermissionForHref(href: string, userPermissions: string[]): boolean 
   return required.some((p) => userPermissions.includes(p));
 }
 
+// Cấp độ hoàn tất hồ sơ công ty: 0 = chưa thêm công ty, 1 = có công ty nhưng
+// chưa được xác minh, 2 = công ty đã verified. Khác với routePermissionMap
+// (phân quyền theo vai trò trong 1 công ty), tier này chỉ áp dụng cho chủ tài
+// khoản (OWNER) đang trong quá trình onboarding — thành viên được mời luôn gia
+// nhập một công ty đã verified sẵn nên không bao giờ rơi vào tier 0/1.
+type CompanyTier = 0 | 1 | 2;
+
+const routeTierMap: Record<string, CompanyTier> = {
+  "/recruiter/job-posts": 1,
+  "/recruiter/candidates": 1,
+  "/recruiter/interviews": 1,
+  "/recruiter/messages": 1,
+  "/recruiter/team": 2,
+  "/recruiter/team/members": 2,
+  "/recruiter/team/roles": 2,
+  "/recruiter/analytics": 2,
+  "/recruiter/billing": 2,
+};
+
+function getCompanyTier(account: RecruiterAccountDetail | null): CompanyTier {
+  if (!account?.company?.id) return 0;
+  if (account.company.verificationStatus !== "VERIFIED") return 1;
+  return 2;
+}
+
+function getLockedReason(requiredTier: CompanyTier): string {
+  if (requiredTier >= 2) {
+    return "Công ty của bạn cần được xác minh trước khi sử dụng tính năng này.";
+  }
+  return "Bạn cần thêm thông tin công ty trước khi sử dụng tính năng này.";
+}
+
+// Restricted Mode (kích hoạt khi có khiếu nại): chỉ cho phép xem Dashboard, lịch sử ứng tuyển
+// và lịch sử phỏng vấn — mọi mục khác bị khoá bất kể tier, cho tới khi kháng cáo được duyệt.
+const RESTRICTED_MODE_ALLOWED_HREFS = new Set<string>([
+  "/recruiter",
+  "/recruiter/candidates",
+  "/recruiter/interviews",
+]);
+
+const RESTRICTED_MODE_LOCKED_REASON =
+  "Công ty của bạn đang bị hạn chế do có khiếu nại. Vui lòng gửi kháng cáo ở trang Dashboard.";
+
 export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [identity, setIdentity] = useState<WorkspaceIdentity | null>(null);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [accountDetail, setAccountDetail] = useState<RecruiterAccountDetail | null>(null);
   const [stats, setStats] = useState<{ totalJobPosts: number; totalCandidates: number } | null>(
     null,
   );
   const t = useTranslations("Recruiter");
+
+  const companyTier = useMemo(() => getCompanyTier(accountDetail), [accountDetail]);
+  const isRestricted = accountDetail?.company?.status === "RESTRICTED";
 
   const translatedNavGroups = useMemo(() => {
     const checkItem = (item: any): any | null => {
@@ -57,10 +105,16 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
         return null;
       }
 
+      const requiredTier = routeTierMap[item.href];
+      const tierLocked = requiredTier !== undefined && companyTier < requiredTier;
+      const restrictedLocked = isRestricted && !RESTRICTED_MODE_ALLOWED_HREFS.has(item.href);
+      const locked = tierLocked || restrictedLocked;
+
       let itemLabel = item.label;
       let badge = item.badge;
 
-      if (item.label === "Báo cáo tuyển dụng") itemLabel = t("nav.report");
+      if (item.label === "Báo cáo tuyển dụng" || item.label === "Dashboard tuyển dụng")
+        itemLabel = t("nav.report");
       else if (item.label === "Tin tuyển dụng") {
         itemLabel = t("nav.jobPosts");
         if (stats) badge = String(stats.totalJobPosts);
@@ -78,10 +132,18 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       else if (item.label === "Phân tích") itemLabel = t("nav.analytics");
       else if (item.label === "Thanh toán") itemLabel = t("nav.billing");
 
+      if (locked) badge = undefined;
+
       const resultItem: any = {
         ...item,
         label: itemLabel,
         badge,
+        locked,
+        lockedReason: locked
+          ? restrictedLocked
+            ? RESTRICTED_MODE_LOCKED_REASON
+            : getLockedReason(requiredTier!)
+          : undefined,
       };
 
       if (item.children) {
@@ -96,7 +158,23 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
             else if (child.label === "Mời người dùng") childLabel = t("nav.inviteUsers");
             else if (child.label === "Vai trò") childLabel = t("nav.rolesSub");
 
-            return { ...child, label: childLabel };
+            const childRequiredTier = routeTierMap[child.href];
+            const childTierLocked =
+              childRequiredTier !== undefined && companyTier < childRequiredTier;
+            const childRestrictedLocked =
+              isRestricted && !RESTRICTED_MODE_ALLOWED_HREFS.has(child.href);
+            const childLocked = childTierLocked || childRestrictedLocked;
+
+            return {
+              ...child,
+              label: childLabel,
+              locked: childLocked,
+              lockedReason: childLocked
+                ? childRestrictedLocked
+                  ? RESTRICTED_MODE_LOCKED_REASON
+                  : getLockedReason(childRequiredTier!)
+                : undefined,
+            };
           })
           .filter(Boolean);
 
@@ -134,7 +212,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
         };
       })
       .filter(Boolean) as any[];
-  }, [t, userPermissions, stats]);
+  }, [t, userPermissions, companyTier, isRestricted, stats]);
 
   const isAuthPage =
     pathname.includes("/login") ||
@@ -202,6 +280,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
             recruiterApiRequest<{ data: { permissions: string[] } }>("/auth/me", accessToken),
           ]);
           setUserPermissions(currentIdentity.data.permissions);
+          setAccountDetail(account);
 
           if (account && account.profile) {
             const profileName = account.profile.fullName || name;
@@ -252,6 +331,29 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       setLoading(false);
     }
   }, [pathname, isAuthPage, isLoginOrRegisterPage, router]);
+
+  // Chặn truy cập trực tiếp bằng URL vào các route yêu cầu tier cao hơn hiện tại
+  // (phòng trường hợp gõ thẳng URL thay vì bấm mục đã bị khoá trên sidebar).
+  useEffect(() => {
+    if (loading || isAuthPage) return;
+
+    const requiredTier = routeTierMap[pathname];
+    const tierBlocked = requiredTier !== undefined && companyTier < requiredTier;
+    const restrictedBlocked = isRestricted && !RESTRICTED_MODE_ALLOWED_HREFS.has(pathname);
+
+    if (tierBlocked || restrictedBlocked) {
+      void Swal.fire({
+        icon: "info",
+        title: restrictedBlocked ? RESTRICTED_MODE_LOCKED_REASON : getLockedReason(requiredTier!),
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 3200,
+        timerProgressBar: true,
+      });
+      router.replace("/recruiter");
+    }
+  }, [pathname, loading, isAuthPage, companyTier, isRestricted, router]);
 
   useEffect(() => {
     document.body.classList.add("recruiter-workspace");

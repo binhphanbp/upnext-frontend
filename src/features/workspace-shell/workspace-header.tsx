@@ -3,16 +3,25 @@
 import {
   SignOut,
   List,
-  DiamondsFour,
-  Sliders,
-  GridFour,
+  Briefcase,
+  CalendarCheck,
+  ChatCircleDots,
+  Bell,
   PencilSimple,
 } from "@phosphor-icons/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 
+import {
+  getNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+  type Notification,
+} from "@/features/notifications/api/notifications";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
+import { formatRelativeTime } from "@/shared/lib/date";
 import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +32,31 @@ import {
 } from "@/shared/ui/dropdown-menu";
 
 import type { WorkspaceIdentity, WorkspaceRole } from "./types";
+
+const WORKSPACE_TOKEN_STORAGE_KEY: Partial<Record<WorkspaceRole, string>> = {
+  recruiter: "upnext.recruiter.accessToken",
+  admin: "upnext.admin.accessToken",
+};
+
+function getWorkspaceAccessToken(workspaceRole: WorkspaceRole): string | null {
+  if (typeof window === "undefined") return null;
+  const key = WORKSPACE_TOKEN_STORAGE_KEY[workspaceRole];
+  return key ? window.localStorage.getItem(key) : null;
+}
+
+function getNotificationIcon(targetType: string | null) {
+  switch (targetType) {
+    case "JOB_POST":
+      return { Icon: Briefcase, bg: "bg-emerald-50", fg: "text-emerald-500" };
+    case "INTERVIEW":
+      return { Icon: CalendarCheck, bg: "bg-indigo-50", fg: "text-indigo-500" };
+    case "SUPPORT_CASE":
+    case "TALENT_CONTACT_REQUEST":
+      return { Icon: ChatCircleDots, bg: "bg-amber-50", fg: "text-amber-500" };
+    default:
+      return { Icon: Bell, bg: "bg-slate-100", fg: "text-slate-400" };
+  }
+}
 
 export type WorkspaceHeaderProps = Readonly<{
   workspaceRole: WorkspaceRole;
@@ -70,6 +104,36 @@ export function WorkspaceHeader({
   const t = useTranslations(tNamespace as any);
   const tShell = useTranslations("WorkspaceShell");
 
+  const queryClient = useQueryClient();
+  const notificationsToken = getWorkspaceAccessToken(workspaceRole);
+  const notificationsQueryKey = ["workspaceNotifications", workspaceRole, notificationsToken];
+
+  const { data: notificationsData } = useQuery({
+    queryKey: notificationsQueryKey,
+    queryFn: () => getNotifications(notificationsToken!, 1, 8),
+    enabled: !!notificationsToken,
+    refetchInterval: 60_000,
+  });
+
+  const notifications = notificationsData?.data ?? [];
+  const unreadCount = notificationsData?.meta.unreadCount ?? 0;
+
+  const markAsReadMutation = useMutation({
+    mutationFn: (id: string) => markNotificationAsRead(notificationsToken!, id),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: notificationsQueryKey }),
+  });
+
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => markAllNotificationsAsRead(notificationsToken!),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: notificationsQueryKey }),
+  });
+
+  function handleNotificationClick(notification: Notification) {
+    if (!notification.readAt) {
+      markAsReadMutation.mutate(notification.id);
+    }
+  }
+
   function switchLanguage(nextLocale: "en" | "vi") {
     if (nextLocale === currentLocale) return;
     router.replace(pathname, { locale: nextLocale });
@@ -96,7 +160,12 @@ export function WorkspaceHeader({
       <div className="flex items-center gap-5 text-slate-500">
         {workspaceRole === "recruiter" && (
           <Button
-            className="hidden h-10 items-center justify-center gap-1.5 rounded-full bg-[#10a778] px-4 font-semibold text-white hover:bg-[#0d966d] lg:flex"
+            className="hidden h-10 items-center justify-center rounded-full px-4 font-semibold text-white hover:opacity-90 lg:flex"
+            style={{
+              background: "linear-gradient(90deg, #213142 .62%, #0a9c4b 99.38%)",
+              border: "1px solid #0db14b",
+              gap: ".572em",
+            }}
             asChild
           >
             <Link href="/recruiter/job-posts?action=create">
@@ -110,7 +179,18 @@ export function WorkspaceHeader({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#10a778] text-white transition hover:opacity-85 focus:outline-none"
+              className={cn(
+                "relative flex size-10 shrink-0 items-center justify-center rounded-full text-white transition hover:opacity-85 focus:outline-none",
+                workspaceRole !== "recruiter" && "bg-[#10a778]",
+              )}
+              style={
+                workspaceRole === "recruiter"
+                  ? {
+                      background: "linear-gradient(90deg, #213142 .62%, #0a9c4b 99.38%)",
+                      border: "1px solid #0db14b",
+                    }
+                  : undefined
+              }
               aria-label="Notifications"
               type="button"
             >
@@ -130,9 +210,11 @@ export function WorkspaceHeader({
                 </g>
               </svg>
 
-              <span className="absolute -top-1 -right-1 flex size-[18px] items-center justify-center rounded-full border-2 border-white bg-red-500 text-[10px] font-bold text-white">
-                0
-              </span>
+              {unreadCount > 0 ? (
+                <span className="absolute -top-1 -right-1 flex size-[18px] items-center justify-center rounded-full border-2 border-white bg-red-500 text-[10px] font-bold text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              ) : null}
             </button>
           </DropdownMenuTrigger>
 
@@ -147,60 +229,63 @@ export function WorkspaceHeader({
             </div>
 
             <div className="max-h-[340px] overflow-y-auto">
-              <div className="flex items-start gap-4 border-b border-slate-50/50 p-5 transition hover:bg-slate-50">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-400">
-                  <GridFour size={20} />
-                </div>
+              {notifications.length === 0 ? (
+                <p className="p-5 text-center text-[13px] text-slate-400">
+                  {t("shell.noNotifications")}
+                </p>
+              ) : (
+                notifications.map((notification) => {
+                  const { Icon, bg, fg } = getNotificationIcon(notification.targetType);
+                  return (
+                    <button
+                      key={notification.id}
+                      type="button"
+                      onClick={() => handleNotificationClick(notification)}
+                      className={cn(
+                        "flex w-full items-start gap-4 border-b border-slate-50/50 p-5 text-left transition hover:bg-slate-50",
+                        !notification.readAt && "bg-emerald-50/40",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex size-11 shrink-0 items-center justify-center rounded-full",
+                          bg,
+                          fg,
+                        )}
+                      >
+                        <Icon size={20} />
+                      </div>
 
-                <div className="min-w-0 flex-1">
-                  <h5 className="text-[14px] font-bold text-slate-800">Launch Admin</h5>
-                  <p className="mt-0.5 truncate text-[13px] text-slate-500">
-                    Just see the my new admin!
-                  </p>
-                </div>
+                      <div className="min-w-0 flex-1">
+                        <h5 className="text-[14px] font-bold text-slate-800">
+                          {notification.title}
+                        </h5>
+                        <p className="mt-0.5 truncate text-[13px] text-slate-500">
+                          {notification.body}
+                        </p>
+                      </div>
 
-                <span className="mt-1 text-[12px] whitespace-nowrap text-slate-400">9:30 AM</span>
-              </div>
-
-              <div className="flex items-start gap-4 border-b border-slate-50/50 p-5 transition hover:bg-slate-50">
-                <div className="text-primary flex size-11 shrink-0 items-center justify-center rounded-full bg-indigo-50">
-                  <DiamondsFour size={20} />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <h5 className="text-[14px] font-bold text-slate-800">Event Today</h5>
-                  <p className="mt-0.5 truncate text-[13px] text-slate-500">
-                    Just a reminder that you...
-                  </p>
-                </div>
-
-                <span className="mt-1 text-[12px] whitespace-nowrap text-slate-400">9:15 AM</span>
-              </div>
-
-              <div className="flex items-start gap-4 border-b border-slate-50/50 p-5 transition hover:bg-slate-50">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
-                  <Sliders size={20} />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <h5 className="text-[14px] font-bold text-slate-800">Settings</h5>
-                  <p className="mt-0.5 truncate text-[13px] text-slate-500">
-                    You can customize this...
-                  </p>
-                </div>
-
-                <span className="mt-1 text-[12px] whitespace-nowrap text-slate-400">4:36 PM</span>
-              </div>
+                      <span className="mt-1 text-[12px] whitespace-nowrap text-slate-400">
+                        {formatRelativeTime(notification.createdAt, currentLocale)}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
             </div>
 
-            <div className="p-4 pt-2">
-              <button
-                className="bg-primary hover:bg-primary/95 w-full rounded-xl py-2.5 text-[14px] font-medium text-white transition"
-                type="button"
-              >
-                {t("shell.allNotifications")}
-              </button>
-            </div>
+            {unreadCount > 0 ? (
+              <div className="p-4 pt-2">
+                <button
+                  onClick={() => markAllAsReadMutation.mutate()}
+                  disabled={markAllAsReadMutation.isPending}
+                  className="bg-primary hover:bg-primary/95 w-full rounded-xl py-2.5 text-[14px] font-medium text-white transition disabled:opacity-60"
+                  type="button"
+                >
+                  {t("shell.markAllRead")}
+                </button>
+              </div>
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -272,7 +357,19 @@ export function WorkspaceHeader({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-[#10a778] py-1 pr-2 pl-1 text-white transition hover:opacity-85 focus:outline-none"
+              className={cn(
+                "flex h-10 shrink-0 items-center rounded-full py-1 pr-2 pl-1 text-white transition hover:opacity-85 focus:outline-none",
+                workspaceRole !== "recruiter" ? "bg-[#10a778] gap-2" : "",
+              )}
+              style={
+                workspaceRole === "recruiter"
+                  ? {
+                      background: "linear-gradient(90deg, #213142 .62%, #0a9c4b 99.38%)",
+                      border: "1px solid #0db14b",
+                      gap: ".572em",
+                    }
+                  : undefined
+              }
               aria-label="Open profile menu"
               type="button"
             >

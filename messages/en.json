@@ -823,7 +823,7 @@
   "Recruiter": {
     "nav": {
       "recruitment": "Recruitment",
-      "report": "Recruitment Report",
+      "report": "Recruitment Dashboard",
       "jobPosts": "Job Posts",
       "candidates": "Candidates",
       "interviews": "Interviews",
@@ -851,6 +851,8 @@
       "proPackage": "Pro Admin Features",
       "notifications": "Notifications",
       "allNotifications": "See all notifications",
+      "noNotifications": "No notifications yet",
+      "markAllRead": "Mark all as read",
       "profile": "My Profile",
       "subscription": "My Subscription",
       "invoice": "My Invoice",
@@ -879,6 +881,8 @@
         "subtitle": "{count} total job posts",
         "pending": "{count} awaiting moderation",
         "empty": "No job posts yet",
+        "emptySubtitle": "Create your first job post to start attracting matching candidates.",
+        "createJob": "Create a job post",
         "status": {
           "PUBLISHED": "Published",
           "DRAFT": "Draft",
@@ -948,7 +952,25 @@
           "gainText": "Points are added when a recruiter fully verifies their information, and when a recruiter keeps job post statuses up to date.",
           "lossTitle": "How points are deducted",
           "lossText": "Points are deducted for poor response rates to candidates and for job posts that violate community standards. Reaching a warning threshold lowers your company's visibility on the platform, and severe cases can lead to a permanent account lock. If a company is reported for fraud by a candidate with clear evidence (confirmed by the system), the account will be permanently deleted.",
-          "tiersTitle": "Score tiers"
+          "tiersTitle": "Score tiers",
+          "historyTitle": "Score change history",
+          "historyEmpty": "No score changes yet."
+        }
+      },
+      "restricted": {
+        "title": "Account is restricted",
+        "description": "Your company is currently restricted due to a candidate report. You can only view information and submit an appeal during this period.",
+        "daysLeft": "{days} day(s) left to submit an appeal",
+        "appeal": {
+          "cta": "Submit appeal",
+          "submittedButton": "Appeal submitted",
+          "dialogTitle": "Submit an appeal",
+          "dialogDescription": "Explain why you believe your company did not violate the rules. An admin will review and respond soon.",
+          "placeholder": "Enter your appeal content...",
+          "submit": "Submit appeal",
+          "submitting": "Submitting...",
+          "validationError": "Please enter your appeal content.",
+          "success": "Appeal submitted successfully. Please wait for admin review."
         }
       },
       "onboardingWidget": {
@@ -2477,6 +2499,7 @@
       "jobs": "Job Posts",
       "articles": "Articles",
       "moderation": "Content Moderation",
+      "appeals": "Appeals",
       "support": "Support Center"
     },
     "financeAndBusiness": {
@@ -2533,6 +2556,8 @@
       "proPackage": "Pro Admin Features",
       "notifications": "Notifications",
       "allNotifications": "See all notifications",
+      "noNotifications": "No notifications yet",
+      "markAllRead": "Mark all as read",
       "profile": "My Profile",
       "subscription": "My Subscription",
       "invoice": "My Invoice",
@@ -3181,6 +3206,7 @@
       "submitting": "Signing in...",
       "success": "Logged in successfully.",
       "emailVerificationRequired": "Please verify your email before logging in.",
+      "emailVerified": "Your email has been verified. You can sign in now.",
       "signupPrompt": "Don't have an account?",
       "signupLink": "Sign up now",
       "google": "Sign in with Google"

@@ -96,6 +96,17 @@ export function requestRecruiterEmailVerification(email: string, locale?: string
   );
 }
 
+export function getRecruiterEmailVerificationStatus(email: string) {
+  return apiRequest<{ email: string; emailVerified: boolean }>(
+    "/recruiter-accounts/email-verification/status",
+    {
+      body: JSON.stringify({ email }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    },
+  );
+}
+
 export function verifyRecruiterEmail(token: string) {
   return apiRequest<{ email: string; emailVerified: boolean }>(
     "/recruiter-accounts/email-verification/verify",

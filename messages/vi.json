@@ -823,7 +823,7 @@
   "Recruiter": {
     "nav": {
       "recruitment": "Tuyển dụng",
-      "report": "Báo cáo tuyển dụng",
+      "report": "Dashboard tuyển dụng",
       "jobPosts": "Tin tuyển dụng",
       "candidates": "Ứng viên",
       "interviews": "Phỏng vấn",
@@ -851,6 +851,8 @@
       "proPackage": "Tính năng nâng cao",
       "notifications": "Thông báo",
       "allNotifications": "Xem tất cả thông báo",
+      "noNotifications": "Không có thông báo nào",
+      "markAllRead": "Đánh dấu tất cả đã đọc",
       "profile": "Hồ sơ",
       "subscription": "Gói đăng ký",
       "invoice": "Hóa đơn của tôi",
@@ -879,6 +881,8 @@
         "subtitle": "Tổng {count} tin tuyển dụng",
         "pending": "{count} chờ duyệt",
         "empty": "Chưa có tin tuyển dụng",
+        "emptySubtitle": "Hãy tạo tin tuyển dụng đầu tiên để bắt đầu thu hút ứng viên phù hợp.",
+        "createJob": "Tạo tin tuyển dụng",
         "status": {
           "PUBLISHED": "Đang đăng",
           "DRAFT": "Nháp",
@@ -948,7 +952,25 @@
           "gainText": "Điểm cộng được tính khi nhà tuyển dụng xác thực đầy đủ thông tin, hoặc khi nhà tuyển dụng cập nhật trạng thái các bài tuyển dụng.",
           "lossTitle": "Cách tính điểm trừ",
           "lossText": "Điểm trừ được thực hiện khi tỷ lệ phản hồi với ứng viên kém, hoặc đăng tin tuyển dụng vi phạm tiêu chuẩn cộng đồng. Điểm trừ khi đạt tới mức cảnh báo sẽ làm giảm mức hiển thị của doanh nghiệp trên hệ thống, nặng hơn sẽ bị khóa tài khoản vĩnh viễn. Đặc biệt khi tài khoản công ty bị báo cáo lừa đảo từ ứng viên có minh chứng rõ ràng (hệ thống xác nhận lại) thì tài khoản sẽ bị xóa vĩnh viễn.",
-          "tiersTitle": "Các thang điểm"
+          "tiersTitle": "Các thang điểm",
+          "historyTitle": "Lịch sử biến động điểm",
+          "historyEmpty": "Chưa có biến động điểm nào."
+        }
+      },
+      "restricted": {
+        "title": "Tài khoản đang bị hạn chế",
+        "description": "Công ty của bạn đang bị hạn chế do có khiếu nại từ ứng viên. Bạn chỉ có thể xem thông tin và gửi kháng cáo trong thời gian này.",
+        "daysLeft": "Còn {days} ngày để gửi kháng cáo",
+        "appeal": {
+          "cta": "Gửi kháng cáo",
+          "submittedButton": "Đã gửi kháng cáo",
+          "dialogTitle": "Gửi kháng cáo",
+          "dialogDescription": "Trình bày lý do bạn cho rằng công ty không vi phạm. Admin sẽ xem xét và phản hồi sớm nhất.",
+          "placeholder": "Nhập nội dung kháng cáo...",
+          "submit": "Gửi kháng cáo",
+          "submitting": "Đang gửi...",
+          "validationError": "Vui lòng nhập nội dung kháng cáo.",
+          "success": "Đã gửi kháng cáo thành công. Vui lòng chờ admin xem xét."
         }
       },
       "onboardingWidget": {
@@ -2477,6 +2499,7 @@
       "jobs": "Quản lý tin đăng",
       "articles": "Quản lý bài viết",
       "moderation": "Kiểm duyệt nội dung",
+      "appeals": "Kháng cáo",
       "support": "Trung tâm hỗ trợ"
     },
     "financeAndBusiness": {
@@ -2538,6 +2561,8 @@
       "proPackage": "Tính năng nâng cao",
       "notifications": "Thông báo",
       "allNotifications": "Xem tất cả thông báo",
+      "noNotifications": "Không có thông báo nào",
+      "markAllRead": "Đánh dấu tất cả đã đọc",
       "profile": "Hồ sơ",
       "subscription": "Gói đăng ký",
       "invoice": "Hóa đơn của tôi",
@@ -3202,6 +3227,7 @@
       "submitting": "Đang đăng nhập...",
       "success": "Đăng nhập thành công.",
       "emailVerificationRequired": "Vui lòng xác thực email trước khi đăng nhập.",
+      "emailVerified": "Email đã được xác thực. Bạn có thể đăng nhập ngay.",
       "signupPrompt": "Chưa có tài khoản?",
       "signupLink": "Đăng ký ngay",
       "google": "Đăng nhập với tài khoản Google"

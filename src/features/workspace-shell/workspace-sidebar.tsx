@@ -14,10 +14,12 @@ import {
   CaretDown,
   CaretDoubleRight,
   MagnifyingGlass,
+  LockSimple,
 } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
@@ -47,6 +49,21 @@ export function WorkspaceSidebar({
 }: WorkspaceSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+
+  const handleLockedClick = (reason?: string) => {
+    void Swal.fire({
+      icon: "info",
+      title: reason || "Tính năng này chưa khả dụng",
+      showCancelButton: true,
+      confirmButtonText: "Hoàn tất hồ sơ công ty",
+      cancelButtonText: "Đóng",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        router.push("/recruiter");
+      }
+    });
+  };
+
   const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [showSecurityTooltip, setShowSecurityTooltip] = useState(false);
@@ -185,6 +202,8 @@ export function WorkspaceSidebar({
                     } else {
                       setActiveGroupIndex(index);
                       if (collapsed) setCollapsed(false);
+                      const element = document.getElementById(`sidebar-section-${index}`);
+                      element?.scrollIntoView({ behavior: "smooth", block: "start" });
                     }
                   }}
                   className={cn(
@@ -245,115 +264,141 @@ export function WorkspaceSidebar({
               )}
             </div>
             <ScrollArea className="flex-1 space-y-1 px-4 py-4">
-              <nav className="space-y-6" aria-label={`Điều hướng ${workspaceRole}`}>
-                {(workspaceRole === "admin" && navGroups[displayGroupIndex]
-                  ? [navGroups[displayGroupIndex]]
-                  : navGroups
-                ).map((group, groupIdx) => (
-                  <section
-                    key={group.label}
-                    id={`sidebar-section-${groupIdx}`}
-                    className={groupIdx > 0 ? "mt-2" : "mt-0"}
-                  >
-                    {workspaceRole === "admin" && (
-                      <h2 className="mb-2 px-4 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-                        {group.label.includes(".") ? t(group.label as any) : group.label}
-                      </h2>
-                    )}
-                    <div className="space-y-1">
-                      {group.items.map((item) => {
-                        const hasChildren = item.children && item.children.length > 0;
+              <nav className="space-y-1" aria-label={`Điều hướng ${workspaceRole}`}>
+                {navGroups
+                  .filter((group) => group.items && group.items.length > 0)
+                  .map((group, groupIdx) => (
+                    <section key={group.label} id={`sidebar-section-${groupIdx}`}>
+                      <div className="space-y-1">
+                        {group.items.map((item) => {
+                          const hasChildren = item.children && item.children.length > 0;
 
-                        if (hasChildren) {
-                          const isMenuOpen = !!openMenus[item.label];
-                          const isAnyChildActive = item.children?.some(
-                            (child) => pathname === child.href,
-                          );
+                          if (hasChildren) {
+                            const isMenuOpen = !!openMenus[item.label];
+                            const isAnyChildActive = item.children?.some(
+                              (child) => pathname === child.href,
+                            );
+                            const Icon = item.icon;
+
+                            return (
+                              <div key={item.label} className="space-y-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenus((prev) => ({
+                                      ...prev,
+                                      [item.label]: !prev[item.label],
+                                    }));
+                                  }}
+                                  className={cn(
+                                    "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
+                                    isAnyChildActive
+                                      ? "bg-slate-100 text-slate-900 font-semibold"
+                                      : "text-slate-600 hover:bg-slate-50 hover:text-primary",
+                                  )}
+                                >
+                                  <Icon size={20} />
+                                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                                  <CaretDown
+                                    size={16}
+                                    className={cn(
+                                      "text-slate-400 transition-transform duration-200",
+                                      isMenuOpen && "rotate-180",
+                                    )}
+                                  />
+                                </button>
+
+                                {isMenuOpen && (
+                                  <div className="space-y-1 pl-9 transition-all">
+                                    {item.children?.map((child) => {
+                                      const active = pathname === child.href;
+
+                                      if (child.locked) {
+                                        return (
+                                          <button
+                                            key={child.href}
+                                            type="button"
+                                            onClick={() => handleLockedClick(child.lockedReason)}
+                                            className="flex w-full cursor-not-allowed items-center gap-1.5 rounded-lg px-4 py-[8px] text-left text-[13px] font-medium text-slate-400 opacity-70"
+                                          >
+                                            <span className="min-w-0 flex-1 truncate">
+                                              {child.label}
+                                            </span>
+                                            <LockSimple
+                                              size={12}
+                                              className="shrink-0 text-slate-300"
+                                            />
+                                          </button>
+                                        );
+                                      }
+
+                                      return (
+                                        <Link
+                                          key={child.href}
+                                          href={child.href}
+                                          className={cn(
+                                            "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
+                                            active
+                                              ? "text-primary bg-emerald-50 font-semibold"
+                                              : "text-slate-500 hover:text-primary hover:bg-slate-50",
+                                          )}
+                                        >
+                                          <span className="truncate">{child.label}</span>
+                                        </Link>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          const isRootNode =
+                            item.href === "/admin" ||
+                            item.href === "/recruiter" ||
+                            item.href === "/candidate";
+                          const active =
+                            pathname === item.href ||
+                            (!isRootNode && pathname.startsWith(`${item.href}/`));
                           const Icon = item.icon;
 
-                          return (
-                            <div key={item.label} className="space-y-1">
+                          if (item.locked) {
+                            return (
                               <button
+                                key={item.href}
                                 type="button"
-                                onClick={() => {
-                                  setOpenMenus((prev) => ({
-                                    ...prev,
-                                    [item.label]: !prev[item.label],
-                                  }));
-                                }}
-                                className={cn(
-                                  "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
-                                  isAnyChildActive
-                                    ? "bg-slate-100 text-slate-900 font-semibold"
-                                    : "text-slate-600 hover:bg-slate-50 hover:text-primary",
-                                )}
+                                onClick={() => handleLockedClick(item.lockedReason)}
+                                className="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-4 py-[10px] text-left text-[14px] font-medium text-slate-400 opacity-70"
                               >
                                 <Icon size={20} />
                                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                                <CaretDown
-                                  size={16}
-                                  className={cn(
-                                    "text-slate-400 transition-transform duration-200",
-                                    isMenuOpen && "rotate-180",
-                                  )}
-                                />
+                                <LockSimple size={14} className="shrink-0 text-slate-300" />
                               </button>
+                            );
+                          }
 
-                              {isMenuOpen && (
-                                <div className="space-y-1 pl-9 transition-all">
-                                  {item.children?.map((child) => {
-                                    const active = pathname === child.href;
-                                    return (
-                                      <Link
-                                        key={child.href}
-                                        href={child.href}
-                                        className={cn(
-                                          "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
-                                          active
-                                            ? "text-primary bg-emerald-50 font-semibold"
-                                            : "text-slate-500 hover:text-primary hover:bg-slate-50",
-                                        )}
-                                      >
-                                        <span className="truncate">{child.label}</span>
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              className={cn(
+                                "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
+                                active
+                                  ? "bg-primary text-white"
+                                  : "text-slate-600 hover:bg-slate-50 hover:text-primary",
                               )}
-                            </div>
+                            >
+                              <Icon size={20} />
+                              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                              {item.badge ? (
+                                <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
+                              ) : null}
+                            </Link>
                           );
-                        }
-
-                        const isRootNode =
-                          item.href === "/admin" ||
-                          item.href === "/recruiter" ||
-                          item.href === "/candidate";
-                        const active =
-                          pathname === item.href ||
-                          (!isRootNode && pathname.startsWith(`${item.href}/`));
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                              "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
-                              active
-                                ? "bg-primary text-white"
-                                : "text-slate-600 hover:bg-slate-50 hover:text-primary",
-                            )}
-                          >
-                            <Icon size={20} />
-                            <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                            {item.badge ? (
-                              <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
-                            ) : null}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ))}
+                        })}
+                      </div>
+                    </section>
+                  ))}
               </nav>
             </ScrollArea>
 
@@ -463,17 +508,16 @@ export function WorkspaceSidebar({
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-slate-800 transition-transform duration-200 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-slate-200 bg-white shadow-xl transition-transform duration-200 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
-        style={{ background: "linear-gradient(180deg, #10243A 0%, #0F1F31 55%, #0B1B2D 100%)" }}
       >
         <div
           className={cn(
             "flex h-[76px] items-center justify-between border-b px-6",
             workspaceRole === "admin"
               ? "bg-white border-slate-200"
-              : "bg-[#212f3f] border-slate-800",
+              : "bg-[#212f3f] border-transparent",
           )}
         >
           {workspaceRole === "recruiter" ? (
@@ -504,125 +548,171 @@ export function WorkspaceSidebar({
           </button>
         </div>
         <ScrollArea className="flex-1 space-y-1 px-4 py-4">
-          <nav className="space-y-6">
+          <nav className="space-y-1">
             {(workspaceRole === "admin" && navGroups[activeGroupIndex]
               ? [navGroups[activeGroupIndex]]
               : navGroups
-            ).map((group, groupIdx) => (
-              <section
-                key={group.label}
-                id={`mobile-sidebar-section-${groupIdx}`}
-                className={groupIdx > 0 ? "mt-6" : "mt-2"}
-              >
-                <h2 className="mb-2 px-4 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-                  {group.label}
-                </h2>
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const hasChildren = item.children && item.children.length > 0;
+            ).map((group, groupIdx) => {
+              if (!group.items || group.items.length === 0) {
+                if (!group.href) return null;
+                const active = pathname === group.href || pathname.startsWith(`${group.href}/`);
+                const Icon = group.icon || DiamondsFour;
+                return (
+                  <Link
+                    key={group.label}
+                    href={group.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
+                      active
+                        ? "bg-primary text-white"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-primary",
+                    )}
+                  >
+                    <Icon size={18} className="flex-shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{group.label}</span>
+                  </Link>
+                );
+              }
 
-                    if (hasChildren) {
-                      const isMenuOpen = !!openMenus[item.label];
-                      const isAnyChildActive = item.children?.some(
-                        (child) => pathname === child.href,
-                      );
+              return (
+                <section key={group.label} id={`mobile-sidebar-section-${groupIdx}`}>
+                  <div className="space-y-1">
+                    {group.items.map((item) => {
+                      const hasChildren = item.children && item.children.length > 0;
+
+                      if (hasChildren) {
+                        const isMenuOpen = !!openMenus[item.label];
+                        const isAnyChildActive = item.children?.some(
+                          (child) => pathname === child.href,
+                        );
+                        const Icon = item.icon;
+
+                        return (
+                          <div key={item.label} className="space-y-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenMenus((prev) => ({
+                                  ...prev,
+                                  [item.label]: !prev[item.label],
+                                }));
+                              }}
+                              className={cn(
+                                "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
+                                isAnyChildActive
+                                  ? "bg-slate-100 text-slate-900 font-semibold"
+                                  : "text-slate-600 hover:bg-slate-50 hover:text-primary",
+                              )}
+                            >
+                              <Icon
+                                size={18}
+                                className={cn(
+                                  "flex-shrink-0",
+                                  isAnyChildActive ? "text-slate-900" : "text-slate-400",
+                                )}
+                              />
+                              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                              <CaretDown
+                                size={14}
+                                className={cn(
+                                  "text-slate-400 transition-transform duration-200",
+                                  isMenuOpen && "rotate-180",
+                                )}
+                              />
+                            </button>
+
+                            {isMenuOpen && (
+                              <div className="space-y-1 pl-9 transition-all">
+                                {item.children?.map((child) => {
+                                  const active = pathname === child.href;
+
+                                  if (child.locked) {
+                                    return (
+                                      <button
+                                        key={child.href}
+                                        type="button"
+                                        onClick={() => handleLockedClick(child.lockedReason)}
+                                        className="flex w-full cursor-not-allowed items-center gap-1.5 rounded-lg px-4 py-[8px] text-left text-[13px] font-medium text-slate-400 opacity-70"
+                                      >
+                                        <span className="min-w-0 flex-1 truncate">
+                                          {child.label}
+                                        </span>
+                                        <LockSimple size={12} className="shrink-0 text-slate-300" />
+                                      </button>
+                                    );
+                                  }
+
+                                  return (
+                                    <Link
+                                      key={child.href}
+                                      href={child.href}
+                                      onClick={() => setMobileOpen(false)}
+                                      className={cn(
+                                        "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
+                                        active
+                                          ? "text-primary bg-emerald-50 font-semibold"
+                                          : "text-slate-500 hover:text-primary hover:bg-slate-50",
+                                      )}
+                                    >
+                                      <span className="truncate">{child.label}</span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                       const Icon = item.icon;
 
-                      return (
-                        <div key={item.label} className="space-y-1">
+                      if (item.locked) {
+                        return (
                           <button
+                            key={item.href}
                             type="button"
-                            onClick={() => {
-                              setOpenMenus((prev) => ({
-                                ...prev,
-                                [item.label]: !prev[item.label],
-                              }));
-                            }}
-                            className={cn(
-                              "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
-                              isAnyChildActive
-                                ? "bg-slate-800 text-white font-semibold"
-                                : "text-slate-300 hover:bg-slate-800 hover:text-white",
-                            )}
+                            onClick={() => handleLockedClick(item.lockedReason)}
+                            className="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-4 py-[10px] text-left text-[14px] font-medium text-slate-400 opacity-70"
                           >
-                            <Icon
-                              size={18}
-                              className={cn(
-                                "flex-shrink-0",
-                                isAnyChildActive ? "text-white" : "text-slate-400",
-                              )}
-                            />
+                            <Icon size={18} className="flex-shrink-0 text-slate-400" />
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                            <CaretDown
-                              size={14}
-                              className={cn(
-                                "text-slate-400 transition-transform duration-200",
-                                isMenuOpen && "rotate-180",
-                              )}
-                            />
+                            <LockSimple size={14} className="shrink-0 text-slate-300" />
                           </button>
+                        );
+                      }
 
-                          {isMenuOpen && (
-                            <div className="space-y-1 pl-9 transition-all">
-                              {item.children?.map((child) => {
-                                const active = pathname === child.href;
-                                return (
-                                  <Link
-                                    key={child.href}
-                                    href={child.href}
-                                    onClick={() => setMobileOpen(false)}
-                                    className={cn(
-                                      "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
-                                      active
-                                        ? "text-primary bg-emerald-50/50 font-semibold"
-                                        : "text-slate-600 hover:text-primary hover:bg-slate-50/50",
-                                    )}
-                                  >
-                                    <span className="truncate">{child.label}</span>
-                                  </Link>
-                                );
-                              })}
-                            </div>
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
+                            active
+                              ? "bg-primary text-white"
+                              : "text-slate-600 hover:bg-slate-50 hover:text-primary",
                           )}
-                        </div>
-                      );
-                    }
-
-                    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
-                          active
-                            ? "bg-primary text-white"
-                            : "text-slate-300 hover:bg-slate-800 hover:text-white",
-                        )}
-                      >
-                        <Icon
-                          size={18}
-                          className={cn("flex-shrink-0", active ? "text-white" : "text-slate-400")}
-                        />
-                        <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                        {item.badge ? (
-                          <span
+                        >
+                          <Icon
+                            size={18}
                             className={cn(
-                              "ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full",
-                              active ? "bg-white/20 text-white" : "bg-emerald-50 text-primary",
+                              "flex-shrink-0",
+                              active ? "text-white" : "text-slate-400",
                             )}
-                          >
-                            {item.badge}
-                          </span>
-                        ) : null}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
+                          />
+                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                          {item.badge ? (
+                            <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
+                          ) : null}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
           </nav>
         </ScrollArea>
         <div className="border-t border-slate-100 p-4">
