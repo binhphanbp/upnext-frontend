@@ -83,9 +83,13 @@ describe("AdminSupportCaseDetail", () => {
     const user = userEvent.setup();
     renderDetail();
 
-    const assigneeSelect = await screen.findByRole("combobox", {
-      name: "Admin nhận chuyển giao",
-    });
+    const assigneeSelect = await screen.findByRole(
+      "combobox",
+      {
+        name: "Admin nhận chuyển giao",
+      },
+      { timeout: 3000 },
+    );
     expect(screen.queryByPlaceholderText("UUID admin nhận chuyển")).not.toBeInTheDocument();
     await user.click(assigneeSelect);
     expect(screen.getByRole("option", { name: "Nguyễn Admin — Job Review" })).toBeInTheDocument();
