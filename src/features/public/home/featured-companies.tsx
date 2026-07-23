@@ -277,7 +277,7 @@ function Logo({ company }: { company: Company | FeaturedCompany }) {
       alt={`Logo ${company.name}`}
       width={56}
       height={56}
-      className="rounded-lg object-contain p-1"
+      className="size-full object-contain"
       onError={() => setFailed(true)}
     />
   );

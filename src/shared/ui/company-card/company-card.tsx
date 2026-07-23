@@ -108,7 +108,7 @@ function CompanyLogo({
       {logo ? (
         <Image
           alt={`Logo ${name}`}
-          className="h-auto w-11 object-contain"
+          className="size-full object-contain"
           height={44}
           src={logo}
           width={44}

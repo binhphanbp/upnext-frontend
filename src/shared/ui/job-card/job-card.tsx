@@ -111,7 +111,7 @@ function CompanyMark({
       <span className="grid size-14 place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <Image
           alt={`Logo ${name}`}
-          className="h-auto w-10 object-contain"
+          className="size-full object-contain"
           height={40}
           src={logo}
           width={40}
