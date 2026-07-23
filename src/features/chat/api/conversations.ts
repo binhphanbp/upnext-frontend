@@ -10,6 +10,8 @@ import type {
   MessageAttachment,
   SendMessageInput,
   ChatMessage,
+  ConversationRecruiterOption,
+  JobHiringTeamMember,
 } from "../types/contracts";
 
 function authHeaders(token: string, json = false): HeadersInit {
@@ -67,6 +69,44 @@ export function updateConversationTags(token: string, conversationId: string, ta
 export function getConversation(token: string, conversationId: string) {
   return apiRequest<ConversationDetailResponse>(`/conversations/${conversationId}`, {
     headers: authHeaders(token),
+  });
+}
+
+export function getConversationRecruiters(token: string, conversationId: string) {
+  return apiRequest<{ data: ConversationRecruiterOption[] }>(
+    `/conversations/${conversationId}/recruiters`,
+    { headers: authHeaders(token) },
+  );
+}
+
+export function getHiringTeam(token: string, conversationId: string) {
+  return apiRequest<{ data: JobHiringTeamMember[] }>(
+    `/conversations/${conversationId}/hiring-team`,
+    { headers: authHeaders(token) },
+  );
+}
+
+export function addRecruiterToConversation(
+  token: string,
+  conversationId: string,
+  recruiterAccountId: string,
+) {
+  return apiRequest(`/conversations/${conversationId}/recruiter-participants`, {
+    method: "POST",
+    headers: authHeaders(token, true),
+    body: JSON.stringify({ recruiterAccountId }),
+  });
+}
+
+export function addRecruiterToHiringTeam(
+  token: string,
+  conversationId: string,
+  recruiterAccountId: string,
+) {
+  return apiRequest(`/conversations/${conversationId}/hiring-team/recruiters`, {
+    method: "POST",
+    headers: authHeaders(token, true),
+    body: JSON.stringify({ recruiterAccountId }),
   });
 }
 
