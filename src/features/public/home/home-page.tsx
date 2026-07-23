@@ -892,7 +892,22 @@ function UrgentJobsSection({
                               {job.title}
                             </button>
                           </h3>
-                          <span className="urgent-job-deadline-badge">{job.deadline}</span>
+                          <button
+                            type="button"
+                            className="urgent-job-save"
+                            aria-label={
+                              savedJobIds.has(job.id)
+                                ? `Bỏ lưu công việc ${job.title}`
+                                : `Lưu công việc ${job.title}`
+                            }
+                            aria-pressed={savedJobIds.has(job.id)}
+                            onClick={() => toggleSavedJob(job.id)}
+                          >
+                            <Bookmark
+                              size={20}
+                              weight={savedJobIds.has(job.id) ? "fill" : "regular"}
+                            />
+                          </button>
                         </div>
                         <strong className="urgent-job-company">{job.company}</strong>
                       </div>
@@ -909,19 +924,7 @@ function UrgentJobsSection({
                           {job.location}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        className="urgent-job-save"
-                        aria-label={
-                          savedJobIds.has(job.id)
-                            ? `Bỏ lưu công việc ${job.title}`
-                            : `Lưu công việc ${job.title}`
-                        }
-                        aria-pressed={savedJobIds.has(job.id)}
-                        onClick={() => toggleSavedJob(job.id)}
-                      >
-                        <Bookmark size={20} weight={savedJobIds.has(job.id) ? "fill" : "regular"} />
-                      </button>
+                      <span className="urgent-job-deadline-badge">{job.deadline}</span>
                     </div>
                   </article>
                 ))}
