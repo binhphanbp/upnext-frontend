@@ -7,15 +7,15 @@ const scoreDetail = {
   applicationId,
   candidateName: "Nguyễn Minh Anh",
   jobTitle: "Full-stack Developer",
-  finalScore: 31,
+  finalScore: 30,
   semanticScore: 46,
   skillMatchScore: 42,
   retrievalScore: 44,
-  aiScore: 31,
+  aiScore: 30,
   skillScore: 10,
   experienceScore: 5,
   projectScore: 8,
-  educationScore: 8,
+  educationScore: 7,
   matchedSkills: ["Agile", "Scrum", "Java", "JavaScript", "Vue.js", "React", "PHP"],
   missingSkills: [
     "Kinh nghiệm Project Manager hoặc Tech Lead",
@@ -63,25 +63,42 @@ const scoreDetail = {
     },
     {
       key: "projects",
-      summary: "Có dự án liên quan nhưng thiếu số liệu tác động.",
+      summary: "Có dự án liên quan và mô tả tương đối rõ vai trò, quy mô và kết quả.",
       items: [
         {
           key: "project-relevance",
-          awardedScore: 8,
-          reason: "Dự án dùng React nhưng chưa chứng minh quy mô triển khai.",
+          awardedScore: 2,
+          reason: "Dự án có một phần công nghệ liên quan đến vị trí.",
           evidence: "CV mô tả một ứng dụng quản lý công việc bằng React.",
+        },
+        {
+          key: "technical-depth",
+          awardedScore: 1,
+          reason: "CV chưa mô tả rõ các quyết định kỹ thuật phức tạp.",
+          evidence: "CV chỉ liệt kê React trong phần công nghệ.",
+        },
+        {
+          key: "impact-evidence",
+          awardedScore: 5,
+          reason:
+            "Ứng viên mô tả rõ vai trò triển khai và phạm vi áp dụng, nhưng chưa có số liệu về hiệu quả.",
+          evidence: "Phụ trách triển khai hệ thống ERP cho 4 phòng ban.",
         },
       ],
     },
     {
       key: "education",
-      summary: "Chuyên ngành phù hợp, chưa có chứng chỉ bổ sung.",
+      summary: "Ứng viên thấp hơn yêu cầu học vấn 1 bậc.",
       items: [
         {
-          key: "degree-major",
-          awardedScore: 8,
-          reason: "Bằng cấp liên quan nhưng thiếu chứng chỉ chuyên môn.",
-          evidence: "CV ghi nhận bằng Công nghệ thông tin.",
+          key: "education-level-match",
+          awardedScore: 7,
+          reason:
+            "Tin tuyển dụng yêu cầu Đại học. Ứng viên có trình độ Cao đẳng, thấp hơn yêu cầu 1 bậc.",
+          evidence: "CV ghi nhận: Cao đẳng Công nghệ thông tin.",
+          candidateEducationLevel: "COLLEGE",
+          requiredEducationLevel: "BACHELOR",
+          difference: 1,
         },
       ],
     },
@@ -121,8 +138,21 @@ const scoreDetail = {
         {
           key: "project-relevance",
           label: "Mức liên quan của dự án",
-          maxScore: 20,
+          maxScore: 8,
           description: "Đối chiếu dự án với bài toán của vị trí.",
+        },
+        {
+          key: "technical-depth",
+          label: "Độ sâu kỹ thuật",
+          maxScore: 5,
+          description: "Đánh giá độ phức tạp và chiều sâu triển khai.",
+        },
+        {
+          key: "impact-evidence",
+          label: "Tác động và bằng chứng dự án",
+          maxScore: 7,
+          description:
+            "Đánh giá quy mô, kết quả triển khai, vai trò và đóng góp cá nhân của ứng viên dựa trên các thông tin cụ thể, có số liệu hoặc bằng chứng rõ ràng.",
         },
       ],
     },
@@ -132,10 +162,11 @@ const scoreDetail = {
       maxScore: 10,
       criteria: [
         {
-          key: "degree-major",
-          label: "Bằng cấp và chuyên ngành",
+          key: "education-level-match",
+          label: "Mức độ đáp ứng yêu cầu học vấn",
           maxScore: 10,
-          description: "Đối chiếu bằng cấp và chuyên ngành.",
+          description:
+            "Đối chiếu trình độ học vấn cao nhất của ứng viên với yêu cầu học vấn trong tin tuyển dụng.",
         },
       ],
     },
@@ -164,7 +195,7 @@ test("opens a complete evaluation page on desktop", async ({ page }) => {
 
   await expect(page).toHaveURL(`/vi/recruiter/candidates/${applicationId}/evaluation`);
   await expect(page.getByRole("heading", { name: scoreDetail.candidateName })).toBeVisible();
-  await expect(page.getByText("31% phù hợp")).toBeVisible();
+  await expect(page.getByText("30% phù hợp")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Chi tiết điểm" })).toBeVisible();
   await expect(page.getByText("Vì sao kỹ năng được 10/40 điểm?")).toBeVisible();
   await expect(page.getByText("-30 điểm")).toBeVisible();
@@ -177,27 +208,119 @@ test("opens a complete evaluation page on desktop", async ({ page }) => {
   await expect(page.getByText("Vì sao kinh nghiệm được 5/30 điểm?")).toBeVisible();
   await expect(page.getByText("-25 điểm")).toBeVisible();
 
-  const rubricButton = page.locator('summary[aria-label="Xem toàn bộ tiêu chí đánh giá"]');
+  await page.getByRole("button", { name: /Dự án liên quan/ }).click();
+  await expect(page.getByText("Vì sao dự án liên quan được 8/20 điểm?")).toBeVisible();
+  await expect(page.getByText("Tác động và bằng chứng dự án")).toBeVisible();
+  await expect(page.getByText("Đạt 5/7 điểm")).toBeVisible();
+  await expect(
+    page.getByText(/Ứng viên mô tả rõ vai trò triển khai và phạm vi áp dụng/),
+  ).toBeVisible();
+  await expect(page.getByText("Phụ trách triển khai hệ thống ERP cho 4 phòng ban.")).toBeVisible();
+  await expect(page.getByText("Tác động và quy mô")).toHaveCount(0);
+  await expect(page.getByText("Chất lượng bằng chứng")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Học vấn/ }).click();
+  await expect(page.getByText("Vì sao học vấn được 7/10 điểm?")).toBeVisible();
+  await expect(page.getByText("Yêu cầu tin tuyển dụng")).toBeVisible();
+  await expect(page.getByText("Đại học", { exact: true })).toBeVisible();
+  await expect(page.getByText("Trình độ ứng viên")).toBeVisible();
+  await expect(page.getByText("Cao đẳng", { exact: true })).toBeVisible();
+  await expect(page.getByText(/thấp hơn yêu cầu 1 bậc/)).toBeVisible();
+  await expect(page.getByText("Bằng cấp và chuyên ngành")).toHaveCount(0);
+  await expect(page.getByText("Chứng chỉ và đào tạo")).toHaveCount(0);
+  await expect(page.getByText("Bằng chứng học thuật liên quan")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Mời phỏng vấn" })).toBeVisible();
+  expect(scoreDetail.finalScore).toBe(
+    scoreDetail.skillScore +
+      scoreDetail.experienceScore +
+      scoreDetail.projectScore +
+      scoreDetail.educationScore,
+  );
+
+  const rubricButton = page.getByRole("button", { name: "Xem toàn bộ tiêu chí đánh giá" });
   await rubricButton.click();
   const rubric = page.getByRole("dialog", { name: "Toàn bộ tiêu chí đánh giá" });
   await expect(rubric).toBeVisible();
   await expect(rubric.getByText("Kỹ năng bắt buộc")).toBeVisible();
   await expect(rubric.getByText("Số năm kinh nghiệm liên quan")).toBeVisible();
+  await expect(rubric.getByText("Tác động và bằng chứng dự án")).toBeVisible();
+  await expect(rubric.getByText("Mức độ đáp ứng yêu cầu học vấn")).toBeVisible();
   await expect(page.getByText("Kinh nghiệm Project Manager hoặc Tech Lead")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Mời phỏng vấn" })).toBeVisible();
 
   await page.screenshot({
     path: "test-results/recruiter-ai-score-page-desktop.png",
     fullPage: true,
   });
 
-  await rubricButton.click();
+  await page.getByRole("button", { name: "Đóng tiêu chí đánh giá" }).click();
   await page.getByRole("button", { name: "Quay lại kết quả AI lọc CV" }).click();
   await expect(page).toHaveURL(/\/vi\/recruiter\/candidates\?tab=cv-ranking$/);
   await expect(page.getByRole("tab", { name: "AI lọc CV" })).toHaveAttribute(
     "data-state",
     "active",
   );
+});
+
+test("does not crash or display removed criteria from an old cached result", async ({ page }) => {
+  const oldScoreDetail = {
+    ...scoreDetail,
+    criteriaBreakdown: scoreDetail.criteriaBreakdown.map((criterion) => {
+      if (criterion.key === "projects") {
+        return {
+          key: "projects",
+          summary: "Kết quả dự án phiên bản cũ.",
+          items: [
+            ...criterion.items.filter(
+              (item) => item.key === "project-relevance" || item.key === "technical-depth",
+            ),
+            {
+              key: "impact-scale",
+              awardedScore: 4,
+              reason: "Lý do tác động cũ.",
+              evidence: "Bằng chứng tác động cũ.",
+            },
+            {
+              key: "evidence-quality",
+              awardedScore: 3,
+              reason: "Lý do bằng chứng cũ.",
+              evidence: "Bằng chứng chất lượng cũ.",
+            },
+          ],
+        };
+      }
+      if (criterion.key === "education") {
+        return {
+          key: "education",
+          summary: "Kết quả học vấn phiên bản cũ.",
+          items: [
+            {
+              key: "degree-major",
+              awardedScore: 5,
+              reason: "Lý do cũ.",
+              evidence: "Bằng chứng cũ.",
+            },
+          ],
+        };
+      }
+      return criterion;
+    }),
+  };
+
+  await page.route(`**/api/v1/recruiter/applications/${applicationId}/ai-score`, async (route) => {
+    await route.fulfill({ json: oldScoreDetail });
+  });
+  await openScorePage(page);
+  await page.getByRole("button", { name: /Học vấn/ }).click();
+
+  await expect(page.getByText(/phiên bản chấm điểm cũ/)).toBeVisible();
+  await expect(page.getByText("Bằng cấp và chuyên ngành")).toHaveCount(0);
+  await expect(page.getByText("degree-major")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Dự án liên quan/ }).click();
+  await expect(page.getByText("Tác động và quy mô")).toHaveCount(0);
+  await expect(page.getByText("Chất lượng bằng chứng")).toHaveCount(0);
+  await expect(page.getByText("impact-scale")).toHaveCount(0);
+  await expect(page.getByText("evidence-quality")).toHaveCount(0);
 });
 
 test("keeps the evaluation page readable without horizontal overflow on mobile", async ({

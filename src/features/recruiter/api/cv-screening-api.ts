@@ -47,6 +47,7 @@ export interface CvScreeningResultItem {
 }
 
 export type ScoreCriterionKey = "skills" | "experience" | "projects" | "education";
+export type EducationLevel = "HIGH_SCHOOL" | "VOCATIONAL" | "COLLEGE" | "BACHELOR" | "POSTGRADUATE";
 
 export interface EvaluationRubricItem {
   key: string;
@@ -66,7 +67,10 @@ export interface ScoreBreakdownItem {
   key: string;
   awardedScore: number;
   reason: string;
-  evidence: string;
+  evidence: string | null;
+  candidateEducationLevel?: EducationLevel | null;
+  requiredEducationLevel?: EducationLevel | null;
+  difference?: number | null;
 }
 
 export interface ScoreCriterionBreakdown {

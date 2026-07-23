@@ -49,6 +49,20 @@ type JobCard = {
 };
 
 const PAGE_SIZE = 6;
+const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
+
+function formatApplicationDeadline(expiredAt: string | null | undefined) {
+  if (!expiredAt) return "Không giới hạn thời gian nộp";
+
+  const expirationTime = new Date(expiredAt).getTime();
+  if (Number.isNaN(expirationTime)) return "Chưa cập nhật hạn nộp";
+
+  const remainingTime = expirationTime - Date.now();
+  if (remainingTime < 0) return "Đã hết hạn";
+
+  const remainingDays = Math.max(1, Math.ceil(remainingTime / DAY_IN_MILLISECONDS));
+  return `Còn ${remainingDays} ngày để nộp`;
+}
 
 const verifyPoints = [
   "Đã xác thực email tên miền công ty",
@@ -405,7 +419,7 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
         : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
             Boolean,
           ) as string[]),
-    deadline: "Còn 30 ngày để nộp",
+    deadline: formatApplicationDeadline(job.expiredAt),
     filters: Array.from(new Set(filters)),
   };
 }

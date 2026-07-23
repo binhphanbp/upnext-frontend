@@ -12,6 +12,7 @@ export interface PublicJob {
   salaryIsNegotiable: boolean;
   salaryIsVisible: boolean;
   publishedAt: string | null;
+  expiredAt: string | null;
   createdAt: string;
   company: {
     id: string;

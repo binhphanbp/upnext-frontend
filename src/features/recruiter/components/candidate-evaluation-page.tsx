@@ -17,6 +17,8 @@ import {
   getApplicationAiScore,
   getApplicationCvUrl,
   type ApplicationAiScoreResponse,
+  type EducationLevel,
+  type EvaluationRubricCriterion,
   type ScoreCriterionKey,
 } from "@/features/recruiter/api/cv-screening-api";
 import { updateApplicationStatus } from "@/features/recruiter/api/team";
@@ -28,17 +30,33 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Separator } from "@/shared/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/shared/ui/sheet";
 
 type CandidateEvaluationPageProps = Readonly<{
   applicationId: string;
 }>;
 
 const SCORE_METRICS = [
-  { key: "skills", label: "Kỹ năng", maximum: 40 },
-  { key: "experience", label: "Kinh nghiệm", maximum: 30 },
-  { key: "projects", label: "Dự án liên quan", maximum: 20 },
-  { key: "education", label: "Học vấn", maximum: 10 },
+  { key: "skills", label: "Kỹ năng", fallbackMaximum: 40 },
+  { key: "experience", label: "Kinh nghiệm", fallbackMaximum: 30 },
+  { key: "projects", label: "Dự án liên quan", fallbackMaximum: 20 },
+  { key: "education", label: "Học vấn", fallbackMaximum: 10 },
 ] as const;
+
+const EDUCATION_LEVEL_LABELS: Record<EducationLevel, string> = {
+  HIGH_SCHOOL: "THPT",
+  VOCATIONAL: "Trung cấp",
+  COLLEGE: "Cao đẳng",
+  BACHELOR: "Đại học",
+  POSTGRADUATE: "Sau đại học",
+};
 
 export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPageProps) {
   const router = useRouter();
@@ -85,28 +103,47 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
     };
   }, [applicationId, router]);
 
+  const evaluationRubric = useMemo(
+    () => getCompatibleEvaluationRubric(detail?.evaluationRubric ?? []),
+    [detail],
+  );
+
   const metrics = useMemo(() => {
     if (!detail) return [];
-    return SCORE_METRICS.map((metric) => ({
-      ...metric,
-      score:
-        metric.key === "skills"
-          ? detail.skillScore
-          : metric.key === "experience"
-            ? detail.experienceScore
-            : metric.key === "projects"
-              ? detail.projectScore
-              : detail.educationScore,
-    }));
-  }, [detail]);
+    return SCORE_METRICS.map((metric) => {
+      const rubric = evaluationRubric.find((criterion) => criterion.key === metric.key);
+      return {
+        key: metric.key,
+        label: metric.label,
+        maximum: rubric?.maxScore ?? metric.fallbackMaximum,
+        score:
+          metric.key === "skills"
+            ? detail.skillScore
+            : metric.key === "experience"
+              ? detail.experienceScore
+              : metric.key === "projects"
+                ? detail.projectScore
+                : detail.educationScore,
+      };
+    });
+  }, [detail, evaluationRubric]);
 
   const selectedMetric = metrics.find((metric) => metric.key === selectedCriterion);
-  const selectedBreakdown = detail?.criteriaBreakdown?.find(
+  const rawSelectedBreakdown = detail?.criteriaBreakdown?.find(
     (criterion) => criterion.key === selectedCriterion,
   );
-  const selectedRubric = detail?.evaluationRubric?.find(
-    (criterion) => criterion.key === selectedCriterion,
-  );
+  const selectedBreakdown =
+    rawSelectedBreakdown && (selectedCriterion === "education" || selectedCriterion === "projects")
+      ? {
+          ...rawSelectedBreakdown,
+          items: rawSelectedBreakdown.items.filter((item) =>
+            selectedCriterion === "education"
+              ? item.key === "education-level-match"
+              : ["project-relevance", "technical-depth", "impact-evidence"].includes(item.key),
+          ),
+        }
+      : rawSelectedBreakdown;
+  const selectedRubric = evaluationRubric.find((criterion) => criterion.key === selectedCriterion);
 
   function returnToScreeningResults() {
     sessionStorage.setItem("upnext_activeTab", "cv-ranking");
@@ -229,7 +266,7 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
         </div>
 
         <div className="flex items-center gap-2 self-start lg:self-auto">
-          <RubricPopover detail={detail} />
+          <RubricPopover rubric={evaluationRubric} />
           <Badge
             tone="neutral"
             className={cn(
@@ -371,51 +408,72 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
   );
 }
 
-function RubricPopover({ detail }: { detail: ApplicationAiScoreResponse }) {
+function RubricPopover({ rubric }: { rubric: EvaluationRubricCriterion[] }) {
   return (
-    <details className="group relative">
-      <summary
-        className="upnext-focus inline-flex size-11 cursor-pointer list-none items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 marker:hidden hover:bg-emerald-100"
-        aria-label="Xem toàn bộ tiêu chí đánh giá"
+    <Sheet>
+      <SheetTrigger asChild>
+        <button
+          type="button"
+          className="upnext-focus inline-flex size-11 cursor-pointer items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100"
+          aria-label="Xem toàn bộ tiêu chí đánh giá"
+        >
+          <Info size={21} aria-hidden="true" />
+        </button>
+      </SheetTrigger>
+
+      <SheetContent
+        side="right"
+        closeLabel="Đóng tiêu chí đánh giá"
+        className="evaluation-rubric-drawer flex h-dvh w-full flex-col gap-0 overflow-hidden border-l border-slate-200 bg-white p-0 sm:max-w-[680px]"
       >
-        <Info size={21} aria-hidden="true" />
-      </summary>
-      <dialog
-        open
-        aria-label="Toàn bộ tiêu chí đánh giá"
-        className="pointer-events-none invisible absolute top-12 right-0 left-auto z-50 m-0 max-h-[70vh] w-[min(38rem,calc(100vw-3rem))] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 opacity-0 shadow-2xl group-open:pointer-events-auto group-open:visible group-open:opacity-100 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100"
-      >
-        <h2 className="text-base font-semibold text-slate-950">Toàn bộ tiêu chí đánh giá</h2>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          Tổng 100 điểm. Không có bằng chứng trong CV thì không cộng điểm.
-        </p>
-        <div className="mt-5 space-y-5">
-          {detail.evaluationRubric?.map((criterion) => (
-            <section key={criterion.key}>
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-slate-900">{criterion.label}</h3>
-                <span className="text-xs font-semibold text-emerald-700 tabular-nums">
-                  {criterion.maxScore} điểm
-                </span>
-              </div>
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {criterion.criteria.map((item) => (
-                  <li key={item.key} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                    <div className="flex justify-between gap-3 text-xs font-medium text-slate-800">
-                      <span>{item.label}</span>
-                      <span className="shrink-0 text-emerald-700 tabular-nums">
-                        Tối đa {item.maxScore} điểm
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[11px] leading-4 text-slate-500">{item.description}</p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+        <SheetHeader className="shrink-0 border-b border-slate-200 px-5 py-5 pr-14 sm:px-7 sm:py-6 sm:pr-16">
+          <SheetTitle className="text-xl font-semibold text-slate-950">
+            Toàn bộ tiêu chí đánh giá
+          </SheetTitle>
+          <SheetDescription className="text-sm leading-6 text-slate-500">
+            Tổng 100 điểm. Không có bằng chứng trong CV thì không cộng điểm.
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 sm:px-7">
+          <div className="space-y-8">
+            {rubric.map((criterion) => (
+              <section key={criterion.key} aria-labelledby={`rubric-${criterion.key}`}>
+                <div className="mb-3 flex items-center justify-between gap-4">
+                  <h3
+                    id={`rubric-${criterion.key}`}
+                    className="text-base font-semibold text-slate-950"
+                  >
+                    {criterion.label}
+                  </h3>
+                  <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700 tabular-nums">
+                    {criterion.maxScore} điểm
+                  </span>
+                </div>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {criterion.criteria.map((item) => (
+                    <li
+                      key={item.key}
+                      className="rounded-xl border border-slate-200 bg-slate-50/70 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-sm leading-5 font-semibold text-slate-900">
+                          {item.label}
+                        </span>
+                        <span className="shrink-0 text-xs font-semibold text-emerald-700 tabular-nums">
+                          Tối đa {item.maxScore} điểm
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-slate-500">{item.description}</p>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
         </div>
-      </dialog>
-    </details>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -436,6 +494,18 @@ function CriterionExplanation({
       >
         Kết quả này được tạo bằng phiên bản chấm điểm cũ. Hãy chạy lọc xếp hạng lại để xem lý do chi
         tiết.
+      </div>
+    );
+  }
+
+  if (metric.key === "education" && breakdown.items.length === 0) {
+    return (
+      <div
+        id="criterion-explanation"
+        className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800"
+      >
+        Kết quả học vấn này dùng phiên bản chấm điểm cũ. Hãy chạy lọc xếp hạng lại để đối chiếu
+        trình độ học vấn theo tiêu chí mới.
       </div>
     );
   }
@@ -473,6 +543,11 @@ function CriterionExplanation({
                   <span className="mt-1 block text-xs text-slate-500 tabular-nums">
                     Đạt {item.awardedScore}/{maximum} điểm
                   </span>
+                  {item.key === "impact-evidence" && rubricItem?.description ? (
+                    <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
+                      {rubricItem.description}
+                    </p>
+                  ) : null}
                 </div>
                 <span
                   className={cn(
@@ -485,13 +560,29 @@ function CriterionExplanation({
                   {deduction > 0 ? `-${deduction} điểm` : "Không bị trừ"}
                 </span>
               </div>
+              {item.key === "education-level-match" ? (
+                <dl className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-3 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-xs font-medium text-slate-500">Yêu cầu tin tuyển dụng</dt>
+                    <dd className="mt-1 text-sm font-semibold text-slate-900">
+                      {getEducationLevelLabel(item.requiredEducationLevel, "Không yêu cầu")}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-medium text-slate-500">Trình độ ứng viên</dt>
+                    <dd className="mt-1 text-sm font-semibold text-slate-900">
+                      {getEducationLevelLabel(item.candidateEducationLevel, "Không xác định")}
+                    </dd>
+                  </div>
+                </dl>
+              ) : null}
               <p className="mt-3 text-sm leading-6 text-slate-700">
                 <strong className="font-semibold text-slate-900">Lý do: </strong>
                 {item.reason}
               </p>
               <p className="mt-1 text-sm leading-6 text-slate-500">
                 <strong className="font-semibold text-slate-700">Bằng chứng CV: </strong>
-                {item.evidence}
+                {item.evidence ?? "Không có thông tin học vấn trong hồ sơ."}
               </p>
             </article>
           );
@@ -585,6 +676,27 @@ function getProgressBarColor(score: number) {
 
 function roundScore(score: number) {
   return Math.round(score * 100) / 100;
+}
+
+function getCompatibleEvaluationRubric(
+  rubric: EvaluationRubricCriterion[],
+): EvaluationRubricCriterion[] {
+  return rubric.map((criterion) =>
+    criterion.key === "education" || criterion.key === "projects"
+      ? {
+          ...criterion,
+          criteria: criterion.criteria.filter((item) =>
+            criterion.key === "education"
+              ? item.key === "education-level-match"
+              : ["project-relevance", "technical-depth", "impact-evidence"].includes(item.key),
+          ),
+        }
+      : criterion,
+  );
+}
+
+function getEducationLevelLabel(level: EducationLevel | null | undefined, fallback: string) {
+  return level ? EDUCATION_LEVEL_LABELS[level] : fallback;
 }
 
 function removeStaleRankingResult(applicationId: string) {
