@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
-import { getPublicCompanies } from "./api";
+import { getPublicCompanies, getPublicCompanyDetail } from "./api";
 import {
   ArrowRight,
   Briefcase,
@@ -22,6 +22,7 @@ type FeaturedCompaniesProps = {
 type Company = {
   id: string;
   name: string;
+  slug?: string;
   category: string;
   jobs: number;
   logo: string;
@@ -43,8 +44,9 @@ type CompanyPage = {
   companies: Company[];
 };
 
-// Each "page" = one featured spotlight + 9 cards (the featured also appears as
-// the first card, matching the reference). Arrows page between sets.
+// Each desktop page has one featured spotlight and 9 compact cards. The 3 + 2 +
+// 2 + 2 arrangement keeps the last row balanced while the spotlight fills the
+// third column across rows two to four.
 const staticPages: CompanyPage[] = [
   {
     featured: {
@@ -309,17 +311,17 @@ function CoverImage({ company }: { company: FeaturedCompany }) {
 }
 
 /** Responsive small-card count, aligned with the CSS breakpoints:
-   - desktop (>1180px): full bento — featured + 8 cards
+   - desktop (>1180px): full bento — featured + 9 cards
    - tablet (821-1180px): featured hidden, 6 small cards + slider
    - mobile (<=820px): featured only (0 small cards) + slider */
 function useVisibleCount() {
   const getCount = () => {
-    if (typeof window === "undefined") return 8;
+    if (typeof window === "undefined") return 9;
     if (window.matchMedia("(max-width: 820px)").matches) return 0;
     if (window.matchMedia("(max-width: 1180px)").matches) return 6;
-    return 8;
+    return 9;
   };
-  const [count, setCount] = useState(8);
+  const [count, setCount] = useState(9);
 
   useEffect(() => {
     const update = () => setCount(getCount());
@@ -346,9 +348,10 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
       return staticPages;
     }
 
-    const mapped = apiCosData.items.map((co) => ({
+    const mapped: Company[] = apiCosData.items.map((co) => ({
       id: co.id,
       name: co.name,
+      ...(co.slug ? { slug: co.slug } : {}),
       category: co.type || "Technology",
       jobs: 12,
       logo: co.logoUrl || co.logoFile?.publicUrl || "",
@@ -375,6 +378,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
       const featured: FeaturedCompany = {
         id: first.id,
         name: first.name,
+        ...(first.slug ? { slug: first.slug } : {}),
         category: first.type || "Technology",
         jobs: 12,
         logo: first.logoUrl || first.logoFile?.publicUrl || "",
@@ -395,6 +399,21 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
 
   const page = pages[pageIndex] || staticPages[0]!;
   const totalPages = pages.length;
+
+  const { data: featuredCompanyDetail } = useQuery({
+    queryKey: ["public-featured-company-cover", page.featured.slug],
+    queryFn: () => getPublicCompanyDetail(page.featured.slug!),
+    enabled: Boolean(page.featured.slug && !page.featured.cover),
+    staleTime: 5 * 60_000,
+  });
+
+  const featured = useMemo(
+    () => ({
+      ...page.featured,
+      cover: featuredCompanyDetail?.coverFile?.publicUrl || page.featured.cover,
+    }),
+    [featuredCompanyDetail?.coverFile?.publicUrl, page.featured],
+  );
 
   const cards = useMemo(() => page.companies.slice(0, visibleCount), [page, visibleCount]);
 
@@ -440,9 +459,9 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
 
         <div className="marketing-home-co-bento" key={pageIndex}>
           <FeaturedCard
-            company={page.featured}
-            following={following[`feat-${page.featured.id}`] ?? false}
-            onFollow={() => toggleFollow(`feat-${page.featured.id}`)}
+            company={featured}
+            following={following[`feat-${featured.id}`] ?? false}
+            onFollow={() => toggleFollow(`feat-${featured.id}`)}
             navigate={navigate}
           />
 
@@ -479,7 +498,9 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
                     <Check size={14} /> Đang theo dõi
                   </>
                 ) : (
-                  "Theo dõi"
+                  <>
+                    <Plus size={14} aria-hidden="true" /> Theo dõi
+                  </>
                 )}
               </button>
             </article>
