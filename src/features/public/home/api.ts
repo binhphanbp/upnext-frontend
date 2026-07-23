@@ -11,12 +11,14 @@ export interface PublicJob {
   salaryCurrency: string;
   salaryIsNegotiable: boolean;
   salaryIsVisible: boolean;
+  vacanciesCount?: number | null;
   publishedAt: string | null;
   expiredAt: string | null;
   createdAt: string;
   company: {
     id: string;
     name: string;
+    verificationStatus?: string | null;
     logoUrl?: string | null;
     logoFile?: {
       publicUrl: string;
@@ -28,10 +30,12 @@ export interface PublicJob {
   jobPostLocations?: Array<{
     jobLocation: {
       city: string;
+      workingModel?: string | null;
       address?: string | null;
     };
   }>;
   jobPostSkills?: Array<{
+    minYearsExperience?: number | null;
     skill: {
       id: string;
       name: string;
@@ -42,6 +46,7 @@ export interface PublicJob {
 export interface PublicCompany {
   id: string;
   name: string;
+  slug?: string;
   type: string;
   logoUrl?: string | null;
   logoFile?: {
@@ -50,6 +55,13 @@ export interface PublicCompany {
   website?: string | null;
   address?: string | null;
   description?: string | null;
+}
+
+export interface PublicCompanyDetail extends PublicCompany {
+  slug: string;
+  coverFile?: {
+    publicUrl: string;
+  } | null;
 }
 
 export interface PublicCompanyListResponse {
@@ -68,4 +80,8 @@ export function getPublicJobs() {
 
 export function getPublicCompanies() {
   return apiRequest<PublicCompanyListResponse>("/companies");
+}
+
+export function getPublicCompanyDetail(slug: string) {
+  return apiRequest<PublicCompanyDetail>(`/companies/${slug}`);
 }
