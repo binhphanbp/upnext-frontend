@@ -150,6 +150,7 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
     "1",
   );
   const railLayout = await section.evaluate((element) => {
+    const header = element.querySelector<HTMLElement>(".marketing-home-insights-head");
     const stage = element.querySelector<HTMLElement>(".marketing-home-insights-stage");
     const featured = element.querySelector<HTMLElement>(
       ".marketing-home-insights-card.is-featured",
@@ -158,9 +159,11 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
       ".marketing-home-insights-card.is-adjacent",
     );
 
-    if (!stage || !featured || !sideCard) return null;
+    if (!header || !stage || !featured || !sideCard) return null;
 
     return {
+      headerLeft: header.getBoundingClientRect().left,
+      headerWidth: header.getBoundingClientRect().width,
       stageLeft: stage.getBoundingClientRect().left,
       stageWidth: stage.getBoundingClientRect().width,
       viewportWidth: window.innerWidth,
@@ -172,6 +175,8 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
   });
 
   expect(railLayout).not.toBeNull();
+  expect(railLayout!.headerLeft).toBeCloseTo(80, 0);
+  expect(railLayout!.headerWidth).toBeCloseTo(1280, 0);
   expect(railLayout!.stageLeft).toBe(0);
   expect(railLayout!.stageWidth).toBe(railLayout!.viewportWidth);
   expect(railLayout!.featuredTop).toBeLessThan(railLayout!.sideTop);
