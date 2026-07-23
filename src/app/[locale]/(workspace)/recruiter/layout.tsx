@@ -22,7 +22,6 @@ type RecruiterLayoutProps = Readonly<{
 const routePermissionMap: Record<string, string[]> = {
   "/recruiter/job-posts": ["jobs:manage"],
   "/recruiter/candidates": ["applications:manage", "applications:review_assigned"],
-  "/recruiter/pipeline": ["applications:manage", "applications:review_assigned"],
   "/recruiter/interviews": ["interviews:manage", "interviews:review_assigned"],
   "/recruiter/messages": ["applications:manage", "applications:review_assigned"],
   "/recruiter/company-profile": ["company:manage"],
@@ -68,9 +67,6 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       } else if (item.label === "Ứng viên") {
         itemLabel = t("nav.candidates");
         if (stats) badge = String(stats.totalCandidates);
-      } else if (item.label === "Pipeline") {
-        itemLabel = t("nav.pipeline");
-        badge = undefined;
       } else if (item.label === "Phỏng vấn") {
         itemLabel = t("nav.interviews");
         badge = undefined;

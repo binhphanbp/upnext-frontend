@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  transpilePackages: ["@phosphor-icons/react"],
   images: {
     remotePatterns: [
       {

@@ -160,6 +160,7 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
     setSaving(true);
     try {
       await updateApplicationStatus(applicationId, nextStatus, session.accessToken);
+      setDetail((prev) => (prev ? { ...prev, status: nextStatus } : prev));
       await Swal.fire({
         icon: "success",
         title: nextStatus === "REJECTED" ? "Đã từ chối ứng viên" : "Đã mời phỏng vấn",
@@ -383,23 +384,44 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
                 <FileArrowDown aria-hidden="true" />
                 Xem CV
               </Button>
-              <Button
-                variant="destructive"
-                className="w-full justify-start"
-                disabled={saving}
-                onClick={() => void handleStatusChange("REJECTED")}
-              >
-                <XCircle aria-hidden="true" />
-                Từ chối
-              </Button>
-              <Button
-                className="w-full justify-start"
-                disabled={saving}
-                onClick={() => void handleStatusChange("INTERVIEWING")}
-              >
-                <CheckCircle aria-hidden="true" />
-                Mời phỏng vấn
-              </Button>
+              {(() => {
+                const currentStatus = detail.status;
+                const isInterviewing = currentStatus === "INTERVIEWING";
+                const isRejected = currentStatus === "REJECTED";
+                const isFinalized =
+                  currentStatus === "HIRED" ||
+                  currentStatus === "WITHDRAWN" ||
+                  currentStatus === "OFFERED";
+
+                const canReject = !isRejected && !isFinalized && !saving;
+                const canInvite = !isInterviewing && !isRejected && !isFinalized && !saving;
+
+                return (
+                  <>
+                    <Button
+                      variant="destructive"
+                      className="w-full justify-start"
+                      disabled={!canReject}
+                      onClick={() => void handleStatusChange("REJECTED")}
+                    >
+                      <XCircle aria-hidden="true" />
+                      {isRejected ? "Đã từ chối" : "Từ chối"}
+                    </Button>
+                    <Button
+                      className="w-full justify-start"
+                      disabled={!canInvite}
+                      onClick={() => void handleStatusChange("INTERVIEWING")}
+                    >
+                      <CheckCircle aria-hidden="true" />
+                      {isInterviewing
+                        ? "Đã mời phỏng vấn"
+                        : isFinalized
+                          ? "Đã hoàn tất xử lý"
+                          : "Mời phỏng vấn"}
+                    </Button>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         </aside>
