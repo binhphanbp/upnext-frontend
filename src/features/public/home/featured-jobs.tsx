@@ -16,8 +16,6 @@ import {
   ChevronRight,
   Clock,
   Coins,
-  Globe,
-  LayoutGrid,
   MapPin,
   Monitor,
   ShieldCheck,
@@ -412,17 +410,7 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
   };
 }
 
-const tabs = [
-  { key: "all", label: "Tất cả", icon: <LayoutGrid size={16} /> },
-  { key: "remote", label: "Remote", icon: <Globe size={16} /> },
-  { key: "high-salary", label: "Lương cao", icon: <Coins size={16} /> },
-  { key: "newest", label: "Mới nhất", icon: <Clock size={16} /> },
-] as const;
-
-type TabKey = (typeof tabs)[number]["key"];
-
 export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>("all");
   const [index, setIndex] = useState(0);
   const [animate, setAnimate] = useState(false);
   const [saved, setSaved] = useState<Record<string, boolean>>({});
@@ -439,31 +427,20 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
     return mapped;
   }, [apiJobsData]);
 
-  const filtered = useMemo(() => {
-    if (activeTab === "all") return jobs;
-    return jobs.filter((job) => job.filters.includes(activeTab));
-  }, [activeTab, jobs]);
-
   // Split into pages of PAGE_SIZE, then append a clone of page 1 at the end so
   // the loop from last → first slides FORWARD seamlessly instead of rewinding.
   const pages = useMemo(() => {
     const result: JobCard[][] = [];
-    for (let i = 0; i < filtered.length; i += PAGE_SIZE) {
-      result.push(filtered.slice(i, i + PAGE_SIZE));
+    for (let i = 0; i < jobs.length; i += PAGE_SIZE) {
+      result.push(jobs.slice(i, i + PAGE_SIZE));
     }
     return result.length ? result : [[]];
-  }, [filtered]);
+  }, [jobs]);
 
   const totalPages = pages.length;
   const hasLoop = totalPages > 1;
   const slides = hasLoop ? [...pages, pages[0]!] : pages;
   const displayPage = (index % totalPages) + 1;
-
-  // Reset to the first slide whenever the filter changes.
-  useEffect(() => {
-    setAnimate(false);
-    setIndex(0);
-  }, [activeTab]);
 
   // Auto-advance every 2s, looping forward. Pauses on hover/focus and respects
   // reduced-motion so it never fights the user.
@@ -512,10 +489,6 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
     }
   }
 
-  function selectTab(key: TabKey) {
-    setActiveTab(key);
-  }
-
   function toggleSaved(id: string) {
     setSaved((current) => ({ ...current, [id]: !current[id] }));
   }
@@ -538,22 +511,6 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
           Xem tất cả <ChevronRight size={16} />
         </button>
       </header>
-
-      <div className="marketing-home-jobs-tabs" role="tablist" aria-label="Lọc cơ hội">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.key}
-            className={`marketing-home-jobs-tab${activeTab === tab.key ? " is-active" : ""}`}
-            onClick={() => selectTab(tab.key)}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       <div className={`marketing-home-jobs-viewport${animate ? " is-animating" : ""}`}>
         <div
@@ -611,6 +568,7 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
                         <button
                           type="button"
                           className="featured-job-title"
+                          title={job.title}
                           onClick={() => navigate(`/jobs/${job.id}`)}
                         >
                           {job.title}

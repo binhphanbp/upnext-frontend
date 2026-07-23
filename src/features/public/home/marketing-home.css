@@ -2074,48 +2074,6 @@ button.marketing-home-control {
   transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.marketing-home-jobs-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 28px 0 26px;
-}
-
-.marketing-home-jobs-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 20px;
-  color: #475569;
-  font-size: 14px;
-  font-weight: 700;
-  border: 1px solid #e5e9f0;
-  border-radius: 999px;
-  background: #ffffff;
-  cursor: pointer;
-  transition:
-    color 200ms cubic-bezier(0.32, 0.72, 0, 1),
-    border-color 200ms cubic-bezier(0.32, 0.72, 0, 1),
-    background 200ms cubic-bezier(0.32, 0.72, 0, 1),
-    box-shadow 200ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.marketing-home-jobs-tab svg {
-  color: #94a3b8;
-  transition: color 200ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.marketing-home-jobs-tab.is-active {
-  color: #ffffff;
-  border-color: transparent;
-  background: linear-gradient(100deg, #098f63, #10b981);
-}
-
-.marketing-home-jobs-tab.is-active svg {
-  color: #ffffff;
-}
-
 /* --- Carousel: a sliding track of full-width page slides. --- */
 .marketing-home-jobs-viewport {
   overflow: hidden;
@@ -2412,11 +2370,13 @@ button.marketing-home-control {
   color: #34d399;
 }
 
-/* Title: cap at two lines (natural height). Footer is pinned to the bottom
-   via margin-top:auto, so cards stay equal height WITHOUT reserving title
-   space — any slack collects above the footer divider, not under the title. */
+/* A single-line title keeps the card grid visually aligned; the full title
+   remains available through the accessible button label and native tooltip. */
 .featured-job-title {
+  display: -webkit-box;
+  width: 100%;
   margin: 14px 0 0;
+  overflow: hidden;
   padding: 0;
   border: 0;
   background: transparent;
@@ -2426,11 +2386,11 @@ button.marketing-home-control {
   line-height: 1.35;
   text-align: left;
   cursor: pointer;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
-  overflow: hidden;
   transition: color 280ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -2545,7 +2505,7 @@ button.marketing-home-control {
   align-items: center;
   justify-content: center;
   gap: 22px;
-  margin-top: 36px;
+  margin-top: 20px;
 }
 
 .marketing-home-jobs-pager button {
@@ -3894,16 +3854,6 @@ button.marketing-home-control {
     background: linear-gradient(100deg, #098f63 0%, #10b981 100%);
   }
 
-  .marketing-home-jobs-tab:not(.is-active):hover {
-    color: #0b7f5f;
-    border-color: #c8ecdc;
-    background: #f3fdf8;
-  }
-
-  .marketing-home-jobs-tab:not(.is-active):hover svg {
-    color: #0aa56f;
-  }
-
   .featured-job-card:hover {
     border-color: #d8eee4;
     background: #fbfdfc;
@@ -4458,10 +4408,6 @@ button.marketing-home-control {
 
   .marketing-home-jobs-grid {
     grid-template-columns: 1fr;
-  }
-
-  .marketing-home-jobs-tabs {
-    margin: 22px 0 20px;
   }
 
   /* Companies on mobile: single column, header actions stack, hide side arrows
