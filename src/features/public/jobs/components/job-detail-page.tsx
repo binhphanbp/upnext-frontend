@@ -148,7 +148,7 @@ function LogoMark({ job, size = "normal" }: { job: Job; size?: "normal" | "large
         alt={`Logo ${job.company}`}
         width={size === "large" ? 72 : 48}
         height={size === "large" ? 72 : 48}
-        className="rounded-lg object-contain p-1"
+        className="size-full object-contain"
         onError={() => setFailed(true)}
       />
     </span>

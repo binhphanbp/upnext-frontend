@@ -392,11 +392,11 @@ function LogoMark({ src, name, color }: { src: string; name: string; color: stri
   }
 
   return (
-    <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-white p-2">
+    <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white">
       <img
         src={src}
         alt={`Logo ${name}`}
-        className="max-h-full max-w-full object-contain"
+        className="size-full object-contain"
         onError={() => setFailed(true)}
       />
     </div>

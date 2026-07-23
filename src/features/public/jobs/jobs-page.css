@@ -1389,8 +1389,8 @@
 }
 
 .jobs-logo-mark img {
-  max-width: 76%;
-  max-height: 76%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 

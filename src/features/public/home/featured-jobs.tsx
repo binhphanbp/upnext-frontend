@@ -91,7 +91,7 @@ function CompanyLogo({ src, name, color }: { src: string; name: string; color: s
         alt={`Logo ${name}`}
         width={48}
         height={48}
-        className="object-contain p-1"
+        className="size-full object-contain"
         onError={() => setFailed(true)}
       />
     </i>
