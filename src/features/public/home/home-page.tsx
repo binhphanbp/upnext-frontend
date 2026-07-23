@@ -14,6 +14,7 @@ import { PublicHeader } from "../shared/public-header";
 import { getPublicCompanies, getPublicJobs } from "./api";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
+import { InsightsCarousel } from "./insights-carousel";
 import { JobMarket } from "./job-market";
 import {
   ArrowRight,
@@ -550,6 +551,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         <FeaturedJobs navigate={navigate} onApply={setApplyJob} />
         <FeaturedCompanies navigate={navigate} />
         <JobMarket navigate={navigate} />
+        <InsightsCarousel />
 
         <PublicFooter navigate={navigate} />
 
