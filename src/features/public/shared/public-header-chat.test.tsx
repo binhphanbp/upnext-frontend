@@ -16,6 +16,11 @@ vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/candidate/profile",
   useRouter: () => ({ replace: vi.fn<(path: string) => void>() }),
 }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn<(path: string) => void>() }),
+}));
+
+import * as nextNavigation from "next/navigation";
 
 import { PublicHeader } from "./public-header";
 
@@ -24,13 +29,15 @@ describe("PublicHeader candidate recruiter chat", () => {
     vi.restoreAllMocks();
   });
 
-  it("opens the dedicated chat portal in a new tab from the candidate dropdown", async () => {
+  it("opens the dedicated chat portal from the candidate dropdown", async () => {
     const user = userEvent.setup();
-    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const navigate = vi.fn<(path: string) => void>();
+    const push = vi.fn();
+    vi.spyOn(nextNavigation, "useRouter").mockReturnValue({ push } as any);
 
     render(
       <PublicHeader
-        navigate={vi.fn<(path: string) => void>()}
+        navigate={navigate}
         viewer={{
           email: "candidate@upnext.dev",
           initials: "UV",
@@ -44,14 +51,16 @@ describe("PublicHeader candidate recruiter chat", () => {
     await user.click(screen.getByRole("button", { name: "Tài khoản" }));
     await user.click(screen.getByRole("menuitem", { name: "Chat với nhà tuyển dụng" }));
 
-    expect(open).toHaveBeenCalledWith("/conversations/chat", "_blank", "noopener,noreferrer");
+    expect(push).toHaveBeenCalledWith("/conversations/chat");
   });
 
   it("clears the green message dot as soon as the candidate opens chat", async () => {
     const user = userEvent.setup();
-    const open = vi.spyOn(window, "open").mockReturnValue(null);
+    const navigate = vi.fn<(path: string) => void>();
+    const push = vi.fn();
+    vi.spyOn(nextNavigation, "useRouter").mockReturnValue({ push } as any);
 
-    render(<HeaderWithNewMessage />);
+    render(<HeaderWithNewMessage navigate={navigate} />);
 
     const chatButton = screen.getByRole("button", { name: "Tin nhắn" });
     expect(within(chatButton).getByLabelText("Có tin nhắn mới")).toBeInTheDocument();
@@ -59,15 +68,15 @@ describe("PublicHeader candidate recruiter chat", () => {
     await user.click(chatButton);
 
     expect(within(chatButton).queryByLabelText("Có tin nhắn mới")).not.toBeInTheDocument();
-    expect(open).toHaveBeenCalledWith("/conversations/chat", "_blank", "noopener,noreferrer");
+    expect(push).toHaveBeenCalledWith("/conversations/chat");
   });
 });
 
-function HeaderWithNewMessage() {
+function HeaderWithNewMessage({ navigate }: { navigate: (path: string) => void }) {
   const [hasNewMessage, setHasNewMessage] = useState(true);
   return (
     <PublicHeader
-      navigate={vi.fn<(path: string) => void>()}
+      navigate={navigate}
       viewer={{
         email: "candidate@upnext.dev",
         initials: "UV",
