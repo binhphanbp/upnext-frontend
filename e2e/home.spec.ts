@@ -130,6 +130,182 @@ test("popular keyword chips route to jobs search", async ({ page }) => {
   await expect(page).toHaveURL(/\/en\/jobs\?keyword=Frontend/);
 });
 
+test("keeps the home insights carousel accessible by button, keyboard, and drag", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/vi");
+
+  const section = page.locator(".marketing-home-insights");
+  const viewport = section.locator(".marketing-home-insights-viewport");
+
+  await section.scrollIntoViewIfNeeded();
+  await expect(
+    section.getByRole("heading", { name: "Cẩm nang nghề nghiệp", exact: true }),
+  ).toBeVisible();
+  await expect(section.getByText("Xem tất cả", { exact: true })).toBeVisible();
+  await expect(viewport).toHaveAttribute("aria-roledescription", "carousel");
+  await expect(section.locator(".marketing-home-insights-card.is-featured")).toHaveAttribute(
+    "data-insight-index",
+    "1",
+  );
+  const railLayout = await section.evaluate((element) => {
+    const stage = element.querySelector<HTMLElement>(".marketing-home-insights-stage");
+    const featured = element.querySelector<HTMLElement>(
+      ".marketing-home-insights-card.is-featured",
+    );
+    const sideCard = element.querySelector<HTMLElement>(
+      ".marketing-home-insights-card.is-adjacent",
+    );
+
+    if (!stage || !featured || !sideCard) return null;
+
+    return {
+      stageLeft: stage.getBoundingClientRect().left,
+      stageWidth: stage.getBoundingClientRect().width,
+      viewportWidth: window.innerWidth,
+      featuredTop: featured.getBoundingClientRect().top,
+      sideTop: sideCard.getBoundingClientRect().top,
+      featuredOpacity: Number(window.getComputedStyle(featured).opacity),
+      sideOpacity: Number(window.getComputedStyle(sideCard).opacity),
+    };
+  });
+
+  expect(railLayout).not.toBeNull();
+  expect(railLayout!.stageLeft).toBe(0);
+  expect(railLayout!.stageWidth).toBe(railLayout!.viewportWidth);
+  expect(railLayout!.featuredTop).toBeLessThan(railLayout!.sideTop);
+  expect(railLayout!.featuredOpacity).toBeGreaterThan(railLayout!.sideOpacity);
+
+  await section.getByRole("button", { name: "Bài viết tiếp theo" }).click();
+  await expect(section.locator(".marketing-home-insights-card.is-featured")).toHaveAttribute(
+    "data-insight-index",
+    "2",
+  );
+
+  const nextButton = section.getByRole("button", { name: "Bài viết tiếp theo" });
+  await nextButton.focus();
+  await page.keyboard.press("Enter");
+  await expect(section.locator(".marketing-home-insights-card.is-featured")).toHaveAttribute(
+    "data-insight-index",
+    "3",
+  );
+
+  await section.getByRole("button", { name: "Bài viết tiếp theo" }).click();
+  await section.getByRole("button", { name: "Bài viết tiếp theo" }).click();
+  await section.getByRole("button", { name: "Bài viết tiếp theo" }).click();
+  await expect(section.locator(".marketing-home-insights-card.is-featured")).toHaveAttribute(
+    "data-insight-index",
+    "0",
+  );
+
+  await section.getByRole("button", { name: "Bài viết tiếp theo" }).click();
+  await expect(section.locator(".marketing-home-insights-card.is-featured")).toHaveAttribute(
+    "data-insight-index",
+    "1",
+  );
+
+  const scrollBeforeMouseDrag = await viewport.evaluate((element) => element.scrollLeft);
+  await dragGalleryStage(page, viewport, -360, { steps: 8 });
+  await expect
+    .poll(() => viewport.evaluate((element) => element.scrollLeft))
+    .toBeGreaterThan(scrollBeforeMouseDrag);
+
+  const scrollBeforeTouchDrag = await viewport.evaluate((element) => element.scrollLeft);
+  await dragGalleryStageWithTouch(page, viewport, 360);
+  await expect
+    .poll(() => viewport.evaluate((element) => element.scrollLeft))
+    .toBeLessThan(scrollBeforeTouchDrag);
+});
+
+test("keeps the home insights carousel within a compact mobile viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/vi");
+
+  const section = page.locator(".marketing-home-insights");
+  await section.scrollIntoViewIfNeeded();
+
+  await expect(section.getByRole("button", { name: "Bài viết trước" })).toBeVisible();
+  await expect(section.getByRole("button", { name: "Bài viết tiếp theo" })).toBeVisible();
+  await expect(
+    page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+  ).resolves.toBe(true);
+});
+
+test("uses API jobs for search and keeps the sidebar focused on advanced filters", async ({
+  page,
+}) => {
+  await page.route(/\/job-posts(?:\?|$)/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify([
+        {
+          id: "api-react-platform",
+          title: "React Platform Engineer",
+          description: "Build and improve the React platform.",
+          requirements: null,
+          benefits: null,
+          salaryMin: 30000000,
+          salaryMax: 45000000,
+          salaryCurrency: "VND",
+          salaryIsNegotiable: false,
+          salaryIsVisible: true,
+          vacanciesCount: 2,
+          publishedAt: "2026-07-16T00:00:00.000Z",
+          createdAt: "2026-07-16T00:00:00.000Z",
+          company: {
+            id: "company-1",
+            name: "UpNext Labs",
+            verificationStatus: "VERIFIED",
+          },
+          jobCategory: { name: "Frontend Engineering" },
+          employmentType: { name: "Full-time" },
+          experienceLevel: { name: "Middle" },
+          jobPostSkills: [{ minYearsExperience: 2, skill: { name: "React" } }],
+          jobPostLocations: [{ jobLocation: { city: "TP. Hồ Chí Minh", workingModel: "HYBRID" } }],
+        },
+        {
+          id: "api-java-backend",
+          title: "Java API Engineer",
+          description: "Develop Java services.",
+          requirements: null,
+          benefits: null,
+          salaryMin: 25000000,
+          salaryMax: 35000000,
+          salaryCurrency: "VND",
+          salaryIsNegotiable: false,
+          salaryIsVisible: true,
+          vacanciesCount: 1,
+          publishedAt: "2026-07-15T00:00:00.000Z",
+          createdAt: "2026-07-15T00:00:00.000Z",
+          company: { id: "company-2", name: "UpNext Core" },
+          jobCategory: { name: "Backend Engineering" },
+          employmentType: { name: "Full-time" },
+          experienceLevel: { name: "Senior" },
+          jobPostSkills: [{ minYearsExperience: 5, skill: { name: "Java" } }],
+          jobPostLocations: [{ jobLocation: { city: "Hà Nội", workingModel: "ONSITE" } }],
+        },
+      ]),
+    });
+  });
+
+  await page.goto("/vi/jobs?keyword=React");
+
+  await expect(page.getByText("React Platform Engineer", { exact: true })).toBeVisible();
+  await expect(page.getByText("Java API Engineer", { exact: true })).toBeHidden();
+  await expect(page.locator("#jobs-search-keyword")).toHaveValue("React");
+
+  const sidebar = page.locator("aside");
+  await expect(sidebar.getByLabel("Từ khóa")).toHaveCount(0);
+  await expect(sidebar.getByLabel("Địa điểm")).toHaveCount(0);
+  await expect(sidebar.getByRole("button", { name: "React", exact: true })).toBeVisible();
+
+  await page.locator("#jobs-search-location").selectOption("Hà Nội");
+  await page.getByRole("button", { name: "Tìm kiếm", exact: true }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("location")).toBe("Hà Nội");
+  await expect(page.getByText("Không tìm thấy việc làm phù hợp")).toBeVisible();
+});
+
 test("uses one shared public header across public marketing pages", async ({ page }) => {
   for (const route of ["/vi", "/vi/jobs", "/vi/companies"]) {
     await page.goto(route);
@@ -288,11 +464,15 @@ test("uses one shared public footer across public marketing pages", async ({ pag
 test("renders migrated public jobs and companies pages", async ({ page }) => {
   await page.goto("/vi/jobs");
 
-  await expect(page.getByRole("heading", { name: /khám phá/i })).toBeVisible();
-  await page.locator(".jobs-detail").first().click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Tìm kiếm việc làm từ các công ty hàng đầu đang tuyển dụng",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Chi tiết", exact: true }).first().click();
   await page.waitForURL(/\/vi\/jobs\//, { timeout: 15_000 });
   await expect(
-    page.getByRole("heading", { name: /fresher java|frontend|devops|mobile|ai/i }),
+    page.getByRole("heading", { name: "Technical Project Manager / Scrum Master", exact: true }),
   ).toBeVisible();
 
   await page.goto("/vi/companies");

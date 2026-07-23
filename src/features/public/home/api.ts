@@ -11,12 +11,14 @@ export interface PublicJob {
   salaryCurrency: string;
   salaryIsNegotiable: boolean;
   salaryIsVisible: boolean;
+  vacanciesCount?: number | null;
   publishedAt: string | null;
   expiredAt: string | null;
   createdAt: string;
   company: {
     id: string;
     name: string;
+    verificationStatus?: string | null;
     logoUrl?: string | null;
     logoFile?: {
       publicUrl: string;
@@ -28,10 +30,12 @@ export interface PublicJob {
   jobPostLocations?: Array<{
     jobLocation: {
       city: string;
+      workingModel?: string | null;
       address?: string | null;
     };
   }>;
   jobPostSkills?: Array<{
+    minYearsExperience?: number | null;
     skill: {
       id: string;
       name: string;
