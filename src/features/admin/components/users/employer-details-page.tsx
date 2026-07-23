@@ -1,10 +1,16 @@
 "use client";
 
 import { CaretLeft } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
+import Swal from "sweetalert2";
 
-import { getAdminCompanyDetails } from "@/features/admin/api/employers";
+import {
+  banCompanyForFraud,
+  getAdminCompanyDetails,
+  getAdminCompanyReputationActivities,
+} from "@/features/admin/api/employers";
 import { getAdminSession } from "@/features/admin/session";
 import { Link } from "@/i18n/navigation";
 import { formatAppDate } from "@/shared/lib/date";
@@ -18,6 +24,8 @@ interface EmployerDetailsPageProps {
 
 export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
   const t = useTranslations("Admin.users.employers");
+  const queryClient = useQueryClient();
+  const [showReputationHistory, setShowReputationHistory] = useState(false);
 
   const {
     data: company,
@@ -32,6 +40,50 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
     },
     enabled: !!employerId,
   });
+
+  const { data: reputationActivities } = useQuery({
+    queryKey: ["adminCompanyReputationActivities", employerId],
+    queryFn: async () => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return getAdminCompanyReputationActivities(session.accessToken, employerId);
+    },
+    enabled: !!employerId && showReputationHistory,
+  });
+
+  const banMutation = useMutation({
+    mutationFn: async (reason: string) => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return banCompanyForFraud(session.accessToken, employerId, reason);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["adminCompanyDetails", employerId] });
+      void Swal.fire({ icon: "success", title: "Đã ban công ty và đưa MST vào blacklist." });
+    },
+    onError: () => {
+      void Swal.fire({ icon: "error", title: "Ban công ty thất bại." });
+    },
+  });
+
+  async function handleBanForFraud() {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Ban công ty vì lừa đảo?",
+      html: "Hành động này sẽ khoá vĩnh viễn công ty, ban toàn bộ tài khoản NTD trực thuộc, và đưa MST vào blacklist. Vui lòng nhập lý do:",
+      input: "textarea",
+      inputPlaceholder: "Lý do ban vĩnh viễn...",
+      showCancelButton: true,
+      confirmButtonText: "Xác nhận ban",
+      cancelButtonText: "Huỷ",
+      confirmButtonColor: "#dc2626",
+      inputValidator: (value) => (!value ? "Vui lòng nhập lý do." : undefined),
+    });
+
+    if (result.isConfirmed && result.value) {
+      banMutation.mutate(result.value as string);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -129,7 +181,11 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
                   tone={company.status === "ACTIVE" ? "success" : "error"}
                   className="px-3 py-1 text-sm"
                 >
-                  {company.status === "ACTIVE" ? "Hoạt động" : "Bị khóa"}
+                  {company.status === "ACTIVE"
+                    ? "Hoạt động"
+                    : company.status === "RESTRICTED"
+                      ? "Đang bị hạn chế"
+                      : "Bị khóa"}
                 </Badge>
                 {company.type && (
                   <Badge tone="neutral" className="px-3 py-1 text-sm">
@@ -138,6 +194,18 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
                 )}
               </div>
             </div>
+            {company.status !== "LOCKED" ? (
+              <div className="pt-2 sm:pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => void handleBanForFraud()}
+                  disabled={banMutation.isPending}
+                  className="border-red-200 text-red-600 hover:bg-red-50"
+                >
+                  Ban vì lừa đảo
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -201,11 +269,49 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
                 <p className="font-medium text-slate-900">Chưa cập nhật</p>
               )}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 md:col-span-2 lg:col-span-3">
               <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                 Điểm uy tín
               </p>
-              <p className="font-medium text-slate-900">{company.reputationScore || "0"}</p>
+              <div className="flex items-center gap-3">
+                <p className="font-medium text-slate-900">{company.reputationScore || "0"}</p>
+                <button
+                  type="button"
+                  onClick={() => setShowReputationHistory((prev) => !prev)}
+                  className="text-primary text-xs font-semibold hover:underline"
+                >
+                  {showReputationHistory ? "Ẩn lịch sử" : "Xem lịch sử biến động"}
+                </button>
+              </div>
+              {showReputationHistory ? (
+                <ul className="mt-2 space-y-1.5 rounded-lg bg-white p-3 ring-1 ring-slate-100">
+                  {!reputationActivities || reputationActivities.length === 0 ? (
+                    <li className="text-xs text-slate-400">Chưa có biến động điểm nào.</li>
+                  ) : (
+                    reputationActivities.map((activity) => {
+                      const delta = Number(activity.score);
+                      return (
+                        <li
+                          key={activity.id}
+                          className="flex items-center justify-between gap-3 text-xs"
+                        >
+                          <span className="text-slate-600">
+                            {activity.reason || activity.actionType} —{" "}
+                            {formatAppDate(activity.createdAt)}
+                          </span>
+                          <span
+                            className={
+                              delta >= 0 ? "font-bold text-emerald-600" : "font-bold text-red-600"
+                            }
+                          >
+                            {delta >= 0 ? `+${delta}` : delta}
+                          </span>
+                        </li>
+                      );
+                    })
+                  )}
+                </ul>
+              ) : null}
             </div>
             <div className="space-y-1">
               <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">

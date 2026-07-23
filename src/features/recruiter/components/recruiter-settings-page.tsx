@@ -1,6 +1,17 @@
 "use client";
 
-import { CircleNotch } from "@phosphor-icons/react";
+import {
+  CircleNotch,
+  BellRinging,
+  EnvelopeSimple,
+  DeviceMobile,
+  ChatCircleDots,
+  UserCheck,
+  Sparkle,
+  CalendarCheck,
+  MoonStars,
+  CheckCircle,
+} from "@phosphor-icons/react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
@@ -17,6 +28,7 @@ import {
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
+import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { FormInput } from "@/shared/ui/input";
 
@@ -127,6 +139,41 @@ const INVOICES = [
   },
 ];
 
+function ToggleSwitch({
+  checked,
+  onChange,
+  disabled = false,
+  id,
+}: {
+  checked: boolean;
+  onChange: (val: boolean) => void;
+  disabled?: boolean;
+  id?: string;
+}) {
+  return (
+    <button
+      type="button"
+      id={id}
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2",
+        checked ? "bg-emerald-600" : "bg-slate-200 dark:bg-slate-700",
+        disabled && "cursor-not-allowed opacity-50",
+      )}
+    >
+      <span
+        className={cn(
+          "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+          checked ? "translate-x-5" : "translate-x-0",
+        )}
+      />
+    </button>
+  );
+}
+
 export function RecruiterSettingsPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -157,7 +204,14 @@ export function RecruiterSettingsPage() {
   // Notification tab state
   const [notifJobs, setNotifJobs] = useState(true);
   const [notifInterviews, setNotifInterviews] = useState(true);
-  const [notifSecurity, setNotifSecurity] = useState(false);
+  const [notifSecurity, setNotifSecurity] = useState(true);
+  const [notifAiMatch, setNotifAiMatch] = useState(true);
+  const [notifTeam, setNotifTeam] = useState(true);
+  const [notifWeekly, setNotifWeekly] = useState(true);
+  const [channelEmail, setChannelEmail] = useState(true);
+  const [channelPush, setChannelPush] = useState(true);
+  const [channelSms, setChannelSms] = useState(false);
+  const [quietHours, setQuietHours] = useState(true);
 
   // Security tab state
   const [tfaEnabled, setTfaEnabled] = useState(false);
@@ -420,7 +474,7 @@ export function RecruiterSettingsPage() {
 
   return (
     <div
-      className="border-0 bg-white p-7 px-0 py-0 text-slate-900 shadow-md dark:bg-slate-900 dark:text-slate-100"
+      className="upnext-shadow border-0 bg-white p-7 px-0 py-0 text-slate-900 dark:bg-slate-900 dark:text-slate-100"
       style={{ borderRadius: "7px" }}
     >
       <div dir="ltr" className="w-full">
@@ -718,159 +772,408 @@ export function RecruiterSettingsPage() {
         {/* Tab Panel: Notification */}
         {activeTab === "notification" && (
           <div className="mt-2 border-none p-6">
-            <div className="max-w-2xl rounded-xl border border-slate-100 bg-white p-7 dark:border-slate-800 dark:bg-slate-900">
-              <h5 className="mb-1 text-base font-bold text-slate-800 dark:text-white">
-                Cài đặt thông báo
-              </h5>
-              <p className="mb-6 text-xs text-slate-400 dark:text-slate-500">
-                Tùy chọn loại thông báo bạn muốn nhận qua Email và Trình duyệt
-              </p>
+            <div className="space-y-6">
+              {/* Hero Header Banner */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 p-6 text-white shadow-lg">
+                <div className="pointer-events-none absolute -top-10 -right-10 size-48 rounded-full bg-emerald-500/10 blur-3xl" />
+                <div className="pointer-events-none absolute right-20 -bottom-10 size-40 rounded-full bg-teal-500/10 blur-2xl" />
 
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    id="notif_jobs"
-                    aria-label="New applications notifications"
-                    className="mt-1 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                    checked={notifJobs}
-                    onChange={(e) => setNotifJobs(e.target.checked)}
-                  />
-                  <div>
-                    <label
-                      htmlFor="notif_jobs"
-                      className="text-sm font-bold text-slate-700 dark:text-slate-200"
-                    >
-                      Ứng tuyển mới
-                    </label>
-                    <p className="text-xs text-slate-400">
-                      Gửi email thông báo ngay khi có ứng viên mới nộp hồ sơ vào tin tuyển dụng
-                    </p>
+                <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30">
+                      <BellRinging size={26} weight="duotone" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-lg font-bold text-white">
+                          Trung tâm cài đặt thông báo
+                        </h4>
+                        <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 ring-1 ring-emerald-500/30">
+                          Real-time Active
+                        </span>
+                      </div>
+                      <p className="mt-1 max-w-xl text-xs leading-relaxed font-medium text-slate-300">
+                        Tùy chỉnh kênh thông báo, tần suất gửi và loại tin nhắn bạn muốn cập nhật để
+                        giữ kết nối tức thì với ứng viên mà không bị làm phiền.
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    id="notif_interviews"
-                    aria-label="Interview reminder notifications"
-                    className="mt-1 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                    checked={notifInterviews}
-                    onChange={(e) => setNotifInterviews(e.target.checked)}
-                  />
-                  <div>
-                    <label
-                      htmlFor="notif_interviews"
-                      className="text-sm font-bold text-slate-700 dark:text-slate-200"
+                  <div className="flex shrink-0 items-center gap-2 rounded-xl bg-white/10 p-1.5 backdrop-blur-md">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotifJobs(true);
+                        setNotifInterviews(true);
+                        setNotifAiMatch(true);
+                        setNotifTeam(true);
+                        setNotifWeekly(true);
+                      }}
+                      className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/15"
                     >
-                      Nhắc lịch phỏng vấn
-                    </label>
-                    <p className="text-xs text-slate-400">
-                      Gửi nhắc nhở lịch hẹn phỏng vấn sắp diễn ra trong ngày
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    id="notif_sec"
-                    aria-label="Security and login notifications"
-                    className="mt-1 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                    checked={notifSecurity}
-                    onChange={(e) => setNotifSecurity(e.target.checked)}
-                  />
-                  <div>
-                    <label
-                      htmlFor="notif_sec"
-                      className="text-sm font-bold text-slate-700 dark:text-slate-200"
+                      Bật tất cả
+                    </button>
+                    <span className="h-4 w-px bg-white/20" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotifJobs(false);
+                        setNotifInterviews(false);
+                        setNotifAiMatch(false);
+                        setNotifTeam(false);
+                        setNotifWeekly(false);
+                      }}
+                      className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/15 hover:text-white"
                     >
-                      Bảo mật & Đăng nhập
-                    </label>
-                    <p className="text-xs text-slate-400">
-                      Thông báo cho tôi khi có hoạt động đăng nhập lạ từ thiết bị mới
-                    </p>
+                      Tắt tất cả
+                    </button>
                   </div>
                 </div>
               </div>
-              {/* Security Card */}
-              <div className="col-span-12 md:col-span-6">
-                <div className="rounded-xl border border-slate-100 bg-white p-7 dark:border-slate-800 dark:bg-slate-900">
-                  <h5 className="mb-1 text-base font-bold text-slate-800 dark:text-white">
-                    Cài đặt bảo mật
-                  </h5>
-                  <p className="mb-6 text-xs text-slate-400 dark:text-slate-500">
-                    Tăng cường lớp bảo vệ và quản lý lịch sử đăng nhập
-                  </p>
 
-                  <div className="space-y-6">
-                    <div className="flex items-start gap-4 rounded-lg bg-slate-50 p-4 dark:bg-slate-950/30">
-                      <input
-                        type="checkbox"
-                        id="tfa_check"
-                        aria-label="Two-factor authentication"
-                        className="mt-1 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                        checked={tfaEnabled}
-                        onChange={(e) => setTfaEnabled(e.target.checked)}
-                      />
+              {/* Master Delivery Channels */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                      Kênh nhận thông báo chính
+                    </h5>
+                    <p className="text-xs text-slate-400">
+                      Bật/Tắt đồng loạt kênh liên lạc ưa thích của bạn
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {/* Email Channel */}
+                  <div
+                    className={cn(
+                      "flex items-center justify-between rounded-xl border p-4 transition-all",
+                      channelEmail
+                        ? "border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/50 dark:bg-emerald-950/20"
+                        : "border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "flex size-9 items-center justify-center rounded-lg text-emerald-600 dark:text-emerald-400",
+                          channelEmail
+                            ? "bg-emerald-100 dark:bg-emerald-900/40"
+                            : "bg-slate-200/60 dark:bg-slate-800",
+                        )}
+                      >
+                        <EnvelopeSimple size={20} weight="bold" />
+                      </div>
                       <div>
-                        <label
-                          htmlFor="tfa_check"
-                          className="text-sm font-bold text-slate-700 dark:text-slate-200"
-                        >
-                          Xác thực 2 yếu tố (2FA)
-                        </label>
-                        <p className="mt-0.5 text-xs text-slate-400">
-                          Yêu cầu nhập mã xác minh được gửi qua điện thoại hoặc ứng dụng
-                          Authenticator khi đăng nhập.
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Email cá nhân
+                        </p>
+                        <p className="text-[11px] text-slate-400">{email || "Hộp thư recruiter"}</p>
+                      </div>
+                    </div>
+                    <ToggleSwitch checked={channelEmail} onChange={setChannelEmail} />
+                  </div>
+
+                  {/* Web Push Channel */}
+                  <div
+                    className={cn(
+                      "flex items-center justify-between rounded-xl border p-4 transition-all",
+                      channelPush
+                        ? "border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/50 dark:bg-emerald-950/20"
+                        : "border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "flex size-9 items-center justify-center rounded-lg text-emerald-600 dark:text-emerald-400",
+                          channelPush
+                            ? "bg-emerald-100 dark:bg-emerald-900/40"
+                            : "bg-slate-200/60 dark:bg-slate-800",
+                        )}
+                      >
+                        <DeviceMobile size={20} weight="bold" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Trình duyệt & Web Push
+                        </p>
+                        <p className="text-[11px] text-slate-400">Cảnh báo thả xuống tức thì</p>
+                      </div>
+                    </div>
+                    <ToggleSwitch checked={channelPush} onChange={setChannelPush} />
+                  </div>
+
+                  {/* SMS Channel */}
+                  <div
+                    className={cn(
+                      "flex items-center justify-between rounded-xl border p-4 transition-all",
+                      channelSms
+                        ? "border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/50 dark:bg-emerald-950/20"
+                        : "border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "flex size-9 items-center justify-center rounded-lg text-emerald-600 dark:text-emerald-400",
+                          channelSms
+                            ? "bg-emerald-100 dark:bg-emerald-900/40"
+                            : "bg-slate-200/60 dark:bg-slate-800",
+                        )}
+                      >
+                        <ChatCircleDots size={20} weight="bold" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Tin nhắn SMS quan trọng
+                        </p>
+                        <p className="text-[11px] text-slate-400">Dành cho việc gấp & lịch hẹn</p>
+                      </div>
+                    </div>
+                    <ToggleSwitch checked={channelSms} onChange={setChannelSms} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Notification Settings Categories */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                {/* Category 1: Recruitment & Applicants */}
+                <div className="lg:col-span-6">
+                  <div className="h-full rounded-2xl border border-slate-100 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                    <div className="mb-5 flex items-center gap-3">
+                      <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
+                        <UserCheck size={20} weight="bold" />
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                          Ứng tuyển & Gợi ý ứng viên
+                        </h5>
+                        <p className="text-[11px] text-slate-400">
+                          Theo dõi dòng chảy hồ sơ và gợi ý từ thuật toán
                         </p>
                       </div>
                     </div>
 
-                    <div>
-                      <h6 className="mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
-                        Thiết bị đang hoạt động
-                      </h6>
-                      <div className="space-y-3">
-                        <div className="dark:border-slate-850 flex items-center justify-between rounded-lg border border-slate-100 p-3 text-xs">
-                          <div>
-                            <p className="font-bold text-slate-700 dark:text-slate-200">
-                              {deviceInfo.browser} trên {deviceInfo.os} (Thiết bị này)
-                            </p>
-                            <p className="mt-0.5 text-slate-400">
-                              Địa chỉ IP: {userIp} — Hoạt động lần cuối: Vừa xong
-                            </p>
-                          </div>
-                          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                            <span className="relative flex h-1.5 w-1.5">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                    <div className="space-y-4 divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {/* Item 1 */}
+                      <div className="flex items-start justify-between gap-4 pt-4 first:pt-0">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor="notif_jobs_toggle"
+                              className="cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200"
+                            >
+                              Ứng tuyển mới
+                            </label>
+                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                              Email + Web
                             </span>
-                          </span>
+                          </div>
+                          <p className="text-[11px] leading-normal text-slate-400">
+                            Gửi thông báo tức thì khi có ứng viên nộp hồ sơ CV mới vào các tin đăng
+                            tuyển của bạn.
+                          </p>
                         </div>
+                        <ToggleSwitch
+                          id="notif_jobs_toggle"
+                          checked={notifJobs}
+                          onChange={setNotifJobs}
+                        />
+                      </div>
+
+                      {/* Item 2 */}
+                      <div className="flex items-start justify-between gap-4 pt-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor="notif_aimatch_toggle"
+                              className="cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200"
+                            >
+                              Đề xuất AI (Daily Matcher)
+                            </label>
+                            <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                              <Sparkle size={10} weight="fill" /> AI Suggested
+                            </span>
+                          </div>
+                          <p className="text-[11px] leading-normal text-slate-400">
+                            Nhận danh sách 5-10 ứng viên có chỉ số matching cao nhất mỗi 8:00 sáng.
+                          </p>
+                        </div>
+                        <ToggleSwitch
+                          id="notif_aimatch_toggle"
+                          checked={notifAiMatch}
+                          onChange={setNotifAiMatch}
+                        />
+                      </div>
+
+                      {/* Item 3 */}
+                      <div className="flex items-start justify-between gap-4 pt-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor="notif_team_toggle"
+                              className="cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200"
+                            >
+                              Tương tác từ ứng viên
+                            </label>
+                          </div>
+                          <p className="text-[11px] leading-normal text-slate-400">
+                            Cập nhật khi ứng viên đồng ý phỏng vấn, phản hồi thư mời hoặc gửi tin
+                            nhắn trao đổi.
+                          </p>
+                        </div>
+                        <ToggleSwitch
+                          id="notif_team_toggle"
+                          checked={notifTeam}
+                          onChange={setNotifTeam}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Category 2: Interviews & System Alerts */}
+                <div className="lg:col-span-6">
+                  <div className="h-full rounded-2xl border border-slate-100 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                    <div className="mb-5 flex items-center gap-3">
+                      <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400">
+                        <CalendarCheck size={20} weight="bold" />
+                      </div>
+                      <div>
+                        <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                          Lịch phỏng vấn & Báo cáo
+                        </h5>
+                        <p className="text-[11px] text-slate-400">
+                          Nhắc nhở công việc và báo cáo tổng hợp
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {/* Item 1 */}
+                      <div className="flex items-start justify-between gap-4 pt-4 first:pt-0">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor="notif_interviews_toggle"
+                              className="cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200"
+                            >
+                              Nhắc lịch phỏng vấn trước 30 phút
+                            </label>
+                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+                              Ưu tiên cao
+                            </span>
+                          </div>
+                          <p className="text-[11px] leading-normal text-slate-400">
+                            Tự động đẩy thông báo nhắc nhở tới thiết bị trước khi bắt đầu phỏng vấn
+                            trực tuyến/trực tiếp.
+                          </p>
+                        </div>
+                        <ToggleSwitch
+                          id="notif_interviews_toggle"
+                          checked={notifInterviews}
+                          onChange={setNotifInterviews}
+                        />
+                      </div>
+
+                      {/* Item 2 */}
+                      <div className="flex items-start justify-between gap-4 pt-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor="notif_weekly_toggle"
+                              className="cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200"
+                            >
+                              Báo cáo tổng hợp hiệu suất tuần (Weekly Digest)
+                            </label>
+                          </div>
+                          <p className="text-[11px] leading-normal text-slate-400">
+                            Gửi email thống kê số lượng bài đăng, lượt nộp CV và chỉ số chuyển đổi
+                            ứng viên mỗi thứ Hai.
+                          </p>
+                        </div>
+                        <ToggleSwitch
+                          id="notif_weekly_toggle"
+                          checked={notifWeekly}
+                          onChange={setNotifWeekly}
+                        />
+                      </div>
+
+                      {/* Item 3 (Security - Mandatory) */}
+                      <div className="flex items-start justify-between gap-4 pt-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor="notif_security_toggle"
+                              className="cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200"
+                            >
+                              Cảnh báo bảo mật & Đăng nhập mới
+                            </label>
+                            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600 dark:bg-red-950/40 dark:text-red-300">
+                              Bắt buộc
+                            </span>
+                          </div>
+                          <p className="text-[11px] leading-normal text-slate-400">
+                            Thông báo bảo mật khi phát hiện đăng nhập từ IP lạ hoặc thay đổi mật
+                            khẩu tài khoản.
+                          </p>
+                        </div>
+                        <ToggleSwitch
+                          id="notif_security_toggle"
+                          checked={notifSecurity}
+                          onChange={setNotifSecurity}
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Combined Save Button */}
-              <div className="col-span-12 flex justify-end gap-3 border-t border-slate-100 pt-6 dark:border-slate-800">
+              {/* Quiet Hours & Do Not Disturb Setting Card */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400">
+                      <MoonStars size={22} weight="bold" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                        Khung giờ yên tĩnh (Quiet Hours)
+                      </h5>
+                      <p className="text-xs text-slate-400">
+                        Tự động tạm hoãn thông báo đẩy ngoài giờ làm việc (19:00 - 07:30 ngày làm
+                        việc & cả ngày Thứ 7, CN)
+                      </p>
+                    </div>
+                  </div>
+                  <ToggleSwitch checked={quietHours} onChange={setQuietHours} />
+                </div>
+              </div>
+
+              {/* Action Footer */}
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+                <span className="text-xs text-slate-400">
+                  Mọi thay đổi thông báo sẽ có hiệu lực ngay lập tức sau khi lưu
+                </span>
                 <button
                   type="button"
                   onClick={() => {
                     void Swal.fire({
                       icon: "success",
-                      title: "Đã cập nhật cài đặt thông báo!",
+                      title: "Cập nhật cài đặt thông báo thành công!",
+                      text: "Tùy chọn thông báo mới của bạn đã được ghi nhận.",
                       toast: true,
                       position: "top-end",
                       showConfirmButton: false,
-                      timer: 2000,
+                      timer: 2500,
                     });
                   }}
-                  className="h-10 rounded-md bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95"
                 >
-                  Lưu thiết lập
+                  <CheckCircle size={18} weight="bold" />
+                  <span>Lưu thiết lập thông báo</span>
                 </button>
               </div>
             </div>
