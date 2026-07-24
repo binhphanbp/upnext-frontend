@@ -4784,7 +4784,7 @@ button.marketing-home-control {
 /* Reference-clean shared public footer */
 .marketing-home-footer {
   width: 100vw;
-  margin-top: 72px;
+  margin-top: 48px;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
   padding: 48px 0 24px;
@@ -5834,8 +5834,8 @@ button.marketing-home-control {
 /* Three-card media carousel: direct adaptation of the supplied layout. */
 .marketing-home-insights {
   width: 100vw;
-  margin: 104px calc(50% - 50vw) 0;
-  padding: 80px 0 86px;
+  margin: 80px calc(50% - 50vw) 0;
+  padding: 64px 0;
   overflow: hidden;
   border: 0;
   background: #fdfefd;
@@ -5853,7 +5853,7 @@ button.marketing-home-control {
   /* The rail intentionally spans the viewport, but its context (title + CTA)
      must stay aligned with every other homepage section. */
   width: min(1280px, calc(100vw - 96px));
-  margin: 0 auto 56px;
+  margin: 0 auto 46px;
 }
 
 .marketing-home-insights-head h2 {
@@ -5894,7 +5894,7 @@ button.marketing-home-control {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-behavior: smooth;
-  scroll-snap-type: none;
+  scroll-snap-type: x mandatory;
   scrollbar-width: none;
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
@@ -5925,6 +5925,7 @@ button.marketing-home-control {
 
 .marketing-home-insights-viewport.is-dragging {
   cursor: grabbing;
+  scroll-snap-type: none;
   user-select: none;
 }
 
@@ -5947,6 +5948,7 @@ button.marketing-home-control {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  scroll-snap-align: center;
   transform: scale(0.92);
   transform-origin: center top;
   opacity: 0.24;
@@ -6143,8 +6145,8 @@ button.marketing-home-control {
 
 @media (max-width: 760px) {
   .marketing-home-insights {
-    margin-top: 60px;
-    padding: 58px 0 62px;
+    margin-top: 52px;
+    padding: 50px 0 52px;
   }
 
   .marketing-home-insights-head,
@@ -6156,7 +6158,7 @@ button.marketing-home-control {
     align-items: flex-end;
     flex-direction: row;
     gap: 14px;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
   }
 
   .marketing-home-insights-head h2 {
@@ -6203,6 +6205,12 @@ button.marketing-home-control {
     top: calc(min(54vw, 230px) / 2 - 20px);
     width: 40px;
     height: 40px;
+  }
+}
+
+@media (max-width: 760px) {
+  .marketing-home-footer {
+    margin-top: 44px;
   }
 }
 

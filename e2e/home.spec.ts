@@ -215,12 +215,38 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
   await expect
     .poll(() => viewport.evaluate((element) => element.scrollLeft))
     .toBeGreaterThan(scrollBeforeMouseDrag);
+  await expect(section.locator(".marketing-home-insights-card.is-featured")).toHaveAttribute(
+    "data-insight-index",
+    "2",
+  );
 
   const scrollBeforeTouchDrag = await viewport.evaluate((element) => element.scrollLeft);
   await dragGalleryStageWithTouch(page, viewport, 360);
   await expect
     .poll(() => viewport.evaluate((element) => element.scrollLeft))
     .toBeLessThan(scrollBeforeTouchDrag);
+  await expect(section.locator(".marketing-home-insights-card.is-featured")).toHaveAttribute(
+    "data-insight-index",
+    "1",
+  );
+
+  const verticalRhythm = await page.evaluate(() => {
+    const market = document.querySelector<HTMLElement>(".marketing-home-market");
+    const insights = document.querySelector<HTMLElement>(".marketing-home-insights");
+    const footer = document.querySelector<HTMLElement>(".marketing-home-footer");
+    if (!market || !insights || !footer) return null;
+
+    return {
+      marketToInsights:
+        insights.getBoundingClientRect().top - market.getBoundingClientRect().bottom,
+      insightsToFooter:
+        footer.getBoundingClientRect().top - insights.getBoundingClientRect().bottom,
+    };
+  });
+
+  expect(verticalRhythm).not.toBeNull();
+  expect(verticalRhythm!.marketToInsights).toBeLessThanOrEqual(84);
+  expect(verticalRhythm!.insightsToFooter).toBeLessThanOrEqual(52);
 });
 
 test("keeps the home insights carousel within a compact mobile viewport", async ({ page }) => {
