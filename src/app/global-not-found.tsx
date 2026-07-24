@@ -1,13 +1,13 @@
 import Link from "next/link";
 
-import { svnGilroy } from "./fonts";
+import { lexend } from "./fonts";
 
 import "./globals.css";
 
 export default function GlobalNotFound() {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body suppressHydrationWarning className={`${svnGilroy.variable} ${svnGilroy.className}`}>
+      <body suppressHydrationWarning className={`${lexend.variable} ${lexend.className}`}>
         <div className="flex min-h-screen flex-col items-center justify-center bg-white text-zinc-900">
           <div className="text-center">
             <h1 className="mb-4 text-6xl font-bold tracking-tight text-zinc-900">404</h1>

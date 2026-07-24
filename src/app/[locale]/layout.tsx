@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 
 import { routing } from "@/i18n/routing";
 
-import { svnGilroy } from "../fonts";
+import { lexend } from "../fonts";
 
 import "../globals.css";
 import { Providers } from "../providers";
@@ -47,7 +47,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body suppressHydrationWarning className={`${svnGilroy.variable} ${svnGilroy.className}`}>
+      <body suppressHydrationWarning className={`${lexend.variable} ${lexend.className}`}>
         <NextIntlClientProvider>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
