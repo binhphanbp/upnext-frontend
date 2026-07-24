@@ -2230,6 +2230,7 @@ button.marketing-home-control {
 
 /* --- Carousel: a sliding track of full-width page slides. --- */
 .marketing-home-jobs-viewport {
+  margin-top: 24px;
   overflow: hidden;
 }
 
