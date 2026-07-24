@@ -4775,8 +4775,16 @@ button.marketing-home-control {
   margin-right: calc(50% - 50vw);
   padding: 48px 0 24px;
   color: #1a1a1a;
+  font-family: var(--font-sans);
+  font-synthesis: none;
   border-top: 1px solid #e5e7eb;
   background: #ffffff;
+}
+
+.marketing-home-footer button,
+.marketing-home-footer input,
+.marketing-home-footer summary {
+  font-family: var(--font-sans);
 }
 
 .marketing-home-footer-main,
@@ -4846,8 +4854,10 @@ button.marketing-home-control {
   margin: 0 0 16px;
   color: #1a1a1a;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.4;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
 }
 
 .marketing-home-footer-link-column ul,
