@@ -871,7 +871,7 @@
   margin: 22px 0 20px;
   color: #121722;
   font-size: 56px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.12;
 }
@@ -1778,10 +1778,11 @@ button.marketing-home-control {
 .marketing-home-urgent-head h2 {
   margin: 14px 0 0;
   color: #111827;
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  line-height: 1.12;
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .marketing-home-urgent-head p {
@@ -2196,9 +2197,11 @@ button.marketing-home-control {
 .marketing-home-jobs-head h2 {
   margin: 0;
   color: #111827;
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .marketing-home-jobs-head p {
@@ -2536,7 +2539,7 @@ button.marketing-home-control {
   background: transparent;
   color: #111827;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
   text-align: left;
   cursor: pointer;
@@ -2870,7 +2873,7 @@ button.marketing-home-control {
   margin: 6px 0 0;
   color: #ffffff;
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .featured-company-featured-tags {
@@ -3183,9 +3186,11 @@ button.marketing-home-control {
 .jm-head h2 {
   margin: 0;
   color: #111827;
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .jm-head h2 span {
@@ -3509,7 +3514,7 @@ button.marketing-home-control {
   margin: 0;
   color: #111827;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .jm-chart-head h3 svg {
@@ -4248,10 +4253,6 @@ button.marketing-home-control {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .marketing-home-jobs-head h2 {
-    font-size: 30px;
-  }
-
   /* Tablet: hide the big featured card; show a limited set of small cards in
      3 columns. "Xem tất cả" / slider dots cover the rest. */
   .marketing-home-co-bento {
@@ -4310,10 +4311,6 @@ button.marketing-home-control {
 
   .jm-charts {
     grid-template-columns: 1fr;
-  }
-
-  .jm-head h2 {
-    font-size: 26px;
   }
 
   .marketing-home-footer {
@@ -4536,10 +4533,6 @@ button.marketing-home-control {
     gap: 16px;
   }
 
-  .marketing-home-urgent-head h2 {
-    font-size: 30px;
-  }
-
   .marketing-home-urgent-head p {
     font-size: 15px;
     line-height: 1.6;
@@ -4598,10 +4591,6 @@ button.marketing-home-control {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
-  }
-
-  .marketing-home-jobs-head h2 {
-    font-size: 26px;
   }
 
   .marketing-home-jobs-grid {
@@ -4694,10 +4683,6 @@ button.marketing-home-control {
 
   .jm-chart-foot span {
     flex-basis: calc(50% - 7px);
-  }
-
-  .jm-head h2 {
-    font-size: 23px;
   }
 
   .jm-report-btn {
@@ -5172,9 +5157,10 @@ button.marketing-home-control {
   max-width: 860px;
   margin: 20px 0 16px;
   font-size: clamp(48px, 5.4vw, 76px);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.055em;
   line-height: 1.03;
+  text-wrap: balance;
 }
 
 .marketing-home-copy p {
@@ -5447,10 +5433,10 @@ button.marketing-home-control {
   max-width: 610px;
   margin: 15px 0 0;
   color: #103b35;
-  font-size: clamp(36px, 3.35vw, 54px);
-  font-weight: 800;
-  letter-spacing: -0.055em;
-  line-height: 1.02;
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   text-wrap: balance;
 }
 
@@ -5635,7 +5621,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #143b34;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.25;
   text-wrap: balance;
@@ -5861,10 +5847,10 @@ button.marketing-home-control {
   max-width: none;
   margin: 0;
   color: #0d3823;
-  font-size: 38px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   text-wrap: balance;
 }
 
@@ -6016,7 +6002,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #0d3823;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.015em;
   line-height: 1.42;
   text-wrap: balance;
@@ -6165,8 +6151,7 @@ button.marketing-home-control {
   .marketing-home-insights-head h2 {
     min-width: 0;
     flex: 1 1 0;
-    font-size: clamp(22px, 6.5vw, 26px);
-    white-space: nowrap;
+    white-space: normal;
   }
 
   .marketing-home-insights-all {
