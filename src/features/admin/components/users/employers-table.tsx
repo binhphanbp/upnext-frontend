@@ -264,6 +264,7 @@ export function EmployersTable() {
             <th className="w-12 border-r border-slate-300 px-4 py-3 text-center last:border-r-0">
               <input
                 type="checkbox"
+                aria-label="Chọn tất cả công ty trên trang này"
                 className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
                 checked={isAllPageSelected}
                 onChange={(e) => handleSelectAll(e.target.checked)}
@@ -317,6 +318,7 @@ export function EmployersTable() {
                   <td className="w-12 border-r border-slate-200 px-4 py-3 text-center last:border-r-0">
                     <input
                       type="checkbox"
+                      aria-label={`Chọn ${employer.companyName}`}
                       className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
                       checked={selectedIds.includes(employer.id)}
                       onChange={(e) => handleSelectOne(employer.id, e.target.checked)}
@@ -345,8 +347,11 @@ export function EmployersTable() {
                   <td className="px-4 py-3 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Mở menu thao tác</span>
+                        <Button
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          aria-label={`Mở menu thao tác cho ${employer.companyName}`}
+                        >
                           <DotsThree size={20} weight="bold" />
                         </Button>
                       </DropdownMenuTrigger>

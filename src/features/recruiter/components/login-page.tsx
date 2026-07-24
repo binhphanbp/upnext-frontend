@@ -146,6 +146,7 @@ function resetAuthInputFocusStyle(
 
 export function RecruiterLoginPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const tAuth = useTranslations("Auth");
   const t = useTranslations("RecruiterAuth");
@@ -153,16 +154,19 @@ export function RecruiterLoginPage() {
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
-    if (errorParam) {
-      showToast("error", errorParam);
+    const verifiedParam = searchParams.get("verified");
+    if (errorParam || verifiedParam) {
+      showToast(errorParam ? "error" : "success", errorParam || t("login.emailVerified"));
       const params = new URLSearchParams(window.location.search);
       params.delete("error");
+      params.delete("verified");
       const newSearch = params.toString();
-      router.replace(
-        newSearch ? `${window.location.pathname}?${newSearch}` : window.location.pathname,
-      );
+      // `useRouter` expects a locale-free pathname. Passing
+      // `window.location.pathname` here includes `/vi` (or `/en`), so
+      // next-intl prepends the locale a second time: `/vi/vi/recruiter/login`.
+      router.replace(newSearch ? `${pathname}?${newSearch}` : pathname);
     }
-  }, [searchParams, router]);
+  }, [pathname, searchParams, router]);
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(

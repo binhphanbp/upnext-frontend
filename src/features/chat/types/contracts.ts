@@ -29,6 +29,25 @@ export type ConversationParticipant = Readonly<{
   adminUser?: { id: string; fullName: string; avatarUrl: string | null } | null;
 }>;
 
+export type ConversationRecruiterOption = Readonly<{
+  id: string;
+  email: string;
+  profile: { fullName: string; avatarUrl: string | null } | null;
+  isConversationParticipant: boolean;
+  isHiringTeamMember: boolean;
+}>;
+
+export type JobHiringTeamMember = Readonly<{
+  id: string;
+  recruiterAccountId: string;
+  joinedAt: string;
+  recruiterAccount: {
+    id: string;
+    email: string;
+    profile: { fullName: string; avatarUrl: string | null } | null;
+  };
+}>;
+
 export type MessageAttachment = Readonly<{
   id: string;
   status: "UPLOADED" | "CLAIMED" | "QUARANTINED" | "DELETED";

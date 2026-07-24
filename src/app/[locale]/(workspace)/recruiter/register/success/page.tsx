@@ -6,7 +6,11 @@ import { useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 
-import { requestRecruiterEmailVerification } from "@/features/recruiter/api/auth";
+import {
+  getRecruiterEmailVerificationStatus,
+  requestRecruiterEmailVerification,
+} from "@/features/recruiter/api/auth";
+import { clearRecruiterEmailVerificationPending } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/shared/ui/button";
 import {
@@ -32,6 +36,44 @@ export default function RecruiterRegisterSuccessPage() {
       return () => clearTimeout(timer);
     }
   }, [countdown]);
+
+  useEffect(() => {
+    if (!email) return;
+
+    let disposed = false;
+    let checking = false;
+
+    const checkVerificationStatus = async () => {
+      if (disposed || checking || document.visibilityState !== "visible") return;
+
+      checking = true;
+      try {
+        const status = await getRecruiterEmailVerificationStatus(email);
+        if (!disposed && status.emailVerified) {
+          clearRecruiterEmailVerificationPending(email);
+          router.replace("/recruiter/login?verified=1");
+        }
+      } catch {
+        // A temporary network failure should not interrupt the waiting screen.
+      } finally {
+        checking = false;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") void checkVerificationStatus();
+    };
+
+    void checkVerificationStatus();
+    const interval = window.setInterval(() => void checkVerificationStatus(), 5000);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [email, router]);
 
   async function handleResend() {
     if (!email) {

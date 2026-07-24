@@ -8,9 +8,13 @@ export type WorkspaceNavItem = Readonly<{
   icon: Icon;
   badge?: string;
   badgeTone?: "brand" | "premium" | "success" | "warning" | "info" | "neutral" | "error";
+  locked?: boolean;
+  lockedReason?: string;
   children?: ReadonlyArray<{
     label: string;
     href: string;
+    locked?: boolean;
+    lockedReason?: string;
   }>;
 }>;
 

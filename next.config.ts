@@ -7,11 +7,11 @@ const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
     globalNotFound: true,
+    optimizePackageImports: ["@phosphor-icons/react", "@phosphor-icons/react/dist/ssr"],
   },
   turbopack: {
     root: process.cwd(),
   },
-  transpilePackages: ["@phosphor-icons/react"],
   images: {
     remotePatterns: [
       {
@@ -47,6 +47,12 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "ui-avatars.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
         port: "",
         pathname: "/**",
       },
