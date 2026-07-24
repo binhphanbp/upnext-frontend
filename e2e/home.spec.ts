@@ -492,18 +492,19 @@ test("uses one shared public footer across public marketing pages", async ({ pag
   await expect(page.locator("#site-footer")).toHaveCount(0);
 });
 
-test("uses the shared SVN-Gilroy typography in the public footer", async ({ page }) => {
+test("uses the shared Lexend typography in the public footer", async ({ page }) => {
   await page.goto("/vi");
 
   const footer = page.locator("#site-footer");
   const heading = footer.getByRole("heading").first();
   const textControls = footer.locator("button, input, summary");
 
-  await expect(footer).toHaveCSS("font-family", /svnGilroy/);
+  await expect(page.locator("body")).toHaveCSS("font-family", /Lexend/);
+  await expect(footer).toHaveCSS("font-family", /Lexend/);
   await expect(heading).toHaveCSS("font-weight", "700");
 
   for (const control of await textControls.all()) {
-    await expect(control).toHaveCSS("font-family", /svnGilroy/);
+    await expect(control).toHaveCSS("font-family", /Lexend/);
   }
 });
 
