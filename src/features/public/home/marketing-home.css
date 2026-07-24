@@ -2269,6 +2269,7 @@ button.marketing-home-control {
   position: relative;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   padding: 20px;
   border: 1px solid #e6eaf0;
   border-radius: 18px;
@@ -2630,6 +2631,20 @@ button.marketing-home-control {
   color: #94a3b8;
   font-size: 12px;
   font-weight: 600;
+}
+
+.featured-job-interest {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #0b7f5f;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.featured-job-interest svg {
+  color: #10a778;
 }
 
 .featured-job-apply {

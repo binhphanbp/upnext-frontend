@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0aa56f" />
+    <title>UpNext đang ngoại tuyến</title>
+    <style>
+      :root {
+        color: #10221c;
+        background: #f2fcf7;
+        font-family: Lexend, Arial, Helvetica, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        margin: 0;
+        place-items: center;
+        padding: 24px;
+      }
+
+      main {
+        width: min(100%, 420px);
+        padding: 32px;
+        text-align: center;
+        border: 1px solid #cdeadd;
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow: 0 20px 44px rgb(15 23 42 / 10%);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        margin-bottom: 20px;
+        color: #ffffff;
+        font-size: 25px;
+        font-weight: 800;
+        letter-spacing: -0.08em;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #34d399, #0aa56f);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.3;
+      }
+
+      p {
+        margin: 12px 0 0;
+        color: #526173;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      button {
+        min-height: 44px;
+        margin-top: 24px;
+        padding: 0 18px;
+        color: #ffffff;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        border: 0;
+        border-radius: 10px;
+        background: #0aa56f;
+        cursor: pointer;
+      }
+
+      button:focus-visible {
+        outline: 3px solid rgb(16 185 129 / 35%);
+        outline-offset: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand" aria-hidden="true">U</div>
+      <h1>Bạn đang ngoại tuyến</h1>
+      <p>Kiểm tra kết nối mạng rồi thử lại để tiếp tục tìm việc trên UpNext.</p>
+      <p lang="en">You’re offline. Check your connection and try again.</p>
+      <button type="button" onclick="window.location.reload()">Thử lại</button>
+    </main>
+  </body>
+</html>
