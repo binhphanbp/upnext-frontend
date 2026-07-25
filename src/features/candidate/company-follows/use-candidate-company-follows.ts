@@ -10,6 +10,11 @@ import {
 } from "@/features/candidate/api/profile";
 import { getCandidateSession, type CandidateSession } from "@/features/candidate/session";
 
+type ToggleFollowCompanyCallbacks = {
+  onError?: () => void;
+  onSuccess?: (following: boolean) => void;
+};
+
 export function useCandidateCompanyFollows() {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<CandidateSession | null | undefined>(undefined);
@@ -61,25 +66,42 @@ export function useCandidateCompanyFollows() {
     return Array.from(ids);
   }, [optimisticState, serverIds]);
 
-  const toggleFollowCompany = useCallback(
-    (companyId: string) => {
+  const setCompanyFollowing = useCallback(
+    (companyId: string, shouldFollow: boolean, callbacks: ToggleFollowCompanyCallbacks = {}) => {
       if (!session) return false;
+      const following = !shouldFollow;
+      mutation.mutate(
+        { companyId, following },
+        {
+          ...(callbacks.onError ? { onError: callbacks.onError } : {}),
+          ...(callbacks.onSuccess ? { onSuccess: () => callbacks.onSuccess?.(shouldFollow) } : {}),
+        },
+      );
+      return true;
+    },
+    [mutation, session],
+  );
+
+  const toggleFollowCompany = useCallback(
+    (companyId: string, callbacks: ToggleFollowCompanyCallbacks = {}) => {
       const following = Object.hasOwn(optimisticState, companyId)
         ? Boolean(optimisticState[companyId])
         : serverIds.has(companyId);
-      mutation.mutate({ companyId, following });
-      return true;
+      return setCompanyFollowing(companyId, !following, callbacks);
     },
-    [mutation, optimisticState, serverIds, session],
+    [optimisticState, serverIds, setCompanyFollowing],
   );
 
   return {
-    error: mutation.error ?? companyFollowsQuery.error,
+    // Mutation failures are surfaced beside the action as a toast. Keeping this
+    // for the loading query avoids repeating the same error in two places.
+    error: companyFollowsQuery.error,
     followedCompanyIds,
     isAuthenticated: Boolean(session),
     isPending: (companyId: string) =>
       mutation.isPending && mutation.variables?.companyId === companyId,
     isSessionResolved: session !== undefined,
+    setCompanyFollowing,
     toggleFollowCompany,
   };
 }

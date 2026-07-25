@@ -134,8 +134,11 @@ test("persists company follow state and keeps duplicate cards in sync", async ({
     "true",
   );
 
-  await featuredFollow.click();
+  const toast = page.locator(".marketing-home-action-toast");
+  await expect(toast).toContainText("Đã theo dõi Followable UpNext Labs");
+  await toast.getByRole("button", { name: "Hoàn tác" }).click();
   await expect.poll(() => following).toBe(false);
+  await expect(toast).toContainText("Đã hoàn tác theo dõi Followable UpNext Labs");
   await expect(featuredFollow).toHaveAttribute("aria-pressed", "false");
 });
 

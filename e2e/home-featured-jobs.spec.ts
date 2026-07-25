@@ -127,8 +127,11 @@ test("persists a featured job bookmark for a signed-in candidate", async ({ page
     name: /Bỏ lưu tin Persistent Platform Engineer/,
   });
   await expect(unsaveButton).toHaveAttribute("aria-pressed", "true");
-  await unsaveButton.click();
+  const toast = page.locator(".marketing-home-action-toast");
+  await expect(toast).toContainText("Đã lưu Persistent Platform Engineer");
+  await toast.getByRole("button", { name: "Hoàn tác" }).click();
   await expect.poll(() => saved).toBe(false);
+  await expect(toast).toContainText("Đã hoàn tác lưu Persistent Platform Engineer");
   await expect(saveButton).toHaveAttribute("aria-pressed", "false");
 });
 

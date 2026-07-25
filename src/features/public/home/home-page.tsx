@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
@@ -13,6 +13,7 @@ import { PublicHeader } from "../shared/public-header";
 import { getPublicCompanies, getPublicJobs } from "./api";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
+import { HomeActionToast, type HomeActionFeedback } from "./home-action-toast";
 import { InsightsCarousel } from "./insights-carousel";
 import { JobMarket } from "./job-market";
 import {
@@ -268,6 +269,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   const [applyJob, setApplyJob] = useState<{ id: string; title: string; company: string } | null>(
     null,
   );
+  const [actionFeedback, setActionFeedback] = useState<HomeActionFeedback | null>(null);
 
   const copy = locale === "en" ? homeCopy.en : homeCopy.vi;
   const popularKeywords = useMemo(
@@ -277,6 +279,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   const heroPopularKeywords = popularKeywords.slice(0, 6);
 
   const searchCardRef = useRef<HTMLElement | null>(null);
+  const dismissActionFeedback = useCallback(() => setActionFeedback(null), []);
 
   const { data: apiJobsData } = useQuery({
     queryKey: ["public-jobs"],
@@ -575,8 +578,8 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
         <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} />
 
-        <FeaturedJobs navigate={navigate} onApply={setApplyJob} />
-        <FeaturedCompanies navigate={navigate} />
+        <FeaturedJobs navigate={navigate} onApply={setApplyJob} onFeedback={setActionFeedback} />
+        <FeaturedCompanies navigate={navigate} onFeedback={setActionFeedback} />
         <JobMarket navigate={navigate} />
         <InsightsCarousel />
 
@@ -585,6 +588,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         {applyJob && (
           <ApplyModal isOpen={!!applyJob} onClose={() => setApplyJob(null)} job={applyJob} />
         )}
+        <HomeActionToast feedback={actionFeedback} onDismiss={dismissActionFeedback} />
       </section>
     </main>
   );

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useCandidateCompanyFollows } from "@/features/candidate/company-follows";
 
 import { getPublicCompanies, getPublicCompanyDetail } from "./api";
+import type { HomeActionFeedback } from "./home-action-toast";
 import {
   ArrowRight,
   Briefcase,
@@ -19,6 +20,7 @@ import {
 
 type FeaturedCompaniesProps = {
   navigate: (path: string) => void;
+  onFeedback: (feedback: HomeActionFeedback) => void;
 };
 
 type Company = {
@@ -336,7 +338,7 @@ function useVisibleCount() {
   return count;
 }
 
-export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
+export function FeaturedCompanies({ navigate, onFeedback }: FeaturedCompaniesProps) {
   const [pageIndex, setPageIndex] = useState(0);
   const visibleCount = useVisibleCount();
   const {
@@ -345,6 +347,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
     isAuthenticated,
     isPending: isCompanyFollowPending,
     isSessionResolved: isCompanyFollowsSessionResolved,
+    setCompanyFollowing,
     toggleFollowCompany,
   } = useCandidateCompanyFollows();
 
@@ -427,10 +430,43 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
 
   const cards = useMemo(() => page.companies.slice(0, visibleCount), [page, visibleCount]);
 
-  function followCompany(companyId: string) {
-    if (!toggleFollowCompany(companyId)) {
-      navigate("/login?redirect=/");
-    }
+  function showFollowError() {
+    onFeedback({
+      id: `follow-company-error-${Date.now()}`,
+      message: "Không thể cập nhật công ty đang theo dõi. Vui lòng thử lại.",
+      tone: "error",
+    });
+  }
+
+  function followCompany(company: Company | FeaturedCompany) {
+    const didStart = toggleFollowCompany(company.id, {
+      onError: showFollowError,
+      onSuccess: (isFollowing) => {
+        onFeedback({
+          actionLabel: "Hoàn tác",
+          id: `follow-company-${company.id}-${Date.now()}`,
+          message: isFollowing ? `Đã theo dõi ${company.name}` : `Đã bỏ theo dõi ${company.name}`,
+          onAction: () => {
+            const didUndoStart = setCompanyFollowing(company.id, !isFollowing, {
+              onError: showFollowError,
+              onSuccess: (restored) => {
+                onFeedback({
+                  id: `undo-follow-company-${company.id}-${Date.now()}`,
+                  message: restored
+                    ? `Đã theo dõi lại ${company.name}`
+                    : `Đã hoàn tác theo dõi ${company.name}`,
+                  tone: "success",
+                });
+              },
+            });
+            if (!didUndoStart) navigate("/login?redirect=/");
+          },
+          tone: "success",
+        });
+      },
+    });
+
+    if (!didStart) navigate("/login?redirect=/");
   }
 
   function isFollowUnavailable(companyId: string) {
@@ -482,7 +518,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
           <FeaturedCard
             company={featured}
             following={followedCompanyIds.includes(featured.id)}
-            onFollow={() => followCompany(featured.id)}
+            onFollow={() => followCompany(featured)}
             followDisabled={
               !isCompanyFollowsSessionResolved ||
               isFollowUnavailable(featured.id) ||
@@ -534,7 +570,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
                   }
                   onClick={(event) => {
                     event.stopPropagation();
-                    followCompany(company.id);
+                    followCompany(company);
                   }}
                 >
                   {following ? (

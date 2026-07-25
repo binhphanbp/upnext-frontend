@@ -8,6 +8,7 @@ import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
 
 import { getPublicJobs, type PublicJob } from "./api";
+import type { HomeActionFeedback } from "./home-action-toast";
 import {
   ArrowRight,
   BadgeCheck,
@@ -27,6 +28,7 @@ import {
 type FeaturedJobsProps = {
   navigate: (path: string) => void;
   onApply: (job: { id: string; title: string; company: string }) => void;
+  onFeedback: (feedback: HomeActionFeedback) => void;
 };
 
 type BadgeTone = "featured" | "new" | "urgent" | "remote" | "salary";
@@ -455,7 +457,7 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
   };
 }
 
-export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
+export function FeaturedJobs({ navigate, onApply, onFeedback }: FeaturedJobsProps) {
   const locale = useLocale();
   const copy = locale === "en" ? interestCopy.en : interestCopy.vi;
   const [index, setIndex] = useState(0);
@@ -466,6 +468,7 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
     isAuthenticated,
     isPending: isSavedJobPending,
     isSessionResolved: isSavedJobsSessionResolved,
+    setSavedJob,
     savedJobIds,
     toggleSaveJob,
   } = useCandidateSavedJobs();
@@ -541,6 +544,43 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
       setAnimate(true);
       setIndex((i) => i - 1);
     }
+  }
+
+  function showSaveError() {
+    onFeedback({
+      id: `save-job-error-${Date.now()}`,
+      message: "Không thể cập nhật việc làm đã lưu. Vui lòng thử lại.",
+      tone: "error",
+    });
+  }
+
+  function handleSaveJob(job: JobCard) {
+    const didStart = toggleSaveJob(job.id, {
+      onError: showSaveError,
+      onSuccess: (isSaved) => {
+        onFeedback({
+          actionLabel: "Hoàn tác",
+          id: `save-job-${job.id}-${Date.now()}`,
+          message: isSaved ? `Đã lưu ${job.title}` : `Đã bỏ lưu ${job.title}`,
+          onAction: () => {
+            const didUndoStart = setSavedJob(job.id, !isSaved, {
+              onError: showSaveError,
+              onSuccess: (restored) => {
+                onFeedback({
+                  id: `undo-save-job-${job.id}-${Date.now()}`,
+                  message: restored ? `Đã lưu lại ${job.title}` : `Đã hoàn tác lưu ${job.title}`,
+                  tone: "success",
+                });
+              },
+            });
+            if (!didUndoStart) navigate("/login?redirect=/");
+          },
+          tone: "success",
+        });
+      },
+    });
+
+    if (!didStart) navigate("/login?redirect=/");
   }
 
   return (
@@ -625,9 +665,7 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
                           }
                           onClick={(event) => {
                             event.stopPropagation();
-                            if (!toggleSaveJob(job.id)) {
-                              navigate("/login?redirect=/");
-                            }
+                            handleSaveJob(job);
                           }}
                         >
                           <Bookmark size={18} weight={saved ? "fill" : "regular"} />
