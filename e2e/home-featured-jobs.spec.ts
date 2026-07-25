@@ -7,7 +7,7 @@ test("shows a transparent view count for jobs that the API marks as popular", as
       headers: { "access-control-allow-origin": "*" },
       body: JSON.stringify([
         {
-          id: "api-popular-job",
+          id: "2f75d22c-6a1b-4cd9-83a8-80c4ebf28c6f",
           title: "Platform Engineer",
           description: "Build platform services.",
           requirements: null,
@@ -36,6 +36,103 @@ test("shows a transparent view count for jobs that the API marks as popular", as
   const section = page.locator(".marketing-home-jobs");
   await expect(section.getByText("1.284 lượt xem", { exact: true })).toBeVisible();
   await expect(section.locator(".featured-job-deadline")).toHaveCount(0);
+});
+
+test("persists a featured job bookmark for a signed-in candidate", async ({ page }) => {
+  const jobId = "6af4aef4-4dfe-4e3b-a39e-52bbf4765f77";
+  let saved = false;
+
+  await page.addInitScript(() => {
+    localStorage.setItem("upnext.candidate.accessToken", "candidate-token");
+    localStorage.setItem("upnext.candidate.tokenType", "Bearer");
+    localStorage.setItem(
+      "upnext.candidate.user",
+      JSON.stringify({ id: "candidate-1", email: "candidate@example.com", role: "CANDIDATE" }),
+    );
+  });
+  await page.route(/\/job-posts(?:\?|$)/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify([
+        {
+          id: jobId,
+          title: "Persistent Platform Engineer",
+          description: "Build platform services.",
+          requirements: null,
+          benefits: null,
+          salaryMin: 30000000,
+          salaryMax: 45000000,
+          salaryCurrency: "VND",
+          salaryIsNegotiable: false,
+          salaryIsVisible: true,
+          publishedAt: "2026-07-16T00:00:00.000Z",
+          expiredAt: "2026-12-30T00:00:00.000Z",
+          createdAt: "2026-07-16T00:00:00.000Z",
+          company: { id: "company-1", name: "UpNext Labs" },
+          jobCategory: { name: "Platform Engineering" },
+          employmentType: { name: "Full-time" },
+          experienceLevel: { name: "Middle" },
+          jobPostSkills: [{ skill: { id: "skill-1", name: "TypeScript" } }],
+        },
+      ]),
+    });
+  });
+  await page.route(/\/saved-jobs(?:\/[^?]+)?(?:\?|$)/, async (route) => {
+    const headers = {
+      "access-control-allow-headers": "Authorization, Content-Type",
+      "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+      "access-control-allow-origin": "*",
+    };
+    const method = route.request().method();
+
+    if (method === "OPTIONS") {
+      await route.fulfill({ headers, status: 204 });
+      return;
+    }
+    expect(route.request().headers().authorization).toBe("Bearer candidate-token");
+    if (method === "POST") {
+      expect(JSON.parse(route.request().postData() ?? "{}")).toEqual({ jobPostId: jobId });
+      saved = true;
+      await route.fulfill({
+        body: JSON.stringify({ id: "saved-1", candidateProfileId: "profile-1", jobPostId: jobId }),
+        contentType: "application/json",
+        headers,
+        status: 201,
+      });
+      return;
+    }
+    if (method === "DELETE") {
+      saved = false;
+      await route.fulfill({ headers, status: 204 });
+      return;
+    }
+    await route.fulfill({
+      body: JSON.stringify(saved ? [{ jobPostId: jobId }] : []),
+      contentType: "application/json",
+      headers,
+      status: 200,
+    });
+  });
+
+  await page.goto("/vi");
+
+  const section = page.locator(".marketing-home-jobs");
+  const saveButton = section.getByRole("button", { name: /Lưu tin Persistent Platform Engineer/ });
+  await expect(saveButton).toBeEnabled();
+  await saveButton.click();
+  await expect.poll(() => saved).toBe(true);
+
+  const unsaveButton = section.getByRole("button", {
+    name: /Bỏ lưu tin Persistent Platform Engineer/,
+  });
+  await expect(unsaveButton).toHaveAttribute("aria-pressed", "true");
+  const toast = page.locator(".marketing-home-action-toast");
+  await expect(toast).toContainText("Đã lưu Persistent Platform Engineer");
+  await toast.getByRole("button", { name: "Hoàn tác" }).click();
+  await expect.poll(() => saved).toBe(false);
+  await expect(toast).toContainText("Đã hoàn tác lưu Persistent Platform Engineer");
+  await expect(saveButton).toHaveAttribute("aria-pressed", "false");
 });
 
 test("presents the featured-jobs rail without redundant filters", async ({ page }) => {

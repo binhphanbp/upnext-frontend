@@ -10,6 +10,11 @@ import {
 } from "@/features/candidate/api/profile";
 import { getCandidateSession, type CandidateSession } from "@/features/candidate/session";
 
+type ToggleSaveJobCallbacks = {
+  onError?: () => void;
+  onSuccess?: (saved: boolean) => void;
+};
+
 export function useCandidateSavedJobs() {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<CandidateSession | null | undefined>(undefined);
@@ -61,23 +66,41 @@ export function useCandidateSavedJobs() {
     return Array.from(ids);
   }, [optimisticState, serverIds]);
 
-  const toggleSaveJob = useCallback(
-    (jobPostId: string) => {
+  const setSavedJob = useCallback(
+    (jobPostId: string, shouldSave: boolean, callbacks: ToggleSaveJobCallbacks = {}) => {
       if (!session) return false;
+      const saved = !shouldSave;
+      mutation.mutate(
+        { jobPostId, saved },
+        {
+          ...(callbacks.onError ? { onError: callbacks.onError } : {}),
+          ...(callbacks.onSuccess ? { onSuccess: () => callbacks.onSuccess?.(shouldSave) } : {}),
+        },
+      );
+      return true;
+    },
+    [mutation, session],
+  );
+
+  const toggleSaveJob = useCallback(
+    (jobPostId: string, callbacks: ToggleSaveJobCallbacks = {}) => {
       const saved = Object.hasOwn(optimisticState, jobPostId)
         ? Boolean(optimisticState[jobPostId])
         : serverIds.has(jobPostId);
-      mutation.mutate({ jobPostId, saved });
-      return true;
+      return setSavedJob(jobPostId, !saved, callbacks);
     },
-    [mutation, optimisticState, serverIds, session],
+    [optimisticState, serverIds, setSavedJob],
   );
 
   return {
-    error: mutation.error ?? savedJobsQuery.error,
+    // Mutation failures are surfaced beside the action as a toast. Keeping this
+    // for the loading query avoids repeating the same error in two places.
+    error: savedJobsQuery.error,
+    isAuthenticated: Boolean(session),
     isPending: (jobPostId: string) =>
       mutation.isPending && mutation.variables?.jobPostId === jobPostId,
     isSessionResolved: session !== undefined,
+    setSavedJob,
     savedJobIds,
     toggleSaveJob,
   };

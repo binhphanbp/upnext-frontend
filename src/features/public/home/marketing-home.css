@@ -3024,6 +3024,13 @@ button.marketing-home-control {
   color: #0aa56f;
 }
 
+.featured-job-save:disabled,
+.featured-company-follow:disabled,
+.featured-company-featured-follow:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .featured-job-company {
   position: relative;
   z-index: 1;
@@ -3770,6 +3777,106 @@ button.marketing-home-control {
   color: #ffffff;
   border-color: transparent;
   background: linear-gradient(100deg, #098f63, #10b981);
+}
+
+.marketing-home-action-error {
+  margin: 12px 0 0;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.marketing-home-action-toast {
+  position: fixed;
+  z-index: 110;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(calc(100vw - 32px), 460px);
+  min-height: 58px;
+  padding: 12px 12px 12px 14px;
+  color: #164e3a;
+  border: 1px solid #bdebd9;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.18);
+}
+
+.marketing-home-action-toast.is-error {
+  color: #8b1e1e;
+  border-color: #fecaca;
+}
+
+.marketing-home-action-toast-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #0aa56f;
+}
+
+.marketing-home-action-toast.is-error .marketing-home-action-toast-icon {
+  color: #dc2626;
+}
+
+.marketing-home-action-toast-message {
+  min-width: 0;
+  flex: 1;
+  color: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.marketing-home-action-toast-action,
+.marketing-home-action-toast-dismiss {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.marketing-home-action-toast-action {
+  min-height: 36px;
+  padding: 0 8px;
+  color: #087a5a;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 8px;
+}
+
+.marketing-home-action-toast-dismiss {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  color: #64748b;
+  border-radius: 8px;
+}
+
+.marketing-home-action-toast-action:hover,
+.marketing-home-action-toast-dismiss:hover {
+  background: #eef7f3;
+}
+
+.marketing-home-action-toast.is-error .marketing-home-action-toast-action:hover,
+.marketing-home-action-toast.is-error .marketing-home-action-toast-dismiss:hover {
+  background: #fff1f2;
+}
+
+.marketing-home-action-toast-action:focus-visible,
+.marketing-home-action-toast-dismiss:focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.34);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .marketing-home-action-toast {
+    right: 16px;
+    bottom: 16px;
+  }
 }
 
 .featured-company-card-main:focus-visible,
@@ -4740,7 +4847,7 @@ button.marketing-home-control {
     transform: translateY(0) scale(1);
   }
 
-  .featured-job-save:hover {
+  .featured-job-save:not(:disabled):hover {
     color: #0aa56f;
     background: #eef7f3;
   }
@@ -4776,7 +4883,7 @@ button.marketing-home-control {
     border-color: #8bd9ba;
   }
 
-  .featured-company-follow:not(.is-following):hover {
+  .featured-company-follow:not(:disabled):not(.is-following):hover {
     color: #ffffff;
     border-color: transparent;
     background: linear-gradient(100deg, #098f63, #10b981);
@@ -4790,7 +4897,7 @@ button.marketing-home-control {
     transform: translateX(3px);
   }
 
-  .featured-company-featured-follow:not(.is-following):hover {
+  .featured-company-featured-follow:not(:disabled):not(.is-following):hover {
     color: #ffffff;
     border-color: rgba(255, 255, 255, 0.4);
     background: rgba(255, 255, 255, 0.1);
