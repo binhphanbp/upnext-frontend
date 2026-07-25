@@ -6676,6 +6676,15 @@ button.marketing-home-control {
   margin: 0;
 }
 
+.marketing-home-insights-loading {
+  width: min(650px, calc(100vw - 96px));
+  height: clamp(310px, 34vw, 440px);
+  margin: 0 auto;
+  border: 1px solid #e2eee8;
+  border-radius: 20px;
+  background: linear-gradient(110deg, #f0f7f3 8%, #fafdfb 35%, #f0f7f3 62%);
+}
+
 .marketing-home-insights-viewport {
   position: relative;
   width: 100%;
@@ -6820,6 +6829,11 @@ button.marketing-home-control {
   line-height: 1.28;
 }
 
+.marketing-home-insights-card h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
 .marketing-home-insights-more {
   display: inline-flex;
   align-items: center;
@@ -6900,7 +6914,10 @@ button.marketing-home-control {
   user-select: none;
 }
 
-.marketing-home-insights-arrow:focus-visible {
+.marketing-home-insights-all:focus-visible,
+.marketing-home-insights-arrow:focus-visible,
+.marketing-home-insights-card h3 a:focus-visible,
+.marketing-home-insights-more:focus-visible {
   outline: 2px solid #168e64;
   outline-offset: 4px;
 }

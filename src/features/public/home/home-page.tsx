@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { getPublicPosts } from "@/features/posts/api/posts";
 import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
 import { useRouter } from "@/i18n/navigation";
 import { removeVietnameseAccents } from "@/shared/utils/natural-search";
@@ -471,6 +472,12 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     queryFn: getPublicCompanies,
   });
 
+  const { data: apiPostsData, isLoading: isPostsLoading } = useQuery({
+    queryKey: ["public-posts", { limit: 6, page: 1 }],
+    queryFn: () => getPublicPosts({ limit: 6, page: 1 }),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const jobsCount = useMemo(() => apiJobsData?.length || 0, [apiJobsData]);
   const companiesCount = useMemo(
     () => apiCompaniesData?.meta?.total || apiCompaniesData?.items?.length || 0,
@@ -801,7 +808,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         <FeaturedJobs navigate={navigate} onApply={setApplyJob} onFeedback={setActionFeedback} />
         <FeaturedCompanies navigate={navigate} onFeedback={setActionFeedback} />
         <JobMarket navigate={navigate} />
-        <InsightsCarousel />
+        <InsightsCarousel isLoading={isPostsLoading} posts={apiPostsData?.items ?? []} />
 
         <PublicFooter navigate={navigate} />
 
