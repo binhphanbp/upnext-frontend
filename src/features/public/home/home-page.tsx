@@ -2,11 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
 import { useRouter } from "@/i18n/navigation";
+import { removeVietnameseAccents } from "@/shared/utils/natural-search";
 
 import { PublicFooter } from "../shared/public-footer";
 import { PublicHeader } from "../shared/public-header";
@@ -23,13 +25,13 @@ import {
   Building2,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Coins,
   MapPin,
   Search,
   Sparkles,
   UsersRound,
-  Zap,
 } from "./marketing-icons";
 import { getPopularKeywordsForLocale } from "./popular-keywords";
 
@@ -83,6 +85,27 @@ const trustedCompanies = [
   ["momo", ""],
 ];
 
+function formatDeadlineWithDate(expiredAt: string | Date | null | undefined) {
+  if (!expiredAt) return "Không giới hạn";
+
+  const expirationTime = new Date(expiredAt).getTime();
+  if (Number.isNaN(expirationTime)) return "Chưa cập nhật";
+
+  const remainingTime = expirationTime - Date.now();
+  if (remainingTime < 0) return "Đã hết hạn";
+
+  const remainingDays = Math.max(1, Math.ceil(remainingTime / (24 * 60 * 60 * 1000)));
+  return `Còn ${remainingDays} ngày`;
+}
+
+function formatCompactLocation(city?: string | null) {
+  if (!city) return "Việt Nam";
+  if (city.includes("Hồ Chí Minh") || city.includes("HCM") || city.includes("Hcm")) return "TP.HCM";
+  if (city.includes("Hà Nội")) return "Hà Nội";
+  if (city.includes("Đà Nẵng")) return "Đà Nẵng";
+  return city;
+}
+
 function getCompanyInitials(companyName: string) {
   const ignoredWords = new Set([
     "công",
@@ -111,6 +134,19 @@ function getCompanyInitials(companyName: string) {
     .map((word) => word.charAt(0))
     .join("")
     .toLocaleUpperCase("vi");
+}
+
+function getPlainText(value: string | null | undefined) {
+  if (!value) return "";
+  return value
+    .replace(/<br\s*\/?>/giu, " ")
+    .replace(/<[^>]+>/gu, " ")
+    .replace(/&nbsp;/giu, " ")
+    .replace(/&amp;/giu, "&")
+    .replace(/&lt;/giu, "<")
+    .replace(/&gt;/giu, ">")
+    .replace(/\s+/gu, " ")
+    .trim();
 }
 
 const urgentJobs = [
@@ -184,6 +220,150 @@ const urgentJobs = [
     competition: "Mới mở · ít ứng viên",
     progress: 25,
     level: "Junior",
+    bgClass: "bg-rose-500",
+  },
+  {
+    id: "fpt-devops-cloud",
+    logo: "",
+    title: "DevOps Cloud Infrastructure Engineer",
+    company: "FPT Software",
+    salary: "40 - 70 triệu",
+    location: "Hà Nội",
+    mode: "Hybrid",
+    tags: ["AWS", "Kubernetes", "Docker"],
+    deadline: "Còn 7 ngày",
+    deadlineTone: "red",
+    applicants: "15 ứng viên",
+    views: "210 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Senior",
+    bgClass: "bg-slate-800",
+  },
+  {
+    id: "vng-mobile-engineer",
+    logo: "",
+    title: "Mobile Engineer (React Native)",
+    company: "VNG Corporation",
+    salary: "22 - 40 triệu",
+    location: "TP.HCM",
+    mode: "Hybrid",
+    tags: ["React Native", "iOS", "Android"],
+    deadline: "Còn 10 ngày",
+    deadlineTone: "red",
+    applicants: "20 ứng viên",
+    views: "310 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Middle",
+    bgClass: "bg-purple-600",
+  },
+  {
+    id: "luvina-bridge-engineer",
+    logo: "",
+    title: "Bridge System Engineer (BrSE)",
+    company: "Luvina Software",
+    salary: "22 - 40 triệu",
+    location: "Hà Nội",
+    mode: "Onsite",
+    tags: ["Japanese", "Java", "System Design"],
+    deadline: "Còn 12 ngày",
+    deadlineTone: "red",
+    applicants: "8 ứng viên",
+    views: "150 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Middle",
+    bgClass: "bg-sky-500",
+  },
+  {
+    id: "misa-product-designer",
+    logo: "",
+    title: "Product Designer - Business Software",
+    company: "MISA",
+    salary: "22 - 40 triệu",
+    location: "Hà Nội",
+    mode: "Hybrid",
+    tags: ["Figma", "UI/UX", "User Research"],
+    deadline: "Còn 15 ngày",
+    deadlineTone: "red",
+    applicants: "16 ứng viên",
+    views: "230 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Middle",
+    bgClass: "bg-rose-500",
+  },
+  {
+    id: "cmc-data-engineer",
+    logo: "",
+    title: "Senior Data Engineer",
+    company: "CMC Global",
+    salary: "22 - 40 triệu",
+    location: "Hà Nội",
+    mode: "Hybrid",
+    tags: ["Python", "Spark", "PostgreSQL"],
+    deadline: "Còn 18 ngày",
+    deadlineTone: "red",
+    applicants: "11 ứng viên",
+    views: "175 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Senior",
+    bgClass: "bg-slate-800",
+  },
+  {
+    id: "mw-product-manager",
+    logo: "",
+    title: "Product Manager - Retail Technology",
+    company: "Mobile World Investment",
+    salary: "40 - 70 triệu",
+    location: "TP.HCM",
+    mode: "Onsite",
+    tags: ["Product Strategy", "Agile", "E-commerce"],
+    deadline: "Còn 22 ngày",
+    deadlineTone: "red",
+    applicants: "14 ứng viên",
+    views: "190 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Lead",
+    bgClass: "bg-purple-600",
+  },
+  {
+    id: "viettel-security-engineer",
+    logo: "",
+    title: "Cyber Security Specialist",
+    company: "Viettel Solutions",
+    salary: "30 - 55 triệu",
+    location: "Đà Nẵng",
+    mode: "Onsite",
+    tags: ["Pentest", "SIEM", "Cloud Security"],
+    deadline: "Còn 25 ngày",
+    deadlineTone: "red",
+    applicants: "7 ứng viên",
+    views: "140 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Senior",
+    bgClass: "bg-sky-500",
+  },
+  {
+    id: "sepay-fullstack-dev",
+    logo: "",
+    title: "Fullstack Engineer (React/Node)",
+    company: "SePay Vietnam",
+    salary: "25 - 45 triệu",
+    location: "TP.HCM",
+    mode: "Hybrid",
+    tags: ["React", "Node.js", "PostgreSQL"],
+    deadline: "Còn 28 ngày",
+    deadlineTone: "red",
+    applicants: "19 ứng viên",
+    views: "280 lượt xem",
+    competition: "Mới mở · ít ứng viên",
+    progress: 25,
+    level: "Middle",
     bgClass: "bg-rose-500",
   },
 ];
@@ -326,7 +506,41 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
   const urgentJobsList = useMemo(() => {
     if (!apiJobsData || apiJobsData.length === 0) return urgentJobs;
-    const mapped = apiJobsData.slice(0, 9).map((job, index) => {
+
+    const now = Date.now();
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+    // Filter active jobs expiring within 30 days (0 < remainingTime <= 30 days)
+    const validJobs = apiJobsData.filter((job) => {
+      if (!job.expiredAt) return false;
+      const expirationTime = new Date(job.expiredAt).getTime();
+      const remainingTime = expirationTime - now;
+      return remainingTime > 0 && remainingTime <= THIRTY_DAYS_MS;
+    });
+
+    // Sort by nearest deadline first (expiredAt ASC)
+    const sorted = [...validJobs].sort((a, b) => {
+      const timeA = new Date(a.expiredAt!).getTime();
+      const timeB = new Date(b.expiredAt!).getTime();
+      return timeA - timeB;
+    });
+
+    // Fallback if less than 3 jobs match strictly 30 days: take any unexpired job sorted by deadline
+    const listSource =
+      sorted.length >= 3
+        ? sorted
+        : apiJobsData
+            .filter((job) => {
+              if (!job.expiredAt) return true;
+              return new Date(job.expiredAt).getTime() > now;
+            })
+            .sort((a, b) => {
+              const timeA = a.expiredAt ? new Date(a.expiredAt).getTime() : Infinity;
+              const timeB = b.expiredAt ? new Date(b.expiredAt).getTime() : Infinity;
+              return timeA - timeB;
+            });
+
+    const mapped = listSource.map((job, index) => {
       const isUrgent = index % 2 === 0;
       return {
         id: job.id,
@@ -337,7 +551,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           job.salaryIsVisible && job.salaryMin && job.salaryMax
             ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu`
             : "Thỏa thuận",
-        location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
+        location: formatCompactLocation(job.jobPostLocations?.[0]?.jobLocation?.city),
         mode: job.employmentType?.name || "Full-time",
         tags:
           job.jobPostSkills && job.jobPostSkills.length > 0
@@ -345,19 +559,24 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
                 Boolean,
               ) as string[]),
-        deadline: "Còn 15 ngày",
+        deadline: formatDeadlineWithDate(job.expiredAt),
         deadlineTone: isUrgent ? "red" : "amber",
         applicants: "12 ứng viên",
         views: "185 lượt xem",
         competition: "Mới mở · ít ứng viên",
         progress: 25,
         level: job.experienceLevel?.name || "Junior",
+        description: getPlainText(job.description),
+        address:
+          job.jobPostLocations?.[0]?.jobLocation?.address ||
+          job.jobPostLocations?.[0]?.jobLocation?.city ||
+          "",
         bgClass:
-          index === 0
+          index % 4 === 0
             ? "bg-slate-800"
-            : index === 1
+            : index % 4 === 1
               ? "bg-purple-600"
-              : index === 2
+              : index % 4 === 2
                 ? "bg-sky-500"
                 : "bg-rose-500",
       };
@@ -388,10 +607,11 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
   const keywordMatches = useMemo(() => {
     const query = keyword.trim().toLowerCase();
-    const source = query
-      ? keywordSuggestions.filter((item) => item.toLowerCase().includes(query))
-      : keywordSuggestions;
-    return source.slice(0, 6);
+    if (!query) return keywordSuggestions.slice(0, 6);
+    const unaccented = removeVietnameseAccents(query);
+    return keywordSuggestions
+      .filter((item) => removeVietnameseAccents(item.toLowerCase()).includes(unaccented))
+      .slice(0, 6);
   }, [keyword]);
 
   function runSearch(overrides?: { keyword?: string }) {
@@ -576,7 +796,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           </div>
         </section>
 
-        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} />
+        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} onApply={setApplyJob} />
 
         <FeaturedJobs navigate={navigate} onApply={setApplyJob} onFeedback={setActionFeedback} />
         <FeaturedCompanies navigate={navigate} onFeedback={setActionFeedback} />
@@ -597,8 +817,10 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 function UrgentJobsSection({
   navigate,
   urgentJobs,
+  onApply,
 }: {
   navigate: (path: string) => void;
+  onApply: (job: { id: string; title: string; company: string }) => void;
   urgentJobs: Array<{
     id: string;
     logo: string;
@@ -616,9 +838,83 @@ function UrgentJobsSection({
     progress: number;
     level: string;
     bgClass: string;
+    description?: string;
+    address?: string;
   }>;
 }) {
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => new Set());
+  const [previewJobId, setPreviewJobId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<number | null>(null);
+  const previewCloseTimerRef = useRef<number | null>(null);
+  const pageSize = 9;
+
+  const pages = useMemo(() => {
+    const result: (typeof urgentJobs)[] = [];
+    for (let i = 0; i < urgentJobs.length; i += pageSize) {
+      result.push(urgentJobs.slice(i, i + pageSize));
+    }
+    return result.length ? result : [[]];
+  }, [urgentJobs, pageSize]);
+
+  const totalPages = pages.length;
+  const safePage = Math.min(page, Math.max(0, totalPages - 1));
+  const previewJob = urgentJobs.find((job) => job.id === previewJobId) ?? null;
+
+  // Auto-advance urgent jobs every 6s unless paused or reduced-motion is enabled
+  useEffect(() => {
+    if (totalPages <= 1 || paused || isDragging) return undefined;
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return undefined;
+    }
+    const timer = window.setInterval(() => {
+      setPage((current) => (current + 1) % totalPages);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, [totalPages, paused, isDragging]);
+
+  useEffect(
+    () => () => {
+      if (previewCloseTimerRef.current !== null) {
+        window.clearTimeout(previewCloseTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  function openPreview(jobId: string) {
+    if (previewCloseTimerRef.current !== null) {
+      window.clearTimeout(previewCloseTimerRef.current);
+      previewCloseTimerRef.current = null;
+    }
+    setPreviewJobId(jobId);
+  }
+
+  function schedulePreviewClose() {
+    if (previewCloseTimerRef.current !== null) {
+      window.clearTimeout(previewCloseTimerRef.current);
+    }
+    previewCloseTimerRef.current = window.setTimeout(() => {
+      setPreviewJobId(null);
+      previewCloseTimerRef.current = null;
+    }, 140);
+  }
+
+  function closePreviewAndRestoreFocus() {
+    const jobId = previewJobId;
+    setPreviewJobId(null);
+    if (jobId) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(`urgent-job-title-${jobId}`)?.focus();
+      });
+    }
+  }
 
   function toggleSavedJob(jobId: string) {
     setSavedJobIds((current) => {
@@ -632,16 +928,54 @@ function UrgentJobsSection({
     });
   }
 
+  function handlePointerDown(e: React.PointerEvent) {
+    if (totalPages <= 1) return;
+    dragStartRef.current = e.clientX;
+    setIsDragging(true);
+    setDragOffset(0);
+  }
+
+  function handlePointerMove(e: React.PointerEvent) {
+    if (!isDragging || dragStartRef.current === null) return;
+    const diff = e.clientX - dragStartRef.current;
+    setDragOffset(diff);
+  }
+
+  function handlePointerUp() {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (Math.abs(dragOffset) > 60) {
+      if (dragOffset < 0 && safePage < totalPages - 1) {
+        setPage((p) => p + 1);
+      } else if (dragOffset > 0 && safePage > 0) {
+        setPage((p) => p - 1);
+      }
+    }
+    setDragOffset(0);
+    dragStartRef.current = null;
+  }
+
   return (
-    <section className="marketing-home-urgent" aria-label="Việc cần tuyển gấp">
+    <section
+      className={`marketing-home-urgent${previewJob ? " is-previewing" : ""}`}
+      aria-label="Việc cần tuyển gấp"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
+    >
       <header className="marketing-home-urgent-head">
         <div>
-          <span className="marketing-home-urgent-eyebrow">
-            <Zap size={14} weight="fill" />
-            Tuyển gấp hôm nay
-          </span>
-          <h2>Việc cần tuyển gấp</h2>
-          <p>
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
+            </span>
+            <h2 className="m-0 text-2xl font-bold tracking-tight text-slate-900">
+              Việc cần tuyển gấp
+            </h2>
+          </div>
+          <p className="mt-1 text-sm text-slate-600">
             Các vị trí đang cần tuyển gấp – nộp hồ sơ ngay để không bỏ lỡ cơ hội nghề nghiệp tốt.
           </p>
         </div>
@@ -654,72 +988,256 @@ function UrgentJobsSection({
         </button>
       </header>
 
-      <div className="marketing-home-urgent-grid">
-        {urgentJobs.map((job) => (
-          <article className="urgent-job-card" key={job.id}>
-            <div className="urgent-job-main">
-              <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
-                <span className="urgent-job-logo-fallback" aria-hidden="true">
-                  {getCompanyInitials(job.company)}
-                </span>
-                {job.logo && (
-                  <img
-                    src={job.logo}
-                    alt={`Logo ${job.company}`}
-                    width={46}
-                    height={46}
-                    className="rounded-lg object-contain"
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                    }}
-                  />
-                )}
-              </span>
+      <div
+        className="marketing-home-urgent-viewport cursor-grab select-none active:cursor-grabbing"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
+        <div
+          className={`marketing-home-urgent-track${isDragging ? " is-dragging" : ""}`}
+          style={{
+            transform: `translateX(calc(${-safePage * 100}% + ${dragOffset}px))`,
+            transition: isDragging ? "none" : "transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1)",
+          }}
+        >
+          {pages.map((slideJobs, slideIdx) => (
+            <div className="marketing-home-urgent-slide" key={slideIdx}>
+              <div className="marketing-home-urgent-grid">
+                {slideJobs.map((job) => (
+                  <article className="urgent-job-card group" key={job.id}>
+                    <div className="urgent-job-main">
+                      <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
+                        <span className="urgent-job-logo-fallback" aria-hidden="true">
+                          {getCompanyInitials(job.company)}
+                        </span>
+                        {job.logo && (
+                          <Image
+                            src={job.logo}
+                            alt={`Logo ${job.company}`}
+                            width={46}
+                            height={46}
+                            unoptimized
+                            className="rounded-lg object-contain"
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
+                          />
+                        )}
+                      </span>
 
-              <div className="urgent-job-content">
-                <div className="urgent-job-heading">
-                  <h3>
-                    <button
-                      type="button"
-                      className="urgent-job-title"
-                      onClick={() => navigate(`/jobs/${job.id}`)}
-                    >
-                      {job.title}
-                    </button>
-                  </h3>
-                </div>
-                <strong className="urgent-job-company">{job.company}</strong>
+                      <div className="urgent-job-content">
+                        <div className="urgent-job-heading">
+                          <h3 className="urgent-job-title-wrapper">
+                            <button
+                              id={`urgent-job-title-${job.id}`}
+                              type="button"
+                              className="urgent-job-title group-hover:text-emerald-600"
+                              onClick={() => navigate(`/jobs/${job.id}`)}
+                              onMouseEnter={() => openPreview(job.id)}
+                              onMouseLeave={schedulePreviewClose}
+                              onFocus={() => openPreview(job.id)}
+                              onBlur={schedulePreviewClose}
+                              onKeyDown={(event) => {
+                                if (event.key === "Escape") {
+                                  event.preventDefault();
+                                  closePreviewAndRestoreFocus();
+                                }
+                              }}
+                              aria-controls="urgent-job-preview"
+                              aria-expanded={previewJobId === job.id}
+                              title={job.title}
+                            >
+                              {job.title}
+                            </button>
+                          </h3>
+                          <button
+                            type="button"
+                            className="urgent-job-save"
+                            aria-label={
+                              savedJobIds.has(job.id)
+                                ? `Bỏ lưu công việc ${job.title}`
+                                : `Lưu công việc ${job.title}`
+                            }
+                            aria-pressed={savedJobIds.has(job.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSavedJob(job.id);
+                            }}
+                          >
+                            <Bookmark
+                              size={20}
+                              weight={savedJobIds.has(job.id) ? "fill" : "regular"}
+                            />
+                          </button>
+                        </div>
+                        <strong className="urgent-job-company">{job.company}</strong>
+                      </div>
+                    </div>
+
+                    <div className="urgent-job-compact-footer">
+                      <div className="urgent-job-chips">
+                        <span className="urgent-job-salary">
+                          <Coins size={14} />
+                          {job.salary}
+                        </span>
+                        <span className="urgent-job-location">
+                          <MapPin size={14} />
+                          {job.location}
+                        </span>
+                      </div>
+                      <span className="urgent-job-deadline-badge flex items-center gap-1">
+                        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                        {job.deadline}
+                      </span>
+                    </div>
+                  </article>
+                ))}
               </div>
             </div>
-
-            <div className="urgent-job-compact-footer">
-              <div className="urgent-job-chips">
-                <span className="urgent-job-salary">
-                  <Coins size={14} />
-                  {job.salary}
-                </span>
-                <span className="urgent-job-location">
-                  <MapPin size={14} />
-                  {job.location}
-                </span>
-              </div>
-              <button
-                type="button"
-                className="urgent-job-save"
-                aria-label={
-                  savedJobIds.has(job.id)
-                    ? `Bỏ lưu công việc ${job.title}`
-                    : `Lưu công việc ${job.title}`
-                }
-                aria-pressed={savedJobIds.has(job.id)}
-                onClick={() => toggleSavedJob(job.id)}
-              >
-                <Bookmark size={20} weight={savedJobIds.has(job.id) ? "fill" : "regular"} />
-              </button>
-            </div>
-          </article>
-        ))}
+          ))}
+        </div>
       </div>
+
+      {previewJob && (
+        <dialog
+          open
+          id="urgent-job-preview"
+          className="urgent-job-preview"
+          aria-labelledby="urgent-job-preview-title"
+          onMouseEnter={() => openPreview(previewJob.id)}
+          onMouseLeave={schedulePreviewClose}
+          onFocusCapture={() => openPreview(previewJob.id)}
+          onBlurCapture={schedulePreviewClose}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              closePreviewAndRestoreFocus();
+            }
+          }}
+        >
+          <div className="urgent-job-preview-head">
+            <span className={`urgent-job-preview-logo ${previewJob.bgClass || "bg-emerald-600"}`}>
+              <span aria-hidden="true">{getCompanyInitials(previewJob.company)}</span>
+              {previewJob.logo && (
+                <Image
+                  src={previewJob.logo}
+                  alt=""
+                  width={58}
+                  height={58}
+                  unoptimized
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              )}
+            </span>
+            <div>
+              <h3 id="urgent-job-preview-title">{previewJob.title}</h3>
+              <strong>{previewJob.company}</strong>
+              <p>
+                <span>{previewJob.salary}</span>
+                <i aria-hidden="true">•</i>
+                {previewJob.level}
+              </p>
+            </div>
+          </div>
+
+          <p className="urgent-job-preview-address">
+            <MapPin size={16} aria-hidden="true" />
+            {previewJob.address || previewJob.location}
+          </p>
+
+          <div className="urgent-job-preview-body">
+            <strong>Mô tả công việc</strong>
+            <textarea
+              className="urgent-job-preview-description"
+              aria-label={`Mô tả đầy đủ công việc ${previewJob.title}`}
+              readOnly
+              rows={7}
+              value={
+                previewJob.description ||
+                `Cơ hội gia nhập ${previewJob.company} ở vị trí ${previewJob.title}. Xem chi tiết để khám phá yêu cầu công việc và quyền lợi dành cho ứng viên.`
+              }
+            />
+            <div className="urgent-job-preview-tags">
+              {previewJob.tags.slice(0, 4).map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
+            </div>
+            <button type="button" onClick={() => navigate(`/jobs/${previewJob.id}`)}>
+              Xem chi tiết <ArrowRight size={15} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="urgent-job-preview-actions">
+            <button
+              type="button"
+              className="urgent-job-preview-save"
+              aria-label={
+                savedJobIds.has(previewJob.id)
+                  ? `Bỏ lưu công việc ${previewJob.title}`
+                  : `Lưu công việc ${previewJob.title}`
+              }
+              aria-pressed={savedJobIds.has(previewJob.id)}
+              onClick={() => toggleSavedJob(previewJob.id)}
+            >
+              <Bookmark size={21} weight={savedJobIds.has(previewJob.id) ? "fill" : "regular"} />
+            </button>
+            <button
+              type="button"
+              className="urgent-job-preview-apply"
+              onClick={() =>
+                onApply({
+                  id: previewJob.id,
+                  title: previewJob.title,
+                  company: previewJob.company,
+                })
+              }
+            >
+              <BriefcaseBusiness size={18} aria-hidden="true" />
+              Ứng tuyển ngay
+            </button>
+          </div>
+        </dialog>
+      )}
+
+      {totalPages > 1 && (
+        <nav className="urgent-jobs-pagination" aria-label="Phân trang việc tuyển gấp">
+          <button
+            type="button"
+            className="urgent-jobs-nav-btn"
+            disabled={safePage === 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            aria-label="Trang trước"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          <div className="urgent-jobs-dots">
+            {Array.from({ length: totalPages }).map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className={`urgent-jobs-dot${idx === safePage ? " is-active" : ""}`}
+                onClick={() => setPage(idx)}
+                aria-label={`Trang ${idx + 1}`}
+              />
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className="urgent-jobs-nav-btn"
+            disabled={safePage === totalPages - 1}
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            aria-label="Trang sau"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </nav>
+      )}
     </section>
   );
 }

@@ -60,16 +60,16 @@ const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
 function formatApplicationDeadline(expiredAt: string | null | undefined) {
-  if (!expiredAt) return "Không giới hạn thời gian nộp";
+  if (!expiredAt) return "Không giới hạn";
 
   const expirationTime = new Date(expiredAt).getTime();
-  if (Number.isNaN(expirationTime)) return "Chưa cập nhật hạn nộp";
+  if (Number.isNaN(expirationTime)) return "Chưa cập nhật";
 
   const remainingTime = expirationTime - Date.now();
   if (remainingTime < 0) return "Đã hết hạn";
 
   const remainingDays = Math.max(1, Math.ceil(remainingTime / DAY_IN_MILLISECONDS));
-  return `Còn ${remainingDays} ngày để nộp`;
+  return `Còn ${remainingDays} ngày`;
 }
 
 function normalizeViewCount(viewCount: number | null | undefined) {

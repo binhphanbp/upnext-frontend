@@ -23,6 +23,7 @@ import { getCandidateSession } from "@/features/candidate/session";
 import { apiRequest } from "@/shared/api/http";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
+import { matchNaturalLanguageSearch } from "@/shared/utils/natural-search";
 
 import { getPublicJobs } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
@@ -52,10 +53,13 @@ export type Job = {
   tags: string[];
   description: string;
   categories: string[];
+  categoryName?: string | undefined;
+  specializations?: string[];
   urgent?: boolean;
   featured?: boolean;
   requirements?: string | null;
   benefits?: string | null;
+  expiredAt?: string | null;
   skills?: string[];
   experienceYears?: number[];
 };
@@ -451,6 +455,11 @@ function getPageNumbers(currentPage: number, totalPages: number) {
 export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const locale = useLocale();
   const params = useSearchParams();
+  const titleFilter = params.get("title")?.trim() ?? "";
+  const skillFilter = params.get("skill")?.trim() ?? "";
+  const companyFilter = params.get("company")?.trim() ?? "";
+  const jobCategoryFilter = params.get("jobCategory")?.trim() ?? "";
+  const expertiseFilter = params.get("expertise")?.trim() ?? "";
   const queryKeyword = params.get("keyword") ?? params.get("position") ?? "";
   const queryLocation = params.get("location") ?? ALL_LOCATIONS;
   const queryCategory = params.get("category") ?? "all";
@@ -547,14 +556,62 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
       if (isRemote) categories.push("remote");
       if (isHighSalary) categories.push("high-salary");
       const categoryCode = job.jobCategory?.name.toLowerCase() || "";
-      if (categoryCode.includes("frontend")) categories.push("frontend");
-      if (categoryCode.includes("backend")) categories.push("backend");
-      if (categoryCode.includes("mobile")) categories.push("mobile");
-      if (categoryCode.includes("data") || categoryCode.includes("ai")) {
+      const titleLower = job.title.toLowerCase();
+      const skillsLower = job.jobPostSkills?.map((s) => s.skill.name.toLowerCase()) || [];
+      const allText = `${categoryCode} ${titleLower} ${skillsLower.join(" ")}`;
+
+      if (
+        allText.includes("frontend") ||
+        allText.includes("front-end") ||
+        allText.includes("react") ||
+        allText.includes("vue") ||
+        allText.includes("angular") ||
+        allText.includes("next")
+      ) {
+        categories.push("frontend");
+      }
+      if (
+        allText.includes("backend") ||
+        allText.includes("back-end") ||
+        allText.includes("node") ||
+        allText.includes("java") ||
+        allText.includes("python") ||
+        allText.includes(".net") ||
+        allText.includes("php") ||
+        allText.includes("golang") ||
+        allText.includes("express") ||
+        allText.includes("nest")
+      ) {
+        categories.push("backend");
+      }
+      if (
+        allText.includes("mobile") ||
+        allText.includes("flutter") ||
+        allText.includes("ios") ||
+        allText.includes("android") ||
+        allText.includes("react native") ||
+        allText.includes("swift")
+      ) {
+        categories.push("mobile");
+      }
+      if (
+        allText.includes("data") ||
+        allText.includes("ai") ||
+        allText.includes("machine learning") ||
+        allText.includes("spark")
+      ) {
         categories.push("data-ai");
       }
-      if (categoryCode.includes("devops")) categories.push("devops");
-      if (categoryCode.includes("qa") || categoryCode.includes("test")) {
+      if (
+        allText.includes("devops") ||
+        allText.includes("cloud") ||
+        allText.includes("aws") ||
+        allText.includes("docker") ||
+        allText.includes("kubernetes")
+      ) {
+        categories.push("devops");
+      }
+      if (allText.includes("qa") || allText.includes("test") || allText.includes("qc")) {
         categories.push("qa");
       }
 
@@ -602,10 +659,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
           .filter((years): years is number => typeof years === "number"),
         description: job.description || "",
         categories,
+        categoryName: job.jobCategory?.name,
+        specializations: job.jobPostSpecializations?.map((item) => item.specialization.name) ?? [],
         urgent: false,
         featured: false,
         requirements: job.requirements,
         benefits: job.benefits,
+        expiredAt: job.expiredAt,
       };
     });
 
@@ -690,12 +750,19 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const filteredJobs = useMemo(() => {
     return jobs
       .filter((job) => {
-        const matchesKeyword =
-          !keyword.trim() ||
-          job.title.toLowerCase().includes(keyword.toLowerCase()) ||
-          job.company.toLowerCase().includes(keyword.toLowerCase()) ||
-          job.tags.some((tag) => tag.toLowerCase().includes(keyword.toLowerCase())) ||
-          job.description.toLowerCase().includes(keyword.toLowerCase());
+        const matchesKeyword = matchNaturalLanguageSearch(keyword, job);
+        const matchesTitle = !titleFilter || job.title.toLowerCase() === titleFilter.toLowerCase();
+        const matchesSkill =
+          !skillFilter || job.tags.some((tag) => tag.toLowerCase() === skillFilter.toLowerCase());
+        const matchesCompany =
+          !companyFilter || job.company.toLowerCase() === companyFilter.toLowerCase();
+        const matchesJobCategory =
+          !jobCategoryFilter || job.categoryName?.toLowerCase() === jobCategoryFilter.toLowerCase();
+        const matchesExpertise =
+          !expertiseFilter ||
+          job.specializations?.some(
+            (specialization) => specialization.toLowerCase() === expertiseFilter.toLowerCase(),
+          );
 
         const matchesLocation =
           location === ALL_LOCATIONS || job.location.toLowerCase().includes(location.toLowerCase());
@@ -770,6 +837,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
 
         return (
           matchesKeyword &&
+          matchesTitle &&
+          matchesSkill &&
+          matchesCompany &&
+          matchesJobCategory &&
+          matchesExpertise &&
           matchesLocation &&
           matchesCategory &&
           matchesRank &&
@@ -803,9 +875,21 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     salaryFilters,
     customMinSalary,
     customMaxSalary,
+    companyFilter,
+    expertiseFilter,
+    jobCategoryFilter,
+    skillFilter,
     sort,
     techFilters,
+    titleFilter,
   ]);
+
+  useEffect(() => {
+    setKeyword(queryKeyword);
+    setLocation(queryLocation);
+    setActiveCategory(queryCategory);
+    setPage(1);
+  }, [queryCategory, queryKeyword, queryLocation]);
 
   useEffect(() => {
     if (queryKeyword.trim().length >= 2) {
@@ -903,6 +987,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
 
   const activeSummary = [
     keyword.trim() ? `Từ khóa: ${keyword.trim()}` : "",
+    titleFilter ? `Chức danh: ${titleFilter}` : "",
+    skillFilter ? `Kỹ năng: ${skillFilter}` : "",
+    companyFilter ? `Công ty: ${companyFilter}` : "",
+    jobCategoryFilter ? `Danh mục: ${jobCategoryFilter}` : "",
+    expertiseFilter ? `Chuyên môn: ${expertiseFilter}` : "",
     location !== ALL_LOCATIONS ? location : "",
     activeCategory !== "all"
       ? (categories.find((category) => category.key === activeCategory)?.label ?? "")
@@ -956,6 +1045,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     setCustomMaxSalary("");
     setSort("relevant");
     setPage(1);
+    navigate("/jobs");
   }
 
   return (

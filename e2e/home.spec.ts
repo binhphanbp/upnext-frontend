@@ -382,14 +382,7 @@ test("keeps every public header mega menu readable and inside the viewport", asy
     {
       key: "jobs",
       label: "Việc làm IT",
-      destinations: [
-        "/vi/jobs?position=Frontend Developer",
-        "/vi/jobs?position=Backend Developer",
-        "/vi/jobs?position=Mobile Developer",
-        "/vi/jobs?position=AI/ML Engineer",
-        "/vi/jobs?position=DevOps Engineer",
-        "/vi/jobs",
-      ],
+      destinations: null,
     },
     {
       key: "companies",
@@ -399,7 +392,11 @@ test("keeps every public header mega menu readable and inside the viewport", asy
     {
       key: "blog",
       label: "Bài viết",
-      destinations: ["/vi/jobs", "/vi/jobs", "/vi/jobs"],
+      destinations: [
+        "/vi/posts?category=blog-upnext",
+        "/vi/posts?category=su-nghiep-it",
+        "/vi/posts?category=chuyen-mon-it",
+      ],
     },
     {
       key: "features",
@@ -439,20 +436,26 @@ test("keeps every public header mega menu readable and inside the viewport", asy
       await expect(panel).toBeVisible();
 
       const links = panel.getByRole("link");
-      await expect(links).toHaveCount(menuCase.destinations.length);
+      if (menuCase.destinations) {
+        await expect(links).toHaveCount(menuCase.destinations.length);
+      } else {
+        await expect.poll(() => links.count()).toBeGreaterThan(1);
+      }
       const destinations = await links.evaluateAll((elements) =>
         elements.map((element) => {
           const url = new URL((element as HTMLAnchorElement).href);
           return decodeURIComponent(`${url.pathname}${url.search}`);
         }),
       );
-      expect(destinations).toEqual(menuCase.destinations);
+      if (menuCase.destinations) {
+        expect(destinations).toEqual(menuCase.destinations);
+      } else {
+        expect(destinations.every((destination) => destination.startsWith("/vi/jobs"))).toBe(true);
+      }
 
       const layout = await panel.evaluate((element) => {
         const panelRect = element.getBoundingClientRect();
-        const items = Array.from(
-          element.querySelectorAll<HTMLElement>(".marketing-home-mega-item"),
-        );
+        const items = Array.from(element.querySelectorAll<HTMLElement>("a"));
 
         return {
           panelInsideViewport: panelRect.left >= 0 && panelRect.right <= window.innerWidth,
@@ -477,6 +480,92 @@ test("keeps every public header mega menu readable and inside the viewport", asy
       await expect(trigger).toBeFocused();
     }
   }
+});
+
+test("loads live backend data for every jobs menu category", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/vi");
+
+  const trigger = page.locator("#public-nav-jobs-trigger");
+  await trigger.click();
+
+  const panel = page.locator("#public-nav-jobs-panel");
+  const tabPanel = panel.getByRole("tabpanel");
+  const tabs = panel.getByRole("tab");
+  const filterParams = ["jobCategory", "skill", "title", "expertise", "company", "location"];
+
+  await expect(tabs).toHaveCount(filterParams.length);
+
+  for (const [index, filterParam] of filterParams.entries()) {
+    const tab = tabs.nth(index);
+    await tab.hover();
+    await expect(tab).toHaveAttribute("aria-selected", "true");
+    const tabId = await tab.getAttribute("id");
+    expect(tabId).not.toBeNull();
+    await expect(tabPanel).toHaveAttribute("aria-labelledby", tabId!);
+
+    const links = tabPanel.getByRole("link");
+    await expect.poll(() => links.count()).toBeGreaterThan(0);
+    const firstHref = await links.first().getAttribute("href");
+    expect(new URL(firstHref ?? "", page.url()).searchParams.has(filterParam)).toBe(true);
+  }
+
+  await tabs.nth(0).focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(tabs.nth(1)).toBeFocused();
+  await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+});
+
+test("shows an interactive preview only for urgent job titles", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/vi");
+
+  const urgentSection = page.locator(".marketing-home-urgent");
+  const title = urgentSection.locator(".urgent-job-title").first();
+  await title.scrollIntoViewIfNeeded();
+  await title.hover();
+
+  const preview = urgentSection.getByRole("dialog");
+  await expect(preview).toBeVisible();
+  await expect(title).toHaveAttribute("aria-expanded", "true");
+  const previewSize = await preview.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { width: rect.width, height: rect.height };
+  });
+  expect(previewSize.width).toBeLessThanOrEqual(500);
+  expect(previewSize.height).toBeLessThanOrEqual(460);
+  await expect(preview.getByRole("button", { name: "Ứng tuyển ngay" })).toBeVisible();
+  await expect(preview.getByRole("button", { name: /Xem chi tiết/u })).toBeVisible();
+
+  const description = preview.locator(".urgent-job-preview-description");
+  await expect(description).toBeVisible();
+  const descriptionState = await description.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      overflowY: style.overflowY,
+      lineClamp: style.getPropertyValue("-webkit-line-clamp"),
+      scrollHeight: element.scrollHeight,
+      clientHeight: element.clientHeight,
+    };
+  });
+  expect(descriptionState.overflowY).toBe("auto");
+  expect(descriptionState.lineClamp).toBe("none");
+  expect(descriptionState.scrollHeight).toBeGreaterThanOrEqual(descriptionState.clientHeight);
+
+  await preview.hover();
+  await page.waitForTimeout(200);
+  await expect(preview).toBeVisible();
+
+  const saveButton = preview.locator(".urgent-job-preview-save");
+  await saveButton.click();
+  await expect(saveButton).toHaveAttribute("aria-pressed", "true");
+
+  await title.focus();
+  await page.keyboard.press("Escape");
+  await expect(preview).toBeHidden();
+  await expect(title).toBeFocused();
+
+  await expect(page.locator(".marketing-home-jobs").getByRole("dialog")).toHaveCount(0);
 });
 
 test("uses one shared public footer across public marketing pages", async ({ page }) => {

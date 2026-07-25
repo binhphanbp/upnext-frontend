@@ -129,6 +129,31 @@ function getJobId(path: string) {
   return decodeURIComponent(path.split("/").filter(Boolean)[1] ?? "");
 }
 
+function formatJobDetailDeadline(expiredAt?: string | null) {
+  if (!expiredAt) {
+    return { date: "Không giới hạn", remainingText: "Không giới hạn" };
+  }
+
+  const d = new Date(expiredAt);
+  const time = d.getTime();
+  if (Number.isNaN(time)) {
+    return { date: "Chưa cập nhật", remainingText: "Chưa cập nhật" };
+  }
+
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  const dateFormatted = `${day}/${month}/${year}`;
+
+  const remainingMs = time - Date.now();
+  if (remainingMs < 0) {
+    return { date: dateFormatted, remainingText: "Đã hết hạn" };
+  }
+
+  const days = Math.max(1, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)));
+  return { date: dateFormatted, remainingText: `còn ${days} ngày` };
+}
+
 function LogoMark({ job, size = "normal" }: { job: Job; size?: "normal" | "large" }) {
   const [failed, setFailed] = useState(false);
   const className = `jobs-logo-mark${size === "large" ? " is-large" : ""}`;
@@ -222,6 +247,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
         featured: false,
         requirements: job.requirements,
         benefits: job.benefits,
+        expiredAt: job.expiredAt,
       };
     });
 
@@ -229,6 +255,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   }, [apiJobsData]);
 
   const job = jobsList.find((item) => item.id === jobId) ?? fallbackJob;
+  const deadlineInfo = formatJobDetailDeadline(job.expiredAt);
   const {
     isPending: isSavedJobPending,
     isSessionResolved: isSavedJobsSessionResolved,
@@ -416,19 +443,21 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
 
             <DetailSection title="Kỹ năng & công nghệ">
               <div className="job-detail-skill-cloud">
-                {[
-                  ...job.tags,
-                  "Next.js",
-                  "TypeScript",
-                  "JavaScript",
-                  "HTML5",
-                  "CSS3",
-                  "React Query",
-                  "Tailwind CSS",
-                  "Git",
-                  "RESTful API",
-                  "Docker",
-                ].map((tag) => (
+                {Array.from(
+                  new Set([
+                    ...job.tags,
+                    "Next.js",
+                    "TypeScript",
+                    "JavaScript",
+                    "HTML5",
+                    "CSS3",
+                    "React Query",
+                    "Tailwind CSS",
+                    "Git",
+                    "RESTful API",
+                    "Docker",
+                  ]),
+                ).map((tag) => (
                   <span key={tag}>{tag}</span>
                 ))}
               </div>
@@ -497,7 +526,8 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 {saved ? "Đã lưu tin" : "Lưu tin"}
               </button>
               <div className="job-detail-deadline">
-                Hạn nộp hồ sơ: <b>15/06/2025</b> <span>(còn 13 ngày)</span>
+                Hạn nộp hồ sơ: <b>{deadlineInfo.date}</b>{" "}
+                <span>({deadlineInfo.remainingText})</span>
               </div>
               <div className="job-detail-verified-box">
                 <ShieldCheck size={20} weight="fill" />
