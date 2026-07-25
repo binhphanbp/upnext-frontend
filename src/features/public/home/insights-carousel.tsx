@@ -3,163 +3,165 @@
 import { ArrowRight, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { useLocale } from "next-intl";
 import Image from "next/image";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+
+import type { Post } from "@/features/posts/types/post";
+import { Link } from "@/i18n/navigation";
 
 type InsightArticle = {
   id: string;
-  title: { vi: string; en: string };
   image: string;
-  imageAlt: { vi: string; en: string };
+  imageAlt: string;
+  slug: string;
+  title: string;
 };
 
-const articles: InsightArticle[] = [
-  {
-    id: "it-market-report",
-    title: {
-      vi: "Xu hướng tuyển dụng IT nửa cuối 2026: kỹ năng nào đang được săn đón?",
-      en: "IT hiring trends for late 2026: which skills are in demand?",
-    },
-    image: "/assets/marketing/home/market-ai.png",
-    imageAlt: {
-      vi: "Minh hoạ AI và phân tích dữ liệu",
-      en: "An illustration of AI and data analysis",
-    },
-  },
-  {
-    id: "backend-roadmap",
-    title: {
-      vi: "Lộ trình trở thành Backend Developer trong 12 tháng cho người mới bắt đầu",
-      en: "A 12-month backend developer roadmap for beginners",
-    },
-    image: "/assets/company-profile/office1.png",
-    imageAlt: {
-      vi: "Không gian làm việc của đội ngũ công nghệ",
-      en: "A technology team's workspace",
-    },
-  },
-  {
-    id: "cv-checklist",
-    title: {
-      vi: "7 điểm cần kiểm tra trước khi gửi CV cho một vị trí công nghệ",
-      en: "7 things to check before submitting a CV for a tech role",
-    },
-    image: "/assets/company-profile/office2.png",
-    imageAlt: {
-      vi: "Buổi họp trao đổi chiến lược của đội ngũ công nghệ",
-      en: "A technology team strategy meeting",
-    },
-  },
-  {
-    id: "team-culture",
-    title: {
-      vi: "Cách đánh giá văn hoá đội ngũ trước khi nhận lời mời làm việc",
-      en: "How to evaluate team culture before accepting an offer",
-    },
-    image: "/assets/company-profile/office3.png",
-    imageAlt: {
-      vi: "Không gian sinh hoạt chung tại văn phòng",
-      en: "A shared space in an office",
-    },
-  },
-  {
-    id: "portfolio-for-developers",
-    title: {
-      vi: "Portfolio cho Developer: chọn dự án nào để thể hiện năng lực đúng cách?",
-      en: "Developer portfolios: how to choose projects that show your strengths",
-    },
-    image: "/anh.png",
-    imageAlt: {
-      vi: "Minh hoạ hồ sơ nghề nghiệp và cơ hội việc làm",
-      en: "An illustration of a professional profile and job opportunities",
-    },
-  },
-  {
-    id: "career-switch",
-    title: {
-      vi: "Chuyển hướng sang công nghệ: lập kế hoạch học và tìm việc không bị quá tải",
-      en: "Moving into tech: a sustainable plan for learning and job searching",
-    },
-    image: "/assets/company-profile/office1.png",
-    imageAlt: {
-      vi: "Đội ngũ cùng nhau làm việc tại văn phòng công nghệ",
-      en: "A team working together in a technology office",
-    },
-  },
+type InsightsCarouselProps = {
+  isLoading: boolean;
+  posts: Post[];
+};
+
+type InsightsCarouselRailProps = {
+  articles: InsightArticle[];
+  locale: "en" | "vi";
+};
+
+type DragState = {
+  pointerId: number;
+  startScrollLeft: number;
+  startX: number;
+};
+
+type PendingAlignment = {
+  behavior: ScrollBehavior;
+  slot: number;
+};
+
+const fallbackImages = [
+  "/assets/marketing/home/market-ai.png",
+  "/assets/company-profile/office1.png",
+  "/assets/company-profile/office2.png",
+  "/assets/company-profile/office3.png",
+  "/anh.png",
 ];
 
 const CAROUSEL_COPIES = 7;
 const CENTER_COPY = Math.floor(CAROUSEL_COPIES / 2);
-const INITIAL_ARTICLE_INDEX = 1;
-const INITIAL_SLOT = CENTER_COPY * articles.length + INITIAL_ARTICLE_INDEX;
 const DRAG_START_DISTANCE = 4;
 const SWIPE_DISTANCE_MIN = 36;
 const SWIPE_DISTANCE_MAX = 96;
-const carouselItems = Array.from({ length: articles.length * CAROUSEL_COPIES }, (_, slot) => ({
-  article: articles[slot % articles.length]!,
-  slot,
-}));
 
 const copyByLocale = {
   vi: {
-    title: "Cẩm nang nghề nghiệp",
     all: "Xem tất cả",
-    previous: "Bài viết trước",
-    next: "Bài viết tiếp theo",
     carousel: "Danh sách bài viết và định hướng nghề nghiệp",
     instructions: "Kéo ngang hoặc dùng các nút điều hướng để xem thêm bài viết.",
+    loading: "Đang tải bài viết mới nhất",
     more: "Xem chi tiết",
+    next: "Bài viết tiếp theo",
     position: (position: number, total: number) => `Bài viết ${position} trên ${total}`,
+    previous: "Bài viết trước",
+    title: "Cẩm nang nghề nghiệp",
   },
   en: {
-    title: "Career insights",
     all: "View all",
-    previous: "Previous article",
-    next: "Next article",
     carousel: "Career and article carousel",
     instructions: "Drag horizontally or use the navigation controls to see more articles.",
-    more: "View details",
+    loading: "Loading latest articles",
+    more: "Read article",
+    next: "Next article",
     position: (position: number, total: number) => `Article ${position} of ${total}`,
+    previous: "Previous article",
+    title: "Career insights",
   },
 } as const;
 
-type DragState = {
-  pointerId: number;
-  startX: number;
-  startScrollLeft: number;
-};
-
-type PendingAlignment = {
-  slot: number;
-  behavior: ScrollBehavior;
-};
+function getInsightImage(post: Post, index: number) {
+  const image = post.coverImageFile?.publicUrl ?? post.thumbnailFile?.publicUrl;
+  return image && (/^https?:\/\//u.test(image) || image.startsWith("/"))
+    ? image
+    : fallbackImages[index % fallbackImages.length]!;
+}
 
 function getScrollBehavior(): ScrollBehavior {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 }
 
-function getWrappedIndex(index: number) {
-  return (index + articles.length) % articles.length;
+function getWrappedIndex(index: number, articleCount: number) {
+  return (index + articleCount) % articleCount;
 }
 
-function getCenteredSlot(slot: number) {
-  return CENTER_COPY * articles.length + getWrappedIndex(slot);
+function getCenteredSlot(slot: number, articleCount: number) {
+  return CENTER_COPY * articleCount + getWrappedIndex(slot, articleCount);
 }
 
-export function InsightsCarousel() {
+export function InsightsCarousel({ isLoading, posts }: InsightsCarouselProps) {
   const locale = useLocale() === "en" ? "en" : "vi";
   const copy = copyByLocale[locale];
+  const articles = useMemo(
+    () =>
+      posts.map((post, index) => ({
+        id: post.id,
+        image: getInsightImage(post, index),
+        imageAlt: post.title,
+        slug: post.slug,
+        title: post.title,
+      })),
+    [posts],
+  );
+
+  if (articles.length === 0) {
+    if (!isLoading) return null;
+
+    return (
+      <section
+        className="marketing-home-insights"
+        aria-busy="true"
+        aria-labelledby="insights-heading"
+      >
+        <header className="marketing-home-insights-head">
+          <h2 id="insights-heading">{copy.title}</h2>
+        </header>
+        <output className="marketing-home-insights-loading">
+          <span className="sr-only">{copy.loading}</span>
+        </output>
+      </section>
+    );
+  }
+
+  return (
+    <InsightsCarouselRail
+      key={articles.map((article) => article.id).join("-")}
+      articles={articles}
+      locale={locale}
+    />
+  );
+}
+
+function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
+  const copy = copyByLocale[locale];
+  const articleCount = articles.length;
+  const initialSlot = CENTER_COPY * articleCount + Math.min(1, articleCount - 1);
+  const carouselItems = useMemo(
+    () =>
+      Array.from({ length: articleCount * CAROUSEL_COPIES }, (_, slot) => ({
+        article: articles[slot % articleCount]!,
+        slot,
+      })),
+    [articleCount, articles],
+  );
   const viewportRef = useRef<HTMLElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const draggedRef = useRef(false);
-  const activeSlotRef = useRef(INITIAL_SLOT);
+  const activeSlotRef = useRef(initialSlot);
   const initialFrameRef = useRef<number | null>(null);
   const dragReleaseTimerRef = useRef<number | null>(null);
   const recenterTimerRef = useRef<number | null>(null);
   const pendingAlignmentRef = useRef<PendingAlignment | null>(null);
-  const [activeSlot, setActiveSlot] = useState(INITIAL_SLOT);
+  const [activeSlot, setActiveSlot] = useState(initialSlot);
   const [isDragging, setIsDragging] = useState(false);
-  const activeIndex = getWrappedIndex(activeSlot);
+  const activeIndex = getWrappedIndex(activeSlot, articleCount);
 
   const setCurrentSlot = useCallback((slot: number) => {
     activeSlotRef.current = slot;
@@ -199,13 +201,12 @@ export function InsightsCarousel() {
   const recenterToMiddle = useCallback(() => {
     const currentSlot = activeSlotRef.current;
     const needsRecentering =
-      currentSlot <= articles.length || currentSlot >= articles.length * (CAROUSEL_COPIES - 1);
+      currentSlot <= articleCount || currentSlot >= articleCount * (CAROUSEL_COPIES - 1);
 
     if (!needsRecentering) return;
 
-    const centeredSlot = getCenteredSlot(currentSlot);
-    requestAlignment(centeredSlot, "auto");
-  }, [requestAlignment]);
+    requestAlignment(getCenteredSlot(currentSlot, articleCount), "auto");
+  }, [articleCount, requestAlignment]);
 
   const queueRecentering = useCallback(() => {
     if (recenterTimerRef.current !== null) window.clearTimeout(recenterTimerRef.current);
@@ -218,13 +219,14 @@ export function InsightsCarousel() {
 
   const selectSlot = useCallback(
     (slot: number, behavior = getScrollBehavior()) => {
-      const nextSlot = slot < 0 || slot >= carouselItems.length ? getCenteredSlot(slot) : slot;
+      const nextSlot =
+        slot < 0 || slot >= carouselItems.length ? getCenteredSlot(slot, articleCount) : slot;
       if (recenterTimerRef.current !== null) window.clearTimeout(recenterTimerRef.current);
 
       requestAlignment(nextSlot, behavior);
       queueRecentering();
     },
-    [queueRecentering, requestAlignment],
+    [articleCount, carouselItems.length, queueRecentering, requestAlignment],
   );
 
   const findNearestSlot = useCallback(() => {
@@ -248,13 +250,13 @@ export function InsightsCarousel() {
   }, []);
 
   useLayoutEffect(() => {
-    initialFrameRef.current = window.requestAnimationFrame(() => alignSlot(INITIAL_SLOT, "auto"));
+    initialFrameRef.current = window.requestAnimationFrame(() => alignSlot(initialSlot, "auto"));
     return () => {
       if (initialFrameRef.current !== null) window.cancelAnimationFrame(initialFrameRef.current);
       if (dragReleaseTimerRef.current !== null) window.clearTimeout(dragReleaseTimerRef.current);
       if (recenterTimerRef.current !== null) window.clearTimeout(recenterTimerRef.current);
     };
-  }, [alignSlot]);
+  }, [alignSlot, initialSlot]);
 
   function handlePointerDown(event: ReactPointerEvent<HTMLElement>) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -265,8 +267,8 @@ export function InsightsCarousel() {
     viewport.setPointerCapture(event.pointerId);
     dragRef.current = {
       pointerId: event.pointerId,
-      startX: event.clientX,
       startScrollLeft: viewport.scrollLeft,
+      startX: event.clientX,
     };
     draggedRef.current = false;
     if (event.pointerType === "mouse") event.preventDefault();
@@ -322,14 +324,14 @@ export function InsightsCarousel() {
     <section className="marketing-home-insights" aria-labelledby="insights-heading">
       <header className="marketing-home-insights-head">
         <h2 id="insights-heading">{copy.title}</h2>
-        <span className="marketing-home-insights-all" aria-hidden="true">
+        <Link className="marketing-home-insights-all" href="/posts">
           {copy.all}
-          <ArrowRight size={16} weight="bold" />
-        </span>
+          <ArrowRight size={16} weight="bold" aria-hidden="true" />
+        </Link>
       </header>
 
       <p className="sr-only" aria-live="polite">
-        {copy.position(activeIndex + 1, articles.length)}. {copy.instructions}
+        {copy.position(activeIndex + 1, articleCount)}. {copy.instructions}
       </p>
 
       <div className="marketing-home-insights-stage">
@@ -369,7 +371,7 @@ export function InsightsCarousel() {
               const isPeripheral = distanceFromActive === 2;
               return (
                 <article
-                  data-insight-index={slot % articles.length}
+                  data-insight-index={slot % articleCount}
                   data-insight-slot={slot}
                   aria-current={isFeatured ? "true" : undefined}
                   className={`marketing-home-insights-card${isFeatured ? " is-featured" : ""}${isAdjacent ? " is-adjacent" : ""}${isPeripheral ? " is-peripheral" : ""}`}
@@ -378,20 +380,24 @@ export function InsightsCarousel() {
                   <div className="marketing-home-insights-image">
                     <Image
                       src={article.image}
-                      alt={article.imageAlt[locale]}
+                      alt={article.imageAlt}
                       width={960}
                       height={620}
                       sizes="(max-width: 760px) 84vw, 650px"
+                      unoptimized
+                      loader={({ src }) => src}
                       draggable={false}
                     />
                   </div>
-                  <h3>{article.title[locale]}</h3>
-                  {isFeatured && (
-                    <span className="marketing-home-insights-more">
+                  <h3>
+                    <Link href={`/posts/${article.slug}`}>{article.title}</Link>
+                  </h3>
+                  {isFeatured ? (
+                    <Link className="marketing-home-insights-more" href={`/posts/${article.slug}`}>
                       {copy.more}
                       <ArrowRight size={15} weight="bold" aria-hidden="true" />
-                    </span>
-                  )}
+                    </Link>
+                  ) : null}
                 </article>
               );
             })}
