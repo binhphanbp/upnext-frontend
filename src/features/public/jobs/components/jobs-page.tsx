@@ -59,6 +59,8 @@ export type Job = {
   tags: string[];
   description: string;
   categories: string[];
+  categoryName?: string | undefined;
+  specializations?: string[];
   urgent?: boolean;
   featured?: boolean;
   requirements?: string | null;
@@ -442,6 +444,11 @@ function getPageNumbers(currentPage: number, totalPages: number) {
 export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const locale = useLocale();
   const params = useSearchParams();
+  const titleFilter = params.get("title")?.trim() ?? "";
+  const skillFilter = params.get("skill")?.trim() ?? "";
+  const companyFilter = params.get("company")?.trim() ?? "";
+  const jobCategoryFilter = params.get("jobCategory")?.trim() ?? "";
+  const expertiseFilter = params.get("expertise")?.trim() ?? "";
   const [keyword, setKeyword] = useState(params.get("keyword") ?? params.get("position") ?? "");
   const [location, setLocation] = useState(params.get("location") ?? "Tất cả địa điểm");
   const [activeCategory, setActiveCategory] = useState(params.get("category") ?? "all");
@@ -598,6 +605,8 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
               ) as string[]),
         description: job.description || "",
         categories,
+        categoryName: job.jobCategory?.name,
+        specializations: job.jobPostSpecializations?.map((item) => item.specialization.name) ?? [],
         urgent: false,
         featured: false,
         requirements: job.requirements,
@@ -680,6 +689,18 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     return jobs
       .filter((job) => {
         const matchesKeyword = matchNaturalLanguageSearch(keyword, job);
+        const matchesTitle = !titleFilter || job.title.toLowerCase() === titleFilter.toLowerCase();
+        const matchesSkill =
+          !skillFilter || job.tags.some((tag) => tag.toLowerCase() === skillFilter.toLowerCase());
+        const matchesCompany =
+          !companyFilter || job.company.toLowerCase() === companyFilter.toLowerCase();
+        const matchesJobCategory =
+          !jobCategoryFilter || job.categoryName?.toLowerCase() === jobCategoryFilter.toLowerCase();
+        const matchesExpertise =
+          !expertiseFilter ||
+          job.specializations?.some(
+            (specialization) => specialization.toLowerCase() === expertiseFilter.toLowerCase(),
+          );
 
         const matchesLocation =
           location === "Tất cả địa điểm" ||
@@ -785,6 +806,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
 
         return (
           matchesKeyword &&
+          matchesTitle &&
+          matchesSkill &&
+          matchesCompany &&
+          matchesJobCategory &&
+          matchesExpertise &&
           matchesLocation &&
           matchesCategory &&
           matchesRank &&
@@ -818,9 +844,21 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     salaryFilters,
     customMinSalary,
     customMaxSalary,
+    companyFilter,
+    expertiseFilter,
+    jobCategoryFilter,
+    skillFilter,
     sort,
     techFilters,
+    titleFilter,
   ]);
+
+  useEffect(() => {
+    setKeyword(params.get("keyword") ?? params.get("position") ?? "");
+    setLocation(params.get("location") ?? "Tất cả địa điểm");
+    setActiveCategory(params.get("category") ?? "all");
+    setPage(1);
+  }, [params]);
 
   useEffect(() => {
     const term = params.get("keyword") ?? params.get("position") ?? "";
@@ -953,6 +991,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
 
   const activeSummary = [
     keyword.trim() ? `Từ khóa: ${keyword.trim()}` : "",
+    titleFilter ? `Chức danh: ${titleFilter}` : "",
+    skillFilter ? `Kỹ năng: ${skillFilter}` : "",
+    companyFilter ? `Công ty: ${companyFilter}` : "",
+    jobCategoryFilter ? `Danh mục: ${jobCategoryFilter}` : "",
+    expertiseFilter ? `Chuyên môn: ${expertiseFilter}` : "",
     location !== "Tất cả địa điểm" ? location : "",
     activeCategory !== "all"
       ? (categories.find((category) => category.key === activeCategory)?.label ?? "")
@@ -994,6 +1037,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     setCustomMaxSalary("");
     setSort("relevant");
     setPage(1);
+    navigate("/jobs");
   }
 
   return (

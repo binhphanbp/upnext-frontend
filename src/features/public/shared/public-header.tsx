@@ -3,23 +3,32 @@
 import {
   Bell,
   BookmarkSimple,
+  Briefcase,
+  Buildings,
   ChatCircleText,
+  Code,
   FileText as FileTextIcon,
   House,
+  MapPin,
   PaperPlaneTilt,
   SignOut,
+  SquaresFour,
+  User,
   UserCircle,
 } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useRouter as useNativeRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 
 import { getMyCandidateProfile } from "@/features/candidate/api/profile";
 import { clearCandidateSession, getCandidateSession } from "@/features/candidate/session";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
+import { getPublicJobs } from "../home/api";
+import type { PublicJob } from "../home/api";
 import { upnextLogo } from "../home/brand";
 import {
   ArrowUpRight,
@@ -30,7 +39,6 @@ import {
   Check,
   ChevronDown,
   Code2,
-  Compass,
   FileText,
   GraduationCap,
   Landmark,
@@ -42,7 +50,6 @@ import {
   Smartphone,
   Sparkles,
   Star,
-  TrendingUp,
   WalletCards,
 } from "../home/marketing-icons";
 
@@ -69,6 +76,25 @@ type Language = {
   locale: "vi" | "en";
   label: string;
   flagLabel: string;
+};
+
+type LocalizedLabel = {
+  vi: string;
+  en: string;
+};
+
+type JobsMenuCategory = {
+  key: JobsMenuTab;
+  label: LocalizedLabel;
+  icon: ReactNode;
+};
+
+type JobsMenuTab = "all" | "skills" | "titles" | "expertise" | "companies" | "cities";
+
+type JobsMenuEntry = {
+  label: string;
+  path: string;
+  count: number;
 };
 
 type PublicHeaderCopy = {
@@ -277,6 +303,88 @@ const navMenus: NavMenu[] = [
     ],
   },
 ];
+
+const jobsMenuCategories: JobsMenuCategory[] = [
+  {
+    key: "all",
+    label: { vi: "Tất cả danh mục", en: "All categories" },
+    icon: <SquaresFour size={27} weight="regular" />,
+  },
+  {
+    key: "skills",
+    label: { vi: "Theo kỹ năng (Skills)", en: "By skills" },
+    icon: <Code size={29} weight="regular" />,
+  },
+  {
+    key: "titles",
+    label: { vi: "Theo chức danh (Title)", en: "By title" },
+    icon: <Briefcase size={29} weight="regular" />,
+  },
+  {
+    key: "expertise",
+    label: { vi: "Theo chuyên môn (Expertise)", en: "By expertise" },
+    icon: <User size={29} weight="regular" />,
+  },
+  {
+    key: "companies",
+    label: { vi: "Theo công ty (Company)", en: "By company" },
+    icon: <Buildings size={29} weight="regular" />,
+  },
+  {
+    key: "cities",
+    label: { vi: "Theo địa điểm (City)", en: "By city" },
+    icon: <MapPin size={29} weight="regular" />,
+  },
+];
+
+const jobsMenuFilterParam: Record<JobsMenuTab, string> = {
+  all: "jobCategory",
+  skills: "skill",
+  titles: "title",
+  expertise: "expertise",
+  companies: "company",
+  cities: "location",
+};
+
+function createJobsFilterPath(param: string, value: string) {
+  const search = new URLSearchParams({ [param]: value });
+  return `/jobs?${search.toString()}`;
+}
+
+function createJobsMenuEntries(jobs: PublicJob[], tab: JobsMenuTab): JobsMenuEntry[] {
+  const values =
+    tab === "skills"
+      ? jobs.flatMap((job) => job.jobPostSkills?.map((item) => item.skill.name) ?? [])
+      : tab === "titles"
+        ? jobs.map((job) => job.title)
+        : tab === "expertise"
+          ? jobs.flatMap(
+              (job) => job.jobPostSpecializations?.map((item) => item.specialization.name) ?? [],
+            )
+          : tab === "companies"
+            ? jobs.map((job) => job.company?.name)
+            : tab === "cities"
+              ? jobs.flatMap(
+                  (job) => job.jobPostLocations?.map((item) => item.jobLocation.city) ?? [],
+                )
+              : jobs.map((job) => job.jobCategory?.name);
+
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    const label = value?.trim();
+    if (!label) continue;
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+
+  const param = jobsMenuFilterParam[tab];
+  return Array.from(counts, ([label, count]) => ({
+    label,
+    count,
+    path: createJobsFilterPath(param, label),
+  }))
+    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label, "vi"))
+    .slice(0, 16);
+}
 
 const enNavCopy: Record<string, { label: string; eyebrow: string; tagline: string }> = {
   jobs: {
@@ -618,43 +726,53 @@ export function PublicHeader({
 
               <div
                 id={panelId}
-                className={`marketing-home-mega${menu.columns === 1 ? " is-single" : ""}`}
+                className={`marketing-home-mega${menu.key === "jobs" ? " marketing-home-jobs-mega" : ""}${menu.columns === 1 ? " is-single" : ""}`}
                 aria-labelledby={triggerId}
               >
-                <div className="marketing-home-mega-head">
-                  <span className="marketing-home-mega-eyebrow">
-                    <Sparkles size={14} aria-hidden="true" /> {navCopy?.eyebrow ?? menu.eyebrow}
-                  </span>
-                  <p>{navCopy?.tagline ?? menu.tagline}</p>
-                </div>
-                <ul className="marketing-home-mega-grid">
-                  {menu.items.map((item) => (
-                    <li key={item.label}>
-                      <Link
-                        className="marketing-home-mega-item"
-                        href={item.path}
-                        onClick={() => setOpenMenu(null)}
-                        prefetch={openMenu === menu.key ? null : false}
-                      >
-                        <i
-                          className={`marketing-home-mega-icon ${item.iconClass}`}
-                          aria-hidden="true"
-                        >
-                          {item.icon}
-                        </i>
-                        <span className="marketing-home-mega-text">
-                          <b>
-                            <span>{item.label}</span>
-                            {item.badge && (
-                              <em className="marketing-home-mega-badge">{item.badge}</em>
-                            )}
-                          </b>
-                          <small>{item.desc}</small>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                {menu.key === "jobs" ? (
+                  <JobsMegaMenu
+                    locale={currentLocale}
+                    isOpen={openMenu === menu.key}
+                    onNavigate={() => setOpenMenu(null)}
+                  />
+                ) : (
+                  <>
+                    <div className="marketing-home-mega-head">
+                      <span className="marketing-home-mega-eyebrow">
+                        <Sparkles size={14} aria-hidden="true" /> {navCopy?.eyebrow ?? menu.eyebrow}
+                      </span>
+                      <p>{navCopy?.tagline ?? menu.tagline}</p>
+                    </div>
+                    <ul className="marketing-home-mega-grid">
+                      {menu.items.map((item) => (
+                        <li key={item.label}>
+                          <Link
+                            className="marketing-home-mega-item"
+                            href={item.path}
+                            onClick={() => setOpenMenu(null)}
+                            prefetch={openMenu === menu.key ? null : false}
+                          >
+                            <i
+                              className={`marketing-home-mega-icon ${item.iconClass}`}
+                              aria-hidden="true"
+                            >
+                              {item.icon}
+                            </i>
+                            <span className="marketing-home-mega-text">
+                              <b>
+                                <span>{item.label}</span>
+                                {item.badge && (
+                                  <em className="marketing-home-mega-badge">{item.badge}</em>
+                                )}
+                              </b>
+                              <small>{item.desc}</small>
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </div>
             </div>
           );
@@ -868,6 +986,146 @@ export function PublicHeader({
         )}
       </div>
     </header>
+  );
+}
+
+function JobsMegaMenu({
+  locale,
+  isOpen,
+  onNavigate,
+}: Readonly<{
+  locale: "vi" | "en";
+  isOpen: boolean;
+  onNavigate: () => void;
+}>) {
+  const [activeTab, setActiveTab] = useState<JobsMenuTab>("expertise");
+  const {
+    data: jobs = [],
+    isError,
+    isPending,
+  } = useQuery({
+    queryKey: ["public-jobs"],
+    queryFn: getPublicJobs,
+  });
+  const entries = useMemo(() => createJobsMenuEntries(jobs, activeTab), [activeTab, jobs]);
+  const middle = Math.ceil(entries.length / 2);
+  const columns = [entries.slice(0, middle), entries.slice(middle)];
+  const activeCategory = jobsMenuCategories.find((category) => category.key === activeTab);
+  function handleTabKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>, currentTab: JobsMenuTab) {
+    const currentIndex = jobsMenuCategories.findIndex((category) => category.key === currentTab);
+    const lastIndex = jobsMenuCategories.length - 1;
+    const nextIndex =
+      event.key === "ArrowDown" || event.key === "ArrowRight"
+        ? (currentIndex + 1) % jobsMenuCategories.length
+        : event.key === "ArrowUp" || event.key === "ArrowLeft"
+          ? (currentIndex - 1 + jobsMenuCategories.length) % jobsMenuCategories.length
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? lastIndex
+              : null;
+
+    if (nextIndex === null) return;
+    event.preventDefault();
+    document.getElementById(`jobs-menu-tab-${jobsMenuCategories[nextIndex]?.key}`)?.focus();
+  }
+  const footerTitle =
+    locale === "en"
+      ? `View all ${activeCategory?.label.en.toLowerCase() ?? "IT jobs"}`
+      : `Xem tất cả ${
+          activeCategory?.label.vi
+            .replace(/^Theo /u, "")
+            .replace(/\s*\([^)]*\)/gu, "")
+            .toLowerCase() ?? "việc làm IT"
+        }`;
+  const footerDescription =
+    locale === "en"
+      ? `${jobs.length} open jobs from live hiring data`
+      : `${jobs.length} việc làm đang tuyển từ dữ liệu thực tế`;
+
+  return (
+    <>
+      <div className="marketing-home-jobs-body">
+        <ul
+          className="marketing-home-jobs-categories"
+          aria-label={locale === "en" ? "Job categories" : "Danh mục việc làm"}
+          role="tablist"
+        >
+          {jobsMenuCategories.map((category) => (
+            <li key={category.label.en} role="presentation">
+              <button
+                id={`jobs-menu-tab-${category.key}`}
+                type="button"
+                role="tab"
+                className={activeTab === category.key ? "is-active" : undefined}
+                aria-selected={activeTab === category.key}
+                aria-controls="jobs-menu-tabpanel"
+                tabIndex={activeTab === category.key ? 0 : -1}
+                onClick={() => setActiveTab(category.key)}
+                onFocus={() => setActiveTab(category.key)}
+                onMouseEnter={() => setActiveTab(category.key)}
+                onKeyDown={(event) => handleTabKeyDown(event, category.key)}
+              >
+                <span aria-hidden="true">{category.icon}</span>
+                <span>{category.label[locale]}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div
+          id="jobs-menu-tabpanel"
+          className="marketing-home-jobs-roles"
+          role="tabpanel"
+          aria-labelledby={`jobs-menu-tab-${activeTab}`}
+          aria-live="polite"
+        >
+          {isPending ? (
+            <p className="marketing-home-jobs-state">
+              {locale === "en" ? "Loading hiring data…" : "Đang tải dữ liệu tuyển dụng…"}
+            </p>
+          ) : isError ? (
+            <p className="marketing-home-jobs-state is-error">
+              {locale === "en" ? "Hiring data is unavailable." : "Chưa thể tải dữ liệu tuyển dụng."}
+            </p>
+          ) : entries.length === 0 ? (
+            <p className="marketing-home-jobs-state">
+              {locale === "en" ? "No matching data yet." : "Chưa có dữ liệu phù hợp."}
+            </p>
+          ) : (
+            columns.map((column, columnIndex) => (
+              <ul key={columnIndex} aria-label={activeCategory?.label[locale] ?? "Việc làm IT"}>
+                {column.map((entry) => (
+                  <li key={entry.label}>
+                    <Link href={entry.path} onClick={onNavigate} prefetch={isOpen ? null : false}>
+                      <span>{entry.label}</span>
+                      <small className="marketing-home-jobs-role-count">{entry.count}</small>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ))
+          )}
+        </div>
+      </div>
+
+      <Link
+        className="marketing-home-jobs-footer"
+        href="/jobs"
+        aria-label={footerTitle}
+        onClick={onNavigate}
+        prefetch={isOpen ? null : false}
+      >
+        <span className="marketing-home-jobs-footer-icon" aria-hidden="true">
+          <ArrowUpRight size={21} />
+        </span>
+        <span>
+          <b>{footerTitle}</b>
+          <small>{footerDescription}</small>
+        </span>
+        <ChevronDown className="marketing-home-jobs-footer-arrow" size={18} aria-hidden="true" />
+      </Link>
+    </>
   );
 }
 
