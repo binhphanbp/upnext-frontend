@@ -744,3 +744,15 @@ export function submitApplication(
     body: JSON.stringify(payload),
   });
 }
+
+export type CheckAppliedJobApi = Readonly<{
+  applied: boolean;
+  applicationId?: string | null;
+  status?: string | null;
+}>;
+
+export function checkAppliedJob(token: string, jobPostId: string) {
+  return apiRequest<CheckAppliedJobApi>(`/job-posts/${jobPostId}/applications/me`, {
+    headers: authHeaders(token),
+  });
+}
