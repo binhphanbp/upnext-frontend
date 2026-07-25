@@ -2377,6 +2377,13 @@ button.marketing-home-control {
   color: #0aa56f;
 }
 
+.featured-job-save:disabled,
+.featured-company-follow:disabled,
+.featured-company-featured-follow:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .featured-job-company {
   position: relative;
   z-index: 1;
@@ -3123,6 +3130,14 @@ button.marketing-home-control {
   color: #ffffff;
   border-color: transparent;
   background: linear-gradient(100deg, #098f63, #10b981);
+}
+
+.marketing-home-action-error {
+  margin: 12px 0 0;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .featured-company-card-main:focus-visible,
@@ -4086,7 +4101,7 @@ button.marketing-home-control {
     transform: translateY(0) scale(1);
   }
 
-  .featured-job-save:hover {
+  .featured-job-save:not(:disabled):hover {
     color: #0aa56f;
     background: #eef7f3;
   }
@@ -4122,7 +4137,7 @@ button.marketing-home-control {
     border-color: #8bd9ba;
   }
 
-  .featured-company-follow:not(.is-following):hover {
+  .featured-company-follow:not(:disabled):not(.is-following):hover {
     color: #ffffff;
     border-color: transparent;
     background: linear-gradient(100deg, #098f63, #10b981);
@@ -4136,7 +4151,7 @@ button.marketing-home-control {
     transform: translateX(3px);
   }
 
-  .featured-company-featured-follow:not(.is-following):hover {
+  .featured-company-featured-follow:not(:disabled):not(.is-following):hover {
     color: #ffffff;
     border-color: rgba(255, 255, 255, 0.4);
     background: rgba(255, 255, 255, 0.1);
