@@ -13,9 +13,11 @@ export type RecruiterAccountDetail = Readonly<{
   company: {
     id: string;
     name: string;
-    status: string;
+    status: "ACTIVE" | "LOCKED" | "RESTRICTED";
     verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
     businessLicenseFileId: string | null;
+    reputationScore: string;
+    restrictedAt: string | null;
   } | null;
   profile: {
     id: string;

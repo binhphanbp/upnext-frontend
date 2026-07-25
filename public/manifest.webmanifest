@@ -1,0 +1,61 @@
+{
+  "id": "/",
+  "name": "UpNext – Nền tảng tuyển dụng nhân sự IT",
+  "short_name": "UpNext",
+  "description": "Tìm việc IT và kết nối với các công ty công nghệ uy tín trên UpNext.",
+  "lang": "vi",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "theme_color": "#0aa56f",
+  "background_color": "#f2fcf7",
+  "orientation": "any",
+  "prefer_related_applications": false,
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tìm việc IT",
+      "url": "/vi/jobs",
+      "icons": [
+        {
+          "src": "/pwa/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Công ty IT",
+      "url": "/vi/companies",
+      "icons": [
+        {
+          "src": "/pwa/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

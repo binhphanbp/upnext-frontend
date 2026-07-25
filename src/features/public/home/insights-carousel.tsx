@@ -92,6 +92,9 @@ const CAROUSEL_COPIES = 7;
 const CENTER_COPY = Math.floor(CAROUSEL_COPIES / 2);
 const INITIAL_ARTICLE_INDEX = 1;
 const INITIAL_SLOT = CENTER_COPY * articles.length + INITIAL_ARTICLE_INDEX;
+const DRAG_START_DISTANCE = 4;
+const SWIPE_DISTANCE_MIN = 36;
+const SWIPE_DISTANCE_MAX = 96;
 const carouselItems = Array.from({ length: articles.length * CAROUSEL_COPIES }, (_, slot) => ({
   article: articles[slot % articles.length]!,
   slot,
@@ -126,6 +129,11 @@ type DragState = {
   startScrollLeft: number;
 };
 
+type PendingAlignment = {
+  slot: number;
+  behavior: ScrollBehavior;
+};
+
 function getScrollBehavior(): ScrollBehavior {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 }
@@ -146,7 +154,9 @@ export function InsightsCarousel() {
   const draggedRef = useRef(false);
   const activeSlotRef = useRef(INITIAL_SLOT);
   const initialFrameRef = useRef<number | null>(null);
+  const dragReleaseTimerRef = useRef<number | null>(null);
   const recenterTimerRef = useRef<number | null>(null);
+  const pendingAlignmentRef = useRef<PendingAlignment | null>(null);
   const [activeSlot, setActiveSlot] = useState(INITIAL_SLOT);
   const [isDragging, setIsDragging] = useState(false);
   const activeIndex = getWrappedIndex(activeSlot);
@@ -165,6 +175,27 @@ export function InsightsCarousel() {
     viewport.scrollTo({ left, behavior });
   }, []);
 
+  const requestAlignment = useCallback(
+    (slot: number, behavior: ScrollBehavior) => {
+      if (slot === activeSlotRef.current) {
+        window.requestAnimationFrame(() => alignSlot(slot, behavior));
+        return;
+      }
+
+      pendingAlignmentRef.current = { slot, behavior };
+      setCurrentSlot(slot);
+    },
+    [alignSlot, setCurrentSlot],
+  );
+
+  useLayoutEffect(() => {
+    const pendingAlignment = pendingAlignmentRef.current;
+    if (!pendingAlignment || pendingAlignment.slot !== activeSlot) return;
+
+    pendingAlignmentRef.current = null;
+    alignSlot(activeSlot, pendingAlignment.behavior);
+  }, [activeSlot, alignSlot]);
+
   const recenterToMiddle = useCallback(() => {
     const currentSlot = activeSlotRef.current;
     const needsRecentering =
@@ -173,9 +204,8 @@ export function InsightsCarousel() {
     if (!needsRecentering) return;
 
     const centeredSlot = getCenteredSlot(currentSlot);
-    setCurrentSlot(centeredSlot);
-    window.requestAnimationFrame(() => alignSlot(centeredSlot, "auto"));
-  }, [alignSlot, setCurrentSlot]);
+    requestAlignment(centeredSlot, "auto");
+  }, [requestAlignment]);
 
   const queueRecentering = useCallback(() => {
     if (recenterTimerRef.current !== null) window.clearTimeout(recenterTimerRef.current);
@@ -191,10 +221,10 @@ export function InsightsCarousel() {
       const nextSlot = slot < 0 || slot >= carouselItems.length ? getCenteredSlot(slot) : slot;
       if (recenterTimerRef.current !== null) window.clearTimeout(recenterTimerRef.current);
 
-      setCurrentSlot(nextSlot);
-      window.requestAnimationFrame(() => alignSlot(nextSlot, behavior));
+      requestAlignment(nextSlot, behavior);
+      queueRecentering();
     },
-    [alignSlot, setCurrentSlot],
+    [queueRecentering, requestAlignment],
   );
 
   const findNearestSlot = useCallback(() => {
@@ -221,13 +251,14 @@ export function InsightsCarousel() {
     initialFrameRef.current = window.requestAnimationFrame(() => alignSlot(INITIAL_SLOT, "auto"));
     return () => {
       if (initialFrameRef.current !== null) window.cancelAnimationFrame(initialFrameRef.current);
+      if (dragReleaseTimerRef.current !== null) window.clearTimeout(dragReleaseTimerRef.current);
       if (recenterTimerRef.current !== null) window.clearTimeout(recenterTimerRef.current);
     };
   }, [alignSlot]);
 
   function handlePointerDown(event: ReactPointerEvent<HTMLElement>) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    if ((event.target as HTMLElement).closest("button")) return;
+    if ((event.target as HTMLElement).closest("button, a, input, textarea, select")) return;
     if (dragRef.current) return;
 
     const viewport = event.currentTarget;
@@ -247,8 +278,8 @@ export function InsightsCarousel() {
     if (!drag || drag.pointerId !== event.pointerId) return;
 
     const distance = event.clientX - drag.startX;
-    if (Math.abs(distance) > 4) draggedRef.current = true;
-    if (draggedRef.current) event.preventDefault();
+    if (Math.abs(distance) > DRAG_START_DISTANCE) draggedRef.current = true;
+    if (draggedRef.current && event.cancelable) event.preventDefault();
     event.currentTarget.scrollLeft = drag.startScrollLeft - distance;
   }
 
@@ -259,12 +290,31 @@ export function InsightsCarousel() {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+
+    const distance = event.clientX - drag.startX;
+    const viewport = event.currentTarget;
     dragRef.current = null;
     setIsDragging(false);
-    const nextSlot = findNearestSlot();
-    window.setTimeout(() => {
+
+    const swipeDistance = Math.min(
+      SWIPE_DISTANCE_MAX,
+      Math.max(SWIPE_DISTANCE_MIN, viewport.clientWidth * 0.055),
+    );
+
+    if (Math.abs(distance) >= swipeDistance) {
+      const steps = Math.min(
+        2,
+        Math.max(1, Math.round(Math.abs(distance) / Math.max(1, viewport.clientWidth * 0.45))),
+      );
+      selectSlot(activeSlotRef.current + (distance < 0 ? steps : -steps));
+    } else {
+      selectSlot(findNearestSlot());
+    }
+
+    if (dragReleaseTimerRef.current !== null) window.clearTimeout(dragReleaseTimerRef.current);
+    dragReleaseTimerRef.current = window.setTimeout(() => {
       draggedRef.current = false;
-      selectSlot(nextSlot);
+      dragReleaseTimerRef.current = null;
     }, 0);
   }
 
@@ -321,6 +371,7 @@ export function InsightsCarousel() {
                 <article
                   data-insight-index={slot % articles.length}
                   data-insight-slot={slot}
+                  aria-current={isFeatured ? "true" : undefined}
                   className={`marketing-home-insights-card${isFeatured ? " is-featured" : ""}${isAdjacent ? " is-adjacent" : ""}${isPeripheral ? " is-peripheral" : ""}`}
                   key={`${article.id}-${slot}`}
                 >

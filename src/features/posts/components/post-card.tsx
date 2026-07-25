@@ -31,15 +31,16 @@ export function PostCard({ post }: PostCardProps) {
     <article className="post-card">
       <div className="post-card-thumb-wrapper">
         {thumbnailUrl.startsWith("http") || thumbnailUrl.startsWith("/") ? (
-          <img
+          <Image
+            fill
             src={thumbnailUrl}
             alt={post.title}
             className="post-card-thumb"
-            loading="lazy"
-            onError={(e) => {
-              // Fallback to stylized SVG placeholder if image fails to load
-              (e.currentTarget as HTMLImageElement).src =
-                "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80";
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            unoptimized
+            loader={({ src }) => src}
+            onError={(event) => {
+              event.currentTarget.src = "/images/placeholder-post.jpg";
             }}
           />
         ) : (

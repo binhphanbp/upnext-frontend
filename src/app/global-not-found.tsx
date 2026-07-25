@@ -1,21 +1,13 @@
-import { Plus_Jakarta_Sans } from "next/font/google";
 import Link from "next/link";
 
-import "./globals.css";
+import { lexend } from "./fonts";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin", "vietnamese"],
-  display: "swap",
-  variable: "--font-sans",
-});
+import "./globals.css";
 
 export default function GlobalNotFound() {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body
-        suppressHydrationWarning
-        className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}
-      >
+      <body suppressHydrationWarning className={`${lexend.variable} ${lexend.className}`}>
         <div className="flex min-h-screen flex-col items-center justify-center bg-white text-zinc-900">
           <div className="text-center">
             <h1 className="mb-4 text-6xl font-bold tracking-tight text-zinc-900">404</h1>

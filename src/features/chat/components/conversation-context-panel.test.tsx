@@ -6,6 +6,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../api/conversations", () => ({
   updateConversationTags: vi.fn<() => void>(),
+  getConversationRecruiters: vi.fn<() => void>(),
+  getHiringTeam: vi.fn<() => void>(),
+  addRecruiterToConversation: vi.fn<() => void>(),
+  addRecruiterToHiringTeam: vi.fn<() => void>(),
 }));
 
 vi.mock("../socket/chat-socket-provider", () => ({

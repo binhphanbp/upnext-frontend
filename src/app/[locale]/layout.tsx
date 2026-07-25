@@ -1,19 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import { notFound } from "next/navigation";
 
+import { PwaServiceWorker } from "@/features/pwa/pwa-service-worker";
 import { routing } from "@/i18n/routing";
+
+import { lexend } from "../fonts";
 
 import "../globals.css";
 import { Providers } from "../providers";
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin", "vietnamese"],
-  display: "swap",
-  variable: "--font-sans",
-});
 
 type LocaleLayoutProps = Readonly<{
   children: React.ReactNode;
@@ -21,6 +17,11 @@ type LocaleLayoutProps = Readonly<{
     locale: string;
   }>;
 }>;
+
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#0aa56f",
+};
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -38,6 +39,22 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("description"),
+    applicationName: "UpNext",
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: "UpNext",
+    },
+    icons: {
+      apple: [
+        {
+          url: "/pwa/apple-touch-icon.png",
+          sizes: "180x180",
+          type: "image/png",
+        },
+      ],
+    },
   };
 }
 
@@ -52,13 +69,11 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body
-        suppressHydrationWarning
-        className={`${plusJakartaSans.variable} ${plusJakartaSans.className}`}
-      >
+      <body suppressHydrationWarning className={`${lexend.variable} ${lexend.className}`}>
         <NextIntlClientProvider>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
+        <PwaServiceWorker locale={locale} />
       </body>
     </html>
   );

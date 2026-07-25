@@ -24,6 +24,7 @@ import {
   Clock,
   User,
   LockSimple,
+  Plus,
 } from "@phosphor-icons/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useLocale, useTranslations } from "next-intl";
@@ -53,6 +54,11 @@ import {
   updateCompanyLocation,
 } from "@/features/recruiter/api/onboarding";
 import {
+  createAppeal,
+  getReputationActivities,
+  type ReputationActivity,
+} from "@/features/recruiter/api/reputation";
+import {
   extractProvinceFromAddress,
   normalizeProvinceName,
   normalizeWebsite,
@@ -66,10 +72,11 @@ import {
 import { getRecruiterJobPosts, type RecruiterJobPost } from "@/features/recruiter/job-posts/api";
 import {
   clearRecruiterSession,
+  getRecruiterCompanyOnboardingSkip,
   getRecruiterSession,
-  type RecruiterSessionUser,
+  setRecruiterCompanyOnboardingSkip,
 } from "@/features/recruiter/session";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { formatAppDate, toDate } from "@/shared/lib/date";
@@ -166,8 +173,6 @@ type OnboardingValues = z.infer<ReturnType<typeof createOnboardingSchema>>;
 
 type OnboardingStep = 0 | 1 | 2;
 
-const COMPANY_ONBOARDING_SKIP_KEY_PREFIX = "skippedRecruiterCompanyOnboarding";
-
 const stepFields: Record<OnboardingStep, Array<keyof OnboardingValues>> = {
   0: ["fullName", "phoneNumber", "gender", "avatar"],
   1: [
@@ -242,10 +247,6 @@ function RequiredLabel({ children, htmlFor }: { children: ReactNode; htmlFor?: s
       <span className="ml-1 text-red-500">*</span>
     </Label>
   );
-}
-
-function getCompanyOnboardingSkipKey(userId: string) {
-  return `${COMPANY_ONBOARDING_SKIP_KEY_PREFIX}_${userId}`;
 }
 
 function isOwnerRecruiterAccount(account: RecruiterAccountDetail) {
@@ -388,7 +389,6 @@ export function RecruiterDashboardPage() {
   const t = useTranslations("Recruiter");
   const locale = useLocale();
   const [token, setToken] = useState("");
-  const [user, setUser] = useState<RecruiterSessionUser | null>(null);
   const [account, setAccount] = useState<RecruiterAccountDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<{ totalJobPosts: number; totalCandidates: number } | null>(
@@ -398,18 +398,60 @@ export function RecruiterDashboardPage() {
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [companyDetail, setCompanyDetail] = useState<CompanyDetail | null>(null);
   const [reputationDialogOpen, setReputationDialogOpen] = useState(false);
+  const [reputationActivities, setReputationActivities] = useState<ReputationActivity[]>([]);
+  const [appealDialogOpen, setAppealDialogOpen] = useState(false);
+  const [appealContent, setAppealContent] = useState("");
+  const [appealSubmitting, setAppealSubmitting] = useState(false);
+  const [appealSubmitted, setAppealSubmitted] = useState(false);
 
+  // Lưu trong sessionStorage (không phải localStorage): tải lại trang vẫn giữ
+  // trạng thái đã bỏ qua, nhưng đăng xuất hoặc đăng nhập lại ở lần sau sẽ xoá,
+  // để onboarding tự hiện lại nếu công ty vẫn chưa hoàn tất/verify.
   const [skippedCompanyOnboarding, setSkippedCompanyOnboarding] = useState(false);
 
   useEffect(() => {
-    if (user?.id) {
-      setSkippedCompanyOnboarding(
-        localStorage.getItem(getCompanyOnboardingSkipKey(user.id)) === "true",
-      );
-    } else {
-      setSkippedCompanyOnboarding(false);
+    if (account?.id) {
+      setSkippedCompanyOnboarding(getRecruiterCompanyOnboardingSkip(account.id));
     }
-  }, [user?.id]);
+  }, [account?.id]);
+
+  useEffect(() => {
+    const companyId = account?.company?.id;
+    if (!reputationDialogOpen || !companyId || !token) return;
+
+    void getReputationActivities(companyId, token)
+      .then(setReputationActivities)
+      .catch(() => setReputationActivities([]));
+  }, [reputationDialogOpen, account?.company?.id, token]);
+
+  const isCompanyRestricted = account?.company?.status === "RESTRICTED";
+
+  const restrictedDaysLeft = useMemo(() => {
+    if (!isCompanyRestricted || !account?.company?.restrictedAt) return null;
+    const restrictedAt = new Date(account.company.restrictedAt).getTime();
+    const deadline = restrictedAt + 14 * 24 * 60 * 60 * 1000;
+    const daysLeft = Math.ceil((deadline - Date.now()) / (24 * 60 * 60 * 1000));
+    return Math.max(0, daysLeft);
+  }, [isCompanyRestricted, account?.company?.restrictedAt]);
+
+  async function handleSubmitAppeal() {
+    if (!appealContent.trim()) {
+      showToast("error", t("dashboard.restricted.appeal.validationError"));
+      return;
+    }
+
+    try {
+      setAppealSubmitting(true);
+      await createAppeal({ content: appealContent.trim() }, token);
+      setAppealSubmitted(true);
+      setAppealDialogOpen(false);
+      showToast("success", t("dashboard.restricted.appeal.success"));
+    } catch (error) {
+      showToast("error", getOnboardingErrorMessage(error, t));
+    } finally {
+      setAppealSubmitting(false);
+    }
+  }
 
   const onboardingRequired = useMemo(() => {
     if (!account) return false;
@@ -469,7 +511,6 @@ export function RecruiterDashboardPage() {
     }
 
     setToken(session.accessToken);
-    setUser(session.user);
     void loadAccount(session.user.id, session.accessToken);
   }, [loadAccount, router]);
 
@@ -602,6 +643,33 @@ export function RecruiterDashboardPage() {
 
   return (
     <div className="space-y-6 [font-family:var(--font-sans)] [--ring:#10a778]">
+      {isCompanyRestricted ? (
+        <div className="upnext-shadow flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <WarningCircle size={24} weight="fill" className="mt-0.5 shrink-0 text-red-500" />
+            <div>
+              <p className="font-bold text-red-700">{t("dashboard.restricted.title")}</p>
+              <p className="mt-1 text-sm text-red-600">{t("dashboard.restricted.description")}</p>
+              {restrictedDaysLeft !== null ? (
+                <p className="mt-1 text-xs font-semibold text-red-500">
+                  {t("dashboard.restricted.daysLeft", { days: restrictedDaysLeft })}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={appealSubmitted}
+            onClick={() => setAppealDialogOpen(true)}
+            className="shrink-0 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {appealSubmitted
+              ? t("dashboard.restricted.appeal.submittedButton")
+              : t("dashboard.restricted.appeal.cta")}
+          </button>
+        </div>
+      ) : null}
+
       <div className="recruiter-onboarding-card upnext-shadow relative overflow-hidden rounded-2xl border border-slate-100/90 p-6 shadow-sm">
         <style
           dangerouslySetInnerHTML={{
@@ -930,9 +998,24 @@ export function RecruiterDashboardPage() {
 
           <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
             {jobPosts.length === 0 ? (
-              <p className="col-span-full py-8 text-center text-sm font-medium text-slate-400">
-                {t("dashboard.statusDistribution.empty")}
-              </p>
+              <div className="col-span-full flex flex-col items-center justify-center py-6 text-center">
+                <Image
+                  src="/assets/recruiter/icon/cv-find.png"
+                  alt="Chưa có tin tuyển dụng"
+                  width={240}
+                  height={180}
+                  priority
+                  unoptimized
+                  className="mx-auto h-auto w-[240px] max-w-full object-contain select-none"
+                />
+
+                <h4 className="-mt-6 text-base font-bold text-slate-800">
+                  {t("dashboard.statusDistribution.empty")}
+                </h4>
+                <p className="mt-1 max-w-sm text-xs font-medium text-slate-500">
+                  {t("dashboard.statusDistribution.emptySubtitle")}
+                </p>
+              </div>
             ) : (
               JOB_STATUS_ORDER.map((status) => {
                 const count = statusCounts[status];
@@ -1247,7 +1330,93 @@ export function RecruiterDashboardPage() {
                   ))}
                 </ul>
               </div>
+
+              <div>
+                <h4 className="mb-2 font-bold text-slate-800">
+                  {t("dashboard.reputation.dialog.historyTitle")}
+                </h4>
+                {reputationActivities.length === 0 ? (
+                  <p className="text-xs text-slate-400">
+                    {t("dashboard.reputation.dialog.historyEmpty")}
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {reputationActivities.map((activity) => {
+                      const delta = Number(activity.score);
+                      return (
+                        <li
+                          key={activity.id}
+                          className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 text-xs"
+                        >
+                          <div>
+                            <p className="font-semibold text-slate-700">
+                              {activity.reason || activity.actionType}
+                            </p>
+                            <p className="text-slate-400">
+                              {new Date(activity.createdAt).toLocaleDateString(locale)}
+                            </p>
+                          </div>
+                          <span
+                            className={cn(
+                              "shrink-0 font-bold",
+                              delta >= 0 ? "text-emerald-600" : "text-red-600",
+                            )}
+                          >
+                            {delta >= 0 ? `+${delta}` : delta}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             </div>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+
+      <DialogPrimitive.Root open={appealDialogOpen} onOpenChange={setAppealDialogOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm" />
+          <DialogPrimitive.Content
+            aria-describedby="appeal-dialog-description"
+            className="fixed top-1/2 left-1/2 z-50 flex w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl bg-white p-6 shadow-2xl focus:outline-none"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <DialogPrimitive.Title className="text-lg font-bold text-slate-900">
+                {t("dashboard.restricted.appeal.dialogTitle")}
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Close
+                aria-label={t("dashboard.reputation.dialog.close")}
+                className="flex size-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X size={18} weight="bold" />
+              </DialogPrimitive.Close>
+            </div>
+            <DialogPrimitive.Description
+              id="appeal-dialog-description"
+              className="mb-3 text-sm text-slate-500"
+            >
+              {t("dashboard.restricted.appeal.dialogDescription")}
+            </DialogPrimitive.Description>
+            <textarea
+              value={appealContent}
+              onChange={(event) => setAppealContent(event.target.value)}
+              rows={5}
+              maxLength={2000}
+              placeholder={t("dashboard.restricted.appeal.placeholder")}
+              className="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+            />
+            <button
+              type="button"
+              disabled={appealSubmitting}
+              onClick={() => void handleSubmitAppeal()}
+              className="mt-4 w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              {appealSubmitting
+                ? t("dashboard.restricted.appeal.submitting")
+                : t("dashboard.restricted.appeal.submit")}
+            </button>
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
@@ -1261,9 +1430,7 @@ export function RecruiterDashboardPage() {
           open={onboardingRequired}
           token={token}
           onSkipCompanyOnboarding={() => {
-            if (user?.id) {
-              localStorage.setItem(getCompanyOnboardingSkipKey(user.id), "true");
-            }
+            if (account?.id) setRecruiterCompanyOnboardingSkip(account.id);
             setSkippedCompanyOnboarding(true);
           }}
         />
@@ -1674,7 +1841,16 @@ function RecruiterOnboardingDialog({
   }
 
   async function handleSkipAndSaveProfile() {
-    const valid = await form.trigger(stepFields[0], {
+    // "avatar" chỉ được react-hook-form register khi step 0 thực sự render.
+    // Nếu dialog mở thẳng vào step 1/2 (hồ sơ đã hoàn tất từ phiên trước), input
+    // file đó chưa từng mount trong lần useForm() này, nên form.trigger("avatar")
+    // luôn trả về false dù đã có avatarUrl sẵn (zod refine không hề báo lỗi —
+    // formState.errors rỗng, chỉ riêng giá trị trả về của trigger() sai). Bỏ field
+    // này ra khỏi danh sách trigger khi đã có avatar, vì lúc đó nó luôn hợp lệ.
+    const fieldsToValidate = stepFields[0].filter(
+      (field) => field !== "avatar" || !profile?.avatarUrl,
+    );
+    const valid = await form.trigger(fieldsToValidate, {
       shouldFocus: true,
     });
 

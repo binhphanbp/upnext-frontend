@@ -2,22 +2,16 @@
 
 import {
   CaretRight,
-  CaretDown,
-  Check,
   CheckCircle,
-  Buildings,
   Users,
   Clock,
   BookmarkSimple,
   X,
   SlidersHorizontal,
   ArrowRight,
-  ShieldCheck,
-  Star,
   BookOpen,
   MagnifyingGlass,
   MapPin,
-  Monitor,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
@@ -55,7 +49,7 @@ export type Job = {
   level: string;
   type: string;
   posted: string;
-  applicants: number;
+  applicants?: number;
   tags: string[];
   description: string;
   categories: string[];
@@ -66,6 +60,8 @@ export type Job = {
   requirements?: string | null;
   benefits?: string | null;
   expiredAt?: string | null;
+  skills?: string[];
+  experienceYears?: number[];
 };
 
 type FilterGroup = {
@@ -320,6 +316,8 @@ const salaryRanges = [
   { label: "Trên 60 triệu", value: "sal-60" },
 ];
 
+const salaryLabelByValue = new Map(salaryRanges.map((item) => [item.value, item.label]));
+
 const experienceOptions = [
   { label: "Dưới 1 năm", value: "exp-0-1" },
   { label: "1 - 2 năm", value: "exp-1-2" },
@@ -328,7 +326,9 @@ const experienceOptions = [
   { label: "Trên 6 năm", value: "exp-6" },
 ];
 
-const techOptions = [
+const experienceLabelByValue = new Map(experienceOptions.map((item) => [item.value, item.label]));
+
+const fallbackTechOptions = [
   "JavaScript",
   "TypeScript",
   "React",
@@ -374,7 +374,7 @@ const filterLabelByValue = new Map(
   filterGroups.flatMap((group) => group.items.map((item) => [item.value, item.label] as const)),
 );
 
-const locations = ["Tất cả địa điểm", "TP. Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Remote", "Cần Thơ"];
+const ALL_LOCATIONS = "Tất cả địa điểm";
 
 function salaryValue(job: Job) {
   const values = job.salary.match(/\d+/g)?.map(Number) ?? [];
@@ -414,6 +414,17 @@ function parseSalaryRange(job: Job) {
   return { min: 0, max: 0 };
 }
 
+function matchesExperienceRange(years: number[], filter: string) {
+  return years.some((year) => {
+    if (filter === "exp-0-1") return year < 1;
+    if (filter === "exp-1-2") return year >= 1 && year < 2;
+    if (filter === "exp-2-4") return year >= 2 && year < 4;
+    if (filter === "exp-4-6") return year >= 4 && year < 6;
+    if (filter === "exp-6") return year >= 6;
+    return false;
+  });
+}
+
 function getPageNumbers(currentPage: number, totalPages: number) {
   const delta = 2;
   const range = [];
@@ -449,9 +460,12 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const companyFilter = params.get("company")?.trim() ?? "";
   const jobCategoryFilter = params.get("jobCategory")?.trim() ?? "";
   const expertiseFilter = params.get("expertise")?.trim() ?? "";
-  const [keyword, setKeyword] = useState(params.get("keyword") ?? params.get("position") ?? "");
-  const [location, setLocation] = useState(params.get("location") ?? "Tất cả địa điểm");
-  const [activeCategory, setActiveCategory] = useState(params.get("category") ?? "all");
+  const queryKeyword = params.get("keyword") ?? params.get("position") ?? "";
+  const queryLocation = params.get("location") ?? ALL_LOCATIONS;
+  const queryCategory = params.get("category") ?? "all";
+  const [keyword, setKeyword] = useState(queryKeyword);
+  const [location, setLocation] = useState(queryLocation);
+  const [activeCategory, setActiveCategory] = useState(queryCategory);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [salaryFilters, setSalaryFilters] = useState<string[]>([]);
   const [expFilters, setExpFilters] = useState<string[]>([]);
@@ -471,6 +485,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const [page, setPage] = useState(1);
   const pageSize = 7;
   const lastLoggedKeywordRef = useRef<string>("");
+
+  useEffect(() => {
+    setKeyword(queryKeyword);
+    setLocation(queryLocation);
+    setActiveCategory(queryCategory);
+    setPage(1);
+  }, [queryCategory, queryKeyword, queryLocation]);
 
   const logKeyword = async (term: string, count: number) => {
     const normalizedTerm = term.trim();
@@ -501,18 +522,32 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     }
   };
 
-  const { data: apiJobsData } = useQuery({
+  const {
+    data: apiJobsData,
+    isError: isJobsError,
+    isPending: isJobsPending,
+    refetch: refetchJobs,
+  } = useQuery({
     queryKey: ["public-jobs"],
     queryFn: getPublicJobs,
+    staleTime: 60_000,
   });
 
   const jobs = useMemo(() => {
-    if (!apiJobsData) return staticJobs;
+    if (!apiJobsData) return [];
 
     const mapped: Job[] = apiJobsData.map((job) => {
+      const jobLocations = job.jobPostLocations ?? [];
+      const workingModels = Array.from(
+        new Set(
+          jobLocations
+            .map((item) => item.jobLocation.workingModel?.toLowerCase())
+            .filter((model): model is string => Boolean(model)),
+        ),
+      );
+      const primaryWorkingModel = workingModels[0];
       const isRemote =
-        job.employmentType?.name.toLowerCase().includes("remote") ||
-        job.title.toLowerCase().includes("remote");
+        primaryWorkingModel === "remote" || job.title.toLowerCase().includes("remote");
       const isHighSalary =
         (job.salaryMin && job.salaryMin >= 30000000) ||
         (job.salaryMax && job.salaryMax >= 30000000);
@@ -586,23 +621,42 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         company: job.company?.name || "UpNext Partner",
         logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
         logoColor: "#10b981",
-        verified: true,
+        verified: job.company?.verificationStatus === "VERIFIED",
         salary:
           job.salaryIsVisible && job.salaryMin && job.salaryMax
             ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu/tháng`
             : "Thỏa thuận",
-        location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
-        mode: job.employmentType?.name || "Full-time",
+        location: jobLocations[0]?.jobLocation?.city || "Việt Nam",
+        mode:
+          primaryWorkingModel === "onsite"
+            ? "On-site"
+            : primaryWorkingModel === "hybrid"
+              ? "Hybrid"
+              : primaryWorkingModel === "remote"
+                ? "Remote"
+                : job.employmentType?.name || "Full-time",
         level: job.experienceLevel?.name || "Middle",
         type: job.employmentType?.name || "Full-time",
         posted: job.publishedAt ? formatRelativeTime(job.publishedAt, locale as any) : "Mới đăng",
-        applicants: 12,
-        tags:
-          job.jobPostSkills && job.jobPostSkills.length > 0
-            ? job.jobPostSkills.map((s) => s.skill.name)
-            : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
-                Boolean,
-              ) as string[]),
+        skills: Array.from(
+          new Set(
+            (job.jobPostSkills ?? [])
+              .map((item) => item.skill?.name)
+              .filter((skill): skill is string => Boolean(skill)),
+          ),
+        ),
+        tags: Array.from(
+          new Set(
+            [
+              ...(job.jobPostSkills ?? []).map((item) => item.skill?.name),
+              job.jobCategory?.name,
+              job.experienceLevel?.name,
+            ].filter((tag): tag is string => Boolean(tag)),
+          ),
+        ).slice(0, 5),
+        experienceYears: (job.jobPostSkills ?? [])
+          .map((item) => item.minYearsExperience)
+          .filter((years): years is number => typeof years === "number"),
         description: job.description || "",
         categories,
         categoryName: job.jobCategory?.name,
@@ -625,7 +679,15 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         set.add(j.location);
       }
     });
-    return ["Tất cả địa điểm", ...Array.from(set)];
+    return [ALL_LOCATIONS, ...Array.from(set)];
+  }, [jobs]);
+
+  const techOptionsList = useMemo(() => {
+    const skills = Array.from(new Set(jobs.flatMap((job) => job.skills ?? []))).toSorted((a, b) =>
+      a.localeCompare(b, "vi"),
+    );
+
+    return skills.length > 0 ? skills : fallbackTechOptions;
   }, [jobs]);
 
   const filterGroupsList = useMemo(() => {
@@ -703,8 +765,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
           );
 
         const matchesLocation =
-          location === "Tất cả địa điểm" ||
-          job.location.toLowerCase().includes(location.toLowerCase());
+          location === ALL_LOCATIONS || job.location.toLowerCase().includes(location.toLowerCase());
 
         const matchesCategory = activeCategory === "all" || job.categories.includes(activeCategory);
 
@@ -764,43 +825,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
 
         const matchesExperience =
           expFilters.length === 0 ||
-          expFilters.some((filter) => {
-            const lvl = job.level.toLowerCase();
-            if (filter === "exp-0-1") {
-              return (
-                lvl.includes("fresher") || lvl.includes("intern") || lvl.includes("dưới 1 năm")
-              );
-            }
-            if (filter === "exp-1-2") {
-              return lvl.includes("junior") || lvl.includes("1 - 2 năm") || lvl.includes("1-2");
-            }
-            if (filter === "exp-2-4") {
-              return (
-                lvl.includes("middle") ||
-                lvl.includes("mid") ||
-                lvl.includes("2 - 4 năm") ||
-                lvl.includes("2-4")
-              );
-            }
-            if (filter === "exp-4-6") {
-              return lvl.includes("senior") || lvl.includes("4 - 6 năm") || lvl.includes("4-6");
-            }
-            if (filter === "exp-6") {
-              return (
-                lvl.includes("lead") ||
-                lvl.includes("manager") ||
-                lvl.includes("trên 6 năm") ||
-                lvl.includes("6+")
-              );
-            }
-            return false;
-          });
+          expFilters.some((filter) => matchesExperienceRange(job.experienceYears ?? [], filter));
 
         const matchesTech =
           techFilters.length === 0 ||
           techFilters.some(
             (tech) =>
-              job.tags.some((tag) => tag.toLowerCase() === tech.toLowerCase()) ||
+              job.skills?.some((skill) => skill.toLowerCase() === tech.toLowerCase()) ||
               job.title.toLowerCase().includes(tech.toLowerCase()),
           );
 
@@ -854,18 +885,17 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   ]);
 
   useEffect(() => {
-    setKeyword(params.get("keyword") ?? params.get("position") ?? "");
-    setLocation(params.get("location") ?? "Tất cả địa điểm");
-    setActiveCategory(params.get("category") ?? "all");
+    setKeyword(queryKeyword);
+    setLocation(queryLocation);
+    setActiveCategory(queryCategory);
     setPage(1);
-  }, [params]);
+  }, [queryCategory, queryKeyword, queryLocation]);
 
   useEffect(() => {
-    const term = params.get("keyword") ?? params.get("position") ?? "";
-    if (term.trim().length >= 2) {
-      logKeyword(term, filteredJobs.length);
+    if (queryKeyword.trim().length >= 2) {
+      logKeyword(queryKeyword, filteredJobs.length);
     }
-  }, [params, filteredJobs.length]);
+  }, [filteredJobs.length, queryKeyword]);
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -905,47 +935,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   }, [jobs]);
 
   const experienceOptionsList = useMemo(() => {
-    return experienceOptions.map((opt) => {
-      let count = 0;
-      const val = opt.value;
-      if (val === "exp-0-1") {
-        count = jobs.filter((j) => {
-          const lvl = j.level.toLowerCase();
-          return lvl.includes("fresher") || lvl.includes("intern") || lvl.includes("dưới 1 năm");
-        }).length;
-      } else if (val === "exp-1-2") {
-        count = jobs.filter((j) => {
-          const lvl = j.level.toLowerCase();
-          return lvl.includes("junior") || lvl.includes("1 - 2 năm") || lvl.includes("1-2");
-        }).length;
-      } else if (val === "exp-2-4") {
-        count = jobs.filter((j) => {
-          const lvl = j.level.toLowerCase();
-          return (
-            lvl.includes("middle") ||
-            lvl.includes("mid") ||
-            lvl.includes("2 - 4 năm") ||
-            lvl.includes("2-4")
-          );
-        }).length;
-      } else if (val === "exp-4-6") {
-        count = jobs.filter((j) => {
-          const lvl = j.level.toLowerCase();
-          return lvl.includes("senior") || lvl.includes("4 - 6 năm") || lvl.includes("4-6");
-        }).length;
-      } else if (val === "exp-6") {
-        count = jobs.filter((j) => {
-          const lvl = j.level.toLowerCase();
-          return (
-            lvl.includes("lead") ||
-            lvl.includes("manager") ||
-            lvl.includes("trên 6 năm") ||
-            lvl.includes("6+")
-          );
-        }).length;
-      }
-      return { ...opt, count };
-    });
+    return experienceOptions
+      .map((option) => ({
+        ...option,
+        count: jobs.filter((job) => matchesExperienceRange(job.experienceYears ?? [], option.value))
+          .length,
+      }))
+      .filter((option) => option.count > 0);
   }, [jobs]);
 
   const categories = useMemo(() => {
@@ -996,11 +992,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     companyFilter ? `Công ty: ${companyFilter}` : "",
     jobCategoryFilter ? `Danh mục: ${jobCategoryFilter}` : "",
     expertiseFilter ? `Chuyên môn: ${expertiseFilter}` : "",
-    location !== "Tất cả địa điểm" ? location : "",
+    location !== ALL_LOCATIONS ? location : "",
     activeCategory !== "all"
       ? (categories.find((category) => category.key === activeCategory)?.label ?? "")
       : "",
     ...activeFilters.map((filter) => filterLabelByValue.get(filter) ?? filter),
+    ...salaryFilters.map((filter) => salaryLabelByValue.get(filter) ?? filter),
+    ...expFilters.map((filter) => experienceLabelByValue.get(filter) ?? filter),
     ...techFilters,
   ].filter(Boolean);
 
@@ -1018,15 +1016,25 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     );
   }
 
+  function navigateToSearch(nextKeyword = keyword, nextLocation = location) {
+    const query = new URLSearchParams();
+    const normalizedKeyword = nextKeyword.trim();
+
+    if (normalizedKeyword) query.set("keyword", normalizedKeyword);
+    if (nextLocation !== ALL_LOCATIONS) query.set("location", nextLocation);
+
+    navigate(`/jobs${query.size ? `?${query.toString()}` : ""}`);
+  }
+
   function runSearch(event?: React.FormEvent<HTMLFormElement>) {
     event?.preventDefault();
     setPage(1);
-    logKeyword(keyword, filteredJobs.length);
+    navigateToSearch();
   }
 
   function resetFilters() {
     setKeyword("");
-    setLocation("Tất cả địa điểm");
+    setLocation(ALL_LOCATIONS);
     setActiveCategory("all");
     setActiveFilters([]);
     setSalaryFilters([]);
@@ -1066,7 +1074,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
             >
               <div className="flex w-full flex-1 items-center gap-2.5 px-3">
                 <MagnifyingGlass size={20} className="flex-shrink-0 text-slate-400" />
+                <label className="sr-only" htmlFor="jobs-search-keyword">
+                  Từ khóa tìm việc
+                </label>
                 <input
+                  id="jobs-search-keyword"
                   type="text"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
@@ -1076,7 +1088,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
               </div>
               <div className="hidden h-8 w-px bg-slate-200 md:block"></div>
               <div className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 md:w-[280px] md:rounded-none md:border-none md:bg-transparent">
+                <label className="sr-only" htmlFor="jobs-search-location">
+                  Địa điểm làm việc
+                </label>
                 <select
+                  id="jobs-search-location"
                   value={location}
                   onChange={(e) => {
                     setLocation(e.target.value);
@@ -1120,6 +1136,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   onClick={() => {
                     setKeyword(tech);
                     setPage(1);
+                    navigateToSearch(tech);
                   }}
                   className="cursor-pointer rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 transition hover:border-emerald-500 hover:bg-emerald-50/20 hover:text-emerald-600"
                 >
@@ -1138,11 +1155,12 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
               <button
                 key={category.key}
                 type="button"
+                disabled={category.count === 0}
                 className={`flex cursor-pointer items-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-semibold whitespace-nowrap transition ${
                   activeCategory === category.key
                     ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
                     : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                }`}
+                } disabled:cursor-not-allowed disabled:opacity-45`}
                 onClick={() => {
                   setActiveCategory(category.key);
                   setPage(1);
@@ -1235,7 +1253,37 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
               )}
 
               {/* Job Cards */}
-              {shownJobs.length > 0 ? (
+              {isJobsPending ? (
+                <div
+                  className="flex flex-col gap-4"
+                  aria-busy="true"
+                  aria-label="Đang tải danh sách việc làm"
+                >
+                  {Array.from({ length: 4 }, (_, index) => (
+                    <div
+                      key={index}
+                      className="h-44 animate-pulse rounded-2xl border border-slate-200 bg-white"
+                    />
+                  ))}
+                </div>
+              ) : isJobsError ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-rose-100 bg-white p-10 text-center">
+                  <h3 className="mb-1 text-base font-bold text-slate-800">
+                    Không thể tải danh sách việc làm
+                  </h3>
+                  <p className="mb-4 max-w-sm text-xs text-slate-500">
+                    Kết nối dữ liệu đang gặp sự cố. Vui lòng thử lại để xem các tin tuyển dụng mới
+                    nhất.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => refetchJobs()}
+                    className="cursor-pointer rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700"
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              ) : shownJobs.length > 0 ? (
                 <div className="flex flex-col gap-4">
                   {shownJobs.map((job) => (
                     <div
@@ -1244,9 +1292,14 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                     >
                       <div className="flex flex-col gap-5 sm:flex-row">
                         {/* Logo */}
-                        <div onClick={() => navigate(`/jobs/${job.id}`)} className="cursor-pointer">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/jobs/${job.id}`)}
+                          className="cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                          aria-label={`Xem chi tiết ${job.title}`}
+                        >
                           <LogoMark src={job.logo} name={job.company} color={job.logoColor} />
-                        </div>
+                        </button>
 
                         {/* Body */}
                         <div className="flex flex-1 flex-col gap-1">
@@ -1258,30 +1311,35 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                               <CheckCircle size={14} className="text-emerald-500" weight="fill" />
                             )}
                           </div>
-                          <h3
-                            onClick={() => navigate(`/jobs/${job.id}`)}
-                            className="line-clamp-1 cursor-pointer text-base font-bold text-slate-900 transition group-hover:text-emerald-600"
-                          >
-                            {job.title}
-                            {job.urgent && (
-                              <span className="ml-2 inline-flex items-center rounded border border-red-100 bg-red-50 px-1.5 py-0.5 align-middle text-[10px] font-bold text-red-500">
-                                Tuyển gấp
-                              </span>
-                            )}
-                            {job.featured && (
-                              <span className="ml-2 inline-flex items-center rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 align-middle text-[10px] font-bold text-amber-600">
-                                Nổi bật
-                              </span>
-                            )}
+                          <h3 className="line-clamp-1 text-base font-bold text-slate-900">
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/jobs/${job.id}`)}
+                              className="cursor-pointer text-left transition group-hover:text-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                            >
+                              {job.title}
+                              {job.urgent && (
+                                <span className="ml-2 inline-flex items-center rounded border border-red-100 bg-red-50 px-1.5 py-0.5 align-middle text-[10px] font-bold text-red-500">
+                                  Tuyển gấp
+                                </span>
+                              )}
+                              {job.featured && (
+                                <span className="ml-2 inline-flex items-center rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 align-middle text-[10px] font-bold text-amber-600">
+                                  Nổi bật
+                                </span>
+                              )}
+                            </button>
                           </h3>
                           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500">
                             <span className="flex items-center gap-1">
                               <MapPin size={14} className="mr-1 inline-block" /> {job.location}
                             </span>
-                            <span className="flex items-center gap-1">
-                              <Users size={14} className="mr-1 inline-block" /> {job.applicants} ứng
-                              viên
-                            </span>
+                            {job.applicants ? (
+                              <span className="flex items-center gap-1">
+                                <Users size={14} className="mr-1 inline-block" /> {job.applicants}{" "}
+                                ứng viên
+                              </span>
+                            ) : null}
                             <span className="flex items-center gap-1">
                               <Clock size={14} className="mr-1 inline-block" /> {job.posted}
                             </span>
@@ -1476,6 +1534,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                         type="button"
                         onClick={() => setShowFilters(false)}
                         className="cursor-pointer text-slate-400 hover:text-slate-600 lg:hidden"
+                        aria-label="Đóng bộ lọc"
                       >
                         <X size={20} />
                       </button>
@@ -1483,90 +1542,57 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   </div>
                 </div>
 
-                {/* Keyword Filter */}
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-800">Từ khóa</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={keyword}
-                      onChange={(e) => setKeyword(e.target.value)}
-                      placeholder="Nhập vị trí, kỹ năng, công ty..."
-                      className="w-full rounded-lg border border-slate-200 py-2 pr-3 pl-9 text-sm text-slate-700 transition outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                    />
-                    <MagnifyingGlass
-                      size={16}
-                      className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Location Filter */}
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-800">
-                    Địa điểm
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={location}
-                      onChange={(e) => {
-                        setLocation(e.target.value);
-                        setPage(1);
-                      }}
-                      className="w-full cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                    >
-                      {locationsList.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
+                {/* The API only exposes this filter when a job carries an explicit year requirement. */}
+                {experienceOptionsList.length > 0 && (
+                  <fieldset>
+                    <legend className="mb-3 block text-sm font-semibold text-slate-800">
+                      Kinh nghiệm
+                    </legend>
+                    <div className="flex flex-col gap-2.5">
+                      {experienceOptionsList.map((item) => (
+                        <label
+                          key={item.value}
+                          className={`group flex items-center gap-2.5 ${
+                            item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            disabled={item.count === 0}
+                            checked={expFilters.includes(item.value)}
+                            onChange={() => toggleIn(setExpFilters, item.value)}
+                            className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
+                          />
+                          <span className="flex flex-1 justify-between text-sm text-slate-600 transition group-hover:text-slate-900">
+                            <span>{item.label}</span>
+                            <span className="text-xs font-medium text-slate-400">
+                              ({item.count})
+                            </span>
+                          </span>
+                        </label>
                       ))}
-                    </select>
-                    <CaretDown
-                      size={14}
-                      className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-slate-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Experience Filter */}
-                <div>
-                  <label className="mb-3 block text-sm font-semibold text-slate-800">
-                    Kinh nghiệm
-                  </label>
-                  <div className="flex flex-col gap-2.5">
-                    {experienceOptionsList.map((item) => (
-                      <label
-                        key={item.value}
-                        className="group flex cursor-pointer items-center gap-2.5"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={expFilters.includes(item.value)}
-                          onChange={() => toggleIn(setExpFilters, item.value)}
-                          className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
-                        />
-                        <span className="flex flex-1 justify-between text-sm text-slate-600 transition group-hover:text-slate-900">
-                          <span>{item.label}</span>
-                          <span className="text-xs font-medium text-slate-400">({item.count})</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  </fieldset>
+                )}
 
                 {/* Rank Filter */}
-                <div>
-                  <label className="mb-3 block text-sm font-semibold text-slate-800">Cấp bậc</label>
+                <fieldset>
+                  <legend className="mb-3 block text-sm font-semibold text-slate-800">
+                    Cấp bậc
+                  </legend>
                   <div className="flex flex-col gap-2.5">
                     {filterGroupsList
                       .find((g) => g.title === "Cấp bậc")
                       ?.items.map((item) => (
                         <label
                           key={item.value}
-                          className="group flex cursor-pointer items-center gap-2.5"
+                          className={`group flex items-center gap-2.5 ${
+                            item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                          }`}
                         >
                           <input
                             type="checkbox"
+                            disabled={item.count === 0}
                             checked={activeFilters.includes(item.value)}
                             onChange={() => toggleFilter(item.value)}
                             className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
@@ -1580,23 +1606,26 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                         </label>
                       ))}
                   </div>
-                </div>
+                </fieldset>
 
                 {/* Work Mode Filter */}
-                <div>
-                  <label className="mb-3 block text-sm font-semibold text-slate-800">
+                <fieldset>
+                  <legend className="mb-3 block text-sm font-semibold text-slate-800">
                     Hình thức làm việc
-                  </label>
+                  </legend>
                   <div className="flex flex-col gap-2.5">
                     {filterGroupsList
                       .find((g) => g.title === "Hình thức làm việc")
                       ?.items.map((item) => (
                         <label
                           key={item.value}
-                          className="group flex cursor-pointer items-center gap-2.5"
+                          className={`group flex items-center gap-2.5 ${
+                            item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                          }`}
                         >
                           <input
                             type="checkbox"
+                            disabled={item.count === 0}
                             checked={activeFilters.includes(item.value)}
                             onChange={() => toggleFilter(item.value)}
                             className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
@@ -1610,21 +1639,24 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                         </label>
                       ))}
                   </div>
-                </div>
+                </fieldset>
 
                 {/* Salary Filter */}
-                <div>
-                  <label className="mb-3 block text-sm font-semibold text-slate-800">
+                <fieldset>
+                  <legend className="mb-3 block text-sm font-semibold text-slate-800">
                     Mức lương
-                  </label>
+                  </legend>
                   <div className="mb-3 flex flex-col gap-2.5">
                     {salaryRangesList.map((item) => (
                       <label
                         key={item.value}
-                        className="group flex cursor-pointer items-center gap-2.5"
+                        className={`group flex items-center gap-2.5 ${
+                          item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                        }`}
                       >
                         <input
                           type="checkbox"
+                          disabled={item.count === 0}
                           checked={salaryFilters.includes(item.value)}
                           onChange={() => toggleIn(setSalaryFilters, item.value)}
                           className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
@@ -1636,15 +1668,19 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                       </label>
                     ))}
                   </div>
-                </div>
+                </fieldset>
 
                 {/* Skills Filter */}
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-800">
+                  <p className="mb-2 block text-sm font-semibold text-slate-800">
                     Công nghệ / Kỹ năng
-                  </label>
+                  </p>
                   <div className="relative mb-2">
+                    <label className="sr-only" htmlFor="jobs-tech-filter">
+                      Tìm công nghệ hoặc kỹ năng
+                    </label>
                     <input
+                      id="jobs-tech-filter"
                       type="text"
                       placeholder="Tìm công nghệ..."
                       value={techQuery}
@@ -1657,7 +1693,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                     />
                   </div>
                   <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto pr-1">
-                    {techOptions
+                    {techOptionsList
                       .filter((tech) => tech.toLowerCase().includes(techQuery.toLowerCase()))
                       .map((tech) => {
                         const isChecked = techFilters.includes(tech);

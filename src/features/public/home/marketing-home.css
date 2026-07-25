@@ -1111,7 +1111,7 @@
   margin: 22px 0 20px;
   color: #121722;
   font-size: 56px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.12;
 }
@@ -2018,10 +2018,11 @@ button.marketing-home-control {
 .marketing-home-urgent-head h2 {
   margin: 14px 0 0;
   color: #111827;
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  line-height: 1.12;
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .marketing-home-urgent-head p {
@@ -2842,9 +2843,11 @@ button.marketing-home-control {
 .marketing-home-jobs-head h2 {
   margin: 0;
   color: #111827;
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .marketing-home-jobs-head p {
@@ -2876,6 +2879,7 @@ button.marketing-home-control {
 
 /* --- Carousel: a sliding track of full-width page slides. --- */
 .marketing-home-jobs-viewport {
+  margin-top: 24px;
   overflow: hidden;
   margin-top: 24px;
 }
@@ -2912,6 +2916,7 @@ button.marketing-home-control {
   position: relative;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   padding: 20px;
   border: 1px solid #e6eaf0;
   border-radius: 18px;
@@ -3182,7 +3187,7 @@ button.marketing-home-control {
   background: transparent;
   color: #111827;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
   text-align: left;
   cursor: pointer;
@@ -3273,6 +3278,20 @@ button.marketing-home-control {
   color: #94a3b8;
   font-size: 12px;
   font-weight: 600;
+}
+
+.featured-job-interest {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #0b7f5f;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.featured-job-interest svg {
+  color: #10a778;
 }
 
 .featured-job-apply {
@@ -3438,9 +3457,10 @@ button.marketing-home-control {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid #e6eaf0;
+  border: 1px solid rgba(148, 163, 184, 0.38);
   border-radius: 18px;
   background: #0f172a;
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
 }
 
 .featured-company-featured-cover {
@@ -3457,6 +3477,7 @@ button.marketing-home-control {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
 }
 
@@ -3483,6 +3504,7 @@ button.marketing-home-control {
   height: 76px;
   margin: -42px 0 0 22px;
   padding: 0;
+  overflow: hidden;
   background: #ffffff;
   border: 1px solid #eef2f7;
   border-radius: 18px;
@@ -3493,6 +3515,7 @@ button.marketing-home-control {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  border-radius: inherit;
 }
 
 .featured-company-featured-logo .featured-company-logo-mono {
@@ -3512,7 +3535,7 @@ button.marketing-home-control {
   margin: 6px 0 0;
   color: #ffffff;
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .featured-company-featured-tags {
@@ -3614,16 +3637,26 @@ button.marketing-home-control {
 
 /* Small company card. */
 .featured-company-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 20px;
-  border: 1px solid #e6eaf0;
+  overflow: hidden;
+  /* A low-saturation mint edge gives the cards definition without competing
+     with the stronger UpNext green reserved for actions and selected states. */
+  border: 1px solid #8bd9ba;
   border-radius: 16px;
-  background: #ffffff;
-  transition:
-    border-color 220ms ease,
-    background 220ms ease;
+  background:
+    linear-gradient(135deg, rgba(232, 251, 242, 0.95) 0%, rgba(255, 255, 255, 0) 48%), #ffffff;
+  box-shadow:
+    0 14px 28px rgba(15, 23, 42, 0.085),
+    0 3px 8px rgba(10, 165, 111, 0.1);
+  transition: border-color 180ms ease;
+}
+
+.featured-company-card::before {
+  display: none;
 }
 
 .featured-company-card-main {
@@ -3637,6 +3670,7 @@ button.marketing-home-control {
   padding: 0;
   text-align: left;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .featured-company-logo {
@@ -3646,15 +3680,21 @@ button.marketing-home-control {
   height: 54px;
   flex: 0 0 auto;
   padding: 0;
-  border: 1px solid #eef2f7;
+  overflow: hidden;
+  border: 1px solid #e1f1ea;
   border-radius: 14px;
   background: #ffffff;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.065);
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .featured-company-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  border-radius: inherit;
 }
 
 .featured-company-logo-mono {
@@ -3715,10 +3755,11 @@ button.marketing-home-control {
   font-size: 12.5px;
   font-weight: 700;
   white-space: nowrap;
-  border: 1px solid #cdeadd;
-  border-radius: 9px;
+  border: 1px solid #c8e8db;
+  border-radius: 10px;
   background: #ffffff;
   cursor: pointer;
+  touch-action: manipulation;
   transition:
     color 200ms ease,
     border-color 200ms ease,
@@ -3729,6 +3770,14 @@ button.marketing-home-control {
   color: #ffffff;
   border-color: transparent;
   background: linear-gradient(100deg, #098f63, #10b981);
+}
+
+.featured-company-card-main:focus-visible,
+.featured-company-follow:focus-visible,
+.featured-company-featured-view:focus-visible,
+.featured-company-featured-follow:focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.34);
+  outline-offset: 3px;
 }
 
 .marketing-home-co-dots {
@@ -3799,9 +3848,11 @@ button.marketing-home-control {
 .jm-head h2 {
   margin: 0;
   color: #111827;
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .jm-head h2 span {
@@ -4125,7 +4176,7 @@ button.marketing-home-control {
   margin: 0;
   color: #111827;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .jm-chart-head h3 svg {
@@ -4718,8 +4769,11 @@ button.marketing-home-control {
   }
 
   .featured-company-card:hover {
-    border-color: #cdeadd;
-    background: #fbfdfc;
+    border-color: #07885f;
+  }
+
+  .featured-company-card:hover .featured-company-logo {
+    border-color: #8bd9ba;
   }
 
   .featured-company-follow:not(.is-following):hover {
@@ -4885,10 +4939,6 @@ button.marketing-home-control {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .marketing-home-jobs-head h2 {
-    font-size: 30px;
-  }
-
   /* Tablet: hide the big featured card; show a limited set of small cards in
      3 columns. "Xem tất cả" / slider dots cover the rest. */
   .marketing-home-co-bento {
@@ -4947,10 +4997,6 @@ button.marketing-home-control {
 
   .jm-charts {
     grid-template-columns: 1fr;
-  }
-
-  .jm-head h2 {
-    font-size: 26px;
   }
 
   .marketing-home-footer {
@@ -5173,10 +5219,6 @@ button.marketing-home-control {
     gap: 16px;
   }
 
-  .marketing-home-urgent-head h2 {
-    font-size: 30px;
-  }
-
   .marketing-home-urgent-head p {
     font-size: 15px;
     line-height: 1.6;
@@ -5237,10 +5279,6 @@ button.marketing-home-control {
     gap: 16px;
   }
 
-  .marketing-home-jobs-head h2 {
-    font-size: 26px;
-  }
-
   .marketing-home-jobs-grid {
     grid-template-columns: 1fr;
   }
@@ -5261,12 +5299,16 @@ button.marketing-home-control {
     gap: 14px;
   }
 
-  /* Mobile: bring back the featured card as the single hero (small cards are
-     dropped via JS count=0); slider dots page between featured companies. */
+  /* Mobile: the spotlight is the single hero. The display rule also prevents
+     the desktop SSR count from flashing before the responsive state hydrates. */
   .featured-company-featured {
     display: flex;
     grid-column: 1;
     grid-row: auto;
+  }
+
+  .featured-company-card {
+    display: none;
   }
 
   .featured-company-featured-cover {
@@ -5277,7 +5319,6 @@ button.marketing-home-control {
     width: 64px;
     height: 64px;
     margin: -36px 0 0 18px;
-    padding: 8px;
   }
 
   .featured-company-featured-body {
@@ -5328,10 +5369,6 @@ button.marketing-home-control {
 
   .jm-chart-foot span {
     flex-basis: calc(50% - 7px);
-  }
-
-  .jm-head h2 {
-    font-size: 23px;
   }
 
   .jm-report-btn {
@@ -5419,13 +5456,21 @@ button.marketing-home-control {
 /* Reference-clean shared public footer */
 .marketing-home-footer {
   width: 100vw;
-  margin-top: 72px;
+  margin-top: 48px;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
   padding: 48px 0 24px;
   color: #1a1a1a;
+  font-family: var(--font-sans);
+  font-synthesis: none;
   border-top: 1px solid #e5e7eb;
   background: #ffffff;
+}
+
+.marketing-home-footer button,
+.marketing-home-footer input,
+.marketing-home-footer summary {
+  font-family: var(--font-sans);
 }
 
 .marketing-home-footer-main,
@@ -5495,8 +5540,10 @@ button.marketing-home-control {
   margin: 0 0 16px;
   color: #1a1a1a;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.4;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
 }
 
 .marketing-home-footer-link-column ul,
@@ -5806,9 +5853,10 @@ button.marketing-home-control {
   max-width: 860px;
   margin: 20px 0 16px;
   font-size: clamp(48px, 5.4vw, 76px);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.055em;
   line-height: 1.03;
+  text-wrap: balance;
 }
 
 .marketing-home-copy p {
@@ -6081,10 +6129,10 @@ button.marketing-home-control {
   max-width: 610px;
   margin: 15px 0 0;
   color: #103b35;
-  font-size: clamp(36px, 3.35vw, 54px);
-  font-weight: 800;
-  letter-spacing: -0.055em;
-  line-height: 1.02;
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   text-wrap: balance;
 }
 
@@ -6269,7 +6317,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #143b34;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.25;
   text-wrap: balance;
@@ -6469,8 +6517,8 @@ button.marketing-home-control {
 /* Three-card media carousel: direct adaptation of the supplied layout. */
 .marketing-home-insights {
   width: 100vw;
-  margin: 104px calc(50% - 50vw) 0;
-  padding: 80px 0 86px;
+  margin: 80px calc(50% - 50vw) 0;
+  padding: 64px 0;
   overflow: hidden;
   border: 0;
   background: #fdfefd;
@@ -6485,18 +6533,20 @@ button.marketing-home-control {
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  width: min(1400px, calc(100vw - 96px));
-  margin: 0 auto 56px;
+  /* The rail intentionally spans the viewport, but its context (title + CTA)
+     must stay aligned with every other homepage section. */
+  width: min(1280px, calc(100vw - 96px));
+  margin: 0 auto 46px;
 }
 
 .marketing-home-insights-head h2 {
   max-width: none;
   margin: 0;
   color: #0d3823;
-  font-size: 38px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  font-size: clamp(24px, 2vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   text-wrap: balance;
 }
 
@@ -6527,7 +6577,7 @@ button.marketing-home-control {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-behavior: smooth;
-  scroll-snap-type: none;
+  scroll-snap-type: x mandatory;
   scrollbar-width: none;
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
@@ -6558,6 +6608,7 @@ button.marketing-home-control {
 
 .marketing-home-insights-viewport.is-dragging {
   cursor: grabbing;
+  scroll-snap-type: none;
   user-select: none;
 }
 
@@ -6580,6 +6631,7 @@ button.marketing-home-control {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  scroll-snap-align: center;
   transform: scale(0.92);
   transform-origin: center top;
   opacity: 0.24;
@@ -6646,7 +6698,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #0d3823;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.015em;
   line-height: 1.42;
   text-wrap: balance;
@@ -6776,8 +6828,8 @@ button.marketing-home-control {
 
 @media (max-width: 760px) {
   .marketing-home-insights {
-    margin-top: 60px;
-    padding: 58px 0 62px;
+    margin-top: 52px;
+    padding: 50px 0 52px;
   }
 
   .marketing-home-insights-head,
@@ -6789,14 +6841,13 @@ button.marketing-home-control {
     align-items: flex-end;
     flex-direction: row;
     gap: 14px;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
   }
 
   .marketing-home-insights-head h2 {
     min-width: 0;
     flex: 1 1 0;
-    font-size: clamp(22px, 6.5vw, 26px);
-    white-space: nowrap;
+    white-space: normal;
   }
 
   .marketing-home-insights-all {
@@ -6836,6 +6887,12 @@ button.marketing-home-control {
     top: calc(min(54vw, 230px) / 2 - 20px);
     width: 40px;
     height: 40px;
+  }
+}
+
+@media (max-width: 760px) {
+  .marketing-home-footer {
+    margin-top: 44px;
   }
 }
 
