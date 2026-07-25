@@ -75,6 +75,7 @@ export function useCandidateSavedJobs() {
 
   return {
     error: mutation.error ?? savedJobsQuery.error,
+    isAuthenticated: Boolean(session),
     isPending: (jobPostId: string) =>
       mutation.isPending && mutation.variables?.jobPostId === jobPostId,
     isSessionResolved: session !== undefined,

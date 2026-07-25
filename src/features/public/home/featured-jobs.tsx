@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
+import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
 
 import { getPublicJobs, type PublicJob } from "./api";
@@ -54,6 +55,7 @@ type JobCard = {
 
 const PAGE_SIZE = 6;
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
 function formatApplicationDeadline(expiredAt: string | null | undefined) {
   if (!expiredAt) return "Không giới hạn thời gian nộp";
@@ -458,8 +460,15 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
   const copy = locale === "en" ? interestCopy.en : interestCopy.vi;
   const [index, setIndex] = useState(0);
   const [animate, setAnimate] = useState(false);
-  const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [paused, setPaused] = useState(false);
+  const {
+    error: savedJobsError,
+    isAuthenticated,
+    isPending: isSavedJobPending,
+    isSessionResolved: isSavedJobsSessionResolved,
+    savedJobIds,
+    toggleSaveJob,
+  } = useCandidateSavedJobs();
 
   const { data: apiJobsData } = useQuery({
     queryKey: ["public-jobs"],
@@ -534,10 +543,6 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
     }
   }
 
-  function toggleSaved(id: string) {
-    setSaved((current) => ({ ...current, [id]: !current[id] }));
-  }
-
   return (
     <section
       className="marketing-home-jobs"
@@ -556,6 +561,11 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
           Xem tất cả <ChevronRight size={16} />
         </button>
       </header>
+      {savedJobsError ? (
+        <p className="marketing-home-action-error" role="alert">
+          Không thể đồng bộ việc làm đã lưu. Vui lòng thử lại.
+        </p>
+      ) : null}
 
       <div className={`marketing-home-jobs-viewport${animate ? " is-animating" : ""}`}>
         <div
@@ -571,6 +581,9 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
             >
               <div className="marketing-home-jobs-grid">
                 {slideJobs.map((job) => {
+                  const saved = savedJobIds.includes(job.id);
+                  const canPersist = UUID_PATTERN.test(job.id);
+                  const saveUnavailable = isAuthenticated && !canPersist;
                   const maxTags = 3;
                   const maxChars = 22;
                   const shownTags: string[] = [];
@@ -597,15 +610,27 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
                         </span>
                         <button
                           type="button"
-                          className={`featured-job-save ml-auto${saved[job.id] ? " is-saved" : ""}`}
-                          aria-label={saved[job.id] ? "Bỏ lưu tin" : "Lưu tin"}
-                          aria-pressed={saved[job.id] ?? false}
+                          className={`featured-job-save ml-auto${saved ? " is-saved" : ""}`}
+                          aria-label={saved ? `Bỏ lưu tin ${job.title}` : `Lưu tin ${job.title}`}
+                          aria-pressed={saved}
+                          disabled={
+                            !isSavedJobsSessionResolved ||
+                            saveUnavailable ||
+                            isSavedJobPending(job.id)
+                          }
+                          title={
+                            saveUnavailable
+                              ? "Tin tuyển dụng này chưa đồng bộ với hệ thống lưu tin."
+                              : undefined
+                          }
                           onClick={(event) => {
                             event.stopPropagation();
-                            toggleSaved(job.id);
+                            if (!toggleSaveJob(job.id)) {
+                              navigate("/login?redirect=/");
+                            }
                           }}
                         >
-                          <Bookmark size={18} weight={saved[job.id] ? "fill" : "regular"} />
+                          <Bookmark size={18} weight={saved ? "fill" : "regular"} />
                         </button>
                       </div>
 
