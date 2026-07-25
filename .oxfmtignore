@@ -7,6 +7,8 @@ coverage
 playwright-report
 pnpm-lock.yaml
 test-results
+.playwright-cli
+output
 public/mockServiceWorker.js
 
 *.html

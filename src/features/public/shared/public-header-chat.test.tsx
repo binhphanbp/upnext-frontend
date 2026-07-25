@@ -5,6 +5,9 @@ import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next-intl", () => ({ useLocale: () => "vi" }));
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => ({ data: [], isError: false, isPending: false }),
+}));
 vi.mock("@/i18n/navigation", () => ({
   Link: ({
     children,

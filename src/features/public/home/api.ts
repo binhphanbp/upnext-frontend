@@ -43,6 +43,13 @@ export interface PublicJob {
       name: string;
     };
   }>;
+  jobPostSpecializations?: Array<{
+    specialization: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }>;
 }
 
 export interface PublicCompany {

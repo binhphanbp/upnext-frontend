@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
+import { removeVietnameseAccents } from "@/shared/utils/natural-search";
 
 type SearchBoxLabels = Readonly<{
   keywordPlaceholder: string;
@@ -68,11 +69,11 @@ export function SearchBox({
 
   const keywordMatches = useMemo(() => {
     const query = keyword.trim().toLowerCase();
-    const source = query
-      ? suggestions.filter((item) => item.toLowerCase().includes(query))
-      : suggestions;
-
-    return source.slice(0, 6);
+    if (!query) return suggestions.slice(0, 6);
+    const unaccented = removeVietnameseAccents(query);
+    return suggestions
+      .filter((item) => removeVietnameseAccents(item.toLowerCase()).includes(unaccented))
+      .slice(0, 6);
   }, [keyword, suggestions]);
 
   function submitSearch(nextKeyword = keyword) {
