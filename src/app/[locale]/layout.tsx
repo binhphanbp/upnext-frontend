@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { PwaServiceWorker } from "@/features/pwa/pwa-service-worker";
 import { routing } from "@/i18n/routing";
 
 import { lexend } from "../fonts";
@@ -16,6 +17,11 @@ type LocaleLayoutProps = Readonly<{
     locale: string;
   }>;
 }>;
+
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#0aa56f",
+};
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -33,6 +39,22 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("description"),
+    applicationName: "UpNext",
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: "UpNext",
+    },
+    icons: {
+      apple: [
+        {
+          url: "/pwa/apple-touch-icon.png",
+          sizes: "180x180",
+          type: "image/png",
+        },
+      ],
+    },
   };
 }
 
@@ -51,6 +73,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         <NextIntlClientProvider>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
+        <PwaServiceWorker locale={locale} />
       </body>
     </html>
   );

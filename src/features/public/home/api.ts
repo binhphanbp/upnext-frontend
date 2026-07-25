@@ -12,6 +12,8 @@ export interface PublicJob {
   salaryIsNegotiable: boolean;
   salaryIsVisible: boolean;
   vacanciesCount?: number | null;
+  /** Public aggregate supplied by the API; never derive or fabricate it in the client. */
+  viewCount?: number | null;
   publishedAt: string | null;
   expiredAt: string | null;
   createdAt: string;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useLocale } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import { getCandidateSession } from "@/features/candidate/session";
@@ -16,6 +17,7 @@ import {
   ChevronRight,
   Clock,
   Coins,
+  Eye,
   MapPin,
   Monitor,
   ShieldCheck,
@@ -45,6 +47,8 @@ type JobCard = {
   experience: string;
   tags: string[];
   deadline: string;
+  /** Public aggregate from the API. Null means UpNext has no verified count to disclose. */
+  viewCount: number | null;
   filters: FilterKey[];
 };
 
@@ -63,6 +67,23 @@ function formatApplicationDeadline(expiredAt: string | null | undefined) {
   const remainingDays = Math.max(1, Math.ceil(remainingTime / DAY_IN_MILLISECONDS));
   return `Còn ${remainingDays} ngày để nộp`;
 }
+
+function normalizeViewCount(viewCount: number | null | undefined) {
+  if (typeof viewCount !== "number" || !Number.isFinite(viewCount) || viewCount < 0) {
+    return null;
+  }
+
+  return Math.floor(viewCount);
+}
+
+function formatViewCount(viewCount: number, locale: string) {
+  return new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN").format(viewCount);
+}
+
+const interestCopy = {
+  vi: { views: "lượt xem" },
+  en: { views: "views" },
+} as const;
 
 const verifyPoints = [
   "Đã xác thực email tên miền công ty",
@@ -148,6 +169,7 @@ const curatedJobs: JobCard[] = [
     experience: "3 - 5 năm",
     tags: ["ReactJS", "NodeJS", "TypeScript", "PostgreSQL", "Docker", "AWS", "Redis", "GraphQL"],
     deadline: "Còn 18 ngày để nộp",
+    viewCount: null,
     filters: ["high-salary"],
   },
   {
@@ -164,6 +186,7 @@ const curatedJobs: JobCard[] = [
     experience: "2 - 4 năm",
     tags: ["Java", "Spring Boot"],
     deadline: "Còn 2 ngày để nộp",
+    viewCount: null,
     filters: ["newest"],
   },
   {
@@ -180,6 +203,7 @@ const curatedJobs: JobCard[] = [
     experience: "3 - 6 năm",
     tags: ["AWS", "Docker", "Kubernetes", "Terraform", "CI/CD", "Ansible"],
     deadline: "Còn 1 ngày để nộp",
+    viewCount: null,
     filters: ["high-salary"],
   },
   {
@@ -196,6 +220,7 @@ const curatedJobs: JobCard[] = [
     experience: "2 - 5 năm",
     tags: ["Python", "Spark", "Snowflake", "Airflow"],
     deadline: "Còn 5 ngày để nộp",
+    viewCount: null,
     filters: ["remote", "high-salary"],
   },
   {
@@ -212,6 +237,7 @@ const curatedJobs: JobCard[] = [
     experience: "1 - 3 năm",
     tags: ["Flutter", "Dart", "Firebase"],
     deadline: "Còn 6 ngày để nộp",
+    viewCount: null,
     filters: ["newest"],
   },
   {
@@ -228,6 +254,7 @@ const curatedJobs: JobCard[] = [
     experience: "2 - 4 năm",
     tags: ["Selenium", "Cypress", "Playwright", "API Testing", "JIRA"],
     deadline: "Còn 8 ngày để nộp",
+    viewCount: null,
     filters: ["newest"],
   },
 ];
@@ -367,6 +394,7 @@ function buildJobs(): JobCard[] {
       experience: expPool[i % expPool.length]!,
       tags: role.tags,
       deadline: `Còn ${((i * 3) % 29) + 1} ngày để nộp`,
+      viewCount: null,
       filters: Array.from(new Set(filters)),
     });
   }
@@ -420,11 +448,14 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
             Boolean,
           ) as string[]),
     deadline: formatApplicationDeadline(job.expiredAt),
+    viewCount: normalizeViewCount(job.viewCount),
     filters: Array.from(new Set(filters)),
   };
 }
 
 export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
+  const locale = useLocale();
+  const copy = locale === "en" ? interestCopy.en : interestCopy.vi;
   const [index, setIndex] = useState(0);
   const [animate, setAnimate] = useState(false);
   const [saved, setSaved] = useState<Record<string, boolean>>({});
@@ -624,10 +655,17 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
                       </div>
 
                       <footer className="featured-job-foot">
-                        <span className="featured-job-deadline">
-                          <Clock size={14} />
-                          {job.deadline}
-                        </span>
+                        {job.viewCount === null ? (
+                          <span className="featured-job-deadline">
+                            <Clock size={14} aria-hidden="true" />
+                            {job.deadline}
+                          </span>
+                        ) : (
+                          <span className="featured-job-interest">
+                            <Eye size={14} aria-hidden="true" />
+                            {formatViewCount(job.viewCount, locale)} {copy.views}
+                          </span>
+                        )}
                         <button
                           type="button"
                           className="featured-job-apply"
