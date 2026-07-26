@@ -2,6 +2,113 @@
 @import "sweetalert2/dist/sweetalert2.min.css";
 @import "../features/public/home/marketing-home.css";
 
+/* Sonner supplies the notification lifecycle, keyboard handling and touch
+   dismissal; these rules apply UpNext's visual tokens without taking over
+   its behavior. */
+.upnext-toast {
+  width: min(460px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 12px 12px 12px 14px;
+  color: #164e3a;
+  font-family: var(--font-sans);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+  border: 1px solid #bdebd9;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.18);
+}
+
+.upnext-toast [data-icon] {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.upnext-toast [data-content] {
+  min-width: 0;
+  flex: 1;
+}
+
+.upnext-toast [data-title] {
+  color: inherit;
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.upnext-toast [data-description] {
+  margin-top: 2px;
+  color: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.upnext-toast-success [data-icon] {
+  color: #0aa56f;
+}
+
+.upnext-toast-error {
+  color: #8b1e1e;
+  border-color: #fecaca;
+}
+
+.upnext-toast-error [data-icon] {
+  color: #dc2626;
+}
+
+.upnext-toast-action,
+.upnext-toast-dismiss {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 8px;
+  font: inherit;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.upnext-toast-action {
+  color: #087a5a;
+  font-weight: 800;
+}
+
+.upnext-toast-dismiss {
+  width: 36px;
+  padding: 0;
+  color: #64748b;
+}
+
+.upnext-toast-action:hover,
+.upnext-toast-dismiss:hover {
+  background: #eef7f3;
+}
+
+.upnext-toast-error .upnext-toast-action:hover,
+.upnext-toast-error .upnext-toast-dismiss:hover {
+  background: #fff1f2;
+}
+
+.upnext-toast-action:focus-visible,
+.upnext-toast-dismiss:focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.34);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .upnext-toast {
+    width: 100%;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

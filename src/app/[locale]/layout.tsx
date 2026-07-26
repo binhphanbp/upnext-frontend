@@ -71,7 +71,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
     <html lang={locale} suppressHydrationWarning>
       <body suppressHydrationWarning className={`${lexend.variable} ${lexend.className}`}>
         <NextIntlClientProvider>
-          <Providers>{children}</Providers>
+          <Providers locale={locale}>{children}</Providers>
         </NextIntlClientProvider>
         <PwaServiceWorker locale={locale} />
       </body>

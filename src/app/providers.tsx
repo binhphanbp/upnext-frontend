@@ -6,8 +6,10 @@ import { type ReactNode, useEffect } from "react";
 
 import { getQueryClient } from "@/shared/api/query-client";
 import { env } from "@/shared/lib/env";
+import { AppToaster } from "@/shared/ui/toast";
+import { TooltipProvider } from "@/shared/ui/tooltip";
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children, locale = "vi" }: { children: ReactNode; locale?: string }) {
   useEffect(() => {
     if (env.NEXT_PUBLIC_API_MOCKING !== "enabled") {
       return;
@@ -22,8 +24,11 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={getQueryClient()}>
-      {children}
+      <TooltipProvider delayDuration={450} skipDelayDuration={200}>
+        {children}
+      </TooltipProvider>
       <ReactQueryDevtools initialIsOpen={false} />
+      <AppToaster locale={locale} />
     </QueryClientProvider>
   );
 }

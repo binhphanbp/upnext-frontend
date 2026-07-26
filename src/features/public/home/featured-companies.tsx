@@ -1,13 +1,16 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import type { ReactElement } from "react";
 
 import { useCandidateCompanyFollows } from "@/features/candidate/company-follows";
+import { toast } from "@/shared/ui/toast";
+import { Tooltip, TooltipArrow, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 
 import { getPublicCompanies, getPublicCompanyDetail } from "./api";
-import type { HomeActionFeedback } from "./home-action-toast";
 import {
   ArrowRight,
   Briefcase,
@@ -20,7 +23,6 @@ import {
 
 type FeaturedCompaniesProps = {
   navigate: (path: string) => void;
-  onFeedback: (feedback: HomeActionFeedback) => void;
 };
 
 type Company = {
@@ -343,7 +345,38 @@ function useVisibleCount() {
   return count;
 }
 
-export function FeaturedCompanies({ navigate, onFeedback }: FeaturedCompaniesProps) {
+export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
+  const locale = useLocale();
+  const notificationCopy =
+    locale === "en"
+      ? {
+          followError: "Could not update followed companies. Please try again.",
+          following: "Following",
+          followedAgain: "Following again",
+          follow: "Follow",
+          undo: "Undo",
+          undoFollow: "Undo following",
+          unfollowed: "Unfollowed",
+        }
+      : {
+          followError: "Không thể cập nhật công ty đang theo dõi. Vui lòng thử lại.",
+          following: "Đã theo dõi",
+          followedAgain: "Đã theo dõi lại",
+          follow: "Theo dõi",
+          undo: "Hoàn tác",
+          undoFollow: "Hoàn tác theo dõi",
+          unfollowed: "Đã bỏ theo dõi",
+        };
+  const followTooltip =
+    locale === "en"
+      ? {
+          active: "You will be notified when this company posts a new job.",
+          inactive: "Follow to receive alerts when this company posts a new job.",
+        }
+      : {
+          active: "Bạn sẽ nhận thông báo khi công ty có việc làm mới.",
+          inactive: "Theo dõi để nhận thông báo khi công ty có việc làm mới.",
+        };
   const [pageIndex, setPageIndex] = useState(0);
   const visibleCount = useVisibleCount();
   const {
@@ -435,38 +468,40 @@ export function FeaturedCompanies({ navigate, onFeedback }: FeaturedCompaniesPro
   const cards = useMemo(() => page.companies.slice(0, visibleCount), [page, visibleCount]);
 
   function showFollowError() {
-    onFeedback({
-      id: `follow-company-error-${Date.now()}`,
-      message: "Không thể cập nhật công ty đang theo dõi. Vui lòng thử lại.",
-      tone: "error",
-    });
+    toast.error(notificationCopy.followError);
   }
 
   function followCompany(company: Company | FeaturedCompany) {
     const didStart = toggleFollowCompany(company.id, {
       onError: showFollowError,
       onSuccess: (isFollowing) => {
-        onFeedback({
-          actionLabel: "Hoàn tác",
-          id: `follow-company-${company.id}-${Date.now()}`,
-          message: isFollowing ? `Đã theo dõi ${company.name}` : `Đã bỏ theo dõi ${company.name}`,
-          onAction: () => {
-            const didUndoStart = setCompanyFollowing(company.id, !isFollowing, {
-              onError: showFollowError,
-              onSuccess: (restored) => {
-                onFeedback({
-                  id: `undo-follow-company-${company.id}-${Date.now()}`,
-                  message: restored
-                    ? `Đã theo dõi lại ${company.name}`
-                    : `Đã hoàn tác theo dõi ${company.name}`,
-                  tone: "success",
+        const toastId = `follow-company-${company.id}`;
+        toast.success(
+          isFollowing
+            ? `${notificationCopy.following} ${company.name}`
+            : `${notificationCopy.unfollowed} ${company.name}`,
+          {
+            action: {
+              label: notificationCopy.undo,
+              onClick: () => {
+                toast.dismiss(toastId);
+                const didUndoStart = setCompanyFollowing(company.id, !isFollowing, {
+                  onError: showFollowError,
+                  onSuccess: (restored) => {
+                    toast.success(
+                      restored
+                        ? `${notificationCopy.followedAgain} ${company.name}`
+                        : `${notificationCopy.undoFollow} ${company.name}`,
+                    );
+                  },
                 });
+                if (!didUndoStart) navigate("/login?redirect=/");
               },
-            });
-            if (!didUndoStart) navigate("/login?redirect=/");
+            },
+            duration: 8_000,
+            id: toastId,
           },
-          tone: "success",
-        });
+        );
       },
     });
 
@@ -525,6 +560,7 @@ export function FeaturedCompanies({ navigate, onFeedback }: FeaturedCompaniesPro
             onFollow={() => followCompany(featured)}
             followUnavailable={isFollowUnavailable(featured.id)}
             followLoading={!isCompanyFollowsSessionResolved || isCompanyFollowPending(featured.id)}
+            followTooltip={followTooltip}
             navigate={navigate}
           />
 
@@ -556,36 +592,40 @@ export function FeaturedCompanies({ navigate, onFeedback }: FeaturedCompaniesPro
                 {followUnavailable ? (
                   <span className="featured-company-follow-status">Chưa hỗ trợ theo dõi</span>
                 ) : (
-                  <button
-                    type="button"
-                    className={`featured-company-follow${following ? " is-following" : ""}`}
-                    aria-label={
-                      followLoading
-                        ? `Đang cập nhật theo dõi ${company.name}`
-                        : following
-                          ? `Bỏ theo dõi ${company.name}`
-                          : `Theo dõi ${company.name}`
-                    }
-                    aria-busy={followLoading || undefined}
-                    aria-pressed={following}
-                    disabled={followLoading}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      followCompany(company);
-                    }}
+                  <FollowTooltip
+                    content={following ? followTooltip.active : followTooltip.inactive}
                   >
-                    {followLoading ? (
-                      "Đang cập nhật…"
-                    ) : following ? (
-                      <>
-                        <Check size={14} /> Đang theo dõi
-                      </>
-                    ) : (
-                      <>
-                        <Plus size={14} aria-hidden="true" /> Theo dõi
-                      </>
-                    )}
-                  </button>
+                    <button
+                      type="button"
+                      className={`featured-company-follow${following ? " is-following" : ""}`}
+                      aria-label={
+                        followLoading
+                          ? `Đang cập nhật theo dõi ${company.name}`
+                          : following
+                            ? `Bỏ theo dõi ${company.name}`
+                            : `Theo dõi ${company.name}`
+                      }
+                      aria-busy={followLoading || undefined}
+                      aria-pressed={following}
+                      disabled={followLoading}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        followCompany(company);
+                      }}
+                    >
+                      {followLoading ? (
+                        "Đang cập nhật…"
+                      ) : following ? (
+                        <>
+                          <Check size={14} /> Đang theo dõi
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={14} aria-hidden="true" /> Theo dõi
+                        </>
+                      )}
+                    </button>
+                  </FollowTooltip>
                 )}
               </article>
             );
@@ -633,6 +673,7 @@ function FeaturedCard({
   onFollow,
   followUnavailable,
   followLoading,
+  followTooltip,
   navigate,
 }: {
   company: FeaturedCompany;
@@ -640,6 +681,7 @@ function FeaturedCard({
   onFollow: () => void;
   followUnavailable: boolean;
   followLoading: boolean;
+  followTooltip: { active: string; inactive: string };
   navigate: (path: string) => void;
 }) {
   return (
@@ -677,36 +719,57 @@ function FeaturedCard({
           {followUnavailable ? (
             <span className="featured-company-featured-follow-status">Chưa hỗ trợ theo dõi</span>
           ) : (
-            <button
-              type="button"
-              className={`featured-company-featured-follow${following ? " is-following" : ""}`}
-              aria-label={
-                followLoading
-                  ? `Đang cập nhật theo dõi ${company.name}`
-                  : following
-                    ? `Bỏ theo dõi ${company.name}`
-                    : `Theo dõi ${company.name}`
-              }
-              aria-busy={followLoading || undefined}
-              aria-pressed={following}
-              disabled={followLoading}
-              onClick={onFollow}
-            >
-              {followLoading ? (
-                "Đang cập nhật…"
-              ) : following ? (
-                <>
-                  <Check size={15} /> Đang theo dõi
-                </>
-              ) : (
-                <>
-                  <Plus size={15} /> Theo dõi
-                </>
-              )}
-            </button>
+            <FollowTooltip content={following ? followTooltip.active : followTooltip.inactive}>
+              <button
+                type="button"
+                className={`featured-company-featured-follow${following ? " is-following" : ""}`}
+                aria-label={
+                  followLoading
+                    ? `Đang cập nhật theo dõi ${company.name}`
+                    : following
+                      ? `Bỏ theo dõi ${company.name}`
+                      : `Theo dõi ${company.name}`
+                }
+                aria-busy={followLoading || undefined}
+                aria-pressed={following}
+                disabled={followLoading}
+                onClick={onFollow}
+              >
+                {followLoading ? (
+                  "Đang cập nhật…"
+                ) : following ? (
+                  <>
+                    <Check size={15} /> Đang theo dõi
+                  </>
+                ) : (
+                  <>
+                    <Plus size={15} /> Theo dõi
+                  </>
+                )}
+              </button>
+            </FollowTooltip>
           )}
         </div>
       </div>
     </article>
+  );
+}
+
+function FollowTooltip({ children, content }: { children: ReactElement; content: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent
+        align="center"
+        className="marketing-home-follow-tooltip"
+        collisionPadding={16}
+        hideWhenDetached
+        side="top"
+        sideOffset={10}
+      >
+        {content}
+        <TooltipArrow className="marketing-home-follow-tooltip-arrow" height={6} width={12} />
+      </TooltipContent>
+    </Tooltip>
   );
 }
