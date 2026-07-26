@@ -42,7 +42,12 @@ type FeaturedCompany = Company & {
 
 const logo = (file: string) => `/assets/marketing/home/companies/${file}`;
 const cover = (file: string) => `/assets/marketing/home/covers/${file}`;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+// Company IDs are assigned by the API. They have a UUID-like hexadecimal
+// shape, but the service does not guarantee RFC UUID version/variant bits.
+// Keep the shape check so marketing fallback IDs (for example, "fpt") are
+// never sent to the follow endpoint.
+const PERSISTABLE_COMPANY_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
 type CompanyPage = {
   featured: FeaturedCompany;
@@ -344,7 +349,6 @@ export function FeaturedCompanies({ navigate, onFeedback }: FeaturedCompaniesPro
   const {
     error: companyFollowsError,
     followedCompanyIds,
-    isAuthenticated,
     isPending: isCompanyFollowPending,
     isSessionResolved: isCompanyFollowsSessionResolved,
     setCompanyFollowing,
@@ -470,7 +474,7 @@ export function FeaturedCompanies({ navigate, onFeedback }: FeaturedCompaniesPro
   }
 
   function isFollowUnavailable(companyId: string) {
-    return isAuthenticated && !UUID_PATTERN.test(companyId);
+    return !PERSISTABLE_COMPANY_ID_PATTERN.test(companyId);
   }
 
   function step(delta: number) {
@@ -519,18 +523,16 @@ export function FeaturedCompanies({ navigate, onFeedback }: FeaturedCompaniesPro
             company={featured}
             following={followedCompanyIds.includes(featured.id)}
             onFollow={() => followCompany(featured)}
-            followDisabled={
-              !isCompanyFollowsSessionResolved ||
-              isFollowUnavailable(featured.id) ||
-              isCompanyFollowPending(featured.id)
-            }
             followUnavailable={isFollowUnavailable(featured.id)}
+            followLoading={!isCompanyFollowsSessionResolved || isCompanyFollowPending(featured.id)}
             navigate={navigate}
           />
 
           {cards.map((company) => {
             const following = followedCompanyIds.includes(company.id);
             const followUnavailable = isFollowUnavailable(company.id);
+            const followLoading =
+              !isCompanyFollowsSessionResolved || isCompanyFollowPending(company.id);
 
             return (
               <article key={company.id} className="featured-company-card">
@@ -551,38 +553,40 @@ export function FeaturedCompanies({ navigate, onFeedback }: FeaturedCompaniesPro
                     </span>
                   </span>
                 </button>
-                <button
-                  type="button"
-                  className={`featured-company-follow${following ? " is-following" : ""}`}
-                  aria-label={
-                    following ? `Bỏ theo dõi ${company.name}` : `Theo dõi ${company.name}`
-                  }
-                  aria-pressed={following}
-                  disabled={
-                    !isCompanyFollowsSessionResolved ||
-                    followUnavailable ||
-                    isCompanyFollowPending(company.id)
-                  }
-                  title={
-                    followUnavailable
-                      ? "Công ty này chưa đồng bộ với hệ thống theo dõi."
-                      : undefined
-                  }
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    followCompany(company);
-                  }}
-                >
-                  {following ? (
-                    <>
-                      <Check size={14} /> Đang theo dõi
-                    </>
-                  ) : (
-                    <>
-                      <Plus size={14} aria-hidden="true" /> Theo dõi
-                    </>
-                  )}
-                </button>
+                {followUnavailable ? (
+                  <span className="featured-company-follow-status">Chưa hỗ trợ theo dõi</span>
+                ) : (
+                  <button
+                    type="button"
+                    className={`featured-company-follow${following ? " is-following" : ""}`}
+                    aria-label={
+                      followLoading
+                        ? `Đang cập nhật theo dõi ${company.name}`
+                        : following
+                          ? `Bỏ theo dõi ${company.name}`
+                          : `Theo dõi ${company.name}`
+                    }
+                    aria-busy={followLoading || undefined}
+                    aria-pressed={following}
+                    disabled={followLoading}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      followCompany(company);
+                    }}
+                  >
+                    {followLoading ? (
+                      "Đang cập nhật…"
+                    ) : following ? (
+                      <>
+                        <Check size={14} /> Đang theo dõi
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={14} aria-hidden="true" /> Theo dõi
+                      </>
+                    )}
+                  </button>
+                )}
               </article>
             );
           })}
@@ -627,15 +631,15 @@ function FeaturedCard({
   company,
   following,
   onFollow,
-  followDisabled,
   followUnavailable,
+  followLoading,
   navigate,
 }: {
   company: FeaturedCompany;
   following: boolean;
   onFollow: () => void;
-  followDisabled: boolean;
   followUnavailable: boolean;
+  followLoading: boolean;
   navigate: (path: string) => void;
 }) {
   return (
@@ -670,27 +674,37 @@ function FeaturedCard({
           >
             Xem việc làm <ArrowRight size={15} />
           </button>
-          <button
-            type="button"
-            className={`featured-company-featured-follow${following ? " is-following" : ""}`}
-            aria-label={following ? `Bỏ theo dõi ${company.name}` : `Theo dõi ${company.name}`}
-            aria-pressed={following}
-            disabled={followDisabled}
-            title={
-              followUnavailable ? "Công ty này chưa đồng bộ với hệ thống theo dõi." : undefined
-            }
-            onClick={onFollow}
-          >
-            {following ? (
-              <>
-                <Check size={15} /> Đang theo dõi
-              </>
-            ) : (
-              <>
-                <Plus size={15} /> Theo dõi
-              </>
-            )}
-          </button>
+          {followUnavailable ? (
+            <span className="featured-company-featured-follow-status">Chưa hỗ trợ theo dõi</span>
+          ) : (
+            <button
+              type="button"
+              className={`featured-company-featured-follow${following ? " is-following" : ""}`}
+              aria-label={
+                followLoading
+                  ? `Đang cập nhật theo dõi ${company.name}`
+                  : following
+                    ? `Bỏ theo dõi ${company.name}`
+                    : `Theo dõi ${company.name}`
+              }
+              aria-busy={followLoading || undefined}
+              aria-pressed={following}
+              disabled={followLoading}
+              onClick={onFollow}
+            >
+              {followLoading ? (
+                "Đang cập nhật…"
+              ) : following ? (
+                <>
+                  <Check size={15} /> Đang theo dõi
+                </>
+              ) : (
+                <>
+                  <Plus size={15} /> Theo dõi
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </article>
