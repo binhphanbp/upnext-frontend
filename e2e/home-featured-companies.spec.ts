@@ -53,7 +53,9 @@ test("loads the active company's cover image for the spotlight panel", async ({ 
 });
 
 test("persists company follow state and keeps duplicate cards in sync", async ({ page }) => {
-  const companyId = "d9ac5688-e8e3-4bea-9fb1-9f0b1e3ced09";
+  // Public-company IDs from the staging API are UUID-shaped but do not
+  // necessarily use RFC UUID versions 1–5. This is CMC Corporation's ID.
+  const companyId = "219b6dce-7203-f858-bd93-71b4ca72aa2b";
   let following = false;
 
   await page.addInitScript(() => {
@@ -140,6 +142,38 @@ test("persists company follow state and keeps duplicate cards in sync", async ({
   await expect.poll(() => following).toBe(false);
   await expect(toast).toContainText("Đã hoàn tác theo dõi Followable UpNext Labs");
   await expect(featuredFollow).toHaveAttribute("aria-pressed", "false");
+});
+
+test("explains when fallback company data cannot be followed", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("upnext.candidate.accessToken", "candidate-token");
+    localStorage.setItem("upnext.candidate.tokenType", "Bearer");
+    localStorage.setItem(
+      "upnext.candidate.user",
+      JSON.stringify({ id: "candidate-1", email: "candidate@example.com", role: "CANDIDATE" }),
+    );
+  });
+  await page.route(/\/companies(?:\?|$)/, async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        items: [],
+        meta: { total: 0, page: 1, limit: 1, totalPages: 0 },
+      }),
+      contentType: "application/json",
+    });
+  });
+  await page.route(/\/company-follows\/me(?:\?|$)/, async (route) => {
+    await route.fulfill({
+      body: JSON.stringify([]),
+      contentType: "application/json",
+    });
+  });
+
+  await page.goto("/vi");
+
+  const section = page.locator(".marketing-home-companies");
+  await expect(section.getByText("Chưa hỗ trợ theo dõi").first()).toBeVisible();
+  await expect(section.locator(".featured-company-follow").first()).toHaveCount(0);
 });
 
 test("keeps the spotlight panel focused on compact screens", async ({ page }) => {
