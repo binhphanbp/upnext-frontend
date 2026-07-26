@@ -7031,3 +7031,91 @@ button.marketing-home-control {
     transition: none;
   }
 }
+
+/* Shared primary-action treatment. The header registration action is the visual
+   source of truth; home-level primary CTAs use the same solid brand surface,
+   hover elevation, and subtle sheen while retaining context-specific sizing. */
+.marketing-home-header-actions .marketing-home-register,
+.marketing-home-search-submit,
+.marketing-home-urgent-all,
+.urgent-job-preview-apply,
+.urgent-job-apply,
+.marketing-home-footer-newsletter button {
+  position: relative;
+  overflow: hidden;
+  color: #ffffff;
+  border-color: #10a778;
+  background: #0aa56f;
+  box-shadow: none;
+  transition:
+    background-color 240ms cubic-bezier(0.32, 0.72, 0, 1),
+    border-color 240ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-header-actions .marketing-home-register::after,
+.marketing-home-search-submit::after,
+.marketing-home-urgent-all::after,
+.urgent-job-preview-apply::after,
+.urgent-job-apply::after,
+.marketing-home-footer-newsletter button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-18deg);
+  transition: left 600ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-search-submit:focus-visible,
+.marketing-home-urgent-all:focus-visible,
+.urgent-job-preview-apply:focus-visible,
+.urgent-job-apply:focus-visible,
+.marketing-home-footer-newsletter button:focus-visible {
+  outline: 2px solid rgba(16, 167, 120, 0.35);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .marketing-home-header-actions .marketing-home-register:hover,
+  .marketing-home-search-submit:hover,
+  .marketing-home-urgent-all:hover,
+  .urgent-job-preview-apply:hover,
+  .urgent-job-apply:hover,
+  .marketing-home-footer-newsletter button:hover {
+    color: #ffffff;
+    border-color: #10a778;
+    background: #098f63;
+    box-shadow: 0 4px 12px rgba(10, 165, 111, 0.22);
+  }
+
+  .marketing-home-header-actions .marketing-home-register:hover::after,
+  .marketing-home-search-submit:hover::after,
+  .marketing-home-urgent-all:hover::after,
+  .urgent-job-preview-apply:hover::after,
+  .urgent-job-apply:hover::after,
+  .marketing-home-footer-newsletter button:hover::after {
+    left: 130%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-home-header-actions .marketing-home-register,
+  .marketing-home-search-submit,
+  .marketing-home-urgent-all,
+  .urgent-job-preview-apply,
+  .urgent-job-apply,
+  .marketing-home-footer-newsletter button,
+  .marketing-home-header-actions .marketing-home-register::after,
+  .marketing-home-search-submit::after,
+  .marketing-home-urgent-all::after,
+  .urgent-job-preview-apply::after,
+  .urgent-job-apply::after,
+  .marketing-home-footer-newsletter button::after {
+    transition: none;
+  }
+}
