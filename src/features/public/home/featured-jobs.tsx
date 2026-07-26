@@ -6,9 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
+import { toast } from "@/shared/ui/toast";
 
 import { getPublicJobs, type PublicJob } from "./api";
-import type { HomeActionFeedback } from "./home-action-toast";
 import {
   ArrowRight,
   BadgeCheck,
@@ -28,7 +28,6 @@ import {
 type FeaturedJobsProps = {
   navigate: (path: string) => void;
   onApply: (job: { id: string; title: string; company: string }) => void;
-  onFeedback: (feedback: HomeActionFeedback) => void;
 };
 
 type BadgeTone = "featured" | "new" | "urgent" | "remote" | "salary";
@@ -457,9 +456,27 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
   };
 }
 
-export function FeaturedJobs({ navigate, onApply, onFeedback }: FeaturedJobsProps) {
+export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
   const locale = useLocale();
   const copy = locale === "en" ? interestCopy.en : interestCopy.vi;
+  const notificationCopy =
+    locale === "en"
+      ? {
+          saveError: "Could not update saved jobs. Please try again.",
+          undo: "Undo",
+          saved: (title: string) => `Saved ${title}`,
+          unsaved: (title: string) => `Removed ${title} from saved jobs`,
+          savedAgain: (title: string) => `Saved ${title} again`,
+          undoSave: (title: string) => `Undid saving ${title}`,
+        }
+      : {
+          saveError: "Không thể cập nhật việc làm đã lưu. Vui lòng thử lại.",
+          undo: "Hoàn tác",
+          saved: (title: string) => `Đã lưu ${title}`,
+          unsaved: (title: string) => `Đã bỏ lưu ${title}`,
+          savedAgain: (title: string) => `Đã lưu lại ${title}`,
+          undoSave: (title: string) => `Đã hoàn tác lưu ${title}`,
+        };
   const [index, setIndex] = useState(0);
   const [animate, setAnimate] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -547,36 +564,38 @@ export function FeaturedJobs({ navigate, onApply, onFeedback }: FeaturedJobsProp
   }
 
   function showSaveError() {
-    onFeedback({
-      id: `save-job-error-${Date.now()}`,
-      message: "Không thể cập nhật việc làm đã lưu. Vui lòng thử lại.",
-      tone: "error",
-    });
+    toast.error(notificationCopy.saveError);
   }
 
   function handleSaveJob(job: JobCard) {
     const didStart = toggleSaveJob(job.id, {
       onError: showSaveError,
       onSuccess: (isSaved) => {
-        onFeedback({
-          actionLabel: "Hoàn tác",
-          id: `save-job-${job.id}-${Date.now()}`,
-          message: isSaved ? `Đã lưu ${job.title}` : `Đã bỏ lưu ${job.title}`,
-          onAction: () => {
-            const didUndoStart = setSavedJob(job.id, !isSaved, {
-              onError: showSaveError,
-              onSuccess: (restored) => {
-                onFeedback({
-                  id: `undo-save-job-${job.id}-${Date.now()}`,
-                  message: restored ? `Đã lưu lại ${job.title}` : `Đã hoàn tác lưu ${job.title}`,
-                  tone: "success",
+        const toastId = `save-job-${job.id}`;
+        toast.success(
+          isSaved ? notificationCopy.saved(job.title) : notificationCopy.unsaved(job.title),
+          {
+            action: {
+              label: notificationCopy.undo,
+              onClick: () => {
+                toast.dismiss(toastId);
+                const didUndoStart = setSavedJob(job.id, !isSaved, {
+                  onError: showSaveError,
+                  onSuccess: (restored) => {
+                    toast.success(
+                      restored
+                        ? notificationCopy.savedAgain(job.title)
+                        : notificationCopy.undoSave(job.title),
+                    );
+                  },
                 });
+                if (!didUndoStart) navigate("/login?redirect=/");
               },
-            });
-            if (!didUndoStart) navigate("/login?redirect=/");
+            },
+            duration: 8_000,
+            id: toastId,
           },
-          tone: "success",
-        });
+        );
       },
     });
 

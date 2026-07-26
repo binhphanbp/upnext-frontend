@@ -128,6 +128,12 @@ test("persists company follow state and keeps duplicate cards in sync", async ({
   const section = page.locator(".marketing-home-companies");
   const featuredFollow = section.locator(".featured-company-featured-follow");
   await expect(featuredFollow).toBeEnabled();
+  await featuredFollow.hover();
+  await expect(page.getByRole("tooltip")).toHaveText(
+    "Theo dõi để nhận thông báo khi công ty có việc làm mới.",
+  );
+  await featuredFollow.focus();
+  await expect(page.getByRole("tooltip")).toBeVisible();
   await featuredFollow.click();
   await expect.poll(() => following).toBe(true);
   await expect(featuredFollow).toHaveAttribute("aria-pressed", "true");
@@ -136,11 +142,21 @@ test("persists company follow state and keeps duplicate cards in sync", async ({
     "true",
   );
 
-  const toast = page.locator(".marketing-home-action-toast");
+  await page.mouse.move(0, 0);
+  await featuredFollow.hover();
+  await expect(page.getByRole("tooltip")).toHaveText(
+    "Bạn sẽ nhận thông báo khi công ty có việc làm mới.",
+  );
+
+  const toast = page.locator(".upnext-toast").filter({
+    hasText: "Đã theo dõi Followable UpNext Labs",
+  });
   await expect(toast).toContainText("Đã theo dõi Followable UpNext Labs");
   await toast.getByRole("button", { name: "Hoàn tác" }).click();
   await expect.poll(() => following).toBe(false);
-  await expect(toast).toContainText("Đã hoàn tác theo dõi Followable UpNext Labs");
+  await expect(
+    page.getByText("Hoàn tác theo dõi Followable UpNext Labs", { exact: true }),
+  ).toBeVisible();
   await expect(featuredFollow).toHaveAttribute("aria-pressed", "false");
 });
 
