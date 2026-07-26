@@ -5,6 +5,9 @@ import {
   CheckCircle,
   Eye,
   FilePdf,
+  Minus,
+  Plus,
+  SpinnerGap,
   UploadSimple,
   Warning,
   X,
@@ -13,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  type CandidateCvApi,
   checkAppliedJob,
   createCandidateCv,
   getMyCandidateCvs,
@@ -22,10 +26,9 @@ import {
 } from "@/features/candidate/api/profile";
 import { getCandidateSession } from "@/features/candidate/session";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/shared/api/http";
+import { ApiError, createApiUrl } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 
 type ApplyModalProps = Readonly<{
@@ -43,6 +46,7 @@ const looseUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewObjectUrlRef = useRef<string | null>(null);
 
   const [mounted, setMounted] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -56,6 +60,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [appliedApplicationId, setAppliedApplicationId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [previewingCvId, setPreviewingCvId] = useState<string | null>(null);
 
   // CV Preview
   const [previewCv, setPreviewCv] = useState<{
@@ -68,7 +73,31 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
 
   useEffect(() => {
     setMounted(true);
+
+    return () => {
+      if (previewObjectUrlRef.current) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
+    };
+  }, [isOpen]);
 
   const {
     data: cvsData,
@@ -131,6 +160,56 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       )[0]?.id ?? null
     );
   }, [cvsData, selectedCvId]);
+
+  const closePreview = () => {
+    setPreviewCv(null);
+    if (previewObjectUrlRef.current) {
+      URL.revokeObjectURL(previewObjectUrlRef.current);
+      previewObjectUrlRef.current = null;
+    }
+  };
+
+  const handlePreviewCv = async (cv: CandidateCvApi) => {
+    if (!session) return;
+
+    const latestVersion = [...cv.versions].sort(
+      (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+    )[0];
+
+    if (!latestVersion) {
+      setErrorMessage("CV này chưa có phiên bản để xem.");
+      return;
+    }
+
+    setPreviewingCvId(cv.id);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(createApiUrl(`/cv-versions/${latestVersion.id}/download`), {
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+      });
+      if (!response.ok) {
+        throw new Error("CV preview failed");
+      }
+
+      const blob = await response.blob();
+      if (previewObjectUrlRef.current) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      previewObjectUrlRef.current = objectUrl;
+      setPreviewCv({
+        title: cv.title,
+        url: objectUrl,
+        mimeType: latestVersion.sourceFile?.mimeType || blob.type || "application/octet-stream",
+      });
+    } catch {
+      setErrorMessage("Không thể mở bản xem trước CV. Vui lòng thử lại.");
+    } finally {
+      setPreviewingCvId(null);
+    }
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -385,21 +464,18 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                   <div className="space-y-2">
                     {cvsData?.items && cvsData.items.length > 0 ? (
                       cvsData.items.map((cv) => {
-                        // Get the latest version's file URL
-                        const latestVersion = [...cv.versions].sort(
-                          (a, b) =>
-                            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-                        )[0];
-                        const fileUrl = latestVersion?.sourceFile?.publicUrl ?? null;
-                        const mimeType =
-                          latestVersion?.sourceFile?.mimeType ?? "application/octet-stream";
-
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={cv.id}
-                            onClick={() => setSelectedCvId(cv.id)}
+                            onClick={() => {
+                              setSelectedCvId(cv.id);
+                              void handlePreviewCv(cv);
+                            }}
+                            disabled={previewingCvId === cv.id}
+                            aria-label={`Chọn và xem CV ${cv.title}`}
                             className={cn(
-                              "flex cursor-pointer items-center justify-between rounded-xl border p-3 transition",
+                              "flex w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition disabled:cursor-wait disabled:opacity-70",
                               selectedCvId === cv.id
                                 ? "border-emerald-500 bg-emerald-50/20"
                                 : "border-slate-200 bg-white hover:bg-slate-50/40",
@@ -426,21 +502,16 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                                   Mặc định
                                 </span>
                               )}
-                              {fileUrl && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPreviewCv({ title: cv.title, url: fileUrl, mimeType });
-                                  }}
-                                  title="Xem CV"
-                                  className="flex cursor-pointer items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-emerald-50 hover:text-emerald-600"
-                                >
+                              <span className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-semibold text-slate-500">
+                                {previewingCvId === cv.id ? (
+                                  <SpinnerGap size={15} className="animate-spin text-emerald-600" />
+                                ) : (
                                   <Eye size={15} />
-                                </button>
-                              )}
+                                )}
+                                Xem CV
+                              </span>
                             </div>
-                          </div>
+                          </button>
                         );
                       })
                     ) : (
@@ -536,7 +607,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
           title={previewCv.title}
           url={previewCv.url}
           mimeType={previewCv.mimeType}
-          onClose={() => setPreviewCv(null)}
+          onClose={closePreview}
         />
       )}
     </div>
@@ -556,6 +627,23 @@ type CvPreviewModalProps = Readonly<{
 
 function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) {
   const isPdf = mimeType === "application/pdf" || url.toLowerCase().endsWith(".pdf");
+  const [zoom, setZoom] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ pointerX: 0, pointerY: 0, x: 0, y: 0 });
+
+  const updateZoom = (nextZoom: number) => {
+    const clampedZoom = Math.min(3, Math.max(0.75, nextZoom));
+    setZoom(clampedZoom);
+    if (clampedZoom === 1) {
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const resetView = () => {
+    setZoom(1);
+    setPosition({ x: 0, y: 0 });
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center">
@@ -571,6 +659,36 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
             <p className="truncate text-sm font-bold text-slate-800">{title}</p>
           </div>
           <div className="flex items-center gap-2">
+            {isPdf && (
+              <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => updateZoom(zoom - 0.15)}
+                  disabled={zoom <= 0.75}
+                  aria-label="Thu nhỏ CV"
+                  className="flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-600 transition hover:bg-white hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Minus size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={resetView}
+                  title="Đặt lại kích thước và vị trí"
+                  className="min-w-12 cursor-pointer rounded-md px-1.5 py-1 text-[10px] font-bold text-slate-600 transition hover:bg-white hover:text-emerald-700"
+                >
+                  {Math.round(zoom * 100)}%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateZoom(zoom + 0.15)}
+                  disabled={zoom >= 3}
+                  aria-label="Phóng to CV"
+                  className="flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-600 transition hover:bg-white hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Plus size={13} />
+                </button>
+              </div>
+            )}
             <a
               href={url}
               target="_blank"
@@ -595,7 +713,68 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
         {/* Content */}
         <div className="flex min-h-0 flex-1 bg-slate-100">
           {isPdf ? (
-            <iframe src={url} title={title} className="h-full w-full border-0" allow="fullscreen" />
+            <div
+              className={cn(
+                "relative h-full w-full touch-none overflow-hidden select-none",
+                isDragging ? "cursor-grabbing" : "cursor-grab",
+              )}
+              onWheel={(event) => {
+                event.preventDefault();
+                updateZoom(zoom + (event.deltaY < 0 ? 0.1 : -0.1));
+              }}
+              onPointerDown={(event) => {
+                event.currentTarget.setPointerCapture(event.pointerId);
+                dragStartRef.current = {
+                  pointerX: event.clientX,
+                  pointerY: event.clientY,
+                  x: position.x,
+                  y: position.y,
+                };
+                setIsDragging(true);
+              }}
+              onPointerMove={(event) => {
+                if (!isDragging) return;
+                setPosition({
+                  x: dragStartRef.current.x + event.clientX - dragStartRef.current.pointerX,
+                  y: dragStartRef.current.y + event.clientY - dragStartRef.current.pointerY,
+                });
+              }}
+              onPointerUp={(event) => {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+                setIsDragging(false);
+              }}
+              onPointerCancel={() => setIsDragging(false)}
+              onDoubleClick={resetView}
+              onKeyDown={(event) => {
+                if (event.key === "+" || event.key === "=") {
+                  event.preventDefault();
+                  updateZoom(zoom + 0.15);
+                } else if (event.key === "-") {
+                  event.preventDefault();
+                  updateZoom(zoom - 0.15);
+                } else if (event.key === "0") {
+                  event.preventDefault();
+                  resetView();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label="Bản xem trước CV. Giữ chuột và kéo để di chuyển, lăn chuột để thu phóng."
+            >
+              <iframe
+                src={url}
+                title={title}
+                className="pointer-events-none absolute inset-0 h-full w-full border-0"
+                style={{
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                  transformOrigin: "center",
+                }}
+                allow="fullscreen"
+              />
+              <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900/75 px-3 py-1.5 text-[10px] font-medium whitespace-nowrap text-white shadow-lg backdrop-blur-sm">
+                Giữ chuột để kéo · Lăn chuột để thu phóng · Nhấp đúp để đặt lại
+              </div>
+            </div>
           ) : (
             /* Fallback for non-PDF files */
             <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
