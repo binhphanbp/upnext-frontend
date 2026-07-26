@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const homePosts = Array.from({ length: 6 }, (_, index) => ({
   category: {
@@ -47,6 +47,19 @@ async function mockHomePosts(page: Page) {
   });
 }
 
+async function sectionActionSurface(locator: Locator) {
+  return locator.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      border: style.borderTopColor,
+      borderRadius: style.borderTopLeftRadius,
+      minHeight: style.minHeight,
+      paddingInline: `${style.paddingLeft} ${style.paddingRight}`,
+    };
+  });
+}
+
 test("loops the home insights rail without disabling the next control", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -81,6 +94,8 @@ test("uses the latest posts API for carousel content and article destinations", 
 
   const section = page.locator(".marketing-home-insights");
   const featured = section.locator(".marketing-home-insights-card.is-featured");
+  const allArticles = section.getByRole("link", { name: "Xem tất cả" });
+  const allJobs = page.locator(".marketing-home-jobs-all").first();
 
   await expect(featured).toBeVisible();
   await section.scrollIntoViewIfNeeded();
@@ -92,8 +107,7 @@ test("uses the latest posts API for carousel content and article destinations", 
     "href",
     "/vi/posts/home-api-post-2",
   );
-  await expect(section.getByRole("link", { name: "Xem tất cả" })).toHaveAttribute(
-    "href",
-    "/vi/posts",
-  );
+  await expect(allArticles).toHaveAttribute("href", "/vi/posts");
+  await expect(allJobs).toBeVisible();
+  expect(await sectionActionSurface(allArticles)).toEqual(await sectionActionSurface(allJobs));
 });
