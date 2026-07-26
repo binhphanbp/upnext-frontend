@@ -6660,14 +6660,22 @@ button.marketing-home-control {
 .marketing-home-insights-all {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 3px;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 20px;
   margin-left: auto;
-  color: #35975d;
+  color: #0b7f5f;
   font-size: 14px;
   font-weight: 700;
-  line-height: 1.2;
   white-space: nowrap;
+  border: 1px solid #cdeadd;
+  border-radius: 999px;
+  background: #ffffff;
+  text-decoration: none;
+}
+
+.marketing-home-insights-all svg {
+  transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .marketing-home-insights-stage {
@@ -6920,6 +6928,17 @@ button.marketing-home-control {
 .marketing-home-insights-more:focus-visible {
   outline: 2px solid #168e64;
   outline-offset: 4px;
+}
+
+@media (hover: hover) {
+  .marketing-home-insights-all:hover {
+    border-color: #0aa56f;
+    background: #f3fdf8;
+  }
+
+  .marketing-home-insights-all:hover svg {
+    transform: translateX(3px);
+  }
 }
 
 @media (hover: hover) {
