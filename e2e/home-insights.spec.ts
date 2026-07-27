@@ -139,6 +139,37 @@ test("settles on exactly one centered article after consecutive long drags", asy
   }
 });
 
+test("keeps card geometry fixed while the focused article changes", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await mockHomePosts(page);
+  await page.goto("/vi");
+
+  const section = page.locator(".marketing-home-insights");
+  const next = section.getByRole("button", { name: "Bài viết tiếp theo" });
+  await section.evaluate((element) => element.scrollIntoView({ block: "center" }));
+
+  const getCardGeometry = () =>
+    section.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>(".marketing-home-insights-card")).map(
+        (card) => {
+          const { height, width } = card.getBoundingClientRect();
+          return { height: Math.round(height), width: Math.round(width) };
+        },
+      ),
+    );
+
+  const initialGeometry = await getCardGeometry();
+  expect(new Set(initialGeometry.map(({ height }) => height)).size).toBe(1);
+  expect(new Set(initialGeometry.map(({ width }) => width)).size).toBe(1);
+
+  await next.click();
+  await expect(section.locator(".marketing-home-insights-card.is-featured")).toHaveAttribute(
+    "data-insight-index",
+    "2",
+  );
+  expect(await getCardGeometry()).toEqual(initialGeometry);
+});
+
 test("uses the featured companies navigation treatment for insights controls", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await mockHomePosts(page);
