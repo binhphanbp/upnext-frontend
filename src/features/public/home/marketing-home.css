@@ -7440,3 +7440,113 @@ button.marketing-home-control {
     transition: none;
   }
 }
+
+/* Homepage type scale: Lexend has a naturally dense stroke, so reserving
+   heavier weights for display and metrics gives readers a calmer, clearer
+   hierarchy. This is deliberately scoped to the marketing homepage instead
+   of changing the product-wide type system. */
+.marketing-home-page {
+  --marketing-home-weight-body: 400;
+  --marketing-home-weight-label: 500;
+  --marketing-home-weight-emphasis: 600;
+  --marketing-home-weight-heading: 650;
+  --marketing-home-weight-metric: 700;
+  font-synthesis: none;
+}
+
+.marketing-home-page h1 {
+  font-weight: var(--marketing-home-weight-heading);
+}
+
+.marketing-home-page h2 {
+  font-weight: var(--marketing-home-weight-heading);
+}
+
+.marketing-home-page h3,
+.marketing-home-page :is(b, strong) {
+  font-weight: var(--marketing-home-weight-emphasis);
+}
+
+.marketing-home-page
+  :is(
+    .marketing-home-copy p,
+    .marketing-home-urgent-head p,
+    .marketing-home-insights-head p,
+    .marketing-home-insights-card p,
+    .marketing-home-footer-brand p,
+    .marketing-home-footer-contact p
+  ) {
+  font-weight: var(--marketing-home-weight-body);
+}
+
+.marketing-home-page
+  :is(
+    .marketing-home-eyebrow,
+    .marketing-home-urgent-eyebrow,
+    .marketing-home-insights-eyebrow,
+    .marketing-home-insights-featured,
+    .marketing-home-insights-meta > span:first-child
+  ) {
+  font-weight: var(--marketing-home-weight-emphasis);
+}
+
+.marketing-home-page
+  :is(
+    .marketing-home-popular > span,
+    .marketing-home-popular-links a,
+    .marketing-home-trusted > span,
+    .marketing-home-stats span,
+    .urgent-job-company,
+    .urgent-job-chips > span,
+    .urgent-job-meta .urgent-job-loc-mode,
+    .urgent-job-tags i,
+    .featured-job-company-name,
+    .featured-job-meta span,
+    .featured-job-tags i,
+    .featured-job-deadline,
+    .featured-job-interest,
+    .featured-company-cat,
+    .featured-company-jobs,
+    .jm-kpi-label,
+    .jm-latest-body em,
+    .jm-latest-body small,
+    .jm-latest-time,
+    .marketing-home-insights-meta,
+    .marketing-home-insights-read-time,
+    .marketing-home-footer-links button,
+    .marketing-home-footer-contact ul button,
+    .marketing-home-footer-bottom p,
+    .marketing-home-footer-bottom-actions button
+  ) {
+  font-weight: var(--marketing-home-weight-label);
+}
+
+.marketing-home-page button,
+.marketing-home-page
+  :is(
+    .marketing-home-insights-all,
+    .marketing-home-insights-more,
+    .featured-company-follow,
+    .featured-company-featured-view,
+    .featured-company-featured-follow,
+    .featured-company-featured-follow-status
+  ) {
+  font-weight: var(--marketing-home-weight-emphasis);
+}
+
+.marketing-home-page
+  :is(
+    .urgent-job-meta .urgent-job-salary,
+    .urgent-job-chips .urgent-job-salary,
+    .featured-job-salary
+  ) {
+  font-weight: var(--marketing-home-weight-heading);
+}
+
+.marketing-home-page :is(.marketing-home-stats strong, .jm-kpi strong) {
+  font-weight: var(--marketing-home-weight-metric);
+}
+
+.marketing-home-page .marketing-home-insights-card.is-featured h3 {
+  font-weight: var(--marketing-home-weight-heading);
+}

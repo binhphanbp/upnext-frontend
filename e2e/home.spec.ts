@@ -150,6 +150,31 @@ test("renders the localized UpNext homepage", async ({ page }) => {
   await expect(page.getByText("FPT Software").first()).toBeVisible();
 });
 
+test("uses a calm, readable typography hierarchy on the homepage", async ({ page }) => {
+  await page.goto("/vi");
+
+  const typography = await page.evaluate(() => {
+    const getWeight = (selector: string) => {
+      const element = document.querySelector<HTMLElement>(selector);
+      return element ? Number(window.getComputedStyle(element).fontWeight) : null;
+    };
+
+    return {
+      body: getWeight(".marketing-home-copy p"),
+      hero: getWeight(".marketing-home-copy h1"),
+      section: getWeight(".marketing-home-urgent-head h2"),
+      footerHeading: getWeight(".marketing-home-footer-links h3"),
+    };
+  });
+
+  expect(typography).toEqual({
+    body: 400,
+    hero: 650,
+    section: 650,
+    footerHeading: 600,
+  });
+});
+
 test("submits homepage job search with query params", async ({ page }) => {
   await page.goto("/vi");
 
