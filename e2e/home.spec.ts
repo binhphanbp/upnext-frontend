@@ -187,7 +187,7 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
   const section = page.locator(".marketing-home-insights");
   const viewport = section.locator(".marketing-home-insights-viewport");
 
-  await section.evaluate((element) => element.scrollIntoView({ block: "center" }));
+  await section.scrollIntoViewIfNeeded();
   await expect(
     section.getByRole("heading", { name: "Cẩm nang nghề nghiệp", exact: true }),
   ).toBeVisible();
@@ -204,7 +204,7 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
       ".marketing-home-insights-card.is-featured",
     );
     const sideCard = element.querySelector<HTMLElement>(
-      ".marketing-home-insights-card:not(.is-featured)",
+      ".marketing-home-insights-card.is-adjacent",
     );
 
     if (!header || !stage || !featured || !sideCard) return null;
@@ -227,7 +227,7 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
   expect(railLayout!.headerWidth).toBeCloseTo(1280, 0);
   expect(railLayout!.stageLeft).toBe(0);
   expect(railLayout!.stageWidth).toBe(railLayout!.viewportWidth);
-  expect(railLayout!.featuredTop).toBeCloseTo(railLayout!.sideTop, 0);
+  expect(railLayout!.featuredTop).toBeLessThan(railLayout!.sideTop);
   expect(railLayout!.featuredOpacity).toBeGreaterThan(railLayout!.sideOpacity);
 
   await section.getByRole("button", { name: "Bài viết tiếp theo" }).click();
