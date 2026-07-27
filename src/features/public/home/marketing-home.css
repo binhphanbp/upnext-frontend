@@ -6862,6 +6862,28 @@ button.marketing-home-control {
   left: auto;
 }
 
+/* Shared carousel navigation surface. Keeping both homepage rails on one
+   primitive prevents their hover and focus feedback from drifting apart. */
+.marketing-home-carousel-nav {
+  width: 46px;
+  height: 46px;
+  color: #334155;
+  border: 1px solid #e6eaf0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.marketing-home-carousel-nav:focus-visible {
+  outline: 2px solid #0aa56f;
+  outline-offset: 4px;
+}
+
 .marketing-home-insights-ghost {
   position: absolute;
   top: 110px;
@@ -6932,11 +6954,10 @@ button.marketing-home-control {
     color: #35975d;
   }
 
-  .marketing-home-insights-arrow:hover {
-    color: #ffffff;
-    border-color: #0d3823;
-    background: #0d3823;
-    transform: translateY(-1px);
+  .marketing-home-carousel-nav:not(:disabled):hover {
+    color: #0b7f5f;
+    border-color: #0aa56f;
+    background: #f3fdf8;
   }
 }
 

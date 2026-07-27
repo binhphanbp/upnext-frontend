@@ -4,6 +4,53 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
 });
 
+const homePosts = Array.from({ length: 6 }, (_, index) => ({
+  category: {
+    id: `category-${index}`,
+    name: "Career advice",
+    slug: "career-advice",
+  },
+  content: `<p>Practical career advice ${index + 1}</p>`,
+  coverImageFile: null,
+  createdAt: "2026-07-25T00:00:00.000Z",
+  id: `home-post-${index}`,
+  postTags: [],
+  slug: `home-api-post-${index + 1}`,
+  status: "PUBLISHED",
+  thumbnailFile: null,
+  title: `Home API post ${index + 1}`,
+  type: "BLOG",
+  updatedAt: "2026-07-25T00:00:00.000Z",
+}));
+
+async function mockHomePosts(page: Page) {
+  await page.route(/\/posts(?:\?|$)/, async (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (
+      requestUrl.searchParams.get("page") !== "1" ||
+      requestUrl.searchParams.get("limit") !== "6"
+    ) {
+      await route.continue();
+      return;
+    }
+
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: homePosts,
+        meta: {
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit: 6,
+          page: 1,
+          total: homePosts.length,
+          totalPages: 1,
+        },
+      }),
+    });
+  });
+}
+
 async function activeGalleryThumbnailIsFullyVisible(galleryDialog: Locator) {
   return galleryDialog.evaluate((dialog) => {
     const rail = dialog.querySelector<HTMLElement>("[data-gallery-filmstrip]");
@@ -134,6 +181,7 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  await mockHomePosts(page);
   await page.goto("/vi");
 
   const section = page.locator(".marketing-home-insights");
@@ -251,6 +299,7 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
 
 test("keeps the home insights carousel within a compact mobile viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await mockHomePosts(page);
   await page.goto("/vi");
 
   const section = page.locator(".marketing-home-insights");
