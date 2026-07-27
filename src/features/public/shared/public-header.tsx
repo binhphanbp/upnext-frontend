@@ -9,6 +9,7 @@ import {
   Code,
   FileText as FileTextIcon,
   House,
+  List,
   MapPin,
   PaperPlaneTilt,
   SignOut,
@@ -66,6 +67,17 @@ type LocalizedText = {
   en: string;
 };
 
+type UtilityLink = {
+  label: LocalizedText;
+  href: string;
+};
+
+type CompactNavigationLink = {
+  label: LocalizedText;
+  href: string;
+  employer?: boolean;
+};
+
 type NavMenu = {
   key: string;
   label: LocalizedText;
@@ -108,7 +120,10 @@ type JobsMenuEntry = {
 };
 
 type PublicHeaderCopy = {
-  utilityStatement: string;
+  utilityNavigationLabel: string;
+  utilityLabel: string;
+  compactMenuLabel: string;
+  compactNavigationLabel: string;
   employerSmall: string;
   employerLabel: string;
   languageLabel: string;
@@ -471,13 +486,36 @@ const languages: Language[] = [
   },
 ];
 
+const utilityLinks: UtilityLink[] = [
+  { label: localized("Việc mới", "Latest roles"), href: "/jobs?sort=newest" },
+  { label: localized("Remote", "Remote"), href: "/jobs?mode=remote" },
+  { label: localized("Fresher", "Entry level"), href: "/jobs?level=fresher" },
+  { label: localized("Từ 60 triệu", "₫60M+"), href: "/jobs?salaryRange=sal-60" },
+];
+
+const compactNavigationLinks: CompactNavigationLink[] = [
+  { label: localized("Việc làm IT", "IT Jobs"), href: "/jobs" },
+  { label: localized("Công ty IT", "IT Companies"), href: "/companies" },
+  { label: localized("Bài viết", "Articles"), href: "/posts" },
+  { label: localized("Tạo hồ sơ", "Create profile"), href: "/register" },
+  { label: localized("Đăng nhập", "Log in"), href: "/login" },
+  {
+    label: localized("Nhà tuyển dụng", "Employers"),
+    href: "/recruiter/login",
+    employer: true,
+  },
+];
+
 const demoAuthStorageKey = "upnext.demo.auth";
 const demoAuthChangeEvent = "upnext-demo-auth-change";
 const menuCloseDelayMs = 260;
 
 const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
   vi: {
-    utilityStatement: "UpNext — Nền tảng tuyển dụng IT",
+    utilityNavigationLabel: "Khám phá việc làm nhanh",
+    utilityLabel: "Khám phá nhanh",
+    compactMenuLabel: "Mở menu",
+    compactNavigationLabel: "Điều hướng chính",
     employerSmall: "Dành cho",
     employerLabel: "Nhà Tuyển Dụng",
     languageLabel: "Chọn ngôn ngữ",
@@ -501,7 +539,10 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     savedJobsLabel: "Việc đã lưu",
   },
   en: {
-    utilityStatement: "UpNext — IT recruitment platform",
+    utilityNavigationLabel: "Quick job discovery",
+    utilityLabel: "Explore",
+    compactMenuLabel: "Open menu",
+    compactNavigationLabel: "Primary navigation",
     employerSmall: "Employer",
     employerLabel: "Hiring Hub",
     languageLabel: "Choose language",
@@ -600,11 +641,13 @@ export function PublicHeader({
   const [jobsMegaLeft, setJobsMegaLeft] = useState<number | null>(null);
   const [langOpen, setLangOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [compactMenuOpen, setCompactMenuOpen] = useState(false);
   const [storedViewer, setStoredViewer] = useState<PublicHeaderViewer | null>(null);
   const menuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
   const langRef = useRef<HTMLDivElement | null>(null);
   const accountRef = useRef<HTMLDivElement | null>(null);
+  const compactMenuRef = useRef<HTMLDivElement | null>(null);
   const currentLocale = locale === "en" ? "en" : "vi";
   const lang: Language["code"] = currentLocale === "en" ? "EN" : "VI";
   const copy = copyByLocale[currentLocale];
@@ -717,6 +760,24 @@ export function PublicHeader({
   }, [langOpen]);
 
   useEffect(() => {
+    if (!compactMenuOpen) return undefined;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!compactMenuRef.current?.contains(event.target as Node)) setCompactMenuOpen(false);
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setCompactMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [compactMenuOpen]);
+
+  useEffect(() => {
     if (!accountOpen) return undefined;
 
     function handlePointerDown(event: MouseEvent) {
@@ -796,7 +857,14 @@ export function PublicHeader({
     <header className="marketing-home-header">
       <div className="marketing-home-utility-bar">
         <div className="marketing-home-utility-content">
-          <p>{copy.utilityStatement}</p>
+          <nav aria-label={copy.utilityNavigationLabel}>
+            <span className="marketing-home-utility-label">{copy.utilityLabel}</span>
+            {utilityLinks.map((item) => (
+              <Link key={item.href} className="marketing-home-utility-link" href={item.href}>
+                {item.label[currentLocale]}
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
 
@@ -896,6 +964,39 @@ export function PublicHeader({
         </nav>
 
         <div className="marketing-home-header-actions">
+          <div
+            className={`marketing-home-compact-menu${compactMenuOpen ? " is-open" : ""}`}
+            ref={compactMenuRef}
+          >
+            <button
+              type="button"
+              className="marketing-home-compact-menu-trigger"
+              aria-controls="public-compact-navigation"
+              aria-expanded={compactMenuOpen}
+              aria-label={copy.compactMenuLabel}
+              onClick={() => setCompactMenuOpen((open) => !open)}
+            >
+              <List size={20} aria-hidden="true" />
+            </button>
+
+            <nav
+              id="public-compact-navigation"
+              className="marketing-home-compact-menu-panel"
+              aria-label={copy.compactNavigationLabel}
+            >
+              {compactNavigationLinks.map((item) => (
+                <Link
+                  key={item.href}
+                  className={item.employer ? "is-employer" : undefined}
+                  href={item.href}
+                  onClick={() => setCompactMenuOpen(false)}
+                >
+                  {item.label[currentLocale]}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
           <button className="marketing-home-employer" onClick={() => navigate("/recruiter/login")}>
             <span className="marketing-home-employer-text">
               <small>{copy.employerSmall}</small>

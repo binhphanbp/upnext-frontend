@@ -52,8 +52,43 @@
   line-height: 1.2;
 }
 
-.marketing-home-utility-content p {
-  margin: 0;
+.marketing-home-utility-content nav {
+  display: flex;
+  align-items: center;
+  min-height: var(--marketing-home-utility-height);
+}
+
+.marketing-home-utility-label {
+  padding-right: 11px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.marketing-home-utility-link {
+  min-height: var(--marketing-home-utility-height);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  color: #ffffff;
+  font-weight: 400;
+  text-decoration: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.22);
+  transition:
+    color 180ms ease,
+    background-color 180ms ease;
+}
+
+.marketing-home-utility-link:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #ffffff;
+  outline-offset: -3px;
+}
+
+@media (hover: hover) {
+  .marketing-home-utility-link:hover {
+    color: #ffffff;
+    background: rgba(5, 90, 62, 0.26);
+  }
 }
 
 .marketing-home-header-main {
@@ -626,6 +661,80 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.marketing-home-compact-menu {
+  position: relative;
+  display: none;
+}
+
+.marketing-home-compact-menu-trigger {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: #334155;
+  border: 1px solid #d7e0e8;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.marketing-home-compact-menu-panel {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 218px;
+  display: grid;
+  gap: 3px;
+  padding: 7px;
+  border: 1px solid #e3e9ee;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 20px 44px rgba(15, 23, 42, 0.14),
+    0 2px 6px rgba(15, 23, 42, 0.05);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top right;
+  transition:
+    opacity 180ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 180ms;
+}
+
+.marketing-home-compact-menu.is-open .marketing-home-compact-menu-panel {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.marketing-home-compact-menu-panel a {
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  padding: 0 11px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.marketing-home-compact-menu-panel a.is-employer {
+  margin-top: 4px;
+  color: #087f5b;
+  background: #eefaf4;
+}
+
+.marketing-home-compact-menu-trigger:focus-visible,
+.marketing-home-compact-menu-panel a:focus-visible {
+  outline: 2px solid rgba(16, 167, 120, 0.5);
+  outline-offset: 2px;
 }
 
 .marketing-home-header-actions .marketing-home-employer {
@@ -4745,6 +4854,17 @@ button.marketing-home-control {
     transform: rotate(180deg);
   }
 
+  .marketing-home-compact-menu-trigger:hover {
+    color: #087f5b;
+    border-color: #9edfc4;
+    background: #f2fbf6;
+  }
+
+  .marketing-home-compact-menu-panel a:hover {
+    color: #087f5b;
+    background: #f2fbf6;
+  }
+
   .marketing-home-jobs-categories button:not(.is-active):hover,
   .marketing-home-jobs-roles a:hover,
   .marketing-home-jobs-footer:hover {
@@ -5225,6 +5345,37 @@ button.marketing-home-control {
   }
 }
 
+/* The full desktop navigation no longer has enough room below this point.
+   Collapse deliberately before controls can overlap. */
+@media (min-width: 821px) and (max-width: 1080px) {
+  .marketing-home-header-main {
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    padding-inline: 28px;
+  }
+
+  .marketing-home-nav,
+  .marketing-home-header-actions .marketing-home-login,
+  .marketing-home-header-actions .marketing-home-employer,
+  .marketing-home-header-actions .marketing-home-lang,
+  .marketing-home-action-sep {
+    display: none;
+  }
+
+  .marketing-home-header-actions {
+    gap: 8px;
+  }
+
+  .marketing-home-compact-menu {
+    display: block;
+  }
+
+  .marketing-home-header-actions .marketing-home-register {
+    min-height: 42px;
+    padding-inline: 18px;
+  }
+}
+
 @media (max-width: 820px) {
   .marketing-home-header {
     --marketing-home-utility-height: 0px;
@@ -5238,6 +5389,10 @@ button.marketing-home-control {
   .marketing-home-header-main {
     grid-template-columns: 1fr auto;
     padding: 0 20px;
+  }
+
+  .marketing-home-compact-menu {
+    display: block;
   }
 
   .marketing-home-logo img {

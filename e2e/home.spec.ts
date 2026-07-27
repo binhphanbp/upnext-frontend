@@ -431,6 +431,41 @@ test("uses one shared public header across public marketing pages", async ({ pag
   await expect(page.locator(".marketing-home-header")).toHaveCount(0);
 });
 
+test("collapses header controls before the compact desktop layout can overlap", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 700 });
+  await page.goto("/vi");
+
+  await expect(page.locator(".marketing-home-nav")).toBeHidden();
+  await expect(page.locator(".marketing-home-employer")).toBeHidden();
+  await expect(page.locator(".marketing-home-register")).toBeVisible();
+
+  const compactMenu = page.locator(".marketing-home-compact-menu");
+  await expect(compactMenu).toBeVisible();
+  await page.getByRole("button", { name: "Mở menu" }).click();
+  const compactNavigation = compactMenu.getByRole("navigation", { name: "Điều hướng chính" });
+  await expect(compactNavigation.getByRole("link", { name: "Việc làm IT" })).toHaveAttribute(
+    "href",
+    "/vi/jobs",
+  );
+  await expect(compactNavigation.getByRole("link", { name: "Nhà tuyển dụng" })).toHaveAttribute(
+    "href",
+    "/vi/recruiter/login",
+  );
+
+  const header = page.locator(".marketing-home-header-main");
+  const register = page.locator(".marketing-home-register");
+  const [headerBox, registerBox] = await Promise.all([
+    header.boundingBox(),
+    register.boundingBox(),
+  ]);
+
+  expect(headerBox).not.toBeNull();
+  expect(registerBox).not.toBeNull();
+  expect(registerBox!.x + registerBox!.width).toBeLessThanOrEqual(headerBox!.x + headerBox!.width);
+});
+
 test("uses semibold weight across header navigation and actions", async ({ page }) => {
   await page.goto("/vi");
 
@@ -454,20 +489,43 @@ test("uses semibold weight across header navigation and actions", async ({ page 
   );
 });
 
-test("uses a localized primary brand strip without adding height on mobile", async ({ page }) => {
+test("uses localized quick job links in the primary utility bar without adding height on mobile", async ({
+  page,
+}) => {
   await page.goto("/vi");
 
   const utilityBar = page.locator(".marketing-home-utility-bar");
   await expect(utilityBar).toBeVisible();
+  const vietnameseUtilityNavigation = utilityBar.getByRole("navigation", {
+    name: "Khám phá việc làm nhanh",
+  });
   await expect(
-    utilityBar.getByText("UpNext — Nền tảng tuyển dụng IT", { exact: true }),
+    vietnameseUtilityNavigation.getByText("Khám phá nhanh", { exact: true }),
   ).toBeVisible();
-  await expect(utilityBar.getByRole("link")).toHaveCount(0);
+  await expect(vietnameseUtilityNavigation.getByRole("link", { name: "Việc mới" })).toHaveAttribute(
+    "href",
+    "/vi/jobs?sort=newest",
+  );
+  await expect(vietnameseUtilityNavigation.getByRole("link", { name: "Remote" })).toHaveAttribute(
+    "href",
+    "/vi/jobs?mode=remote",
+  );
+  await expect(vietnameseUtilityNavigation.getByRole("link", { name: "Fresher" })).toHaveAttribute(
+    "href",
+    "/vi/jobs?level=fresher",
+  );
+  await expect(
+    vietnameseUtilityNavigation.getByRole("link", { name: "Từ 60 triệu" }),
+  ).toHaveAttribute("href", "/vi/jobs?salaryRange=sal-60");
 
   await page.goto("/en");
+  const englishUtilityNavigation = utilityBar.getByRole("navigation", {
+    name: "Quick job discovery",
+  });
+  await expect(englishUtilityNavigation.getByText("Explore", { exact: true })).toBeVisible();
   await expect(
-    utilityBar.getByText("UpNext — IT recruitment platform", { exact: true }),
-  ).toBeVisible();
+    englishUtilityNavigation.getByRole("link", { name: "Latest roles" }),
+  ).toHaveAttribute("href", "/en/jobs?sort=newest");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(utilityBar).toBeHidden();
