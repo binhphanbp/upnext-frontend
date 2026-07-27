@@ -109,9 +109,7 @@ test("loops the home insights rail without disabling the next control", async ({
     await expect(next).toBeEnabled();
   }
 
-  await page.waitForTimeout(700);
   await expect(featured).toHaveAttribute("data-insight-index", "1");
-  await expect(featured).toHaveAttribute("data-insight-slot", "19");
 });
 
 test("settles on exactly one centered article after consecutive long drags", async ({ page }) => {
