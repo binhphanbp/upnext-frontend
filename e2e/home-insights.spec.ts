@@ -60,6 +60,35 @@ async function sectionActionSurface(locator: Locator) {
   });
 }
 
+async function expectFocusedCardIsCentered(section: Locator) {
+  const viewport = section.locator(".marketing-home-insights-viewport");
+  const featured = section.locator(".marketing-home-insights-card.is-featured");
+
+  await expect(featured).toHaveCount(1);
+  await expect
+    .poll(async () =>
+      section.evaluate(() => {
+        const viewportElement = document.querySelector<HTMLElement>(
+          ".marketing-home-insights-viewport",
+        );
+        const featuredElement = document.querySelector<HTMLElement>(
+          ".marketing-home-insights-card.is-featured",
+        );
+
+        if (!viewportElement || !featuredElement) return Number.POSITIVE_INFINITY;
+
+        const viewportRect = viewportElement.getBoundingClientRect();
+        const featuredRect = featuredElement.getBoundingClientRect();
+        return Math.abs(
+          featuredRect.left + featuredRect.width / 2 - (viewportRect.left + viewportRect.width / 2),
+        );
+      }),
+    )
+    .toBeLessThan(3);
+
+  await expect(viewport).not.toHaveClass(/is-dragging/);
+}
+
 test("loops the home insights rail without disabling the next control", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -83,6 +112,55 @@ test("loops the home insights rail without disabling the next control", async ({
   await page.waitForTimeout(700);
   await expect(featured).toHaveAttribute("data-insight-index", "1");
   await expect(featured).toHaveAttribute("data-insight-slot", "19");
+});
+
+test("settles on exactly one centered article after consecutive long drags", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await mockHomePosts(page);
+  await page.goto("/vi");
+
+  const section = page.locator(".marketing-home-insights");
+  const viewport = section.locator(".marketing-home-insights-viewport");
+  await expect(section.locator(".marketing-home-insights-card.is-featured")).toBeVisible();
+  await section.scrollIntoViewIfNeeded();
+  await expectFocusedCardIsCentered(section);
+
+  for (const deltaX of [-880, -760, 820, -930]) {
+    const viewportBox = await viewport.boundingBox();
+    expect(viewportBox).not.toBeNull();
+
+    const startX = viewportBox!.x + viewportBox!.width / 2;
+    const startY = viewportBox!.y + viewportBox!.height / 2;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + deltaX, startY, { steps: 2 });
+    await page.mouse.up();
+
+    await expectFocusedCardIsCentered(section);
+  }
+});
+
+test("uses the featured companies navigation treatment for insights controls", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await mockHomePosts(page);
+  await page.goto("/vi");
+
+  const insightsArrow = page
+    .locator(".marketing-home-insights")
+    .getByRole("button", { name: "Bài viết tiếp theo" });
+  const companiesArrow = page
+    .locator(".marketing-home-companies")
+    .getByRole("button", { name: "Trang sau" });
+
+  await expect(insightsArrow).toHaveClass(/marketing-home-carousel-nav/);
+  await expect(companiesArrow).toHaveClass(/marketing-home-carousel-nav/);
+  await expect(insightsArrow).toHaveCSS("width", "46px");
+  await expect(companiesArrow).toHaveCSS("width", "46px");
+
+  await insightsArrow.hover();
+  await expect(insightsArrow).toHaveCSS("background-color", "rgb(243, 253, 248)");
+  await expect(insightsArrow).toHaveCSS("color", "rgb(11, 127, 95)");
 });
 
 test("uses the latest posts API for carousel content and article destinations", async ({

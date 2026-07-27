@@ -546,7 +546,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
       <div className="marketing-home-co-stage">
         <button
           type="button"
-          className="marketing-home-co-arrow marketing-home-co-arrow-prev"
+          className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-prev"
           aria-label="Trang trước"
           onClick={() => step(-1)}
         >
@@ -634,7 +634,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
 
         <button
           type="button"
-          className="marketing-home-co-arrow marketing-home-co-arrow-next"
+          className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-next"
           aria-label="Trang sau"
           onClick={() => step(1)}
         >

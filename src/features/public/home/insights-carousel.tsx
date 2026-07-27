@@ -49,8 +49,7 @@ const fallbackImages = [
 const CAROUSEL_COPIES = 7;
 const CENTER_COPY = Math.floor(CAROUSEL_COPIES / 2);
 const DRAG_START_DISTANCE = 4;
-const SWIPE_DISTANCE_MIN = 36;
-const SWIPE_DISTANCE_MAX = 96;
+const SCROLL_SETTLE_DELAY = 140;
 
 const copyByLocale = {
   vi: {
@@ -154,16 +153,27 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
   const viewportRef = useRef<HTMLElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const draggedRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
   const activeSlotRef = useRef(initialSlot);
   const initialFrameRef = useRef<number | null>(null);
   const dragReleaseTimerRef = useRef<number | null>(null);
-  const recenterTimerRef = useRef<number | null>(null);
+  const scrollSettleTimerRef = useRef<number | null>(null);
   const pendingAlignmentRef = useRef<PendingAlignment | null>(null);
   const [activeSlot, setActiveSlot] = useState(initialSlot);
   const [isDragging, setIsDragging] = useState(false);
   const activeIndex = getWrappedIndex(activeSlot, articleCount);
 
+  const normalizeSlot = useCallback(
+    (slot: number) => {
+      if (!Number.isInteger(slot)) return activeSlotRef.current;
+
+      return slot < 0 || slot >= carouselItems.length ? getCenteredSlot(slot, articleCount) : slot;
+    },
+    [articleCount, carouselItems.length],
+  );
+
   const setCurrentSlot = useCallback((slot: number) => {
+    if (slot === activeSlotRef.current) return;
     activeSlotRef.current = slot;
     setActiveSlot(slot);
   }, []);
@@ -174,20 +184,24 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
     if (!viewport || !target) return;
 
     const left = Math.max(0, target.offsetLeft - (viewport.clientWidth - target.clientWidth) / 2);
+    if (Math.abs(viewport.scrollLeft - left) < 1) return;
+
+    isProgrammaticScrollRef.current = true;
     viewport.scrollTo({ left, behavior });
   }, []);
 
   const requestAlignment = useCallback(
     (slot: number, behavior: ScrollBehavior) => {
-      if (slot === activeSlotRef.current) {
-        window.requestAnimationFrame(() => alignSlot(slot, behavior));
+      const nextSlot = normalizeSlot(slot);
+      if (nextSlot === activeSlotRef.current) {
+        window.requestAnimationFrame(() => alignSlot(nextSlot, behavior));
         return;
       }
 
-      pendingAlignmentRef.current = { slot, behavior };
-      setCurrentSlot(slot);
+      pendingAlignmentRef.current = { slot: nextSlot, behavior };
+      setCurrentSlot(nextSlot);
     },
-    [alignSlot, setCurrentSlot],
+    [alignSlot, normalizeSlot, setCurrentSlot],
   );
 
   useLayoutEffect(() => {
@@ -198,38 +212,7 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
     alignSlot(activeSlot, pendingAlignment.behavior);
   }, [activeSlot, alignSlot]);
 
-  const recenterToMiddle = useCallback(() => {
-    const currentSlot = activeSlotRef.current;
-    const needsRecentering =
-      currentSlot <= articleCount || currentSlot >= articleCount * (CAROUSEL_COPIES - 1);
-
-    if (!needsRecentering) return;
-
-    requestAlignment(getCenteredSlot(currentSlot, articleCount), "auto");
-  }, [articleCount, requestAlignment]);
-
-  const queueRecentering = useCallback(() => {
-    if (recenterTimerRef.current !== null) window.clearTimeout(recenterTimerRef.current);
-
-    recenterTimerRef.current = window.setTimeout(() => {
-      recenterTimerRef.current = null;
-      if (!dragRef.current) recenterToMiddle();
-    }, 600);
-  }, [recenterToMiddle]);
-
-  const selectSlot = useCallback(
-    (slot: number, behavior = getScrollBehavior()) => {
-      const nextSlot =
-        slot < 0 || slot >= carouselItems.length ? getCenteredSlot(slot, articleCount) : slot;
-      if (recenterTimerRef.current !== null) window.clearTimeout(recenterTimerRef.current);
-
-      requestAlignment(nextSlot, behavior);
-      queueRecentering();
-    },
-    [articleCount, carouselItems.length, queueRecentering, requestAlignment],
-  );
-
-  const findNearestSlot = useCallback(() => {
+  const getNearestSlot = useCallback(() => {
     const viewport = viewportRef.current;
     if (!viewport) return activeSlotRef.current;
 
@@ -239,22 +222,57 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
 
     viewport.querySelectorAll<HTMLElement>("[data-insight-slot]").forEach((article) => {
       const articleRect = article.getBoundingClientRect();
+      const slot = Number(article.dataset.insightSlot);
+      if (!Number.isInteger(slot)) return;
+
       const distance = Math.abs(articleRect.left + articleRect.width / 2 - viewportCenter);
       if (distance < shortestDistance) {
         shortestDistance = distance;
-        nearestSlot = Number(article.dataset.insightSlot);
+        nearestSlot = slot;
       }
     });
 
     return nearestSlot;
   }, []);
 
+  const settleToNearestCard = useCallback(
+    (behavior: ScrollBehavior = "auto") => {
+      const currentSlot = getNearestSlot();
+      const needsRecentering =
+        currentSlot <= articleCount || currentSlot >= articleCount * (CAROUSEL_COPIES - 1);
+
+      requestAlignment(
+        needsRecentering ? getCenteredSlot(currentSlot, articleCount) : currentSlot,
+        behavior,
+      );
+    },
+    [articleCount, getNearestSlot, requestAlignment],
+  );
+
+  const queueScrollSettle = useCallback(() => {
+    if (scrollSettleTimerRef.current !== null) window.clearTimeout(scrollSettleTimerRef.current);
+
+    scrollSettleTimerRef.current = window.setTimeout(() => {
+      scrollSettleTimerRef.current = null;
+      if (!dragRef.current) settleToNearestCard();
+    }, SCROLL_SETTLE_DELAY);
+  }, [settleToNearestCard]);
+
+  const selectSlot = useCallback(
+    (slot: number, behavior = getScrollBehavior()) => {
+      if (scrollSettleTimerRef.current !== null) window.clearTimeout(scrollSettleTimerRef.current);
+
+      requestAlignment(slot, behavior);
+    },
+    [requestAlignment],
+  );
+
   useLayoutEffect(() => {
     initialFrameRef.current = window.requestAnimationFrame(() => alignSlot(initialSlot, "auto"));
     return () => {
       if (initialFrameRef.current !== null) window.cancelAnimationFrame(initialFrameRef.current);
       if (dragReleaseTimerRef.current !== null) window.clearTimeout(dragReleaseTimerRef.current);
-      if (recenterTimerRef.current !== null) window.clearTimeout(recenterTimerRef.current);
+      if (scrollSettleTimerRef.current !== null) window.clearTimeout(scrollSettleTimerRef.current);
     };
   }, [alignSlot, initialSlot]);
 
@@ -264,6 +282,7 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
     if (dragRef.current) return;
 
     const viewport = event.currentTarget;
+    isProgrammaticScrollRef.current = false;
     viewport.setPointerCapture(event.pointerId);
     dragRef.current = {
       pointerId: event.pointerId,
@@ -289,29 +308,13 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
 
+    dragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
-    const distance = event.clientX - drag.startX;
-    const viewport = event.currentTarget;
-    dragRef.current = null;
     setIsDragging(false);
-
-    const swipeDistance = Math.min(
-      SWIPE_DISTANCE_MAX,
-      Math.max(SWIPE_DISTANCE_MIN, viewport.clientWidth * 0.055),
-    );
-
-    if (Math.abs(distance) >= swipeDistance) {
-      const steps = Math.min(
-        2,
-        Math.max(1, Math.round(Math.abs(distance) / Math.max(1, viewport.clientWidth * 0.45))),
-      );
-      selectSlot(activeSlotRef.current + (distance < 0 ? steps : -steps));
-    } else {
-      selectSlot(findNearestSlot());
-    }
+    settleToNearestCard(getScrollBehavior());
 
     if (dragReleaseTimerRef.current !== null) window.clearTimeout(dragReleaseTimerRef.current);
     dragReleaseTimerRef.current = window.setTimeout(() => {
@@ -337,7 +340,7 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
       <div className="marketing-home-insights-stage">
         <button
           type="button"
-          className="marketing-home-insights-arrow marketing-home-insights-arrow-prev"
+          className="marketing-home-carousel-nav marketing-home-insights-arrow marketing-home-insights-arrow-prev"
           onClick={() => selectSlot(activeSlotRef.current - 1)}
           aria-label={copy.previous}
         >
@@ -353,9 +356,20 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
           onPointerMove={handlePointerMove}
           onPointerUp={finishDragging}
           onPointerCancel={finishDragging}
+          onLostPointerCapture={() => {
+            if (!dragRef.current) return;
+            dragRef.current = null;
+            setIsDragging(false);
+            settleToNearestCard(getScrollBehavior());
+          }}
           onDragStart={(event) => event.preventDefault()}
-          onScroll={queueRecentering}
-          onScrollEnd={recenterToMiddle}
+          onScroll={() => {
+            if (!isProgrammaticScrollRef.current) queueScrollSettle();
+          }}
+          onScrollEnd={() => {
+            isProgrammaticScrollRef.current = false;
+            settleToNearestCard();
+          }}
           onClickCapture={(event) => {
             if (draggedRef.current) {
               event.preventDefault();
@@ -406,7 +420,7 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
 
         <button
           type="button"
-          className="marketing-home-insights-arrow marketing-home-insights-arrow-next"
+          className="marketing-home-carousel-nav marketing-home-insights-arrow marketing-home-insights-arrow-next"
           onClick={() => selectSlot(activeSlotRef.current + 1)}
           aria-label={copy.next}
         >
