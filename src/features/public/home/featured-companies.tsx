@@ -10,13 +10,7 @@ import { useCandidateCompanyFollows } from "@/features/candidate/company-follows
 import { toast } from "@/shared/ui/toast";
 import { Tooltip, TooltipArrow, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 
-import {
-  getPublicCompanies,
-  getPublicCompanyDetail,
-  getPublicJobs,
-  type PublicCompany,
-  type PublicJob,
-} from "./api";
+import { getAllActivePublicCompanies, getPublicCompanyDetail } from "./api";
 import {
   ArrowRight,
   Briefcase,
@@ -44,47 +38,24 @@ type Company = {
 type FeaturedCompany = Company & {
   tags: string[];
   description: string;
-  /** Public company cover returned by the API. */
+  /** Cover photo under /public/assets/marketing/home/covers. Falls back to a gradient. */
   cover: string;
 };
 
 // Company IDs are assigned by the API. They have a UUID-like hexadecimal
 // shape, but the service does not guarantee RFC UUID version/variant bits.
+// Keep the shape check so marketing fallback IDs (for example, "fpt") are
+// never sent to the follow endpoint.
 const PERSISTABLE_COMPANY_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
-const COMPACT_COMPANIES_PER_PAGE = 9;
-const COMPANIES_PER_PAGE = COMPACT_COMPANIES_PER_PAGE + 1;
+type CompanyPage = {
+  featured: FeaturedCompany;
+  companies: Company[];
+};
 
-function formatCompanyType(type: string) {
-  return type
-    .toLocaleLowerCase()
-    .split(/[_\s-]+/u)
-    .filter(Boolean)
-    .map((word) => `${word.charAt(0).toLocaleUpperCase()}${word.slice(1)}`)
-    .join(" ");
-}
-
-function getJobCountsByCompany(jobs: PublicJob[] | undefined) {
-  const counts = new Map<string, number>();
-  for (const job of jobs ?? []) {
-    const companyId = job.company?.id;
-    if (companyId) counts.set(companyId, (counts.get(companyId) ?? 0) + 1);
-  }
-
-  return counts;
-}
-
-function toCompany(company: PublicCompany, jobCounts: ReadonlyMap<string, number>): Company {
-  return {
-    id: company.id,
-    name: company.name,
-    ...(company.slug ? { slug: company.slug } : {}),
-    category: formatCompanyType(company.type || "Technology"),
-    jobs: jobCounts.get(company.id) ?? 0,
-    logo: company.logoUrl || company.logoFile?.publicUrl || "",
-    logoColor: "#10b981",
-  };
+function getCompanyDetailPath(company: Company | FeaturedCompany) {
+  return company.slug ? `/companies/${encodeURIComponent(company.slug)}` : "/companies";
 }
 
 function Logo({ company }: { company: Company | FeaturedCompany }) {
@@ -112,18 +83,9 @@ function Logo({ company }: { company: Company | FeaturedCompany }) {
   );
 }
 
-/** Cover photo for the featured card; shows a loading state before a real fallback. */
-function CoverImage({ company, isLoading }: { company: FeaturedCompany; isLoading: boolean }) {
+/** Cover photo for the featured card; falls back to a brand gradient. */
+function CoverImage({ company }: { company: FeaturedCompany }) {
   const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    setFailed(false);
-  }, [company.cover]);
-
-  if (!company.cover && isLoading) {
-    return <span className="featured-company-featured-cover-loading" aria-hidden="true" />;
-  }
-
   if (!company.cover || failed) {
     return (
       <span
@@ -213,48 +175,58 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
   } = useCandidateCompanyFollows();
 
   const {
-    data: apiCompaniesData,
+    data: apiCosData,
     isError: isCompaniesError,
-    isLoading: isCompaniesLoading,
+    isPending: isCompaniesPending,
   } = useQuery({
-    queryKey: ["public-companies", { limit: COMPANIES_PER_PAGE, page: pageIndex + 1 }],
-    queryFn: () => getPublicCompanies({ limit: COMPANIES_PER_PAGE, page: pageIndex + 1 }),
-    staleTime: 5 * 60_000,
+    queryKey: ["public-companies", "all-active"],
+    queryFn: getAllActivePublicCompanies,
   });
 
-  const { data: apiJobsData, isLoading: isJobsLoading } = useQuery({
-    queryKey: ["public-jobs"],
-    queryFn: getPublicJobs,
-    staleTime: 5 * 60_000,
-  });
-  const jobCounts = useMemo(() => getJobCountsByCompany(apiJobsData), [apiJobsData]);
-  const page = useMemo(() => {
-    const sourceCompanies = apiCompaniesData?.items;
-    if (!sourceCompanies?.length) return null;
+  const pages = useMemo(() => {
+    const apiItems = apiCosData?.items ?? [];
+    const mapped: Company[] = apiItems.map((co) => ({
+      id: co.id,
+      name: co.name,
+      ...(co.slug ? { slug: co.slug } : {}),
+      category: co.type || "Technology",
+      jobs: co.activeJobsCount,
+      logo: co.logoUrl || co.logoFile?.publicUrl || "",
+      logoColor: "#10b981",
+    }));
 
-    const [spotlightSource, ...compactSources] = sourceCompanies;
-    const featuredCompany = toCompany(spotlightSource!, jobCounts);
+    const result: CompanyPage[] = [];
+    const PAGE_SIZE = 10;
 
-    return {
-      featured: {
-        ...featuredCompany,
-        cover: spotlightSource!.coverFile?.publicUrl || "",
-        tags: [featuredCompany.category],
-        description: spotlightSource!.description || "Thông tin công ty đang được cập nhật.",
-      } satisfies FeaturedCompany,
-      companies: compactSources
-        .map((company) => toCompany(company, jobCounts))
-        .slice(0, COMPACT_COMPANIES_PER_PAGE),
-    };
-  }, [apiCompaniesData?.items, jobCounts]);
-  const totalPages = apiCompaniesData?.meta.totalPages ?? 0;
-  const totalCompanies = apiCompaniesData?.meta.total ?? 0;
+    for (let i = 0; i < mapped.length; i += PAGE_SIZE) {
+      const chunk = mapped.slice(i, i + PAGE_SIZE);
+      const first = apiItems[i]!;
+      const featured: FeaturedCompany = {
+        id: first.id,
+        name: first.name,
+        ...(first.slug ? { slug: first.slug } : {}),
+        category: first.type || "Technology",
+        jobs: first.activeJobsCount,
+        logo: first.logoUrl || first.logoFile?.publicUrl || "",
+        logoColor: "#10b981",
+        cover: "",
+        tags: [first.type || "Technology"],
+        description: first.description || "",
+      };
 
-  useEffect(() => {
-    if (totalPages && pageIndex >= totalPages) setPageIndex(totalPages - 1);
-  }, [pageIndex, totalPages]);
+      result.push({
+        featured,
+        companies: chunk.slice(1),
+      });
+    }
 
-  const { data: featuredCompanyDetail, isFetching: isFeaturedCoverFetching } = useQuery({
+    return result;
+  }, [apiCosData]);
+
+  const page = pages[pageIndex] ?? null;
+  const totalPages = pages.length;
+
+  const { data: featuredCompanyDetail } = useQuery({
     queryKey: ["public-featured-company-cover", page?.featured.slug],
     queryFn: () => getPublicCompanyDetail(page!.featured.slug!),
     enabled: Boolean(page?.featured.slug && !page.featured.cover),
@@ -273,6 +245,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
   );
 
   const cards = useMemo(() => page?.companies.slice(0, visibleCount) ?? [], [page, visibleCount]);
+  const totalCompanies = apiCosData?.meta.total.toLocaleString(locale === "en" ? "en-US" : "vi-VN");
 
   function showFollowError() {
     toast.error(notificationCopy.followError);
@@ -320,7 +293,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
   }
 
   function step(delta: number) {
-    if (totalPages < 2) return;
+    if (totalPages === 0) return;
     setPageIndex((i) => (i + delta + totalPages) % totalPages);
   }
 
@@ -334,9 +307,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
         <div className="marketing-home-co-head-actions">
           <span className="marketing-home-co-count">
             <UsersRound size={16} />
-            {isCompaniesLoading
-              ? "Đang tải công ty"
-              : `${new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN").format(totalCompanies)} công ty tuyển dụng`}
+            {totalCompanies ?? "…"} công ty tuyển dụng
           </span>
           <button
             type="button"
@@ -360,7 +331,6 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
               type="button"
               className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-prev"
               aria-label="Trang trước"
-              disabled={totalPages < 2}
               onClick={() => step(-1)}
             >
               <ChevronLeft size={20} />
@@ -369,8 +339,6 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
             <div className="marketing-home-co-bento" key={pageIndex}>
               <FeaturedCard
                 company={featured}
-                coverLoading={isFeaturedCoverFetching && !featured.cover}
-                jobsLoading={isJobsLoading}
                 following={followedCompanyIds.includes(featured.id)}
                 onFollow={() => followCompany(featured)}
                 followUnavailable={isFollowUnavailable(featured.id)}
@@ -392,7 +360,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
                     <button
                       type="button"
                       className="featured-company-card-main"
-                      onClick={() => navigate("/companies")}
+                      onClick={() => navigate(getCompanyDetailPath(company))}
                     >
                       <span className="featured-company-logo">
                         <Logo company={company} />
@@ -402,7 +370,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
                         <span className="featured-company-cat">{company.category}</span>
                         <span className="featured-company-jobs">
                           <Briefcase size={14} />
-                          {isJobsLoading ? "Đang cập nhật việc làm" : `${company.jobs} việc làm`}
+                          {company.jobs} việc làm
                         </span>
                       </span>
                     </button>
@@ -453,34 +421,33 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
               type="button"
               className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-next"
               aria-label="Trang sau"
-              disabled={totalPages < 2}
               onClick={() => step(1)}
             >
               <ChevronRight size={20} />
             </button>
           </div>
 
-          {totalPages > 1 ? (
-            <div className="marketing-home-co-dots" role="tablist" aria-label="Chọn trang công ty">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === pageIndex}
-                  aria-label={`Trang ${i + 1}`}
-                  className={`marketing-home-co-dot${i === pageIndex ? " is-active" : ""}`}
-                  onClick={() => setPageIndex(i)}
-                />
-              ))}
-            </div>
-          ) : null}
+          <div className="marketing-home-co-dots" role="tablist" aria-label="Chọn trang công ty">
+            {pages.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                role="tab"
+                aria-selected={i === pageIndex}
+                aria-label={`Trang ${i + 1}`}
+                className={`marketing-home-co-dot${i === pageIndex ? " is-active" : ""}`}
+                onClick={() => setPageIndex(i)}
+              />
+            ))}
+          </div>
         </>
       ) : (
-        <p className="marketing-home-companies-empty" role={isCompaniesError ? "alert" : "status"}>
-          {isCompaniesError
-            ? "Không thể tải danh sách công ty lúc này. Vui lòng thử lại sau."
-            : "Danh sách công ty đang được cập nhật."}
+        <p className="marketing-home-action-error" role={isCompaniesPending ? "status" : "alert"}>
+          {isCompaniesPending
+            ? "Đang tải danh sách công ty…"
+            : isCompaniesError
+              ? "Không thể tải danh sách công ty từ hệ thống. Vui lòng thử lại."
+              : "Hiện chưa có công ty đang hoạt động."}
         </p>
       )}
 
@@ -497,8 +464,6 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
 
 function FeaturedCard({
   company,
-  coverLoading,
-  jobsLoading,
   following,
   onFollow,
   followUnavailable,
@@ -507,8 +472,6 @@ function FeaturedCard({
   navigate,
 }: {
   company: FeaturedCompany;
-  coverLoading: boolean;
-  jobsLoading: boolean;
   following: boolean;
   onFollow: () => void;
   followUnavailable: boolean;
@@ -519,7 +482,7 @@ function FeaturedCard({
   return (
     <article className="featured-company-featured">
       <div className="featured-company-featured-cover" aria-hidden="true">
-        <CoverImage company={company} isLoading={coverLoading} />
+        <CoverImage company={company} />
         {/* Gradient scrim blends the photo smoothly into the dark body. */}
         <span className="featured-company-featured-scrim" />
       </div>
@@ -535,18 +498,18 @@ function FeaturedCard({
             <i key={tag}>{tag}</i>
           ))}
         </div>
-        <p>{company.description}</p>
+        {company.description ? <p>{company.description}</p> : null}
         <span className="featured-company-featured-jobs">
           <Briefcase size={15} />
-          {jobsLoading ? "Đang cập nhật việc làm" : `${company.jobs} việc làm đang tuyển`}
+          {company.jobs} việc làm đang tuyển
         </span>
         <div className="featured-company-featured-actions">
           <button
             type="button"
             className="featured-company-featured-view"
-            onClick={() => navigate("/companies")}
+            onClick={() => navigate(getCompanyDetailPath(company))}
           >
-            Xem việc làm <ArrowRight size={15} />
+            Xem công ty <ArrowRight size={15} />
           </button>
           {followUnavailable ? (
             <span className="featured-company-featured-follow-status">Chưa hỗ trợ theo dõi</span>

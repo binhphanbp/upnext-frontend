@@ -8,7 +8,11 @@ import {
   saveCandidateJob,
   unsaveCandidateJob,
 } from "@/features/candidate/api/profile";
-import { getCandidateSession, type CandidateSession } from "@/features/candidate/session";
+import {
+  clearCandidateSession,
+  getCandidateSession,
+  type CandidateSession,
+} from "@/features/candidate/session";
 
 type ToggleSaveJobCallbacks = {
   onError?: () => void;
@@ -32,7 +36,30 @@ export function useCandidateSavedJobs() {
     enabled: Boolean(session),
     queryFn: () => getMySavedJobs(session!.accessToken),
     queryKey,
+    retry: (failureCount, error: any) => {
+      const status = error?.status || error?.statusCode;
+      if (status === 401 || status === 403 || error?.message?.includes("401")) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
+
+  useEffect(() => {
+    if (savedJobsQuery.isError) {
+      const err = savedJobsQuery.error as any;
+      const status = err?.status || err?.statusCode;
+      if (
+        status === 401 ||
+        status === 403 ||
+        err?.message?.includes("401") ||
+        err?.message?.includes("Unauthorized")
+      ) {
+        clearCandidateSession();
+        setSession(null);
+      }
+    }
+  }, [savedJobsQuery.isError, savedJobsQuery.error]);
   const mutation = useMutation({
     mutationFn: async ({ jobPostId, saved }: { jobPostId: string; saved: boolean }) => {
       if (!session) throw new Error("Candidate session is unavailable");
