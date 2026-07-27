@@ -56,9 +56,48 @@ type CompanyPage = {
   companies: Company[];
 };
 
+const COMPACT_COMPANIES_PER_PAGE = 9;
+
+/**
+ * API IDs are authoritative, but fallback and API records can represent the
+ * same company with different IDs. Use a human-stable key so one employer is
+ * never rendered twice in a single bento page.
+ */
+function companyKey(company: Pick<Company, "id" | "name" | "slug">) {
+  const normalizedSlug = company.slug?.trim().toLocaleLowerCase();
+  if (normalizedSlug) return `slug:${normalizedSlug}`;
+
+  const normalizedName = company.name.trim().toLocaleLowerCase();
+  if (normalizedName) return `name:${normalizedName}`;
+
+  return `id:${company.id}`;
+}
+
+function getCompactCompanies(
+  featured: Pick<Company, "id" | "name" | "slug">,
+  companies: Company[],
+  fallbackCompanies: Company[] = [],
+) {
+  const seen = new Set([companyKey(featured)]);
+  const compactCompanies: Company[] = [];
+
+  for (const company of [...companies, ...fallbackCompanies]) {
+    const key = companyKey(company);
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    compactCompanies.push(company);
+
+    if (compactCompanies.length === COMPACT_COMPANIES_PER_PAGE) break;
+  }
+
+  return compactCompanies;
+}
+
 // Each desktop page has one featured spotlight and 9 compact cards. The 3 + 2 +
 // 2 + 2 arrangement keeps the last row balanced while the spotlight fills the
-// third column across rows two to four.
+// third column across rows two to four. `getCompactCompanies` removes the
+// spotlight from this list before it is rendered.
 const staticPages: CompanyPage[] = [
   {
     featured: {
@@ -394,8 +433,13 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
   });
 
   const pages = useMemo(() => {
+    const normalizedStaticPages = staticPages.map((staticPage) => ({
+      ...staticPage,
+      companies: getCompactCompanies(staticPage.featured, staticPage.companies),
+    }));
+
     if (!apiCosData || !apiCosData.items || apiCosData.items.length === 0) {
-      return staticPages;
+      return normalizedStaticPages;
     }
 
     const mapped: Company[] = apiCosData.items.map((co) => ({
@@ -409,42 +453,27 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
     }));
 
     const result: CompanyPage[] = [];
-    const PAGE_SIZE = 11;
+    const PAGE_SIZE = COMPACT_COMPANIES_PER_PAGE + 1;
     const staticCos = staticPages.flatMap((p) => p.companies);
 
     for (let i = 0; i < mapped.length; i += PAGE_SIZE) {
       const chunk = mapped.slice(i, i + PAGE_SIZE);
-
-      // Pad chunk up to 11 elements using static companies to avoid empty slots in the grid
-      const paddedCompanies = [...chunk];
-      for (const staticCo of staticCos) {
-        if (paddedCompanies.length >= 11) break;
-        if (!paddedCompanies.some((c) => c.id === staticCo.id)) {
-          paddedCompanies.push(staticCo);
-        }
-      }
-
-      const first = apiCosData.items[i]!;
+      const first = chunk[0]!;
       const featured: FeaturedCompany = {
-        id: first.id,
-        name: first.name,
-        ...(first.slug ? { slug: first.slug } : {}),
-        category: first.type || "Technology",
-        jobs: 12,
-        logo: first.logoUrl || first.logoFile?.publicUrl || "",
+        ...first,
         logoColor: "#10b981",
         cover: "",
-        tags: [first.type || "Technology", "Partner"],
-        description: first.description || "Công ty công nghệ đối tác tiêu biểu.",
+        tags: [first.category, "Partner"],
+        description: apiCosData.items[i]?.description || "Công ty công nghệ đối tác tiêu biểu.",
       };
 
       result.push({
         featured,
-        companies: paddedCompanies,
+        companies: getCompactCompanies(featured, chunk.slice(1), staticCos),
       });
     }
 
-    return [...result, ...staticPages];
+    return [...result, ...normalizedStaticPages];
   }, [apiCosData]);
 
   const page = pages[pageIndex] || staticPages[0]!;

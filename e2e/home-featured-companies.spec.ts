@@ -1,9 +1,18 @@
 import { expect, test } from "@playwright/test";
 
-test("keeps the featured companies grid balanced and exposes the follow affordance", async ({
+test("keeps the featured companies grid balanced without repeating the spotlight company", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1200 });
+  await page.route(/\/api\/v1\/companies$/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        items: [],
+        meta: { total: 0, page: 1, limit: 9, totalPages: 0 },
+      }),
+    });
+  });
   await page.goto("/vi");
 
   const section = page.locator(".marketing-home-companies");
@@ -11,7 +20,10 @@ test("keeps the featured companies grid balanced and exposes the follow affordan
 
   await expect(section.locator(".featured-company-card")).toHaveCount(9);
   await expect(section.locator(".featured-company-featured")).toHaveCSS("grid-row", "2 / span 3");
-  await expect(section.locator(".featured-company-follow").first().locator("svg")).toBeVisible();
+  const spotlightName = await section.locator(".featured-company-featured h3").innerText();
+  await expect(
+    section.locator(".featured-company-card").filter({ hasText: spotlightName }),
+  ).toHaveCount(0);
 });
 
 test("loads the active company's cover image for the spotlight panel", async ({ page }) => {
@@ -47,12 +59,16 @@ test("loads the active company's cover image for the spotlight panel", async ({ 
 
   await page.goto("/vi");
 
+  const section = page.locator(".marketing-home-companies");
   const cover = page.locator(".featured-company-featured-cover-img");
   await expect(cover).toBeVisible();
   await expect(cover).toHaveAttribute("src", /fpt\.jpg/);
+  await expect(section.getByText("VNG Corporation", { exact: true })).toHaveCount(1);
 });
 
-test("persists company follow state and keeps duplicate cards in sync", async ({ page }) => {
+test("persists company follow state without duplicating the spotlight company", async ({
+  page,
+}) => {
   // Public-company IDs from the staging API are UUID-shaped but do not
   // necessarily use RFC UUID versions 1–5. This is CMC Corporation's ID.
   const companyId = "219b6dce-7203-f858-bd93-71b4ca72aa2b";
@@ -127,20 +143,15 @@ test("persists company follow state and keeps duplicate cards in sync", async ({
 
   const section = page.locator(".marketing-home-companies");
   const featuredFollow = section.locator(".featured-company-featured-follow");
+  await expect(section.getByText("Followable UpNext Labs", { exact: true })).toHaveCount(1);
   await expect(featuredFollow).toBeEnabled();
   await featuredFollow.hover();
   await expect(page.getByRole("tooltip")).toHaveText(
     "Theo dõi để nhận thông báo khi công ty có việc làm mới.",
   );
-  await featuredFollow.focus();
-  await expect(page.getByRole("tooltip")).toBeVisible();
   await featuredFollow.click();
   await expect.poll(() => following).toBe(true);
   await expect(featuredFollow).toHaveAttribute("aria-pressed", "true");
-  await expect(section.locator(".featured-company-follow").first()).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
 
   await page.mouse.move(0, 0);
   await featuredFollow.hover();
