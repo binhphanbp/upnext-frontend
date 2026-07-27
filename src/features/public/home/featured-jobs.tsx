@@ -79,6 +79,21 @@ function normalizeViewCount(viewCount: number | null | undefined) {
   return Math.floor(viewCount);
 }
 
+function formatJobLocation(job: PublicJob) {
+  const cities = Array.from(
+    new Set(
+      (job.jobPostLocations ?? [])
+        .map((location) => location.jobLocation?.city?.trim())
+        .filter((city): city is string => Boolean(city)),
+    ),
+  );
+
+  if (cities.length === 0) return "Việt Nam";
+  if (cities.length === 1) return cities[0]!;
+
+  return `${cities[0]} +${cities.length - 1}`;
+}
+
 function formatViewCount(viewCount: number, locale: string) {
   return new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN").format(viewCount);
 }
@@ -441,7 +456,7 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
       job.salaryIsVisible && job.salaryMin && job.salaryMax
         ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu`
         : "Thỏa thuận",
-    location: "Việt Nam",
+    location: formatJobLocation(job),
     mode: job.employmentType?.name || "Full-time",
     experience: job.experienceLevel?.name || "1 - 3 năm",
     tags:
