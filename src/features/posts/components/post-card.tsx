@@ -56,6 +56,12 @@ export function PostCard({ post }: PostCardProps) {
           <span>{formattedDate}</span>
           <span>•</span>
           <span>{readingTimeMinutes} phút đọc</span>
+          {typeof post.viewCount === "number" && (
+            <>
+              <span>•</span>
+              <span>{post.viewCount.toLocaleString("vi-VN")} lượt xem</span>
+            </>
+          )}
         </div>
 
         <h3 className="post-card-title">

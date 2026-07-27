@@ -40,6 +40,7 @@ export type Post = {
   metaTitle?: string | null;
   metaDescription?: string | null;
   metaKeywords?: string | null;
+  viewCount?: number;
   createdAt: string;
   updatedAt: string;
   thumbnailFile?: FileAsset | null;
@@ -59,10 +60,15 @@ export type PublicPostsQuery = {
 export type PaginatedPostsResponse = {
   items: Post[];
   meta: {
-    totalItems: number;
-    itemCount: number;
-    itemsPerPage: number;
-    totalPages: number;
-    currentPage: number;
+    totalItems?: number;
+    itemCount?: number;
+    itemsPerPage?: number;
+    totalPages?: number;
+    currentPage?: number;
+    total?: number;
+    page?: number;
+    limit?: number;
+    hasNextPage?: boolean;
+    hasPrevPage?: boolean;
   };
 };
