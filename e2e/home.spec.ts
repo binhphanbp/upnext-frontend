@@ -482,11 +482,13 @@ test("keeps every public header mega menu readable and inside the viewport", asy
       key: "jobs",
       label: "Việc làm IT",
       destinations: null,
+      directoryItems: null,
     },
     {
       key: "companies",
       label: "Công ty IT",
-      destinations: ["/vi/companies", "/vi/companies", "/vi/companies"],
+      destinations: ["/vi/companies", "/vi/companies", "/vi/companies", "/vi/companies"],
+      directoryItems: 3,
     },
     {
       key: "blog",
@@ -495,7 +497,9 @@ test("keeps every public header mega menu readable and inside the viewport", asy
         "/vi/posts?category=blog-upnext",
         "/vi/posts?category=su-nghiep-it",
         "/vi/posts?category=chuyen-mon-it",
+        "/vi/posts",
       ],
+      directoryItems: 3,
     },
     {
       key: "features",
@@ -507,7 +511,9 @@ test("keeps every public header mega menu readable and inside the viewport", asy
         "/vi/jobs",
         "/vi/register",
         "/vi/register",
+        "/vi/register",
       ],
+      directoryItems: 6,
     },
   ] as const;
 
@@ -524,6 +530,11 @@ test("keeps every public header mega menu readable and inside the viewport", asy
 
       await expect(trigger).toHaveAttribute("id", triggerId);
       await expect(trigger).toHaveAttribute("aria-controls", panelId);
+      await expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+      await trigger.click();
+      await expect(trigger).toHaveAttribute("aria-expanded", "true");
+      await page.keyboard.press("Escape");
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
 
       await trigger.focus();
@@ -548,6 +559,12 @@ test("keeps every public header mega menu readable and inside the viewport", asy
       );
       if (menuCase.destinations) {
         expect(destinations).toEqual(menuCase.destinations);
+        await expect(panel).toHaveClass(/marketing-home-directory-mega/);
+        await expect(panel.locator(".marketing-home-directory-summary")).toBeVisible();
+        await expect(panel.locator(".marketing-home-directory-items > li")).toHaveCount(
+          menuCase.directoryItems,
+        );
+        await expect(panel.locator(".marketing-home-directory-footer")).toBeVisible();
       } else {
         expect(destinations.every((destination) => destination.startsWith("/vi/jobs"))).toBe(true);
       }
@@ -563,7 +580,7 @@ test("keeps every public header mega menu readable and inside the viewport", asy
             .filter((item) => item.scrollWidth > item.clientWidth)
             .map((item) => item.textContent?.trim()),
           nonWrappingDescriptions: Array.from(
-            element.querySelectorAll<HTMLElement>(".marketing-home-mega-text small"),
+            element.querySelectorAll<HTMLElement>(".marketing-home-directory-text small"),
           ).filter((description) => getComputedStyle(description).whiteSpace !== "normal").length,
         };
       });

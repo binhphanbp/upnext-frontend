@@ -62,13 +62,22 @@ type MenuItem = {
   iconClass: string;
 };
 
+type LocalizedText = {
+  vi: string;
+  en: string;
+};
+
 type NavMenu = {
   key: string;
   label: string;
   eyebrow: string;
   tagline: string;
-  columns: 1 | 2;
   items: MenuItem[];
+  overview: {
+    label: LocalizedText;
+    description: LocalizedText;
+    path: string;
+  };
 };
 
 type Language = {
@@ -144,7 +153,6 @@ const navMenus: NavMenu[] = [
     label: "Việc làm IT",
     eyebrow: "Khám phá việc làm",
     tagline: "Tìm đúng vị trí theo chuyên môn và định hướng của bạn.",
-    columns: 2,
     items: [
       {
         label: "Frontend",
@@ -189,13 +197,20 @@ const navMenus: NavMenu[] = [
         iconClass: "feat-icon-learn",
       },
     ],
+    overview: {
+      label: { vi: "Xem tất cả việc làm", en: "View all jobs" },
+      description: {
+        vi: "Khám phá các cơ hội IT phù hợp với bạn",
+        en: "Explore IT opportunities that fit you",
+      },
+      path: "/jobs",
+    },
   },
   {
     key: "companies",
     label: "Công ty IT",
     eyebrow: "Nhà tuyển dụng",
     tagline: "Tìm hiểu công ty uy tín trước khi ứng tuyển.",
-    columns: 1,
     items: [
       {
         label: "Top công ty công nghệ",
@@ -219,13 +234,20 @@ const navMenus: NavMenu[] = [
         iconClass: "feat-icon-ai",
       },
     ],
+    overview: {
+      label: { vi: "Xem tất cả công ty", en: "View all companies" },
+      description: {
+        vi: "Khám phá nhà tuyển dụng đang hoạt động",
+        en: "Explore companies that are actively hiring",
+      },
+      path: "/companies",
+    },
   },
   {
     key: "blog",
     label: "Bài viết",
     eyebrow: "Kiến thức & insight",
     tagline: "Cập nhật xu hướng và kinh nghiệm nghề nghiệp IT.",
-    columns: 1,
     items: [
       {
         label: "Blog UpNext",
@@ -249,13 +271,20 @@ const navMenus: NavMenu[] = [
         iconClass: "feat-icon-salary",
       },
     ],
+    overview: {
+      label: { vi: "Xem tất cả bài viết", en: "View all articles" },
+      description: {
+        vi: "Cập nhật kiến thức và xu hướng nghề nghiệp IT",
+        en: "Stay current with IT career knowledge and trends",
+      },
+      path: "/posts",
+    },
   },
   {
     key: "features",
     label: "Tính năng",
     eyebrow: "Công cụ cho ứng viên IT",
     tagline: "Mọi thứ bạn cần để tìm việc có chiến lược, không rải CV.",
-    columns: 2,
     items: [
       {
         label: "Tạo CV chuẩn IT",
@@ -301,6 +330,14 @@ const navMenus: NavMenu[] = [
         iconClass: "feat-icon-learn",
       },
     ],
+    overview: {
+      label: { vi: "Khám phá các tính năng", en: "Explore features" },
+      description: {
+        vi: "Trang bị công cụ để tìm việc có chiến lược hơn",
+        en: "Use the tools that make your job search more strategic",
+      },
+      path: "/register",
+    },
   },
 ];
 
@@ -718,7 +755,14 @@ export function PublicHeader({
                 className="marketing-home-nav-trigger"
                 aria-controls={panelId}
                 aria-expanded={openMenu === menu.key}
-                onClick={() => setOpenMenu((open) => (open === menu.key ? null : menu.key))}
+                onClick={(event) => {
+                  if (event.detail > 0) {
+                    setOpenMenu(menu.key);
+                    return;
+                  }
+
+                  setOpenMenu((open) => (open === menu.key ? null : menu.key));
+                }}
               >
                 {navCopy?.label ?? menu.label}
                 <ChevronDown size={15} aria-hidden="true" />
@@ -726,7 +770,11 @@ export function PublicHeader({
 
               <div
                 id={panelId}
-                className={`marketing-home-mega${menu.key === "jobs" ? " marketing-home-jobs-mega" : ""}${menu.columns === 1 ? " is-single" : ""}`}
+                className={`marketing-home-mega${
+                  menu.key === "jobs"
+                    ? " marketing-home-jobs-mega"
+                    : " marketing-home-directory-mega"
+                }`}
                 aria-labelledby={triggerId}
               >
                 {menu.key === "jobs" ? (
@@ -736,42 +784,15 @@ export function PublicHeader({
                     onNavigate={() => setOpenMenu(null)}
                   />
                 ) : (
-                  <>
-                    <div className="marketing-home-mega-head">
-                      <span className="marketing-home-mega-eyebrow">
-                        <Sparkles size={14} aria-hidden="true" /> {navCopy?.eyebrow ?? menu.eyebrow}
-                      </span>
-                      <p>{navCopy?.tagline ?? menu.tagline}</p>
-                    </div>
-                    <ul className="marketing-home-mega-grid">
-                      {menu.items.map((item) => (
-                        <li key={item.label}>
-                          <Link
-                            className="marketing-home-mega-item"
-                            href={item.path}
-                            onClick={() => setOpenMenu(null)}
-                            prefetch={openMenu === menu.key ? null : false}
-                          >
-                            <i
-                              className={`marketing-home-mega-icon ${item.iconClass}`}
-                              aria-hidden="true"
-                            >
-                              {item.icon}
-                            </i>
-                            <span className="marketing-home-mega-text">
-                              <b>
-                                <span>{item.label}</span>
-                                {item.badge && (
-                                  <em className="marketing-home-mega-badge">{item.badge}</em>
-                                )}
-                              </b>
-                              <small>{item.desc}</small>
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
+                  <DirectoryMegaMenu
+                    menu={menu}
+                    locale={currentLocale}
+                    label={navCopy?.label ?? menu.label}
+                    eyebrow={navCopy?.eyebrow ?? menu.eyebrow}
+                    tagline={navCopy?.tagline ?? menu.tagline}
+                    isOpen={openMenu === menu.key}
+                    onNavigate={() => setOpenMenu(null)}
+                  />
                 )}
               </div>
             </div>
@@ -986,6 +1007,86 @@ export function PublicHeader({
         )}
       </div>
     </header>
+  );
+}
+
+function DirectoryMegaMenu({
+  menu,
+  locale,
+  label,
+  eyebrow,
+  tagline,
+  isOpen,
+  onNavigate,
+}: Readonly<{
+  menu: NavMenu;
+  locale: "vi" | "en";
+  label: string;
+  eyebrow: string;
+  tagline: string;
+  isOpen: boolean;
+  onNavigate: () => void;
+}>) {
+  const overview = menu.overview;
+
+  return (
+    <>
+      <div className="marketing-home-directory-body">
+        <aside className="marketing-home-directory-summary">
+          <span className="marketing-home-directory-eyebrow">
+            <Sparkles size={14} aria-hidden="true" />
+            {eyebrow}
+          </span>
+          <span className="marketing-home-directory-title">{label}</span>
+          <p>{tagline}</p>
+        </aside>
+
+        <ul className="marketing-home-directory-items" aria-label={label}>
+          {menu.items.map((item) => (
+            <li key={item.label}>
+              <Link
+                className="marketing-home-directory-item"
+                href={item.path}
+                onClick={onNavigate}
+                prefetch={isOpen ? null : false}
+              >
+                <i className={`marketing-home-directory-icon ${item.iconClass}`} aria-hidden="true">
+                  {item.icon}
+                </i>
+                <span className="marketing-home-directory-text">
+                  <b>
+                    <span>{item.label}</span>
+                    {item.badge ? <em>{item.badge}</em> : null}
+                  </b>
+                  <small>{item.desc}</small>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <Link
+        className="marketing-home-directory-footer"
+        href={overview.path}
+        aria-label={overview.label[locale]}
+        onClick={onNavigate}
+        prefetch={isOpen ? null : false}
+      >
+        <span className="marketing-home-directory-footer-icon" aria-hidden="true">
+          <ArrowUpRight size={21} />
+        </span>
+        <span>
+          <b>{overview.label[locale]}</b>
+          <small>{overview.description[locale]}</small>
+        </span>
+        <ChevronDown
+          className="marketing-home-directory-footer-arrow"
+          size={18}
+          aria-hidden="true"
+        />
+      </Link>
+    </>
   );
 }
 
