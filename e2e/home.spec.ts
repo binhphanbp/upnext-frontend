@@ -598,6 +598,23 @@ test("keeps every public header mega menu readable and inside the viewport", asy
   }
 });
 
+test("gives directory menu rows the same hover feedback as job rows", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/vi");
+
+  await page.getByRole("button", { name: "Công ty IT", exact: true }).click();
+  const firstItem = page
+    .locator("#public-nav-companies-panel .marketing-home-directory-item")
+    .first();
+
+  await firstItem.hover();
+  await expect(firstItem).toHaveCSS("background-color", "rgb(243, 250, 247)");
+  await expect(firstItem.locator(".marketing-home-directory-text b")).toHaveCSS(
+    "color",
+    "rgb(7, 135, 95)",
+  );
+});
+
 test("loads live backend data for every jobs menu category", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi");

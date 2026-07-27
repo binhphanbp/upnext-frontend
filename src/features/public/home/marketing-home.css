@@ -4725,6 +4725,10 @@ button.marketing-home-control {
     background: #f3faf7;
   }
 
+  .marketing-home-directory-item:hover .marketing-home-directory-text b {
+    color: #07875f;
+  }
+
   /* Employer: the standout pill — gradient deepens, border + shadow brighten,
      sheen sweeps across and the arrow shoots up-right. */
   .marketing-home-employer:hover {
