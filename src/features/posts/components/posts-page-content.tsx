@@ -425,62 +425,66 @@ export function PostsPageContent() {
               )}
 
               {/* PAGINATION */}
-              {meta && meta.totalPages > 1 && (
-                <div className="mt-10 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-600">
-                  <button
-                    type="button"
-                    className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(1)}
-                    aria-label="First page"
-                  >
-                    «
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    aria-label="Previous page"
-                  >
-                    ‹
-                  </button>
-
-                  {Array.from({ length: meta.totalPages }, (_, i) => i + 1).map((pageNum) => (
+              {(() => {
+                const totalPages = meta?.totalPages ?? 1;
+                if (totalPages <= 1) return null;
+                return (
+                  <div className="mt-10 flex items-center justify-center gap-1.5 text-xs font-medium text-slate-600">
                     <button
-                      key={pageNum}
                       type="button"
-                      className={`flex h-7 w-7 items-center justify-center rounded transition ${
-                        pageNum === currentPage
-                          ? "bg-slate-900 font-bold text-white"
-                          : "text-slate-700 hover:bg-slate-100"
-                      }`}
-                      onClick={() => setCurrentPage(pageNum)}
+                      className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(1)}
+                      aria-label="First page"
                     >
-                      {pageNum}
+                      «
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      aria-label="Previous page"
+                    >
+                      ‹
+                    </button>
 
-                  <button
-                    type="button"
-                    className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
-                    disabled={currentPage === meta.totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(meta.totalPages, p + 1))}
-                    aria-label="Next page"
-                  >
-                    ›
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
-                    disabled={currentPage === meta.totalPages}
-                    onClick={() => setCurrentPage(meta.totalPages)}
-                    aria-label="Last page"
-                  >
-                    »
-                  </button>
-                </div>
-              )}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        className={`flex h-7 w-7 items-center justify-center rounded transition ${
+                          pageNum === currentPage
+                            ? "bg-slate-900 font-bold text-white"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                        onClick={() => setCurrentPage(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+
+                    <button
+                      type="button"
+                      className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      aria-label="Next page"
+                    >
+                      ›
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(totalPages)}
+                      aria-label="Last page"
+                    >
+                      »
+                    </button>
+                  </div>
+                );
+              })()}
             </section>
           </>
         )}

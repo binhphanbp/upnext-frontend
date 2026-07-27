@@ -523,6 +523,12 @@
   margin-bottom: 24px;
 }
 
+.post-detail-content h2,
+.post-detail-content h3,
+.post-detail-content h4 {
+  scroll-margin-top: 100px;
+}
+
 .post-detail-content h2 {
   font-size: 24px;
   font-weight: 700;
@@ -537,12 +543,193 @@
   margin: 32px 0 14px;
 }
 
-.post-detail-content ul,
+.post-detail-content figure {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  margin-bottom: 24px !important;
+  display: block;
+}
+
+.post-detail-content figure img,
+.post-detail-content img {
+  box-shadow: none !important;
+  margin-bottom: 24px !important;
+  display: block;
+}
+
+.post-detail-content ul {
+  list-style-type: disc !important;
+  padding-left: 28px !important;
+  margin-bottom: 24px !important;
+}
+
 .post-detail-content ol {
-  margin-bottom: 24px;
-  padding-left: 24px;
+  list-style-type: decimal !important;
+  padding-left: 28px !important;
+  margin-bottom: 24px !important;
 }
 
 .post-detail-content li {
-  margin-bottom: 8px;
+  margin-bottom: 8px !important;
+  list-style-position: outside !important;
+}
+
+/* Code Block with Hover Copy Button */
+.post-detail-content pre {
+  position: relative !important;
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  padding: 20px 24px !important;
+  border-radius: 14px !important;
+  overflow-x: auto !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  margin-top: 16px !important;
+  margin-bottom: 24px !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12) !important;
+}
+
+.post-detail-content pre code {
+  background: none !important;
+  color: inherit !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+}
+
+.post-detail-content :not(pre) > code {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.code-copy-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.post-detail-content pre:hover .code-copy-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.code-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border-color: #10a778;
+}
+
+/* EZ-TOC / Table of Contents Component */
+.ez-toc-box {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px 24px 24px;
+  margin-bottom: 36px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.ez-toc-box:hover {
+  border-color: #cbd5e1;
+}
+
+.ez-toc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ez-toc-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.ez-toc-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ez-toc-toggle-btn:hover {
+  background-color: #f1f5f9;
+  color: #0b7f5f;
+  border-color: #0b7f5f;
+}
+
+.ez-toc-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  padding-bottom: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.ez-toc-item-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  line-height: 1.6;
+  transition: all 0.2s ease;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  width: 100%;
+}
+
+.ez-toc-item-link:hover {
+  color: #0b7f5f;
+  background-color: #f1f5f9;
+}
+
+.ez-toc-item-h2 {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.ez-toc-item-h3 {
+  margin-left: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
 }
