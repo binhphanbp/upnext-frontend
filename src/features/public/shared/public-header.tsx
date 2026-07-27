@@ -108,6 +108,9 @@ type JobsMenuEntry = {
 };
 
 type PublicHeaderCopy = {
+  utilityStatement: string;
+  utilityRecruiterPrompt: string;
+  utilityRecruiterAction: string;
   employerSmall: string;
   employerLabel: string;
   languageLabel: string;
@@ -476,6 +479,9 @@ const menuCloseDelayMs = 260;
 
 const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
   vi: {
+    utilityStatement: "Nền tảng tuyển dụng chuyên biệt cho nhân sự IT",
+    utilityRecruiterPrompt: "Bạn là nhà tuyển dụng?",
+    utilityRecruiterAction: "Đăng tuyển",
     employerSmall: "Dành cho",
     employerLabel: "Nhà Tuyển Dụng",
     languageLabel: "Chọn ngôn ngữ",
@@ -499,6 +505,9 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     savedJobsLabel: "Việc đã lưu",
   },
   en: {
+    utilityStatement: "A specialist recruitment platform for IT talent",
+    utilityRecruiterPrompt: "Are you hiring?",
+    utilityRecruiterAction: "Post a job",
     employerSmall: "Employer",
     employerLabel: "Hiring Hub",
     languageLabel: "Choose language",
@@ -791,303 +800,324 @@ export function PublicHeader({
 
   return (
     <header className="marketing-home-header">
-      <button
-        className="marketing-home-logo"
-        onClick={() => navigate("/")}
-        aria-label={copy.homeLabel}
-      >
-        <Image
-          src={upnextLogo.wordmark}
-          alt="UpNext"
-          width={158}
-          height={38}
-          priority
-          style={{ height: "auto", width: "auto" }}
-        />
-      </button>
-
-      <nav
-        className="marketing-home-nav"
-        aria-label={currentLocale === "en" ? "Primary navigation" : "Điều hướng chính"}
-        ref={navRef}
-      >
-        {navMenus.map((menu) => {
-          const triggerId = `public-nav-${menu.key}-trigger`;
-          const panelId = `public-nav-${menu.key}-panel`;
-
-          return (
-            <div
-              key={menu.key}
-              className={`marketing-home-nav-dd${openMenu === menu.key ? " is-open" : ""}`}
-              onMouseEnter={() => openMenuFromPointer(menu.key)}
-              onMouseLeave={scheduleMenuClose}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) {
-                  clearMenuCloseTimer();
-                  setOpenMenu(null);
-                }
-              }}
-            >
-              <button
-                id={triggerId}
-                type="button"
-                className="marketing-home-nav-trigger"
-                aria-controls={panelId}
-                aria-expanded={openMenu === menu.key}
-                onClick={(event) => {
-                  clearMenuCloseTimer();
-                  alignJobsMegaMenu(menu.key);
-                  if (event.detail > 0) {
-                    setOpenMenu(menu.key);
-                    return;
-                  }
-
-                  setOpenMenu((open) => (open === menu.key ? null : menu.key));
-                }}
-              >
-                {menu.label[currentLocale]}
-                <ChevronDown size={15} aria-hidden="true" />
-              </button>
-
-              <div
-                id={panelId}
-                className={`marketing-home-mega${
-                  menu.key === "jobs"
-                    ? " marketing-home-jobs-mega"
-                    : " marketing-home-directory-mega"
-                }`}
-                aria-labelledby={triggerId}
-                onMouseEnter={clearMenuCloseTimer}
-                style={
-                  menu.key === "jobs" && jobsMegaLeft !== null ? { left: jobsMegaLeft } : undefined
-                }
-              >
-                {menu.key === "jobs" ? (
-                  <JobsMegaMenu
-                    locale={currentLocale}
-                    isOpen={openMenu === menu.key}
-                    onNavigate={() => setOpenMenu(null)}
-                  />
-                ) : (
-                  <DirectoryMegaMenu
-                    menu={menu}
-                    locale={currentLocale}
-                    label={menu.label[currentLocale]}
-                    isOpen={openMenu === menu.key}
-                    onNavigate={() => setOpenMenu(null)}
-                  />
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </nav>
-
-      <div className="marketing-home-header-actions">
-        <button className="marketing-home-employer" onClick={() => navigate("/recruiter/login")}>
-          <span className="marketing-home-employer-text">
-            <small>{copy.employerSmall}</small>
-            <b>{copy.employerLabel}</b>
-          </span>
-          <ArrowUpRight className="marketing-home-employer-arrow" size={17} />
-        </button>
-
-        <span className="marketing-home-action-sep" aria-hidden="true" />
-
-        <div className={`marketing-home-lang${langOpen ? " is-open" : ""}`} ref={langRef}>
+      <div className="marketing-home-utility-bar">
+        <div className="marketing-home-utility-content">
+          <p>{copy.utilityStatement}</p>
           <button
             type="button"
-            className="marketing-home-lang-trigger"
-            aria-haspopup="listbox"
-            aria-expanded={langOpen}
-            aria-label={copy.languageLabel}
-            onClick={() => setLangOpen((open) => !open)}
+            className="marketing-home-utility-recruiter"
+            onClick={() => navigate("/recruiter/login")}
           >
-            <FlagIcon code={lang} />
-            <span>{lang}</span>
-            <ChevronDown size={14} />
+            <span>{copy.utilityRecruiterPrompt}</span>
+            <b>{copy.utilityRecruiterAction}</b>
+            <ArrowUpRight size={14} aria-hidden="true" />
           </button>
-
-          <ul className="marketing-home-lang-menu">
-            {languages.map((item) => (
-              <li key={item.code}>
-                <button
-                  type="button"
-                  className={`marketing-home-lang-option${lang === item.code ? " is-active" : ""}`}
-                  onClick={() => switchLanguage(item)}
-                >
-                  <FlagIcon code={item.code} label={item.flagLabel[currentLocale]} />
-                  <span className="marketing-home-lang-name">{item.label}</span>
-                  {lang === item.code && <Check size={15} />}
-                </button>
-              </li>
-            ))}
-          </ul>
         </div>
+      </div>
 
-        {effectiveViewer ? (
-          <div className="marketing-home-auth">
-            {effectiveViewer.unreadNotifications !== undefined && (
-              <button
-                type="button"
-                className="marketing-home-auth-icon"
-                aria-label={copy.notificationsLabel}
-                onClick={() => navigate("/candidate/notifications")}
+      <div className="marketing-home-header-main">
+        <button
+          className="marketing-home-logo"
+          onClick={() => navigate("/")}
+          aria-label={copy.homeLabel}
+        >
+          <Image
+            src={upnextLogo.wordmark}
+            alt="UpNext"
+            width={158}
+            height={38}
+            priority
+            style={{ height: "auto", width: "auto" }}
+          />
+        </button>
+
+        <nav
+          className="marketing-home-nav"
+          aria-label={currentLocale === "en" ? "Primary navigation" : "Điều hướng chính"}
+          ref={navRef}
+        >
+          {navMenus.map((menu) => {
+            const triggerId = `public-nav-${menu.key}-trigger`;
+            const panelId = `public-nav-${menu.key}-panel`;
+
+            return (
+              <div
+                key={menu.key}
+                className={`marketing-home-nav-dd${openMenu === menu.key ? " is-open" : ""}`}
+                onMouseEnter={() => openMenuFromPointer(menu.key)}
+                onMouseLeave={scheduleMenuClose}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    clearMenuCloseTimer();
+                    setOpenMenu(null);
+                  }
+                }}
               >
-                <Bell size={20} aria-hidden="true" />
-                {effectiveViewer.unreadNotifications ? (
-                  <span className="marketing-home-auth-badge">
-                    {effectiveViewer.unreadNotifications}
-                  </span>
-                ) : null}
-              </button>
-            )}
-            {recruiterChatAvailable ? (
-              <button
-                type="button"
-                className="marketing-home-auth-icon"
-                aria-label={copy.messagesLabel}
-                onClick={openRecruiterChat}
-              >
-                <ChatCircleText size={20} aria-hidden="true" />
-                {hasNewRecruiterMessages !== undefined && recruiterChatHasNewMessage ? (
-                  <span className="marketing-home-new-message-dot" aria-label="Có tin nhắn mới" />
-                ) : effectiveViewer.unreadMessages ? (
-                  <span className="marketing-home-auth-badge">
-                    {effectiveViewer.unreadMessages}
-                  </span>
-                ) : null}
-              </button>
-            ) : null}
-
-            <div
-              className={`marketing-home-account${accountOpen ? " is-open" : ""}`}
-              ref={accountRef}
-            >
-              <button
-                type="button"
-                className="marketing-home-account-trigger"
-                aria-label={copy.accountLabel}
-                aria-haspopup="menu"
-                aria-expanded={accountOpen}
-                onClick={() => setAccountOpen((open) => !open)}
-              >
-                <span className="marketing-home-account-avatar">{effectiveViewer.initials}</span>
-                <span className="marketing-home-account-copy">
-                  <b>{effectiveViewer.name}</b>
-                  <small>{effectiveViewer.roleLabel}</small>
-                </span>
-                <ChevronDown size={14} aria-hidden="true" />
-              </button>
-
-              <div className="marketing-home-account-menu" role="menu">
-                <div className="marketing-home-account-menu-profile">
-                  <span className="marketing-home-account-menu-avatar">
-                    {effectiveViewer.initials}
-                  </span>
-                  <span className="marketing-home-account-menu-identity">
-                    <b>{effectiveViewer.name}</b>
-                    <small>{effectiveViewer.email ?? effectiveViewer.name}</small>
-                  </span>
-                </div>
-
-                <AccountMenuGroup label={copy.accountGroup}>
-                  {effectiveViewer.workspaceHref !== "/candidate/profile" ? (
-                    <AccountMenuItem
-                      icon={<House size={18} aria-hidden="true" />}
-                      label={copy.overviewLabel}
-                      active={pathname === effectiveViewer.workspaceHref}
-                      onClick={() => {
-                        setAccountOpen(false);
-                        navigate(effectiveViewer.workspaceHref);
-                      }}
-                    />
-                  ) : null}
-                  <AccountMenuItem
-                    icon={<UserCircle size={18} aria-hidden="true" />}
-                    label={copy.profileLabel}
-                    active={isCandidatePathActive("/candidate/profile") && !isJobPreferencesActive}
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate("/candidate/profile");
-                    }}
-                  />
-                  <AccountMenuItem
-                    icon={<FileTextIcon size={18} aria-hidden="true" />}
-                    label={copy.resumesLabel}
-                    active={isCandidatePathActive("/candidate/cv-builder")}
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate("/candidate/cv-builder");
-                    }}
-                  />
-                  <AccountMenuItem
-                    icon={<BriefcaseBusiness size={18} aria-hidden="true" />}
-                    label={copy.jobPreferencesLabel}
-                    active={isJobPreferencesActive}
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate("/candidate/profile?section=preferences");
-                    }}
-                  />
-                </AccountMenuGroup>
-
-                <AccountMenuGroup label={copy.activityGroup}>
-                  <AccountMenuItem
-                    icon={<PaperPlaneTilt size={18} aria-hidden="true" />}
-                    label={copy.applicationsLabel}
-                    active={isCandidatePathActive("/candidate/applications")}
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate("/candidate/applications");
-                    }}
-                  />
-                  <AccountMenuItem
-                    icon={<ChatCircleText size={18} aria-hidden="true" />}
-                    label={copy.recruiterChatLabel}
-                    indicator={recruiterChatHasNewMessage}
-                    onClick={openRecruiterChat}
-                  />
-                  <AccountMenuItem
-                    icon={<BookmarkSimple size={18} aria-hidden="true" />}
-                    label={copy.savedJobsLabel}
-                    active={isCandidatePathActive("/candidate/saved-jobs")}
-                    onClick={() => {
-                      setAccountOpen(false);
-                      navigate("/candidate/saved-jobs");
-                    }}
-                  />
-                </AccountMenuGroup>
-
-                <span className="marketing-home-account-menu-sep" aria-hidden="true" />
                 <button
+                  id={triggerId}
                   type="button"
-                  role="menuitem"
-                  className="is-danger"
-                  onClick={() => {
-                    setAccountOpen(false);
-                    clearCandidateSession();
-                    window.localStorage.removeItem(demoAuthStorageKey);
-                    window.dispatchEvent(new Event(demoAuthChangeEvent));
-                    navigate("/");
+                  className="marketing-home-nav-trigger"
+                  aria-controls={panelId}
+                  aria-expanded={openMenu === menu.key}
+                  onClick={(event) => {
+                    clearMenuCloseTimer();
+                    alignJobsMegaMenu(menu.key);
+                    if (event.detail > 0) {
+                      setOpenMenu(menu.key);
+                      return;
+                    }
+
+                    setOpenMenu((open) => (open === menu.key ? null : menu.key));
                   }}
                 >
-                  <SignOut size={18} aria-hidden="true" />
-                  {copy.logoutLabel}
+                  {menu.label[currentLocale]}
+                  <ChevronDown size={15} aria-hidden="true" />
                 </button>
+
+                <div
+                  id={panelId}
+                  className={`marketing-home-mega${
+                    menu.key === "jobs"
+                      ? " marketing-home-jobs-mega"
+                      : " marketing-home-directory-mega"
+                  }`}
+                  aria-labelledby={triggerId}
+                  onMouseEnter={clearMenuCloseTimer}
+                  style={
+                    menu.key === "jobs" && jobsMegaLeft !== null
+                      ? { left: jobsMegaLeft }
+                      : undefined
+                  }
+                >
+                  {menu.key === "jobs" ? (
+                    <JobsMegaMenu
+                      locale={currentLocale}
+                      isOpen={openMenu === menu.key}
+                      onNavigate={() => setOpenMenu(null)}
+                    />
+                  ) : (
+                    <DirectoryMegaMenu
+                      menu={menu}
+                      locale={currentLocale}
+                      label={menu.label[currentLocale]}
+                      isOpen={openMenu === menu.key}
+                      onNavigate={() => setOpenMenu(null)}
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="marketing-home-header-actions">
+          <button className="marketing-home-employer" onClick={() => navigate("/recruiter/login")}>
+            <span className="marketing-home-employer-text">
+              <small>{copy.employerSmall}</small>
+              <b>{copy.employerLabel}</b>
+            </span>
+            <ArrowUpRight className="marketing-home-employer-arrow" size={17} />
+          </button>
+
+          <span className="marketing-home-action-sep" aria-hidden="true" />
+
+          <div className={`marketing-home-lang${langOpen ? " is-open" : ""}`} ref={langRef}>
+            <button
+              type="button"
+              className="marketing-home-lang-trigger"
+              aria-haspopup="listbox"
+              aria-expanded={langOpen}
+              aria-label={copy.languageLabel}
+              onClick={() => setLangOpen((open) => !open)}
+            >
+              <FlagIcon code={lang} />
+              <span>{lang}</span>
+              <ChevronDown size={14} />
+            </button>
+
+            <ul className="marketing-home-lang-menu">
+              {languages.map((item) => (
+                <li key={item.code}>
+                  <button
+                    type="button"
+                    className={`marketing-home-lang-option${lang === item.code ? " is-active" : ""}`}
+                    onClick={() => switchLanguage(item)}
+                  >
+                    <FlagIcon code={item.code} label={item.flagLabel[currentLocale]} />
+                    <span className="marketing-home-lang-name">{item.label}</span>
+                    {lang === item.code && <Check size={15} />}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {effectiveViewer ? (
+            <div className="marketing-home-auth">
+              {effectiveViewer.unreadNotifications !== undefined && (
+                <button
+                  type="button"
+                  className="marketing-home-auth-icon"
+                  aria-label={copy.notificationsLabel}
+                  onClick={() => navigate("/candidate/notifications")}
+                >
+                  <Bell size={20} aria-hidden="true" />
+                  {effectiveViewer.unreadNotifications ? (
+                    <span className="marketing-home-auth-badge">
+                      {effectiveViewer.unreadNotifications}
+                    </span>
+                  ) : null}
+                </button>
+              )}
+              {recruiterChatAvailable ? (
+                <button
+                  type="button"
+                  className="marketing-home-auth-icon"
+                  aria-label={copy.messagesLabel}
+                  onClick={openRecruiterChat}
+                >
+                  <ChatCircleText size={20} aria-hidden="true" />
+                  {hasNewRecruiterMessages !== undefined && recruiterChatHasNewMessage ? (
+                    <span className="marketing-home-new-message-dot" aria-label="Có tin nhắn mới" />
+                  ) : effectiveViewer.unreadMessages ? (
+                    <span className="marketing-home-auth-badge">
+                      {effectiveViewer.unreadMessages}
+                    </span>
+                  ) : null}
+                </button>
+              ) : null}
+
+              <div
+                className={`marketing-home-account${accountOpen ? " is-open" : ""}`}
+                ref={accountRef}
+              >
+                <button
+                  type="button"
+                  className="marketing-home-account-trigger"
+                  aria-label={copy.accountLabel}
+                  aria-haspopup="menu"
+                  aria-expanded={accountOpen}
+                  onClick={() => setAccountOpen((open) => !open)}
+                >
+                  <span className="marketing-home-account-avatar">{effectiveViewer.initials}</span>
+                  <span className="marketing-home-account-copy">
+                    <b>{effectiveViewer.name}</b>
+                    <small>{effectiveViewer.roleLabel}</small>
+                  </span>
+                  <ChevronDown size={14} aria-hidden="true" />
+                </button>
+
+                <div className="marketing-home-account-menu" role="menu">
+                  <div className="marketing-home-account-menu-profile">
+                    <span className="marketing-home-account-menu-avatar">
+                      {effectiveViewer.initials}
+                    </span>
+                    <span className="marketing-home-account-menu-identity">
+                      <b>{effectiveViewer.name}</b>
+                      <small>{effectiveViewer.email ?? effectiveViewer.name}</small>
+                    </span>
+                  </div>
+
+                  <AccountMenuGroup label={copy.accountGroup}>
+                    {effectiveViewer.workspaceHref !== "/candidate/profile" ? (
+                      <AccountMenuItem
+                        icon={<House size={18} aria-hidden="true" />}
+                        label={copy.overviewLabel}
+                        active={pathname === effectiveViewer.workspaceHref}
+                        onClick={() => {
+                          setAccountOpen(false);
+                          navigate(effectiveViewer.workspaceHref);
+                        }}
+                      />
+                    ) : null}
+                    <AccountMenuItem
+                      icon={<UserCircle size={18} aria-hidden="true" />}
+                      label={copy.profileLabel}
+                      active={
+                        isCandidatePathActive("/candidate/profile") && !isJobPreferencesActive
+                      }
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate("/candidate/profile");
+                      }}
+                    />
+                    <AccountMenuItem
+                      icon={<FileTextIcon size={18} aria-hidden="true" />}
+                      label={copy.resumesLabel}
+                      active={isCandidatePathActive("/candidate/cv-builder")}
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate("/candidate/cv-builder");
+                      }}
+                    />
+                    <AccountMenuItem
+                      icon={<BriefcaseBusiness size={18} aria-hidden="true" />}
+                      label={copy.jobPreferencesLabel}
+                      active={isJobPreferencesActive}
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate("/candidate/profile?section=preferences");
+                      }}
+                    />
+                  </AccountMenuGroup>
+
+                  <AccountMenuGroup label={copy.activityGroup}>
+                    <AccountMenuItem
+                      icon={<PaperPlaneTilt size={18} aria-hidden="true" />}
+                      label={copy.applicationsLabel}
+                      active={isCandidatePathActive("/candidate/applications")}
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate("/candidate/applications");
+                      }}
+                    />
+                    <AccountMenuItem
+                      icon={<ChatCircleText size={18} aria-hidden="true" />}
+                      label={copy.recruiterChatLabel}
+                      indicator={recruiterChatHasNewMessage}
+                      onClick={openRecruiterChat}
+                    />
+                    <AccountMenuItem
+                      icon={<BookmarkSimple size={18} aria-hidden="true" />}
+                      label={copy.savedJobsLabel}
+                      active={isCandidatePathActive("/candidate/saved-jobs")}
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate("/candidate/saved-jobs");
+                      }}
+                    />
+                  </AccountMenuGroup>
+
+                  <span className="marketing-home-account-menu-sep" aria-hidden="true" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="is-danger"
+                    onClick={() => {
+                      setAccountOpen(false);
+                      clearCandidateSession();
+                      window.localStorage.removeItem(demoAuthStorageKey);
+                      window.dispatchEvent(new Event(demoAuthChangeEvent));
+                      navigate("/");
+                    }}
+                  >
+                    <SignOut size={18} aria-hidden="true" />
+                    {copy.logoutLabel}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <>
-            <button className="marketing-home-login" onClick={() => navigate("/login")}>
-              {copy.login}
-            </button>
-            <button className="marketing-home-register" onClick={() => navigate("/register")}>
-              {copy.register}
-            </button>
-          </>
-        )}
+          ) : (
+            <>
+              <button className="marketing-home-login" onClick={() => navigate("/login")}>
+                {copy.login}
+              </button>
+              <button className="marketing-home-register" onClick={() => navigate("/register")}>
+                {copy.register}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

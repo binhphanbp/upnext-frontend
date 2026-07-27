@@ -454,6 +454,31 @@ test("uses semibold weight across header navigation and actions", async ({ page 
   );
 });
 
+test("uses a localized compact utility bar without adding height on mobile", async ({ page }) => {
+  await page.goto("/vi");
+
+  const utilityBar = page.locator(".marketing-home-utility-bar");
+  await expect(utilityBar).toBeVisible();
+  await expect(
+    utilityBar.getByText("Nền tảng tuyển dụng chuyên biệt cho nhân sự IT", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    utilityBar.getByRole("button", { name: "Bạn là nhà tuyển dụng? Đăng tuyển" }),
+  ).toBeVisible();
+
+  await page.goto("/en");
+  await expect(
+    utilityBar.getByText("A specialist recruitment platform for IT talent", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    utilityBar.getByRole("button", { name: "Are you hiring? Post a job" }),
+  ).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(utilityBar).toBeHidden();
+  await expect(page.locator(".marketing-home-header-main")).toHaveCSS("min-height", "64px");
+});
+
 test("localizes header navigation and mega menus without mixed-language labels", async ({
   page,
 }) => {

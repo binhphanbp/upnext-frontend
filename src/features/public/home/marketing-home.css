@@ -18,28 +18,84 @@
 }
 
 .marketing-home-header {
-  --marketing-home-header-height: 72px;
+  --marketing-home-utility-height: 32px;
+  --marketing-home-main-header-height: 72px;
+  --marketing-home-header-height: calc(
+    var(--marketing-home-utility-height) + var(--marketing-home-main-header-height)
+  );
   position: sticky;
   top: 0;
   right: 0;
   left: 0;
   z-index: 1000;
   isolation: isolate;
-  min-height: var(--marketing-home-header-height);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.marketing-home-utility-bar {
+  min-height: var(--marketing-home-utility-height);
+  border-bottom: 1px solid #edf2f0;
+  background: rgba(248, 251, 250, 0.84);
+}
+
+.marketing-home-utility-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  min-height: var(--marketing-home-utility-height);
+  padding: 0 48px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.marketing-home-utility-content p {
+  margin: 0;
+}
+
+.marketing-home-utility-recruiter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 0;
+  border: 0;
+  color: #475569;
+  background: transparent;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.marketing-home-utility-recruiter b {
+  color: #07875f;
+  font-weight: 600;
+}
+
+.marketing-home-utility-recruiter svg {
+  color: #0aa56f;
+  transition: transform 180ms ease;
+}
+
+.marketing-home-header-main {
+  min-height: var(--marketing-home-main-header-height);
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
   gap: 24px 44px;
   padding: 0 48px;
   border-bottom: 1px solid #e5e7eb;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
 .marketing-home-logo,
 .marketing-home-nav-trigger,
-.marketing-home-header-actions button {
+.marketing-home-header-actions button,
+.marketing-home-utility-recruiter {
   border: 0;
   background: transparent;
 }
@@ -1049,7 +1105,8 @@
 
 .marketing-home-logo:focus-visible,
 .marketing-home-nav-trigger:focus-visible,
-.marketing-home-header-actions button:focus-visible {
+.marketing-home-header-actions button:focus-visible,
+.marketing-home-utility-recruiter:focus-visible {
   outline: 2px solid rgba(16, 167, 120, 0.35);
   outline-offset: 3px;
 }
@@ -4693,6 +4750,7 @@ button.marketing-home-control {
 @media (hover: hover) {
   .marketing-home-nav-trigger,
   .marketing-home-header-actions button,
+  .marketing-home-utility-recruiter,
   .marketing-home-search-submit,
   .marketing-home-popular button {
     transition:
@@ -4714,6 +4772,14 @@ button.marketing-home-control {
 
   .marketing-home-nav-dd:hover .marketing-home-nav-trigger svg {
     transform: rotate(180deg);
+  }
+
+  .marketing-home-utility-recruiter:hover {
+    color: #0b7f5f;
+  }
+
+  .marketing-home-utility-recruiter:hover svg {
+    transform: translate(2px, -2px);
   }
 
   .marketing-home-jobs-categories button:not(.is-active):hover,
@@ -4989,10 +5055,18 @@ button.marketing-home-control {
 }
 
 @media (max-width: 1180px) {
-  .marketing-home-header {
+  .marketing-home-utility-content,
+  .marketing-home-header-main {
+    padding: 0 30px;
+  }
+
+  .marketing-home-utility-content {
+    gap: 16px;
+  }
+
+  .marketing-home-header-main {
     grid-template-columns: auto auto minmax(0, 1fr);
     gap: 24px 30px;
-    padding: 0 30px;
   }
 
   .marketing-home-nav {
@@ -5161,9 +5235,48 @@ button.marketing-home-control {
   }
 }
 
+/* Keep every action visible through the compact-desktop range.  This is a
+   density adjustment only; tablet switches to its dedicated header below. */
+@media (min-width: 1181px) and (max-width: 1360px) {
+  .marketing-home-utility-content,
+  .marketing-home-header-main {
+    padding-inline: 30px;
+  }
+
+  .marketing-home-header-main {
+    gap: 24px 30px;
+  }
+
+  .marketing-home-nav {
+    gap: 28px;
+  }
+
+  .marketing-home-header-actions {
+    gap: 8px;
+  }
+
+  .marketing-home-header-actions .marketing-home-employer {
+    gap: 7px;
+    padding-inline: 12px 11px;
+  }
+
+  .marketing-home-header-actions .marketing-home-login,
+  .marketing-home-header-actions .marketing-home-register {
+    padding-inline: 16px;
+  }
+}
+
 @media (max-width: 820px) {
   .marketing-home-header {
-    min-height: 64px;
+    --marketing-home-utility-height: 0px;
+    --marketing-home-main-header-height: 64px;
+  }
+
+  .marketing-home-utility-bar {
+    display: none;
+  }
+
+  .marketing-home-header-main {
     grid-template-columns: 1fr auto;
     padding: 0 20px;
   }
