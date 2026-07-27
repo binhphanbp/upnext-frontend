@@ -560,11 +560,11 @@ test("keeps every public header mega menu readable and inside the viewport", asy
       if (menuCase.destinations) {
         expect(destinations).toEqual(menuCase.destinations);
         await expect(panel).toHaveClass(/marketing-home-directory-mega/);
-        await expect(panel.locator(".marketing-home-directory-summary")).toBeVisible();
         await expect(panel.locator(".marketing-home-directory-items > li")).toHaveCount(
           menuCase.directoryItems,
         );
         await expect(panel.locator(".marketing-home-directory-footer")).toBeVisible();
+        await expect(panel.locator(".marketing-home-directory-icon")).toHaveCount(0);
       } else {
         expect(destinations.every((destination) => destination.startsWith("/vi/jobs"))).toBe(true);
       }

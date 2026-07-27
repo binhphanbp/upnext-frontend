@@ -48,7 +48,6 @@ import {
   Route,
   ShieldCheck,
   Smartphone,
-  Sparkles,
   Star,
   WalletCards,
 } from "../home/marketing-icons";
@@ -788,8 +787,6 @@ export function PublicHeader({
                     menu={menu}
                     locale={currentLocale}
                     label={navCopy?.label ?? menu.label}
-                    eyebrow={navCopy?.eyebrow ?? menu.eyebrow}
-                    tagline={navCopy?.tagline ?? menu.tagline}
                     isOpen={openMenu === menu.key}
                     onNavigate={() => setOpenMenu(null)}
                   />
@@ -1014,16 +1011,12 @@ function DirectoryMegaMenu({
   menu,
   locale,
   label,
-  eyebrow,
-  tagline,
   isOpen,
   onNavigate,
 }: Readonly<{
   menu: NavMenu;
   locale: "vi" | "en";
   label: string;
-  eyebrow: string;
-  tagline: string;
   isOpen: boolean;
   onNavigate: () => void;
 }>) {
@@ -1032,15 +1025,6 @@ function DirectoryMegaMenu({
   return (
     <>
       <div className="marketing-home-directory-body">
-        <aside className="marketing-home-directory-summary">
-          <span className="marketing-home-directory-eyebrow">
-            <Sparkles size={14} aria-hidden="true" />
-            {eyebrow}
-          </span>
-          <span className="marketing-home-directory-title">{label}</span>
-          <p>{tagline}</p>
-        </aside>
-
         <ul className="marketing-home-directory-items" aria-label={label}>
           {menu.items.map((item) => (
             <li key={item.label}>
@@ -1050,9 +1034,6 @@ function DirectoryMegaMenu({
                 onClick={onNavigate}
                 prefetch={isOpen ? null : false}
               >
-                <i className={`marketing-home-directory-icon ${item.iconClass}`} aria-hidden="true">
-                  {item.icon}
-                </i>
                 <span className="marketing-home-directory-text">
                   <b>
                     <span>{item.label}</span>
