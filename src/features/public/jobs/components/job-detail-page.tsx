@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
+import { checkAppliedJob } from "@/features/candidate/api/profile";
+import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
@@ -262,7 +264,16 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
     savedJobIds,
     toggleSaveJob,
   } = useCandidateSavedJobs();
+  const { session } = useCandidateProfileWorkspace();
   const saved = savedJobIds.includes(job.id);
+
+  const { data: appliedData } = useQuery({
+    queryKey: ["check-applied-job", job.id, session?.user.id],
+    queryFn: () => checkAppliedJob(session!.accessToken, job.id),
+    enabled: Boolean(session && session.accessToken && job?.id),
+  });
+
+  const hasApplied = appliedData?.applied === true;
   const [isOpenApply, setIsOpenApply] = useState(false);
 
   const similarJobs = useMemo(
@@ -350,20 +361,27 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               </div>
 
               <div className="job-detail-action-row">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const session = getCandidateSession();
-                    if (session) {
-                      setIsOpenApply(true);
-                    } else {
-                      navigate(`/register?job=${job.id}`);
-                    }
-                  }}
-                >
-                  <PaperPlaneTilt size={18} />
-                  Ứng tuyển ngay
-                </button>
+                {hasApplied ? (
+                  <button type="button" disabled className="is-applied">
+                    <CheckCircle size={18} weight="fill" />
+                    Đã ứng tuyển
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const session = getCandidateSession();
+                      if (session) {
+                        setIsOpenApply(true);
+                      } else {
+                        navigate(`/register?job=${job.id}`);
+                      }
+                    }}
+                  >
+                    <PaperPlaneTilt size={18} />
+                    Ứng tuyển ngay
+                  </button>
+                )}
                 <button
                   type="button"
                   className={saved ? "is-saved" : ""}
@@ -493,20 +511,27 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
             <section className="job-detail-card job-detail-ready-card">
               <h2>Sẵn sàng ứng tuyển?</h2>
               <p>Gia tăng cơ hội với hồ sơ nổi bật</p>
-              <button
-                type="button"
-                onClick={() => {
-                  const session = getCandidateSession();
-                  if (session) {
-                    setIsOpenApply(true);
-                  } else {
-                    navigate(`/register?job=${job.id}`);
-                  }
-                }}
-              >
-                <PaperPlaneTilt size={18} />
-                Ứng tuyển ngay
-              </button>
+              {hasApplied ? (
+                <button type="button" disabled className="is-applied">
+                  <CheckCircle size={18} weight="fill" />
+                  Đã ứng tuyển
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const session = getCandidateSession();
+                    if (session) {
+                      setIsOpenApply(true);
+                    } else {
+                      navigate(`/register?job=${job.id}`);
+                    }
+                  }}
+                >
+                  <PaperPlaneTilt size={18} />
+                  Ứng tuyển ngay
+                </button>
+              )}
               <button type="button">
                 <Coins size={18} />
                 Xem lương phù hợp
@@ -660,9 +685,9 @@ function InfoLine({ icon, label, value }: { icon: ReactNode; label: string; valu
   return (
     <div className="job-detail-info-line">
       <div className="job-detail-info-icon">{icon}</div>
-      <div className="job-detail-info-content">
-        <span className="job-detail-info-label">{label}</span>
-        <b className="job-detail-info-value">{value}</b>
+      <div className="job-detail-info-content items-start text-left">
+        <span className="job-detail-info-label text-left">{label}</span>
+        <b className="job-detail-info-value text-left">{value}</b>
       </div>
     </div>
   );

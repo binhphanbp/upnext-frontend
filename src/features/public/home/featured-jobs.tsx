@@ -620,7 +620,7 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
           Xem tất cả <ChevronRight size={16} />
         </button>
       </header>
-      {savedJobsError ? (
+      {savedJobsError && isAuthenticated ? (
         <p className="marketing-home-action-error" role="alert">
           Không thể đồng bộ việc làm đã lưu. Vui lòng thử lại.
         </p>

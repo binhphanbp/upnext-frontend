@@ -282,6 +282,10 @@ export function CandidateSavedJobsPage() {
                 {visibleJobs.map((savedJob) => (
                   <li key={savedJob.id}>
                     <SavedJobRow
+                      fallbackLogo={
+                        publicJobsById.get(savedJob.jobPostId)?.company?.logoUrl ??
+                        publicJobsById.get(savedJob.jobPostId)?.company?.logoFile?.publicUrl
+                      }
                       isRemoving={
                         unsaveMutation.isPending && unsaveMutation.variables === savedJob.jobPostId
                       }
@@ -337,12 +341,14 @@ export function CandidateSavedJobsPage() {
 }
 
 function SavedJobRow({
+  fallbackLogo,
   isRemoving,
   locale,
   location,
   onRemove,
   savedJob,
 }: Readonly<{
+  fallbackLogo?: string | null | undefined;
   isRemoving: boolean;
   locale: string;
   location: string;
@@ -351,7 +357,7 @@ function SavedJobRow({
 }>) {
   const t = useTranslations("CandidateWorkspace");
   const available = isJobAvailable(savedJob.jobPost);
-  const logo = getCompanyLogo(savedJob.jobPost);
+  const logo = getCompanyLogo(savedJob.jobPost, fallbackLogo);
   const tags = getJobTags(savedJob.jobPost);
   const savedAt = new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
     new Date(savedJob.createdAt),

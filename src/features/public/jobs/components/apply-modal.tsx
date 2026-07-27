@@ -12,7 +12,7 @@ import {
   Warning,
   X,
 } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -69,6 +69,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     mimeType: string;
   } | null>(null);
 
+  const queryClient = useQueryClient();
   const session = useMemoSession();
 
   useEffect(() => {
@@ -259,6 +260,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
         cvVersionId: selectedCvVersionId,
         coverLetter: coverLetter || null,
       });
+      void queryClient.invalidateQueries({ queryKey: ["check-applied-job", job.id] });
       setIsSuccess(true);
     } catch (err: unknown) {
       console.error("Failed to submit application", err);
@@ -762,9 +764,12 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
               aria-label="Bản xem trước CV. Giữ chuột và kéo để di chuyển, lăn chuột để thu phóng."
             >
               <iframe
-                src={url}
+                src={url.includes("#") ? url : `${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
                 title={title}
-                className="pointer-events-none absolute inset-0 h-full w-full border-0"
+                className={cn(
+                  "absolute inset-0 h-full w-full border-0",
+                  isDragging ? "pointer-events-none" : "pointer-events-auto",
+                )}
                 style={{
                   transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
                   transformOrigin: "center",

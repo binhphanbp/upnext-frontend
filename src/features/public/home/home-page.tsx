@@ -6,9 +6,11 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getPublicPosts } from "@/features/posts/api/posts";
 import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
 import { useRouter } from "@/i18n/navigation";
+import { toast } from "@/shared/ui/toast";
 import { removeVietnameseAccents } from "@/shared/utils/natural-search";
 
 import { PublicFooter } from "../shared/public-footer";
@@ -845,15 +847,68 @@ function UrgentJobsSection({
     address?: string;
   }>;
 }) {
-  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => new Set());
+  const {
+    error: savedJobsError,
+    isAuthenticated,
+    isPending: isSavedJobPending,
+    isSessionResolved: isSavedJobsSessionResolved,
+    setSavedJob,
+    savedJobIds,
+    toggleSaveJob,
+  } = useCandidateSavedJobs();
+
+  function handleSaveJob(jobId: string, jobTitle: string) {
+    const didStart = toggleSaveJob(jobId, {
+      onError: () => toast.error("Không thể cập nhật việc làm đã lưu. Vui lòng thử lại."),
+      onSuccess: (isSaved) => {
+        const toastId = `save-job-${jobId}`;
+        toast.success(isSaved ? `Đã lưu ${jobTitle}` : `Đã bỏ lưu ${jobTitle}`, {
+          action: {
+            label: "Hoàn tác",
+            onClick: () => {
+              toast.dismiss(toastId);
+              const didUndoStart = setSavedJob(jobId, !isSaved, {
+                onError: () => toast.error("Không thể hoàn tác. Vui lòng thử lại."),
+                onSuccess: (restored) => {
+                  toast.success(
+                    restored ? `Đã lưu lại ${jobTitle}` : `Đã hoàn tác lưu ${jobTitle}`,
+                  );
+                },
+              });
+              if (!didUndoStart) navigate("/login?redirect=/");
+            },
+          },
+          duration: 8_000,
+          id: toastId,
+        });
+      },
+    });
+
+    if (!didStart) {
+      const redirectPath = typeof window !== "undefined" ? window.location.pathname : "/";
+      navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+    }
+  }
+
   const [previewJobId, setPreviewJobId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [paused, setPaused] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const dragStartRef = useRef<number | null>(null);
   const previewCloseTimerRef = useRef<number | null>(null);
-  const pageSize = 9;
+
+  useEffect(() => {
+    function checkMobile() {
+      setIsMobile(window.innerWidth <= 768);
+    }
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const pageSize = isMobile ? 4 : 9;
 
   const pages = useMemo(() => {
     const result: (typeof urgentJobs)[] = [];
@@ -919,18 +974,6 @@ function UrgentJobsSection({
     }
   }
 
-  function toggleSavedJob(jobId: string) {
-    setSavedJobIds((current) => {
-      const next = new Set(current);
-      if (next.has(jobId)) {
-        next.delete(jobId);
-      } else {
-        next.add(jobId);
-      }
-      return next;
-    });
-  }
-
   function handlePointerDown(e: React.PointerEvent) {
     if (totalPages <= 1) return;
     dragStartRef.current = e.clientX;
@@ -969,15 +1012,13 @@ function UrgentJobsSection({
     >
       <header className="marketing-home-urgent-head">
         <div>
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-3 w-3">
+          <h2 className="m-0 inline-flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900">
+            <span className="relative inline-flex h-3 w-3 shrink-0 items-center justify-center">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
               <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
             </span>
-            <h2 className="m-0 text-2xl font-bold tracking-tight text-slate-900">
-              Việc cần tuyển gấp
-            </h2>
-          </div>
+            <span>Việc cần tuyển gấp</span>
+          </h2>
           <p className="mt-1 text-sm text-slate-600">
             Các vị trí đang cần tuyển gấp – nộp hồ sơ ngay để không bỏ lỡ cơ hội nghề nghiệp tốt.
           </p>
@@ -1008,95 +1049,96 @@ function UrgentJobsSection({
           {pages.map((slideJobs, slideIdx) => (
             <div className="marketing-home-urgent-slide" key={slideIdx}>
               <div className="marketing-home-urgent-grid">
-                {slideJobs.map((job) => (
-                  <article className="urgent-job-card group" key={job.id}>
-                    <div className="urgent-job-main">
-                      <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
-                        <span className="urgent-job-logo-fallback" aria-hidden="true">
-                          {getCompanyInitials(job.company)}
-                        </span>
-                        {job.logo && (
-                          <Image
-                            src={job.logo}
-                            alt={`Logo ${job.company}`}
-                            width={46}
-                            height={46}
-                            unoptimized
-                            className="rounded-lg object-contain"
-                            onError={(event) => {
-                              event.currentTarget.style.display = "none";
-                            }}
-                          />
-                        )}
-                      </span>
-
-                      <div className="urgent-job-content">
-                        <div className="urgent-job-heading">
-                          <h3 className="urgent-job-title-wrapper">
-                            <button
-                              id={`urgent-job-title-${job.id}`}
-                              type="button"
-                              className="urgent-job-title group-hover:text-emerald-600"
-                              onClick={() => navigate(`/jobs/${job.id}`)}
-                              onMouseEnter={() => openPreview(job.id)}
-                              onMouseLeave={schedulePreviewClose}
-                              onFocus={() => openPreview(job.id)}
-                              onBlur={schedulePreviewClose}
-                              onKeyDown={(event) => {
-                                if (event.key === "Escape") {
-                                  event.preventDefault();
-                                  closePreviewAndRestoreFocus();
-                                }
+                {slideJobs.map((job) => {
+                  const isSaved = savedJobIds.includes(job.id);
+                  return (
+                    <article className="urgent-job-card group" key={job.id}>
+                      <div className="urgent-job-main">
+                        <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
+                          <span className="urgent-job-logo-fallback" aria-hidden="true">
+                            {getCompanyInitials(job.company)}
+                          </span>
+                          {job.logo && (
+                            <Image
+                              src={job.logo}
+                              alt={`Logo ${job.company}`}
+                              width={46}
+                              height={46}
+                              unoptimized
+                              className="rounded-lg object-contain"
+                              onError={(event) => {
+                                event.currentTarget.style.display = "none";
                               }}
-                              aria-controls="urgent-job-preview"
-                              aria-expanded={previewJobId === job.id}
-                              title={job.title}
-                            >
-                              {job.title}
-                            </button>
-                          </h3>
-                          <button
-                            type="button"
-                            className="urgent-job-save"
-                            aria-label={
-                              savedJobIds.has(job.id)
-                                ? `Bỏ lưu công việc ${job.title}`
-                                : `Lưu công việc ${job.title}`
-                            }
-                            aria-pressed={savedJobIds.has(job.id)}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleSavedJob(job.id);
-                            }}
-                          >
-                            <Bookmark
-                              size={20}
-                              weight={savedJobIds.has(job.id) ? "fill" : "regular"}
                             />
-                          </button>
-                        </div>
-                        <strong className="urgent-job-company">{job.company}</strong>
-                      </div>
-                    </div>
+                          )}
+                        </span>
 
-                    <div className="urgent-job-compact-footer">
-                      <div className="urgent-job-chips">
-                        <span className="urgent-job-salary">
-                          <Coins size={14} />
-                          {job.salary}
-                        </span>
-                        <span className="urgent-job-location">
-                          <MapPin size={14} />
-                          {job.location}
+                        <div className="urgent-job-content">
+                          <div className="urgent-job-heading">
+                            <h3 className="urgent-job-title-wrapper">
+                              <button
+                                id={`urgent-job-title-${job.id}`}
+                                type="button"
+                                className="urgent-job-title group-hover:text-emerald-600"
+                                onClick={() => navigate(`/jobs/${job.id}`)}
+                                onMouseEnter={() => openPreview(job.id)}
+                                onMouseLeave={schedulePreviewClose}
+                                onFocus={() => openPreview(job.id)}
+                                onBlur={schedulePreviewClose}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Escape") {
+                                    event.preventDefault();
+                                    closePreviewAndRestoreFocus();
+                                  }
+                                }}
+                                aria-controls="urgent-job-preview"
+                                aria-expanded={previewJobId === job.id}
+                                title={job.title}
+                              >
+                                {job.title}
+                              </button>
+                            </h3>
+                            <button
+                              type="button"
+                              className="urgent-job-save"
+                              aria-label={
+                                isSaved
+                                  ? `Bỏ lưu công việc ${job.title}`
+                                  : `Lưu công việc ${job.title}`
+                              }
+                              aria-pressed={isSaved}
+                              disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSaveJob(job.id, job.title);
+                              }}
+                            >
+                              <Bookmark size={20} weight={isSaved ? "fill" : "regular"} />
+                            </button>
+                          </div>
+                          <strong className="urgent-job-company">{job.company}</strong>
+                        </div>
+                      </div>
+
+                      <div className="urgent-job-compact-footer">
+                        <div className="urgent-job-chips">
+                          <span className="urgent-job-salary">
+                            <Coins size={14} />
+                            {job.salary}
+                          </span>
+                          <span className="urgent-job-location">
+                            <MapPin size={14} />
+                            {job.location}
+                          </span>
+                        </div>
+                        <span className="urgent-job-deadline-badge flex items-center gap-1">
+                          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                          {job.deadline}
                         </span>
                       </div>
-                      <span className="urgent-job-deadline-badge flex items-center gap-1">
-                        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
-                        {job.deadline}
-                      </span>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -1175,19 +1217,25 @@ function UrgentJobsSection({
           </div>
 
           <div className="urgent-job-preview-actions">
-            <button
-              type="button"
-              className="urgent-job-preview-save"
-              aria-label={
-                savedJobIds.has(previewJob.id)
-                  ? `Bỏ lưu công việc ${previewJob.title}`
-                  : `Lưu công việc ${previewJob.title}`
-              }
-              aria-pressed={savedJobIds.has(previewJob.id)}
-              onClick={() => toggleSavedJob(previewJob.id)}
-            >
-              <Bookmark size={21} weight={savedJobIds.has(previewJob.id) ? "fill" : "regular"} />
-            </button>
+            {(() => {
+              const isPreviewSaved = savedJobIds.includes(previewJob.id);
+              return (
+                <button
+                  type="button"
+                  className="urgent-job-preview-save"
+                  aria-label={
+                    isPreviewSaved
+                      ? `Bỏ lưu công việc ${previewJob.title}`
+                      : `Lưu công việc ${previewJob.title}`
+                  }
+                  aria-pressed={isPreviewSaved}
+                  disabled={!isSavedJobsSessionResolved || isSavedJobPending(previewJob.id)}
+                  onClick={() => handleSaveJob(previewJob.id, previewJob.title)}
+                >
+                  <Bookmark size={21} weight={isPreviewSaved ? "fill" : "regular"} />
+                </button>
+              );
+            })()}
             <button
               type="button"
               className="urgent-job-preview-apply"
