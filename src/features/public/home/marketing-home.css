@@ -3478,7 +3478,8 @@ button.marketing-home-control {
 }
 
 .featured-company-featured-cover-img,
-.featured-company-featured-cover-fallback {
+.featured-company-featured-cover-fallback,
+.featured-company-featured-cover-loading {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -3486,6 +3487,33 @@ button.marketing-home-control {
   object-fit: cover;
   object-position: center;
   display: block;
+}
+
+.featured-company-featured-cover-loading {
+  background: linear-gradient(110deg, #12243b 28%, #1d3855 45%, #12243b 62%);
+  background-size: 220% 100%;
+  animation: featured-company-cover-loading 1.4s ease-in-out infinite;
+}
+
+@keyframes featured-company-cover-loading {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+.marketing-home-companies-empty {
+  display: grid;
+  min-height: 188px;
+  margin: 24px 0 0;
+  padding: 28px;
+  place-items: center;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid #dbe6ed;
+  border-radius: 18px;
+  background: #f8fbfc;
 }
 
 /* Gradient scrim: transparent at the top, fading to the body's dark navy at
@@ -3852,6 +3880,10 @@ button.marketing-home-control {
 
 @media (prefers-reduced-motion: reduce) {
   .marketing-home-follow-tooltip {
+    animation: none;
+  }
+
+  .featured-company-featured-cover-loading {
     animation: none;
   }
 }

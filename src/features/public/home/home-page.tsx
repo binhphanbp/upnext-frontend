@@ -466,7 +466,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
   const { data: apiCompaniesData } = useQuery({
     queryKey: ["public-companies"],
-    queryFn: getPublicCompanies,
+    queryFn: () => getPublicCompanies(),
   });
 
   const { data: apiPostsData, isLoading: isPostsLoading } = useQuery({

@@ -10,7 +10,13 @@ import { useCandidateCompanyFollows } from "@/features/candidate/company-follows
 import { toast } from "@/shared/ui/toast";
 import { Tooltip, TooltipArrow, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 
-import { getPublicCompanies, getPublicCompanyDetail } from "./api";
+import {
+  getPublicCompanies,
+  getPublicCompanyDetail,
+  getPublicJobs,
+  type PublicCompany,
+  type PublicJob,
+} from "./api";
 import {
   ArrowRight,
   Briefcase,
@@ -38,278 +44,48 @@ type Company = {
 type FeaturedCompany = Company & {
   tags: string[];
   description: string;
-  /** Cover photo under /public/assets/marketing/home/covers. Falls back to a gradient. */
+  /** Public company cover returned by the API. */
   cover: string;
 };
 
-const logo = (file: string) => `/assets/marketing/home/companies/${file}`;
-const cover = (file: string) => `/assets/marketing/home/covers/${file}`;
 // Company IDs are assigned by the API. They have a UUID-like hexadecimal
 // shape, but the service does not guarantee RFC UUID version/variant bits.
-// Keep the shape check so marketing fallback IDs (for example, "fpt") are
-// never sent to the follow endpoint.
 const PERSISTABLE_COMPANY_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
-type CompanyPage = {
-  featured: FeaturedCompany;
-  companies: Company[];
-};
-
 const COMPACT_COMPANIES_PER_PAGE = 9;
+const COMPANIES_PER_PAGE = COMPACT_COMPANIES_PER_PAGE + 1;
 
-/**
- * API IDs are authoritative, but fallback and API records can represent the
- * same company with different IDs. Use a human-stable key so one employer is
- * never rendered twice in a single bento page.
- */
-function companyKey(company: Pick<Company, "id" | "name" | "slug">) {
-  const normalizedSlug = company.slug?.trim().toLocaleLowerCase();
-  if (normalizedSlug) return `slug:${normalizedSlug}`;
-
-  const normalizedName = company.name.trim().toLocaleLowerCase();
-  if (normalizedName) return `name:${normalizedName}`;
-
-  return `id:${company.id}`;
+function formatCompanyType(type: string) {
+  return type
+    .toLocaleLowerCase()
+    .split(/[_\s-]+/u)
+    .filter(Boolean)
+    .map((word) => `${word.charAt(0).toLocaleUpperCase()}${word.slice(1)}`)
+    .join(" ");
 }
 
-function getCompactCompanies(
-  featured: Pick<Company, "id" | "name" | "slug">,
-  companies: Company[],
-  fallbackCompanies: Company[] = [],
-) {
-  const seen = new Set([companyKey(featured)]);
-  const compactCompanies: Company[] = [];
-
-  for (const company of [...companies, ...fallbackCompanies]) {
-    const key = companyKey(company);
-    if (seen.has(key)) continue;
-
-    seen.add(key);
-    compactCompanies.push(company);
-
-    if (compactCompanies.length === COMPACT_COMPANIES_PER_PAGE) break;
+function getJobCountsByCompany(jobs: PublicJob[] | undefined) {
+  const counts = new Map<string, number>();
+  for (const job of jobs ?? []) {
+    const companyId = job.company?.id;
+    if (companyId) counts.set(companyId, (counts.get(companyId) ?? 0) + 1);
   }
 
-  return compactCompanies;
+  return counts;
 }
 
-// Each desktop page has one featured spotlight and 9 compact cards. The 3 + 2 +
-// 2 + 2 arrangement keeps the last row balanced while the spotlight fills the
-// third column across rows two to four. `getCompactCompanies` removes the
-// spotlight from this list before it is rendered.
-const staticPages: CompanyPage[] = [
-  {
-    featured: {
-      id: "fpt",
-      name: "FPT Software",
-      category: "Outsourcing",
-      jobs: 158,
-      logo: logo("fpt.png"),
-      logoColor: "#0a66c2",
-      cover: cover("fpt.jpg"),
-      tags: ["Outsourcing", "Công nghệ"],
-      description:
-        "FPT Software là công ty công nghệ hàng đầu Việt Nam, cung cấp các giải pháp và dịch vụ CNTT tiên tiến cho khách hàng toàn cầu.",
-    },
-    companies: [
-      {
-        id: "fpt",
-        name: "FPT Software",
-        category: "Outsourcing",
-        jobs: 512,
-        logo: logo("fpt.png"),
-        logoColor: "#0a66c2",
-      },
-      {
-        id: "vng",
-        name: "VNG Corporation",
-        category: "Product",
-        jobs: 342,
-        logo: logo("vng.png"),
-        logoColor: "#1a8cff",
-      },
-      {
-        id: "tiki",
-        name: "Tiki",
-        category: "E-commerce",
-        jobs: 274,
-        logo: logo("tiki.png"),
-        logoColor: "#1a94ff",
-      },
-      {
-        id: "momo",
-        name: "MoMo",
-        category: "Fintech",
-        jobs: 193,
-        logo: logo("momo.png"),
-        logoColor: "#a50064",
-      },
-      {
-        id: "kms",
-        name: "KMS Technology",
-        category: "Product",
-        jobs: 167,
-        logo: "",
-        logoColor: "#0aa56f",
-      },
-      {
-        id: "viettel",
-        name: "Viettel Solutions",
-        category: "Công nghệ",
-        jobs: 181,
-        logo: logo("viettel.png"),
-        logoColor: "#ee0033",
-      },
-      {
-        id: "nashtech",
-        name: "NashTech",
-        category: "Outsourcing",
-        jobs: 118,
-        logo: "",
-        logoColor: "#e11d48",
-      },
-      {
-        id: "coccoc",
-        name: "Cốc Cốc",
-        category: "Công nghệ",
-        jobs: 126,
-        logo: "",
-        logoColor: "#f97316",
-      },
-      {
-        id: "axon",
-        name: "Axon Active",
-        category: "Product",
-        jobs: 92,
-        logo: "",
-        logoColor: "#475569",
-      },
-      {
-        id: "kardiachain",
-        name: "KardiaChain",
-        category: "Blockchain",
-        jobs: 71,
-        logo: "",
-        logoColor: "#1d4ed8",
-      },
-      {
-        id: "teko",
-        name: "Teko Vietnam",
-        category: "Product",
-        jobs: 58,
-        logo: "",
-        logoColor: "#16a34a",
-      },
-    ],
-  },
-  {
-    featured: {
-      id: "vnpay",
-      name: "VNPAY",
-      category: "Fintech",
-      jobs: 134,
-      logo: logo("vnpay.png"),
-      logoColor: "#005baa",
-      cover: cover("vnpay.jpg"),
-      tags: ["Fintech", "Thanh toán"],
-      description:
-        "VNPAY là đơn vị tiên phong về giải pháp thanh toán điện tử tại Việt Nam, phục vụ hàng chục triệu người dùng và đối tác ngân hàng.",
-    },
-    companies: [
-      {
-        id: "vnpay",
-        name: "VNPAY",
-        category: "Fintech",
-        jobs: 210,
-        logo: logo("vnpay.png"),
-        logoColor: "#005baa",
-      },
-      {
-        id: "shopee",
-        name: "Shopee",
-        category: "E-commerce",
-        jobs: 188,
-        logo: "",
-        logoColor: "#ee4d2d",
-      },
-      {
-        id: "grab",
-        name: "Grab",
-        category: "Product",
-        jobs: 156,
-        logo: "",
-        logoColor: "#00b14f",
-      },
-      {
-        id: "zalo",
-        name: "Zalo",
-        category: "Product",
-        jobs: 142,
-        logo: "",
-        logoColor: "#0068ff",
-      },
-      {
-        id: "techcombank",
-        name: "Techcombank",
-        category: "Fintech",
-        jobs: 98,
-        logo: "",
-        logoColor: "#e4002b",
-      },
-      {
-        id: "sun",
-        name: "Sun Asterisk",
-        category: "Outsourcing",
-        jobs: 134,
-        logo: "",
-        logoColor: "#f59e0b",
-      },
-      {
-        id: "rikkei",
-        name: "Rikkeisoft",
-        category: "Outsourcing",
-        jobs: 109,
-        logo: "",
-        logoColor: "#2563eb",
-      },
-      {
-        id: "onemount",
-        name: "One Mount Group",
-        category: "Product",
-        jobs: 77,
-        logo: "",
-        logoColor: "#7c3aed",
-      },
-      {
-        id: "gotit",
-        name: "Got It AI",
-        category: "AI / Data",
-        jobs: 64,
-        logo: "",
-        logoColor: "#0891b2",
-      },
-      {
-        id: "be",
-        name: "Be Group",
-        category: "Product",
-        jobs: 52,
-        logo: "",
-        logoColor: "#facc15",
-      },
-      {
-        id: "fci",
-        name: "FPT IS",
-        category: "Outsourcing",
-        jobs: 47,
-        logo: "",
-        logoColor: "#ea580c",
-      },
-    ],
-  },
-];
-
-const totalCompanies = "2,300+";
+function toCompany(company: PublicCompany, jobCounts: ReadonlyMap<string, number>): Company {
+  return {
+    id: company.id,
+    name: company.name,
+    ...(company.slug ? { slug: company.slug } : {}),
+    category: formatCompanyType(company.type || "Technology"),
+    jobs: jobCounts.get(company.id) ?? 0,
+    logo: company.logoUrl || company.logoFile?.publicUrl || "",
+    logoColor: "#10b981",
+  };
+}
 
 function Logo({ company }: { company: Company | FeaturedCompany }) {
   const [failed, setFailed] = useState(false);
@@ -336,9 +112,18 @@ function Logo({ company }: { company: Company | FeaturedCompany }) {
   );
 }
 
-/** Cover photo for the featured card; falls back to a brand gradient. */
-function CoverImage({ company }: { company: FeaturedCompany }) {
+/** Cover photo for the featured card; shows a loading state before a real fallback. */
+function CoverImage({ company, isLoading }: { company: FeaturedCompany; isLoading: boolean }) {
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [company.cover]);
+
+  if (!company.cover && isLoading) {
+    return <span className="featured-company-featured-cover-loading" aria-hidden="true" />;
+  }
+
   if (!company.cover || failed) {
     return (
       <span
@@ -427,74 +212,67 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
     toggleFollowCompany,
   } = useCandidateCompanyFollows();
 
-  const { data: apiCosData } = useQuery({
-    queryKey: ["public-companies"],
-    queryFn: getPublicCompanies,
+  const {
+    data: apiCompaniesData,
+    isError: isCompaniesError,
+    isLoading: isCompaniesLoading,
+  } = useQuery({
+    queryKey: ["public-companies", { limit: COMPANIES_PER_PAGE, page: pageIndex + 1 }],
+    queryFn: () => getPublicCompanies({ limit: COMPANIES_PER_PAGE, page: pageIndex + 1 }),
+    staleTime: 5 * 60_000,
   });
 
-  const pages = useMemo(() => {
-    const normalizedStaticPages = staticPages.map((staticPage) => ({
-      ...staticPage,
-      companies: getCompactCompanies(staticPage.featured, staticPage.companies),
-    }));
+  const { data: apiJobsData, isLoading: isJobsLoading } = useQuery({
+    queryKey: ["public-jobs"],
+    queryFn: getPublicJobs,
+    staleTime: 5 * 60_000,
+  });
+  const jobCounts = useMemo(() => getJobCountsByCompany(apiJobsData), [apiJobsData]);
+  const page = useMemo(() => {
+    const sourceCompanies = apiCompaniesData?.items;
+    if (!sourceCompanies?.length) return null;
 
-    if (!apiCosData || !apiCosData.items || apiCosData.items.length === 0) {
-      return normalizedStaticPages;
-    }
+    const [spotlightSource, ...compactSources] = sourceCompanies;
+    const featuredCompany = toCompany(spotlightSource!, jobCounts);
 
-    const mapped: Company[] = apiCosData.items.map((co) => ({
-      id: co.id,
-      name: co.name,
-      ...(co.slug ? { slug: co.slug } : {}),
-      category: co.type || "Technology",
-      jobs: 12,
-      logo: co.logoUrl || co.logoFile?.publicUrl || "",
-      logoColor: "#10b981",
-    }));
+    return {
+      featured: {
+        ...featuredCompany,
+        cover: spotlightSource!.coverFile?.publicUrl || "",
+        tags: [featuredCompany.category],
+        description: spotlightSource!.description || "Thông tin công ty đang được cập nhật.",
+      } satisfies FeaturedCompany,
+      companies: compactSources
+        .map((company) => toCompany(company, jobCounts))
+        .slice(0, COMPACT_COMPANIES_PER_PAGE),
+    };
+  }, [apiCompaniesData?.items, jobCounts]);
+  const totalPages = apiCompaniesData?.meta.totalPages ?? 0;
+  const totalCompanies = apiCompaniesData?.meta.total ?? 0;
 
-    const result: CompanyPage[] = [];
-    const PAGE_SIZE = COMPACT_COMPANIES_PER_PAGE + 1;
-    const staticCos = staticPages.flatMap((p) => p.companies);
+  useEffect(() => {
+    if (totalPages && pageIndex >= totalPages) setPageIndex(totalPages - 1);
+  }, [pageIndex, totalPages]);
 
-    for (let i = 0; i < mapped.length; i += PAGE_SIZE) {
-      const chunk = mapped.slice(i, i + PAGE_SIZE);
-      const first = chunk[0]!;
-      const featured: FeaturedCompany = {
-        ...first,
-        logoColor: "#10b981",
-        cover: "",
-        tags: [first.category, "Partner"],
-        description: apiCosData.items[i]?.description || "Công ty công nghệ đối tác tiêu biểu.",
-      };
-
-      result.push({
-        featured,
-        companies: getCompactCompanies(featured, chunk.slice(1), staticCos),
-      });
-    }
-
-    return [...result, ...normalizedStaticPages];
-  }, [apiCosData]);
-
-  const page = pages[pageIndex] || staticPages[0]!;
-  const totalPages = pages.length;
-
-  const { data: featuredCompanyDetail } = useQuery({
-    queryKey: ["public-featured-company-cover", page.featured.slug],
-    queryFn: () => getPublicCompanyDetail(page.featured.slug!),
-    enabled: Boolean(page.featured.slug && !page.featured.cover),
+  const { data: featuredCompanyDetail, isFetching: isFeaturedCoverFetching } = useQuery({
+    queryKey: ["public-featured-company-cover", page?.featured.slug],
+    queryFn: () => getPublicCompanyDetail(page!.featured.slug!),
+    enabled: Boolean(page?.featured.slug && !page.featured.cover),
     staleTime: 5 * 60_000,
   });
 
   const featured = useMemo(
-    () => ({
-      ...page.featured,
-      cover: featuredCompanyDetail?.coverFile?.publicUrl || page.featured.cover,
-    }),
-    [featuredCompanyDetail?.coverFile?.publicUrl, page.featured],
+    () =>
+      page
+        ? {
+            ...page.featured,
+            cover: featuredCompanyDetail?.coverFile?.publicUrl || page.featured.cover,
+          }
+        : null,
+    [featuredCompanyDetail?.coverFile?.publicUrl, page],
   );
 
-  const cards = useMemo(() => page.companies.slice(0, visibleCount), [page, visibleCount]);
+  const cards = useMemo(() => page?.companies.slice(0, visibleCount) ?? [], [page, visibleCount]);
 
   function showFollowError() {
     toast.error(notificationCopy.followError);
@@ -542,6 +320,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
   }
 
   function step(delta: number) {
+    if (totalPages < 2) return;
     setPageIndex((i) => (i + delta + totalPages) % totalPages);
   }
 
@@ -555,7 +334,9 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
         <div className="marketing-home-co-head-actions">
           <span className="marketing-home-co-count">
             <UsersRound size={16} />
-            {totalCompanies} công ty tuyển dụng
+            {isCompaniesLoading
+              ? "Đang tải công ty"
+              : `${new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN").format(totalCompanies)} công ty tuyển dụng`}
           </span>
           <button
             type="button"
@@ -572,118 +353,136 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
         </p>
       ) : null}
 
-      <div className="marketing-home-co-stage">
-        <button
-          type="button"
-          className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-prev"
-          aria-label="Trang trước"
-          onClick={() => step(-1)}
-        >
-          <ChevronLeft size={20} />
-        </button>
+      {featured ? (
+        <>
+          <div className="marketing-home-co-stage">
+            <button
+              type="button"
+              className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-prev"
+              aria-label="Trang trước"
+              disabled={totalPages < 2}
+              onClick={() => step(-1)}
+            >
+              <ChevronLeft size={20} />
+            </button>
 
-        <div className="marketing-home-co-bento" key={pageIndex}>
-          <FeaturedCard
-            company={featured}
-            following={followedCompanyIds.includes(featured.id)}
-            onFollow={() => followCompany(featured)}
-            followUnavailable={isFollowUnavailable(featured.id)}
-            followLoading={!isCompanyFollowsSessionResolved || isCompanyFollowPending(featured.id)}
-            followTooltip={followTooltip}
-            navigate={navigate}
-          />
+            <div className="marketing-home-co-bento" key={pageIndex}>
+              <FeaturedCard
+                company={featured}
+                coverLoading={isFeaturedCoverFetching && !featured.cover}
+                jobsLoading={isJobsLoading}
+                following={followedCompanyIds.includes(featured.id)}
+                onFollow={() => followCompany(featured)}
+                followUnavailable={isFollowUnavailable(featured.id)}
+                followLoading={
+                  !isCompanyFollowsSessionResolved || isCompanyFollowPending(featured.id)
+                }
+                followTooltip={followTooltip}
+                navigate={navigate}
+              />
 
-          {cards.map((company) => {
-            const following = followedCompanyIds.includes(company.id);
-            const followUnavailable = isFollowUnavailable(company.id);
-            const followLoading =
-              !isCompanyFollowsSessionResolved || isCompanyFollowPending(company.id);
+              {cards.map((company) => {
+                const following = followedCompanyIds.includes(company.id);
+                const followUnavailable = isFollowUnavailable(company.id);
+                const followLoading =
+                  !isCompanyFollowsSessionResolved || isCompanyFollowPending(company.id);
 
-            return (
-              <article key={company.id} className="featured-company-card">
-                <button
-                  type="button"
-                  className="featured-company-card-main"
-                  onClick={() => navigate("/companies")}
-                >
-                  <span className="featured-company-logo">
-                    <Logo company={company} />
-                  </span>
-                  <span className="featured-company-body">
-                    <strong title={company.name}>{company.name}</strong>
-                    <span className="featured-company-cat">{company.category}</span>
-                    <span className="featured-company-jobs">
-                      <Briefcase size={14} />
-                      {company.jobs} việc làm
-                    </span>
-                  </span>
-                </button>
-                {followUnavailable ? (
-                  <span className="featured-company-follow-status">Chưa hỗ trợ theo dõi</span>
-                ) : (
-                  <FollowTooltip
-                    content={following ? followTooltip.active : followTooltip.inactive}
-                  >
+                return (
+                  <article key={company.id} className="featured-company-card">
                     <button
                       type="button"
-                      className={`featured-company-follow${following ? " is-following" : ""}`}
-                      aria-label={
-                        followLoading
-                          ? `Đang cập nhật theo dõi ${company.name}`
-                          : following
-                            ? `Bỏ theo dõi ${company.name}`
-                            : `Theo dõi ${company.name}`
-                      }
-                      aria-busy={followLoading || undefined}
-                      aria-pressed={following}
-                      disabled={followLoading}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        followCompany(company);
-                      }}
+                      className="featured-company-card-main"
+                      onClick={() => navigate("/companies")}
                     >
-                      {followLoading ? (
-                        "Đang cập nhật…"
-                      ) : following ? (
-                        <>
-                          <Check size={14} /> Đang theo dõi
-                        </>
-                      ) : (
-                        <>
-                          <Plus size={14} aria-hidden="true" /> Theo dõi
-                        </>
-                      )}
+                      <span className="featured-company-logo">
+                        <Logo company={company} />
+                      </span>
+                      <span className="featured-company-body">
+                        <strong title={company.name}>{company.name}</strong>
+                        <span className="featured-company-cat">{company.category}</span>
+                        <span className="featured-company-jobs">
+                          <Briefcase size={14} />
+                          {isJobsLoading ? "Đang cập nhật việc làm" : `${company.jobs} việc làm`}
+                        </span>
+                      </span>
                     </button>
-                  </FollowTooltip>
-                )}
-              </article>
-            );
-          })}
-        </div>
+                    {followUnavailable ? (
+                      <span className="featured-company-follow-status">Chưa hỗ trợ theo dõi</span>
+                    ) : (
+                      <FollowTooltip
+                        content={following ? followTooltip.active : followTooltip.inactive}
+                      >
+                        <button
+                          type="button"
+                          className={`featured-company-follow${following ? " is-following" : ""}`}
+                          aria-label={
+                            followLoading
+                              ? `Đang cập nhật theo dõi ${company.name}`
+                              : following
+                                ? `Bỏ theo dõi ${company.name}`
+                                : `Theo dõi ${company.name}`
+                          }
+                          aria-busy={followLoading || undefined}
+                          aria-pressed={following}
+                          disabled={followLoading}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            followCompany(company);
+                          }}
+                        >
+                          {followLoading ? (
+                            "Đang cập nhật…"
+                          ) : following ? (
+                            <>
+                              <Check size={14} /> Đang theo dõi
+                            </>
+                          ) : (
+                            <>
+                              <Plus size={14} aria-hidden="true" /> Theo dõi
+                            </>
+                          )}
+                        </button>
+                      </FollowTooltip>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
 
-        <button
-          type="button"
-          className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-next"
-          aria-label="Trang sau"
-          onClick={() => step(1)}
-        >
-          <ChevronRight size={20} />
-        </button>
-      </div>
+            <button
+              type="button"
+              className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-next"
+              aria-label="Trang sau"
+              disabled={totalPages < 2}
+              onClick={() => step(1)}
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
 
-      <div className="marketing-home-co-dots" role="tablist" aria-label="Chọn trang công ty">
-        {pages.map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            role="tab"
-            aria-selected={i === pageIndex}
-            aria-label={`Trang ${i + 1}`}
-            className={`marketing-home-co-dot${i === pageIndex ? " is-active" : ""}`}
-            onClick={() => setPageIndex(i)}
-          />
-        ))}
-      </div>
+          {totalPages > 1 ? (
+            <div className="marketing-home-co-dots" role="tablist" aria-label="Chọn trang công ty">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === pageIndex}
+                  aria-label={`Trang ${i + 1}`}
+                  className={`marketing-home-co-dot${i === pageIndex ? " is-active" : ""}`}
+                  onClick={() => setPageIndex(i)}
+                />
+              ))}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <p className="marketing-home-companies-empty" role={isCompaniesError ? "alert" : "status"}>
+          {isCompaniesError
+            ? "Không thể tải danh sách công ty lúc này. Vui lòng thử lại sau."
+            : "Danh sách công ty đang được cập nhật."}
+        </p>
+      )}
 
       <button
         type="button"
@@ -698,6 +497,8 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
 
 function FeaturedCard({
   company,
+  coverLoading,
+  jobsLoading,
   following,
   onFollow,
   followUnavailable,
@@ -706,6 +507,8 @@ function FeaturedCard({
   navigate,
 }: {
   company: FeaturedCompany;
+  coverLoading: boolean;
+  jobsLoading: boolean;
   following: boolean;
   onFollow: () => void;
   followUnavailable: boolean;
@@ -716,7 +519,7 @@ function FeaturedCard({
   return (
     <article className="featured-company-featured">
       <div className="featured-company-featured-cover" aria-hidden="true">
-        <CoverImage company={company} />
+        <CoverImage company={company} isLoading={coverLoading} />
         {/* Gradient scrim blends the photo smoothly into the dark body. */}
         <span className="featured-company-featured-scrim" />
       </div>
@@ -735,7 +538,7 @@ function FeaturedCard({
         <p>{company.description}</p>
         <span className="featured-company-featured-jobs">
           <Briefcase size={15} />
-          {company.jobs} việc làm đang tuyển
+          {jobsLoading ? "Đang cập nhật việc làm" : `${company.jobs} việc làm đang tuyển`}
         </span>
         <div className="featured-company-featured-actions">
           <button
