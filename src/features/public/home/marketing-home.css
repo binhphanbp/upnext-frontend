@@ -630,7 +630,7 @@
 .marketing-home-employer-text b {
   color: #0f3d2e;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.01em;
 }
 
@@ -660,7 +660,7 @@
   padding: 0 10px;
   color: #475569;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   border: 1px solid #e5e9f0;
   border-radius: 10px;
   background: #ffffff;
@@ -1042,7 +1042,7 @@
   min-height: 40px;
   padding: 0 20px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   border-radius: 9px;
   white-space: nowrap;
 }

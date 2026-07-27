@@ -431,14 +431,17 @@ test("uses one shared public header across public marketing pages", async ({ pag
   await expect(page.locator(".marketing-home-header")).toHaveCount(0);
 });
 
-test("uses semibold weight for primary navigation without competing with header CTAs", async ({
-  page,
-}) => {
+test("uses semibold weight across header navigation and actions", async ({ page }) => {
   await page.goto("/vi");
 
   const jobsNavigation = page.getByRole("button", { name: /Việc làm IT/ });
   await expect(jobsNavigation).toBeVisible();
   await expect(jobsNavigation).toHaveCSS("font-weight", "600");
+
+  await expect(page.locator(".marketing-home-employer-text b")).toHaveCSS("font-weight", "600");
+  await expect(page.locator(".marketing-home-lang-trigger")).toHaveCSS("font-weight", "600");
+  await expect(page.locator(".marketing-home-login")).toHaveCSS("font-weight", "600");
+  await expect(page.locator(".marketing-home-register")).toHaveCSS("font-weight", "600");
 });
 
 test("keeps the homepage header above page content while scrolling", async ({ page }) => {
