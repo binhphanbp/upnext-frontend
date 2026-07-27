@@ -431,6 +431,150 @@ test("uses one shared public header across public marketing pages", async ({ pag
   await expect(page.locator(".marketing-home-header")).toHaveCount(0);
 });
 
+test("collapses header controls before the compact desktop layout can overlap", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 700 });
+  await page.goto("/vi");
+
+  await expect(page.locator(".marketing-home-nav")).toBeHidden();
+  await expect(page.locator(".marketing-home-employer")).toBeHidden();
+  await expect(page.locator(".marketing-home-register")).toBeVisible();
+
+  const compactMenu = page.locator(".marketing-home-compact-menu");
+  await expect(compactMenu).toBeVisible();
+  await page.getByRole("button", { name: "Mở menu" }).click();
+  const compactNavigation = compactMenu.getByRole("navigation", { name: "Điều hướng chính" });
+  await expect(compactNavigation.getByRole("link", { name: "Việc làm IT" })).toHaveAttribute(
+    "href",
+    "/vi/jobs",
+  );
+  await expect(compactNavigation.getByRole("link", { name: "Nhà tuyển dụng" })).toHaveAttribute(
+    "href",
+    "/vi/recruiter/login",
+  );
+
+  const header = page.locator(".marketing-home-header-main");
+  const register = page.locator(".marketing-home-register");
+  const [headerBox, registerBox] = await Promise.all([
+    header.boundingBox(),
+    register.boundingBox(),
+  ]);
+
+  expect(headerBox).not.toBeNull();
+  expect(registerBox).not.toBeNull();
+  expect(registerBox!.x + registerBox!.width).toBeLessThanOrEqual(headerBox!.x + headerBox!.width);
+});
+
+test("uses semibold weight across header navigation and actions", async ({ page }) => {
+  await page.goto("/vi");
+
+  const jobsNavigation = page.getByRole("button", { name: /Việc làm IT/ });
+  await expect(jobsNavigation).toBeVisible();
+  await expect(jobsNavigation).toHaveCSS("font-weight", "600");
+
+  await expect(page.locator(".marketing-home-employer-text b")).toHaveCSS("font-weight", "600");
+  await expect(page.locator(".marketing-home-lang-trigger")).toHaveCSS("font-weight", "600");
+  await expect(page.locator(".marketing-home-login")).toHaveCSS("font-weight", "600");
+  await expect(page.locator(".marketing-home-register")).toHaveCSS("font-weight", "600");
+
+  await page.getByRole("button", { name: "Chọn ngôn ngữ" }).click();
+  await expect(page.locator(".marketing-home-lang-option:not(.is-active)")).toHaveCSS(
+    "font-weight",
+    "600",
+  );
+  await expect(page.locator(".marketing-home-lang-option.is-active")).toHaveCSS(
+    "font-weight",
+    "600",
+  );
+});
+
+test("uses localized candidate tools in the primary utility bar without adding height on mobile", async ({
+  page,
+}) => {
+  await page.goto("/vi");
+
+  const utilityBar = page.locator(".marketing-home-utility-bar");
+  await expect(utilityBar).toBeVisible();
+  const vietnameseUtilityNavigation = utilityBar.getByRole("navigation", {
+    name: "Công cụ dành cho ứng viên",
+  });
+  await expect(
+    vietnameseUtilityNavigation.getByText("Bắt đầu sự nghiệp", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    vietnameseUtilityNavigation.getByRole("link", { name: "Tạo CV chuẩn ATS" }),
+  ).toHaveAttribute("href", "/vi/register");
+  await expect(
+    vietnameseUtilityNavigation.getByRole("link", { name: "Gợi ý việc theo hồ sơ" }),
+  ).toHaveAttribute("href", "/vi/register");
+  await expect(vietnameseUtilityNavigation.getByLabel("AI Interview — Sắp ra mắt")).toBeVisible();
+
+  await page.goto("/en");
+  const englishUtilityNavigation = utilityBar.getByRole("navigation", {
+    name: "Candidate tools",
+  });
+  await expect(
+    englishUtilityNavigation.getByText("Build your career", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    englishUtilityNavigation.getByRole("link", { name: "Build an ATS-ready CV" }),
+  ).toHaveAttribute("href", "/en/register");
+  await expect(englishUtilityNavigation.getByLabel("AI Interview — Coming soon")).toBeVisible();
+
+  await page.evaluate(() => window.localStorage.setItem("upnext.demo.auth", "candidate"));
+  await page.goto("/vi");
+  const signedInCandidateUtilityNavigation = utilityBar.getByRole("navigation", {
+    name: "Công cụ dành cho ứng viên",
+  });
+  await expect(
+    signedInCandidateUtilityNavigation.getByText("Tối ưu hồ sơ", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    signedInCandidateUtilityNavigation.getByRole("link", { name: "Cập nhật hồ sơ" }),
+  ).toHaveAttribute("href", "/vi/candidate/profile");
+  await expect(
+    signedInCandidateUtilityNavigation.getByRole("link", { name: "CV của tôi" }),
+  ).toHaveAttribute("href", "/vi/candidate/cv-builder");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(utilityBar).toBeHidden();
+  await expect(page.locator(".marketing-home-header-main")).toHaveCSS("min-height", "64px");
+});
+
+test("localizes header navigation and mega menus without mixed-language labels", async ({
+  page,
+}) => {
+  await page.goto("/vi");
+
+  const vietnameseNavigation = page.getByLabel("Điều hướng chính");
+  await expect(
+    vietnameseNavigation.getByRole("button", { name: "Việc làm IT", exact: true }),
+  ).toBeVisible();
+  await vietnameseNavigation.getByRole("button", { name: "Việc làm IT", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Theo kỹ năng", exact: true })).toBeVisible();
+  await expect(page.getByText("Theo kỹ năng (Skills)", { exact: true })).toHaveCount(0);
+
+  await page.goto("/en");
+
+  const englishNavigation = page.getByLabel("Primary navigation");
+  await expect(
+    englishNavigation.getByRole("button", { name: "IT Jobs", exact: true }),
+  ).toBeVisible();
+  await expect(
+    englishNavigation.getByRole("button", { name: "IT Companies", exact: true }),
+  ).toBeVisible();
+
+  await englishNavigation.getByRole("button", { name: "IT Companies", exact: true }).click();
+  const companiesPanel = page.locator("#public-nav-companies-panel");
+  await expect(companiesPanel.getByText("Top technology companies", { exact: true })).toBeVisible();
+  await expect(
+    companiesPanel.getByText("Ranked by reputation and candidate reviews.", { exact: true }),
+  ).toBeVisible();
+  await expect(companiesPanel.getByText("Top công ty công nghệ", { exact: true })).toHaveCount(0);
+  await expect(companiesPanel.getByRole("link", { name: "View all companies" })).toBeVisible();
+});
+
 test("keeps the homepage header above page content while scrolling", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi");
@@ -459,11 +603,13 @@ test("keeps every public header mega menu readable and inside the viewport", asy
       key: "jobs",
       label: "Việc làm IT",
       destinations: null,
+      directoryItems: null,
     },
     {
       key: "companies",
       label: "Công ty IT",
-      destinations: ["/vi/companies", "/vi/companies", "/vi/companies"],
+      destinations: ["/vi/companies", "/vi/companies", "/vi/companies", "/vi/companies"],
+      directoryItems: 3,
     },
     {
       key: "blog",
@@ -472,7 +618,9 @@ test("keeps every public header mega menu readable and inside the viewport", asy
         "/vi/posts?category=blog-upnext",
         "/vi/posts?category=su-nghiep-it",
         "/vi/posts?category=chuyen-mon-it",
+        "/vi/posts",
       ],
+      directoryItems: 3,
     },
     {
       key: "features",
@@ -484,7 +632,9 @@ test("keeps every public header mega menu readable and inside the viewport", asy
         "/vi/jobs",
         "/vi/register",
         "/vi/register",
+        "/vi/register",
       ],
+      directoryItems: 6,
     },
   ] as const;
 
@@ -501,6 +651,11 @@ test("keeps every public header mega menu readable and inside the viewport", asy
 
       await expect(trigger).toHaveAttribute("id", triggerId);
       await expect(trigger).toHaveAttribute("aria-controls", panelId);
+      await expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+      await trigger.click();
+      await expect(trigger).toHaveAttribute("aria-expanded", "true");
+      await page.keyboard.press("Escape");
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
 
       await trigger.focus();
@@ -525,6 +680,12 @@ test("keeps every public header mega menu readable and inside the viewport", asy
       );
       if (menuCase.destinations) {
         expect(destinations).toEqual(menuCase.destinations);
+        await expect(panel).toHaveClass(/marketing-home-directory-mega/);
+        await expect(panel.locator(".marketing-home-directory-items > li")).toHaveCount(
+          menuCase.directoryItems,
+        );
+        await expect(panel.locator(".marketing-home-directory-footer")).toBeVisible();
+        await expect(panel.locator(".marketing-home-directory-icon")).toHaveCount(0);
       } else {
         expect(destinations.every((destination) => destination.startsWith("/vi/jobs"))).toBe(true);
       }
@@ -540,7 +701,7 @@ test("keeps every public header mega menu readable and inside the viewport", asy
             .filter((item) => item.scrollWidth > item.clientWidth)
             .map((item) => item.textContent?.trim()),
           nonWrappingDescriptions: Array.from(
-            element.querySelectorAll<HTMLElement>(".marketing-home-mega-text small"),
+            element.querySelectorAll<HTMLElement>(".marketing-home-directory-text small"),
           ).filter((description) => getComputedStyle(description).whiteSpace !== "normal").length,
         };
       });
@@ -556,6 +717,63 @@ test("keeps every public header mega menu readable and inside the viewport", asy
       await expect(trigger).toBeFocused();
     }
   }
+});
+
+test("gives directory menu rows the same hover feedback as job rows", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/vi");
+
+  await page.getByRole("button", { name: "Công ty IT", exact: true }).click();
+  const firstItem = page
+    .locator("#public-nav-companies-panel .marketing-home-directory-item")
+    .first();
+
+  await firstItem.hover();
+  await expect(firstItem).toHaveCSS("background-color", "rgb(243, 250, 247)");
+  await expect(firstItem.locator(".marketing-home-directory-text b")).toHaveCSS(
+    "color",
+    "rgb(7, 135, 95)",
+  );
+});
+
+test("keeps header mega menus open while the pointer crosses into the panel", async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 900 });
+  await page.goto("/vi");
+
+  const header = page.locator(".marketing-home-header");
+  const trigger = page.getByRole("button", { name: "Việc làm IT", exact: true });
+  const panel = page.locator("#public-nav-jobs-panel");
+
+  await trigger.hover();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await expect(panel).toBeVisible();
+  await page.waitForTimeout(260);
+
+  const [headerBox, triggerBox, panelBox] = await Promise.all([
+    header.boundingBox(),
+    trigger.boundingBox(),
+    panel.boundingBox(),
+  ]);
+  expect(headerBox).not.toBeNull();
+  expect(triggerBox).not.toBeNull();
+  expect(panelBox).not.toBeNull();
+
+  expect(panelBox!.y - (headerBox!.y + headerBox!.height)).toBeLessThanOrEqual(4);
+  expect(panelBox!.x).toBeCloseTo(triggerBox!.x, 0);
+
+  await page.mouse.move(
+    triggerBox!.x + triggerBox!.width / 2,
+    triggerBox!.y + triggerBox!.height + 4,
+  );
+  await page.waitForTimeout(120);
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+  await page.mouse.move(panelBox!.x + 12, panelBox!.y + 12);
+  await page.waitForTimeout(300);
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+  await page.mouse.move(12, 700);
+  await expect(trigger).toHaveAttribute("aria-expanded", "false", { timeout: 1_000 });
 });
 
 test("loads live backend data for every jobs menu category", async ({ page }) => {
