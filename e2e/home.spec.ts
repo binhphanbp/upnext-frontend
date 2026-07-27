@@ -454,6 +454,39 @@ test("uses semibold weight across header navigation and actions", async ({ page 
   );
 });
 
+test("localizes header navigation and mega menus without mixed-language labels", async ({
+  page,
+}) => {
+  await page.goto("/vi");
+
+  const vietnameseNavigation = page.getByLabel("Điều hướng chính");
+  await expect(
+    vietnameseNavigation.getByRole("button", { name: "Việc làm IT", exact: true }),
+  ).toBeVisible();
+  await vietnameseNavigation.getByRole("button", { name: "Việc làm IT", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Theo kỹ năng", exact: true })).toBeVisible();
+  await expect(page.getByText("Theo kỹ năng (Skills)", { exact: true })).toHaveCount(0);
+
+  await page.goto("/en");
+
+  const englishNavigation = page.getByLabel("Primary navigation");
+  await expect(
+    englishNavigation.getByRole("button", { name: "IT Jobs", exact: true }),
+  ).toBeVisible();
+  await expect(
+    englishNavigation.getByRole("button", { name: "IT Companies", exact: true }),
+  ).toBeVisible();
+
+  await englishNavigation.getByRole("button", { name: "IT Companies", exact: true }).click();
+  const companiesPanel = page.locator("#public-nav-companies-panel");
+  await expect(companiesPanel.getByText("Top technology companies", { exact: true })).toBeVisible();
+  await expect(
+    companiesPanel.getByText("Ranked by reputation and candidate reviews.", { exact: true }),
+  ).toBeVisible();
+  await expect(companiesPanel.getByText("Top công ty công nghệ", { exact: true })).toHaveCount(0);
+  await expect(companiesPanel.getByRole("link", { name: "View all companies" })).toBeVisible();
+});
+
 test("keeps the homepage header above page content while scrolling", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi");

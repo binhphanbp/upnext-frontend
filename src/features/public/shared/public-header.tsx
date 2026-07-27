@@ -53,11 +53,11 @@ import {
 } from "../home/marketing-icons";
 
 type MenuItem = {
-  label: string;
-  desc: string;
+  label: LocalizedText;
+  desc: LocalizedText;
   icon: ReactNode;
   path: string;
-  badge?: string;
+  badge?: LocalizedText;
   iconClass: string;
 };
 
@@ -68,9 +68,7 @@ type LocalizedText = {
 
 type NavMenu = {
   key: string;
-  label: string;
-  eyebrow: string;
-  tagline: string;
+  label: LocalizedText;
   items: MenuItem[];
   overview: {
     label: LocalizedText;
@@ -79,11 +77,15 @@ type NavMenu = {
   };
 };
 
+function localized(vi: string, en: string): LocalizedText {
+  return { vi, en };
+}
+
 type Language = {
   code: "VI" | "EN";
   locale: "vi" | "en";
   label: string;
-  flagLabel: string;
+  flagLabel: LocalizedText;
 };
 
 type LocalizedLabel = {
@@ -149,48 +151,49 @@ export type PublicHeaderViewer = {
 const navMenus: NavMenu[] = [
   {
     key: "jobs",
-    label: "Việc làm IT",
-    eyebrow: "Khám phá việc làm",
-    tagline: "Tìm đúng vị trí theo chuyên môn và định hướng của bạn.",
+    label: localized("Việc làm IT", "IT Jobs"),
     items: [
       {
-        label: "Frontend",
-        desc: "React, Vue, Angular, UI Engineer.",
+        label: localized("Frontend", "Frontend"),
+        desc: localized("React, Vue, Angular, UI Engineer.", "React, Vue, Angular, UI Engineer."),
         icon: <Code2 size={20} />,
         path: "/jobs?position=Frontend Developer",
         iconClass: "feat-icon-cv",
       },
       {
-        label: "Backend",
-        desc: "Java, Node.js, Go, .NET, PHP.",
+        label: localized("Backend", "Backend"),
+        desc: localized("Java, Node.js, Go, .NET, PHP.", "Java, Node.js, Go, .NET, PHP."),
         icon: <Layers size={20} />,
         path: "/jobs?position=Backend Developer",
         iconClass: "feat-icon-ai",
       },
       {
-        label: "Mobile",
-        desc: "iOS, Android, Flutter, React Native.",
+        label: localized("Mobile", "Mobile"),
+        desc: localized(
+          "iOS, Android, Flutter, React Native.",
+          "iOS, Android, Flutter, React Native.",
+        ),
         icon: <Smartphone size={20} />,
         path: "/jobs?position=Mobile Developer",
         iconClass: "feat-icon-community",
       },
       {
-        label: "Data & AI",
-        desc: "Data Engineer, ML, AI Engineer.",
+        label: localized("Data & AI", "Data & AI"),
+        desc: localized("Data Engineer, ML, AI Engineer.", "Data Engineer, ML, AI Engineer."),
         icon: <Brain size={20} />,
         path: "/jobs?position=AI%2FML Engineer",
         iconClass: "feat-icon-path",
       },
       {
-        label: "DevOps & Cloud",
-        desc: "AWS, Kubernetes, CI/CD, SRE.",
+        label: localized("DevOps & Cloud", "DevOps & Cloud"),
+        desc: localized("AWS, Kubernetes, CI/CD, SRE.", "AWS, Kubernetes, CI/CD, SRE."),
         icon: <ShieldCheck size={20} />,
         path: "/jobs?position=DevOps Engineer",
         iconClass: "feat-icon-salary",
       },
       {
-        label: "Tất cả việc làm",
-        desc: "Duyệt toàn bộ tin tuyển dụng IT.",
+        label: localized("Tất cả việc làm", "All jobs"),
+        desc: localized("Duyệt toàn bộ tin tuyển dụng IT.", "Browse all IT job openings."),
         icon: <BriefcaseBusiness size={20} />,
         path: "/jobs",
         iconClass: "feat-icon-learn",
@@ -207,27 +210,34 @@ const navMenus: NavMenu[] = [
   },
   {
     key: "companies",
-    label: "Công ty IT",
-    eyebrow: "Nhà tuyển dụng",
-    tagline: "Tìm hiểu công ty uy tín trước khi ứng tuyển.",
+    label: localized("Công ty IT", "IT Companies"),
     items: [
       {
-        label: "Top công ty công nghệ",
-        desc: "Bảng xếp hạng theo điểm uy tín và đánh giá.",
+        label: localized("Top công ty công nghệ", "Top technology companies"),
+        desc: localized(
+          "Bảng xếp hạng theo điểm uy tín và đánh giá.",
+          "Ranked by reputation and candidate reviews.",
+        ),
         icon: <Building2 size={20} />,
         path: "/companies",
         iconClass: "feat-icon-cv",
       },
       {
-        label: "Công ty đánh giá cao",
-        desc: "Môi trường, phúc lợi và văn hóa nổi bật.",
+        label: localized("Công ty đánh giá cao", "Top-rated companies"),
+        desc: localized(
+          "Môi trường, phúc lợi và văn hóa nổi bật.",
+          "Notable culture, benefits, and workplace experience.",
+        ),
         icon: <Star size={20} />,
         path: "/companies",
         iconClass: "feat-icon-salary",
       },
       {
-        label: "Big Tech & Tập đoàn",
-        desc: "FPT, Viettel, VNG, MoMo, ngân hàng số.",
+        label: localized("Big Tech & tập đoàn", "Big Tech & enterprises"),
+        desc: localized(
+          "FPT, Viettel, VNG, MoMo, ngân hàng số.",
+          "FPT, Viettel, VNG, MoMo, and digital banks.",
+        ),
         icon: <Landmark size={20} />,
         path: "/companies",
         iconClass: "feat-icon-ai",
@@ -244,27 +254,34 @@ const navMenus: NavMenu[] = [
   },
   {
     key: "blog",
-    label: "Bài viết",
-    eyebrow: "Kiến thức & insight",
-    tagline: "Cập nhật xu hướng và kinh nghiệm nghề nghiệp IT.",
+    label: localized("Bài viết", "Articles"),
     items: [
       {
-        label: "Blog UpNext",
-        desc: "Tin tức công nghệ, sự kiện IT và báo cáo thị trường tuyển dụng.",
+        label: localized("Blog UpNext", "UpNext Blog"),
+        desc: localized(
+          "Tin tức công nghệ, sự kiện IT và báo cáo thị trường tuyển dụng.",
+          "Technology news, IT events, and hiring market reports.",
+        ),
         icon: <Newspaper size={20} />,
         path: "/posts?category=blog-upnext",
         iconClass: "feat-icon-community",
       },
       {
-        label: "Sự nghiệp IT",
-        desc: "Lộ trình phát triển, cẩm nang phỏng vấn, đàm phán lương & kỹ năng mềm.",
+        label: localized("Sự nghiệp IT", "IT Careers"),
+        desc: localized(
+          "Lộ trình phát triển, cẩm nang phỏng vấn, đàm phán lương & kỹ năng mềm.",
+          "Career paths, interviews, salary negotiation, and soft skills.",
+        ),
         icon: <BriefcaseBusiness size={20} />,
         path: "/posts?category=su-nghiep-it",
         iconClass: "feat-icon-path",
       },
       {
-        label: "Chuyên môn IT",
-        desc: "Kiến thức AI & Data, Backend, DevOps, Cloud, Frontend & Mobile.",
+        label: localized("Chuyên môn IT", "IT Expertise"),
+        desc: localized(
+          "Kiến thức AI & Data, Backend, DevOps, Cloud, Frontend & Mobile.",
+          "AI & Data, Backend, DevOps, Cloud, Frontend, and Mobile knowledge.",
+        ),
         icon: <Code2 size={20} />,
         path: "/posts?category=chuyen-mon-it",
         iconClass: "feat-icon-salary",
@@ -281,49 +298,65 @@ const navMenus: NavMenu[] = [
   },
   {
     key: "features",
-    label: "Tính năng",
-    eyebrow: "Công cụ cho ứng viên IT",
-    tagline: "Mọi thứ bạn cần để tìm việc có chiến lược, không rải CV.",
+    label: localized("Tính năng", "Features"),
     items: [
       {
-        label: "Tạo CV chuẩn IT",
-        desc: "Mẫu CV tối ưu ATS, chấm điểm và gợi ý cải thiện theo JD.",
+        label: localized("Tạo CV chuẩn IT", "ATS-ready IT CV"),
+        desc: localized(
+          "Mẫu CV tối ưu ATS, chấm điểm và gợi ý cải thiện theo JD.",
+          "ATS-ready templates, scoring, and job-description guidance.",
+        ),
         icon: <FileText size={20} />,
         path: "/register",
         iconClass: "feat-icon-cv",
       },
       {
-        label: "Phỏng vấn AI",
-        desc: "Luyện phỏng vấn với bộ câu hỏi theo CV, JD và level mục tiêu.",
+        label: localized("Phỏng vấn AI", "AI interviews"),
+        desc: localized(
+          "Luyện phỏng vấn với bộ câu hỏi theo CV, JD và level mục tiêu.",
+          "Practice questions tailored to your CV, role, and seniority.",
+        ),
         icon: <Bot size={20} />,
         path: "/register",
-        badge: "Mới",
+        badge: localized("Mới", "New"),
         iconClass: "feat-icon-ai",
       },
       {
-        label: "Lộ trình IT",
-        desc: "Bản đồ nghề nghiệp từ Fresher đến Lead theo từng stack.",
+        label: localized("Lộ trình IT", "IT career roadmap"),
+        desc: localized(
+          "Bản đồ nghề nghiệp từ Fresher đến Lead theo từng stack.",
+          "Career maps from Fresher to Lead for each technology stack.",
+        ),
         icon: <Route size={20} />,
         path: "/register",
         iconClass: "feat-icon-path",
       },
       {
-        label: "Cẩm nang lương",
-        desc: "Dữ liệu lương theo vị trí, kinh nghiệm và khu vực.",
+        label: localized("Cẩm nang lương", "Salary guide"),
+        desc: localized(
+          "Dữ liệu lương theo vị trí, kinh nghiệm và khu vực.",
+          "Salary data by role, experience, and location.",
+        ),
         icon: <WalletCards size={20} />,
         path: "/jobs",
         iconClass: "feat-icon-salary",
       },
       {
-        label: "Cộng đồng & Mentor",
-        desc: "Hỏi đáp, review CV và kết nối mentor trong ngành.",
+        label: localized("Cộng đồng & mentor", "Community & mentors"),
+        desc: localized(
+          "Hỏi đáp, review CV và kết nối mentor trong ngành.",
+          "Get answers, CV feedback, and connect with industry mentors.",
+        ),
         icon: <MessagesSquare size={20} />,
         path: "/register",
         iconClass: "feat-icon-community",
       },
       {
-        label: "Học tập & Sự kiện",
-        desc: "Workshop, livestream và khóa học kỹ năng cho dev.",
+        label: localized("Học tập & sự kiện", "Learning & events"),
+        desc: localized(
+          "Workshop, livestream và khóa học kỹ năng cho dev.",
+          "Workshops, livestreams, and skill-building courses for developers.",
+        ),
         icon: <GraduationCap size={20} />,
         path: "/register",
         iconClass: "feat-icon-learn",
@@ -348,27 +381,27 @@ const jobsMenuCategories: JobsMenuCategory[] = [
   },
   {
     key: "skills",
-    label: { vi: "Theo kỹ năng (Skills)", en: "By skills" },
+    label: { vi: "Theo kỹ năng", en: "By skills" },
     icon: <Code size={29} weight="regular" />,
   },
   {
     key: "titles",
-    label: { vi: "Theo chức danh (Title)", en: "By title" },
+    label: { vi: "Theo chức danh", en: "By job title" },
     icon: <Briefcase size={29} weight="regular" />,
   },
   {
     key: "expertise",
-    label: { vi: "Theo chuyên môn (Expertise)", en: "By expertise" },
+    label: { vi: "Theo chuyên môn", en: "By specialization" },
     icon: <User size={29} weight="regular" />,
   },
   {
     key: "companies",
-    label: { vi: "Theo công ty (Company)", en: "By company" },
+    label: { vi: "Theo công ty", en: "By company" },
     icon: <Buildings size={29} weight="regular" />,
   },
   {
     key: "cities",
-    label: { vi: "Theo địa điểm (City)", en: "By city" },
+    label: { vi: "Theo địa điểm", en: "By city" },
     icon: <MapPin size={29} weight="regular" />,
   },
 ];
@@ -422,32 +455,19 @@ function createJobsMenuEntries(jobs: PublicJob[], tab: JobsMenuTab): JobsMenuEnt
     .slice(0, 16);
 }
 
-const enNavCopy: Record<string, { label: string; eyebrow: string; tagline: string }> = {
-  jobs: {
-    label: "IT Jobs",
-    eyebrow: "Explore jobs",
-    tagline: "Find roles by specialty, stack, and career direction.",
-  },
-  companies: {
-    label: "IT Companies",
-    eyebrow: "Employers",
-    tagline: "Research trusted companies before applying.",
-  },
-  blog: {
-    label: "Articles",
-    eyebrow: "Knowledge & insights",
-    tagline: "Follow IT career advice and hiring market trends.",
-  },
-  features: {
-    label: "Features",
-    eyebrow: "Tools for IT talent",
-    tagline: "Everything you need to search strategically, not spam applications.",
-  },
-};
-
 const languages: Language[] = [
-  { code: "VI", locale: "vi", label: "Tiếng Việt", flagLabel: "Việt Nam" },
-  { code: "EN", locale: "en", label: "English", flagLabel: "English" },
+  {
+    code: "VI",
+    locale: "vi",
+    label: "Tiếng Việt",
+    flagLabel: localized("Cờ Việt Nam", "Vietnamese flag"),
+  },
+  {
+    code: "EN",
+    locale: "en",
+    label: "English",
+    flagLabel: localized("Cờ Vương quốc Anh", "United Kingdom flag"),
+  },
 ];
 
 const demoAuthStorageKey = "upnext.demo.auth";
@@ -786,9 +806,12 @@ export function PublicHeader({
         />
       </button>
 
-      <nav className="marketing-home-nav" aria-label="Điều hướng chính" ref={navRef}>
+      <nav
+        className="marketing-home-nav"
+        aria-label={currentLocale === "en" ? "Primary navigation" : "Điều hướng chính"}
+        ref={navRef}
+      >
         {navMenus.map((menu) => {
-          const navCopy = currentLocale === "en" ? enNavCopy[menu.key] : undefined;
           const triggerId = `public-nav-${menu.key}-trigger`;
           const panelId = `public-nav-${menu.key}-panel`;
 
@@ -822,7 +845,7 @@ export function PublicHeader({
                   setOpenMenu((open) => (open === menu.key ? null : menu.key));
                 }}
               >
-                {navCopy?.label ?? menu.label}
+                {menu.label[currentLocale]}
                 <ChevronDown size={15} aria-hidden="true" />
               </button>
 
@@ -849,7 +872,7 @@ export function PublicHeader({
                   <DirectoryMegaMenu
                     menu={menu}
                     locale={currentLocale}
-                    label={navCopy?.label ?? menu.label}
+                    label={menu.label[currentLocale]}
                     isOpen={openMenu === menu.key}
                     onNavigate={() => setOpenMenu(null)}
                   />
@@ -893,7 +916,7 @@ export function PublicHeader({
                   className={`marketing-home-lang-option${lang === item.code ? " is-active" : ""}`}
                   onClick={() => switchLanguage(item)}
                 >
-                  <FlagIcon code={item.code} label={item.flagLabel} />
+                  <FlagIcon code={item.code} label={item.flagLabel[currentLocale]} />
                   <span className="marketing-home-lang-name">{item.label}</span>
                   {lang === item.code && <Check size={15} />}
                 </button>
@@ -1090,7 +1113,7 @@ function DirectoryMegaMenu({
       <div className="marketing-home-directory-body">
         <ul className="marketing-home-directory-items" aria-label={label}>
           {menu.items.map((item) => (
-            <li key={item.label}>
+            <li key={item.label.vi}>
               <Link
                 className="marketing-home-directory-item"
                 href={item.path}
@@ -1099,10 +1122,10 @@ function DirectoryMegaMenu({
               >
                 <span className="marketing-home-directory-text">
                   <b>
-                    <span>{item.label}</span>
-                    {item.badge ? <em>{item.badge}</em> : null}
+                    <span>{item.label[locale]}</span>
+                    {item.badge ? <em>{item.badge[locale]}</em> : null}
                   </b>
-                  <small>{item.desc}</small>
+                  <small>{item.desc[locale]}</small>
                 </span>
               </Link>
             </li>
@@ -1175,14 +1198,13 @@ function JobsMegaMenu({
     document.getElementById(`jobs-menu-tab-${jobsMenuCategories[nextIndex]?.key}`)?.focus();
   }
   const footerTitle =
-    locale === "en"
-      ? `View all ${activeCategory?.label.en.toLowerCase() ?? "IT jobs"}`
-      : `Xem tất cả ${
-          activeCategory?.label.vi
-            .replace(/^Theo /u, "")
-            .replace(/\s*\([^)]*\)/gu, "")
-            .toLowerCase() ?? "việc làm IT"
-        }`;
+    activeTab === "all"
+      ? locale === "en"
+        ? "View all job categories"
+        : "Xem tất cả danh mục"
+      : locale === "en"
+        ? `View all ${activeCategory?.label.en.toLowerCase() ?? "IT jobs"}`
+        : `Xem tất cả ${activeCategory?.label.vi.replace(/^Theo /u, "").toLowerCase() ?? "việc làm IT"}`;
   const footerDescription =
     locale === "en"
       ? `${jobs.length} open jobs from live hiring data`
@@ -1239,7 +1261,12 @@ function JobsMegaMenu({
             </p>
           ) : (
             columns.map((column, columnIndex) => (
-              <ul key={columnIndex} aria-label={activeCategory?.label[locale] ?? "Việc làm IT"}>
+              <ul
+                key={columnIndex}
+                aria-label={
+                  activeCategory?.label[locale] ?? (locale === "en" ? "IT jobs" : "Việc làm IT")
+                }
+              >
                 {column.map((entry) => (
                   <li key={entry.label}>
                     <Link href={entry.path} onClick={onNavigate} prefetch={isOpen ? null : false}>
