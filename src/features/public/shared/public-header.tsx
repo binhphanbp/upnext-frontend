@@ -109,6 +109,7 @@ type JobsMenuEntry = {
 
 type PublicHeaderCopy = {
   utilityStatement: string;
+  utilityNavigationLabel: string;
   utilityRecruiterPrompt: string;
   utilityRecruiterAction: string;
   employerSmall: string;
@@ -479,9 +480,10 @@ const menuCloseDelayMs = 260;
 
 const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
   vi: {
-    utilityStatement: "Nền tảng tuyển dụng chuyên biệt cho nhân sự IT",
-    utilityRecruiterPrompt: "Bạn là nhà tuyển dụng?",
-    utilityRecruiterAction: "Đăng tuyển",
+    utilityStatement: "Tìm việc IT phù hợp, nhanh và minh bạch",
+    utilityNavigationLabel: "Điều hướng dành cho nhà tuyển dụng",
+    utilityRecruiterPrompt: "Dành cho nhà tuyển dụng",
+    utilityRecruiterAction: "Đăng tin tuyển dụng",
     employerSmall: "Dành cho",
     employerLabel: "Nhà Tuyển Dụng",
     languageLabel: "Chọn ngôn ngữ",
@@ -505,8 +507,9 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     savedJobsLabel: "Việc đã lưu",
   },
   en: {
-    utilityStatement: "A specialist recruitment platform for IT talent",
-    utilityRecruiterPrompt: "Are you hiring?",
+    utilityStatement: "Find the right IT role, faster",
+    utilityNavigationLabel: "Employer navigation",
+    utilityRecruiterPrompt: "For employers",
     utilityRecruiterAction: "Post a job",
     employerSmall: "Employer",
     employerLabel: "Hiring Hub",
@@ -803,15 +806,13 @@ export function PublicHeader({
       <div className="marketing-home-utility-bar">
         <div className="marketing-home-utility-content">
           <p>{copy.utilityStatement}</p>
-          <button
-            type="button"
-            className="marketing-home-utility-recruiter"
-            onClick={() => navigate("/recruiter/login")}
-          >
-            <span>{copy.utilityRecruiterPrompt}</span>
-            <b>{copy.utilityRecruiterAction}</b>
-            <ArrowUpRight size={14} aria-hidden="true" />
-          </button>
+          <nav aria-label={copy.utilityNavigationLabel}>
+            <Link className="marketing-home-utility-recruiter" href="/recruiter/register">
+              <span>{copy.utilityRecruiterPrompt}</span>
+              <b>{copy.utilityRecruiterAction}</b>
+              <ArrowUpRight size={14} aria-hidden="true" />
+            </Link>
+          </nav>
         </div>
       </div>
 

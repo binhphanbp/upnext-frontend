@@ -454,25 +454,31 @@ test("uses semibold weight across header navigation and actions", async ({ page 
   );
 });
 
-test("uses a localized compact utility bar without adding height on mobile", async ({ page }) => {
+test("uses a localized primary utility bar without adding height on mobile", async ({ page }) => {
   await page.goto("/vi");
 
   const utilityBar = page.locator(".marketing-home-utility-bar");
   await expect(utilityBar).toBeVisible();
   await expect(
-    utilityBar.getByText("Nền tảng tuyển dụng chuyên biệt cho nhân sự IT", { exact: true }),
+    utilityBar.getByRole("navigation", { name: "Điều hướng dành cho nhà tuyển dụng" }),
   ).toBeVisible();
   await expect(
-    utilityBar.getByRole("button", { name: "Bạn là nhà tuyển dụng? Đăng tuyển" }),
+    utilityBar.getByText("Tìm việc IT phù hợp, nhanh và minh bạch", { exact: true }),
   ).toBeVisible();
+  const vietnameseRecruiterLink = utilityBar.getByRole("link", {
+    name: "Dành cho nhà tuyển dụng Đăng tin tuyển dụng",
+  });
+  await expect(vietnameseRecruiterLink).toHaveAttribute("href", "/vi/recruiter/register");
 
   await page.goto("/en");
+  await expect(utilityBar.getByRole("navigation", { name: "Employer navigation" })).toBeVisible();
   await expect(
-    utilityBar.getByText("A specialist recruitment platform for IT talent", { exact: true }),
+    utilityBar.getByText("Find the right IT role, faster", { exact: true }),
   ).toBeVisible();
-  await expect(
-    utilityBar.getByRole("button", { name: "Are you hiring? Post a job" }),
-  ).toBeVisible();
+  await expect(utilityBar.getByRole("link", { name: "For employers Post a job" })).toHaveAttribute(
+    "href",
+    "/en/recruiter/register",
+  );
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(utilityBar).toBeHidden();

@@ -36,8 +36,7 @@
 
 .marketing-home-utility-bar {
   min-height: var(--marketing-home-utility-height);
-  border-bottom: 1px solid #edf2f0;
-  background: rgba(248, 251, 250, 0.84);
+  background: linear-gradient(100deg, #07875f 0%, #0aa56f 100%);
 }
 
 .marketing-home-utility-content {
@@ -48,7 +47,7 @@
   width: 100%;
   min-height: var(--marketing-home-utility-height);
   padding: 0 48px;
-  color: #64748b;
+  color: #ffffff;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.2;
@@ -65,20 +64,32 @@
   min-height: 28px;
   padding: 3px 0;
   border: 0;
-  color: #475569;
+  color: #ffffff;
   background: transparent;
   font: inherit;
+  text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
 }
 
 .marketing-home-utility-recruiter b {
-  color: #07875f;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.marketing-home-utility-recruiter b::before {
+  width: 1px;
+  height: 12px;
+  display: inline-block;
+  margin-right: 7px;
+  content: "";
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .marketing-home-utility-recruiter svg {
-  color: #0aa56f;
+  color: #ffffff;
   transition: transform 180ms ease;
 }
 
@@ -1105,9 +1116,13 @@
 
 .marketing-home-logo:focus-visible,
 .marketing-home-nav-trigger:focus-visible,
-.marketing-home-header-actions button:focus-visible,
-.marketing-home-utility-recruiter:focus-visible {
+.marketing-home-header-actions button:focus-visible {
   outline: 2px solid rgba(16, 167, 120, 0.35);
+  outline-offset: 3px;
+}
+
+.marketing-home-utility-recruiter:focus-visible {
+  outline: 2px solid #ffffff;
   outline-offset: 3px;
 }
 
@@ -4775,7 +4790,10 @@ button.marketing-home-control {
   }
 
   .marketing-home-utility-recruiter:hover {
-    color: #0b7f5f;
+    color: #ffffff;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.7);
+    text-underline-offset: 3px;
   }
 
   .marketing-home-utility-recruiter:hover svg {
