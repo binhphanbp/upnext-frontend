@@ -489,7 +489,7 @@ test("uses semibold weight across header navigation and actions", async ({ page 
   );
 });
 
-test("uses localized quick job links in the primary utility bar without adding height on mobile", async ({
+test("uses localized candidate tools in the primary utility bar without adding height on mobile", async ({
   page,
 }) => {
   await page.goto("/vi");
@@ -497,35 +497,45 @@ test("uses localized quick job links in the primary utility bar without adding h
   const utilityBar = page.locator(".marketing-home-utility-bar");
   await expect(utilityBar).toBeVisible();
   const vietnameseUtilityNavigation = utilityBar.getByRole("navigation", {
-    name: "Khám phá việc làm nhanh",
+    name: "Công cụ dành cho ứng viên",
   });
   await expect(
-    vietnameseUtilityNavigation.getByText("Khám phá nhanh", { exact: true }),
+    vietnameseUtilityNavigation.getByText("Bắt đầu sự nghiệp", { exact: true }),
   ).toBeVisible();
-  await expect(vietnameseUtilityNavigation.getByRole("link", { name: "Việc mới" })).toHaveAttribute(
-    "href",
-    "/vi/jobs?sort=newest",
-  );
-  await expect(vietnameseUtilityNavigation.getByRole("link", { name: "Remote" })).toHaveAttribute(
-    "href",
-    "/vi/jobs?mode=remote",
-  );
-  await expect(vietnameseUtilityNavigation.getByRole("link", { name: "Fresher" })).toHaveAttribute(
-    "href",
-    "/vi/jobs?level=fresher",
-  );
   await expect(
-    vietnameseUtilityNavigation.getByRole("link", { name: "Từ 60 triệu" }),
-  ).toHaveAttribute("href", "/vi/jobs?salaryRange=sal-60");
+    vietnameseUtilityNavigation.getByRole("link", { name: "Tạo CV chuẩn ATS" }),
+  ).toHaveAttribute("href", "/vi/register");
+  await expect(
+    vietnameseUtilityNavigation.getByRole("link", { name: "Gợi ý việc theo hồ sơ" }),
+  ).toHaveAttribute("href", "/vi/register");
+  await expect(vietnameseUtilityNavigation.getByLabel("AI Interview — Sắp ra mắt")).toBeVisible();
 
   await page.goto("/en");
   const englishUtilityNavigation = utilityBar.getByRole("navigation", {
-    name: "Quick job discovery",
+    name: "Candidate tools",
   });
-  await expect(englishUtilityNavigation.getByText("Explore", { exact: true })).toBeVisible();
   await expect(
-    englishUtilityNavigation.getByRole("link", { name: "Latest roles" }),
-  ).toHaveAttribute("href", "/en/jobs?sort=newest");
+    englishUtilityNavigation.getByText("Build your career", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    englishUtilityNavigation.getByRole("link", { name: "Build an ATS-ready CV" }),
+  ).toHaveAttribute("href", "/en/register");
+  await expect(englishUtilityNavigation.getByLabel("AI Interview — Coming soon")).toBeVisible();
+
+  await page.evaluate(() => window.localStorage.setItem("upnext.demo.auth", "candidate"));
+  await page.goto("/vi");
+  const signedInCandidateUtilityNavigation = utilityBar.getByRole("navigation", {
+    name: "Công cụ dành cho ứng viên",
+  });
+  await expect(
+    signedInCandidateUtilityNavigation.getByText("Tối ưu hồ sơ", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    signedInCandidateUtilityNavigation.getByRole("link", { name: "Cập nhật hồ sơ" }),
+  ).toHaveAttribute("href", "/vi/candidate/profile");
+  await expect(
+    signedInCandidateUtilityNavigation.getByRole("link", { name: "CV của tôi" }),
+  ).toHaveAttribute("href", "/vi/candidate/cv-builder");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(utilityBar).toBeHidden();

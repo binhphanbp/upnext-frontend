@@ -63,7 +63,13 @@
   color: rgba(255, 255, 255, 0.76);
 }
 
-.marketing-home-utility-link {
+.marketing-home-utility-item {
+  min-height: var(--marketing-home-utility-height);
+  display: inline-flex;
+}
+
+.marketing-home-utility-link,
+.marketing-home-utility-coming-soon {
   min-height: var(--marketing-home-utility-height);
   display: inline-flex;
   align-items: center;
@@ -75,6 +81,23 @@
   transition:
     color 180ms ease,
     background-color 180ms ease;
+}
+
+.marketing-home-utility-coming-soon {
+  gap: 6px;
+  cursor: default;
+}
+
+.marketing-home-utility-coming-soon small {
+  padding: 2px 5px;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(5, 90, 62, 0.22);
 }
 
 .marketing-home-utility-link:focus-visible {

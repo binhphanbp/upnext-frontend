@@ -67,9 +67,10 @@ type LocalizedText = {
   en: string;
 };
 
-type UtilityLink = {
+type CandidateUtilityItem = {
   label: LocalizedText;
-  href: string;
+  href?: string;
+  comingSoon?: boolean;
 };
 
 type CompactNavigationLink = {
@@ -121,7 +122,9 @@ type JobsMenuEntry = {
 
 type PublicHeaderCopy = {
   utilityNavigationLabel: string;
-  utilityLabel: string;
+  utilityGuestLabel: string;
+  utilityCandidateLabel: string;
+  comingSoonLabel: string;
   compactMenuLabel: string;
   compactNavigationLabel: string;
   employerSmall: string;
@@ -486,11 +489,16 @@ const languages: Language[] = [
   },
 ];
 
-const utilityLinks: UtilityLink[] = [
-  { label: localized("Việc mới", "Latest roles"), href: "/jobs?sort=newest" },
-  { label: localized("Remote", "Remote"), href: "/jobs?mode=remote" },
-  { label: localized("Fresher", "Entry level"), href: "/jobs?level=fresher" },
-  { label: localized("Từ 60 triệu", "₫60M+"), href: "/jobs?salaryRange=sal-60" },
+const guestCandidateUtilityItems: CandidateUtilityItem[] = [
+  { label: localized("Tạo CV chuẩn ATS", "Build an ATS-ready CV"), href: "/register" },
+  { label: localized("Gợi ý việc theo hồ sơ", "Personalized job matches"), href: "/register" },
+  { label: localized("AI Interview", "AI Interview"), comingSoon: true },
+];
+
+const signedInCandidateUtilityItems: CandidateUtilityItem[] = [
+  { label: localized("Cập nhật hồ sơ", "Update your profile"), href: "/candidate/profile" },
+  { label: localized("CV của tôi", "My CV"), href: "/candidate/cv-builder" },
+  { label: localized("AI Interview", "AI Interview"), comingSoon: true },
 ];
 
 const compactNavigationLinks: CompactNavigationLink[] = [
@@ -512,8 +520,10 @@ const menuCloseDelayMs = 260;
 
 const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
   vi: {
-    utilityNavigationLabel: "Khám phá việc làm nhanh",
-    utilityLabel: "Khám phá nhanh",
+    utilityNavigationLabel: "Công cụ dành cho ứng viên",
+    utilityGuestLabel: "Bắt đầu sự nghiệp",
+    utilityCandidateLabel: "Tối ưu hồ sơ",
+    comingSoonLabel: "Sắp ra mắt",
     compactMenuLabel: "Mở menu",
     compactNavigationLabel: "Điều hướng chính",
     employerSmall: "Dành cho",
@@ -539,8 +549,10 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     savedJobsLabel: "Việc đã lưu",
   },
   en: {
-    utilityNavigationLabel: "Quick job discovery",
-    utilityLabel: "Explore",
+    utilityNavigationLabel: "Candidate tools",
+    utilityGuestLabel: "Build your career",
+    utilityCandidateLabel: "Strengthen your profile",
+    comingSoonLabel: "Coming soon",
     compactMenuLabel: "Open menu",
     compactNavigationLabel: "Primary navigation",
     employerSmall: "Employer",
@@ -652,6 +664,12 @@ export function PublicHeader({
   const lang: Language["code"] = currentLocale === "en" ? "EN" : "VI";
   const copy = copyByLocale[currentLocale];
   const effectiveViewer = viewer === undefined ? storedViewer : viewer;
+  const candidateUtilityItems = effectiveViewer
+    ? signedInCandidateUtilityItems
+    : guestCandidateUtilityItems;
+  const candidateUtilityLabel = effectiveViewer
+    ? copy.utilityCandidateLabel
+    : copy.utilityGuestLabel;
   const recruiterChatAvailable = !!effectiveViewer;
   const recruiterChatHasNewMessage =
     hasNewRecruiterMessages ?? Boolean(effectiveViewer?.unreadMessages);
@@ -858,11 +876,23 @@ export function PublicHeader({
       <div className="marketing-home-utility-bar">
         <div className="marketing-home-utility-content">
           <nav aria-label={copy.utilityNavigationLabel}>
-            <span className="marketing-home-utility-label">{copy.utilityLabel}</span>
-            {utilityLinks.map((item) => (
-              <Link key={item.href} className="marketing-home-utility-link" href={item.href}>
-                {item.label[currentLocale]}
-              </Link>
+            <span className="marketing-home-utility-label">{candidateUtilityLabel}</span>
+            {candidateUtilityItems.map((item) => (
+              <span key={item.label[currentLocale]} className="marketing-home-utility-item">
+                {item.href ? (
+                  <Link className="marketing-home-utility-link" href={item.href}>
+                    {item.label[currentLocale]}
+                  </Link>
+                ) : (
+                  <span
+                    className="marketing-home-utility-coming-soon"
+                    aria-label={`${item.label[currentLocale]} — ${copy.comingSoonLabel}`}
+                  >
+                    <span>{item.label[currentLocale]}</span>
+                    <small>{copy.comingSoonLabel}</small>
+                  </span>
+                )}
+              </span>
             ))}
           </nav>
         </div>
