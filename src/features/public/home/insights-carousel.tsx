@@ -180,20 +180,13 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
         >
           <div className="marketing-home-insights-track">
             {articles.map((article, index) => {
-              const distanceFromActive = Math.abs(index - activeIndex);
-              const loopDistance = Math.min(
-                distanceFromActive,
-                articles.length - distanceFromActive,
-              );
               const isFeatured = activeIndex === index;
-              const isAdjacent = loopDistance === 1;
-              const isPeripheral = loopDistance === 2;
               return (
                 <div className="marketing-home-insights-slide" key={article.id}>
                   <article
                     data-insight-index={index}
                     aria-current={isFeatured ? "true" : undefined}
-                    className={`marketing-home-insights-card${isFeatured ? " is-featured" : ""}${isAdjacent ? " is-adjacent" : ""}${isPeripheral ? " is-peripheral" : ""}`}
+                    className={`marketing-home-insights-card${isFeatured ? " is-featured" : ""}`}
                   >
                     <div className="marketing-home-insights-image">
                       <Image
@@ -210,15 +203,10 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
                     <h3>
                       <Link href={`/posts/${article.slug}`}>{article.title}</Link>
                     </h3>
-                    {isFeatured ? (
-                      <Link
-                        className="marketing-home-insights-more"
-                        href={`/posts/${article.slug}`}
-                      >
-                        {copy.more}
-                        <ArrowRight size={15} weight="bold" aria-hidden="true" />
-                      </Link>
-                    ) : null}
+                    <Link className="marketing-home-insights-more" href={`/posts/${article.slug}`}>
+                      {copy.more}
+                      <ArrowRight size={15} weight="bold" aria-hidden="true" />
+                    </Link>
                   </article>
                 </div>
               );
