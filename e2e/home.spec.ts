@@ -442,6 +442,16 @@ test("uses semibold weight across header navigation and actions", async ({ page 
   await expect(page.locator(".marketing-home-lang-trigger")).toHaveCSS("font-weight", "600");
   await expect(page.locator(".marketing-home-login")).toHaveCSS("font-weight", "600");
   await expect(page.locator(".marketing-home-register")).toHaveCSS("font-weight", "600");
+
+  await page.getByRole("button", { name: "Chọn ngôn ngữ" }).click();
+  await expect(page.locator(".marketing-home-lang-option:not(.is-active)")).toHaveCSS(
+    "font-weight",
+    "600",
+  );
+  await expect(page.locator(".marketing-home-lang-option.is-active")).toHaveCSS(
+    "font-weight",
+    "600",
+  );
 });
 
 test("keeps the homepage header above page content while scrolling", async ({ page }) => {
