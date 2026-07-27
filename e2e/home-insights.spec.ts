@@ -146,6 +146,7 @@ test("keeps card geometry fixed while the focused article changes", async ({ pag
 
   const section = page.locator(".marketing-home-insights");
   const next = section.getByRole("button", { name: "Bài viết tiếp theo" });
+  await expect(section.locator(".marketing-home-insights-card.is-featured")).toBeVisible();
   await section.evaluate((element) => element.scrollIntoView({ block: "center" }));
 
   const getCardGeometry = () =>
