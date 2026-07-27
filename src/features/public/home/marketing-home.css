@@ -6675,10 +6675,7 @@ button.marketing-home-control {
   width: 100%;
   margin: 0;
   padding: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
+  overflow: hidden;
   scrollbar-width: none;
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
@@ -6709,7 +6706,6 @@ button.marketing-home-control {
 
 .marketing-home-insights-viewport.is-dragging {
   cursor: grabbing;
-  scroll-snap-type: none;
   user-select: none;
 }
 
@@ -6717,23 +6713,29 @@ button.marketing-home-control {
   display: flex;
   align-items: flex-start;
   gap: 24px;
-  width: max-content;
-  padding: 0 max(24px, calc(50vw - 781px));
+  width: auto;
+  padding: 0;
+  will-change: transform;
+}
+
+.marketing-home-insights-slide {
+  position: relative;
+  min-width: 0;
+  flex: 0 0 541px;
 }
 
 .marketing-home-insights-card {
-  width: 432px;
+  width: 650px;
   min-height: 0;
   display: block;
-  flex: 0 0 432px;
+  margin-left: -10px;
   overflow: visible;
   color: #0d3823;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  scroll-snap-align: center;
-  transform: scale(0.92);
+  transform: scale(0.62);
   transform-origin: center top;
   opacity: 0.24;
   transition:
@@ -6742,9 +6744,7 @@ button.marketing-home-control {
 }
 
 .marketing-home-insights-card.is-featured {
-  width: 650px;
   min-height: 0;
-  flex-basis: 650px;
   transform: none;
   opacity: 1;
 }
@@ -6754,12 +6754,13 @@ button.marketing-home-control {
 }
 
 .marketing-home-insights-card.is-adjacent {
-  transform: scale(0.96);
-  opacity: 0.8;
+  transform: scale(0.68);
+  opacity: 0.78;
 }
 
 .marketing-home-insights-card.is-peripheral {
-  opacity: 0.32;
+  transform: scale(0.62);
+  opacity: 0.3;
 }
 
 .marketing-home-insights-card.is-active {
@@ -6770,7 +6771,7 @@ button.marketing-home-control {
 .marketing-home-insights-image,
 .marketing-home-insights-card.is-featured .marketing-home-insights-image {
   aspect-ratio: auto;
-  height: 272px;
+  height: 406px;
   overflow: hidden;
   border-radius: 16px;
   background: #e8f1ec;
@@ -6798,7 +6799,7 @@ button.marketing-home-control {
   margin: 14px 0 0;
   overflow: hidden;
   color: #0d3823;
-  font-size: 16px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.015em;
   line-height: 1.42;
@@ -7001,10 +7002,14 @@ button.marketing-home-control {
     padding: 0 24px;
   }
 
+  .marketing-home-insights-slide {
+    flex-basis: min(84vw, 360px);
+  }
+
   .marketing-home-insights-card,
   .marketing-home-insights-card.is-featured {
     width: min(84vw, 360px);
-    flex-basis: min(84vw, 360px);
+    margin-left: 0;
     opacity: 1;
     transform: none;
   }
