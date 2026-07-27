@@ -70,7 +70,9 @@
   padding: 8px 0;
   color: #111827;
   font-size: 15px;
-  font-weight: 700;
+  /* Navigation is a wayfinding layer, not a primary action. A semibold
+     weight preserves scanability at this size while letting CTAs lead. */
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }
