@@ -289,7 +289,7 @@ export function JobMarket({ navigate }: JobMarketProps) {
 
   const publicCompaniesQuery = useQuery({
     queryKey: ["public-companies"],
-    queryFn: getPublicCompanies,
+    queryFn: () => getPublicCompanies(),
   });
 
   const apiJobsData = publicJobsQuery.data;

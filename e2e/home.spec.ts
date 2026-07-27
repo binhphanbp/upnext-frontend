@@ -372,6 +372,47 @@ test("uses API jobs for search and keeps the sidebar focused on advanced filters
   await expect(page.getByText("Không tìm thấy việc làm phù hợp")).toBeVisible();
 });
 
+test("uses job cities, not the country, on featured job cards", async ({ page }) => {
+  await page.route(/\/job-posts(?:\?|$)/, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify([
+        {
+          id: "job-multi-city",
+          title: "Platform Engineer",
+          description: "Build the platform.",
+          requirements: null,
+          benefits: null,
+          salaryMin: 30000000,
+          salaryMax: 45000000,
+          salaryCurrency: "VND",
+          salaryIsNegotiable: false,
+          salaryIsVisible: true,
+          publishedAt: "2026-07-16T00:00:00.000Z",
+          createdAt: "2026-07-16T00:00:00.000Z",
+          company: { id: "company-1", name: "UpNext Labs" },
+          jobCategory: { name: "Frontend Engineering" },
+          employmentType: { name: "Full-time" },
+          experienceLevel: { name: "Middle" },
+          jobPostSkills: [{ minYearsExperience: 2, skill: { name: "React" } }],
+          jobPostLocations: [
+            { jobLocation: { city: "Hà Nội" } },
+            { jobLocation: { city: "TP. Hồ Chí Minh" } },
+            { jobLocation: { city: "Hà Nội" } },
+          ],
+        },
+      ]),
+    });
+  });
+
+  await page.goto("/vi");
+
+  const section = page.locator(".marketing-home-jobs");
+  await expect(section.getByText("Platform Engineer", { exact: true })).toBeVisible();
+  await expect(section.getByText("Hà Nội +1", { exact: true })).toBeVisible();
+  await expect(section.getByText("Việt Nam", { exact: true })).toHaveCount(0);
+});
+
 test("uses one shared public header across public marketing pages", async ({ page }) => {
   for (const route of ["/vi", "/vi/jobs", "/vi/companies"]) {
     await page.goto(route);
