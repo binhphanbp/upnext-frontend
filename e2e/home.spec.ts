@@ -615,6 +615,45 @@ test("gives directory menu rows the same hover feedback as job rows", async ({ p
   );
 });
 
+test("keeps header mega menus open while the pointer crosses into the panel", async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 900 });
+  await page.goto("/vi");
+
+  const header = page.locator(".marketing-home-header");
+  const trigger = page.getByRole("button", { name: "Việc làm IT", exact: true });
+  const panel = page.locator("#public-nav-jobs-panel");
+
+  await trigger.hover();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await expect(panel).toBeVisible();
+  await page.waitForTimeout(260);
+
+  const [headerBox, triggerBox, panelBox] = await Promise.all([
+    header.boundingBox(),
+    trigger.boundingBox(),
+    panel.boundingBox(),
+  ]);
+  expect(headerBox).not.toBeNull();
+  expect(triggerBox).not.toBeNull();
+  expect(panelBox).not.toBeNull();
+
+  expect(panelBox!.y - (headerBox!.y + headerBox!.height)).toBeLessThanOrEqual(4);
+
+  await page.mouse.move(
+    triggerBox!.x + triggerBox!.width / 2,
+    triggerBox!.y + triggerBox!.height + 4,
+  );
+  await page.waitForTimeout(120);
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+  await page.mouse.move(panelBox!.x + 12, panelBox!.y + 12);
+  await page.waitForTimeout(300);
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+  await page.mouse.move(12, 700);
+  await expect(trigger).toHaveAttribute("aria-expanded", "false", { timeout: 1_000 });
+});
+
 test("loads live backend data for every jobs menu category", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi");

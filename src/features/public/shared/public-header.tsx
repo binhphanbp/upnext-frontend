@@ -452,6 +452,7 @@ const languages: Language[] = [
 
 const demoAuthStorageKey = "upnext.demo.auth";
 const demoAuthChangeEvent = "upnext-demo-auth-change";
+const menuCloseDelayMs = 260;
 
 const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
   vi: {
@@ -576,6 +577,7 @@ export function PublicHeader({
   const [langOpen, setLangOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [storedViewer, setStoredViewer] = useState<PublicHeaderViewer | null>(null);
+  const menuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
   const langRef = useRef<HTMLDivElement | null>(null);
   const accountRef = useRef<HTMLDivElement | null>(null);
@@ -594,6 +596,32 @@ export function PublicHeader({
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("section") === "preferences";
 
+  function clearMenuCloseTimer() {
+    if (menuCloseTimerRef.current === null) return;
+    clearTimeout(menuCloseTimerRef.current);
+    menuCloseTimerRef.current = null;
+  }
+
+  function openMenuFromPointer(menuKey: string) {
+    clearMenuCloseTimer();
+    setOpenMenu(menuKey);
+  }
+
+  function scheduleMenuClose() {
+    clearMenuCloseTimer();
+    menuCloseTimerRef.current = setTimeout(() => {
+      menuCloseTimerRef.current = null;
+      setOpenMenu(null);
+    }, menuCloseDelayMs);
+  }
+
+  useEffect(
+    () => () => {
+      clearMenuCloseTimer();
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!openMenu) return undefined;
 
@@ -604,10 +632,12 @@ export function PublicHeader({
       if (event.key !== "Escape") return;
 
       const trigger = document.getElementById(`public-nav-${openMenu}-trigger`);
+      clearMenuCloseTimer();
       setOpenMenu(null);
       trigger?.focus();
     }
     function handleScroll() {
+      clearMenuCloseTimer();
       setOpenMenu(null);
     }
 
@@ -742,10 +772,13 @@ export function PublicHeader({
             <div
               key={menu.key}
               className={`marketing-home-nav-dd${openMenu === menu.key ? " is-open" : ""}`}
-              onMouseEnter={() => setOpenMenu(menu.key)}
-              onMouseLeave={() => setOpenMenu(null)}
+              onMouseEnter={() => openMenuFromPointer(menu.key)}
+              onMouseLeave={scheduleMenuClose}
               onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) setOpenMenu(null);
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  clearMenuCloseTimer();
+                  setOpenMenu(null);
+                }
               }}
             >
               <button
@@ -755,6 +788,7 @@ export function PublicHeader({
                 aria-controls={panelId}
                 aria-expanded={openMenu === menu.key}
                 onClick={(event) => {
+                  clearMenuCloseTimer();
                   if (event.detail > 0) {
                     setOpenMenu(menu.key);
                     return;
@@ -775,6 +809,7 @@ export function PublicHeader({
                     : " marketing-home-directory-mega"
                 }`}
                 aria-labelledby={triggerId}
+                onMouseEnter={clearMenuCloseTimer}
               >
                 {menu.key === "jobs" ? (
                   <JobsMegaMenu

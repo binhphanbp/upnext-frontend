@@ -18,13 +18,14 @@
 }
 
 .marketing-home-header {
+  --marketing-home-header-height: 72px;
   position: sticky;
   top: 0;
   right: 0;
   left: 0;
   z-index: 1000;
   isolation: isolate;
-  min-height: 72px;
+  min-height: var(--marketing-home-header-height);
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
@@ -193,16 +194,16 @@
 .marketing-home-jobs-mega,
 .marketing-home-directory-mega {
   position: fixed;
-  top: 82px;
-  left: 50%;
+  top: calc(var(--marketing-home-header-height) + 4px);
+  left: max(20px, calc(50% - 540px));
   width: min(1000px, calc(100vw - 40px));
   max-width: calc(100vw - 40px);
   padding: 0;
   overflow: hidden;
   border-color: #e8ecea;
   border-radius: 16px;
-  transform: translate(-50%, -8px) scale(0.98);
-  transform-origin: top center;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top left;
   box-shadow:
     0 24px 62px rgba(20, 38, 32, 0.13),
     0 2px 8px rgba(20, 38, 32, 0.04);
@@ -210,7 +211,7 @@
 
 .marketing-home-nav-dd.is-open .marketing-home-jobs-mega,
 .marketing-home-nav-dd.is-open .marketing-home-directory-mega {
-  transform: translate(-50%, 0) scale(1);
+  transform: translateY(0) scale(1);
 }
 
 .marketing-home-jobs-mega::after,
@@ -220,14 +221,14 @@
 
 .marketing-home-jobs-mega::before,
 .marketing-home-directory-mega::before {
-  top: -22px;
-  height: 22px;
+  top: -36px;
+  height: 40px;
 }
 
 .marketing-home-nav-dd:last-child .marketing-home-directory-mega {
-  left: 50%;
+  left: max(20px, calc(50% - 540px));
   right: auto;
-  transform-origin: top center;
+  transform-origin: top left;
 }
 
 .marketing-home-jobs-body {
