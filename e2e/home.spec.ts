@@ -638,6 +638,7 @@ test("keeps header mega menus open while the pointer crosses into the panel", as
   expect(panelBox).not.toBeNull();
 
   expect(panelBox!.y - (headerBox!.y + headerBox!.height)).toBeLessThanOrEqual(4);
+  expect(panelBox!.x).toBeCloseTo(triggerBox!.x, 0);
 
   await page.mouse.move(
     triggerBox!.x + triggerBox!.width / 2,

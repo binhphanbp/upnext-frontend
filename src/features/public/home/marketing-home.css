@@ -209,6 +209,10 @@
     0 2px 8px rgba(20, 38, 32, 0.04);
 }
 
+.marketing-home-jobs-mega {
+  left: 20px;
+}
+
 .marketing-home-nav-dd.is-open .marketing-home-jobs-mega,
 .marketing-home-nav-dd.is-open .marketing-home-directory-mega {
   transform: translateY(0) scale(1);

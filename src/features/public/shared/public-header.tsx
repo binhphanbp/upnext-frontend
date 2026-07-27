@@ -574,6 +574,7 @@ export function PublicHeader({
   const pathname = usePathname();
   const locale = useLocale();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [jobsMegaLeft, setJobsMegaLeft] = useState<number | null>(null);
   const [langOpen, setLangOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [storedViewer, setStoredViewer] = useState<PublicHeaderViewer | null>(null);
@@ -602,8 +603,20 @@ export function PublicHeader({
     menuCloseTimerRef.current = null;
   }
 
+  function alignJobsMegaMenu(menuKey: string) {
+    if (menuKey !== "jobs") return;
+
+    const trigger = document.getElementById(`public-nav-${menuKey}-trigger`);
+    if (!trigger) return;
+
+    const panelWidth = Math.min(1000, window.innerWidth - 40);
+    const maxLeft = Math.max(20, window.innerWidth - panelWidth - 20);
+    setJobsMegaLeft(Math.max(20, Math.min(trigger.getBoundingClientRect().left, maxLeft)));
+  }
+
   function openMenuFromPointer(menuKey: string) {
     clearMenuCloseTimer();
+    alignJobsMegaMenu(menuKey);
     setOpenMenu(menuKey);
   }
 
@@ -621,6 +634,17 @@ export function PublicHeader({
     },
     [],
   );
+
+  useEffect(() => {
+    if (openMenu !== "jobs") return undefined;
+
+    function handleResize() {
+      alignJobsMegaMenu("jobs");
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [openMenu]);
 
   useEffect(() => {
     if (!openMenu) return undefined;
@@ -789,6 +813,7 @@ export function PublicHeader({
                 aria-expanded={openMenu === menu.key}
                 onClick={(event) => {
                   clearMenuCloseTimer();
+                  alignJobsMegaMenu(menu.key);
                   if (event.detail > 0) {
                     setOpenMenu(menu.key);
                     return;
@@ -810,6 +835,9 @@ export function PublicHeader({
                 }`}
                 aria-labelledby={triggerId}
                 onMouseEnter={clearMenuCloseTimer}
+                style={
+                  menu.key === "jobs" && jobsMegaLeft !== null ? { left: jobsMegaLeft } : undefined
+                }
               >
                 {menu.key === "jobs" ? (
                   <JobsMegaMenu
