@@ -12,18 +12,22 @@ import {
   BookOpen,
   MagnifyingGlass,
   MapPin,
+  Sparkle,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
 import { apiRequest } from "@/shared/api/http";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
-import { matchNaturalLanguageSearch } from "@/shared/utils/natural-search";
+import {
+  analyzeNaturalLanguageQuery,
+  scoreNaturalLanguageSearch,
+} from "@/shared/utils/natural-search";
 
 import { getPublicJobs } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
@@ -34,6 +38,7 @@ import "../jobs-page.css";
 
 type PublicJobsPageProps = {
   navigate: (path: string) => void;
+  replace: (path: string) => void;
 };
 
 export type Job = {
@@ -62,6 +67,8 @@ export type Job = {
   expiredAt?: string | null;
   skills?: string[];
   experienceYears?: number[];
+  salaryMinMillions?: number | undefined;
+  salaryMaxMillions?: number | undefined;
 };
 
 type FilterGroup = {
@@ -376,6 +383,60 @@ const filterLabelByValue = new Map(
 
 const ALL_LOCATIONS = "Tất cả địa điểm";
 
+const MODE_FILTERS = new Set(["hybrid", "remote", "onsite"]);
+const LEVEL_FILTERS = new Set(["fresher", "middle", "senior"]);
+const SALARY_FILTERS = new Set(salaryRanges.map((item) => item.value));
+const EXPERIENCE_FILTERS = new Set(experienceOptions.map((item) => item.value));
+const SORT_OPTIONS = new Set(["relevant", "newest", "salary"]);
+
+type JobsSearchUrlState = {
+  keyword: string;
+  location: string;
+  category: string;
+  title: string;
+  skill: string;
+  company: string;
+  jobCategory: string;
+  expertise: string;
+  activeFilters: string[];
+  salaryFilters: string[];
+  experienceFilters: string[];
+  technologyFilters: string[];
+  minSalary: string;
+  maxSalary: string;
+  sort: string;
+  page: number;
+};
+
+function buildJobsSearchPath(state: JobsSearchUrlState) {
+  const query = new URLSearchParams();
+  const normalizedKeyword = state.keyword.trim();
+
+  if (normalizedKeyword) query.set("keyword", normalizedKeyword);
+  if (state.location !== ALL_LOCATIONS) query.set("location", state.location);
+  if (state.category !== "all") query.set("category", state.category);
+  if (state.title) query.set("title", state.title);
+  if (state.skill) query.set("skill", state.skill);
+  if (state.company) query.set("company", state.company);
+  if (state.jobCategory) query.set("jobCategory", state.jobCategory);
+  if (state.expertise) query.set("expertise", state.expertise);
+
+  state.activeFilters.forEach((filter) => {
+    if (MODE_FILTERS.has(filter)) query.append("mode", filter);
+    if (LEVEL_FILTERS.has(filter)) query.append("level", filter);
+  });
+  state.salaryFilters.forEach((filter) => query.append("salaryRange", filter));
+  state.experienceFilters.forEach((filter) => query.append("experienceRange", filter));
+  state.technologyFilters.forEach((filter) => query.append("technology", filter));
+
+  if (state.minSalary) query.set("minSalary", state.minSalary);
+  if (state.maxSalary) query.set("maxSalary", state.maxSalary);
+  if (state.sort !== "relevant") query.set("sort", state.sort);
+  if (state.page > 1) query.set("page", String(state.page));
+
+  return `/jobs${query.size > 0 ? `?${query.toString()}` : ""}`;
+}
+
 function salaryValue(job: Job) {
   const values = job.salary.match(/\d+/g)?.map(Number) ?? [];
   return values.length ? Math.max(...values) : 0;
@@ -397,6 +458,8 @@ function LogoMark({ src, name, color }: { src: string; name: string; color: stri
 
   return (
     <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white">
+      {/* Company logos come from API-controlled external hosts, so a native image avoids a brittle host allowlist. */}
+      {/* oxlint-disable-next-line next/no-img-element */}
       <img
         src={src}
         alt={`Logo ${name}`}
@@ -452,7 +515,7 @@ function getPageNumbers(currentPage: number, totalPages: number) {
   return rangeWithDots;
 }
 
-export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
+export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const locale = useLocale();
   const params = useSearchParams();
   const titleFilter = params.get("title")?.trim() ?? "";
@@ -463,17 +526,39 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const queryKeyword = params.get("keyword") ?? params.get("position") ?? "";
   const queryLocation = params.get("location") ?? ALL_LOCATIONS;
   const queryCategory = params.get("category") ?? "all";
+  const queryActiveFilters = [
+    ...params.getAll("mode").filter((filter) => MODE_FILTERS.has(filter)),
+    ...params.getAll("level").filter((filter) => LEVEL_FILTERS.has(filter)),
+  ];
+  const querySalaryFilters = params
+    .getAll("salaryRange")
+    .filter((filter) => SALARY_FILTERS.has(filter));
+  const queryExperienceFilters = params
+    .getAll("experienceRange")
+    .filter((filter) => EXPERIENCE_FILTERS.has(filter));
+  const queryTechnologyFilters = params.getAll("technology").filter(Boolean);
+  const queryMinSalary = params.get("minSalary") ?? "";
+  const queryMaxSalary = params.get("maxSalary") ?? "";
+  const querySort = SORT_OPTIONS.has(params.get("sort") ?? "")
+    ? (params.get("sort") ?? "relevant")
+    : "relevant";
+  const queryPage = Math.max(1, Number(params.get("page") ?? "1") || 1);
+  const queryActiveFiltersKey = queryActiveFilters.join("|");
+  const querySalaryFiltersKey = querySalaryFilters.join("|");
+  const queryExperienceFiltersKey = queryExperienceFilters.join("|");
+  const queryTechnologyFiltersKey = queryTechnologyFilters.join("|");
+  const querySignature = params.toString();
   const [keyword, setKeyword] = useState(queryKeyword);
   const [location, setLocation] = useState(queryLocation);
   const [activeCategory, setActiveCategory] = useState(queryCategory);
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [salaryFilters, setSalaryFilters] = useState<string[]>([]);
-  const [expFilters, setExpFilters] = useState<string[]>([]);
-  const [techFilters, setTechFilters] = useState<string[]>([]);
+  const [activeFilters, setActiveFilters] = useState<string[]>(queryActiveFilters);
+  const [salaryFilters, setSalaryFilters] = useState<string[]>(querySalaryFilters);
+  const [expFilters, setExpFilters] = useState<string[]>(queryExperienceFilters);
+  const [techFilters, setTechFilters] = useState<string[]>(queryTechnologyFilters);
   const [techQuery, setTechQuery] = useState("");
-  const [customMinSalary, setCustomMinSalary] = useState("");
-  const [customMaxSalary, setCustomMaxSalary] = useState("");
-  const [sort, setSort] = useState("relevant");
+  const [customMinSalary, setCustomMinSalary] = useState(queryMinSalary);
+  const [customMaxSalary, setCustomMaxSalary] = useState(queryMaxSalary);
+  const [sort, setSort] = useState(querySort);
   const {
     isPending: isSavedJobPending,
     isSessionResolved: isSavedJobsSessionResolved,
@@ -482,16 +567,73 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   } = useCandidateSavedJobs();
   const [applyJob, setApplyJob] = useState<Job | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(queryPage);
   const pageSize = 7;
+  const customSalaryRangeIsValid =
+    !customMinSalary || !customMaxSalary || Number(customMinSalary) <= Number(customMaxSalary);
   const lastLoggedKeywordRef = useRef<string>("");
+  const lastObservedQueryRef = useRef(querySignature);
+  const skipNextFilterReplaceRef = useRef(false);
+  const filterDialogRef = useRef<HTMLElement | null>(null);
+  const filterToggleRef = useRef<HTMLButtonElement | null>(null);
+  const filterCloseRef = useRef<HTMLButtonElement | null>(null);
+  const deferredKeyword = useDeferredValue(keyword);
 
   useEffect(() => {
+    if (lastObservedQueryRef.current === querySignature) return;
+    lastObservedQueryRef.current = querySignature;
+
+    const stateAlreadyMatchesUrl =
+      keyword === queryKeyword &&
+      location === queryLocation &&
+      activeCategory === queryCategory &&
+      activeFilters.join("|") === queryActiveFiltersKey &&
+      salaryFilters.join("|") === querySalaryFiltersKey &&
+      expFilters.join("|") === queryExperienceFiltersKey &&
+      techFilters.join("|") === queryTechnologyFiltersKey &&
+      customMinSalary === queryMinSalary &&
+      customMaxSalary === queryMaxSalary &&
+      sort === querySort &&
+      page === queryPage;
+
+    if (stateAlreadyMatchesUrl) return;
+    skipNextFilterReplaceRef.current = true;
     setKeyword(queryKeyword);
     setLocation(queryLocation);
     setActiveCategory(queryCategory);
-    setPage(1);
-  }, [queryCategory, queryKeyword, queryLocation]);
+    setActiveFilters(queryActiveFiltersKey ? queryActiveFiltersKey.split("|") : []);
+    setSalaryFilters(querySalaryFiltersKey ? querySalaryFiltersKey.split("|") : []);
+    setExpFilters(queryExperienceFiltersKey ? queryExperienceFiltersKey.split("|") : []);
+    setTechFilters(queryTechnologyFiltersKey ? queryTechnologyFiltersKey.split("|") : []);
+    setCustomMinSalary(queryMinSalary);
+    setCustomMaxSalary(queryMaxSalary);
+    setSort(querySort);
+    setPage(queryPage);
+  }, [
+    activeCategory,
+    activeFilters,
+    customMaxSalary,
+    customMinSalary,
+    expFilters,
+    keyword,
+    location,
+    page,
+    queryActiveFiltersKey,
+    queryCategory,
+    queryExperienceFiltersKey,
+    queryKeyword,
+    queryLocation,
+    queryMaxSalary,
+    queryMinSalary,
+    queryPage,
+    querySalaryFiltersKey,
+    querySignature,
+    querySort,
+    queryTechnologyFiltersKey,
+    salaryFilters,
+    sort,
+    techFilters,
+  ]);
 
   const logKeyword = async (term: string, count: number) => {
     const normalizedTerm = term.trim();
@@ -626,6 +768,14 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
           job.salaryIsVisible && job.salaryMin && job.salaryMax
             ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu/tháng`
             : "Thỏa thuận",
+        salaryMinMillions:
+          job.salaryIsVisible && typeof job.salaryMin === "number"
+            ? job.salaryMin / 1_000_000
+            : undefined,
+        salaryMaxMillions:
+          job.salaryIsVisible && typeof job.salaryMax === "number"
+            ? job.salaryMax / 1_000_000
+            : undefined,
         location: jobLocations[0]?.jobLocation?.city || "Việt Nam",
         mode:
           primaryWorkingModel === "onsite"
@@ -690,6 +840,21 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     return skills.length > 0 ? skills : fallbackTechOptions;
   }, [jobs]);
 
+  const naturalSearchAnalysis = useMemo(
+    () =>
+      analyzeNaturalLanguageQuery(deferredKeyword, {
+        knownLocations: locationsList.filter((item) => item !== ALL_LOCATIONS),
+        knownSkills: techOptionsList,
+      }),
+    [deferredKeyword, locationsList, techOptionsList],
+  );
+
+  const naturalSearchScores = useMemo(
+    () =>
+      new Map(jobs.map((job) => [job.id, scoreNaturalLanguageSearch(naturalSearchAnalysis, job)])),
+    [jobs, naturalSearchAnalysis],
+  );
+
   const filterGroupsList = useMemo(() => {
     return [
       {
@@ -750,7 +915,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const filteredJobs = useMemo(() => {
     return jobs
       .filter((job) => {
-        const matchesKeyword = matchNaturalLanguageSearch(keyword, job);
+        const matchesKeyword = naturalSearchScores.get(job.id)?.matches ?? true;
         const matchesTitle = !titleFilter || job.title.toLowerCase() === titleFilter.toLowerCase();
         const matchesSkill =
           !skillFilter || job.tags.some((tag) => tag.toLowerCase() === skillFilter.toLowerCase());
@@ -817,7 +982,9 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
           });
 
         const matchesCustomSalary = (() => {
+          if (!customSalaryRangeIsValid) return true;
           const { min, max } = parseSalaryRange(job);
+          if ((customMinSalary || customMaxSalary) && min === 0 && max === 0) return false;
           if (customMinSalary && max < parseInt(customMinSalary)) return false;
           if (customMaxSalary && min > parseInt(customMaxSalary)) return false;
           return true;
@@ -861,6 +1028,9 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         if (sort === "salary") {
           return salaryValue(b) - salaryValue(a);
         }
+        const naturalScoreDifference =
+          (naturalSearchScores.get(b.id)?.score ?? 0) - (naturalSearchScores.get(a.id)?.score ?? 0);
+        if (naturalScoreDifference !== 0) return naturalScoreDifference;
         const aScore = (a.featured ? 2 : 0) + (a.urgent ? 1 : 0);
         const bScore = (b.featured ? 2 : 0) + (b.urgent ? 1 : 0);
         return bScore - aScore;
@@ -870,11 +1040,12 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     activeFilters,
     expFilters,
     jobs,
-    keyword,
     location,
+    naturalSearchScores,
     salaryFilters,
     customMinSalary,
     customMaxSalary,
+    customSalaryRangeIsValid,
     companyFilter,
     expertiseFilter,
     jobCategoryFilter,
@@ -883,13 +1054,6 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     techFilters,
     titleFilter,
   ]);
-
-  useEffect(() => {
-    setKeyword(queryKeyword);
-    setLocation(queryLocation);
-    setActiveCategory(queryCategory);
-    setPage(1);
-  }, [queryCategory, queryKeyword, queryLocation]);
 
   useEffect(() => {
     if (queryKeyword.trim().length >= 2) {
@@ -985,6 +1149,97 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     ];
   }, [jobs]);
 
+  const currentFilterPath = useMemo(
+    () =>
+      buildJobsSearchPath({
+        keyword: queryKeyword,
+        location,
+        category: activeCategory,
+        title: titleFilter,
+        skill: skillFilter,
+        company: companyFilter,
+        jobCategory: jobCategoryFilter,
+        expertise: expertiseFilter,
+        activeFilters,
+        salaryFilters,
+        experienceFilters: expFilters,
+        technologyFilters: techFilters,
+        minSalary: customMinSalary,
+        maxSalary: customMaxSalary,
+        sort,
+        page,
+      }),
+    [
+      activeCategory,
+      activeFilters,
+      companyFilter,
+      customMaxSalary,
+      customMinSalary,
+      expFilters,
+      expertiseFilter,
+      jobCategoryFilter,
+      location,
+      page,
+      queryKeyword,
+      salaryFilters,
+      skillFilter,
+      sort,
+      techFilters,
+      titleFilter,
+    ],
+  );
+
+  useEffect(() => {
+    if (skipNextFilterReplaceRef.current) {
+      skipNextFilterReplaceRef.current = false;
+      return;
+    }
+    replace(currentFilterPath);
+  }, [currentFilterPath, replace]);
+
+  useEffect(() => {
+    if (!showFilters) return undefined;
+
+    const dialog = filterDialogRef.current;
+    const filterToggle = filterToggleRef.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    filterCloseRef.current?.focus();
+
+    function handleDialogKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setShowFilters(false);
+        return;
+      }
+      if (event.key !== "Tab" || !dialog) return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute("hidden"));
+      if (focusable.length === 0) return;
+
+      const first = focusable[0]!;
+      const last = focusable.at(-1)!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    dialog?.addEventListener("keydown", handleDialogKeyDown);
+    return () => {
+      dialog?.removeEventListener("keydown", handleDialogKeyDown);
+      document.body.style.overflow = previousOverflow;
+      filterToggle?.focus();
+    };
+  }, [showFilters]);
+
   const activeSummary = [
     keyword.trim() ? `Từ khóa: ${keyword.trim()}` : "",
     titleFilter ? `Chức danh: ${titleFilter}` : "",
@@ -998,6 +1253,8 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
       : "",
     ...activeFilters.map((filter) => filterLabelByValue.get(filter) ?? filter),
     ...salaryFilters.map((filter) => salaryLabelByValue.get(filter) ?? filter),
+    customMinSalary ? `Lương từ ${customMinSalary} triệu` : "",
+    customMaxSalary ? `Lương đến ${customMaxSalary} triệu` : "",
     ...expFilters.map((filter) => experienceLabelByValue.get(filter) ?? filter),
     ...techFilters,
   ].filter(Boolean);
@@ -1017,13 +1274,26 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   }
 
   function navigateToSearch(nextKeyword = keyword, nextLocation = location) {
-    const query = new URLSearchParams();
-    const normalizedKeyword = nextKeyword.trim();
-
-    if (normalizedKeyword) query.set("keyword", normalizedKeyword);
-    if (nextLocation !== ALL_LOCATIONS) query.set("location", nextLocation);
-
-    navigate(`/jobs${query.size ? `?${query.toString()}` : ""}`);
+    const nextPath = buildJobsSearchPath({
+      keyword: nextKeyword,
+      location: nextLocation,
+      category: activeCategory,
+      title: titleFilter,
+      skill: skillFilter,
+      company: companyFilter,
+      jobCategory: jobCategoryFilter,
+      expertise: expertiseFilter,
+      activeFilters,
+      salaryFilters,
+      experienceFilters: expFilters,
+      technologyFilters: techFilters,
+      minSalary: customMinSalary,
+      maxSalary: customMaxSalary,
+      sort,
+      page: 1,
+    });
+    skipNextFilterReplaceRef.current = nextPath !== currentFilterPath;
+    navigate(nextPath);
   }
 
   function runSearch(event?: React.FormEvent<HTMLFormElement>) {
@@ -1033,6 +1303,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   }
 
   function resetFilters() {
+    skipNextFilterReplaceRef.current = true;
     setKeyword("");
     setLocation(ALL_LOCATIONS);
     setActiveCategory("all");
@@ -1082,7 +1353,9 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   type="text"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  placeholder="Tìm kiếm theo vị trí, kỹ năng, công ty..."
+                  placeholder="VD: Senior React remote ở HCM, lương từ 30 triệu"
+                  aria-label="Từ khóa tìm việc"
+                  aria-describedby="jobs-search-help"
                   className="w-full border-none bg-transparent py-2 text-sm font-medium text-slate-800 placeholder-slate-400 outline-none"
                 />
               </div>
@@ -1114,6 +1387,33 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                 Tìm kiếm
               </button>
             </form>
+            <p id="jobs-search-help" className="mt-2 px-1 text-xs leading-relaxed text-slate-500">
+              Mô tả công việc bạn muốn bằng tiếng Việt hoặc tiếng Anh; UpNext sẽ tách các tiêu chí
+              có thể kiểm chứng để lọc kết quả.
+            </p>
+
+            {deferredKeyword.trim() && naturalSearchAnalysis.facets.length > 0 ? (
+              <output
+                className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5"
+                aria-live="polite"
+              >
+                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
+                  <Sparkle size={15} weight="fill" aria-hidden="true" />
+                  UpNext đã hiểu:
+                </span>
+                {naturalSearchAnalysis.facets.map((facet) => (
+                  <span
+                    key={facet.key}
+                    className="rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700"
+                  >
+                    {facet.label}
+                  </span>
+                ))}
+                <span className="text-xs text-slate-500">
+                  Bạn có thể tinh chỉnh thêm bằng bộ lọc nâng cao.
+                </span>
+              </output>
+            ) : null}
           </div>
 
           {/* Popular Keywords */}
@@ -1156,6 +1456,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                 key={category.key}
                 type="button"
                 disabled={category.count === 0}
+                aria-pressed={activeCategory === category.key}
                 className={`flex cursor-pointer items-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-semibold whitespace-nowrap transition ${
                   activeCategory === category.key
                     ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
@@ -1189,7 +1490,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                 <div className="flex items-center gap-6 text-sm font-semibold">
                   <button
                     type="button"
-                    onClick={() => setSort("relevant")}
+                    onClick={() => {
+                      setSort("relevant");
+                      setPage(1);
+                    }}
+                    aria-pressed={sort === "relevant"}
                     className={`cursor-pointer border-b-2 pb-3 transition ${
                       sort === "relevant"
                         ? "border-emerald-600 text-emerald-600"
@@ -1200,7 +1505,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSort("newest")}
+                    onClick={() => {
+                      setSort("newest");
+                      setPage(1);
+                    }}
+                    aria-pressed={sort === "newest"}
                     className={`cursor-pointer border-b-2 pb-3 transition ${
                       sort === "newest"
                         ? "border-emerald-600 text-emerald-600"
@@ -1211,7 +1520,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSort("salary")}
+                    onClick={() => {
+                      setSort("salary");
+                      setPage(1);
+                    }}
+                    aria-pressed={sort === "salary"}
                     className={`cursor-pointer border-b-2 pb-3 transition ${
                       sort === "salary"
                         ? "border-emerald-600 text-emerald-600"
@@ -1222,9 +1535,12 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   </button>
                 </div>
                 <button
+                  ref={filterToggleRef}
                   type="button"
                   className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold transition hover:bg-slate-50 lg:hidden"
                   onClick={() => setShowFilters(true)}
+                  aria-controls="jobs-advanced-filters"
+                  aria-expanded={showFilters}
                 >
                   <SlidersHorizontal size={14} /> Bộ lọc
                 </button>
@@ -1251,6 +1567,18 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   </button>
                 </div>
               )}
+
+              <output className="text-sm text-slate-600" aria-live="polite" aria-atomic="true">
+                {isJobsPending ? (
+                  "Đang tìm việc làm phù hợp..."
+                ) : (
+                  <>
+                    Tìm thấy{" "}
+                    <strong className="font-bold text-slate-900">{filteredJobs.length}</strong> việc
+                    làm phù hợp
+                  </>
+                )}
+              </output>
 
               {/* Job Cards */}
               {isJobsPending ? (
@@ -1459,12 +1787,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
 
               {/* Pagination */}
               {filteredJobs.length > 0 && totalPages > 1 && (
-                <div
+                <nav
                   className="mt-4 flex items-center justify-center gap-2"
                   aria-label="Phân trang"
                 >
                   <button
                     type="button"
+                    aria-label="Trang trước"
                     disabled={currentPage === 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
@@ -1484,6 +1813,8 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                       <button
                         key={pageNum}
                         type="button"
+                        aria-label={`Trang ${pageNum}`}
+                        aria-current={pageNum === currentPage ? "page" : undefined}
                         onClick={() => setPage(pageNum)}
                         className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-sm font-semibold transition ${
                           pageNum === currentPage
@@ -1497,18 +1828,24 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   })}
                   <button
                     type="button"
+                    aria-label="Trang sau"
                     disabled={currentPage === totalPages}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
                   >
                     <CaretRight size={16} />
                   </button>
-                </div>
+                </nav>
               )}
             </div>
 
             {/* Right Column: Filter Sidebar (sticky on desktop, modal on mobile) */}
             <aside
+              id="jobs-advanced-filters"
+              ref={filterDialogRef}
+              role={showFilters ? "dialog" : undefined}
+              aria-modal={showFilters ? true : undefined}
+              aria-labelledby="jobs-filter-heading"
               className={`lg:col-span-4 xl:col-span-3 ${
                 showFilters
                   ? "fixed inset-0 z-50 flex flex-col gap-6 overflow-y-auto bg-white p-6"
@@ -1517,7 +1854,10 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
             >
               <div className="flex flex-col gap-5 rounded-2xl bg-white lg:sticky lg:top-24 lg:border lg:border-slate-200 lg:p-5">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h2 className="flex items-center gap-1.5 text-base font-bold text-slate-900">
+                  <h2
+                    id="jobs-filter-heading"
+                    className="flex items-center gap-1.5 text-base font-bold text-slate-900"
+                  >
                     <SlidersHorizontal size={18} className="text-slate-600" />
                     Bộ lọc tìm kiếm
                   </h2>
@@ -1531,6 +1871,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                     </button>
                     {showFilters && (
                       <button
+                        ref={filterCloseRef}
                         type="button"
                         onClick={() => setShowFilters(false)}
                         className="cursor-pointer text-slate-400 hover:text-slate-600 lg:hidden"
@@ -1552,12 +1893,14 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                       {experienceOptionsList.map((item) => (
                         <label
                           key={item.value}
+                          aria-label={`${item.label}, ${item.count} việc làm`}
                           className={`group flex items-center gap-2.5 ${
                             item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
                           }`}
                         >
                           <input
                             type="checkbox"
+                            aria-label={item.label}
                             disabled={item.count === 0}
                             checked={expFilters.includes(item.value)}
                             onChange={() => toggleIn(setExpFilters, item.value)}
@@ -1586,12 +1929,14 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                       ?.items.map((item) => (
                         <label
                           key={item.value}
+                          aria-label={`${item.label}, ${item.count} việc làm`}
                           className={`group flex items-center gap-2.5 ${
                             item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
                           }`}
                         >
                           <input
                             type="checkbox"
+                            aria-label={item.label}
                             disabled={item.count === 0}
                             checked={activeFilters.includes(item.value)}
                             onChange={() => toggleFilter(item.value)}
@@ -1619,12 +1964,14 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                       ?.items.map((item) => (
                         <label
                           key={item.value}
+                          aria-label={`${item.label}, ${item.count} việc làm`}
                           className={`group flex items-center gap-2.5 ${
                             item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
                           }`}
                         >
                           <input
                             type="checkbox"
+                            aria-label={item.label}
                             disabled={item.count === 0}
                             checked={activeFilters.includes(item.value)}
                             onChange={() => toggleFilter(item.value)}
@@ -1650,12 +1997,14 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                     {salaryRangesList.map((item) => (
                       <label
                         key={item.value}
+                        aria-label={`${item.label}, ${item.count} việc làm`}
                         className={`group flex items-center gap-2.5 ${
                           item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
                         }`}
                       >
                         <input
                           type="checkbox"
+                          aria-label={item.label}
                           disabled={item.count === 0}
                           checked={salaryFilters.includes(item.value)}
                           onChange={() => toggleIn(setSalaryFilters, item.value)}
@@ -1668,6 +2017,51 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                       </label>
                     ))}
                   </div>
+                  <div className="grid grid-cols-2 gap-2" id="jobs-salary-unit">
+                    <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                      Từ (triệu)
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        aria-label="Mức lương tối thiểu, đơn vị triệu đồng"
+                        aria-invalid={!customSalaryRangeIsValid}
+                        aria-describedby={
+                          customSalaryRangeIsValid ? undefined : "jobs-salary-error"
+                        }
+                        value={customMinSalary}
+                        onChange={(event) => {
+                          setCustomMinSalary(event.target.value);
+                          setPage(1);
+                        }}
+                        className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
+                      Đến (triệu)
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        aria-label="Mức lương tối đa, đơn vị triệu đồng"
+                        aria-invalid={!customSalaryRangeIsValid}
+                        aria-describedby={
+                          customSalaryRangeIsValid ? undefined : "jobs-salary-error"
+                        }
+                        value={customMaxSalary}
+                        onChange={(event) => {
+                          setCustomMaxSalary(event.target.value);
+                          setPage(1);
+                        }}
+                        className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                      />
+                    </label>
+                  </div>
+                  {!customSalaryRangeIsValid ? (
+                    <p id="jobs-salary-error" className="mt-2 text-xs font-medium text-rose-600">
+                      Mức lương tối thiểu không được lớn hơn mức tối đa.
+                    </p>
+                  ) : null}
                 </fieldset>
 
                 {/* Skills Filter */}
@@ -1685,6 +2079,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                       placeholder="Tìm công nghệ..."
                       value={techQuery}
                       onChange={(e) => setTechQuery(e.target.value)}
+                      aria-label="Tìm công nghệ hoặc kỹ năng"
                       className="w-full rounded-lg border border-slate-200 py-2 pr-3 pl-9 text-sm text-slate-700 transition outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                     />
                     <MagnifyingGlass
@@ -1702,6 +2097,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                             key={tech}
                             type="button"
                             onClick={() => toggleIn(setTechFilters, tech)}
+                            aria-pressed={isChecked}
                             className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
                               isChecked
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -1722,7 +2118,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                     onClick={() => setShowFilters(false)}
                     className="mt-3 w-full cursor-pointer rounded-xl bg-emerald-600 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700"
                   >
-                    Áp dụng bộ lọc
+                    Xem {filteredJobs.length} việc làm
                   </button>
                 )}
 
