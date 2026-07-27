@@ -61,6 +61,9 @@ export interface PublicCompany {
   logoFile?: {
     publicUrl: string;
   } | null;
+  coverFile?: {
+    publicUrl: string;
+  } | null;
   website?: string | null;
   address?: string | null;
   description?: string | null;
@@ -87,8 +90,13 @@ export function getPublicJobs() {
   return apiRequest<PublicJob[]>("/job-posts");
 }
 
-export function getPublicCompanies() {
-  return apiRequest<PublicCompanyListResponse>("/companies");
+export function getPublicCompanies({ page, limit }: { page?: number; limit?: number } = {}) {
+  const search = new URLSearchParams();
+  if (page) search.set("page", String(page));
+  if (limit) search.set("limit", String(limit));
+
+  const query = search.size ? `?${search.toString()}` : "";
+  return apiRequest<PublicCompanyListResponse>(`/companies${query}`);
 }
 
 export function getPublicCompanyDetail(slug: string) {
