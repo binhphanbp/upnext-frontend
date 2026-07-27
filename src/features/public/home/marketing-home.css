@@ -18,7 +18,7 @@
 }
 
 .marketing-home-header {
-  --marketing-home-utility-height: 32px;
+  --marketing-home-utility-height: 30px;
   --marketing-home-main-header-height: 72px;
   --marketing-home-header-height: calc(
     var(--marketing-home-utility-height) + var(--marketing-home-main-header-height)
@@ -42,55 +42,18 @@
 .marketing-home-utility-content {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  justify-content: center;
   width: 100%;
   min-height: var(--marketing-home-utility-height);
   padding: 0 48px;
   color: #ffffff;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11.5px;
+  font-weight: 400;
   line-height: 1.2;
 }
 
 .marketing-home-utility-content p {
   margin: 0;
-}
-
-.marketing-home-utility-recruiter {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 28px;
-  padding: 3px 0;
-  border: 0;
-  color: #ffffff;
-  background: transparent;
-  font: inherit;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.marketing-home-utility-recruiter b {
-  display: inline-flex;
-  align-items: center;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-.marketing-home-utility-recruiter b::before {
-  width: 1px;
-  height: 12px;
-  display: inline-block;
-  margin-right: 7px;
-  content: "";
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.marketing-home-utility-recruiter svg {
-  color: #ffffff;
-  transition: transform 180ms ease;
 }
 
 .marketing-home-header-main {
@@ -105,8 +68,7 @@
 
 .marketing-home-logo,
 .marketing-home-nav-trigger,
-.marketing-home-header-actions button,
-.marketing-home-utility-recruiter {
+.marketing-home-header-actions button {
   border: 0;
   background: transparent;
 }
@@ -1118,11 +1080,6 @@
 .marketing-home-nav-trigger:focus-visible,
 .marketing-home-header-actions button:focus-visible {
   outline: 2px solid rgba(16, 167, 120, 0.35);
-  outline-offset: 3px;
-}
-
-.marketing-home-utility-recruiter:focus-visible {
-  outline: 2px solid #ffffff;
   outline-offset: 3px;
 }
 
@@ -4765,7 +4722,6 @@ button.marketing-home-control {
 @media (hover: hover) {
   .marketing-home-nav-trigger,
   .marketing-home-header-actions button,
-  .marketing-home-utility-recruiter,
   .marketing-home-search-submit,
   .marketing-home-popular button {
     transition:
@@ -4787,17 +4743,6 @@ button.marketing-home-control {
 
   .marketing-home-nav-dd:hover .marketing-home-nav-trigger svg {
     transform: rotate(180deg);
-  }
-
-  .marketing-home-utility-recruiter:hover {
-    color: #ffffff;
-    text-decoration: underline;
-    text-decoration-color: rgba(255, 255, 255, 0.7);
-    text-underline-offset: 3px;
-  }
-
-  .marketing-home-utility-recruiter:hover svg {
-    transform: translate(2px, -2px);
   }
 
   .marketing-home-jobs-categories button:not(.is-active):hover,
@@ -5076,10 +5021,6 @@ button.marketing-home-control {
   .marketing-home-utility-content,
   .marketing-home-header-main {
     padding: 0 30px;
-  }
-
-  .marketing-home-utility-content {
-    gap: 16px;
   }
 
   .marketing-home-header-main {

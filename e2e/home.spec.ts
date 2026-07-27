@@ -454,31 +454,20 @@ test("uses semibold weight across header navigation and actions", async ({ page 
   );
 });
 
-test("uses a localized primary utility bar without adding height on mobile", async ({ page }) => {
+test("uses a localized primary brand strip without adding height on mobile", async ({ page }) => {
   await page.goto("/vi");
 
   const utilityBar = page.locator(".marketing-home-utility-bar");
   await expect(utilityBar).toBeVisible();
   await expect(
-    utilityBar.getByRole("navigation", { name: "Điều hướng dành cho nhà tuyển dụng" }),
+    utilityBar.getByText("UpNext — Nền tảng tuyển dụng IT", { exact: true }),
   ).toBeVisible();
-  await expect(
-    utilityBar.getByText("Tìm việc IT phù hợp, nhanh và minh bạch", { exact: true }),
-  ).toBeVisible();
-  const vietnameseRecruiterLink = utilityBar.getByRole("link", {
-    name: "Dành cho nhà tuyển dụng Đăng tin tuyển dụng",
-  });
-  await expect(vietnameseRecruiterLink).toHaveAttribute("href", "/vi/recruiter/register");
+  await expect(utilityBar.getByRole("link")).toHaveCount(0);
 
   await page.goto("/en");
-  await expect(utilityBar.getByRole("navigation", { name: "Employer navigation" })).toBeVisible();
   await expect(
-    utilityBar.getByText("Find the right IT role, faster", { exact: true }),
+    utilityBar.getByText("UpNext — IT recruitment platform", { exact: true }),
   ).toBeVisible();
-  await expect(utilityBar.getByRole("link", { name: "For employers Post a job" })).toHaveAttribute(
-    "href",
-    "/en/recruiter/register",
-  );
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(utilityBar).toBeHidden();

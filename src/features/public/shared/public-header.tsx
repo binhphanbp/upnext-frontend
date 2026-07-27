@@ -109,9 +109,6 @@ type JobsMenuEntry = {
 
 type PublicHeaderCopy = {
   utilityStatement: string;
-  utilityNavigationLabel: string;
-  utilityRecruiterPrompt: string;
-  utilityRecruiterAction: string;
   employerSmall: string;
   employerLabel: string;
   languageLabel: string;
@@ -480,10 +477,7 @@ const menuCloseDelayMs = 260;
 
 const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
   vi: {
-    utilityStatement: "Tìm việc IT phù hợp, nhanh và minh bạch",
-    utilityNavigationLabel: "Điều hướng dành cho nhà tuyển dụng",
-    utilityRecruiterPrompt: "Dành cho nhà tuyển dụng",
-    utilityRecruiterAction: "Đăng tin tuyển dụng",
+    utilityStatement: "UpNext — Nền tảng tuyển dụng IT",
     employerSmall: "Dành cho",
     employerLabel: "Nhà Tuyển Dụng",
     languageLabel: "Chọn ngôn ngữ",
@@ -507,10 +501,7 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     savedJobsLabel: "Việc đã lưu",
   },
   en: {
-    utilityStatement: "Find the right IT role, faster",
-    utilityNavigationLabel: "Employer navigation",
-    utilityRecruiterPrompt: "For employers",
-    utilityRecruiterAction: "Post a job",
+    utilityStatement: "UpNext — IT recruitment platform",
     employerSmall: "Employer",
     employerLabel: "Hiring Hub",
     languageLabel: "Choose language",
@@ -806,13 +797,6 @@ export function PublicHeader({
       <div className="marketing-home-utility-bar">
         <div className="marketing-home-utility-content">
           <p>{copy.utilityStatement}</p>
-          <nav aria-label={copy.utilityNavigationLabel}>
-            <Link className="marketing-home-utility-recruiter" href="/recruiter/register">
-              <span>{copy.utilityRecruiterPrompt}</span>
-              <b>{copy.utilityRecruiterAction}</b>
-              <ArrowUpRight size={14} aria-hidden="true" />
-            </Link>
-          </nav>
         </div>
       </div>
 
