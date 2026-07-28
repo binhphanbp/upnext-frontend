@@ -806,7 +806,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
         <FeaturedJobs navigate={navigate} onApply={setApplyJob} />
         <FeaturedCompanies navigate={navigate} />
-        <JobMarket navigate={navigate} />
+        <JobMarket />
         <InsightsCarousel isLoading={isPostsLoading} posts={apiPostsData?.items ?? []} />
 
         <PublicFooter navigate={navigate} />
