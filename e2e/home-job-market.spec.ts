@@ -155,13 +155,16 @@ test("builds the market snapshot from public jobs without requesting the legacy 
 
   const section = page.locator(".marketing-home-market");
   await expect(
-    section.getByRole("heading", { name: "Toàn cảnh thị trường việc làm IT" }),
+    section.getByRole("heading", { name: "Xu hướng tuyển dụng IT trên UpNext" }),
   ).toBeVisible();
-  await expect(section.locator(".jm-scope")).toContainText(
-    "Dựa trên 5 tin tuyển dụng đang hiển thị",
-  );
+  await expect(section.locator(".jm-scope")).toContainText("Dữ liệu từ 5 việc làm đang tuyển");
   await expect(section.locator(".jm-kpi strong")).toHaveText(["1", "5", "3"]);
   await expect(section.locator(".jm-latest-link")).toHaveCount(3);
+  const [railHeight, mainHeight] = await Promise.all([
+    section.locator(".jm-rail").evaluate((element) => element.getBoundingClientRect().height),
+    section.locator(".jm-main").evaluate((element) => element.getBoundingClientRect().height),
+  ]);
+  expect(Math.abs(railHeight - mainHeight)).toBeLessThanOrEqual(1);
   await expect(section.getByText("Expired job must not be counted", { exact: true })).toHaveCount(
     0,
   );
@@ -182,11 +185,11 @@ test("builds the market snapshot from public jobs without requesting the legacy 
     .allTextContents();
   expect(weeklyCounts.reduce((sum, value) => sum + Number(value), 0)).toBe(5);
   const weeklyFooter = section.locator(".jm-chart-weekly .jm-chart-foot");
-  await expect(weeklyFooter).toContainText("TB 4 tuần trước");
+  await expect(weeklyFooter).toContainText("Trung bình 4 tuần trước");
   await expect(weeklyFooter).toContainText("Cao nhất 4 tuần trước");
   await expect(weeklyFooter).toContainText("Tuần hiện tại");
   await expect(section.locator(".jm-chart-salary .jm-chart-foot")).toContainText(
-    "Phạm vi dữ liệu5/5 việc làm",
+    "Có dữ liệu lương5/5 việc làm",
   );
   await expect(section.getByRole("link", { name: "Khám phá việc làm" })).toHaveAttribute(
     "href",
@@ -203,7 +206,7 @@ test("keeps the localized mobile snapshot compact and keyboard-operable", async 
 
   const section = page.locator(".marketing-home-market");
   await section.evaluate((element) => element.scrollIntoView({ block: "start" }));
-  await expect(section.getByRole("heading", { name: "IT job market snapshot" })).toBeVisible();
+  await expect(section.getByRole("heading", { name: "IT hiring trends on UpNext" })).toBeVisible();
   await expect(section.locator(".jm-chart-weekly")).toBeVisible();
   await expect(section.locator(".jm-chart-salary")).toBeHidden();
 
@@ -232,9 +235,9 @@ test("shows an honest error state instead of estimated market figures", async ({
   await page.goto("/en");
 
   const section = page.locator(".marketing-home-market");
-  await expect(section.getByRole("heading", { name: "IT job market snapshot" })).toBeVisible();
-  await expect(section.getByText("We could not load market data", { exact: true })).toBeVisible();
-  await expect(section).toContainText("UpNext does not substitute estimates for real data.");
+  await expect(section.getByRole("heading", { name: "IT hiring trends on UpNext" })).toBeVisible();
+  await expect(section.getByText("We could not load hiring trends", { exact: true })).toBeVisible();
+  await expect(section).toContainText("Please try again in a few minutes");
   await expect(section.getByRole("button", { name: "Try again" })).toBeEnabled();
   await expect(section.locator(".jm-kpi")).toHaveCount(0);
 });
