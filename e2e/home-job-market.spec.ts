@@ -20,8 +20,8 @@ function marketJob({
   companyName: string;
   publishedAt: string;
   expiredAt?: string;
-  salaryMin: number;
-  salaryMax: number;
+  salaryMin: number | string;
+  salaryMax: number | string;
 }) {
   return {
     id,
@@ -54,8 +54,8 @@ async function mockMarketData(page: Page) {
       companyId: "company-1",
       companyName: "UpNext Labs",
       publishedAt: relativeIso({ hours: 1 }),
-      salaryMin: 4_000_000,
-      salaryMax: 6_000_000,
+      salaryMin: "4000000",
+      salaryMax: "6000000",
     }),
     marketJob({
       id: "market-job-2",
@@ -63,8 +63,8 @@ async function mockMarketData(page: Page) {
       companyId: "company-1",
       companyName: "UpNext Labs",
       publishedAt: relativeIso({ days: 3 }),
-      salaryMin: 12_000_000,
-      salaryMax: 18_000_000,
+      salaryMin: "12000000",
+      salaryMax: "18000000",
     }),
     marketJob({
       id: "market-job-3",
@@ -72,8 +72,8 @@ async function mockMarketData(page: Page) {
       companyId: "company-2",
       companyName: "UpNext Core",
       publishedAt: relativeIso({ days: 8 }),
-      salaryMin: 22_000_000,
-      salaryMax: 28_000_000,
+      salaryMin: "22000000",
+      salaryMax: "28000000",
     }),
     marketJob({
       id: "market-job-4",
@@ -81,17 +81,17 @@ async function mockMarketData(page: Page) {
       companyId: "company-2",
       companyName: "UpNext Core",
       publishedAt: relativeIso({ days: 15 }),
-      salaryMin: 35_000_000,
-      salaryMax: 45_000_000,
+      salaryMin: "35000000",
+      salaryMax: "45000000",
     }),
     marketJob({
       id: "market-job-5",
       title: "Engineering Manager",
       companyId: "company-3",
       companyName: "UpNext Cloud",
-      publishedAt: relativeIso({ days: 29 }),
-      salaryMin: 55_000_000,
-      salaryMax: 65_000_000,
+      publishedAt: relativeIso({ days: 22 }),
+      salaryMin: "55000000",
+      salaryMax: "65000000",
     }),
     marketJob({
       id: "market-job-expired",
@@ -100,8 +100,17 @@ async function mockMarketData(page: Page) {
       companyName: "Expired Company",
       publishedAt: relativeIso({ days: 2 }),
       expiredAt: relativeIso({ hours: 1 }),
-      salaryMin: 12_000_000,
-      salaryMax: 18_000_000,
+      salaryMin: "12000000",
+      salaryMax: "18000000",
+    }),
+    marketJob({
+      id: "market-job-future",
+      title: "Future job must not be counted",
+      companyId: "company-5",
+      companyName: "Future Company",
+      publishedAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      salaryMin: "22000000",
+      salaryMax: "28000000",
     }),
   ];
 
@@ -156,16 +165,29 @@ test("builds the market snapshot from public jobs without requesting the legacy 
   await expect(section.getByText("Expired job must not be counted", { exact: true })).toHaveCount(
     0,
   );
+  await expect(section.getByText("Future job must not be counted", { exact: true })).toHaveCount(0);
   const salaryTable = section.locator(".jm-chart-salary table");
   for (const salaryBand of [
     "Dưới 10 triệu",
     "10 – 20 triệu",
     "20 – 30 triệu",
     "30 – 50 triệu",
-    "Trên 50 triệu",
+    "Từ 50 triệu",
   ]) {
-    await expect(salaryTable).toContainText(salaryBand);
+    const row = salaryTable.locator("tbody tr").filter({ hasText: salaryBand });
+    await expect(row.locator("td").nth(1)).toHaveText("1");
   }
+  const weeklyCounts = await section
+    .locator(".jm-chart-weekly tbody td:nth-child(2)")
+    .allTextContents();
+  expect(weeklyCounts.reduce((sum, value) => sum + Number(value), 0)).toBe(5);
+  const weeklyFooter = section.locator(".jm-chart-weekly .jm-chart-foot");
+  await expect(weeklyFooter).toContainText("TB 4 tuần trước");
+  await expect(weeklyFooter).toContainText("Cao nhất 4 tuần trước");
+  await expect(weeklyFooter).toContainText("Tuần hiện tại");
+  await expect(section.locator(".jm-chart-salary .jm-chart-foot")).toContainText(
+    "Phạm vi dữ liệu5/5 việc làm",
+  );
   await expect(section.getByRole("link", { name: "Khám phá việc làm" })).toHaveAttribute(
     "href",
     "/vi/jobs",

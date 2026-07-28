@@ -62,6 +62,12 @@ function startOfDay(value: Date) {
   return new Date(value.getFullYear(), value.getMonth(), value.getDate());
 }
 
+function startOfCalendarWeek(value: Date) {
+  const day = value.getDay();
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
+  return new Date(startOfDay(value).getTime() - daysSinceMonday * DAY_MS);
+}
+
 function useCompactViewport() {
   const [isCompact, setIsCompact] = useState(false);
 
@@ -101,10 +107,11 @@ function formatDateRange(start: Date, end: Date, locale: string) {
 }
 
 function buildWeeklySeries(jobs: PublicJob[], referenceDate: Date, locale: string): WeeklyPoint[] {
-  const currentWindowEnd = new Date(startOfDay(referenceDate).getTime() + DAY_MS);
+  const currentWeekStart = startOfCalendarWeek(referenceDate);
+  const today = startOfDay(referenceDate);
   const jobsByWeek = Array.from({ length: 5 }, (_, index) => {
-    const end = new Date(currentWindowEnd.getTime() - (4 - index) * WEEK_MS);
-    const start = new Date(end.getTime() - WEEK_MS);
+    const start = new Date(currentWeekStart.getTime() - (4 - index) * WEEK_MS);
+    const end = new Date(start.getTime() + WEEK_MS);
     return { start, end, value: 0 };
   });
 
@@ -124,7 +131,7 @@ function buildWeeklySeries(jobs: PublicJob[], referenceDate: Date, locale: strin
   });
 
   return jobsByWeek.map((week) => {
-    const endInclusive = new Date(week.end.getTime() - DAY_MS);
+    const endInclusive = new Date(Math.min(week.end.getTime() - DAY_MS, today.getTime()));
     return {
       label: labelFormatter.format(week.start),
       rangeLabel: formatDateRange(week.start, endInclusive, locale),
@@ -134,11 +141,13 @@ function buildWeeklySeries(jobs: PublicJob[], referenceDate: Date, locale: strin
 }
 
 function publishedSalaryMidpoint(job: PublicJob) {
-  if (!job.salaryIsVisible || job.salaryCurrency !== "VND") return null;
+  if (!job.salaryIsVisible || job.salaryCurrency?.toUpperCase() !== "VND") return null;
 
   const minimum = job.salaryMin ?? job.salaryMax;
   const maximum = job.salaryMax ?? job.salaryMin;
-  if (minimum === null || maximum === null || minimum < 0 || maximum < 0) return null;
+  if (minimum === null || maximum === null || minimum < 0 || maximum <= 0 || maximum < minimum) {
+    return null;
+  }
 
   return Math.round((minimum + maximum) / 2);
 }
@@ -210,15 +219,20 @@ function MarketTooltip({
   active?: boolean;
   label?: string;
   numberFormatter: Intl.NumberFormat;
-  payload?: Array<{ value?: number }>;
+  payload?: Array<{
+    value?: number;
+    payload?: { label?: string; rangeLabel?: string };
+  }>;
   jobsLabel: string;
 }) {
   const value = payload?.[0]?.value;
   if (!active || typeof value !== "number") return null;
+  const dataPoint = payload?.[0]?.payload;
+  const displayLabel = dataPoint?.rangeLabel ?? dataPoint?.label ?? label;
 
   return (
     <div className="jm-tooltip">
-      <span>{label}</span>
+      <span>{displayLabel}</span>
       <strong>
         {numberFormatter.format(value)} {jobsLabel}
       </strong>
@@ -331,8 +345,11 @@ export function JobMarket() {
     const nowTimestamp = now.getTime();
     const jobs = jobsQuery.data ?? [];
     const visibleJobs = jobs.filter((job) => {
+      const published = publicationTime(job);
       const expiry = parseDate(job.expiredAt);
-      return expiry === null || expiry > nowTimestamp;
+      const isPublished = published !== null && published <= nowTimestamp;
+      const isNotExpired = expiry === null || expiry > nowTimestamp;
+      return isPublished && isNotExpired;
     });
     const latestJobs = [...visibleJobs]
       .sort((first, second) => (publicationTime(second) ?? 0) - (publicationTime(first) ?? 0))
@@ -380,16 +397,15 @@ export function JobMarket() {
     if (!hasWeeklyData && hasSalaryData) setActiveChart("salary");
   }, [hasSalaryData, hasWeeklyData]);
 
-  const weeklyLow = hasWeeklyData
-    ? snapshot.weeklySeries.reduce(
-        (lowest, point) => (point.value < lowest.value ? point : lowest),
-        snapshot.weeklySeries[0]!,
-      )
-    : null;
-  const weeklyHigh = hasWeeklyData
-    ? snapshot.weeklySeries.reduce(
+  const completedWeeks = snapshot.weeklySeries.slice(0, -1);
+  const completedWeeksAverage =
+    completedWeeks.length > 0
+      ? completedWeeks.reduce((sum, point) => sum + point.value, 0) / completedWeeks.length
+      : null;
+  const completedWeeksHigh = hasWeeklyData
+    ? completedWeeks.reduce(
         (highest, point) => (point.value > highest.value ? point : highest),
-        snapshot.weeklySeries[0]!,
+        completedWeeks[0]!,
       )
     : null;
   const weeklyLatest = snapshot.weeklySeries.at(-1);
@@ -633,28 +649,31 @@ export function JobMarket() {
                   </table>
                 </figure>
               ) : (
-                <ChartEmpty message={t("noMarketDataDescription")} />
+                <ChartEmpty message={t("noWeeklyData")} />
               )}
 
-              {hasWeeklyData && weeklyLow && weeklyHigh && weeklyLatest && (
-                <div className="jm-chart-foot">
-                  <span>
-                    <em>{t("low")}</em>
-                    <b>{numberFormatter.format(weeklyLow.value)}</b>
-                    <small>{weeklyLow.label}</small>
-                  </span>
-                  <span>
-                    <em>{t("high")}</em>
-                    <b>{numberFormatter.format(weeklyHigh.value)}</b>
-                    <small>{weeklyHigh.label}</small>
-                  </span>
-                  <span className="jm-chart-foot-up">
-                    <em>{t("latestWeek")}</em>
-                    <b>{numberFormatter.format(weeklyLatest.value)}</b>
-                    <small>{weeklyLatest.label}</small>
-                  </span>
-                </div>
-              )}
+              {hasWeeklyData &&
+                completedWeeksAverage !== null &&
+                completedWeeksHigh &&
+                weeklyLatest && (
+                  <div className="jm-chart-foot">
+                    <span>
+                      <em>{t("completedWeeksAverage")}</em>
+                      <b>{numberFormatter.format(completedWeeksAverage)}</b>
+                      <small>{t("jobsPerWeek")}</small>
+                    </span>
+                    <span>
+                      <em>{t("completedWeeksHigh")}</em>
+                      <b>{numberFormatter.format(completedWeeksHigh.value)}</b>
+                      <small>{completedWeeksHigh.rangeLabel}</small>
+                    </span>
+                    <span className="jm-chart-foot-up">
+                      <em>{t("latestWeek")}</em>
+                      <b>{numberFormatter.format(weeklyLatest.value)}</b>
+                      <small>{weeklyLatest.rangeLabel}</small>
+                    </span>
+                  </div>
+                )}
             </article>
 
             <article
@@ -742,9 +761,10 @@ export function JobMarket() {
                     <b>{popularSalary.label}</b>
                   </span>
                   <span className="jm-chart-foot-up">
-                    <em>{t("total")}</em>
+                    <em>{t("coverage")}</em>
                     <b>
-                      {numberFormatter.format(salaryJobCount)} {t("jobs")}
+                      {numberFormatter.format(salaryJobCount)}/
+                      {numberFormatter.format(snapshot.visibleJobs.length)} {t("jobs")}
                     </b>
                   </span>
                 </div>

@@ -52,6 +52,11 @@ export interface PublicJob {
   }>;
 }
 
+type PublicJobWire = Omit<PublicJob, "salaryMin" | "salaryMax"> & {
+  salaryMin: number | string | null;
+  salaryMax: number | string | null;
+};
+
 export interface PublicCompany {
   id: string;
   name: string;
@@ -87,8 +92,21 @@ export interface PublicCompanyListResponse {
   };
 }
 
-export function getPublicJobs() {
-  return apiRequest<PublicJob[]>("/job-posts");
+function normalizeNullableNumber(value: number | string | null) {
+  if (value === null || (typeof value === "string" && value.trim() === "")) return null;
+
+  const normalized = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(normalized) ? normalized : null;
+}
+
+export async function getPublicJobs() {
+  const jobs = await apiRequest<PublicJobWire[]>("/job-posts");
+
+  return jobs.map<PublicJob>((job) => ({
+    ...job,
+    salaryMin: normalizeNullableNumber(job.salaryMin),
+    salaryMax: normalizeNullableNumber(job.salaryMax),
+  }));
 }
 
 export function getPublicCompanies({ page, limit }: { page?: number; limit?: number } = {}) {
