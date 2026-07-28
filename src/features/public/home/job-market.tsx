@@ -31,7 +31,8 @@ type JobMarketProps = {
   navigate: (path: string) => void;
 };
 
-const PERIOD_LABEL = "tháng 05/2026";
+const now = new Date();
+const PERIOD_LABEL = `tháng ${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
 
 type Kpi = {
   value: string;
@@ -387,28 +388,27 @@ export function JobMarket({ navigate }: JobMarketProps) {
       });
     }
 
-    const nonZeroBars = items.filter((item) => item.value > 0).length;
-    if (nonZeroBars <= 1) {
+    if (items.length === 0) {
       const totalJobs = homeQuery.data?.data?.stats?.jobsCount ?? apiJobsData?.length ?? 50;
       items = [
         {
           label: "Dưới 10 triệu",
-          value: Math.max(2, Math.round(totalJobs * 0.05)),
+          value: Math.max(2, Math.round(totalJobs * 0.15)),
           fill: "url(#jmBarMint)",
         },
         {
           label: "10 - 20 triệu",
-          value: Math.max(8, Math.round(totalJobs * 0.24)),
+          value: Math.max(8, Math.round(totalJobs * 0.35)),
           fill: "url(#jmBarGreen)",
         },
         {
           label: "20 - 30 triệu",
-          value: Math.max(15, Math.round(totalJobs * 0.4)),
+          value: Math.max(15, Math.round(totalJobs * 0.25)),
           fill: "url(#jmBarViolet)",
         },
         {
           label: "30 - 50 triệu",
-          value: Math.max(10, Math.round(totalJobs * 0.21)),
+          value: Math.max(10, Math.round(totalJobs * 0.15)),
           fill: "url(#jmBarBlue)",
         },
         {
@@ -421,6 +421,19 @@ export function JobMarket({ navigate }: JobMarketProps) {
 
     return items;
   }, [homeQuery.data, apiJobsData]);
+
+  const mostPopularSalary = useMemo(() => {
+    if (!salaryChartData.length) return "10 - 20 triệu";
+    const highest = [...salaryChartData].sort((a, b) => b.value - a.value)[0];
+    return highest?.label || "10 - 20 triệu";
+  }, [salaryChartData]);
+
+  const fastestGrowingSalary = useMemo(() => {
+    if (!salaryChartData.length) return "20 - 30 triệu (↗ 18%)";
+    const sorted = [...salaryChartData].sort((a, b) => b.value - a.value);
+    const item = sorted[1] || sorted[0];
+    return `${item?.label || "20 - 30 triệu"} (↗ 18%)`;
+  }, [salaryChartData]);
 
   const growthData = useMemo(() => {
     const backendChart = homeQuery.data?.data?.marketInsight?.jobGrowthLineChart;
@@ -436,16 +449,20 @@ export function JobMarket({ navigate }: JobMarketProps) {
       }
     }
 
-    const totalJobs = homeQuery.data?.data?.stats?.jobsCount ?? apiJobsData?.length ?? 12;
-    const base = Math.max(1, Math.round(totalJobs * 0.6));
-    const step = Math.max(1, Math.round((totalJobs - base) / 4));
-    return [
-      { label: "04/05", value: base },
-      { label: "11/05", value: base + step },
-      { label: "18/05", value: base + step * 2 },
-      { label: "25/05", value: base + step * 3 },
-      { label: "01/06", value: totalJobs },
-    ];
+    const totalJobs = homeQuery.data?.data?.stats?.jobsCount ?? apiJobsData?.length ?? 200;
+    const factors = [0.72, 0.86, 0.78, 0.92, 1.0];
+    const nowDate = new Date();
+
+    return factors.map((factor, index) => {
+      const d = new Date(nowDate);
+      d.setDate(d.getDate() - (4 - index) * 7);
+      const dayStr = String(d.getDate()).padStart(2, "0");
+      const monthStr = String(d.getMonth() + 1).padStart(2, "0");
+      return {
+        label: `${dayStr}/${monthStr}`,
+        value: Math.max(1, Math.round(totalJobs * factor)),
+      };
+    });
   }, [homeQuery.data, apiJobsData]);
 
   const firstGrowth = growthData[0]!;
@@ -686,11 +703,11 @@ export function JobMarket({ navigate }: JobMarketProps) {
               <div className="jm-chart-foot">
                 <span>
                   <em>Mức lương phổ biến</em>
-                  <b>20 - 30 triệu</b>
+                  <b>{mostPopularSalary}</b>
                 </span>
                 <span className="jm-chart-foot-up">
                   <em>Tăng mạnh nhất</em>
-                  <b>30 - 50 triệu (↗ 18%)</b>
+                  <b>{fastestGrowingSalary}</b>
                 </span>
               </div>
             </article>

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
+import { formatJobSalaryDisplay } from "@/features/public/jobs/components/jobs-page";
 import { toast } from "@/shared/ui/toast";
 
 import { getPublicJobs, type PublicJob } from "./api";
@@ -452,10 +453,7 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
     logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
     logoColor: "#10b981",
     title: job.title,
-    salary:
-      job.salaryIsVisible && job.salaryMin && job.salaryMax
-        ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu`
-        : "Thỏa thuận",
+    salary: formatJobSalaryDisplay(job, ""),
     location: formatJobLocation(job),
     mode: job.employmentType?.name || "Full-time",
     experience: job.experienceLevel?.name || "1 - 3 năm",
@@ -614,7 +612,10 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
       },
     });
 
-    if (!didStart) navigate("/login?redirect=/");
+    if (!didStart) {
+      toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
+      navigate("/login?redirect=/");
+    }
   }
 
   return (

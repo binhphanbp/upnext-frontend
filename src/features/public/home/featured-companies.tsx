@@ -103,6 +103,7 @@ function CoverImage({ company }: { company: FeaturedCompany }) {
       alt=""
       width={640}
       height={360}
+      unoptimized
       onError={() => setFailed(true)}
     />
   );
@@ -209,7 +210,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
         jobs: first.activeJobsCount,
         logo: first.logoUrl || first.logoFile?.publicUrl || "",
         logoColor: "#10b981",
-        cover: "",
+        cover: first.coverFile?.publicUrl || "",
         tags: [first.type || "Technology"],
         description: first.description || "",
       };
