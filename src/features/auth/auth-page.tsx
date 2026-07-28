@@ -44,11 +44,7 @@ function rememberCandidateSession() {
 }
 
 export function AuthPage({ mode }: AuthPageProps) {
-  return (
-    <Suspense fallback={null}>
-      {mode === "login" ? <LoginPage /> : <RegisterPage />}
-    </Suspense>
-  );
+  return <Suspense fallback={null}>{mode === "login" ? <LoginPage /> : <RegisterPage />}</Suspense>;
 }
 
 function useAuthValidationMessages() {
