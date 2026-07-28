@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
@@ -69,10 +69,13 @@ function formatSalary(job: PublicCompanyProfile["jobPosts"][number]) {
       );
 
     if (job.salaryMin !== null && job.salaryMax !== null) {
-      return `${formatMillions(job.salaryMin)} - ${formatMillions(job.salaryMax)} triệu`;
+      if (Number(job.salaryMin) === Number(job.salaryMax)) {
+        return `${formatMillions(job.salaryMin)} triệu/tháng`;
+      }
+      return `${formatMillions(job.salaryMin)} - ${formatMillions(job.salaryMax)} triệu/tháng`;
     }
-    if (job.salaryMin !== null) return `Từ ${formatMillions(job.salaryMin)} triệu`;
-    if (job.salaryMax !== null) return `Đến ${formatMillions(job.salaryMax)} triệu`;
+    if (job.salaryMin !== null) return `Từ ${formatMillions(job.salaryMin)} triệu/tháng`;
+    if (job.salaryMax !== null) return `Đến ${formatMillions(job.salaryMax)} triệu/tháng`;
     return "Thỏa thuận";
   }
 
@@ -105,8 +108,11 @@ function getLocations(company: PublicCompanyProfile) {
   for (const job of company.jobPosts) {
     for (const relation of job.jobPostLocations ?? []) {
       const location = relation.jobLocation;
-      const label =
-        [location.city, location.district].filter(Boolean).join(", ") || location.address;
+      const rawCity = location.city?.trim();
+      const city = rawCity
+        ? rawCity.replace(/^Thành phố\s+/iu, "TP. ").replace(/^Tỉnh\s+/iu, "")
+        : "";
+      const label = [city, location.district].filter(Boolean).join(", ") || location.address;
       if (label) locations.set(label, label);
     }
   }
@@ -128,6 +134,49 @@ function getSkills(company: PublicCompanyProfile) {
   }
 
   return [...skills.values()];
+}
+
+function getCompanyInitials(companyName: string) {
+  const ignoredWords = new Set([
+    "công",
+    "ty",
+    "tnhh",
+    "cổ",
+    "phần",
+    "trách",
+    "nhiệm",
+    "hữu",
+    "hạn",
+    "company",
+    "joint",
+    "stock",
+    "co",
+    "ltd",
+  ]);
+  const words = companyName
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word && !ignoredWords.has(word.toLocaleLowerCase("vi")));
+  const source = words.length > 0 ? words : companyName.trim().split(/\s+/);
+
+  return source
+    .slice(0, 2)
+    .map((word) => word.charAt(0))
+    .join("")
+    .toLocaleUpperCase("vi");
+}
+
+function getPlainText(value: string | null | undefined) {
+  if (!value) return "";
+  return value
+    .replace(/<br\s*\/?>/giu, " ")
+    .replace(/<[^>]+>/gu, " ")
+    .replace(/&nbsp;/giu, " ")
+    .replace(/&amp;/giu, "&")
+    .replace(/&lt;/giu, "<")
+    .replace(/&gt;/giu, ">")
+    .replace(/\s+/gu, " ")
+    .trim();
 }
 
 function CompanyLogo({ company }: { company: PublicCompanyProfile }) {
@@ -224,6 +273,7 @@ function CompanyProfile({
     });
 
     if (!didStart) {
+      toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
       navigate(`/login?redirect=/companies/${encodeURIComponent(company.slug)}`);
     }
   }
@@ -568,8 +618,50 @@ function CompanyJobsSection({
   onSave: (jobId: string) => void;
   savedJobIds: string[];
 }) {
+  const [previewJobId, setPreviewJobId] = useState<string | null>(null);
+  const previewCloseTimerRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (previewCloseTimerRef.current !== null) {
+        window.clearTimeout(previewCloseTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  function openPreview(jobId: string) {
+    if (previewCloseTimerRef.current !== null) {
+      window.clearTimeout(previewCloseTimerRef.current);
+      previewCloseTimerRef.current = null;
+    }
+    setPreviewJobId(jobId);
+  }
+
+  function schedulePreviewClose() {
+    if (previewCloseTimerRef.current !== null) {
+      window.clearTimeout(previewCloseTimerRef.current);
+    }
+    previewCloseTimerRef.current = window.setTimeout(() => {
+      setPreviewJobId(null);
+      previewCloseTimerRef.current = null;
+    }, 140);
+  }
+
+  function closePreviewAndRestoreFocus() {
+    const jobId = previewJobId;
+    setPreviewJobId(null);
+    if (jobId) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(`company-job-title-${jobId}`)?.focus();
+      });
+    }
+  }
+
+  const previewJob = jobs.find((job) => job.id === previewJobId) ?? null;
+
   return (
-    <section className="company-jobs-section">
+    <section className={`company-jobs-section${previewJob ? " is-previewing" : ""}`}>
       <div className="company-jobs-head">
         <h2>Việc làm đang tuyển</h2>
         <button type="button" onClick={() => navigate(`/jobs?company=${companyId}`)}>
@@ -580,20 +672,39 @@ function CompanyJobsSection({
         <div className="company-jobs">
           {jobs.slice(0, 4).map((job) => {
             const location = job.jobPostLocations?.[0]?.jobLocation;
+            const rawCity = location?.city?.trim();
+            const city = rawCity
+              ? rawCity.replace(/^Thành phố\s+/iu, "TP. ").replace(/^Tỉnh\s+/iu, "")
+              : "";
             const locationLabel =
-              [location?.city, location?.district].filter(Boolean).join(", ") || location?.address;
+              [city, location?.district].filter(Boolean).join(", ") || location?.address;
             const saved = savedJobIds.includes(job.id);
 
             return (
-              <article key={job.id} className="company-job">
+              <article key={job.id} className="company-job group">
                 <button
+                  id={`company-job-title-${job.id}`}
                   type="button"
                   className="company-job-main"
                   onClick={() => navigate(`/jobs/${job.slug}`)}
+                  onFocus={() => openPreview(job.id)}
+                  onBlur={schedulePreviewClose}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      closePreviewAndRestoreFocus();
+                    }
+                  }}
+                  aria-expanded={previewJobId === job.id}
                 >
                   <CompanyJobLogo companyName={companyName} logoUrl={companyLogoUrl} />
                   <span className="company-job-copy">
-                    <h3>{job.title}</h3>
+                    <h3
+                      onMouseEnter={() => openPreview(job.id)}
+                      onMouseLeave={schedulePreviewClose}
+                    >
+                      {job.title}
+                    </h3>
                     <span className="company-job-company">{companyName}</span>
                   </span>
                 </button>
@@ -603,8 +714,9 @@ function CompanyJobsSection({
                     <Coins size={15} weight="fill" /> {formatSalary(job)}
                   </span>
                   {locationLabel ? (
-                    <span className="company-job-loc">
-                      <MapPin size={15} /> {locationLabel}
+                    <span className="company-job-loc" title={locationLabel}>
+                      <MapPin size={15} />
+                      <span className="company-job-loc-text">{locationLabel}</span>
                     </span>
                   ) : null}
                   <button
@@ -624,6 +736,124 @@ function CompanyJobsSection({
         </div>
       ) : (
         <p className="company-empty-copy">Công ty hiện chưa có vị trí đang tuyển.</p>
+      )}
+
+      {previewJob && (
+        <dialog
+          open
+          className="urgent-job-preview company-job-preview"
+          aria-labelledby="company-job-preview-title"
+          onMouseEnter={() => openPreview(previewJob.id)}
+          onMouseLeave={schedulePreviewClose}
+          onFocusCapture={() => openPreview(previewJob.id)}
+          onBlurCapture={schedulePreviewClose}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              closePreviewAndRestoreFocus();
+            }
+          }}
+        >
+          <div className="urgent-job-preview-head">
+            <span className="urgent-job-preview-logo">
+              <span aria-hidden="true">{getCompanyInitials(companyName)}</span>
+              {companyLogoUrl && (
+                <img
+                  src={companyLogoUrl}
+                  alt=""
+                  width={58}
+                  height={58}
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              )}
+            </span>
+            <div>
+              <h3 id="company-job-preview-title">{previewJob.title}</h3>
+              <strong>{companyName}</strong>
+              <p>
+                <span>{formatSalary(previewJob)}</span>
+                {previewJob.experienceLevel?.name ? (
+                  <>
+                    <i aria-hidden="true">•</i>
+                    {previewJob.experienceLevel.name}
+                  </>
+                ) : null}
+              </p>
+            </div>
+          </div>
+
+          <p className="urgent-job-preview-address">
+            <MapPin size={16} aria-hidden="true" />
+            {(() => {
+              const location = previewJob.jobPostLocations?.[0]?.jobLocation;
+              const rawCity = location?.city?.trim();
+              const city = rawCity
+                ? rawCity.replace(/^Thành phố\s+/iu, "TP. ").replace(/^Tỉnh\s+/iu, "")
+                : "";
+              return (
+                [city, location?.district].filter(Boolean).join(", ") ||
+                location?.address ||
+                companyName
+              );
+            })()}
+          </p>
+
+          <div className="urgent-job-preview-body">
+            <strong>Mô tả công việc</strong>
+            <textarea
+              className="urgent-job-preview-description"
+              aria-label={`Mô tả công việc ${previewJob.title}`}
+              readOnly
+              rows={6}
+              value={
+                getPlainText(previewJob.description) ||
+                `Cơ hội gia nhập ${companyName} ở vị trí ${previewJob.title}. Xem chi tiết để khám phá yêu cầu công việc và quyền lợi dành cho ứng viên.`
+              }
+            />
+            {previewJob.jobPostSkills && previewJob.jobPostSkills.length > 0 ? (
+              <div className="urgent-job-preview-tags">
+                {previewJob.jobPostSkills.slice(0, 4).map((s) => (
+                  <span key={s.skill.id || s.skill.name}>{s.skill.name}</span>
+                ))}
+              </div>
+            ) : null}
+            <button type="button" onClick={() => navigate(`/jobs/${previewJob.slug}`)}>
+              Xem chi tiết <ArrowRight size={15} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="urgent-job-preview-actions">
+            {(() => {
+              const isPreviewSaved = savedJobIds.includes(previewJob.id);
+              return (
+                <button
+                  type="button"
+                  className="urgent-job-preview-save"
+                  aria-label={
+                    isPreviewSaved
+                      ? `Bỏ lưu công việc ${previewJob.title}`
+                      : `Lưu công việc ${previewJob.title}`
+                  }
+                  aria-pressed={isPreviewSaved}
+                  disabled={!isSaveSessionResolved || isSavePending(previewJob.id)}
+                  onClick={() => onSave(previewJob.id)}
+                >
+                  <Bookmark size={21} weight={isPreviewSaved ? "fill" : "regular"} />
+                </button>
+              );
+            })()}
+            <button
+              type="button"
+              className="urgent-job-preview-apply"
+              onClick={() => navigate(`/jobs/${previewJob.slug}`)}
+            >
+              <Briefcase size={18} aria-hidden="true" />
+              Xem & Ứng tuyển ngay
+            </button>
+          </div>
+        </dialog>
       )}
     </section>
   );

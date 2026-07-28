@@ -8,7 +8,9 @@ import { checkAppliedJob } from "@/features/candidate/api/profile";
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
+import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
+import { toast } from "@/shared/ui/toast";
 
 import { getPublicJobs } from "../../home/api";
 import {
@@ -36,7 +38,7 @@ import {
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
 import { ApplyModal } from "./apply-modal";
-import { jobs, type Job } from "./jobs-page";
+import { jobs, type Job, formatJobSalaryDisplay } from "./jobs-page";
 
 import "../jobs-page.css";
 
@@ -227,16 +229,16 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
         logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
         logoColor: "#10b981",
         verified: true,
-        salary:
-          job.salaryIsVisible && job.salaryMin && job.salaryMax
-            ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu/tháng`
-            : "Thỏa thuận",
+        salary: formatJobSalaryDisplay(job),
         location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
         mode: job.employmentType?.name || "Full-time",
         level: job.experienceLevel?.name || "Middle",
         type: job.employmentType?.name || "Full-time",
-        posted: "Mới đăng",
-        applicants: 12,
+        posted:
+          job.publishedAt || (job as any).createdAt
+            ? formatRelativeTime(job.publishedAt || (job as any).createdAt, "vi")
+            : "Mới đăng",
+        applicants: (job as any).numberOfRecruits ?? 5,
         tags:
           job.jobPostSkills && job.jobPostSkills.length > 0
             ? job.jobPostSkills.map((s) => s.skill.name)
@@ -276,17 +278,24 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   const hasApplied = appliedData?.applied === true;
   const [isOpenApply, setIsOpenApply] = useState(false);
 
-  const similarJobs = useMemo(
-    () =>
-      jobsList
-        .filter(
-          (item) =>
-            item.id !== job.id &&
-            item.categories.some((category) => job.categories.includes(category)),
-        )
-        .slice(0, 4),
-    [job, jobsList],
-  );
+  const similarJobs = useMemo(() => {
+    let filtered = jobsList.filter(
+      (item) =>
+        item.id !== job.id &&
+        (item.categories.some((c) => job.categories.includes(c)) ||
+          item.tags?.some((t) => job.tags?.includes(t)) ||
+          item.level === job.level),
+    );
+
+    if (filtered.length < 4) {
+      const remaining = jobsList.filter(
+        (item) => item.id !== job.id && !filtered.some((f) => f.id === item.id),
+      );
+      filtered = [...filtered, ...remaining];
+    }
+
+    return filtered.slice(0, 4);
+  }, [job, jobsList]);
 
   return (
     <main className="jobs-page job-detail-page">
@@ -387,6 +396,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   className={saved ? "is-saved" : ""}
                   onClick={() => {
                     if (!toggleSaveJob(job.id)) {
+                      toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
                       navigate(`/login?redirect=/jobs/${job.id}`);
                     }
                   }}
@@ -541,6 +551,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 className={saved ? "is-saved" : ""}
                 onClick={() => {
                   if (!toggleSaveJob(job.id)) {
+                    toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
                     navigate(`/login?redirect=/jobs/${job.id}`);
                   }
                 }}

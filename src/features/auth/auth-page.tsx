@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -20,6 +21,7 @@ import { saveCandidateSession } from "@/features/candidate/session";
 import { upnextLogo } from "@/features/public/home/brand";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError, createApiUrl } from "@/shared/api/http";
+import { toast } from "@/shared/ui/toast";
 
 import "./auth-page.css";
 import {
@@ -60,6 +62,8 @@ function useAuthValidationMessages() {
 
 function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTarget = searchParams.get("redirect");
   const t = useTranslations("Auth");
   const validationMessages = useAuthValidationMessages();
   const [showPassword, setShowPassword] = useState(false);
@@ -76,7 +80,8 @@ function LoginPage() {
       const session = await loginCandidate(values);
       saveCandidateSession(session);
       rememberCandidateSession();
-      router.replace("/candidate/profile");
+      toast.success("Đăng nhập thành công!");
+      router.replace(redirectTarget || "/candidate/profile");
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         form.setError("password", { message: t("errors.invalidCredentials") });
