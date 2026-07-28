@@ -13,7 +13,7 @@ import {
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { loginCandidate, registerCandidate } from "@/features/candidate/api/auth";
@@ -44,7 +44,11 @@ function rememberCandidateSession() {
 }
 
 export function AuthPage({ mode }: AuthPageProps) {
-  return mode === "login" ? <LoginPage /> : <RegisterPage />;
+  return (
+    <Suspense fallback={null}>
+      {mode === "login" ? <LoginPage /> : <RegisterPage />}
+    </Suspense>
+  );
 }
 
 function useAuthValidationMessages() {
