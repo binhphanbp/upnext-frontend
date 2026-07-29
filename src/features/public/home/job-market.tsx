@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -10,754 +11,785 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
-import { getHomeData, getPublicCompanies, getPublicJobs } from "./api";
-import {
-  Bot,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  FileText,
-  PieChart,
-  TrendingUp,
-  Zap,
-} from "./marketing-icons";
+import { Link } from "@/i18n/navigation";
 
-type JobMarketProps = {
-  navigate: (path: string) => void;
-};
+import type { PublicJob } from "./api";
+import { getPublicJobs } from "./api";
+import { Bot, BriefcaseBusiness, ChevronRight, PieChart, TrendingUp, Zap } from "./marketing-icons";
 
-const now = new Date();
-const PERIOD_LABEL = `tháng ${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+type MarketChart = "weekly" | "salary";
 
-type Kpi = {
-  value: string;
+type WeeklyPoint = {
   label: string;
-  accentClass: string;
+  rangeLabel: string;
+  value: number;
 };
 
-const kpis: Kpi[] = [
-  {
-    value: "2.570",
-    label: "Việc làm mới 24h gần nhất",
-    accentClass: "jm-kpi-mint",
-  },
-  {
-    value: "56.483",
-    label: "Việc làm đang tuyển",
-    accentClass: "jm-kpi-green",
-  },
-  {
-    value: "19.223",
-    label: "Công ty đang tuyển",
-    accentClass: "jm-kpi-violet",
-  },
-];
+type SalaryBand = {
+  id: string;
+  label: string;
+  shortLabel: string;
+  lowerBound: number;
+  upperBound: number | null;
+};
 
-const growthByWeek = [
-  { label: "04/05", value: 46280 },
-  { label: "11/05", value: 50812 },
-  { label: "18/05", value: 52945 },
-  { label: "25/05", value: 55667 },
-  { label: "01/06", value: 56483 },
-];
+const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
 
-const growthByMonth = [
-  { label: "T12", value: 38120 },
-  { label: "T1", value: 41560 },
-  { label: "T2", value: 39880 },
-  { label: "T3", value: 45230 },
-  { label: "T4", value: 51470 },
-  { label: "T5", value: 56483 },
-];
+const barColors = ["#48d6a5", "#10b981", "#8b6cf4", "#4cb7e9", "#f6b528"];
 
-const salaryData = [
-  { label: "Dưới 10 triệu", value: 2341, fill: "url(#jmBarMint)" },
-  { label: "10 - 20 triệu", value: 8752, fill: "url(#jmBarGreen)" },
-  { label: "20 - 30 triệu", value: 22318, fill: "url(#jmBarViolet)" },
-  { label: "30 - 50 triệu", value: 15624, fill: "url(#jmBarBlue)" },
-  { label: "Trên 50 triệu", value: 7448, fill: "url(#jmBarAmber)" },
-];
-
-const barColors = [
-  { id: "jmBarMint", from: "#6ee7b7", to: "#34d399" },
-  { id: "jmBarGreen", from: "#34d399", to: "#10b981" },
-  { id: "jmBarViolet", from: "#a78bfa", to: "#8b5cf6" },
-  { id: "jmBarBlue", from: "#7dd3fc", to: "#38bdf8" },
-  { id: "jmBarAmber", from: "#fcd34d", to: "#f59e0b" },
-];
-
-const latestJobs = [
-  {
-    id: "fpt-java",
-    company: "FPT Software",
-    logo: "/assets/marketing/home/companies/fpt.png",
-    logoColor: "#0a66c2",
-    title: "Backend Developer (Java)",
-    meta: "Hà Nội · Full-time",
-    time: "18 phút trước",
-  },
-  {
-    id: "vng-react",
-    company: "VNG Corporation",
-    logo: "/assets/marketing/home/companies/vng.png",
-    logoColor: "#1a8cff",
-    title: "Frontend Engineer (React)",
-    meta: "TP. Hồ Chí Minh · Full-time",
-    time: "32 phút trước",
-  },
-  {
-    id: "nashtech-devops",
-    company: "NashTech Vietnam",
-    logo: "",
-    logoColor: "#e11d48",
-    title: "DevOps Engineer",
-    meta: "Đà Nẵng · Full-time",
-    time: "1 giờ trước",
-  },
-];
-
-function formatThousands(value: number) {
-  return value.toLocaleString("vi-VN");
+function localeCode(locale: string) {
+  return locale === "en" ? "en-US" : "vi-VN";
 }
 
-function formatTimeAgo(dateString?: string | null) {
-  if (!dateString) return "Mới đăng";
-  const diffMs = Date.now() - new Date(dateString).getTime();
-  if (Number.isNaN(diffMs) || diffMs < 0) return "Mới đăng";
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  if (diffMins < 60) return `${Math.max(1, diffMins)} phút trước`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours} giờ trước`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays} ngày trước`;
+function parseDate(value: string | null | undefined) {
+  if (!value) return null;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
 }
 
-function GrowthTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="jm-tooltip">
-      <span>{label}</span>
-      <strong>{formatThousands(payload[0]!.value)} việc làm</strong>
-    </div>
-  );
+function publicationTime(job: PublicJob) {
+  return parseDate(job.publishedAt) ?? parseDate(job.createdAt);
 }
 
-function SalaryTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="jm-tooltip">
-      <span>{label}</span>
-      <strong>{formatThousands(payload[0]!.value)} việc làm</strong>
-    </div>
-  );
+function startOfDay(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
 }
 
-type DropdownOption = { value: string; label: string };
+function startOfCalendarWeek(value: Date) {
+  const day = value.getDay();
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
+  return new Date(startOfDay(value).getTime() - daysSinceMonday * DAY_MS);
+}
 
-function useChartSize() {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+function useCompactViewport() {
+  const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
-    const node = ref.current;
-    if (!node) return undefined;
-
-    const update = () => {
-      const rect = node.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
-        setSize({
-          width: Math.round(rect.width),
-          height: Math.round(rect.height),
-        });
-      }
-    };
+    const media = window.matchMedia("(max-width: 760px)");
+    const update = () => setIsCompact(media.matches);
 
     update();
-
-    const observer = new ResizeObserver(update);
-    observer.observe(node);
-
-    return () => observer.disconnect();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
   }, []);
 
-  return [ref, size] as const;
+  return isCompact;
 }
 
-/** Compact dropdown for chart controls. */
-function JMDropdown({
-  value,
-  options,
-  onChange,
-  ariaLabel,
-}: {
-  value: string;
-  options: DropdownOption[];
-  onChange: (value: string) => void;
-  ariaLabel: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
-  const current = options.find((o) => o.value === value) ?? options[0]!;
+function formatRelativeTime(timestamp: number | null, locale: string) {
+  if (!timestamp) return "";
 
-  useEffect(() => {
-    if (!open) return undefined;
-    function onPointerDown(event: MouseEvent) {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
+  const elapsedMs = Date.now() - timestamp;
+  const formatter = new Intl.RelativeTimeFormat(localeCode(locale), { numeric: "auto" });
+  const minutes = Math.round(elapsedMs / (60 * 1000));
+
+  if (Math.abs(minutes) < 60) return formatter.format(-minutes, "minute");
+
+  const hours = Math.round(minutes / 60);
+  if (Math.abs(hours) < 24) return formatter.format(-hours, "hour");
+
+  return formatter.format(-Math.round(hours / 24), "day");
+}
+
+function formatDateRange(start: Date, end: Date, locale: string) {
+  const formatter = new Intl.DateTimeFormat(localeCode(locale), {
+    day: "2-digit",
+    month: "2-digit",
+  });
+  return `${formatter.format(start)} – ${formatter.format(end)}`;
+}
+
+function buildWeeklySeries(jobs: PublicJob[], referenceDate: Date, locale: string): WeeklyPoint[] {
+  const currentWeekStart = startOfCalendarWeek(referenceDate);
+  const today = startOfDay(referenceDate);
+  const jobsByWeek = Array.from({ length: 5 }, (_, index) => {
+    const start = new Date(currentWeekStart.getTime() - (4 - index) * WEEK_MS);
+    const end = new Date(start.getTime() + WEEK_MS);
+    return { start, end, value: 0 };
+  });
+
+  for (const job of jobs) {
+    const timestamp = publicationTime(job);
+    if (!timestamp) continue;
+
+    const bucket = jobsByWeek.find(
+      (week) => timestamp >= week.start.getTime() && timestamp < week.end.getTime(),
+    );
+    if (bucket) bucket.value += 1;
+  }
+
+  const labelFormatter = new Intl.DateTimeFormat(localeCode(locale), {
+    day: "2-digit",
+    month: "2-digit",
+  });
+
+  return jobsByWeek.map((week) => {
+    const endInclusive = new Date(Math.min(week.end.getTime() - DAY_MS, today.getTime()));
+    return {
+      label: labelFormatter.format(week.start),
+      rangeLabel: formatDateRange(week.start, endInclusive, locale),
+      value: week.value,
     };
-  }, [open]);
+  });
+}
 
+function publishedSalaryMidpoint(job: PublicJob) {
+  if (!job.salaryIsVisible || job.salaryCurrency?.toUpperCase() !== "VND") return null;
+
+  const minimum = job.salaryMin ?? job.salaryMax;
+  const maximum = job.salaryMax ?? job.salaryMin;
+  if (minimum === null || maximum === null || minimum < 0 || maximum <= 0 || maximum < minimum) {
+    return null;
+  }
+
+  return Math.round((minimum + maximum) / 2);
+}
+
+function MarketHeader({
+  title,
+  description,
+  scope,
+  exploreJobsLabel,
+}: {
+  title: string;
+  description: string;
+  scope?: string;
+  exploreJobsLabel: string;
+}) {
   return (
-    <div className={`jm-dropdown${open ? " is-open" : ""}`} ref={ref}>
-      <button
-        type="button"
-        className="jm-dropdown-trigger"
-        aria-haspopup="true"
-        aria-expanded={open}
-        aria-label={ariaLabel}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span>{current.label}</span>
-        <ChevronDown size={15} />
-      </button>
-      {open && (
-        <ul className="jm-dropdown-menu" aria-label={ariaLabel}>
-          {options.map((option) => (
-            <li key={option.value}>
-              <button
-                type="button"
-                className={option.value === value ? "is-active" : ""}
-                onClick={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                {option.label}
-                {option.value === value && <Check size={15} />}
-              </button>
-            </li>
-          ))}
-        </ul>
+    <header className="jm-head">
+      <div>
+        <h2>{title}</h2>
+        <p>{description}</p>
+        {scope && <span className="jm-scope">{scope}</span>}
+      </div>
+      <Link className="jm-report-btn" href="/jobs">
+        <BriefcaseBusiness size={17} aria-hidden="true" />
+        {exploreJobsLabel}
+        <ChevronRight size={16} aria-hidden="true" />
+      </Link>
+    </header>
+  );
+}
+
+function MarketState({
+  title,
+  description,
+  actionLabel,
+  onAction,
+  isRetrying,
+}: {
+  title: string;
+  description: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  isRetrying?: boolean;
+}) {
+  return (
+    <div className="jm-state" aria-live="polite">
+      <strong>{title}</strong>
+      <p>{description}</p>
+      {actionLabel && onAction && (
+        <button type="button" onClick={onAction} disabled={isRetrying}>
+          {actionLabel}
+        </button>
       )}
     </div>
   );
 }
 
-export function JobMarket({ navigate }: JobMarketProps) {
-  const [growthPeriod, setGrowthPeriod] = useState<"week" | "month">("week");
-  const [salaryUnit, setSalaryUnit] = useState("month");
-  const [growthChartRef, growthChartSize] = useChartSize();
-  const [salaryChartRef, salaryChartSize] = useChartSize();
+function ChartEmpty({ message }: { message: string }) {
+  return <div className="jm-chart-empty">{message}</div>;
+}
 
-  const homeQuery = useQuery({
-    queryKey: ["home-data"],
-    queryFn: getHomeData,
-  });
-
-  const publicJobsQuery = useQuery({
-    queryKey: ["public-jobs"],
-    queryFn: getPublicJobs,
-  });
-
-  const publicCompaniesQuery = useQuery({
-    queryKey: ["public-companies"],
-    queryFn: () => getPublicCompanies(),
-  });
-
-  const apiJobsData = publicJobsQuery.data;
-  const apiCompaniesData = publicCompaniesQuery.data;
-
-  const realKpis = useMemo(() => {
-    const homeDataObj = homeQuery.data?.data;
-    const totalJobs = homeDataObj?.stats?.jobsCount ?? apiJobsData?.length ?? 0;
-    const totalCompanies = homeDataObj?.stats?.companiesCount ?? apiCompaniesData?.meta?.total ?? 0;
-
-    const now = Date.now();
-    const last24hCount = (apiJobsData ?? []).filter((j) => {
-      const t = new Date(j.createdAt).getTime();
-      return !Number.isNaN(t) && now - t <= 24 * 60 * 60 * 1000;
-    }).length;
-
-    const newJobs =
-      homeDataObj?.marketInsight?.summary?.newJobsCount ??
-      (last24hCount > 0
-        ? last24hCount
-        : apiJobsData && apiJobsData.length > 0
-          ? Math.max(1, Math.round(apiJobsData.length * 0.4))
-          : 0);
-
-    return [
-      {
-        value: formatThousands(newJobs),
-        label: "Việc làm mới 24h gần nhất",
-        accentClass: "jm-kpi-mint",
-      },
-      {
-        value: formatThousands(totalJobs),
-        label: "Việc làm đang tuyển",
-        accentClass: "jm-kpi-green",
-      },
-      {
-        value: formatThousands(totalCompanies),
-        label: "Công ty đang tuyển",
-        accentClass: "jm-kpi-violet",
-      },
-    ];
-  }, [homeQuery.data, apiJobsData, apiCompaniesData]);
-
-  const displayLatestJobs = useMemo(() => {
-    const backendJobs = homeQuery.data?.data?.marketInsight?.latestJobs;
-    if (backendJobs && backendJobs.length > 0) {
-      return backendJobs.slice(0, 3).map((job) => ({
-        id: job.id,
-        company: job.company.name,
-        logo: job.company.logo ?? job.company.avatar ?? "",
-        logoColor: "#10b981",
-        title: job.title,
-        meta: `${job.location || "Việt Nam"} · ${job.employmentType || "Full-time"}`,
-        time: formatTimeAgo(job.createdAt),
-      }));
-    }
-
-    if (apiJobsData && apiJobsData.length > 0) {
-      return apiJobsData.slice(0, 3).map((job) => ({
-        id: job.id,
-        company: job.company?.name || "UpNext Partner",
-        logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
-        logoColor: "#10b981",
-        title: job.title,
-        meta: `${job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam"} · ${
-          job.employmentType?.name || "Full-time"
-        }`,
-        time: formatTimeAgo(job.createdAt),
-      }));
-    }
-
-    return latestJobs;
-  }, [homeQuery.data, apiJobsData]);
-
-  const salaryChartData = useMemo(() => {
-    const backendBars = homeQuery.data?.data?.marketInsight?.salaryDemandBarChart;
-    let items: Array<{ label: string; value: number; fill: string }> = [];
-
-    if (backendBars && backendBars.length > 0) {
-      items = backendBars.map((b, i) => {
-        let label = b.salaryRange;
-        if (label.includes("Duoi")) label = "Dưới 10 triệu";
-        if (label.includes("10-20") || label.includes("10 - 20")) label = "10 - 20 triệu";
-        if (label.includes("20-30") || label.includes("20 - 30")) label = "20 - 30 triệu";
-        if (label.includes("30-50") || label.includes("30 - 50")) label = "30 - 50 triệu";
-        if (label.includes("Tren")) label = "Trên 50 triệu";
-
-        return {
-          label,
-          value: b.jobsCount,
-          fill: barColors[i % barColors.length]?.id
-            ? `url(#${barColors[i % barColors.length]?.id})`
-            : "url(#jmBarMint)",
-        };
-      });
-    }
-
-    if (items.length === 0) {
-      const totalJobs = homeQuery.data?.data?.stats?.jobsCount ?? apiJobsData?.length ?? 50;
-      items = [
-        {
-          label: "Dưới 10 triệu",
-          value: Math.max(2, Math.round(totalJobs * 0.15)),
-          fill: "url(#jmBarMint)",
-        },
-        {
-          label: "10 - 20 triệu",
-          value: Math.max(8, Math.round(totalJobs * 0.35)),
-          fill: "url(#jmBarGreen)",
-        },
-        {
-          label: "20 - 30 triệu",
-          value: Math.max(15, Math.round(totalJobs * 0.25)),
-          fill: "url(#jmBarViolet)",
-        },
-        {
-          label: "30 - 50 triệu",
-          value: Math.max(10, Math.round(totalJobs * 0.15)),
-          fill: "url(#jmBarBlue)",
-        },
-        {
-          label: "Trên 50 triệu",
-          value: Math.max(5, Math.round(totalJobs * 0.1)),
-          fill: "url(#jmBarAmber)",
-        },
-      ];
-    }
-
-    return items;
-  }, [homeQuery.data, apiJobsData]);
-
-  const mostPopularSalary = useMemo(() => {
-    if (!salaryChartData.length) return "10 - 20 triệu";
-    const highest = [...salaryChartData].sort((a, b) => b.value - a.value)[0];
-    return highest?.label || "10 - 20 triệu";
-  }, [salaryChartData]);
-
-  const fastestGrowingSalary = useMemo(() => {
-    if (!salaryChartData.length) return "20 - 30 triệu (↗ 18%)";
-    const sorted = [...salaryChartData].sort((a, b) => b.value - a.value);
-    const item = sorted[1] || sorted[0];
-    return `${item?.label || "20 - 30 triệu"} (↗ 18%)`;
-  }, [salaryChartData]);
-
-  const growthData = useMemo(() => {
-    const backendChart = homeQuery.data?.data?.marketInsight?.jobGrowthLineChart;
-    if (backendChart?.points && backendChart.points.length > 0) {
-      const formattedPoints = backendChart.points.map((p) => {
-        const parts = p.date.split("-");
-        const label = parts.length >= 3 ? `${parts[2]}/${parts[1]}` : p.date;
-        return { label, value: p.jobsCount };
-      });
-      const totalPointsVal = formattedPoints.reduce((sum, item) => sum + item.value, 0);
-      if (totalPointsVal > 0) {
-        return formattedPoints;
-      }
-    }
-
-    const totalJobs = homeQuery.data?.data?.stats?.jobsCount ?? apiJobsData?.length ?? 200;
-    const factors = [0.72, 0.86, 0.78, 0.92, 1.0];
-    const nowDate = new Date();
-
-    return factors.map((factor, index) => {
-      const d = new Date(nowDate);
-      d.setDate(d.getDate() - (4 - index) * 7);
-      const dayStr = String(d.getDate()).padStart(2, "0");
-      const monthStr = String(d.getMonth() + 1).padStart(2, "0");
-      return {
-        label: `${dayStr}/${monthStr}`,
-        value: Math.max(1, Math.round(totalJobs * factor)),
-      };
-    });
-  }, [homeQuery.data, apiJobsData]);
-
-  const firstGrowth = growthData[0]!;
-  const lastGrowth = growthData[growthData.length - 1]!;
-  const growthLow = growthData.reduce((a, b) => (b.value < a.value ? b : a));
-  const growthHigh = growthData.reduce((a, b) => (b.value > a.value ? b : a));
-  const growthPct =
-    firstGrowth.value > 0
-      ? Math.round(((lastGrowth.value - firstGrowth.value) / firstGrowth.value) * 100)
-      : 0;
+function MarketTooltip({
+  active,
+  label,
+  numberFormatter,
+  payload,
+  jobsLabel,
+}: {
+  active?: boolean;
+  label?: string;
+  numberFormatter: Intl.NumberFormat;
+  payload?: Array<{
+    value?: number;
+    payload?: { label?: string; rangeLabel?: string };
+  }>;
+  jobsLabel: string;
+}) {
+  const value = payload?.[0]?.value;
+  if (!active || typeof value !== "number") return null;
+  const dataPoint = payload?.[0]?.payload;
+  const displayLabel = dataPoint?.rangeLabel ?? dataPoint?.label ?? label;
 
   return (
-    <section
-      className="marketing-home-market"
-      aria-label={`Thị trường việc làm IT ${PERIOD_LABEL}`}
-    >
-      <header className="jm-head">
-        <div>
-          <h2>
-            Thị trường việc làm IT <span>{PERIOD_LABEL}</span>
-          </h2>
-          <p>
-            Cập nhật nhanh xu hướng tuyển dụng, số lượng việc làm và cơ hội mới nhất trên UpNext.
-          </p>
+    <div className="jm-tooltip">
+      <span>{displayLabel}</span>
+      <strong>
+        {numberFormatter.format(value)} {jobsLabel}
+      </strong>
+    </div>
+  );
+}
+
+function JobLogo({ job }: { job: PublicJob }) {
+  const [failed, setFailed] = useState(false);
+  const logo = job.company?.logoUrl ?? job.company?.logoFile?.publicUrl ?? "";
+  const companyName = job.company?.name ?? "UpNext";
+
+  if (!logo || failed) {
+    return (
+      <span className="jm-latest-mono" aria-hidden="true">
+        {companyName.charAt(0).toLocaleUpperCase()}
+      </span>
+    );
+  }
+
+  return (
+    <Image src={logo} alt="" width={40} height={40} unoptimized onError={() => setFailed(true)} />
+  );
+}
+
+function MarketIllustration() {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <span className="jm-illu-fallback" aria-hidden="true">
+        <Bot size={52} />
+      </span>
+    );
+  }
+
+  return (
+    <Image
+      className="jm-illu-img"
+      src="/assets/marketing/home/market-ai.png"
+      alt=""
+      width={560}
+      height={320}
+      loading="eager"
+      sizes="(max-width: 1180px) calc(100vw - 40px), 320px"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+export function JobMarket() {
+  const locale = useLocale();
+  const t = useTranslations("HomePage.content.market.snapshot");
+  const isCompact = useCompactViewport();
+  const [activeChart, setActiveChart] = useState<MarketChart>("weekly");
+  const numberFormatter = useMemo(() => new Intl.NumberFormat(localeCode(locale)), [locale]);
+  const compactNumberFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(localeCode(locale), { notation: "compact", maximumFractionDigits: 1 }),
+    [locale],
+  );
+
+  const jobsQuery = useQuery({
+    queryKey: ["public-jobs"],
+    queryFn: getPublicJobs,
+    staleTime: 30_000,
+  });
+
+  const salaryBands = useMemo<SalaryBand[]>(
+    () => [
+      {
+        id: "under-10",
+        label: t("salaryUnder10"),
+        shortLabel: t("salaryUnder10Short"),
+        lowerBound: 0,
+        upperBound: 10_000_000,
+      },
+      {
+        id: "10-20",
+        label: t("salary10To20"),
+        shortLabel: t("salary10To20Short"),
+        lowerBound: 10_000_000,
+        upperBound: 20_000_000,
+      },
+      {
+        id: "20-30",
+        label: t("salary20To30"),
+        shortLabel: t("salary20To30Short"),
+        lowerBound: 20_000_000,
+        upperBound: 30_000_000,
+      },
+      {
+        id: "30-50",
+        label: t("salary30To50"),
+        shortLabel: t("salary30To50Short"),
+        lowerBound: 30_000_000,
+        upperBound: 50_000_000,
+      },
+      {
+        id: "over-50",
+        label: t("salaryOver50"),
+        shortLabel: t("salaryOver50Short"),
+        lowerBound: 50_000_000,
+        upperBound: null,
+      },
+    ],
+    [t],
+  );
+
+  const snapshot = useMemo(() => {
+    const now = new Date();
+    const nowTimestamp = now.getTime();
+    const jobs = jobsQuery.data ?? [];
+    const visibleJobs = jobs.filter((job) => {
+      const published = publicationTime(job);
+      const expiry = parseDate(job.expiredAt);
+      const isPublished = published !== null && published <= nowTimestamp;
+      const isNotExpired = expiry === null || expiry > nowTimestamp;
+      return isPublished && isNotExpired;
+    });
+    const latestJobs = [...visibleJobs]
+      .sort((first, second) => (publicationTime(second) ?? 0) - (publicationTime(first) ?? 0))
+      .slice(0, 3);
+    const newJobs24h = visibleJobs.filter((job) => {
+      const published = publicationTime(job);
+      return (
+        published !== null && nowTimestamp - published >= 0 && nowTimestamp - published <= DAY_MS
+      );
+    }).length;
+    const hiringCompanies = new Set(
+      visibleJobs
+        .map((job) => job.company?.id)
+        .filter((companyId): companyId is string => Boolean(companyId)),
+    ).size;
+    const weeklySeries = buildWeeklySeries(visibleJobs, now, locale);
+    const salaryDistribution = salaryBands.map((band) => ({ ...band, value: 0 }));
+
+    for (const job of visibleJobs) {
+      const midpoint = publishedSalaryMidpoint(job);
+      if (midpoint === null) continue;
+      const band = salaryDistribution.find(
+        (candidate) =>
+          midpoint >= candidate.lowerBound &&
+          (candidate.upperBound === null || midpoint < candidate.upperBound),
+      );
+      if (band) band.value += 1;
+    }
+
+    return {
+      latestJobs,
+      visibleJobs,
+      newJobs24h,
+      hiringCompanies,
+      weeklySeries,
+      salaryDistribution,
+    };
+  }, [jobsQuery.data, locale, salaryBands]);
+
+  const hasWeeklyData = snapshot.weeklySeries.some((point) => point.value > 0);
+  const salaryJobCount = snapshot.salaryDistribution.reduce((sum, band) => sum + band.value, 0);
+  const hasSalaryData = salaryJobCount > 0;
+
+  useEffect(() => {
+    if (!hasWeeklyData && hasSalaryData) setActiveChart("salary");
+  }, [hasSalaryData, hasWeeklyData]);
+
+  const completedWeeks = snapshot.weeklySeries.slice(0, -1);
+  const completedWeeksAverage =
+    completedWeeks.length > 0
+      ? completedWeeks.reduce((sum, point) => sum + point.value, 0) / completedWeeks.length
+      : null;
+  const completedWeeksHigh = hasWeeklyData
+    ? completedWeeks.reduce(
+        (highest, point) => (point.value > highest.value ? point : highest),
+        completedWeeks[0]!,
+      )
+    : null;
+  const weeklyLatest = snapshot.weeklySeries.at(-1);
+  const popularSalary = hasSalaryData
+    ? snapshot.salaryDistribution.reduce(
+        (popular, band) => (band.value > popular.value ? band : popular),
+        snapshot.salaryDistribution[0]!,
+      )
+    : null;
+  const updatedAt = jobsQuery.dataUpdatedAt
+    ? new Intl.DateTimeFormat(localeCode(locale), {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(jobsQuery.dataUpdatedAt))
+    : "";
+
+  const title = t("title");
+  const description = t("description");
+
+  if (jobsQuery.isPending) {
+    return (
+      <section className="marketing-home-market" aria-busy="true" aria-label={title}>
+        <MarketHeader title={title} description={description} exploreJobsLabel={t("exploreJobs")} />
+        <div className="jm-loading" aria-hidden="true">
+          <span />
+          <span />
+          <span />
         </div>
-        <button type="button" className="jm-report-btn" onClick={() => navigate("/jobs")}>
-          <FileText size={17} />
-          Xem báo cáo đầy đủ
-          <ChevronRight size={16} />
-        </button>
-      </header>
+      </section>
+    );
+  }
+
+  if (jobsQuery.isError) {
+    return (
+      <section className="marketing-home-market" aria-label={title}>
+        <MarketHeader title={title} description={description} exploreJobsLabel={t("exploreJobs")} />
+        <MarketState
+          title={t("marketDataErrorTitle")}
+          description={t("marketDataErrorDescription")}
+          actionLabel={t("retry")}
+          onAction={() => void jobsQuery.refetch()}
+          isRetrying={jobsQuery.isFetching}
+        />
+      </section>
+    );
+  }
+
+  if (snapshot.visibleJobs.length === 0) {
+    return (
+      <section className="marketing-home-market" aria-label={title}>
+        <MarketHeader title={title} description={description} exploreJobsLabel={t("exploreJobs")} />
+        <MarketState title={t("noMarketDataTitle")} description={t("noMarketDataDescription")} />
+      </section>
+    );
+  }
+
+  const scope = t("scope", {
+    count: numberFormatter.format(snapshot.visibleJobs.length),
+    updatedAt,
+  });
+  const chartHeading = (chart: MarketChart) =>
+    chart === "weekly" ? t("showWeeklyChart") : t("showSalaryChart");
+
+  return (
+    <section className="marketing-home-market" aria-label={title}>
+      <MarketHeader
+        title={title}
+        description={description}
+        scope={scope}
+        exploreJobsLabel={t("exploreJobs")}
+      />
 
       <div className="jm-grid">
-        {/* Left rail: AI insight + latest jobs */}
-        <aside className="jm-rail">
+        <aside className="jm-rail" aria-labelledby="jm-latest-heading">
           <div className="jm-illu">
             <MarketIllustration />
           </div>
-
           <div className="jm-latest">
             <div className="jm-latest-head">
-              <span className="jm-latest-icon">
+              <span className="jm-latest-icon" aria-hidden="true">
                 <Zap size={15} />
               </span>
-              Việc làm mới nhất
+              <div>
+                <h3 id="jm-latest-heading">{t("latestJobs")}</h3>
+                <p>{t("latestJobsDescription")}</p>
+              </div>
             </div>
             <ul>
-              {displayLatestJobs.map((job) => (
-                <li key={job.id}>
-                  <button type="button" onClick={() => navigate(`/jobs/${job.id}`)}>
-                    <span className="jm-latest-logo">
-                      <JobLogo job={job} />
-                    </span>
-                    <span className="jm-latest-body">
-                      <b className="line-clamp-1">{job.title}</b>
-                      <em>{job.company}</em>
-                      <small>{job.meta}</small>
-                    </span>
-                    <span className="jm-latest-time">{job.time}</span>
-                  </button>
-                </li>
-              ))}
+              {snapshot.latestJobs.map((job) => {
+                const city = job.jobPostLocations?.[0]?.jobLocation?.city ?? t("unknownLocation");
+                const employmentType = job.employmentType?.name ?? t("unknownEmploymentType");
+                const publishedAt = publicationTime(job);
+                return (
+                  <li key={job.id}>
+                    <Link href={`/jobs/${job.id}`} className="jm-latest-link">
+                      <span className="jm-latest-logo">
+                        <JobLogo job={job} />
+                      </span>
+                      <span className="jm-latest-body">
+                        <b>{job.title}</b>
+                        <em>{job.company?.name ?? "UpNext"}</em>
+                        <span className="jm-latest-meta">
+                          <small>
+                            {city} · {employmentType}
+                          </small>
+                          {publishedAt && (
+                            <time dateTime={new Date(publishedAt).toISOString()}>
+                              {formatRelativeTime(publishedAt, locale)}
+                            </time>
+                          )}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
-            <button type="button" className="jm-latest-all" onClick={() => navigate("/jobs")}>
-              Xem tất cả việc làm mới <ChevronRight size={16} />
-            </button>
+            <Link className="jm-latest-all" href="/jobs">
+              {t("viewAllJobs")} <ChevronRight size={16} aria-hidden="true" />
+            </Link>
           </div>
         </aside>
 
-        {/* Right area: KPIs + charts */}
         <div className="jm-main">
           <div className="jm-kpis">
-            {realKpis.map((kpi) => (
+            {[
+              { value: snapshot.newJobs24h, label: t("newJobs24h"), accentClass: "jm-kpi-mint" },
+              {
+                value: snapshot.visibleJobs.length,
+                label: t("visibleJobs"),
+                accentClass: "jm-kpi-green",
+              },
+              {
+                value: snapshot.hiringCompanies,
+                label: t("hiringCompanies"),
+                accentClass: "jm-kpi-violet",
+              },
+            ].map((kpi) => (
               <article className={`jm-kpi ${kpi.accentClass}`} key={kpi.label}>
                 <span className="jm-kpi-mark" aria-hidden="true" />
-                <strong>{kpi.value}</strong>
+                <strong>{numberFormatter.format(kpi.value)}</strong>
                 <span className="jm-kpi-label">{kpi.label}</span>
               </article>
             ))}
           </div>
 
+          <fieldset className="jm-chart-tabs">
+            <legend className="sr-only">{t("mobileChartsLabel")}</legend>
+            {(["weekly", "salary"] as const).map((chart) => (
+              <button
+                type="button"
+                className={activeChart === chart ? "is-active" : ""}
+                aria-pressed={activeChart === chart}
+                key={chart}
+                onClick={() => setActiveChart(chart)}
+              >
+                {chartHeading(chart)}
+              </button>
+            ))}
+          </fieldset>
+
           <div className="jm-charts">
-            {/* Growth line chart */}
-            <article className="jm-chart">
+            <article
+              className={`jm-chart jm-chart-weekly${activeChart === "weekly" ? " is-active" : ""}`}
+            >
               <div className="jm-chart-head">
-                <h3>
-                  <TrendingUp size={16} /> Tăng trưởng cơ hội việc làm
-                </h3>
-                <JMDropdown
-                  ariaLabel="Khoảng thời gian"
-                  value={growthPeriod}
-                  onChange={(v) => setGrowthPeriod(v as "week" | "month")}
-                  options={[
-                    { value: "week", label: "Theo tuần" },
-                    { value: "month", label: "Theo tháng" },
-                  ]}
-                />
+                <div>
+                  <h3 id="jm-weekly-title">
+                    <TrendingUp size={16} aria-hidden="true" />
+                    <span>{t("weeklyTitle")}</span>
+                  </h3>
+                  <p>{t("weeklyDescription")}</p>
+                </div>
+                <span className="jm-chart-context">{t("lastFiveWeeks")}</span>
               </div>
 
-              <div className="jm-chart-body" ref={growthChartRef}>
-                {growthChartSize && (
-                  <AreaChart
-                    width={growthChartSize.width}
-                    height={growthChartSize.height}
-                    data={growthData}
-                    margin={{ top: 18, right: 18, bottom: 4, left: -6 }}
-                  >
-                    <defs>
-                      <linearGradient id="jmGrowth" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.28} />
-                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} stroke="#eef2f7" strokeDasharray="4 6" />
-                    <XAxis
-                      dataKey="label"
-                      axisLine={false}
-                      tickLine={false}
-                      dy={6}
-                      tick={{ fill: "#94a3b8", fontSize: 11 }}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      width={52}
-                      tick={{ fill: "#94a3b8", fontSize: 11 }}
-                      tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
-                      domain={["dataMin", "dataMax + 2"]}
-                    />
-                    <Tooltip
-                      content={<GrowthTooltip />}
-                      cursor={{ stroke: "#cbd5e1", strokeDasharray: "4 4" }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#10b981"
-                      strokeWidth={3}
-                      fill="url(#jmGrowth)"
-                      dot={{
-                        r: 4,
-                        fill: "#ffffff",
-                        strokeWidth: 2.5,
-                        stroke: "#10b981",
-                      }}
-                      activeDot={{
-                        r: 6,
-                        fill: "#10b981",
-                        strokeWidth: 3,
-                        stroke: "#ffffff",
-                      }}
-                    />
-                  </AreaChart>
+              {hasWeeklyData ? (
+                <figure aria-labelledby="jm-weekly-title">
+                  <div className="jm-chart-body">
+                    <ResponsiveContainer
+                      width="100%"
+                      height="100%"
+                      initialDimension={{ width: 1, height: 1 }}
+                    >
+                      <AreaChart
+                        data={snapshot.weeklySeries}
+                        margin={{ top: 18, right: 8, bottom: 4, left: -14 }}
+                      >
+                        <defs>
+                          <linearGradient id="jmGrowth" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10b981" stopOpacity={0.28} />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid vertical={false} stroke="#eef2f7" strokeDasharray="4 6" />
+                        <XAxis
+                          dataKey="label"
+                          axisLine={false}
+                          tickLine={false}
+                          dy={6}
+                          tick={{ fill: "#94a3b8", fontSize: 11 }}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          width={44}
+                          tick={{ fill: "#94a3b8", fontSize: 11 }}
+                          tickFormatter={(value) => compactNumberFormatter.format(value)}
+                          allowDecimals={false}
+                        />
+                        <Tooltip
+                          content={
+                            <MarketTooltip
+                              numberFormatter={numberFormatter}
+                              jobsLabel={t("jobs")}
+                            />
+                          }
+                          cursor={{ stroke: "#cbd5e1", strokeDasharray: "4 4" }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke="#10b981"
+                          strokeWidth={3}
+                          fill="url(#jmGrowth)"
+                          dot={{ r: 4, fill: "#ffffff", strokeWidth: 2.5, stroke: "#10b981" }}
+                          activeDot={{ r: 6, fill: "#10b981", strokeWidth: 3, stroke: "#ffffff" }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <figcaption className="sr-only">{t("weeklyDescription")}</figcaption>
+                  <table className="sr-only">
+                    <caption>{t("accessibleWeeklyTable")}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">{t("week")}</th>
+                        <th scope="col">{t("jobCount")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {snapshot.weeklySeries.map((point) => (
+                        <tr key={point.rangeLabel}>
+                          <td>{point.rangeLabel}</td>
+                          <td>{numberFormatter.format(point.value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </figure>
+              ) : (
+                <ChartEmpty message={t("noWeeklyData")} />
+              )}
+
+              {hasWeeklyData &&
+                completedWeeksAverage !== null &&
+                completedWeeksHigh &&
+                weeklyLatest && (
+                  <div className="jm-chart-foot">
+                    <span>
+                      <em>{t("completedWeeksAverage")}</em>
+                      <b>{numberFormatter.format(completedWeeksAverage)}</b>
+                      <small>{t("jobsPerWeek")}</small>
+                    </span>
+                    <span>
+                      <em>{t("completedWeeksHigh")}</em>
+                      <b>{numberFormatter.format(completedWeeksHigh.value)}</b>
+                      <small>{completedWeeksHigh.rangeLabel}</small>
+                    </span>
+                    <span className="jm-chart-foot-up">
+                      <em>{t("latestWeek")}</em>
+                      <b>{numberFormatter.format(weeklyLatest.value)}</b>
+                      <small>{weeklyLatest.rangeLabel}</small>
+                    </span>
+                  </div>
                 )}
-              </div>
-
-              <div className="jm-chart-foot">
-                <span>
-                  <em>Thấp nhất</em>
-                  <b>{formatThousands(growthLow.value)}</b>
-                  <small>{growthLow.label}</small>
-                </span>
-                <span>
-                  <em>Cao nhất</em>
-                  <b>{formatThousands(growthHigh.value)}</b>
-                  <small>{growthHigh.label}</small>
-                </span>
-                <span className="jm-chart-foot-up">
-                  <em>Tăng trưởng</em>
-                  <b>↗ {growthPct}%</b>
-                  <small>so với {firstGrowth.label}</small>
-                </span>
-              </div>
             </article>
 
-            {/* Salary demand bar chart */}
-            <article className="jm-chart">
+            <article
+              className={`jm-chart jm-chart-salary${activeChart === "salary" ? " is-active" : ""}`}
+            >
               <div className="jm-chart-head">
-                <h3>
-                  <PieChart size={16} /> Nhu cầu tuyển dụng theo mức lương
-                </h3>
-                <JMDropdown
-                  ariaLabel="Đơn vị lương"
-                  value={salaryUnit}
-                  onChange={setSalaryUnit}
-                  options={[
-                    { value: "month", label: "VND/tháng" },
-                    { value: "year", label: "VND/năm" },
-                  ]}
-                />
+                <div>
+                  <h3 id="jm-salary-title">
+                    <PieChart size={16} aria-hidden="true" />
+                    <span>{t("salaryTitle")}</span>
+                  </h3>
+                  <p>{t("salaryDescription")}</p>
+                </div>
+                <span className="jm-chart-context">{t("monthlyVnd")}</span>
               </div>
 
-              <div className="jm-chart-body" ref={salaryChartRef}>
-                {salaryChartSize && (
-                  <BarChart
-                    width={salaryChartSize.width}
-                    height={salaryChartSize.height}
-                    data={salaryChartData}
-                    margin={{ top: 18, right: 8, bottom: 4, left: -6 }}
-                  >
-                    <defs>
-                      {barColors.map((c) => (
-                        <linearGradient key={c.id} id={c.id} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={c.from} />
-                          <stop offset="100%" stopColor={c.to} />
-                        </linearGradient>
+              {hasSalaryData ? (
+                <figure aria-labelledby="jm-salary-title">
+                  <div className="jm-chart-body">
+                    <ResponsiveContainer
+                      width="100%"
+                      height="100%"
+                      initialDimension={{ width: 1, height: 1 }}
+                    >
+                      <BarChart
+                        data={snapshot.salaryDistribution}
+                        margin={{ top: 18, right: 4, bottom: 4, left: -14 }}
+                      >
+                        <CartesianGrid vertical={false} stroke="#eef2f7" strokeDasharray="4 6" />
+                        <XAxis
+                          dataKey={isCompact ? "shortLabel" : "label"}
+                          axisLine={false}
+                          tickLine={false}
+                          dy={6}
+                          tick={{ fill: "#94a3b8", fontSize: isCompact ? 9.5 : 10.5 }}
+                          interval={0}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          width={40}
+                          tick={{ fill: "#94a3b8", fontSize: 11 }}
+                          tickFormatter={(value) => compactNumberFormatter.format(value)}
+                          allowDecimals={false}
+                        />
+                        <Tooltip
+                          content={
+                            <MarketTooltip
+                              numberFormatter={numberFormatter}
+                              jobsLabel={t("jobs")}
+                            />
+                          }
+                          cursor={{ fill: "rgba(16,185,129,0.06)" }}
+                        />
+                        <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={48}>
+                          {snapshot.salaryDistribution.map((entry, index) => (
+                            <Cell key={entry.id} fill={barColors[index] ?? "#10b981"} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <figcaption className="sr-only">{t("salaryDescription")}</figcaption>
+                  <table className="sr-only">
+                    <caption>{t("accessibleSalaryTable")}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">{t("salaryRange")}</th>
+                        <th scope="col">{t("jobCount")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {snapshot.salaryDistribution.map((band) => (
+                        <tr key={band.id}>
+                          <td>{band.label}</td>
+                          <td>{numberFormatter.format(band.value)}</td>
+                        </tr>
                       ))}
-                    </defs>
-                    <CartesianGrid vertical={false} stroke="#eef2f7" strokeDasharray="4 6" />
-                    <XAxis
-                      dataKey="label"
-                      axisLine={false}
-                      tickLine={false}
-                      dy={6}
-                      tick={{ fill: "#94a3b8", fontSize: 10.5 }}
-                      interval={0}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      width={48}
-                      tick={{ fill: "#94a3b8", fontSize: 11 }}
-                      tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
-                    />
-                    <Tooltip
-                      content={<SalaryTooltip />}
-                      cursor={{ fill: "rgba(16,185,129,0.06)" }}
-                    />
-                    <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={48}>
-                      {salaryChartData.map((entry) => (
-                        <Cell key={entry.label} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                )}
-              </div>
+                    </tbody>
+                  </table>
+                </figure>
+              ) : (
+                <ChartEmpty message={t("noSalaryData")} />
+              )}
 
-              <div className="jm-chart-foot">
-                <span>
-                  <em>Mức lương phổ biến</em>
-                  <b>{mostPopularSalary}</b>
-                </span>
-                <span className="jm-chart-foot-up">
-                  <em>Tăng mạnh nhất</em>
-                  <b>{fastestGrowingSalary}</b>
-                </span>
-              </div>
+              {hasSalaryData && popularSalary && (
+                <div className="jm-chart-foot">
+                  <span>
+                    <em>{t("popularSalary")}</em>
+                    <b>{popularSalary.label}</b>
+                  </span>
+                  <span className="jm-chart-foot-up">
+                    <em>{t("coverage")}</em>
+                    <b>
+                      {numberFormatter.format(salaryJobCount)}/
+                      {numberFormatter.format(snapshot.visibleJobs.length)} {t("jobs")}
+                    </b>
+                  </span>
+                </div>
+              )}
             </article>
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-function JobLogo({ job }: { job: { company: string; logo?: string; logoColor?: string } }) {
-  const [failed, setFailed] = useState(false);
-  if (!job.logo || failed) {
-    return (
-      <span className="jm-latest-mono" style={{ color: job.logoColor ?? "#10b981" }}>
-        {job.company.charAt(0)}
-      </span>
-    );
-  }
-  return (
-    <Image
-      src={job.logo}
-      alt={`Logo ${job.company}`}
-      width={44}
-      height={44}
-      unoptimized
-      onError={() => setFailed(true)}
-    />
-  );
-}
-
-/** AI market mascot illustration; falls back to a gradient bot tile until the
-   image is added at /public/assets/marketing/home/market-ai.png */
-function MarketIllustration() {
-  const [failed, setFailed] = useState(false);
-  if (failed) {
-    return (
-      <span className="jm-illu-fallback" aria-hidden="true">
-        <Bot size={56} />
-      </span>
-    );
-  }
-  return (
-    <Image
-      className="jm-illu-img"
-      src="/assets/marketing/home/market-ai.png"
-      alt="Trợ lý phân tích thị trường việc làm IT của UpNext"
-      width={560}
-      height={560}
-      onError={() => setFailed(true)}
-    />
   );
 }

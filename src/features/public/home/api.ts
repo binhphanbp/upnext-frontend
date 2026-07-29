@@ -52,6 +52,11 @@ export interface PublicJob {
   }>;
 }
 
+type PublicJobWire = Omit<PublicJob, "salaryMin" | "salaryMax"> & {
+  salaryMin: number | string | null;
+  salaryMax: number | string | null;
+};
+
 export interface PublicCompany {
   id: string;
   name: string;
@@ -87,8 +92,21 @@ export interface PublicCompanyListResponse {
   };
 }
 
-export function getPublicJobs() {
-  return apiRequest<PublicJob[]>("/job-posts");
+function normalizeNullableNumber(value: number | string | null) {
+  if (value === null || (typeof value === "string" && value.trim() === "")) return null;
+
+  const normalized = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(normalized) ? normalized : null;
+}
+
+export async function getPublicJobs() {
+  const jobs = await apiRequest<PublicJobWire[]>("/job-posts");
+
+  return jobs.map<PublicJob>((job) => ({
+    ...job,
+    salaryMin: normalizeNullableNumber(job.salaryMin),
+    salaryMax: normalizeNullableNumber(job.salaryMax),
+  }));
 }
 
 export function getPublicCompanies({ page, limit }: { page?: number; limit?: number } = {}) {
@@ -126,73 +144,4 @@ export async function getAllActivePublicCompanies() {
 
 export function getPublicCompanyDetail(slug: string) {
   return apiRequest<PublicCompanyDetail>(`/companies/${slug}`);
-}
-
-export interface HomeApiResponseData {
-  stats: {
-    jobsCount: number;
-    companiesCount: number;
-    candidatesCount: number;
-  };
-  marketInsight: {
-    summary: {
-      month: number;
-      year: number;
-      newJobsCount: number;
-      activeJobsCount: number;
-      hiringCompaniesCount: number;
-    };
-    jobGrowthLineChart: {
-      from: string;
-      to: string;
-      minValue: number;
-      maxValue: number;
-      growthPercent: number;
-      points: Array<{ date: string; jobsCount: number }>;
-    };
-    salaryDemandBarChart: Array<{
-      salaryRange: string;
-      jobsCount: number;
-    }>;
-    latestJobs: Array<{
-      id: string;
-      title: string;
-      slug: string;
-      company: {
-        id: string;
-        name: string;
-        logo?: string;
-        avatar?: string;
-      };
-      location: string;
-      workMode: string;
-      employmentType: string;
-      positionName?: string;
-      createdAt: string;
-    }>;
-  };
-  topCompanies: Array<{
-    id: string;
-    name: string;
-    logo?: string;
-    coverImage?: string;
-    companyType: string;
-    shortDescription: string;
-    activeJobsCount: number;
-    applicationsCount: number;
-  }>;
-  companyLogos: Array<{
-    slug: string;
-    name: string;
-    logo: string;
-  }>;
-}
-
-export interface HomeApiResponse {
-  success: boolean;
-  data: HomeApiResponseData;
-}
-
-export function getHomeData() {
-  return apiRequest<HomeApiResponse>("/home");
 }
