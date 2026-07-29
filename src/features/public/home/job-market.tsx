@@ -283,6 +283,38 @@ function MarketIllustration() {
   );
 }
 
+function JobMarketSkeleton({ loadingLabel }: { loadingLabel: string }) {
+  return (
+    <div className="jm-loading" aria-busy="true" aria-live="polite">
+      <span className="sr-only">{loadingLabel}</span>
+      <aside className="jm-loading-rail" aria-hidden="true">
+        <span className="marketing-home-skeleton jm-loading-illustration" />
+        <span className="marketing-home-skeleton marketing-home-skeleton-line is-title" />
+        <span className="marketing-home-skeleton marketing-home-skeleton-line is-company" />
+        <span className="marketing-home-skeleton marketing-home-skeleton-line is-company" />
+        <span className="marketing-home-skeleton marketing-home-skeleton-button" />
+      </aside>
+      <div className="jm-loading-main" aria-hidden="true">
+        <div className="jm-loading-kpis">
+          {Array.from({ length: 3 }, (_, index) => (
+            <span className="marketing-home-skeleton" key={index} />
+          ))}
+        </div>
+        <div className="jm-loading-charts">
+          {Array.from({ length: 2 }, (_, index) => (
+            <article key={index}>
+              <span className="marketing-home-skeleton marketing-home-skeleton-line is-title" />
+              <span className="marketing-home-skeleton marketing-home-skeleton-line is-company" />
+              <span className="marketing-home-skeleton jm-loading-chart" />
+              <span className="marketing-home-skeleton marketing-home-skeleton-line is-foot" />
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function JobMarket() {
   const locale = useLocale();
   const t = useTranslations("HomePage.content.market.snapshot");
@@ -433,11 +465,7 @@ export function JobMarket() {
     return (
       <section className="marketing-home-market" aria-busy="true" aria-label={title}>
         <MarketHeader title={title} description={description} exploreJobsLabel={t("exploreJobs")} />
-        <div className="jm-loading" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
+        <JobMarketSkeleton loadingLabel={t("loading")} />
       </section>
     );
   }

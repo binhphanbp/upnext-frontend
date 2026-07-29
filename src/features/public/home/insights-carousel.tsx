@@ -67,6 +67,36 @@ function getInsightImage(post: Post, index: number) {
     : fallbackImages[index % fallbackImages.length]!;
 }
 
+function InsightsCarouselSkeleton({ title, loading }: { title: string; loading: string }) {
+  return (
+    <section
+      className="marketing-home-insights"
+      aria-busy="true"
+      aria-labelledby="insights-heading"
+    >
+      <header className="marketing-home-insights-head">
+        <h2 id="insights-heading">{title}</h2>
+      </header>
+      <div className="marketing-home-insights-skeleton" aria-live="polite">
+        <span className="sr-only">{loading}</span>
+        {Array.from({ length: 3 }, (_, index) => (
+          <article
+            className={`marketing-home-insights-skeleton-card${index === 1 ? " is-featured" : ""}`}
+            key={index}
+            aria-hidden="true"
+          >
+            <span className="marketing-home-skeleton marketing-home-insights-skeleton-image" />
+            <span className="marketing-home-skeleton marketing-home-skeleton-line is-title" />
+            {index === 1 && (
+              <span className="marketing-home-skeleton marketing-home-skeleton-line is-company" />
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function InsightsCarousel({ isLoading, posts }: InsightsCarouselProps) {
   const locale = useLocale() === "en" ? "en" : "vi";
   const copy = copyByLocale[locale];
@@ -85,20 +115,7 @@ export function InsightsCarousel({ isLoading, posts }: InsightsCarouselProps) {
   if (articles.length === 0) {
     if (!isLoading) return null;
 
-    return (
-      <section
-        className="marketing-home-insights"
-        aria-busy="true"
-        aria-labelledby="insights-heading"
-      >
-        <header className="marketing-home-insights-head">
-          <h2 id="insights-heading">{copy.title}</h2>
-        </header>
-        <output className="marketing-home-insights-loading">
-          <span className="sr-only">{copy.loading}</span>
-        </output>
-      </section>
-    );
+    return <InsightsCarouselSkeleton title={copy.title} loading={copy.loading} />;
   }
 
   return (

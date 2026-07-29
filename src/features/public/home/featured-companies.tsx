@@ -109,6 +109,33 @@ function CoverImage({ company }: { company: FeaturedCompany }) {
   );
 }
 
+function FeaturedCompaniesSkeleton() {
+  return (
+    <div className="featured-companies-skeleton" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Đang tải các công ty công nghệ tiêu biểu</span>
+      <div className="marketing-home-co-bento" aria-hidden="true">
+        <article className="featured-company-featured featured-company-skeleton-featured">
+          <span className="marketing-home-skeleton featured-company-skeleton-cover" />
+          <span className="marketing-home-skeleton marketing-home-skeleton-logo" />
+          <span className="marketing-home-skeleton marketing-home-skeleton-line is-title" />
+          <span className="marketing-home-skeleton marketing-home-skeleton-line is-company" />
+          <span className="marketing-home-skeleton marketing-home-skeleton-button" />
+        </article>
+        {Array.from({ length: 9 }, (_, index) => (
+          <article className="featured-company-card featured-company-card-skeleton" key={index}>
+            <span className="marketing-home-skeleton marketing-home-skeleton-logo" />
+            <span className="featured-company-skeleton-copy">
+              <span className="marketing-home-skeleton marketing-home-skeleton-line is-company" />
+              <span className="marketing-home-skeleton marketing-home-skeleton-line is-foot" />
+            </span>
+            <span className="marketing-home-skeleton marketing-home-skeleton-button" />
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Responsive small-card count, aligned with the CSS breakpoints:
    - desktop (>1180px): full bento — featured + 9 cards
    - tablet (821-1180px): featured hidden, 6 small cards + slider
@@ -308,7 +335,11 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
         <div className="marketing-home-co-head-actions">
           <span className="marketing-home-co-count">
             <UsersRound size={16} />
-            {totalCompanies ?? "…"} công ty tuyển dụng
+            {isCompaniesPending ? (
+              <span className="marketing-home-count-skeleton" aria-label="Đang tải số công ty" />
+            ) : (
+              <>{totalCompanies ?? "0"} công ty tuyển dụng</>
+            )}
           </span>
           <button
             type="button"
@@ -325,7 +356,9 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
         </p>
       ) : null}
 
-      {featured ? (
+      {isCompaniesPending ? (
+        <FeaturedCompaniesSkeleton />
+      ) : featured ? (
         <>
           <div className="marketing-home-co-stage">
             <button
@@ -443,12 +476,10 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
           </div>
         </>
       ) : (
-        <p className="marketing-home-action-error" role={isCompaniesPending ? "status" : "alert"}>
-          {isCompaniesPending
-            ? "Đang tải danh sách công ty…"
-            : isCompaniesError
-              ? "Không thể tải danh sách công ty từ hệ thống. Vui lòng thử lại."
-              : "Hiện chưa có công ty đang hoạt động."}
+        <p className="marketing-home-action-error" role="alert">
+          {isCompaniesError
+            ? "Không thể tải danh sách công ty từ hệ thống. Vui lòng thử lại."
+            : "Hiện chưa có công ty đang hoạt động."}
         </p>
       )}
 

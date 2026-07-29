@@ -816,6 +816,7 @@
           "noMarketDataDescription": "Khi có việc làm đang tuyển, xu hướng và mức lương sẽ xuất hiện tại đây.",
           "marketDataErrorTitle": "Chưa thể tải xu hướng tuyển dụng",
           "marketDataErrorDescription": "Vui lòng thử lại sau ít phút để xem số liệu mới nhất.",
+          "loading": "Đang tải dữ liệu thị trường việc làm",
           "retry": "Thử lại",
           "unknownLocation": "Địa điểm đang cập nhật",
           "unknownEmploymentType": "Hình thức đang cập nhật",

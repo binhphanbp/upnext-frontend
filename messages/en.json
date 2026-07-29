@@ -816,6 +816,7 @@
           "noMarketDataDescription": "Hiring trends and salary data will appear here when open jobs are available.",
           "marketDataErrorTitle": "We could not load hiring trends",
           "marketDataErrorDescription": "Please try again in a few minutes to see the latest data.",
+          "loading": "Loading job market data",
           "retry": "Try again",
           "unknownLocation": "Location being updated",
           "unknownEmploymentType": "Employment type being updated",

@@ -34,7 +34,6 @@ import {
   MapPin,
   Search,
   Sparkles,
-  UsersRound,
 } from "./marketing-icons";
 import { getPopularKeywordsForLocale } from "./popular-keywords";
 import { useAnchoredJobPreview } from "./use-anchored-job-preview";
@@ -153,224 +152,45 @@ function getPlainText(value: string | null | undefined) {
     .trim();
 }
 
-const urgentJobs = [
-  {
-    id: "brighttech-frontend",
-    logo: "",
-    title: "Frontend Developer",
-    company: "BrightTech",
-    salary: "18 - 25 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["React", "TypeScript", "Next.js"],
-    deadline: "Còn 3 ngày",
-    deadlineTone: "red",
-    applicants: "12 ứng viên",
-    views: "185 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Junior",
-    bgClass: "bg-slate-800",
-  },
-  {
-    id: "novalabs-backend",
-    logo: "",
-    title: "Backend Developer",
-    company: "Nova Labs",
-    salary: "20 - 30 triệu",
-    location: "TP.HCM",
-    mode: "Remote",
-    tags: ["Node.js", "PostgreSQL", "Docker"],
-    deadline: "Còn 5 ngày",
-    deadlineTone: "red",
-    applicants: "18 ứng viên",
-    views: "245 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-purple-600",
-  },
-  {
-    id: "skysoft-data",
-    logo: "",
-    title: "Data Engineer",
-    company: "SkySoft",
-    salary: "22 - 35 triệu",
-    location: "Đà Nẵng",
-    mode: "Onsite",
-    tags: ["Python", "SQL", "Airflow"],
-    deadline: "Còn 2 ngày",
-    deadlineTone: "red",
-    applicants: "9 ứng viên",
-    views: "112 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-sky-500",
-  },
-  {
-    id: "pixelworks-uiux",
-    logo: "",
-    title: "UI/UX Designer",
-    company: "Pixel Works",
-    salary: "15 - 22 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["Figma", "Design System", "UX Research"],
-    deadline: "Còn 4 ngày",
-    deadlineTone: "red",
-    applicants: "14 ứng viên",
-    views: "192 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Junior",
-    bgClass: "bg-rose-500",
-  },
-  {
-    id: "fpt-devops-cloud",
-    logo: "",
-    title: "DevOps Cloud Infrastructure Engineer",
-    company: "FPT Software",
-    salary: "40 - 70 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["AWS", "Kubernetes", "Docker"],
-    deadline: "Còn 7 ngày",
-    deadlineTone: "red",
-    applicants: "15 ứng viên",
-    views: "210 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Senior",
-    bgClass: "bg-slate-800",
-  },
-  {
-    id: "vng-mobile-engineer",
-    logo: "",
-    title: "Mobile Engineer (React Native)",
-    company: "VNG Corporation",
-    salary: "22 - 40 triệu",
-    location: "TP.HCM",
-    mode: "Hybrid",
-    tags: ["React Native", "iOS", "Android"],
-    deadline: "Còn 10 ngày",
-    deadlineTone: "red",
-    applicants: "20 ứng viên",
-    views: "310 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-purple-600",
-  },
-  {
-    id: "luvina-bridge-engineer",
-    logo: "",
-    title: "Bridge System Engineer (BrSE)",
-    company: "Luvina Software",
-    salary: "22 - 40 triệu",
-    location: "Hà Nội",
-    mode: "Onsite",
-    tags: ["Japanese", "Java", "System Design"],
-    deadline: "Còn 12 ngày",
-    deadlineTone: "red",
-    applicants: "8 ứng viên",
-    views: "150 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-sky-500",
-  },
-  {
-    id: "misa-product-designer",
-    logo: "",
-    title: "Product Designer - Business Software",
-    company: "MISA",
-    salary: "22 - 40 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["Figma", "UI/UX", "User Research"],
-    deadline: "Còn 15 ngày",
-    deadlineTone: "red",
-    applicants: "16 ứng viên",
-    views: "230 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-rose-500",
-  },
-  {
-    id: "cmc-data-engineer",
-    logo: "",
-    title: "Senior Data Engineer",
-    company: "CMC Global",
-    salary: "22 - 40 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["Python", "Spark", "PostgreSQL"],
-    deadline: "Còn 18 ngày",
-    deadlineTone: "red",
-    applicants: "11 ứng viên",
-    views: "175 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Senior",
-    bgClass: "bg-slate-800",
-  },
-  {
-    id: "mw-product-manager",
-    logo: "",
-    title: "Product Manager - Retail Technology",
-    company: "Mobile World Investment",
-    salary: "40 - 70 triệu",
-    location: "TP.HCM",
-    mode: "Onsite",
-    tags: ["Product Strategy", "Agile", "E-commerce"],
-    deadline: "Còn 22 ngày",
-    deadlineTone: "red",
-    applicants: "14 ứng viên",
-    views: "190 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Lead",
-    bgClass: "bg-purple-600",
-  },
-  {
-    id: "viettel-security-engineer",
-    logo: "",
-    title: "Cyber Security Specialist",
-    company: "Viettel Solutions",
-    salary: "30 - 55 triệu",
-    location: "Đà Nẵng",
-    mode: "Onsite",
-    tags: ["Pentest", "SIEM", "Cloud Security"],
-    deadline: "Còn 25 ngày",
-    deadlineTone: "red",
-    applicants: "7 ứng viên",
-    views: "140 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Senior",
-    bgClass: "bg-sky-500",
-  },
-  {
-    id: "sepay-fullstack-dev",
-    logo: "",
-    title: "Fullstack Engineer (React/Node)",
-    company: "SePay Vietnam",
-    salary: "25 - 45 triệu",
-    location: "TP.HCM",
-    mode: "Hybrid",
-    tags: ["React", "Node.js", "PostgreSQL"],
-    deadline: "Còn 28 ngày",
-    deadlineTone: "red",
-    applicants: "19 ứng viên",
-    views: "280 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-rose-500",
-  },
-];
+function HomeSectionEmptyState({
+  description,
+  actionLabel,
+  onAction,
+}: {
+  description: string;
+  actionLabel: string;
+  onAction: () => void;
+}) {
+  return (
+    <div className="marketing-home-data-state">
+      <p>{description}</p>
+      <button type="button" onClick={onAction}>
+        {actionLabel} <ArrowRight size={16} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function UrgentJobsSkeleton() {
+  return (
+    <div className="marketing-home-urgent-skeleton" aria-busy="true" aria-live="polite">
+      <span className="sr-only">Đang tải việc cần tuyển gấp</span>
+      {Array.from({ length: 9 }, (_, index) => (
+        <article className="marketing-home-urgent-skeleton-card" key={index} aria-hidden="true">
+          <span className="marketing-home-skeleton marketing-home-skeleton-logo" />
+          <span className="marketing-home-urgent-skeleton-content">
+            <span className="marketing-home-skeleton marketing-home-skeleton-line is-title" />
+            <span className="marketing-home-skeleton marketing-home-skeleton-line is-company" />
+          </span>
+          <span className="marketing-home-urgent-skeleton-footer">
+            <span className="marketing-home-skeleton marketing-home-skeleton-pill" />
+            <span className="marketing-home-skeleton marketing-home-skeleton-pill is-short" />
+          </span>
+        </article>
+      ))}
+    </div>
+  );
+}
 
 const homeCopy = {
   vi: {
@@ -394,8 +214,7 @@ const homeCopy = {
     popular: "Tìm kiếm phổ biến:",
     statsJobs: "Việc làm IT đang tuyển",
     statsCompanies: "Công ty công nghệ",
-    statsMatches: "Hồ sơ được kết nối",
-    statsCandidates: "Ứng viên đã tin tưởng",
+    statsSalaryJobs: "Việc làm công khai lương",
     trustedBy: "Được tin tưởng bởi các công ty công nghệ hàng đầu",
     footerPrimary: "Tìm việc ngay",
     footerSecondary: "Tạo hồ sơ miễn phí",
@@ -429,8 +248,7 @@ const homeCopy = {
     popular: "Popular searches:",
     statsJobs: "Open IT jobs",
     statsCompanies: "Tech companies",
-    statsMatches: "Profiles matched",
-    statsCandidates: "Trusted candidates",
+    statsSalaryJobs: "Jobs with published salary",
     trustedBy: "Trusted by leading technology companies",
     footerPrimary: "Find jobs now",
     footerSecondary: "Create free profile",
@@ -463,12 +281,12 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
   const searchCardRef = useRef<HTMLElement | null>(null);
 
-  const { data: apiJobsData } = useQuery({
+  const { data: apiJobsData, isPending: isJobsPending } = useQuery({
     queryKey: ["public-jobs"],
     queryFn: getPublicJobs,
   });
 
-  const { data: apiCompaniesData } = useQuery({
+  const { data: apiCompaniesData, isPending: isCompaniesPending } = useQuery({
     queryKey: ["public-companies"],
     queryFn: () => getPublicCompanies(),
   });
@@ -484,10 +302,15 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     () => apiCompaniesData?.meta?.total || apiCompaniesData?.items?.length || 0,
     [apiCompaniesData],
   );
-  // Estimate candidates count starting from 50,000 plus dynamic variation
-  const candidatesCount = useMemo(
-    () => 50000 + jobsCount * 15 + companiesCount * 40,
-    [jobsCount, companiesCount],
+  const publishedSalaryJobsCount = useMemo(
+    () =>
+      apiJobsData?.filter(
+        (job) =>
+          job.salaryIsVisible &&
+          !job.salaryIsNegotiable &&
+          (job.salaryMin !== null || job.salaryMax !== null),
+      ).length ?? 0,
+    [apiJobsData],
   );
 
   const formattedStats = useMemo(() => {
@@ -508,12 +331,15 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     return {
       jobs: formatStatNumber(jobsCount),
       companies: formatStatNumber(companiesCount),
-      candidates: formatStatNumber(candidatesCount),
+      publishedSalaryJobs: formatStatNumber(publishedSalaryJobsCount),
     };
-  }, [jobsCount, companiesCount, candidatesCount, locale]);
+  }, [jobsCount, companiesCount, publishedSalaryJobsCount, locale]);
 
   const urgentJobsList = useMemo(() => {
-    if (!apiJobsData || apiJobsData.length === 0) return urgentJobs.slice(0, 90);
+    // Never surface the historical marketing fixtures while the public feed is
+    // loading. A stable skeleton communicates loading honestly and prevents a
+    // misleading flash of jobs that cannot be opened or saved.
+    if (!apiJobsData || apiJobsData.length === 0) return [];
 
     const now = Date.now();
     const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -566,10 +392,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
               ) as string[]),
         deadline: formatDeadlineWithDate(job.expiredAt),
         deadlineTone: isUrgent ? "red" : "amber",
-        applicants: "12 ứng viên",
-        views: "185 lượt xem",
-        competition: "Mới mở · ít ứng viên",
-        progress: 25,
         level: job.experienceLevel?.name || "Junior",
         description: getPlainText(job.description),
         address:
@@ -752,7 +574,11 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <BriefcaseBusiness size={25} />
               </i>
               <p>
-                <strong>{formattedStats.jobs}</strong>
+                {isJobsPending ? (
+                  <span className="marketing-home-stat-skeleton" aria-hidden="true" />
+                ) : (
+                  <strong>{formattedStats.jobs}</strong>
+                )}
                 <span>{copy.statsJobs}</span>
               </p>
             </article>
@@ -761,17 +587,25 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <Building2 size={25} />
               </i>
               <p>
-                <strong>{formattedStats.companies}</strong>
+                {isCompaniesPending ? (
+                  <span className="marketing-home-stat-skeleton" aria-hidden="true" />
+                ) : (
+                  <strong>{formattedStats.companies}</strong>
+                )}
                 <span>{copy.statsCompanies}</span>
               </p>
             </article>
             <article>
               <i>
-                <UsersRound size={25} />
+                <Coins size={25} />
               </i>
               <p>
-                <strong>{formattedStats.candidates}</strong>
-                <span>{copy.statsCandidates}</span>
+                {isJobsPending || isCompaniesPending ? (
+                  <span className="marketing-home-stat-skeleton" aria-hidden="true" />
+                ) : (
+                  <strong>{formattedStats.publishedSalaryJobs}</strong>
+                )}
+                <span>{copy.statsSalaryJobs}</span>
               </p>
             </article>
           </div>
@@ -801,7 +635,12 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           </div>
         </section>
 
-        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} onApply={setApplyJob} />
+        <UrgentJobsSection
+          navigate={navigate}
+          urgentJobs={urgentJobsList}
+          isLoading={isJobsPending}
+          onApply={setApplyJob}
+        />
 
         <FeaturedJobs navigate={navigate} onApply={setApplyJob} />
         <FeaturedCompanies navigate={navigate} />
@@ -821,9 +660,11 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 function UrgentJobsSection({
   navigate,
   urgentJobs,
+  isLoading,
   onApply,
 }: {
   navigate: (path: string) => void;
+  isLoading: boolean;
   onApply: (job: { id: string; title: string; company: string }) => void;
   urgentJobs: Array<{
     id: string;
@@ -836,10 +677,6 @@ function UrgentJobsSection({
     tags: string[];
     deadline: string;
     deadlineTone: string;
-    applicants: string;
-    views: string;
-    competition: string;
-    progress: number;
     level: string;
     bgClass: string;
     description?: string;
@@ -847,8 +684,6 @@ function UrgentJobsSection({
   }>;
 }) {
   const {
-    error: savedJobsError,
-    isAuthenticated,
     isPending: isSavedJobPending,
     isSessionResolved: isSavedJobsSessionResolved,
     setSavedJob,
@@ -1039,124 +874,134 @@ function UrgentJobsSection({
         </button>
       </header>
 
-      <div
-        className="marketing-home-urgent-viewport cursor-grab select-none active:cursor-grabbing"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-      >
+      {isLoading ? (
+        <UrgentJobsSkeleton />
+      ) : urgentJobs.length === 0 ? (
+        <HomeSectionEmptyState
+          description="Chưa có việc cần tuyển gấp vào lúc này. Bạn có thể khám phá toàn bộ việc làm đang tuyển."
+          onAction={() => navigate("/jobs")}
+          actionLabel="Khám phá việc làm"
+        />
+      ) : (
         <div
-          className={`marketing-home-urgent-track${isDragging ? " is-dragging" : ""}`}
-          style={{
-            transform: `translateX(calc(${-safePage * 100}% + ${dragOffset}px))`,
-            transition: isDragging ? "none" : "transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1)",
-          }}
+          className="marketing-home-urgent-viewport cursor-grab select-none active:cursor-grabbing"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
         >
-          {pages.map((slideJobs, slideIdx) => (
-            <div className="marketing-home-urgent-slide" key={slideIdx}>
-              <div className="marketing-home-urgent-grid">
-                {slideJobs.map((job) => {
-                  const isSaved = savedJobIds.includes(job.id);
-                  return (
-                    <article
-                      className={`urgent-job-card group${
-                        previewJobId === job.id ? " is-previewed" : ""
-                      }`}
-                      key={job.id}
-                      onMouseLeave={schedulePreviewClose}
-                    >
-                      <div className="urgent-job-main">
-                        <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
-                          <span className="urgent-job-logo-fallback" aria-hidden="true">
-                            {getCompanyInitials(job.company)}
-                          </span>
-                          {job.logo && (
-                            <Image
-                              src={job.logo}
-                              alt={`Logo ${job.company}`}
-                              width={46}
-                              height={46}
-                              unoptimized
-                              className="rounded-lg object-contain"
-                              onError={(event) => {
-                                event.currentTarget.style.display = "none";
-                              }}
-                            />
-                          )}
-                        </span>
-
-                        <div className="urgent-job-content">
-                          <div className="urgent-job-heading">
-                            <h3 className="urgent-job-title-wrapper">
-                              <button
-                                id={`urgent-job-title-${job.id}`}
-                                type="button"
-                                className="urgent-job-title group-hover:text-emerald-600"
-                                onClick={() => navigate(`/jobs/${job.id}`)}
-                                onMouseEnter={(event) => openPreview(job.id, event.currentTarget)}
-                                onFocus={(event) => openPreview(job.id, event.currentTarget)}
-                                onBlur={schedulePreviewClose}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Escape") {
-                                    event.preventDefault();
-                                    closePreviewAndRestoreFocus();
-                                  }
+          <div
+            className={`marketing-home-urgent-track${isDragging ? " is-dragging" : ""}`}
+            style={{
+              transform: `translateX(calc(${-safePage * 100}% + ${dragOffset}px))`,
+              transition: isDragging ? "none" : "transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1)",
+            }}
+          >
+            {pages.map((slideJobs, slideIdx) => (
+              <div className="marketing-home-urgent-slide" key={slideIdx}>
+                <div className="marketing-home-urgent-grid">
+                  {slideJobs.map((job) => {
+                    const isSaved = savedJobIds.includes(job.id);
+                    return (
+                      <article
+                        className={`urgent-job-card group${
+                          previewJobId === job.id ? " is-previewed" : ""
+                        }`}
+                        key={job.id}
+                        onMouseLeave={schedulePreviewClose}
+                      >
+                        <div className="urgent-job-main">
+                          <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
+                            <span className="urgent-job-logo-fallback" aria-hidden="true">
+                              {getCompanyInitials(job.company)}
+                            </span>
+                            {job.logo && (
+                              <Image
+                                src={job.logo}
+                                alt={`Logo ${job.company}`}
+                                width={46}
+                                height={46}
+                                unoptimized
+                                className="rounded-lg object-contain"
+                                onError={(event) => {
+                                  event.currentTarget.style.display = "none";
                                 }}
-                                aria-controls="urgent-job-preview"
-                                aria-expanded={previewJobId === job.id}
-                                aria-haspopup="dialog"
-                                title={job.title}
-                              >
-                                {job.title}
-                              </button>
-                            </h3>
-                            <button
-                              type="button"
-                              className="urgent-job-save"
-                              aria-label={
-                                isSaved
-                                  ? `Bỏ lưu công việc ${job.title}`
-                                  : `Lưu công việc ${job.title}`
-                              }
-                              aria-pressed={isSaved}
-                              disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSaveJob(job.id, job.title);
-                              }}
-                            >
-                              <Bookmark size={20} weight={isSaved ? "fill" : "regular"} />
-                            </button>
-                          </div>
-                          <strong className="urgent-job-company">{job.company}</strong>
-                        </div>
-                      </div>
+                              />
+                            )}
+                          </span>
 
-                      <div className="urgent-job-compact-footer">
-                        <div className="urgent-job-chips">
-                          <span className="urgent-job-salary">
-                            <Coins size={14} />
-                            {job.salary}
-                          </span>
-                          <span className="urgent-job-location">
-                            <MapPin size={14} />
-                            {job.location}
+                          <div className="urgent-job-content">
+                            <div className="urgent-job-heading">
+                              <h3 className="urgent-job-title-wrapper">
+                                <button
+                                  id={`urgent-job-title-${job.id}`}
+                                  type="button"
+                                  className="urgent-job-title group-hover:text-emerald-600"
+                                  onClick={() => navigate(`/jobs/${job.id}`)}
+                                  onMouseEnter={(event) => openPreview(job.id, event.currentTarget)}
+                                  onFocus={(event) => openPreview(job.id, event.currentTarget)}
+                                  onBlur={schedulePreviewClose}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Escape") {
+                                      event.preventDefault();
+                                      closePreviewAndRestoreFocus();
+                                    }
+                                  }}
+                                  aria-controls="urgent-job-preview"
+                                  aria-expanded={previewJobId === job.id}
+                                  aria-haspopup="dialog"
+                                  title={job.title}
+                                >
+                                  {job.title}
+                                </button>
+                              </h3>
+                              <button
+                                type="button"
+                                className="urgent-job-save"
+                                aria-label={
+                                  isSaved
+                                    ? `Bỏ lưu công việc ${job.title}`
+                                    : `Lưu công việc ${job.title}`
+                                }
+                                aria-pressed={isSaved}
+                                disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSaveJob(job.id, job.title);
+                                }}
+                              >
+                                <Bookmark size={20} weight={isSaved ? "fill" : "regular"} />
+                              </button>
+                            </div>
+                            <strong className="urgent-job-company">{job.company}</strong>
+                          </div>
+                        </div>
+
+                        <div className="urgent-job-compact-footer">
+                          <div className="urgent-job-chips">
+                            <span className="urgent-job-salary">
+                              <Coins size={14} />
+                              {job.salary}
+                            </span>
+                            <span className="urgent-job-location">
+                              <MapPin size={14} />
+                              {job.location}
+                            </span>
+                          </div>
+                          <span className="urgent-job-deadline-badge flex items-center gap-1">
+                            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                            {job.deadline}
                           </span>
                         </div>
-                        <span className="urgent-job-deadline-badge flex items-center gap-1">
-                          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
-                          {job.deadline}
-                        </span>
-                      </div>
-                    </article>
-                  );
-                })}
+                      </article>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {previewJob && (
         <dialog
@@ -1271,7 +1116,7 @@ function UrgentJobsSection({
         </dialog>
       )}
 
-      {totalPages > 1 && (
+      {!isLoading && totalPages > 1 && (
         <nav className="urgent-jobs-pagination" aria-label="Phân trang việc tuyển gấp">
           <button
             type="button"
