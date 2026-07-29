@@ -160,6 +160,15 @@ test("builds the market snapshot from public jobs without requesting the legacy 
   await expect(section.locator(".jm-scope")).toContainText("Dữ liệu từ 5 việc làm đang tuyển");
   await expect(section.locator(".jm-kpi strong")).toHaveText(["1", "5", "3"]);
   await expect(section.locator(".jm-latest-link")).toHaveCount(3);
+  const illustration = section.locator(".jm-illu-img");
+  await expect(illustration).toHaveAttribute("loading", "eager");
+  await expect
+    .poll(() =>
+      illustration.evaluate(
+        (image) => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+      ),
+    )
+    .toBe(true);
   const [railHeight, mainHeight] = await Promise.all([
     section.locator(".jm-rail").evaluate((element) => element.getBoundingClientRect().height),
     section.locator(".jm-main").evaluate((element) => element.getBoundingClientRect().height),

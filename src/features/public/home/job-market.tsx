@@ -276,6 +276,8 @@ function MarketIllustration() {
       alt=""
       width={560}
       height={320}
+      loading="eager"
+      sizes="(max-width: 1180px) calc(100vw - 40px), 320px"
       onError={() => setFailed(true)}
     />
   );
