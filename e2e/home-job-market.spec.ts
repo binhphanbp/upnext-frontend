@@ -50,7 +50,7 @@ async function mockMarketData(page: Page) {
   const jobs = [
     marketJob({
       id: "market-job-1",
-      title: "Platform Engineer",
+      title: "Senior Platform Engineer for Distributed Cloud Infrastructure",
       companyId: "company-1",
       companyName: "UpNext Labs",
       publishedAt: relativeIso({ hours: 1 }),
@@ -185,9 +185,9 @@ test("builds the market snapshot from public jobs without requesting the legacy 
     .allTextContents();
   expect(weeklyCounts.reduce((sum, value) => sum + Number(value), 0)).toBe(5);
   const weeklyFooter = section.locator(".jm-chart-weekly .jm-chart-foot");
-  await expect(weeklyFooter).toContainText("Trung bình 4 tuần trước");
-  await expect(weeklyFooter).toContainText("Cao nhất 4 tuần trước");
-  await expect(weeklyFooter).toContainText("Tuần hiện tại");
+  await expect(weeklyFooter).toContainText("TB 4 tuần trước");
+  await expect(weeklyFooter).toContainText("Cao nhất 4 tuần");
+  await expect(weeklyFooter).toContainText("Tuần này");
   await expect(section.locator(".jm-chart-salary .jm-chart-foot")).toContainText(
     "Có dữ liệu lương5/5 việc làm",
   );
@@ -199,6 +199,15 @@ test("builds the market snapshot from public jobs without requesting the legacy 
 });
 
 test("keeps the localized mobile snapshot compact and keyboard-operable", async ({ page }) => {
+  const zeroSizeChartWarnings: string[] = [];
+  page.on("console", (message) => {
+    if (
+      message.type() === "warning" &&
+      message.text().includes("of chart should be greater than 0")
+    ) {
+      zeroSizeChartWarnings.push(message.text());
+    }
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await mockMarketData(page);
 
@@ -209,6 +218,34 @@ test("keeps the localized mobile snapshot compact and keyboard-operable", async 
   await expect(section.getByRole("heading", { name: "IT hiring trends on UpNext" })).toBeVisible();
   await expect(section.locator(".jm-chart-weekly")).toBeVisible();
   await expect(section.locator(".jm-chart-salary")).toBeHidden();
+  await expect(section.locator(".jm-latest-body b")).toHaveCount(3);
+  await expect(section.locator(".jm-latest-meta time")).toHaveCount(3);
+  const latestTitleStyle = await section
+    .locator(".jm-latest-body b")
+    .nth(0)
+    .evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        lineClamp: style.getPropertyValue("-webkit-line-clamp"),
+        whiteSpace: style.whiteSpace,
+        fitsHorizontally: element.scrollWidth <= element.clientWidth,
+      };
+    });
+  expect(latestTitleStyle).toEqual({
+    lineClamp: "2",
+    whiteSpace: "normal",
+    fitsHorizontally: true,
+  });
+  const kpisFit = await section
+    .locator(".jm-kpi")
+    .evaluateAll((elements) =>
+      elements.every(
+        (element) =>
+          element.scrollWidth <= element.clientWidth &&
+          element.scrollHeight <= element.clientHeight,
+      ),
+    );
+  expect(kpisFit).toBe(true);
 
   const salaryTab = section.getByRole("button", { name: "Salary" });
   await salaryTab.focus();
@@ -220,6 +257,7 @@ test("keeps the localized mobile snapshot compact and keyboard-operable", async 
   await expect(
     page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
   ).resolves.toBe(true);
+  expect(zeroSizeChartWarnings).toEqual([]);
 });
 
 test("shows an honest error state instead of estimated market figures", async ({ page }) => {

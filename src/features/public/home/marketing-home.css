@@ -4229,7 +4229,7 @@ button.marketing-home-control {
 .jm-illu {
   display: block;
   flex-shrink: 0;
-  height: 170px;
+  height: 154px;
   overflow: hidden;
   border-bottom: 1px solid #eef2f7;
   background: #eefcf7;
@@ -4256,7 +4256,7 @@ button.marketing-home-control {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  padding: 20px;
+  padding: 18px;
 }
 
 .jm-latest-head {
@@ -4301,7 +4301,7 @@ button.marketing-home-control {
 }
 
 .jm-latest ul {
-  margin: 12px 0;
+  margin: 10px 0;
   padding: 0;
   list-style: none;
 }
@@ -4312,10 +4312,10 @@ button.marketing-home-control {
 
 .jm-latest-link {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 11px;
   width: 100%;
-  padding: 12px 2px;
+  padding: 10px 2px;
   color: inherit;
   text-align: left;
   text-decoration: none;
@@ -4356,32 +4356,54 @@ button.marketing-home-control {
 }
 
 .jm-latest-body b {
+  display: -webkit-box;
+  min-width: 0;
   color: #111827;
   font-size: 13.5px;
   font-weight: 650;
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .jm-latest-body em {
+  min-width: 0;
+  overflow: hidden;
   color: #475569;
   font-size: 12px;
   font-weight: 500;
   font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.jm-latest-body small {
+.jm-latest-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.jm-latest-meta small {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
   color: #94a3b8;
   font-size: 11.5px;
   font-weight: 450;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.jm-latest-time {
+.jm-latest-meta time {
   flex: 0 0 auto;
-  align-self: flex-start;
+  margin-left: auto;
   color: #0aa56f;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -4485,6 +4507,8 @@ button.marketing-home-control {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 
 .jm-charts {
@@ -4515,17 +4539,26 @@ button.marketing-home-control {
 }
 
 .jm-chart-head h3 {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 8px;
   margin: 0;
   color: #111827;
   font-size: 15px;
   font-weight: 650;
+  line-height: 1.35;
+  text-wrap: balance;
 }
 
 .jm-chart-head h3 svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
   color: #0aa56f;
+}
+
+.jm-chart-head h3 span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .jm-chart-head p {
@@ -4534,10 +4567,13 @@ button.marketing-home-control {
   font-size: 11.5px;
   font-weight: 450;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 
 .jm-chart-context {
   flex: 0 0 auto;
+  align-self: flex-start;
   padding: 6px 10px;
   color: #527063;
   font-size: 11px;
@@ -4599,7 +4635,8 @@ button.marketing-home-control {
 }
 
 .jm-chart-foot {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
   gap: 12px;
   margin-top: 14px;
   padding-top: 16px;
@@ -4625,6 +4662,8 @@ button.marketing-home-control {
   color: #111827;
   font-size: 15px;
   font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .jm-chart-foot small {
@@ -5856,7 +5895,7 @@ button.marketing-home-control {
 
   .jm-kpi {
     min-width: 0;
-    padding: 15px 12px;
+    padding: 15px 10px;
   }
 
   .jm-kpi + .jm-kpi::before {
@@ -5944,19 +5983,27 @@ button.marketing-home-control {
 
   .jm-charts {
     display: block;
+    position: relative;
   }
 
   .jm-chart {
-    display: none;
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    visibility: hidden;
+    pointer-events: none;
     padding: 16px;
   }
 
   .jm-chart.is-active {
-    display: flex;
+    position: relative;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   .jm-chart-head {
     align-items: flex-start;
+    gap: 8px;
   }
 
   .jm-chart-head h3 {
@@ -6106,6 +6153,14 @@ button.marketing-home-control {
 }
 
 @media (max-width: 480px) {
+  .jm-kpi {
+    padding-inline: 9px;
+  }
+
+  .jm-kpi-label {
+    font-size: 10px;
+  }
+
   .marketing-home-footer-links {
     grid-template-columns: 1fr;
     gap: 24px;

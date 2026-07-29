@@ -499,6 +499,7 @@ export function JobMarket() {
               {snapshot.latestJobs.map((job) => {
                 const city = job.jobPostLocations?.[0]?.jobLocation?.city ?? t("unknownLocation");
                 const employmentType = job.employmentType?.name ?? t("unknownEmploymentType");
+                const publishedAt = publicationTime(job);
                 return (
                   <li key={job.id}>
                     <Link href={`/jobs/${job.id}`} className="jm-latest-link">
@@ -506,14 +507,18 @@ export function JobMarket() {
                         <JobLogo job={job} />
                       </span>
                       <span className="jm-latest-body">
-                        <b className="line-clamp-1">{job.title}</b>
+                        <b>{job.title}</b>
                         <em>{job.company?.name ?? "UpNext"}</em>
-                        <small>
-                          {city} · {employmentType}
-                        </small>
-                      </span>
-                      <span className="jm-latest-time">
-                        {formatRelativeTime(publicationTime(job), locale)}
+                        <span className="jm-latest-meta">
+                          <small>
+                            {city} · {employmentType}
+                          </small>
+                          {publishedAt && (
+                            <time dateTime={new Date(publishedAt).toISOString()}>
+                              {formatRelativeTime(publishedAt, locale)}
+                            </time>
+                          )}
+                        </span>
                       </span>
                     </Link>
                   </li>
@@ -571,7 +576,8 @@ export function JobMarket() {
               <div className="jm-chart-head">
                 <div>
                   <h3 id="jm-weekly-title">
-                    <TrendingUp size={16} aria-hidden="true" /> {t("weeklyTitle")}
+                    <TrendingUp size={16} aria-hidden="true" />
+                    <span>{t("weeklyTitle")}</span>
                   </h3>
                   <p>{t("weeklyDescription")}</p>
                 </div>
@@ -581,7 +587,11 @@ export function JobMarket() {
               {hasWeeklyData ? (
                 <figure aria-labelledby="jm-weekly-title">
                   <div className="jm-chart-body">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer
+                      width="100%"
+                      height="100%"
+                      initialDimension={{ width: 1, height: 1 }}
+                    >
                       <AreaChart
                         data={snapshot.weeklySeries}
                         margin={{ top: 18, right: 8, bottom: 4, left: -14 }}
@@ -682,7 +692,8 @@ export function JobMarket() {
               <div className="jm-chart-head">
                 <div>
                   <h3 id="jm-salary-title">
-                    <PieChart size={16} aria-hidden="true" /> {t("salaryTitle")}
+                    <PieChart size={16} aria-hidden="true" />
+                    <span>{t("salaryTitle")}</span>
                   </h3>
                   <p>{t("salaryDescription")}</p>
                 </div>
@@ -692,7 +703,11 @@ export function JobMarket() {
               {hasSalaryData ? (
                 <figure aria-labelledby="jm-salary-title">
                   <div className="jm-chart-body">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer
+                      width="100%"
+                      height="100%"
+                      initialDimension={{ width: 1, height: 1 }}
+                    >
                       <BarChart
                         data={snapshot.salaryDistribution}
                         margin={{ top: 18, right: 4, bottom: 4, left: -14 }}
