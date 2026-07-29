@@ -2209,7 +2209,8 @@ button.marketing-home-control {
   margin: 8px 0 0;
   color: #667085;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 .marketing-home-urgent-all {
@@ -2433,7 +2434,7 @@ button.marketing-home-control {
   margin: 0;
   color: #0f172a;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.3;
 }
 
@@ -2481,7 +2482,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #64748b;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 450;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3083,7 +3084,8 @@ button.marketing-home-control {
   margin: 8px 0 0;
   color: #5f6979;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 .marketing-home-jobs-all {
@@ -3314,7 +3316,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #475569;
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3423,7 +3425,7 @@ button.marketing-home-control {
   background: transparent;
   color: #111827;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
   text-align: left;
   cursor: pointer;
@@ -3799,7 +3801,7 @@ button.marketing-home-control {
   margin: 6px 0 0;
   color: #ffffff;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .featured-company-featured-tags {
@@ -3824,7 +3826,7 @@ button.marketing-home-control {
   margin: 10px 0 0;
   color: #94a3b8;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -3993,7 +3995,7 @@ button.marketing-home-control {
   margin: 0;
   color: #111827;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4003,7 +4005,7 @@ button.marketing-home-control {
 .featured-company-cat {
   color: #94a3b8;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 450;
   line-height: 1.2;
 }
 
@@ -4014,7 +4016,7 @@ button.marketing-home-control {
   margin-top: 3px;
   color: #475569;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -4210,7 +4212,7 @@ button.marketing-home-control {
   margin: 8px 0 0;
   color: #5f6979;
   font-size: 14.5px;
-  font-weight: 450;
+  font-weight: 400;
   line-height: 1.6;
 }
 
@@ -4335,7 +4337,7 @@ button.marketing-home-control {
   margin-top: 3px;
   color: #8592a4;
   font-size: 11.5px;
-  font-weight: 450;
+  font-weight: 400;
   line-height: 1.45;
 }
 
@@ -4409,7 +4411,7 @@ button.marketing-home-control {
   min-width: 0;
   color: #111827;
   font-size: 13.5px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4424,7 +4426,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #475569;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 450;
   font-style: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4614,7 +4616,7 @@ button.marketing-home-control {
   margin: 5px 0 0;
   color: #8592a4;
   font-size: 11.5px;
-  font-weight: 450;
+  font-weight: 400;
   line-height: 1.45;
   overflow-wrap: anywhere;
   text-wrap: pretty;
@@ -4652,7 +4654,7 @@ button.marketing-home-control {
   padding: 24px;
   color: #8592a4;
   font-size: 13px;
-  font-weight: 450;
+  font-weight: 400;
   line-height: 1.6;
   text-align: center;
   border: 1px dashed #d9e4ed;
@@ -7089,7 +7091,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #143b34;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.25;
   text-wrap: balance;
@@ -7488,7 +7490,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #0d3823;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.42;
   text-wrap: balance;
