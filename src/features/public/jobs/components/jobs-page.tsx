@@ -599,7 +599,6 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const [salaryFilters, setSalaryFilters] = useState<string[]>(querySalaryFilters);
   const [expFilters, setExpFilters] = useState<string[]>(queryExperienceFilters);
   const [techFilters, setTechFilters] = useState<string[]>(queryTechnologyFilters);
-  const [techQuery, setTechQuery] = useState("");
   const [customMinSalary, setCustomMinSalary] = useState(queryMinSalary);
   const [customMaxSalary, setCustomMaxSalary] = useState(queryMaxSalary);
   const [sort, setSort] = useState(querySort);
@@ -1352,7 +1351,6 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     setSalaryFilters([]);
     setExpFilters([]);
     setTechFilters([]);
-    setTechQuery("");
     setCustomMinSalary("");
     setCustomMaxSalary("");
     setSort("relevant");
@@ -1936,8 +1934,10 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                         <label
                           key={item.value}
                           aria-label={`${item.label}, ${item.count} việc làm`}
-                          className={`group flex items-center gap-2.5 ${
-                            item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                          className={`jobs-filter-option group flex min-h-10 items-center gap-2.5 rounded-lg px-1.5 py-1 ${
+                            item.count === 0
+                              ? "cursor-not-allowed opacity-50"
+                              : "jobs-filter-option-enabled cursor-pointer"
                           }`}
                         >
                           <input
@@ -1946,9 +1946,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                             disabled={item.count === 0}
                             checked={expFilters.includes(item.value)}
                             onChange={() => toggleIn(setExpFilters, item.value)}
-                            className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
+                            className="jobs-filter-checkbox h-5 w-5 shrink-0"
                           />
-                          <span className="flex flex-1 justify-between text-sm text-slate-600 transition group-hover:text-slate-900">
+                          <span className="jobs-filter-option-copy flex min-w-0 flex-1 justify-between text-sm">
                             <span>{item.label}</span>
                             <span className="text-xs font-medium text-slate-400">
                               ({item.count})
@@ -1972,8 +1972,10 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                         <label
                           key={item.value}
                           aria-label={`${item.label}, ${item.count} việc làm`}
-                          className={`group flex items-center gap-2.5 ${
-                            item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                          className={`jobs-filter-option group flex min-h-10 items-center gap-2.5 rounded-lg px-1.5 py-1 ${
+                            item.count === 0
+                              ? "cursor-not-allowed opacity-50"
+                              : "jobs-filter-option-enabled cursor-pointer"
                           }`}
                         >
                           <input
@@ -1982,9 +1984,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                             disabled={item.count === 0}
                             checked={activeFilters.includes(item.value)}
                             onChange={() => toggleFilter(item.value)}
-                            className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
+                            className="jobs-filter-checkbox h-5 w-5 shrink-0"
                           />
-                          <span className="flex flex-1 justify-between text-sm text-slate-600 transition group-hover:text-slate-900">
+                          <span className="jobs-filter-option-copy flex min-w-0 flex-1 justify-between text-sm">
                             <span>{item.label}</span>
                             <span className="text-xs font-medium text-slate-400">
                               ({item.count})
@@ -2007,8 +2009,10 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                         <label
                           key={item.value}
                           aria-label={`${item.label}, ${item.count} việc làm`}
-                          className={`group flex items-center gap-2.5 ${
-                            item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                          className={`jobs-filter-option group flex min-h-10 items-center gap-2.5 rounded-lg px-1.5 py-1 ${
+                            item.count === 0
+                              ? "cursor-not-allowed opacity-50"
+                              : "jobs-filter-option-enabled cursor-pointer"
                           }`}
                         >
                           <input
@@ -2017,9 +2021,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                             disabled={item.count === 0}
                             checked={activeFilters.includes(item.value)}
                             onChange={() => toggleFilter(item.value)}
-                            className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
+                            className="jobs-filter-checkbox h-5 w-5 shrink-0"
                           />
-                          <span className="flex flex-1 justify-between text-sm text-slate-600 transition group-hover:text-slate-900">
+                          <span className="jobs-filter-option-copy flex min-w-0 flex-1 justify-between text-sm">
                             <span>{item.label}</span>
                             <span className="text-xs font-medium text-slate-400">
                               ({item.count})
@@ -2040,8 +2044,10 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                       <label
                         key={item.value}
                         aria-label={`${item.label}, ${item.count} việc làm`}
-                        className={`group flex items-center gap-2.5 ${
-                          item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                        className={`jobs-filter-option group flex min-h-10 items-center gap-2.5 rounded-lg px-1.5 py-1 ${
+                          item.count === 0
+                            ? "cursor-not-allowed opacity-50"
+                            : "jobs-filter-option-enabled cursor-pointer"
                         }`}
                       >
                         <input
@@ -2050,9 +2056,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                           disabled={item.count === 0}
                           checked={salaryFilters.includes(item.value)}
                           onChange={() => toggleIn(setSalaryFilters, item.value)}
-                          className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
+                          className="jobs-filter-checkbox h-5 w-5 shrink-0"
                         />
-                        <span className="flex flex-1 justify-between text-sm text-slate-600 transition group-hover:text-slate-900">
+                        <span className="jobs-filter-option-copy flex min-w-0 flex-1 justify-between text-sm">
                           <span>{item.label}</span>
                           <span className="text-xs font-medium text-slate-400">({item.count})</span>
                         </span>
@@ -2105,53 +2111,6 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                     </p>
                   ) : null}
                 </fieldset>
-
-                {/* Skills Filter */}
-                <div>
-                  <p className="mb-2 block text-sm font-semibold text-slate-800">
-                    Công nghệ / Kỹ năng
-                  </p>
-                  <div className="relative mb-2">
-                    <label className="sr-only" htmlFor="jobs-tech-filter">
-                      Tìm công nghệ hoặc kỹ năng
-                    </label>
-                    <input
-                      id="jobs-tech-filter"
-                      type="text"
-                      placeholder="Tìm công nghệ..."
-                      value={techQuery}
-                      onChange={(e) => setTechQuery(e.target.value)}
-                      aria-label="Tìm công nghệ hoặc kỹ năng"
-                      className="w-full rounded-lg border border-slate-200 py-2 pr-3 pl-9 text-sm text-slate-700 transition outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                    />
-                    <MagnifyingGlass
-                      size={16}
-                      className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
-                    />
-                  </div>
-                  <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto pr-1">
-                    {techOptionsList
-                      .filter((tech) => tech.toLowerCase().includes(techQuery.toLowerCase()))
-                      .map((tech) => {
-                        const isChecked = techFilters.includes(tech);
-                        return (
-                          <button
-                            key={tech}
-                            type="button"
-                            onClick={() => toggleIn(setTechFilters, tech)}
-                            aria-pressed={isChecked}
-                            className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
-                              isChecked
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                : "border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-300"
-                            }`}
-                          >
-                            {tech}
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
 
                 {/* CTA Profile Promotion */}
                 {showFilters && (
