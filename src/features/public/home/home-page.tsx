@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getPublicPosts } from "@/features/posts/api/posts";
 import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
+import { formatJobSalaryDisplay } from "@/features/public/jobs/components/jobs-page";
 import { useRouter } from "@/i18n/navigation";
 import { toast } from "@/shared/ui/toast";
 import { removeVietnameseAccents } from "@/shared/utils/natural-search";
@@ -511,7 +512,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   }, [jobsCount, companiesCount, candidatesCount, locale]);
 
   const urgentJobsList = useMemo(() => {
-    if (!apiJobsData || apiJobsData.length === 0) return urgentJobs;
+    if (!apiJobsData || apiJobsData.length === 0) return urgentJobs.slice(0, 90);
 
     const now = Date.now();
     const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -553,10 +554,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
         title: job.title,
         company: job.company?.name || "UpNext Partner",
-        salary:
-          job.salaryIsVisible && job.salaryMin && job.salaryMax
-            ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu`
-            : "Thỏa thuận",
+        salary: formatJobSalaryDisplay(job, ""),
         location: formatCompactLocation(job.jobPostLocations?.[0]?.jobLocation?.city),
         mode: job.employmentType?.name || "Full-time",
         tags:
@@ -588,7 +586,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
       };
     });
 
-    return mapped;
+    return mapped.slice(0, 90);
   }, [apiJobsData]);
 
   useEffect(() => {
@@ -885,6 +883,7 @@ function UrgentJobsSection({
     });
 
     if (!didStart) {
+      toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
       const redirectPath = typeof window !== "undefined" ? window.location.pathname : "/";
       navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
     }

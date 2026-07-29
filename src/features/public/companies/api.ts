@@ -19,6 +19,10 @@ type PublicCompanyJob = {
   salaryIsVisible: boolean;
   publishedAt: string | null;
   expiredAt: string | null;
+  description?: string | null;
+  experienceLevel?: {
+    name: string;
+  } | null;
   jobPostLocations?: Array<{
     jobLocation: {
       city: string | null;

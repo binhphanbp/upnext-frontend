@@ -24,6 +24,7 @@ import { getCandidateSession } from "@/features/candidate/session";
 import { apiRequest } from "@/shared/api/http";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
+import { toast } from "@/shared/ui/toast";
 import {
   analyzeNaturalLanguageQuery,
   scoreNaturalLanguageSearch,
@@ -40,6 +41,49 @@ type PublicJobsPageProps = {
   navigate: (path: string) => void;
   replace: (path: string) => void;
 };
+
+export function formatJobSalaryDisplay(
+  job: {
+    salaryIsVisible?: boolean | null;
+    salaryIsNegotiable?: boolean | null;
+    salaryMin?: number | string | null;
+    salaryMax?: number | string | null;
+  },
+  suffix = "/tháng",
+) {
+  if (job.salaryIsVisible === false) {
+    return "Thỏa thuận";
+  }
+
+  const min = job.salaryMin != null ? Number(job.salaryMin) : null;
+  const max = job.salaryMax != null ? Number(job.salaryMax) : null;
+
+  if ((!min || min <= 0) && (!max || max <= 0)) {
+    return "Thỏa thuận";
+  }
+
+  if (min !== null && max !== null && min > 0 && max > 0) {
+    if (min === max) {
+      const formatted = Math.round(min / 1_000_000);
+      return `${formatted} triệu${suffix}`;
+    }
+    const minM = Math.round(min / 1_000_000);
+    const maxM = Math.round(max / 1_000_000);
+    return `${minM} - ${maxM} triệu${suffix}`;
+  }
+
+  if (min !== null && min > 0) {
+    const minM = Math.round(min / 1_000_000);
+    return `Từ ${minM} triệu${suffix}`;
+  }
+
+  if (max !== null && max > 0) {
+    const maxM = Math.round(max / 1_000_000);
+    return `Tới ${maxM} triệu${suffix}`;
+  }
+
+  return "Thỏa thuận";
+}
 
 export type Job = {
   id: string;
@@ -764,10 +808,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
         logoColor: "#10b981",
         verified: job.company?.verificationStatus === "VERIFIED",
-        salary:
-          job.salaryIsVisible && job.salaryMin && job.salaryMax
-            ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu/tháng`
-            : "Thỏa thuận",
+        salary: formatJobSalaryDisplay(job),
         salaryMinMillions:
           job.salaryIsVisible && typeof job.salaryMin === "number"
             ? job.salaryMin / 1_000_000
@@ -1721,6 +1762,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                               type="button"
                               onClick={() => {
                                 if (!toggleSaveJob(job.id)) {
+                                  toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
                                   navigate("/login?redirect=/jobs");
                                 }
                               }}

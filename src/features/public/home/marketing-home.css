@@ -2567,6 +2567,7 @@ button.marketing-home-control {
   transform: translateX(-50%);
   animation: urgent-preview-enter 180ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
   backdrop-filter: blur(16px);
+  overflow: hidden;
 }
 
 .urgent-job-preview::before {
