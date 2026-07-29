@@ -3010,7 +3010,22 @@ button.marketing-home-control {
    Section: Cơ hội đang được quan tâm (featured jobs)
    ============================================================ */
 .marketing-home-jobs {
+  position: relative;
   margin-top: 64px;
+}
+
+.marketing-home-jobs.is-previewing {
+  min-height: 500px;
+}
+
+/* The featured-jobs preview intentionally shares the established urgent-job
+   preview surface so both homepage sections communicate the same interaction.
+   Only the logo needs a small size adjustment because the card logo component
+   is also used in the compact job cards. */
+.featured-job-preview .featured-job-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
 }
 
 .marketing-home-jobs-head {
@@ -6782,6 +6797,12 @@ button.marketing-home-control {
 
   .marketing-home-trust-strip {
     margin-top: 8px;
+  }
+}
+
+@media (max-width: 700px) {
+  .marketing-home-jobs.is-previewing {
+    min-height: 540px;
   }
 }
 
