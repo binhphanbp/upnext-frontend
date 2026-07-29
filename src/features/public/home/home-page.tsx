@@ -37,6 +37,7 @@ import {
   UsersRound,
 } from "./marketing-icons";
 import { getPopularKeywordsForLocale } from "./popular-keywords";
+import { useAnchoredJobPreview } from "./use-anchored-job-preview";
 
 type MarketingHomeExperienceProps = {
   navigate: (path: string) => void;
@@ -897,6 +898,12 @@ function UrgentJobsSection({
   const [isMobile, setIsMobile] = useState(false);
   const dragStartRef = useRef<number | null>(null);
   const previewCloseTimerRef = useRef<number | null>(null);
+  const {
+    placement: previewPlacement,
+    previewRef,
+    previewStyle,
+    setPreviewAnchor,
+  } = useAnchoredJobPreview(previewJobId);
 
   useEffect(() => {
     function checkMobile() {
@@ -945,11 +952,12 @@ function UrgentJobsSection({
     [],
   );
 
-  function openPreview(jobId: string) {
+  function openPreview(jobId: string, trigger?: HTMLElement) {
     if (previewCloseTimerRef.current !== null) {
       window.clearTimeout(previewCloseTimerRef.current);
       previewCloseTimerRef.current = null;
     }
+    if (trigger) setPreviewAnchor(trigger, ".urgent-job-card");
     setPreviewJobId(jobId);
   }
 
@@ -960,7 +968,7 @@ function UrgentJobsSection({
     previewCloseTimerRef.current = window.setTimeout(() => {
       setPreviewJobId(null);
       previewCloseTimerRef.current = null;
-    }, 140);
+    }, 220);
   }
 
   function closePreviewAndRestoreFocus() {
@@ -1002,7 +1010,7 @@ function UrgentJobsSection({
 
   return (
     <section
-      className={`marketing-home-urgent${previewJob ? " is-previewing" : ""}`}
+      className="marketing-home-urgent"
       aria-label="Việc cần tuyển gấp"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -1051,7 +1059,13 @@ function UrgentJobsSection({
                 {slideJobs.map((job) => {
                   const isSaved = savedJobIds.includes(job.id);
                   return (
-                    <article className="urgent-job-card group" key={job.id}>
+                    <article
+                      className={`urgent-job-card group${
+                        previewJobId === job.id ? " is-previewed" : ""
+                      }`}
+                      key={job.id}
+                      onMouseLeave={schedulePreviewClose}
+                    >
                       <div className="urgent-job-main">
                         <span className={`urgent-job-logo ${job.bgClass || "bg-emerald-600"}`}>
                           <span className="urgent-job-logo-fallback" aria-hidden="true">
@@ -1080,9 +1094,8 @@ function UrgentJobsSection({
                                 type="button"
                                 className="urgent-job-title group-hover:text-emerald-600"
                                 onClick={() => navigate(`/jobs/${job.id}`)}
-                                onMouseEnter={() => openPreview(job.id)}
-                                onMouseLeave={schedulePreviewClose}
-                                onFocus={() => openPreview(job.id)}
+                                onMouseEnter={(event) => openPreview(job.id, event.currentTarget)}
+                                onFocus={(event) => openPreview(job.id, event.currentTarget)}
                                 onBlur={schedulePreviewClose}
                                 onKeyDown={(event) => {
                                   if (event.key === "Escape") {
@@ -1092,6 +1105,7 @@ function UrgentJobsSection({
                                 }}
                                 aria-controls="urgent-job-preview"
                                 aria-expanded={previewJobId === job.id}
+                                aria-haspopup="dialog"
                                 title={job.title}
                               >
                                 {job.title}
@@ -1147,9 +1161,13 @@ function UrgentJobsSection({
       {previewJob && (
         <dialog
           open
+          ref={previewRef}
           id="urgent-job-preview"
           className="urgent-job-preview"
           aria-labelledby="urgent-job-preview-title"
+          aria-modal="false"
+          data-placement={previewPlacement}
+          style={previewStyle}
           onMouseEnter={() => openPreview(previewJob.id)}
           onMouseLeave={schedulePreviewClose}
           onFocusCapture={() => openPreview(previewJob.id)}

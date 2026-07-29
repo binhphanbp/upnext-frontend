@@ -25,6 +25,7 @@ import {
   Monitor,
   ShieldCheck,
 } from "./marketing-icons";
+import { useAnchoredJobPreview } from "./use-anchored-job-preview";
 
 type FeaturedJobsProps = {
   navigate: (path: string) => void;
@@ -467,6 +468,7 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
     remote: "Remote",
     salary: "Lương tốt",
   };
+  const description = getPreviewDescription(job.description);
 
   return {
     id: job.id,
@@ -487,7 +489,7 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
             Boolean,
           ) as string[]),
     deadline: formatApplicationDeadline(job.expiredAt),
-    description: getPreviewDescription(job.description),
+    ...(description ? { description } : {}),
     viewCount: normalizeViewCount(job.viewCount),
     filters: Array.from(new Set(filters)),
   };
@@ -540,6 +542,12 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
   const [previewJobId, setPreviewJobId] = useState<string | null>(null);
   const previewCloseTimerRef = useRef<number | null>(null);
   const {
+    placement: previewPlacement,
+    previewRef,
+    previewStyle,
+    setPreviewAnchor,
+  } = useAnchoredJobPreview(previewJobId);
+  const {
     error: savedJobsError,
     isAuthenticated,
     isPending: isSavedJobPending,
@@ -590,11 +598,12 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
     }
   }, [jobs, previewJobId]);
 
-  function openPreview(jobId: string) {
+  function openPreview(jobId: string, trigger?: HTMLElement) {
     if (previewCloseTimerRef.current !== null) {
       window.clearTimeout(previewCloseTimerRef.current);
       previewCloseTimerRef.current = null;
     }
+    if (trigger) setPreviewAnchor(trigger, ".featured-job-card");
     setPreviewJobId(jobId);
   }
 
@@ -713,7 +722,7 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
 
   return (
     <section
-      className={`marketing-home-jobs${previewJob ? " is-previewing" : ""}`}
+      className="marketing-home-jobs"
       aria-label="Cơ hội đang được quan tâm"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -767,7 +776,13 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
                   const extraTags = job.tags.length - shownTags.length;
 
                   return (
-                    <article key={job.id} className="featured-job-card">
+                    <article
+                      key={job.id}
+                      className={`featured-job-card${
+                        previewJobId === job.id ? " is-previewed" : ""
+                      }`}
+                      onMouseLeave={schedulePreviewClose}
+                    >
                       <div className="featured-job-company" style={{ marginTop: 0 }}>
                         <CompanyLogo src={job.logo} name={job.company} color={job.logoColor} />
                         <span className="featured-job-company-row">
@@ -807,9 +822,8 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
                           id={`featured-job-title-${job.id}`}
                           title={job.title}
                           onClick={() => navigate(`/jobs/${job.id}`)}
-                          onMouseEnter={() => openPreview(job.id)}
-                          onMouseLeave={schedulePreviewClose}
-                          onFocus={() => openPreview(job.id)}
+                          onMouseEnter={(event) => openPreview(job.id, event.currentTarget)}
+                          onFocus={(event) => openPreview(job.id, event.currentTarget)}
                           onBlur={schedulePreviewClose}
                           onKeyDown={(event) => {
                             if (event.key === "Escape") {
@@ -899,9 +913,13 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
       {previewJob && (
         <dialog
           open
+          ref={previewRef}
           id="featured-job-preview"
           className="urgent-job-preview featured-job-preview"
           aria-labelledby="featured-job-preview-title"
+          aria-modal="false"
+          data-placement={previewPlacement}
+          style={previewStyle}
           onMouseEnter={() => openPreview(previewJob.id)}
           onMouseLeave={schedulePreviewClose}
           onFocusCapture={() => openPreview(previewJob.id)}
@@ -943,8 +961,7 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
               readOnly
               rows={7}
               value={
-                previewJob.description ||
-                previewCopy.fallback(previewJob.company, previewJob.title)
+                previewJob.description || previewCopy.fallback(previewJob.company, previewJob.title)
               }
             />
             <div className="urgent-job-preview-tags">

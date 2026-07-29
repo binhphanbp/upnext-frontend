@@ -2313,6 +2313,25 @@ button.marketing-home-control {
     0 4px 6px -4px rgba(0, 0, 0, 0.05);
 }
 
+.urgent-job-card.is-previewed,
+.featured-job-card.is-previewed {
+  border-color: #9cddc6;
+  background: #fbfefc;
+  box-shadow:
+    0 16px 36px rgba(15, 56, 48, 0.1),
+    0 0 0 2px rgba(16, 185, 129, 0.08);
+}
+
+.urgent-job-card.is-previewed::before,
+.featured-job-card.is-previewed::before {
+  opacity: 1;
+}
+
+.urgent-job-card.is-previewed .urgent-job-title,
+.featured-job-card.is-previewed .featured-job-title {
+  color: #087b5b;
+}
+
 .urgent-job-card > * {
   position: relative;
   z-index: 1;
@@ -2545,16 +2564,14 @@ button.marketing-home-control {
   transform: translateY(-1px);
 }
 
-.marketing-home-urgent.is-previewing {
-  min-height: 500px;
-}
-
 .urgent-job-preview {
-  position: absolute;
-  top: 134px;
-  left: 50%;
-  z-index: 20;
-  width: min(480px, calc(100% - 44px));
+  position: fixed;
+  top: 0;
+  right: auto;
+  bottom: auto;
+  left: 0;
+  z-index: 120;
+  width: min(440px, calc(100vw - 24px));
   margin: 0;
   padding: 14px;
   color: #172033;
@@ -2564,10 +2581,35 @@ button.marketing-home-control {
   box-shadow:
     0 24px 60px rgba(15, 56, 48, 0.18),
     0 4px 14px rgba(15, 23, 42, 0.08);
-  transform: translateX(-50%);
+  transform: translateZ(0);
+  transform-origin: center;
   animation: urgent-preview-enter 180ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
   backdrop-filter: blur(16px);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #8dd9bf #f3f7f5;
+  scrollbar-width: thin;
+}
+
+.urgent-job-preview[data-placement="right"] {
+  transform-origin: left var(--job-preview-arrow-offset);
+}
+
+.urgent-job-preview[data-placement="left"] {
+  transform-origin: right var(--job-preview-arrow-offset);
+}
+
+.urgent-job-preview[data-placement="bottom"] {
+  transform-origin: var(--job-preview-arrow-offset) top;
+}
+
+.urgent-job-preview[data-placement="top"] {
+  transform-origin: var(--job-preview-arrow-offset) bottom;
+}
+
+.urgent-job-preview[data-placement="sheet"] {
+  transform-origin: center bottom;
 }
 
 .urgent-job-preview::before {
@@ -2812,21 +2854,16 @@ button.marketing-home-control {
 @keyframes urgent-preview-enter {
   from {
     opacity: 0;
-    transform: translate(-50%, 8px) scale(0.98);
+    transform: translateY(6px) scale(0.985);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 @media (max-width: 700px) {
-  .marketing-home-urgent.is-previewing {
-    min-height: 540px;
-  }
-
   .urgent-job-preview {
-    top: 176px;
     width: calc(100% - 24px);
     padding: 12px;
     border-radius: 15px;
@@ -3012,10 +3049,6 @@ button.marketing-home-control {
 .marketing-home-jobs {
   position: relative;
   margin-top: 64px;
-}
-
-.marketing-home-jobs.is-previewing {
-  min-height: 500px;
 }
 
 /* The featured-jobs preview intentionally shares the established urgent-job
@@ -6797,12 +6830,6 @@ button.marketing-home-control {
 
   .marketing-home-trust-strip {
     margin-top: 8px;
-  }
-}
-
-@media (max-width: 700px) {
-  .marketing-home-jobs.is-previewing {
-    min-height: 540px;
   }
 }
 
