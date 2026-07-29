@@ -3772,9 +3772,12 @@
   }
 }
 
-/* Search filters: use a consistent branded checkbox instead of browser-native controls. */
+/* Search filters: use a consistent branded checkbox instead of browser-native controls.
+   This class is unlayered plain CSS, so per CSS Cascade Layers it always wins over Tailwind's
+   layered min-h-* utilities in jobs-page.tsx regardless of which one is written there — keep
+   this value in sync with the min-h-* class on .jobs-filter-option in the JSX. */
 .jobs-filter-option {
-  min-height: 2.5rem;
+  min-height: 2rem;
   -webkit-tap-highlight-color: transparent;
 }
 
