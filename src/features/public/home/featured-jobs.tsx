@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
@@ -25,6 +25,7 @@ import {
   Monitor,
   ShieldCheck,
 } from "./marketing-icons";
+import { useAnchoredJobPreview } from "./use-anchored-job-preview";
 
 type FeaturedJobsProps = {
   navigate: (path: string) => void;
@@ -50,10 +51,33 @@ type JobCard = {
   experience: string;
   tags: string[];
   deadline: string;
+  /** Optional source description shown in the hover/focus preview. */
+  description?: string;
   /** Public aggregate from the API. Null means UpNext has no verified count to disclose. */
   viewCount: number | null;
   filters: FilterKey[];
 };
+
+function getPlainText(value: string | null | undefined) {
+  if (!value) return "";
+  return value
+    .replace(/<br\s*\/?>/giu, " ")
+    .replace(/<[^>]+>/gu, " ")
+    .replace(/&nbsp;/giu, " ")
+    .replace(/&amp;/giu, "&")
+    .replace(/&lt;/giu, "<")
+    .replace(/&gt;/giu, ">")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+function getPreviewDescription(value: string | null | undefined) {
+  return (
+    getPlainText(value)
+      .replace(/^(?:mô tả công việc|job description)\s*[:\-–—]?\s*/iu, "")
+      .trim() || undefined
+  );
+}
 
 const PAGE_SIZE = 6;
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
@@ -444,6 +468,7 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
     remote: "Remote",
     salary: "Lương tốt",
   };
+  const description = getPreviewDescription(job.description);
 
   return {
     id: job.id,
@@ -464,6 +489,7 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
             Boolean,
           ) as string[]),
     deadline: formatApplicationDeadline(job.expiredAt),
+    ...(description ? { description } : {}),
     viewCount: normalizeViewCount(job.viewCount),
     filters: Array.from(new Set(filters)),
   };
@@ -472,6 +498,26 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
 export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
   const locale = useLocale();
   const copy = locale === "en" ? interestCopy.en : interestCopy.vi;
+  const previewCopy =
+    locale === "en"
+      ? {
+          description: "Job description",
+          details: "View details",
+          save: (title: string) => `Save ${title}`,
+          unsave: (title: string) => `Remove ${title} from saved jobs`,
+          apply: "Apply now",
+          fallback: (company: string, title: string) =>
+            `Join ${company} as a ${title}. View the full job details to explore the requirements and benefits for candidates.`,
+        }
+      : {
+          description: "Mô tả công việc",
+          details: "Xem chi tiết",
+          save: (title: string) => `Lưu tin ${title}`,
+          unsave: (title: string) => `Bỏ lưu tin ${title}`,
+          apply: "Ứng tuyển ngay",
+          fallback: (company: string, title: string) =>
+            `Cơ hội gia nhập ${company} ở vị trí ${title}. Xem chi tiết để khám phá yêu cầu công việc và quyền lợi dành cho ứng viên.`,
+        };
   const notificationCopy =
     locale === "en"
       ? {
@@ -493,6 +539,14 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
   const [index, setIndex] = useState(0);
   const [animate, setAnimate] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [previewJobId, setPreviewJobId] = useState<string | null>(null);
+  const previewCloseTimerRef = useRef<number | null>(null);
+  const {
+    placement: previewPlacement,
+    previewRef,
+    previewStyle,
+    setPreviewAnchor,
+  } = useAnchoredJobPreview(previewJobId);
   const {
     error: savedJobsError,
     isAuthenticated,
@@ -528,6 +582,54 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
   const hasLoop = totalPages > 1;
   const slides = hasLoop ? [...pages, pages[0]!] : pages;
   const displayPage = (index % totalPages) + 1;
+  const previewJob = jobs.find((job) => job.id === previewJobId) ?? null;
+
+  useEffect(() => {
+    return () => {
+      if (previewCloseTimerRef.current !== null) {
+        window.clearTimeout(previewCloseTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (previewJobId && !jobs.some((job) => job.id === previewJobId)) {
+      setPreviewJobId(null);
+    }
+  }, [jobs, previewJobId]);
+
+  function openPreview(jobId: string, trigger?: HTMLElement) {
+    if (previewCloseTimerRef.current !== null) {
+      window.clearTimeout(previewCloseTimerRef.current);
+      previewCloseTimerRef.current = null;
+    }
+    if (trigger) setPreviewAnchor(trigger, ".featured-job-card");
+    setPreviewJobId(jobId);
+  }
+
+  function schedulePreviewClose() {
+    if (previewCloseTimerRef.current !== null) {
+      window.clearTimeout(previewCloseTimerRef.current);
+    }
+    previewCloseTimerRef.current = window.setTimeout(() => {
+      setPreviewJobId(null);
+      previewCloseTimerRef.current = null;
+    }, 220);
+  }
+
+  function closePreviewAndRestoreFocus() {
+    if (previewCloseTimerRef.current !== null) {
+      window.clearTimeout(previewCloseTimerRef.current);
+      previewCloseTimerRef.current = null;
+    }
+    const jobId = previewJobId;
+    setPreviewJobId(null);
+    if (jobId) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(`featured-job-title-${jobId}`)?.focus();
+      });
+    }
+  }
 
   // Auto-advance every 2s, looping forward. Pauses on hover/focus and respects
   // reduced-motion so it never fights the user.
@@ -674,7 +776,13 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
                   const extraTags = job.tags.length - shownTags.length;
 
                   return (
-                    <article key={job.id} className="featured-job-card">
+                    <article
+                      key={job.id}
+                      className={`featured-job-card${
+                        previewJobId === job.id ? " is-previewed" : ""
+                      }`}
+                      onMouseLeave={schedulePreviewClose}
+                    >
                       <div className="featured-job-company" style={{ marginTop: 0 }}>
                         <CompanyLogo src={job.logo} name={job.company} color={job.logoColor} />
                         <span className="featured-job-company-row">
@@ -711,8 +819,21 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
                         <button
                           type="button"
                           className="featured-job-title"
+                          id={`featured-job-title-${job.id}`}
                           title={job.title}
                           onClick={() => navigate(`/jobs/${job.id}`)}
+                          onMouseEnter={(event) => openPreview(job.id, event.currentTarget)}
+                          onFocus={(event) => openPreview(job.id, event.currentTarget)}
+                          onBlur={schedulePreviewClose}
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                              event.preventDefault();
+                              closePreviewAndRestoreFocus();
+                            }
+                          }}
+                          aria-controls="featured-job-preview"
+                          aria-expanded={previewJobId === job.id}
+                          aria-haspopup="dialog"
                         >
                           {job.title}
                         </button>
@@ -788,6 +909,119 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
           ))}
         </div>
       </div>
+
+      {previewJob && (
+        <dialog
+          open
+          ref={previewRef}
+          id="featured-job-preview"
+          className="urgent-job-preview featured-job-preview"
+          aria-labelledby="featured-job-preview-title"
+          aria-modal="false"
+          data-placement={previewPlacement}
+          style={previewStyle}
+          onMouseEnter={() => openPreview(previewJob.id)}
+          onMouseLeave={schedulePreviewClose}
+          onFocusCapture={() => openPreview(previewJob.id)}
+          onBlurCapture={schedulePreviewClose}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              closePreviewAndRestoreFocus();
+            }
+          }}
+        >
+          <div className="urgent-job-preview-head">
+            <CompanyLogo
+              src={previewJob.logo}
+              name={previewJob.company}
+              color={previewJob.logoColor}
+            />
+            <div>
+              <h3 id="featured-job-preview-title">{previewJob.title}</h3>
+              <strong>{previewJob.company}</strong>
+              <p>
+                <span>{previewJob.salary}</span>
+                <i aria-hidden="true">•</i>
+                {previewJob.experience}
+              </p>
+            </div>
+          </div>
+
+          <p className="urgent-job-preview-address">
+            <MapPin size={16} aria-hidden="true" />
+            {previewJob.location}
+          </p>
+
+          <div className="urgent-job-preview-body">
+            <strong>{previewCopy.description}</strong>
+            <textarea
+              className="urgent-job-preview-description"
+              aria-label={`${previewCopy.description} ${previewJob.title}`}
+              readOnly
+              rows={7}
+              value={
+                previewJob.description || previewCopy.fallback(previewJob.company, previewJob.title)
+              }
+            />
+            <div className="urgent-job-preview-tags">
+              {previewJob.tags.slice(0, 4).map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
+            </div>
+            <button type="button" onClick={() => navigate(`/jobs/${previewJob.id}`)}>
+              {previewCopy.details} <ArrowRight size={15} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="urgent-job-preview-actions">
+            {(() => {
+              const isPreviewSaved = savedJobIds.includes(previewJob.id);
+              const canPersistPreview = UUID_PATTERN.test(previewJob.id);
+              const saveUnavailable = isAuthenticated && !canPersistPreview;
+              return (
+                <button
+                  type="button"
+                  className="urgent-job-preview-save"
+                  aria-label={
+                    isPreviewSaved
+                      ? previewCopy.unsave(previewJob.title)
+                      : previewCopy.save(previewJob.title)
+                  }
+                  aria-pressed={isPreviewSaved}
+                  disabled={
+                    !isSavedJobsSessionResolved ||
+                    saveUnavailable ||
+                    isSavedJobPending(previewJob.id)
+                  }
+                  title={
+                    saveUnavailable
+                      ? "Tin tuyển dụng này chưa đồng bộ với hệ thống lưu tin."
+                      : undefined
+                  }
+                  onClick={() => handleSaveJob(previewJob)}
+                >
+                  <Bookmark size={19} weight={isPreviewSaved ? "fill" : "regular"} />
+                </button>
+              );
+            })()}
+            <button
+              type="button"
+              className="urgent-job-preview-apply"
+              onClick={() => {
+                const session = getCandidateSession();
+                if (session) {
+                  onApply(previewJob);
+                } else {
+                  navigate(`/register?job=${previewJob.id}`);
+                }
+              }}
+            >
+              {previewCopy.apply} <ArrowRight size={15} aria-hidden="true" />
+            </button>
+          </div>
+        </dialog>
+      )}
 
       <nav className="marketing-home-jobs-pager" aria-label="Phân trang">
         <button type="button" aria-label="Trang trước" disabled={!hasLoop} onClick={goPrev}>
