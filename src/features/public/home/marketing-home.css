@@ -163,6 +163,9 @@
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
+  /* The trigger is an anchor so the section name navigates; the underline is drawn
+     by ::after on hover/open instead of the default text decoration. */
+  text-decoration: none;
 }
 
 /* Features dropdown (mega-menu) */

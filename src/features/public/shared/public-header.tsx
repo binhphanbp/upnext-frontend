@@ -82,6 +82,12 @@ type CompactNavigationLink = {
 type NavMenu = {
   key: string;
   label: LocalizedText;
+  /**
+   * The section's own landing page. When set, the top-level label is a link so clicking the
+   * section name goes somewhere instead of only toggling the panel. Omitted for sections that
+   * have no page of their own yet, which stay dropdown-only triggers.
+   */
+  href?: string;
   items: MenuItem[];
   overview: {
     label: LocalizedText;
@@ -171,6 +177,7 @@ const navMenus: NavMenu[] = [
   {
     key: "jobs",
     label: localized("Việc làm IT", "IT Jobs"),
+    href: "/jobs",
     items: [
       {
         label: localized("Frontend", "Frontend"),
@@ -229,36 +236,40 @@ const navMenus: NavMenu[] = [
   },
   {
     key: "companies",
-    label: localized("Công ty IT", "IT Companies"),
+    label: localized("Công ty", "Companies"),
+    href: "/companies",
     items: [
       {
-        label: localized("Top công ty công nghệ", "Top technology companies"),
+        label: localized("Đang tuyển nhiều nhất", "Most actively hiring"),
         desc: localized(
-          "Bảng xếp hạng theo điểm uy tín và đánh giá.",
-          "Ranked by reputation and candidate reviews.",
+          "Công ty có nhiều vị trí IT đang mở nhất.",
+          "The companies with the most open IT roles.",
         ),
         icon: <Building2 size={20} />,
-        path: "/companies",
+        path: "/companies?sort=jobs",
         iconClass: "feat-icon-cv",
       },
       {
-        label: localized("Công ty đánh giá cao", "Top-rated companies"),
+        // Deliberately not "?sort=reputation": live scores sit at 50-55 for 94 of 100 companies,
+        // so that order is effectively arbitrary and cannot back a "top-rated" promise. Headcount
+        // is a fact the data does state, so this filters on it instead.
+        label: localized("Big Tech & tập đoàn", "Big Tech & enterprises"),
         desc: localized(
-          "Môi trường, phúc lợi và văn hóa nổi bật.",
-          "Notable culture, benefits, and workplace experience.",
+          "Doanh nghiệp trên 5.000 nhân sự.",
+          "Employers with more than 5,000 staff.",
         ),
         icon: <Star size={20} />,
-        path: "/companies",
+        path: "/companies?size=over-5000",
         iconClass: "feat-icon-salary",
       },
       {
-        label: localized("Big Tech & tập đoàn", "Big Tech & enterprises"),
+        label: localized("Công ty product", "Product companies"),
         desc: localized(
-          "FPT, Viettel, VNG, MoMo, ngân hàng số.",
-          "FPT, Viettel, VNG, MoMo, and digital banks.",
+          "Làm sản phẩm của chính công ty, không outsourcing.",
+          "Building their own product rather than outsourcing.",
         ),
         icon: <Landmark size={20} />,
-        path: "/companies",
+        path: "/companies?type=PRODUCT",
         iconClass: "feat-icon-ai",
       },
     ],
@@ -274,6 +285,7 @@ const navMenus: NavMenu[] = [
   {
     key: "blog",
     label: localized("Bài viết", "Articles"),
+    href: "/posts",
     items: [
       {
         label: localized("Blog UpNext", "UpNext Blog"),
@@ -503,7 +515,7 @@ const signedInCandidateUtilityItems: CandidateUtilityItem[] = [
 
 const compactNavigationLinks: CompactNavigationLink[] = [
   { label: localized("Việc làm IT", "IT Jobs"), href: "/jobs" },
-  { label: localized("Công ty IT", "IT Companies"), href: "/companies" },
+  { label: localized("Công ty", "Companies"), href: "/companies" },
   { label: localized("Bài viết", "Articles"), href: "/posts" },
   { label: localized("Tạo hồ sơ", "Create profile"), href: "/register" },
   { label: localized("Đăng nhập", "Log in"), href: "/login" },
@@ -525,7 +537,9 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     utilityCandidateLabel: "Tối ưu hồ sơ",
     comingSoonLabel: "Sắp ra mắt",
     compactMenuLabel: "Mở menu",
-    compactNavigationLabel: "Điều hướng chính",
+    // Distinct from the desktop nav's name: two navigation landmarks sharing one name gives
+    // screen-reader users no way to tell them apart.
+    compactNavigationLabel: "Điều hướng thu gọn",
     employerSmall: "Dành cho",
     employerLabel: "Nhà Tuyển Dụng",
     languageLabel: "Chọn ngôn ngữ",
@@ -554,7 +568,7 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     utilityCandidateLabel: "Strengthen your profile",
     comingSoonLabel: "Coming soon",
     compactMenuLabel: "Open menu",
-    compactNavigationLabel: "Primary navigation",
+    compactNavigationLabel: "Compact navigation",
     employerSmall: "Employer",
     employerLabel: "Hiring Hub",
     languageLabel: "Choose language",
@@ -936,26 +950,50 @@ export function PublicHeader({
                   }
                 }}
               >
-                <button
-                  id={triggerId}
-                  type="button"
-                  className="marketing-home-nav-trigger"
-                  aria-controls={panelId}
-                  aria-expanded={openMenu === menu.key}
-                  onClick={(event) => {
-                    clearMenuCloseTimer();
-                    alignJobsMegaMenu(menu.key);
-                    if (event.detail > 0) {
-                      setOpenMenu(menu.key);
-                      return;
-                    }
+                {/* A section with its own landing page gets a real link, so clicking the section
+                    name goes somewhere instead of only toggling the panel. The panel still opens on
+                    hover and on focus, and ArrowDown opens it without leaving the page. Sections
+                    without a page yet stay buttons. */}
+                {menu.href ? (
+                  <Link
+                    id={triggerId}
+                    href={menu.href}
+                    className="marketing-home-nav-trigger"
+                    aria-controls={panelId}
+                    aria-expanded={openMenu === menu.key}
+                    onFocus={() => openMenuFromPointer(menu.key)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "ArrowDown") return;
+                      event.preventDefault();
+                      openMenuFromPointer(menu.key);
+                    }}
+                    onClick={() => setOpenMenu(null)}
+                  >
+                    {menu.label[currentLocale]}
+                    <ChevronDown size={15} aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <button
+                    id={triggerId}
+                    type="button"
+                    className="marketing-home-nav-trigger"
+                    aria-controls={panelId}
+                    aria-expanded={openMenu === menu.key}
+                    onClick={(event) => {
+                      clearMenuCloseTimer();
+                      alignJobsMegaMenu(menu.key);
+                      if (event.detail > 0) {
+                        setOpenMenu(menu.key);
+                        return;
+                      }
 
-                    setOpenMenu((open) => (open === menu.key ? null : menu.key));
-                  }}
-                >
-                  {menu.label[currentLocale]}
-                  <ChevronDown size={15} aria-hidden="true" />
-                </button>
+                      setOpenMenu((open) => (open === menu.key ? null : menu.key));
+                    }}
+                  >
+                    {menu.label[currentLocale]}
+                    <ChevronDown size={15} aria-hidden="true" />
+                  </button>
+                )}
 
                 <div
                   id={panelId}
