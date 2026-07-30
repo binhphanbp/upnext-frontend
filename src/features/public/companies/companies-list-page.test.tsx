@@ -157,12 +157,24 @@ describe("PublicCompaniesListPage", () => {
   it("shows the reputation score with its tier", () => {
     renderPage();
 
-    const meter = cardFor("FPT Software").getByRole("meter", { name: "Điểm uy tín" });
-    expect(meter).toHaveAttribute("aria-valuenow", "90");
-    expect(meter).toHaveAttribute("aria-valuemax", "100");
-    expect(cardFor("FPT Software").getByText("90/100 · Xuất sắc")).toBeInTheDocument();
+    expect(cardFor("FPT Software").getByText("Uy tín 90/100 · Xuất sắc")).toBeInTheDocument();
     // 50 and 55 must read as one tier, so a five-point gap is not presented as a ranking.
-    expect(cardFor("Tiki Group").getByText("55/100 · Khá")).toBeInTheDocument();
+    expect(cardFor("Tiki Group").getByText("Uy tín 55/100 · Khá")).toBeInTheDocument();
+  });
+
+  /** A bar was tried first and dominated the card; reputation is supporting detail, not the point. */
+  it("keeps reputation as one line beside the other company facts", () => {
+    renderPage();
+
+    const card = cardFor("Tiki Group");
+    expect(card.queryByRole("meter")).not.toBeInTheDocument();
+    expect(card.queryByRole("progressbar")).not.toBeInTheDocument();
+
+    const facts = card.getByText("Uy tín 55/100 · Khá").closest("dl");
+    expect(facts).not.toBeNull();
+    // The same list already holds the city, the headcount and the open-role count.
+    expect(within(facts!).getByText("TP. Hồ Chí Minh")).toBeInTheDocument();
+    expect(within(facts!).getByText("3 vị trí đang mở")).toBeInTheDocument();
   });
 
   it("says a company is unscored instead of drawing it as a zero", () => {
@@ -170,7 +182,25 @@ describe("PublicCompaniesListPage", () => {
 
     const card = cardFor("Chua Cham Diem");
     expect(card.getByText("Chưa có điểm uy tín")).toBeInTheDocument();
-    expect(card.queryByRole("meter")).not.toBeInTheDocument();
+    expect(card.queryByText(/0\/100/)).not.toBeInTheDocument();
+  });
+
+  /**
+   * Both actions were outlined before, so neither read as the main one. Opening the company is what
+   * the card is for; following is the optional extra and must stay visually quieter.
+   */
+  it("gives the two card actions a primary and a secondary weight", () => {
+    renderPage();
+
+    const card = cardFor("Tiki Group");
+    const view = card.getByRole("link", { name: /Xem công ty: Tiki Group/ });
+    const follow = card.getByRole("button", { name: "Theo dõi Tiki Group" });
+
+    // Primary carries the filled brand background; secondary stays on white.
+    expect(view.className).toContain("bg-emerald-600");
+    expect(view.className).toContain("text-white");
+    expect(follow.className).toContain("bg-white");
+    expect(follow.className).not.toContain("bg-emerald-600");
   });
 
   // Following from the detail page only would cost a page load per company.

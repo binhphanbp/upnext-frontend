@@ -7,6 +7,7 @@ import {
   MapPin,
   Plus,
   SealCheck,
+  Star,
   Users,
   X,
 } from "@phosphor-icons/react";
@@ -74,6 +75,7 @@ const copyByLocale = {
     noneTitle: "Hiện chưa có công ty đang hoạt động",
     noneBody: "Danh sách sẽ hiển thị ngay khi có nhà tuyển dụng mở vị trí mới.",
     verified: "Đã xác thực",
+    jobsLabel: "Vị trí đang mở",
     jobsCount: (n: number) => `${n} vị trí đang mở`,
     employees: (size: string) => `${size} nhân sự`,
     viewCompany: "Xem công ty",
@@ -88,7 +90,8 @@ const copyByLocale = {
       "over-5000": "Trên 5.000 nhân sự",
     } satisfies Record<CompanySizeBand, string>,
     reputationLabel: "Điểm uy tín",
-    reputationValue: (score: number) => `${score}/${REPUTATION_SCORE_MAX}`,
+    reputationSummary: (score: number, tier: string) =>
+      `Uy tín ${score}/${REPUTATION_SCORE_MAX} · ${tier}`,
     reputationTiers: {
       excellent: "Xuất sắc",
       high: "Cao",
@@ -134,6 +137,7 @@ const copyByLocale = {
     noneTitle: "No active companies yet",
     noneBody: "Companies appear here as soon as an employer opens a new role.",
     verified: "Verified",
+    jobsLabel: "Open roles",
     jobsCount: (n: number) => `${n} open ${n === 1 ? "role" : "roles"}`,
     employees: (size: string) => `${size} employees`,
     viewCompany: "View company",
@@ -148,7 +152,8 @@ const copyByLocale = {
       "over-5000": "Over 5,000 employees",
     } satisfies Record<CompanySizeBand, string>,
     reputationLabel: "Reputation",
-    reputationValue: (score: number) => `${score}/${REPUTATION_SCORE_MAX}`,
+    reputationSummary: (score: number, tier: string) =>
+      `${score}/${REPUTATION_SCORE_MAX} reputation · ${tier}`,
     reputationTiers: {
       excellent: "Excellent",
       high: "High",
@@ -231,61 +236,18 @@ function CompanyLogo({ company }: { company: PublicCompany }) {
   );
 }
 
-const REPUTATION_TIER_CLASSES: Record<ReputationTier, { bar: string; text: string }> = {
-  excellent: { bar: "bg-emerald-500", text: "text-emerald-700" },
-  high: { bar: "bg-emerald-500", text: "text-emerald-700" },
-  fair: { bar: "bg-amber-400", text: "text-amber-700" },
-  low: { bar: "bg-slate-300", text: "text-slate-500" },
-};
-
 /**
- * Shows the score as a meter plus its tier, so a company is readable at a glance without implying
- * that a five-point gap is a meaningful ranking. An unscored company says so rather than showing a
- * zero-length bar, which would read as the worst possible score.
+ * Only the score itself is tinted. A full-width progress bar was tried first and read as the loudest
+ * thing on the card, which is the wrong emphasis twice over: reputation is supporting detail next to
+ * the role count, and 94 of 100 live companies score 50-55, so there is barely a difference for a
+ * bar to draw. One tinted line carries the same information at the weight it deserves.
  */
-function ReputationMeter({
-  score,
-  copy,
-}: {
-  score: number | null;
-  copy: (typeof copyByLocale)["vi"] | (typeof copyByLocale)["en"];
-}) {
-  if (score === null) {
-    return (
-      <p className="mt-3 text-[11px] font-semibold text-slate-400">{copy.reputationUnscored}</p>
-    );
-  }
-
-  const tier = reputationTier(score);
-  const classes = REPUTATION_TIER_CLASSES[tier];
-  const percent = Math.max(0, Math.min(100, (score / REPUTATION_SCORE_MAX) * 100));
-
-  return (
-    <div className="mt-3" title={copy.reputationHint(score)}>
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[11px] font-bold tracking-wide text-slate-500 uppercase">
-          {copy.reputationLabel}
-        </span>
-        <span className={`text-[11px] font-extrabold ${classes.text}`}>
-          {copy.reputationValue(score)} · {copy.reputationTiers[tier]}
-        </span>
-      </div>
-      <div
-        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100"
-        role="meter"
-        aria-valuenow={score}
-        aria-valuemin={0}
-        aria-valuemax={REPUTATION_SCORE_MAX}
-        aria-label={copy.reputationLabel}
-      >
-        <span
-          className={`block h-full rounded-full ${classes.bar}`}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-    </div>
-  );
-}
+const REPUTATION_TIER_TEXT: Record<ReputationTier, string> = {
+  excellent: "text-emerald-700",
+  high: "text-emerald-700",
+  fair: "text-amber-600",
+  low: "text-slate-500",
+};
 
 export function PublicCompaniesListPage({ navigate }: CompaniesListPageProps) {
   const locale = useLocale();
@@ -592,6 +554,7 @@ export function PublicCompaniesListPage({ navigate }: CompaniesListPageProps) {
                 const href = companyDetailPath(company);
                 const isFollowed = followedIds.has(company.id);
                 const followBusy = isFollowPending(company.id);
+                const reputation = parseReputationScore(company.reputationScore);
 
                 return (
                   <li key={company.id}>
@@ -646,28 +609,55 @@ export function PublicCompaniesListPage({ navigate }: CompaniesListPageProps) {
                           </div>
                         ) : null}
                         <div className="flex items-center gap-2 text-emerald-700">
-                          <dt className="sr-only">{copy.jobsCount(company.activeJobsCount)}</dt>
+                          {/* A label, not a repeat of the value below, which a screen reader would
+                              otherwise announce twice. */}
+                          <dt className="sr-only">{copy.jobsLabel}</dt>
                           <Briefcase size={14} aria-hidden="true" />
                           <dd>{copy.jobsCount(company.activeJobsCount)}</dd>
                         </div>
+                        {/* Sits in the same list as location and headcount rather than above the
+                            buttons, so it reads as one more fact about the company. */}
+                        <div
+                          className="flex items-center gap-2"
+                          {...(reputation !== null
+                            ? { title: copy.reputationHint(reputation) }
+                            : {})}
+                        >
+                          <dt className="sr-only">{copy.reputationLabel}</dt>
+                          <Star
+                            size={14}
+                            weight={reputation === null ? "regular" : "fill"}
+                            aria-hidden="true"
+                            className={reputation === null ? "text-slate-300" : "text-slate-400"}
+                          />
+                          {reputation === null ? (
+                            <dd className="text-slate-400">{copy.reputationUnscored}</dd>
+                          ) : (
+                            <dd className={REPUTATION_TIER_TEXT[reputationTier(reputation)]}>
+                              {copy.reputationSummary(
+                                reputation,
+                                copy.reputationTiers[reputationTier(reputation)],
+                              )}
+                            </dd>
+                          )}
+                        </div>
                       </dl>
 
-                      <ReputationMeter
-                        score={parseReputationScore(company.reputationScore)}
-                        copy={copy}
-                      />
-
+                      {/* One filled primary and one quiet secondary: opening the company is the
+                          action the card is for, and following is the optional extra. Both were
+                          outlined before, which left neither reading as the main one. */}
                       <div className="mt-4 flex items-center gap-2">
                         <Link
                           href={href}
                           aria-label={`${copy.viewCompany}: ${company.name}`}
-                          className="flex h-10 flex-1 items-center justify-center rounded-lg border border-emerald-600 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:outline-none"
+                          className="flex h-10 flex-1 items-center justify-center rounded-lg bg-emerald-600 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:outline-none"
                         >
                           {copy.viewCompany}
                         </Link>
                         {/* Following from the list saves a round trip through the detail page.
-                            Hidden until the session resolves so the label never flips under the
-                            cursor from "Theo dõi" to "Đang theo dõi" a moment after paint. */}
+                            Disabled until the session resolves so the label never flips under the
+                            cursor from "Theo dõi" to "Đang theo dõi" a moment after paint. The
+                            followed state is a tint, not a second solid button competing above. */}
                         <button
                           type="button"
                           disabled={followBusy || !isFollowSessionResolved}
@@ -681,8 +671,8 @@ export function PublicCompaniesListPage({ navigate }: CompaniesListPageProps) {
                           onClick={() => handleToggleFollow(company)}
                           className={`flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-3 text-xs font-bold transition focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 ${
                             isFollowed
-                              ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"
-                              : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
                           }`}
                         >
                           {isFollowed ? (
