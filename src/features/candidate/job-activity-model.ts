@@ -48,8 +48,8 @@ export function filterApplications(
   });
 }
 
-export function getCompanyLogo(jobPost: CandidateActivityJobPostApi) {
-  return jobPost.company.logoUrl ?? jobPost.company.logoFile?.publicUrl ?? null;
+export function getCompanyLogo(jobPost: CandidateActivityJobPostApi, fallbackLogo?: string | null) {
+  return jobPost.company.logoUrl ?? jobPost.company.logoFile?.publicUrl ?? fallbackLogo ?? null;
 }
 
 export function getJobLocation(publicJob: PublicJob | undefined, fallback: string) {

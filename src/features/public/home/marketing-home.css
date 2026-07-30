@@ -18,22 +18,110 @@
 }
 
 .marketing-home-header {
+  --marketing-home-utility-height: 30px;
+  --marketing-home-main-header-height: 72px;
+  --marketing-home-header-height: calc(
+    var(--marketing-home-utility-height) + var(--marketing-home-main-header-height)
+  );
   position: sticky;
   top: 0;
   right: 0;
   left: 0;
   z-index: 1000;
   isolation: isolate;
-  min-height: 72px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.marketing-home-utility-bar {
+  min-height: var(--marketing-home-utility-height);
+  background: linear-gradient(100deg, #07875f 0%, #0aa56f 100%);
+}
+
+.marketing-home-utility-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--marketing-home-utility-height);
+  padding: 0 48px;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.marketing-home-utility-content nav {
+  display: flex;
+  align-items: center;
+  min-height: var(--marketing-home-utility-height);
+}
+
+.marketing-home-utility-label {
+  padding-right: 11px;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.marketing-home-utility-item {
+  min-height: var(--marketing-home-utility-height);
+  display: inline-flex;
+}
+
+.marketing-home-utility-link,
+.marketing-home-utility-coming-soon {
+  min-height: var(--marketing-home-utility-height);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  color: #ffffff;
+  font-weight: 400;
+  text-decoration: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.22);
+  transition:
+    color 180ms ease,
+    background-color 180ms ease;
+}
+
+.marketing-home-utility-coming-soon {
+  gap: 6px;
+  cursor: default;
+}
+
+.marketing-home-utility-coming-soon small {
+  padding: 2px 5px;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(5, 90, 62, 0.22);
+}
+
+.marketing-home-utility-link:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #ffffff;
+  outline-offset: -3px;
+}
+
+@media (hover: hover) {
+  .marketing-home-utility-link:hover {
+    color: #ffffff;
+    background: rgba(5, 90, 62, 0.26);
+  }
+}
+
+.marketing-home-header-main {
+  min-height: var(--marketing-home-main-header-height);
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
   gap: 24px 44px;
   padding: 0 48px;
   border-bottom: 1px solid #e5e7eb;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
 }
 
 .marketing-home-logo,
@@ -70,7 +158,9 @@
   padding: 8px 0;
   color: #111827;
   font-size: 15px;
-  font-weight: 700;
+  /* Navigation is a wayfinding layer, not a primary action. A semibold
+     weight preserves scanability at this size while letting CTAs lead. */
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }
@@ -173,45 +263,6 @@
   transform: translateY(0) scale(1);
 }
 
-.marketing-home-mega-head {
-  margin: 4px 6px 16px;
-}
-
-.marketing-home-mega-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: #0a9f6f;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.marketing-home-mega-head p {
-  margin: 8px 0 0;
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.marketing-home-mega-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.marketing-home-mega.is-single {
-  width: min(360px, calc(100vw - 32px));
-}
-
-.marketing-home-mega.is-single .marketing-home-mega-grid {
-  grid-template-columns: 1fr;
-}
-
 /* The last nav menu sits near the right edge — anchor its panel to the right
    so a wide mega-menu never overflows the viewport. */
 .marketing-home-nav-dd:last-child .marketing-home-mega {
@@ -225,35 +276,50 @@
   right: 38px;
 }
 
-/* Jobs navigation follows the wide, three-column directory treatment. */
-.marketing-home-jobs-mega {
+/* Header mega menus share a centered directory surface. Jobs needs filter tabs;
+   the other destinations use direct cards because their options are few. */
+.marketing-home-jobs-mega,
+.marketing-home-directory-mega {
   position: fixed;
-  top: 82px;
-  left: 50%;
+  top: calc(var(--marketing-home-header-height) + 4px);
+  left: max(20px, calc(50% - 540px));
   width: min(1000px, calc(100vw - 40px));
   max-width: calc(100vw - 40px);
   padding: 0;
   overflow: hidden;
   border-color: #e8ecea;
   border-radius: 16px;
-  transform: translate(-50%, -8px) scale(0.98);
-  transform-origin: top center;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top left;
   box-shadow:
     0 24px 62px rgba(20, 38, 32, 0.13),
     0 2px 8px rgba(20, 38, 32, 0.04);
 }
 
-.marketing-home-nav-dd.is-open .marketing-home-jobs-mega {
-  transform: translate(-50%, 0) scale(1);
+.marketing-home-jobs-mega {
+  left: 20px;
 }
 
-.marketing-home-jobs-mega::after {
+.marketing-home-nav-dd.is-open .marketing-home-jobs-mega,
+.marketing-home-nav-dd.is-open .marketing-home-directory-mega {
+  transform: translateY(0) scale(1);
+}
+
+.marketing-home-jobs-mega::after,
+.marketing-home-directory-mega::after {
   display: none;
 }
 
-.marketing-home-jobs-mega::before {
-  top: -22px;
-  height: 22px;
+.marketing-home-jobs-mega::before,
+.marketing-home-directory-mega::before {
+  top: -36px;
+  height: 40px;
+}
+
+.marketing-home-nav-dd:last-child .marketing-home-directory-mega {
+  left: max(20px, calc(50% - 540px));
+  right: auto;
+  transform-origin: top left;
 }
 
 .marketing-home-jobs-body {
@@ -261,6 +327,36 @@
   grid-template-columns: 270px minmax(0, 1fr);
   min-height: 400px;
   padding: 14px 18px 2px 14px;
+}
+
+.marketing-home-directory-body {
+  padding: 14px 18px 2px;
+}
+
+.marketing-home-directory-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marketing-home-directory-items li {
+  min-width: 0;
+  min-height: 76px;
+  border-bottom: 1px solid #eef0ef;
+}
+
+.marketing-home-directory-items li + li {
+  border-left: 1px solid #eef0ef;
+}
+
+.marketing-home-directory-items li:nth-child(2n + 1) {
+  border-left: 0;
+}
+
+.marketing-home-directory-items li:nth-child(odd):last-child {
+  grid-column: span 2;
 }
 
 .marketing-home-jobs-categories,
@@ -458,93 +554,55 @@
 
 .marketing-home-jobs-categories button:focus-visible,
 .marketing-home-jobs-roles a:focus-visible,
-.marketing-home-jobs-footer:focus-visible {
+.marketing-home-jobs-footer:focus-visible,
+.marketing-home-directory-item:focus-visible,
+.marketing-home-directory-footer:focus-visible {
   position: relative;
   z-index: 1;
   outline: 2px solid rgba(16, 167, 120, 0.4);
   outline-offset: -3px;
 }
 
-.marketing-home-mega-item {
-  display: flex;
+.marketing-home-directory-item {
   width: 100%;
+  height: 100%;
   min-width: 0;
-  align-items: flex-start;
-  gap: 13px;
-  padding: 13px;
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
   color: inherit;
   text-align: left;
   text-decoration: none;
-  white-space: normal;
-  border-radius: 13px;
-  background: transparent;
-  cursor: pointer;
-  transition: background 180ms ease;
+  background: #ffffff;
+  transition:
+    color 160ms ease,
+    background 160ms ease;
 }
 
-.marketing-home-mega-grid > li {
-  min-width: 0;
-}
-
-.marketing-home-mega-icon {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-}
-
-.feat-icon-cv {
-  color: #2563eb;
-  background: #e6eefe;
-}
-.feat-icon-ai {
-  color: #0aa56f;
-  background: #e4f8f0;
-}
-.feat-icon-path {
-  color: #b5179e;
-  background: #fbe7f6;
-}
-.feat-icon-salary {
-  color: #d97706;
-  background: #fdf0db;
-}
-.feat-icon-community {
-  color: #0891b2;
-  background: #e0f5fa;
-}
-.feat-icon-learn {
-  color: #7c3aed;
-  background: #f0e9fe;
-}
-
-.marketing-home-mega-text {
+.marketing-home-directory-text {
   min-width: 0;
   flex: 1 1 auto;
   display: block;
-  overflow: visible;
 }
 
-.marketing-home-mega-text b {
+.marketing-home-directory-text b {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
   color: #111827;
-  font-size: 14.5px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 500;
   line-height: 1.35;
 }
 
-.marketing-home-mega-text b > span {
+.marketing-home-directory-text b > span {
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: normal;
 }
 
-.marketing-home-mega-badge {
+.marketing-home-directory-text em {
   flex: 0 0 auto;
   padding: 2px 8px;
   color: #0a9f6f;
@@ -557,14 +615,14 @@
   border-radius: 999px;
 }
 
-.marketing-home-mega-text small {
+.marketing-home-directory-text small {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-top: 4px;
+  margin-top: 3px;
   color: #6b7280;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -572,11 +630,134 @@
   word-break: break-word;
 }
 
+.marketing-home-directory-footer {
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 0 22px;
+  color: #111827;
+  text-decoration: none;
+  border-top: 1px solid #e8ecea;
+  background: #ffffff;
+  transition:
+    color 160ms ease,
+    background 160ms ease;
+}
+
+.marketing-home-directory-footer-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: #07875f;
+  border-radius: 50%;
+  background: #e5f6ef;
+}
+
+.marketing-home-directory-footer > span:nth-child(2) {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.marketing-home-directory-footer b {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.marketing-home-directory-footer small {
+  color: #8a919f;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.marketing-home-directory-footer-arrow {
+  color: #667085;
+  transform: rotate(-90deg);
+}
+
 .marketing-home-header-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.marketing-home-compact-menu {
+  position: relative;
+  display: none;
+}
+
+.marketing-home-compact-menu-trigger {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: #334155;
+  border: 1px solid #d7e0e8;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.marketing-home-compact-menu-panel {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 218px;
+  display: grid;
+  gap: 3px;
+  padding: 7px;
+  border: 1px solid #e3e9ee;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 20px 44px rgba(15, 23, 42, 0.14),
+    0 2px 6px rgba(15, 23, 42, 0.05);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-6px) scale(0.98);
+  transform-origin: top right;
+  transition:
+    opacity 180ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 180ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 180ms;
+}
+
+.marketing-home-compact-menu.is-open .marketing-home-compact-menu-panel {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.marketing-home-compact-menu-panel a {
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  padding: 0 11px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.marketing-home-compact-menu-panel a.is-employer {
+  margin-top: 4px;
+  color: #087f5b;
+  background: #eefaf4;
+}
+
+.marketing-home-compact-menu-trigger:focus-visible,
+.marketing-home-compact-menu-panel a:focus-visible {
+  outline: 2px solid rgba(16, 167, 120, 0.5);
+  outline-offset: 2px;
 }
 
 .marketing-home-header-actions .marketing-home-employer {
@@ -628,7 +809,7 @@
 .marketing-home-employer-text b {
   color: #0f3d2e;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.01em;
 }
 
@@ -658,7 +839,7 @@
   padding: 0 10px;
   color: #475569;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   border: 1px solid #e5e9f0;
   border-radius: 10px;
   background: #ffffff;
@@ -755,7 +936,7 @@
 
 .marketing-home-lang-option.is-active {
   color: #0b7f5f;
-  font-weight: 800;
+  font-weight: 600;
   background: #eafaf2;
 }
 
@@ -1029,7 +1210,6 @@
 
 .marketing-home-logo:focus-visible,
 .marketing-home-nav-trigger:focus-visible,
-.marketing-home-mega-item:focus-visible,
 .marketing-home-header-actions button:focus-visible {
   outline: 2px solid rgba(16, 167, 120, 0.35);
   outline-offset: 3px;
@@ -1040,7 +1220,7 @@
   min-height: 40px;
   padding: 0 20px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   border-radius: 9px;
   white-space: nowrap;
 }
@@ -2016,7 +2196,7 @@ button.marketing-home-control {
 }
 
 .marketing-home-urgent-head h2 {
-  margin: 14px 0 0;
+  margin: 0;
   color: #111827;
   font-size: clamp(24px, 2vw, 28px);
   font-weight: 700;
@@ -2029,7 +2209,8 @@ button.marketing-home-control {
   margin: 8px 0 0;
   color: #667085;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 .marketing-home-urgent-all {
@@ -2133,6 +2314,25 @@ button.marketing-home-control {
     0 4px 6px -4px rgba(0, 0, 0, 0.05);
 }
 
+.urgent-job-card.is-previewed,
+.featured-job-card.is-previewed {
+  border-color: #9cddc6;
+  background: #fbfefc;
+  box-shadow:
+    0 16px 36px rgba(15, 56, 48, 0.1),
+    0 0 0 2px rgba(16, 185, 129, 0.08);
+}
+
+.urgent-job-card.is-previewed::before,
+.featured-job-card.is-previewed::before {
+  opacity: 1;
+}
+
+.urgent-job-card.is-previewed .urgent-job-title,
+.featured-job-card.is-previewed .featured-job-title {
+  color: #087b5b;
+}
+
 .urgent-job-card > * {
   position: relative;
   z-index: 1;
@@ -2234,7 +2434,7 @@ button.marketing-home-control {
   margin: 0;
   color: #0f172a;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.3;
 }
 
@@ -2282,7 +2482,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #64748b;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 450;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2365,16 +2565,14 @@ button.marketing-home-control {
   transform: translateY(-1px);
 }
 
-.marketing-home-urgent.is-previewing {
-  min-height: 500px;
-}
-
 .urgent-job-preview {
-  position: absolute;
-  top: 134px;
-  left: 50%;
-  z-index: 20;
-  width: min(480px, calc(100% - 44px));
+  position: fixed;
+  top: 0;
+  right: auto;
+  bottom: auto;
+  left: 0;
+  z-index: 120;
+  width: min(440px, calc(100vw - 24px));
   margin: 0;
   padding: 14px;
   color: #172033;
@@ -2384,9 +2582,35 @@ button.marketing-home-control {
   box-shadow:
     0 24px 60px rgba(15, 56, 48, 0.18),
     0 4px 14px rgba(15, 23, 42, 0.08);
-  transform: translateX(-50%);
+  transform: translateZ(0);
+  transform-origin: center;
   animation: urgent-preview-enter 180ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
   backdrop-filter: blur(16px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #8dd9bf #f3f7f5;
+  scrollbar-width: thin;
+}
+
+.urgent-job-preview[data-placement="right"] {
+  transform-origin: left var(--job-preview-arrow-offset);
+}
+
+.urgent-job-preview[data-placement="left"] {
+  transform-origin: right var(--job-preview-arrow-offset);
+}
+
+.urgent-job-preview[data-placement="bottom"] {
+  transform-origin: var(--job-preview-arrow-offset) top;
+}
+
+.urgent-job-preview[data-placement="top"] {
+  transform-origin: var(--job-preview-arrow-offset) bottom;
+}
+
+.urgent-job-preview[data-placement="sheet"] {
+  transform-origin: center bottom;
 }
 
 .urgent-job-preview::before {
@@ -2631,21 +2855,16 @@ button.marketing-home-control {
 @keyframes urgent-preview-enter {
   from {
     opacity: 0;
-    transform: translate(-50%, 8px) scale(0.98);
+    transform: translateY(6px) scale(0.985);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 @media (max-width: 700px) {
-  .marketing-home-urgent.is-previewing {
-    min-height: 540px;
-  }
-
   .urgent-job-preview {
-    top: 176px;
     width: calc(100% - 24px);
     padding: 12px;
     border-radius: 15px;
@@ -2693,9 +2912,9 @@ button.marketing-home-control {
 }
 
 .urgent-jobs-nav-btn:hover:not(:disabled) {
-  border-color: #0066ff;
-  color: #0066ff;
-  background: #eff6ff;
+  border-color: #10a778;
+  color: #10a778;
+  background: #ecfdf5;
   transform: translateY(-1px);
 }
 
@@ -2726,7 +2945,7 @@ button.marketing-home-control {
 }
 
 .urgent-jobs-dot.is-active {
-  background: #0066ff;
+  background: #10a778;
   transform: scale(1.15);
 }
 
@@ -2829,7 +3048,18 @@ button.marketing-home-control {
    Section: Cơ hội đang được quan tâm (featured jobs)
    ============================================================ */
 .marketing-home-jobs {
+  position: relative;
   margin-top: 64px;
+}
+
+/* The featured-jobs preview intentionally shares the established urgent-job
+   preview surface so both homepage sections communicate the same interaction.
+   Only the logo needs a small size adjustment because the card logo component
+   is also used in the compact job cards. */
+.featured-job-preview .featured-job-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
 }
 
 .marketing-home-jobs-head {
@@ -2854,7 +3084,8 @@ button.marketing-home-control {
   margin: 8px 0 0;
   color: #5f6979;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 .marketing-home-jobs-all {
@@ -3024,6 +3255,13 @@ button.marketing-home-control {
   color: #0aa56f;
 }
 
+.featured-job-save:disabled,
+.featured-company-follow:disabled,
+.featured-company-featured-follow:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .featured-job-company {
   position: relative;
   z-index: 1;
@@ -3078,7 +3316,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #475569;
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3187,7 +3425,7 @@ button.marketing-home-control {
   background: transparent;
   color: #111827;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
   text-align: left;
   cursor: pointer;
@@ -3471,7 +3709,8 @@ button.marketing-home-control {
 }
 
 .featured-company-featured-cover-img,
-.featured-company-featured-cover-fallback {
+.featured-company-featured-cover-fallback,
+.featured-company-featured-cover-loading {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -3479,6 +3718,33 @@ button.marketing-home-control {
   object-fit: cover;
   object-position: center;
   display: block;
+}
+
+.featured-company-featured-cover-loading {
+  background: linear-gradient(110deg, #12243b 28%, #1d3855 45%, #12243b 62%);
+  background-size: 220% 100%;
+  animation: featured-company-cover-loading 1.4s ease-in-out infinite;
+}
+
+@keyframes featured-company-cover-loading {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+.marketing-home-companies-empty {
+  display: grid;
+  min-height: 188px;
+  margin: 24px 0 0;
+  padding: 28px;
+  place-items: center;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid #dbe6ed;
+  border-radius: 18px;
+  background: #f8fbfc;
 }
 
 /* Gradient scrim: transparent at the top, fading to the body's dark navy at
@@ -3535,7 +3801,7 @@ button.marketing-home-control {
   margin: 6px 0 0;
   color: #ffffff;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .featured-company-featured-tags {
@@ -3560,7 +3826,7 @@ button.marketing-home-control {
   margin: 10px 0 0;
   color: #94a3b8;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -3633,6 +3899,21 @@ button.marketing-home-control {
   color: #34d399;
   border-color: rgba(52, 211, 153, 0.4);
   background: rgba(52, 211, 153, 0.1);
+}
+
+.featured-company-featured-follow-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 44px;
+  padding: 0 16px;
+  color: #a7b4c9;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 11px;
 }
 
 /* Small company card. */
@@ -3714,7 +3995,7 @@ button.marketing-home-control {
   margin: 0;
   color: #111827;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3724,7 +4005,7 @@ button.marketing-home-control {
 .featured-company-cat {
   color: #94a3b8;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 450;
   line-height: 1.2;
 }
 
@@ -3735,7 +4016,7 @@ button.marketing-home-control {
   margin-top: 3px;
   color: #475569;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -3770,6 +4051,72 @@ button.marketing-home-control {
   color: #ffffff;
   border-color: transparent;
   background: linear-gradient(100deg, #098f63, #10b981);
+}
+
+.featured-company-follow-status {
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  color: #8a99ad;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  border: 1px solid #e1e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.marketing-home-action-error {
+  margin: 12px 0 0;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.marketing-home-follow-tooltip {
+  z-index: 1010;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 9px 12px;
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+  text-align: center;
+  border: 1px solid rgba(110, 231, 183, 0.2);
+  border-radius: 10px;
+  background: #123c30;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
+  transform-origin: var(--radix-tooltip-content-transform-origin);
+  animation: marketing-home-tooltip-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.marketing-home-follow-tooltip-arrow {
+  fill: #123c30;
+}
+
+@keyframes marketing-home-tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-home-follow-tooltip {
+    animation: none;
+  }
+
+  .featured-company-featured-cover-loading {
+    animation: none;
+  }
 }
 
 .featured-company-card-main:focus-visible,
@@ -3833,8 +4180,9 @@ button.marketing-home-control {
    Section: Thị trường việc làm IT (job market dashboard)
    ============================================================ */
 .marketing-home-market {
-  margin-top: 72px;
+  margin-top: 80px;
   padding-top: 0;
+  scroll-margin-top: 140px;
 }
 
 .jm-head {
@@ -3849,7 +4197,7 @@ button.marketing-home-control {
   margin: 0;
   color: #111827;
   font-size: clamp(24px, 2vw, 28px);
-  font-weight: 700;
+  font-weight: 650;
   letter-spacing: -0.02em;
   line-height: 1.2;
   text-wrap: balance;
@@ -3860,10 +4208,21 @@ button.marketing-home-control {
 }
 
 .jm-head p {
+  max-width: 700px;
   margin: 8px 0 0;
   color: #5f6979;
   font-size: 14.5px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.jm-scope {
+  display: block;
+  margin-top: 8px;
+  color: #8592a4;
+  font-size: 12.5px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .jm-report-btn {
@@ -3875,7 +4234,8 @@ button.marketing-home-control {
   padding: 0 20px;
   color: #0b7f5f;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
+  text-decoration: none;
   white-space: nowrap;
   border: 1px solid #cdeadd;
   border-radius: 999px;
@@ -3894,66 +4254,91 @@ button.marketing-home-control {
 .jm-report-btn {
   transition:
     border-color 200ms ease,
-    background 200ms ease;
+    background 200ms ease,
+    color 200ms ease;
 }
 
 .jm-grid {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
-  gap: 22px;
-  margin-top: 26px;
+  align-items: stretch;
+  gap: 20px;
+  margin-top: 24px;
 }
 
 /* --- Left rail --- */
 .jm-rail {
   display: flex;
   flex-direction: column;
+  align-self: stretch;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 16px;
   background: #ffffff;
   overflow: hidden;
 }
 
-/* AI mascot illustration — fills the rail's top block edge-to-edge. */
 .jm-illu {
-  flex: 1;
   display: block;
-  min-height: 200px;
-  border-bottom: 1px solid #eef2f7;
+  flex-shrink: 0;
+  height: 154px;
   overflow: hidden;
+  border-bottom: 1px solid #eef2f7;
+  background: #eefcf7;
 }
 
 .jm-illu-img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
 
 .jm-illu-fallback {
   display: grid;
-  place-items: center;
   width: 100%;
-  min-height: 200px;
+  height: 100%;
+  place-items: center;
   color: #ffffff;
   background: linear-gradient(150deg, #34d399, #0f766e);
-  box-shadow: 0 14px 30px rgba(13, 148, 102, 0.28);
 }
 
-/* Latest jobs list — flat, no inner frame (the rail is already the card). */
 .jm-latest {
   display: flex;
   flex-direction: column;
-  padding: 18px 18px 16px;
+  flex: 1;
+  min-height: 0;
+  padding: 18px;
 }
 
 .jm-latest-head {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #111827;
+  align-items: flex-start;
+}
+
+.jm-latest-head > div {
+  min-width: 0;
+}
+
+.jm-latest-head h3,
+.jm-latest-head p {
+  margin: 0;
+}
+
+.jm-latest-head h3 {
+  color: #172033;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.jm-latest-head p {
+  margin-top: 3px;
+  color: #8592a4;
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.45;
 }
 
 .jm-latest-icon {
@@ -3963,11 +4348,11 @@ button.marketing-home-control {
   height: 26px;
   color: #ffffff;
   background: linear-gradient(150deg, #34d399, #0aa56f);
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
 .jm-latest ul {
-  margin: 6px 0 0;
+  margin: 10px 0;
   padding: 0;
   list-style: none;
 }
@@ -3976,16 +4361,18 @@ button.marketing-home-control {
   border-top: 1px solid #f1f5f9;
 }
 
-.jm-latest li button {
+.jm-latest-link {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 11px;
   width: 100%;
-  padding: 13px 4px;
+  padding: 10px 2px;
+  color: inherit;
   text-align: left;
-  border: 0;
+  text-decoration: none;
+  border-radius: 8px;
   background: transparent;
-  cursor: pointer;
+  transition: background 180ms ease;
 }
 
 .jm-latest-logo {
@@ -3996,7 +4383,7 @@ button.marketing-home-control {
   flex: 0 0 auto;
   padding: 6px;
   border: 1px solid #eef2f7;
-  border-radius: 4px;
+  border-radius: 8px;
   background: #ffffff;
 }
 
@@ -4008,7 +4395,7 @@ button.marketing-home-control {
 
 .jm-latest-mono {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .jm-latest-body {
@@ -4020,33 +4407,56 @@ button.marketing-home-control {
 }
 
 .jm-latest-body b {
+  display: -webkit-box;
+  min-width: 0;
   color: #111827;
   font-size: 13.5px;
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 1.35;
   overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.jm-latest-body em {
+  min-width: 0;
+  overflow: hidden;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 450;
+  font-style: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.jm-latest-body em {
-  color: #475569;
-  font-size: 12px;
-  font-weight: 600;
-  font-style: normal;
+.jm-latest-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
-.jm-latest-body small {
+.jm-latest-meta small {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
   color: #94a3b8;
   font-size: 11.5px;
-  font-weight: 500;
+  font-weight: 450;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.jm-latest-time {
+.jm-latest-meta time {
   flex: 0 0 auto;
-  align-self: flex-start;
+  margin-left: auto;
   color: #0aa56f;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
@@ -4055,13 +4465,14 @@ button.marketing-home-control {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  margin-top: 12px;
+  margin-top: auto;
   min-height: 44px;
   color: #334155;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  text-decoration: none;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 8px;
   background: #f8fafc;
   cursor: pointer;
 }
@@ -4070,7 +4481,7 @@ button.marketing-home-control {
 .jm-main {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
   min-width: 0;
 }
 
@@ -4080,7 +4491,7 @@ button.marketing-home-control {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 16px;
   background: #ffffff;
   overflow: hidden;
 }
@@ -4089,7 +4500,7 @@ button.marketing-home-control {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 22px 24px;
+  padding: 20px 22px;
 }
 
 /* Full-height squared divider between stats. */
@@ -4120,9 +4531,10 @@ button.marketing-home-control {
 }
 
 .jm-kpi strong {
-  margin-top: 14px;
-  font-size: 38px;
-  font-weight: 800;
+  margin-top: 12px;
+  font-size: clamp(30px, 2.8vw, 36px);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: -0.02em;
   background-clip: text;
@@ -4144,21 +4556,25 @@ button.marketing-home-control {
   margin-top: 9px;
   color: #64748b;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 
 .jm-charts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
+  gap: 20px;
 }
 
 .jm-chart {
   display: flex;
   flex-direction: column;
   padding: 20px;
+  font-variant-numeric: tabular-nums;
   border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  border-radius: 16px;
   background: #ffffff;
 }
 
@@ -4169,106 +4585,81 @@ button.marketing-home-control {
   gap: 12px;
 }
 
+.jm-chart-head > div {
+  min-width: 0;
+}
+
 .jm-chart-head h3 {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 8px;
   margin: 0;
   color: #111827;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 650;
+  line-height: 1.35;
+  text-wrap: balance;
 }
 
 .jm-chart-head h3 svg {
-  color: #0aa56f;
-}
-
-/* Compact dropdown for chart controls. */
-.jm-dropdown {
-  position: relative;
   flex: 0 0 auto;
-}
-
-.jm-dropdown-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 34px;
-  padding: 0 12px;
-  color: #334155;
-  font-size: 12.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  background: #ffffff;
-  cursor: pointer;
-  transition:
-    border-color 200ms ease,
-    background 200ms ease;
-}
-
-.jm-dropdown-trigger svg {
-  color: #94a3b8;
-  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-.jm-dropdown.is-open .jm-dropdown-trigger {
-  border-color: #c8ecdc;
-  background: #f3fdf8;
-}
-
-.jm-dropdown.is-open .jm-dropdown-trigger svg {
-  transform: rotate(180deg);
+  margin-top: 2px;
   color: #0aa56f;
 }
 
-.jm-dropdown-menu {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 150px;
-  margin: 0;
-  padding: 5px;
-  list-style: none;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
+.jm-chart-head h3 span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-.jm-dropdown-menu button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  min-height: 38px;
-  padding: 0 12px;
-  color: #334155;
-  font-size: 13px;
+.jm-chart-head p {
+  margin: 5px 0 0;
+  color: #8592a4;
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.jm-chart-context {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 6px 10px;
+  color: #527063;
+  font-size: 11px;
   font-weight: 600;
-  text-align: left;
-  border: 0;
-  border-radius: 3px;
-  background: transparent;
-  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid #d7eee4;
+  border-radius: 999px;
+  background: #f5fcf8;
 }
 
-.jm-dropdown-menu button svg {
-  color: #0aa56f;
-}
-
-.jm-dropdown-menu button.is-active {
-  color: #0b7f5f;
-  font-weight: 700;
-  background: #e9faf3;
+.jm-chart-tabs {
+  display: none;
+  min-width: 0;
+  margin: 0;
 }
 
 .jm-chart-body {
   height: 252px;
   margin: 16px 0 4px;
+}
+
+.jm-chart-empty {
+  display: grid;
+  min-height: 252px;
+  place-items: center;
+  margin-top: 16px;
+  padding: 24px;
+  color: #8592a4;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  text-align: center;
+  border: 1px dashed #d9e4ed;
+  border-radius: 12px;
+  background: #fbfdfd;
 }
 
 .jm-tooltip {
@@ -4291,11 +4682,12 @@ button.marketing-home-control {
 .jm-tooltip strong {
   color: #ffffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .jm-chart-foot {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
   gap: 12px;
   margin-top: 14px;
   padding-top: 16px;
@@ -4313,24 +4705,145 @@ button.marketing-home-control {
 .jm-chart-foot em {
   color: #94a3b8;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: 500;
   font-style: normal;
 }
 
 .jm-chart-foot b {
   color: #111827;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .jm-chart-foot small {
   color: #94a3b8;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 450;
 }
 
 .jm-chart-foot-up b {
   color: #0a9f6f;
+}
+
+.jm-loading {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.42fr) 1fr;
+  gap: 20px;
+  min-height: 420px;
+  margin-top: 24px;
+}
+
+.jm-loading span,
+.jm-loading::after {
+  display: block;
+  min-height: 100%;
+  border-radius: 16px;
+  background: linear-gradient(100deg, #f1f5f9 25%, #f8fafc 37%, #f1f5f9 63%);
+  background-size: 400% 100%;
+  animation: jm-skeleton 1.4s ease infinite;
+}
+
+.jm-loading span:nth-child(2) {
+  grid-column: 2;
+  min-height: 122px;
+}
+
+.jm-loading span:nth-child(3) {
+  grid-column: 2;
+  min-height: 278px;
+}
+
+.jm-state {
+  display: grid;
+  max-width: 640px;
+  min-height: 220px;
+  align-content: center;
+  justify-items: start;
+  gap: 10px;
+  margin: 24px auto 0;
+  padding: 28px;
+  border: 1px dashed #cbdbe4;
+  border-radius: 16px;
+  background: #fbfefd;
+}
+
+.jm-state strong {
+  color: #172033;
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.jm-state p {
+  max-width: 540px;
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 450;
+  line-height: 1.6;
+}
+
+.jm-state button {
+  min-height: 40px;
+  margin-top: 4px;
+  padding: 0 16px;
+  color: #087e5c;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #bfe8d7;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.jm-report-btn:focus-visible,
+.jm-latest-link:focus-visible,
+.jm-latest-all:focus-visible,
+.jm-state button:focus-visible,
+.jm-chart-tabs button:focus-visible {
+  outline: 2px solid #10a778;
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .jm-report-btn:hover {
+    color: #067956;
+    border-color: #9fdec7;
+    background: #f3fcf8;
+  }
+
+  .jm-report-btn:hover > svg:last-child {
+    transform: translateX(2px);
+  }
+
+  .jm-latest-link:hover {
+    background: #f6fcf9;
+  }
+
+  .jm-latest-all:hover,
+  .jm-state button:hover {
+    color: #087e5c;
+    border-color: #bfe8d7;
+    background: #f2fcf7;
+  }
+}
+
+@keyframes jm-skeleton {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jm-loading span,
+  .jm-loading::after {
+    animation: none;
+  }
 }
 
 /* ============================================================
@@ -4581,6 +5094,17 @@ button.marketing-home-control {
     transform: rotate(180deg);
   }
 
+  .marketing-home-compact-menu-trigger:hover {
+    color: #087f5b;
+    border-color: #9edfc4;
+    background: #f2fbf6;
+  }
+
+  .marketing-home-compact-menu-panel a:hover {
+    color: #087f5b;
+    background: #f2fbf6;
+  }
+
   .marketing-home-jobs-categories button:not(.is-active):hover,
   .marketing-home-jobs-roles a:hover,
   .marketing-home-jobs-footer:hover {
@@ -4588,17 +5112,15 @@ button.marketing-home-control {
     background: #f3faf7;
   }
 
-  /* Mega-menu item: tinted panel + icon springs forward. */
-  .marketing-home-mega-item:hover {
-    background: #f4f7fb;
+  /* Directory menu cards use the same mint hover language as job rows. */
+  .marketing-home-directory-item:hover,
+  .marketing-home-directory-footer:hover {
+    color: #07875f;
+    background: #f3faf7;
   }
 
-  .marketing-home-mega-item .marketing-home-mega-icon {
-    transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  .marketing-home-mega-item:hover .marketing-home-mega-icon {
-    transform: scale(1.1) rotate(-4deg);
+  .marketing-home-directory-item:hover .marketing-home-directory-text b {
+    color: #07875f;
   }
 
   /* Employer: the standout pill — gradient deepens, border + shadow brighten,
@@ -4740,7 +5262,7 @@ button.marketing-home-control {
     transform: translateY(0) scale(1);
   }
 
-  .featured-job-save:hover {
+  .featured-job-save:not(:disabled):hover {
     color: #0aa56f;
     background: #eef7f3;
   }
@@ -4776,7 +5298,7 @@ button.marketing-home-control {
     border-color: #8bd9ba;
   }
 
-  .featured-company-follow:not(.is-following):hover {
+  .featured-company-follow:not(:disabled):not(.is-following):hover {
     color: #ffffff;
     border-color: transparent;
     background: linear-gradient(100deg, #098f63, #10b981);
@@ -4790,7 +5312,7 @@ button.marketing-home-control {
     transform: translateX(3px);
   }
 
-  .featured-company-featured-follow:not(.is-following):hover {
+  .featured-company-featured-follow:not(:disabled):not(.is-following):hover {
     color: #ffffff;
     border-color: rgba(255, 255, 255, 0.4);
     background: rgba(255, 255, 255, 0.1);
@@ -4856,10 +5378,14 @@ button.marketing-home-control {
 }
 
 @media (max-width: 1180px) {
-  .marketing-home-header {
+  .marketing-home-utility-content,
+  .marketing-home-header-main {
+    padding: 0 30px;
+  }
+
+  .marketing-home-header-main {
     grid-template-columns: auto auto minmax(0, 1fr);
     gap: 24px 30px;
-    padding: 0 30px;
   }
 
   .marketing-home-nav {
@@ -4986,9 +5512,9 @@ button.marketing-home-control {
     display: none;
   }
 
-  /* Job market: stack the rail above, charts go full-width single column. */
+  /* Job market: the rail moves above the charts before cards become too narrow. */
   .marketing-home-market {
-    padding: 24px;
+    padding: 0;
   }
 
   .jm-grid {
@@ -5028,11 +5554,85 @@ button.marketing-home-control {
   }
 }
 
+/* Keep every action visible through the compact-desktop range.  This is a
+   density adjustment only; tablet switches to its dedicated header below. */
+@media (min-width: 1181px) and (max-width: 1360px) {
+  .marketing-home-utility-content,
+  .marketing-home-header-main {
+    padding-inline: 30px;
+  }
+
+  .marketing-home-header-main {
+    gap: 24px 30px;
+  }
+
+  .marketing-home-nav {
+    gap: 28px;
+  }
+
+  .marketing-home-header-actions {
+    gap: 8px;
+  }
+
+  .marketing-home-header-actions .marketing-home-employer {
+    gap: 7px;
+    padding-inline: 12px 11px;
+  }
+
+  .marketing-home-header-actions .marketing-home-login,
+  .marketing-home-header-actions .marketing-home-register {
+    padding-inline: 16px;
+  }
+}
+
+/* The full desktop navigation no longer has enough room below this point.
+   Collapse deliberately before controls can overlap. */
+@media (min-width: 821px) and (max-width: 1080px) {
+  .marketing-home-header-main {
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    padding-inline: 28px;
+  }
+
+  .marketing-home-nav,
+  .marketing-home-header-actions .marketing-home-login,
+  .marketing-home-header-actions .marketing-home-employer,
+  .marketing-home-header-actions .marketing-home-lang,
+  .marketing-home-action-sep {
+    display: none;
+  }
+
+  .marketing-home-header-actions {
+    gap: 8px;
+  }
+
+  .marketing-home-compact-menu {
+    display: block;
+  }
+
+  .marketing-home-header-actions .marketing-home-register {
+    min-height: 42px;
+    padding-inline: 18px;
+  }
+}
+
 @media (max-width: 820px) {
   .marketing-home-header {
-    min-height: 64px;
+    --marketing-home-utility-height: 0px;
+    --marketing-home-main-header-height: 64px;
+  }
+
+  .marketing-home-utility-bar {
+    display: none;
+  }
+
+  .marketing-home-header-main {
     grid-template-columns: 1fr auto;
     padding: 0 20px;
+  }
+
+  .marketing-home-compact-menu {
+    display: block;
   }
 
   .marketing-home-logo img {
@@ -5333,47 +5933,213 @@ button.marketing-home-control {
     display: none;
   }
 
-  /* Job market on mobile: KPIs stack, chart footers wrap. */
+  /* Job market on mobile: preserve a concise snapshot and expose one chart at a time. */
   .marketing-home-market {
-    padding: 18px;
-    border-radius: 18px;
+    margin-top: 56px;
+    padding: 0;
   }
 
   .jm-kpis {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-radius: 14px;
   }
 
-  /* Stacked stats on mobile: divider becomes a horizontal rule between rows. */
   .jm-kpi {
-    padding: 16px 18px;
+    min-width: 0;
+    padding: 15px 10px;
   }
 
   .jm-kpi + .jm-kpi::before {
-    left: 18px;
-    right: 18px;
+    left: 0;
+    right: auto;
     top: 0;
-    width: auto;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #e6eaf0 50%, transparent);
+    width: 1px;
+    height: 100%;
+    background: #e2e8f0;
+  }
+
+  .jm-kpi-mark {
+    width: 22px;
+    height: 3px;
   }
 
   .jm-kpi strong {
-    margin-top: 12px;
-    font-size: 32px;
+    margin-top: 10px;
+    font-size: clamp(24px, 8vw, 30px);
+  }
+
+  .jm-kpi-label {
+    margin-top: 7px;
+    font-size: 10.5px;
+    line-height: 1.4;
+  }
+
+  .jm-grid {
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  .jm-main {
+    gap: 16px;
+  }
+
+  .jm-rail,
+  .jm-chart {
+    border-radius: 14px;
+  }
+
+  .jm-latest {
+    padding: 16px;
+  }
+
+  .jm-illu {
+    height: 124px;
+  }
+
+  .jm-latest-link {
+    padding-block: 10px;
+  }
+
+  .jm-latest-all {
+    min-height: 42px;
+  }
+
+  .jm-chart-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid #dceae3;
+    border-radius: 10px;
+    background: #f5faf7;
+  }
+
+  .jm-chart-tabs button {
+    min-height: 38px;
+    padding: 0 8px;
+    color: #627181;
+    font-size: 12px;
+    font-weight: 550;
+    white-space: nowrap;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+  }
+
+  .jm-chart-tabs button.is-active {
+    color: #087e5c;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+  }
+
+  .jm-charts {
+    display: block;
+    position: relative;
+  }
+
+  .jm-chart {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    visibility: hidden;
+    pointer-events: none;
+    padding: 16px;
+  }
+
+  .jm-chart.is-active {
+    position: relative;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .jm-chart-head {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .jm-chart-head h3 {
+    font-size: 14px;
+  }
+
+  .jm-chart-head p {
+    font-size: 11px;
+  }
+
+  .jm-chart-context {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .jm-chart-body {
+    height: 220px;
+    margin-top: 14px;
+  }
+
+  .jm-chart-empty {
+    min-height: 220px;
+    margin-top: 14px;
+    padding: 20px;
   }
 
   .jm-chart-foot {
-    flex-wrap: wrap;
-    gap: 14px;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 14px;
   }
 
   .jm-chart-foot span {
-    flex-basis: calc(50% - 7px);
+    gap: 2px;
+  }
+
+  .jm-chart-foot b {
+    font-size: 13px;
+  }
+
+  .jm-head {
+    gap: 14px;
+  }
+
+  .jm-head h2 {
+    font-size: clamp(23px, 7vw, 27px);
+  }
+
+  .jm-head p {
+    margin-top: 6px;
+    font-size: 13px;
+  }
+
+  .jm-scope {
+    margin-top: 6px;
+    font-size: 11.5px;
   }
 
   .jm-report-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .jm-loading {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-height: 360px;
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  .jm-loading span:nth-child(1) {
+    min-height: 170px;
+  }
+
+  .jm-loading span:nth-child(2),
+  .jm-loading span:nth-child(3) {
+    grid-column: auto;
+    min-height: 80px;
+  }
+
+  .jm-state {
+    min-height: 200px;
+    margin-top: 20px;
+    padding: 22px;
   }
 
   .marketing-home-footer {
@@ -5438,6 +6204,14 @@ button.marketing-home-control {
 }
 
 @media (max-width: 480px) {
+  .jm-kpi {
+    padding-inline: 9px;
+  }
+
+  .jm-kpi-label {
+    font-size: 10px;
+  }
+
   .marketing-home-footer-links {
     grid-template-columns: 1fr;
     gap: 24px;
@@ -6317,7 +7091,7 @@ button.marketing-home-control {
   overflow: hidden;
   color: #143b34;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.25;
   text-wrap: balance;
@@ -6553,14 +7327,22 @@ button.marketing-home-control {
 .marketing-home-insights-all {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 3px;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 20px;
   margin-left: auto;
-  color: #35975d;
+  color: #0b7f5f;
   font-size: 14px;
   font-weight: 700;
-  line-height: 1.2;
   white-space: nowrap;
+  border: 1px solid #cdeadd;
+  border-radius: 999px;
+  background: #ffffff;
+  text-decoration: none;
+}
+
+.marketing-home-insights-all svg {
+  transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .marketing-home-insights-stage {
@@ -6569,15 +7351,21 @@ button.marketing-home-control {
   margin: 0;
 }
 
+.marketing-home-insights-loading {
+  width: min(650px, calc(100vw - 96px));
+  height: clamp(310px, 34vw, 440px);
+  margin: 0 auto;
+  border: 1px solid #e2eee8;
+  border-radius: 20px;
+  background: linear-gradient(110deg, #f0f7f3 8%, #fafdfb 35%, #f0f7f3 62%);
+}
+
 .marketing-home-insights-viewport {
   position: relative;
   width: 100%;
   margin: 0;
   padding: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
+  overflow: hidden;
   scrollbar-width: none;
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
@@ -6608,7 +7396,6 @@ button.marketing-home-control {
 
 .marketing-home-insights-viewport.is-dragging {
   cursor: grabbing;
-  scroll-snap-type: none;
   user-select: none;
 }
 
@@ -6616,23 +7403,29 @@ button.marketing-home-control {
   display: flex;
   align-items: flex-start;
   gap: 24px;
-  width: max-content;
-  padding: 0 max(24px, calc(50vw - 781px));
+  width: auto;
+  padding: 0;
+  will-change: transform;
+}
+
+.marketing-home-insights-slide {
+  position: relative;
+  min-width: 0;
+  flex: 0 0 541px;
 }
 
 .marketing-home-insights-card {
-  width: 432px;
+  width: 650px;
   min-height: 0;
   display: block;
-  flex: 0 0 432px;
+  margin-left: -10px;
   overflow: visible;
   color: #0d3823;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  scroll-snap-align: center;
-  transform: scale(0.92);
+  transform: scale(0.62);
   transform-origin: center top;
   opacity: 0.24;
   transition:
@@ -6641,9 +7434,7 @@ button.marketing-home-control {
 }
 
 .marketing-home-insights-card.is-featured {
-  width: 650px;
   min-height: 0;
-  flex-basis: 650px;
   transform: none;
   opacity: 1;
 }
@@ -6653,12 +7444,13 @@ button.marketing-home-control {
 }
 
 .marketing-home-insights-card.is-adjacent {
-  transform: scale(0.96);
-  opacity: 0.8;
+  transform: scale(0.68);
+  opacity: 0.78;
 }
 
 .marketing-home-insights-card.is-peripheral {
-  opacity: 0.32;
+  transform: scale(0.62);
+  opacity: 0.3;
 }
 
 .marketing-home-insights-card.is-active {
@@ -6669,7 +7461,7 @@ button.marketing-home-control {
 .marketing-home-insights-image,
 .marketing-home-insights-card.is-featured .marketing-home-insights-image {
   aspect-ratio: auto;
-  height: 272px;
+  height: 406px;
   overflow: hidden;
   border-radius: 16px;
   background: #e8f1ec;
@@ -6697,8 +7489,8 @@ button.marketing-home-control {
   margin: 14px 0 0;
   overflow: hidden;
   color: #0d3823;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.42;
   text-wrap: balance;
@@ -6711,6 +7503,11 @@ button.marketing-home-control {
   margin-top: 19px;
   font-size: 25px;
   line-height: 1.28;
+}
+
+.marketing-home-insights-card h3 a {
+  color: inherit;
+  text-decoration: none;
 }
 
 .marketing-home-insights-more {
@@ -6756,6 +7553,28 @@ button.marketing-home-control {
   left: auto;
 }
 
+/* Shared carousel navigation surface. Keeping both homepage rails on one
+   primitive prevents their hover and focus feedback from drifting apart. */
+.marketing-home-carousel-nav {
+  width: 46px;
+  height: 46px;
+  color: #334155;
+  border: 1px solid #e6eaf0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    border-color 200ms ease,
+    background 200ms ease;
+}
+
+.marketing-home-carousel-nav:focus-visible {
+  outline: 2px solid #0aa56f;
+  outline-offset: 4px;
+}
+
 .marketing-home-insights-ghost {
   position: absolute;
   top: 110px;
@@ -6793,9 +7612,23 @@ button.marketing-home-control {
   user-select: none;
 }
 
-.marketing-home-insights-arrow:focus-visible {
+.marketing-home-insights-all:focus-visible,
+.marketing-home-insights-arrow:focus-visible,
+.marketing-home-insights-card h3 a:focus-visible,
+.marketing-home-insights-more:focus-visible {
   outline: 2px solid #168e64;
   outline-offset: 4px;
+}
+
+@media (hover: hover) {
+  .marketing-home-insights-all:hover {
+    border-color: #0aa56f;
+    background: #f3fdf8;
+  }
+
+  .marketing-home-insights-all:hover svg {
+    transform: translateX(3px);
+  }
 }
 
 @media (hover: hover) {
@@ -6812,11 +7645,10 @@ button.marketing-home-control {
     color: #35975d;
   }
 
-  .marketing-home-insights-arrow:hover {
-    color: #ffffff;
-    border-color: #0d3823;
-    background: #0d3823;
-    transform: translateY(-1px);
+  .marketing-home-carousel-nav:not(:disabled):hover {
+    color: #0b7f5f;
+    border-color: #0aa56f;
+    background: #f3fdf8;
   }
 }
 
@@ -6860,10 +7692,14 @@ button.marketing-home-control {
     padding: 0 24px;
   }
 
+  .marketing-home-insights-slide {
+    flex-basis: min(84vw, 360px);
+  }
+
   .marketing-home-insights-card,
   .marketing-home-insights-card.is-featured {
     width: min(84vw, 360px);
-    flex-basis: min(84vw, 360px);
+    margin-left: 0;
     opacity: 1;
     transform: none;
   }
@@ -6904,6 +7740,94 @@ button.marketing-home-control {
   .marketing-home-insights-card,
   .marketing-home-insights-image img,
   .marketing-home-insights-arrow {
+    transition: none;
+  }
+}
+
+/* Shared primary-action treatment. The header registration action is the visual
+   source of truth; home-level primary CTAs use the same solid brand surface,
+   hover elevation, and subtle sheen while retaining context-specific sizing. */
+.marketing-home-header-actions .marketing-home-register,
+.marketing-home-search-submit,
+.marketing-home-urgent-all,
+.urgent-job-preview-apply,
+.urgent-job-apply,
+.marketing-home-footer-newsletter button {
+  position: relative;
+  overflow: hidden;
+  color: #ffffff;
+  border-color: #10a778;
+  background: #0aa56f;
+  box-shadow: none;
+  transition:
+    background-color 240ms cubic-bezier(0.32, 0.72, 0, 1),
+    border-color 240ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-header-actions .marketing-home-register::after,
+.marketing-home-search-submit::after,
+.marketing-home-urgent-all::after,
+.urgent-job-preview-apply::after,
+.urgent-job-apply::after,
+.marketing-home-footer-newsletter button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-18deg);
+  transition: left 600ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.marketing-home-search-submit:focus-visible,
+.marketing-home-urgent-all:focus-visible,
+.urgent-job-preview-apply:focus-visible,
+.urgent-job-apply:focus-visible,
+.marketing-home-footer-newsletter button:focus-visible {
+  outline: 2px solid rgba(16, 167, 120, 0.35);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .marketing-home-header-actions .marketing-home-register:hover,
+  .marketing-home-search-submit:hover,
+  .marketing-home-urgent-all:hover,
+  .urgent-job-preview-apply:hover,
+  .urgent-job-apply:hover,
+  .marketing-home-footer-newsletter button:hover {
+    color: #ffffff;
+    border-color: #10a778;
+    background: #098f63;
+    box-shadow: 0 4px 12px rgba(10, 165, 111, 0.22);
+  }
+
+  .marketing-home-header-actions .marketing-home-register:hover::after,
+  .marketing-home-search-submit:hover::after,
+  .marketing-home-urgent-all:hover::after,
+  .urgent-job-preview-apply:hover::after,
+  .urgent-job-apply:hover::after,
+  .marketing-home-footer-newsletter button:hover::after {
+    left: 130%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-home-header-actions .marketing-home-register,
+  .marketing-home-search-submit,
+  .marketing-home-urgent-all,
+  .urgent-job-preview-apply,
+  .urgent-job-apply,
+  .marketing-home-footer-newsletter button,
+  .marketing-home-header-actions .marketing-home-register::after,
+  .marketing-home-search-submit::after,
+  .marketing-home-urgent-all::after,
+  .urgent-job-preview-apply::after,
+  .urgent-job-apply::after,
+  .marketing-home-footer-newsletter button::after {
     transition: none;
   }
 }

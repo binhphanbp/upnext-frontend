@@ -52,13 +52,22 @@ export interface PublicJob {
   }>;
 }
 
+type PublicJobWire = Omit<PublicJob, "salaryMin" | "salaryMax"> & {
+  salaryMin: number | string | null;
+  salaryMax: number | string | null;
+};
+
 export interface PublicCompany {
   id: string;
   name: string;
   slug?: string;
   type: string;
+  activeJobsCount: number;
   logoUrl?: string | null;
   logoFile?: {
+    publicUrl: string;
+  } | null;
+  coverFile?: {
     publicUrl: string;
   } | null;
   website?: string | null;
@@ -66,7 +75,7 @@ export interface PublicCompany {
   description?: string | null;
 }
 
-export interface PublicCompanyDetail extends PublicCompany {
+export interface PublicCompanyDetail extends Omit<PublicCompany, "activeJobsCount"> {
   slug: string;
   coverFile?: {
     publicUrl: string;
@@ -83,12 +92,54 @@ export interface PublicCompanyListResponse {
   };
 }
 
-export function getPublicJobs() {
-  return apiRequest<PublicJob[]>("/job-posts");
+function normalizeNullableNumber(value: number | string | null) {
+  if (value === null || (typeof value === "string" && value.trim() === "")) return null;
+
+  const normalized = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(normalized) ? normalized : null;
 }
 
-export function getPublicCompanies() {
-  return apiRequest<PublicCompanyListResponse>("/companies");
+export async function getPublicJobs() {
+  const jobs = await apiRequest<PublicJobWire[]>("/job-posts");
+
+  return jobs.map<PublicJob>((job) => ({
+    ...job,
+    salaryMin: normalizeNullableNumber(job.salaryMin),
+    salaryMax: normalizeNullableNumber(job.salaryMax),
+  }));
+}
+
+export function getPublicCompanies({ page, limit }: { page?: number; limit?: number } = {}) {
+  const search = new URLSearchParams();
+  if (page) search.set("page", String(page));
+  if (limit) search.set("limit", String(limit));
+
+  const query = search.size ? `?${search.toString()}` : "";
+  return apiRequest<PublicCompanyListResponse>(`/companies${query}`);
+}
+
+export async function getAllActivePublicCompanies() {
+  const limit = 100;
+  const firstPage = await apiRequest<PublicCompanyListResponse>(
+    `/companies?status=ACTIVE&page=1&limit=${limit}`,
+  );
+
+  if (firstPage.meta.totalPages <= 1) {
+    return firstPage;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.meta.totalPages - 1 }, (_, index) =>
+      apiRequest<PublicCompanyListResponse>(
+        `/companies?status=ACTIVE&page=${index + 2}&limit=${limit}`,
+      ),
+    ),
+  );
+
+  return {
+    items: [firstPage, ...remainingPages].flatMap((page) => page.items),
+    meta: firstPage.meta,
+  };
 }
 
 export function getPublicCompanyDetail(slug: string) {

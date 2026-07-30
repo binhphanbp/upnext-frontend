@@ -871,7 +871,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 28px;
-  align-items: start;
+  align-items: stretch;
   margin-top: 28px;
 }
 
@@ -1067,6 +1067,7 @@
 .job-detail-aside {
   position: sticky;
   top: 96px;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -3209,6 +3210,22 @@
   background: #047857;
 }
 
+.job-detail-action-row button.is-applied,
+.job-detail-ready-card button.is-applied {
+  color: #ffffff;
+  border-color: #047857;
+  background: #047857;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.job-detail-action-row button.is-applied svg,
+.job-detail-ready-card button.is-applied svg {
+  flex: 0 0 auto;
+  color: #ffffff;
+  filter: drop-shadow(0 1px 1px rgba(4, 120, 87, 0.35));
+}
+
 .job-detail-card-head {
   gap: 8px;
   margin-bottom: 16px;
@@ -3513,6 +3530,7 @@
 .job-detail-info-content {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 2px;
   text-align: left;
 }
@@ -3522,6 +3540,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 1.2;
+  text-align: left;
 }
 
 .job-detail-info-value {
@@ -3529,6 +3548,11 @@
   font-size: 14px;
   font-weight: 700;
   line-height: 1.2;
+  text-align: left;
+}
+
+.job-detail-info-line b.job-detail-info-value {
+  text-align: left;
 }
 
 .job-detail-company-mini {
@@ -3745,5 +3769,91 @@
   .job-detail-reason-card,
   .job-detail-share-card {
     padding: 18px;
+  }
+}
+
+/* Search filters: use a consistent branded checkbox instead of browser-native controls.
+   This class is unlayered plain CSS, so per CSS Cascade Layers it always wins over Tailwind's
+   layered min-h-* utilities in jobs-page.tsx regardless of which one is written there — keep
+   this value in sync with the min-h-* class on .jobs-filter-option in the JSX. */
+.jobs-filter-option {
+  min-height: 2rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.jobs-filter-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  border: 1.5px solid #94a3b8;
+  border-radius: 5px;
+  background-color: #ffffff;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 12px 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.jobs-filter-checkbox:checked {
+  border-color: #0aa56f;
+  background-color: #0aa56f;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3.25 8.25 2.9 2.9 6.6-6.6' fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.25'/%3E%3C/svg%3E");
+}
+
+.jobs-filter-checkbox:focus-visible {
+  outline: 3px solid rgb(10 165 111 / 22%);
+  outline-offset: 2px;
+}
+
+.jobs-filter-checkbox:disabled {
+  border-color: #dbe3ea;
+  background-color: #f8fafc;
+  cursor: not-allowed;
+}
+
+.jobs-filter-option-copy {
+  color: #475569;
+  transition: color 160ms ease;
+}
+
+.jobs-filter-checkbox:checked + .jobs-filter-option-copy {
+  color: #0f5132;
+}
+
+.jobs-filter-checkbox:checked + .jobs-filter-option-copy > span:first-child {
+  font-weight: 600;
+}
+
+.jobs-filter-checkbox:checked + .jobs-filter-option-copy > span:last-child {
+  color: #059669;
+}
+
+@media (hover: hover) {
+  .jobs-filter-option-enabled:hover {
+    background-color: #f2fcf7;
+  }
+
+  .jobs-filter-option-enabled:hover .jobs-filter-checkbox:not(:checked) {
+    border-color: #0aa56f;
+    background-color: #f5fcf8;
+  }
+
+  .jobs-filter-option-enabled:hover .jobs-filter-checkbox:checked {
+    border-color: #098f63;
+    background-color: #098f63;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jobs-filter-checkbox,
+  .jobs-filter-option-copy {
+    transition: none;
   }
 }

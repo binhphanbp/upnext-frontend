@@ -32,7 +32,7 @@ import {
   type ApplicationStatusGroup,
 } from "@/features/candidate/job-activity-model";
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
-import { getPublicJobs } from "@/features/public/home/api";
+import { getPublicJobs, type PublicJob } from "@/features/public/home/api";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
@@ -297,6 +297,7 @@ export function CandidateApplicationsPage() {
                         application={application}
                         locale={locale}
                         location={getJobLocation(publicJob, t("common.locationFallback"))}
+                        publicJob={publicJob}
                       />
                     </li>
                   );
@@ -324,13 +325,18 @@ function ApplicationRow({
   application,
   locale,
   location,
+  publicJob,
 }: Readonly<{
   application: CandidateApplicationApi;
   locale: string;
   location: string;
+  publicJob?: PublicJob | null | undefined;
 }>) {
   const t = useTranslations("CandidateWorkspace");
-  const logo = getCompanyLogo(application.jobPost);
+  const logo = getCompanyLogo(
+    application.jobPost,
+    publicJob?.company?.logoUrl ?? publicJob?.company?.logoFile?.publicUrl,
+  );
   const tags = getJobTags(application.jobPost);
   const formattedDate = new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
     new Date(application.submittedAt),

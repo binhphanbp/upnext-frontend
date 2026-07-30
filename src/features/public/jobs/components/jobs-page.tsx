@@ -12,18 +12,34 @@ import {
   BookOpen,
   MagnifyingGlass,
   MapPin,
+  Sparkle,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
+import {
+  countFacetOption,
+  type FacetGroupKey,
+  type FacetGroupMatchersFor,
+  matchesAllFacetGroups,
+  matchesExperienceRange,
+  matchesLevelFilter,
+  matchesModeFilter,
+  matchesSalaryFilter,
+  matchesTechnologyFilter,
+} from "@/features/public/jobs/jobs-facets";
 import { apiRequest } from "@/shared/api/http";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
-import { matchNaturalLanguageSearch } from "@/shared/utils/natural-search";
+import { toast } from "@/shared/ui/toast";
+import {
+  analyzeNaturalLanguageQuery,
+  scoreNaturalLanguageSearch,
+} from "@/shared/utils/natural-search";
 
 import { getPublicJobs } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
@@ -34,7 +50,51 @@ import "../jobs-page.css";
 
 type PublicJobsPageProps = {
   navigate: (path: string) => void;
+  replace: (path: string) => void;
 };
+
+export function formatJobSalaryDisplay(
+  job: {
+    salaryIsVisible?: boolean | null;
+    salaryIsNegotiable?: boolean | null;
+    salaryMin?: number | string | null;
+    salaryMax?: number | string | null;
+  },
+  suffix = "/tháng",
+) {
+  if (job.salaryIsVisible === false) {
+    return "Thỏa thuận";
+  }
+
+  const min = job.salaryMin != null ? Number(job.salaryMin) : null;
+  const max = job.salaryMax != null ? Number(job.salaryMax) : null;
+
+  if ((!min || min <= 0) && (!max || max <= 0)) {
+    return "Thỏa thuận";
+  }
+
+  if (min !== null && max !== null && min > 0 && max > 0) {
+    if (min === max) {
+      const formatted = Math.round(min / 1_000_000);
+      return `${formatted} triệu${suffix}`;
+    }
+    const minM = Math.round(min / 1_000_000);
+    const maxM = Math.round(max / 1_000_000);
+    return `${minM} - ${maxM} triệu${suffix}`;
+  }
+
+  if (min !== null && min > 0) {
+    const minM = Math.round(min / 1_000_000);
+    return `Từ ${minM} triệu${suffix}`;
+  }
+
+  if (max !== null && max > 0) {
+    const maxM = Math.round(max / 1_000_000);
+    return `Tới ${maxM} triệu${suffix}`;
+  }
+
+  return "Thỏa thuận";
+}
 
 export type Job = {
   id: string;
@@ -62,6 +122,8 @@ export type Job = {
   expiredAt?: string | null;
   skills?: string[];
   experienceYears?: number[];
+  salaryMinMillions?: number | undefined;
+  salaryMaxMillions?: number | undefined;
 };
 
 type FilterGroup = {
@@ -376,6 +438,56 @@ const filterLabelByValue = new Map(
 
 const ALL_LOCATIONS = "Tất cả địa điểm";
 
+const MODE_FILTERS = new Set(["hybrid", "remote", "onsite"]);
+const LEVEL_FILTERS = new Set(["fresher", "middle", "senior"]);
+const SALARY_FILTERS = new Set(salaryRanges.map((item) => item.value));
+const EXPERIENCE_FILTERS = new Set(experienceOptions.map((item) => item.value));
+const SORT_OPTIONS = new Set(["relevant", "newest", "salary"]);
+
+type JobsSearchUrlState = {
+  keyword: string;
+  location: string;
+  category: string;
+  title: string;
+  skill: string;
+  company: string;
+  jobCategory: string;
+  expertise: string;
+  activeFilters: string[];
+  salaryFilters: string[];
+  experienceFilters: string[];
+  technologyFilters: string[];
+  sort: string;
+  page: number;
+};
+
+function buildJobsSearchPath(state: JobsSearchUrlState) {
+  const query = new URLSearchParams();
+  const normalizedKeyword = state.keyword.trim();
+
+  if (normalizedKeyword) query.set("keyword", normalizedKeyword);
+  if (state.location !== ALL_LOCATIONS) query.set("location", state.location);
+  if (state.category !== "all") query.set("category", state.category);
+  if (state.title) query.set("title", state.title);
+  if (state.skill) query.set("skill", state.skill);
+  if (state.company) query.set("company", state.company);
+  if (state.jobCategory) query.set("jobCategory", state.jobCategory);
+  if (state.expertise) query.set("expertise", state.expertise);
+
+  state.activeFilters.forEach((filter) => {
+    if (MODE_FILTERS.has(filter)) query.append("mode", filter);
+    if (LEVEL_FILTERS.has(filter)) query.append("level", filter);
+  });
+  state.salaryFilters.forEach((filter) => query.append("salaryRange", filter));
+  state.experienceFilters.forEach((filter) => query.append("experienceRange", filter));
+  state.technologyFilters.forEach((filter) => query.append("technology", filter));
+
+  if (state.sort !== "relevant") query.set("sort", state.sort);
+  if (state.page > 1) query.set("page", String(state.page));
+
+  return `/jobs${query.size > 0 ? `?${query.toString()}` : ""}`;
+}
+
 function salaryValue(job: Job) {
   const values = job.salary.match(/\d+/g)?.map(Number) ?? [];
   return values.length ? Math.max(...values) : 0;
@@ -397,6 +509,8 @@ function LogoMark({ src, name, color }: { src: string; name: string; color: stri
 
   return (
     <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white">
+      {/* Company logos come from API-controlled external hosts, so a native image avoids a brittle host allowlist. */}
+      {/* oxlint-disable-next-line next/no-img-element */}
       <img
         src={src}
         alt={`Logo ${name}`}
@@ -405,24 +519,6 @@ function LogoMark({ src, name, color }: { src: string; name: string; color: stri
       />
     </div>
   );
-}
-
-function parseSalaryRange(job: Job) {
-  const values = job.salary.match(/\d+/g)?.map(Number) ?? [];
-  if (values.length === 1) return { min: values[0]!, max: values[0]! };
-  if (values.length >= 2) return { min: values[0]!, max: values[1]! };
-  return { min: 0, max: 0 };
-}
-
-function matchesExperienceRange(years: number[], filter: string) {
-  return years.some((year) => {
-    if (filter === "exp-0-1") return year < 1;
-    if (filter === "exp-1-2") return year >= 1 && year < 2;
-    if (filter === "exp-2-4") return year >= 2 && year < 4;
-    if (filter === "exp-4-6") return year >= 4 && year < 6;
-    if (filter === "exp-6") return year >= 6;
-    return false;
-  });
 }
 
 function getPageNumbers(currentPage: number, totalPages: number) {
@@ -452,7 +548,7 @@ function getPageNumbers(currentPage: number, totalPages: number) {
   return rangeWithDots;
 }
 
-export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
+export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const locale = useLocale();
   const params = useSearchParams();
   const titleFilter = params.get("title")?.trim() ?? "";
@@ -463,17 +559,34 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const queryKeyword = params.get("keyword") ?? params.get("position") ?? "";
   const queryLocation = params.get("location") ?? ALL_LOCATIONS;
   const queryCategory = params.get("category") ?? "all";
+  const queryActiveFilters = [
+    ...params.getAll("mode").filter((filter) => MODE_FILTERS.has(filter)),
+    ...params.getAll("level").filter((filter) => LEVEL_FILTERS.has(filter)),
+  ];
+  const querySalaryFilters = params
+    .getAll("salaryRange")
+    .filter((filter) => SALARY_FILTERS.has(filter));
+  const queryExperienceFilters = params
+    .getAll("experienceRange")
+    .filter((filter) => EXPERIENCE_FILTERS.has(filter));
+  const queryTechnologyFilters = params.getAll("technology").filter(Boolean);
+  const querySort = SORT_OPTIONS.has(params.get("sort") ?? "")
+    ? (params.get("sort") ?? "relevant")
+    : "relevant";
+  const queryPage = Math.max(1, Number(params.get("page") ?? "1") || 1);
+  const queryActiveFiltersKey = queryActiveFilters.join("|");
+  const querySalaryFiltersKey = querySalaryFilters.join("|");
+  const queryExperienceFiltersKey = queryExperienceFilters.join("|");
+  const queryTechnologyFiltersKey = queryTechnologyFilters.join("|");
+  const querySignature = params.toString();
   const [keyword, setKeyword] = useState(queryKeyword);
   const [location, setLocation] = useState(queryLocation);
   const [activeCategory, setActiveCategory] = useState(queryCategory);
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [salaryFilters, setSalaryFilters] = useState<string[]>([]);
-  const [expFilters, setExpFilters] = useState<string[]>([]);
-  const [techFilters, setTechFilters] = useState<string[]>([]);
-  const [techQuery, setTechQuery] = useState("");
-  const [customMinSalary, setCustomMinSalary] = useState("");
-  const [customMaxSalary, setCustomMaxSalary] = useState("");
-  const [sort, setSort] = useState("relevant");
+  const [activeFilters, setActiveFilters] = useState<string[]>(queryActiveFilters);
+  const [salaryFilters, setSalaryFilters] = useState<string[]>(querySalaryFilters);
+  const [expFilters, setExpFilters] = useState<string[]>(queryExperienceFilters);
+  const [techFilters, setTechFilters] = useState<string[]>(queryTechnologyFilters);
+  const [sort, setSort] = useState(querySort);
   const {
     isPending: isSavedJobPending,
     isSessionResolved: isSavedJobsSessionResolved,
@@ -482,16 +595,63 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   } = useCandidateSavedJobs();
   const [applyJob, setApplyJob] = useState<Job | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(queryPage);
   const pageSize = 7;
   const lastLoggedKeywordRef = useRef<string>("");
+  const lastObservedQueryRef = useRef(querySignature);
+  const skipNextFilterReplaceRef = useRef(false);
+  const filterDialogRef = useRef<HTMLElement | null>(null);
+  const filterToggleRef = useRef<HTMLButtonElement | null>(null);
+  const filterCloseRef = useRef<HTMLButtonElement | null>(null);
+  const deferredKeyword = useDeferredValue(keyword);
 
   useEffect(() => {
+    if (lastObservedQueryRef.current === querySignature) return;
+    lastObservedQueryRef.current = querySignature;
+
+    const stateAlreadyMatchesUrl =
+      keyword === queryKeyword &&
+      location === queryLocation &&
+      activeCategory === queryCategory &&
+      activeFilters.join("|") === queryActiveFiltersKey &&
+      salaryFilters.join("|") === querySalaryFiltersKey &&
+      expFilters.join("|") === queryExperienceFiltersKey &&
+      techFilters.join("|") === queryTechnologyFiltersKey &&
+      sort === querySort &&
+      page === queryPage;
+
+    if (stateAlreadyMatchesUrl) return;
+    skipNextFilterReplaceRef.current = true;
     setKeyword(queryKeyword);
     setLocation(queryLocation);
     setActiveCategory(queryCategory);
-    setPage(1);
-  }, [queryCategory, queryKeyword, queryLocation]);
+    setActiveFilters(queryActiveFiltersKey ? queryActiveFiltersKey.split("|") : []);
+    setSalaryFilters(querySalaryFiltersKey ? querySalaryFiltersKey.split("|") : []);
+    setExpFilters(queryExperienceFiltersKey ? queryExperienceFiltersKey.split("|") : []);
+    setTechFilters(queryTechnologyFiltersKey ? queryTechnologyFiltersKey.split("|") : []);
+    setSort(querySort);
+    setPage(queryPage);
+  }, [
+    activeCategory,
+    activeFilters,
+    expFilters,
+    keyword,
+    location,
+    page,
+    queryActiveFiltersKey,
+    queryCategory,
+    queryExperienceFiltersKey,
+    queryKeyword,
+    queryLocation,
+    queryPage,
+    querySalaryFiltersKey,
+    querySignature,
+    querySort,
+    queryTechnologyFiltersKey,
+    salaryFilters,
+    sort,
+    techFilters,
+  ]);
 
   const logKeyword = async (term: string, count: number) => {
     const normalizedTerm = term.trim();
@@ -622,10 +782,15 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
         logoColor: "#10b981",
         verified: job.company?.verificationStatus === "VERIFIED",
-        salary:
-          job.salaryIsVisible && job.salaryMin && job.salaryMax
-            ? `${Math.round(job.salaryMin / 1000000)} - ${Math.round(job.salaryMax / 1000000)} triệu/tháng`
-            : "Thỏa thuận",
+        salary: formatJobSalaryDisplay(job),
+        salaryMinMillions:
+          job.salaryIsVisible && typeof job.salaryMin === "number"
+            ? job.salaryMin / 1_000_000
+            : undefined,
+        salaryMaxMillions:
+          job.salaryIsVisible && typeof job.salaryMax === "number"
+            ? job.salaryMax / 1_000_000
+            : undefined,
         location: jobLocations[0]?.jobLocation?.city || "Việt Nam",
         mode:
           primaryWorkingModel === "onsite"
@@ -690,67 +855,28 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     return skills.length > 0 ? skills : fallbackTechOptions;
   }, [jobs]);
 
-  const filterGroupsList = useMemo(() => {
-    return [
-      {
-        title: "Hình thức làm việc",
-        items: [
-          {
-            label: "Hybrid",
-            value: "hybrid",
-            count: jobs.filter((j) => j.mode.toLowerCase().includes("hybrid")).length,
-          },
-          {
-            label: "Remote",
-            value: "remote",
-            count: jobs.filter((j) => j.mode.toLowerCase().includes("remote")).length,
-          },
-          {
-            label: "Onsite",
-            value: "onsite",
-            count: jobs.filter(
-              (j) =>
-                j.mode.toLowerCase().includes("onsite") || j.mode.toLowerCase().includes("office"),
-            ).length,
-          },
-        ],
-      },
-      {
-        title: "Cấp bậc",
-        items: [
-          {
-            label: "Fresher / Junior",
-            value: "fresher",
-            count: jobs.filter((j) => {
-              const lvl = j.level.toLowerCase();
-              return lvl.includes("fresher") || lvl.includes("junior") || lvl.includes("intern");
-            }).length,
-          },
-          {
-            label: "Middle",
-            value: "middle",
-            count: jobs.filter((j) => {
-              const lvl = j.level.toLowerCase();
-              return lvl.includes("middle") || lvl.includes("mid");
-            }).length,
-          },
-          {
-            label: "Senior",
-            value: "senior",
-            count: jobs.filter((j) => {
-              const lvl = j.level.toLowerCase();
-              return lvl.includes("senior") || lvl.includes("lead");
-            }).length,
-          },
-        ],
-      },
-    ];
-  }, [jobs]);
+  const naturalSearchAnalysis = useMemo(
+    () =>
+      analyzeNaturalLanguageQuery(deferredKeyword, {
+        knownLocations: locationsList.filter((item) => item !== ALL_LOCATIONS),
+        knownSkills: techOptionsList,
+      }),
+    [deferredKeyword, locationsList, techOptionsList],
+  );
 
-  const filteredJobs = useMemo(() => {
-    return jobs
-      .filter((job) => {
-        const matchesKeyword = matchNaturalLanguageSearch(keyword, job);
+  const naturalSearchScores = useMemo(
+    () =>
+      new Map(jobs.map((job) => [job.id, scoreNaturalLanguageSearch(naturalSearchAnalysis, job)])),
+    [jobs, naturalSearchAnalysis],
+  );
+
+  /* Constraints that sit outside the sidebar facets (search box, deep links, location). Facet
+     counts are always measured within this scope so they describe reachable results, not the
+     whole catalogue. */
+  const searchScopedJobs = useMemo(
+    () =>
+      jobs.filter((job) => {
+        const matchesKeyword = naturalSearchScores.get(job.id)?.matches ?? true;
         const matchesTitle = !titleFilter || job.title.toLowerCase() === titleFilter.toLowerCase();
         const matchesSkill =
           !skillFilter || job.tags.some((tag) => tag.toLowerCase() === skillFilter.toLowerCase());
@@ -763,77 +889,8 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
           job.specializations?.some(
             (specialization) => specialization.toLowerCase() === expertiseFilter.toLowerCase(),
           );
-
         const matchesLocation =
           location === ALL_LOCATIONS || job.location.toLowerCase().includes(location.toLowerCase());
-
-        const matchesCategory = activeCategory === "all" || job.categories.includes(activeCategory);
-
-        // Group filters in activeFilters (work modes & ranks) to perform proper OR inside each group, and AND between them
-        const rankFilters = activeFilters.filter((f) =>
-          ["fresher", "middle", "senior"].includes(f),
-        );
-        const matchesRank =
-          rankFilters.length === 0 ||
-          rankFilters.some((filter) => {
-            const lvl = job.level.toLowerCase();
-            if (filter === "fresher") {
-              return lvl.includes("fresher") || lvl.includes("junior") || lvl.includes("intern");
-            }
-            if (filter === "middle") {
-              return lvl.includes("middle") || lvl.includes("mid");
-            }
-            if (filter === "senior") {
-              return lvl.includes("senior") || lvl.includes("lead");
-            }
-            return false;
-          });
-
-        const modeFilters = activeFilters.filter((f) => ["hybrid", "remote", "onsite"].includes(f));
-        const matchesMode =
-          modeFilters.length === 0 ||
-          modeFilters.some((filter) => {
-            if (filter === "hybrid") return job.mode.toLowerCase().includes("hybrid");
-            if (filter === "remote") return job.mode.toLowerCase().includes("remote");
-            if (filter === "onsite") {
-              return (
-                job.mode.toLowerCase().includes("onsite") ||
-                job.mode.toLowerCase().includes("office")
-              );
-            }
-            return false;
-          });
-
-        const matchesSalary =
-          salaryFilters.length === 0 ||
-          salaryFilters.some((filter) => {
-            const { min, max } = parseSalaryRange(job);
-            if (filter === "sal-0-15") return min > 0 && min <= 15;
-            if (filter === "sal-15-25") return !(max < 15 || min > 25);
-            if (filter === "sal-25-40") return !(max < 25 || min > 40);
-            if (filter === "sal-40-60") return !(max < 40 || min > 60);
-            if (filter === "sal-60") return max >= 60;
-            return false;
-          });
-
-        const matchesCustomSalary = (() => {
-          const { min, max } = parseSalaryRange(job);
-          if (customMinSalary && max < parseInt(customMinSalary)) return false;
-          if (customMaxSalary && min > parseInt(customMaxSalary)) return false;
-          return true;
-        })();
-
-        const matchesExperience =
-          expFilters.length === 0 ||
-          expFilters.some((filter) => matchesExperienceRange(job.experienceYears ?? [], filter));
-
-        const matchesTech =
-          techFilters.length === 0 ||
-          techFilters.some(
-            (tech) =>
-              job.skills?.some((skill) => skill.toLowerCase() === tech.toLowerCase()) ||
-              job.title.toLowerCase().includes(tech.toLowerCase()),
-          );
 
         return (
           matchesKeyword &&
@@ -842,16 +899,80 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
           matchesCompany &&
           matchesJobCategory &&
           matchesExpertise &&
-          matchesLocation &&
-          matchesCategory &&
-          matchesRank &&
-          matchesMode &&
-          matchesSalary &&
-          matchesCustomSalary &&
-          matchesExperience &&
-          matchesTech
+          matchesLocation
         );
-      })
+      }),
+    [
+      companyFilter,
+      expertiseFilter,
+      jobCategoryFilter,
+      jobs,
+      location,
+      naturalSearchScores,
+      skillFilter,
+      titleFilter,
+    ],
+  );
+
+  const facetGroupMatchers = useMemo(() => {
+    const levelFilters = activeFilters.filter((filter) => LEVEL_FILTERS.has(filter));
+    const modeFilters = activeFilters.filter((filter) => MODE_FILTERS.has(filter));
+
+    return {
+      category: (job: Job) => activeCategory === "all" || job.categories.includes(activeCategory),
+      level: (job: Job) =>
+        levelFilters.length === 0 || levelFilters.some((filter) => matchesLevelFilter(job, filter)),
+      mode: (job: Job) =>
+        modeFilters.length === 0 || modeFilters.some((filter) => matchesModeFilter(job, filter)),
+      salary: (job: Job) =>
+        salaryFilters.length === 0 ||
+        salaryFilters.some((filter) => matchesSalaryFilter(job, filter)),
+      experience: (job: Job) =>
+        expFilters.length === 0 ||
+        expFilters.some((filter) => matchesExperienceRange(job.experienceYears ?? [], filter)),
+      technology: (job: Job) =>
+        techFilters.length === 0 ||
+        techFilters.some((technology) => matchesTechnologyFilter(job, technology)),
+    } satisfies FacetGroupMatchersFor<Job>;
+  }, [activeCategory, activeFilters, expFilters, salaryFilters, techFilters]);
+
+  const countOptionForGroup = useCallback(
+    (group: FacetGroupKey, matchesOption: (job: Job) => boolean) =>
+      countFacetOption(searchScopedJobs, facetGroupMatchers, group, matchesOption),
+    [facetGroupMatchers, searchScopedJobs],
+  );
+
+  const filterGroupsList = useMemo(
+    () => [
+      {
+        title: "Hình thức làm việc",
+        items: [
+          { label: "Hybrid", value: "hybrid" },
+          { label: "Remote", value: "remote" },
+          { label: "Onsite", value: "onsite" },
+        ].map((item) => ({
+          ...item,
+          count: countOptionForGroup("mode", (job) => matchesModeFilter(job, item.value)),
+        })),
+      },
+      {
+        title: "Cấp bậc",
+        items: [
+          { label: "Fresher / Junior", value: "fresher" },
+          { label: "Middle", value: "middle" },
+          { label: "Senior", value: "senior" },
+        ].map((item) => ({
+          ...item,
+          count: countOptionForGroup("level", (job) => matchesLevelFilter(job, item.value)),
+        })),
+      },
+    ],
+    [countOptionForGroup],
+  );
+
+  const filteredJobs = useMemo(() => {
+    return searchScopedJobs
+      .filter((job) => matchesAllFacetGroups(job, facetGroupMatchers))
       .sort((a, b) => {
         if (sort === "newest") {
           if (a.posted === "Hôm nay" || a.posted === "Mới đăng") return -1;
@@ -861,35 +982,14 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
         if (sort === "salary") {
           return salaryValue(b) - salaryValue(a);
         }
+        const naturalScoreDifference =
+          (naturalSearchScores.get(b.id)?.score ?? 0) - (naturalSearchScores.get(a.id)?.score ?? 0);
+        if (naturalScoreDifference !== 0) return naturalScoreDifference;
         const aScore = (a.featured ? 2 : 0) + (a.urgent ? 1 : 0);
         const bScore = (b.featured ? 2 : 0) + (b.urgent ? 1 : 0);
         return bScore - aScore;
       });
-  }, [
-    activeCategory,
-    activeFilters,
-    expFilters,
-    jobs,
-    keyword,
-    location,
-    salaryFilters,
-    customMinSalary,
-    customMaxSalary,
-    companyFilter,
-    expertiseFilter,
-    jobCategoryFilter,
-    skillFilter,
-    sort,
-    techFilters,
-    titleFilter,
-  ]);
-
-  useEffect(() => {
-    setKeyword(queryKeyword);
-    setLocation(queryLocation);
-    setActiveCategory(queryCategory);
-    setPage(1);
-  }, [queryCategory, queryKeyword, queryLocation]);
+  }, [facetGroupMatchers, naturalSearchScores, searchScopedJobs, sort]);
 
   useEffect(() => {
     if (queryKeyword.trim().length >= 2) {
@@ -901,89 +1001,136 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   const currentPage = Math.min(page, totalPages);
   const shownJobs = filteredJobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const salaryRangesList = useMemo(() => {
-    return salaryRanges.map((range) => {
-      let count = 0;
-      if (range.value === "sal-0-15") {
-        count = jobs.filter((j) => {
-          const { min } = parseSalaryRange(j);
-          return min > 0 && min <= 15;
-        }).length;
-      } else if (range.value === "sal-15-25") {
-        count = jobs.filter((j) => {
-          const { min, max } = parseSalaryRange(j);
-          return !(max < 15 || min > 25);
-        }).length;
-      } else if (range.value === "sal-25-40") {
-        count = jobs.filter((j) => {
-          const { min, max } = parseSalaryRange(j);
-          return !(max < 25 || min > 40);
-        }).length;
-      } else if (range.value === "sal-40-60") {
-        count = jobs.filter((j) => {
-          const { min, max } = parseSalaryRange(j);
-          return !(max < 40 || min > 60);
-        }).length;
-      } else if (range.value === "sal-60") {
-        count = jobs.filter((j) => {
-          const { max } = parseSalaryRange(j);
-          return max >= 60;
-        }).length;
+  const salaryRangesList = useMemo(
+    () =>
+      salaryRanges.map((range) => ({
+        ...range,
+        count: countOptionForGroup("salary", (job) => matchesSalaryFilter(job, range.value)),
+      })),
+    [countOptionForGroup],
+  );
+
+  const experienceOptionsList = useMemo(
+    () =>
+      experienceOptions
+        .map((option) => ({
+          ...option,
+          count: countOptionForGroup("experience", (job) =>
+            matchesExperienceRange(job.experienceYears ?? [], option.value),
+          ),
+        }))
+        // An option already picked stays listed even at zero, otherwise it would vanish while
+        // still constraining the results and leave no way to clear it.
+        .filter((option) => option.count > 0 || expFilters.includes(option.value)),
+    [countOptionForGroup, expFilters],
+  );
+
+  const categories = useMemo(
+    () =>
+      [
+        { key: "all", label: "Tất cả" },
+        { key: "frontend", label: "Frontend" },
+        { key: "backend", label: "Backend" },
+        { key: "mobile", label: "Mobile" },
+        { key: "data-ai", label: "Data / AI" },
+        { key: "devops", label: "DevOps" },
+        { key: "remote", label: "Remote" },
+        { key: "high-salary", label: "Lương cao" },
+      ].map((category) => ({
+        ...category,
+        count: countOptionForGroup("category", (job) =>
+          category.key === "all" ? true : job.categories.includes(category.key),
+        ),
+      })),
+    [countOptionForGroup],
+  );
+
+  const currentFilterPath = useMemo(
+    () =>
+      buildJobsSearchPath({
+        keyword: queryKeyword,
+        location,
+        category: activeCategory,
+        title: titleFilter,
+        skill: skillFilter,
+        company: companyFilter,
+        jobCategory: jobCategoryFilter,
+        expertise: expertiseFilter,
+        activeFilters,
+        salaryFilters,
+        experienceFilters: expFilters,
+        technologyFilters: techFilters,
+        sort,
+        page,
+      }),
+    [
+      activeCategory,
+      activeFilters,
+      companyFilter,
+      expFilters,
+      expertiseFilter,
+      jobCategoryFilter,
+      location,
+      page,
+      queryKeyword,
+      salaryFilters,
+      skillFilter,
+      sort,
+      techFilters,
+      titleFilter,
+    ],
+  );
+
+  useEffect(() => {
+    if (skipNextFilterReplaceRef.current) {
+      skipNextFilterReplaceRef.current = false;
+      return;
+    }
+    replace(currentFilterPath);
+  }, [currentFilterPath, replace]);
+
+  useEffect(() => {
+    if (!showFilters) return undefined;
+
+    const dialog = filterDialogRef.current;
+    const filterToggle = filterToggleRef.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    filterCloseRef.current?.focus();
+
+    function handleDialogKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setShowFilters(false);
+        return;
       }
-      return { ...range, count };
-    });
-  }, [jobs]);
+      if (event.key !== "Tab" || !dialog) return;
 
-  const experienceOptionsList = useMemo(() => {
-    return experienceOptions
-      .map((option) => ({
-        ...option,
-        count: jobs.filter((job) => matchesExperienceRange(job.experienceYears ?? [], option.value))
-          .length,
-      }))
-      .filter((option) => option.count > 0);
-  }, [jobs]);
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute("hidden"));
+      if (focusable.length === 0) return;
 
-  const categories = useMemo(() => {
-    return [
-      { key: "all", label: "Tất cả", count: jobs.length },
-      {
-        key: "frontend",
-        label: "Frontend",
-        count: jobs.filter((j) => j.categories.includes("frontend")).length,
-      },
-      {
-        key: "backend",
-        label: "Backend",
-        count: jobs.filter((j) => j.categories.includes("backend")).length,
-      },
-      {
-        key: "mobile",
-        label: "Mobile",
-        count: jobs.filter((j) => j.categories.includes("mobile")).length,
-      },
-      {
-        key: "data-ai",
-        label: "Data / AI",
-        count: jobs.filter((j) => j.categories.includes("data-ai")).length,
-      },
-      {
-        key: "devops",
-        label: "DevOps",
-        count: jobs.filter((j) => j.categories.includes("devops")).length,
-      },
-      {
-        key: "remote",
-        label: "Remote",
-        count: jobs.filter((j) => j.categories.includes("remote")).length,
-      },
-      {
-        key: "high-salary",
-        label: "Lương cao",
-        count: jobs.filter((j) => j.categories.includes("high-salary")).length,
-      },
-    ];
-  }, [jobs]);
+      const first = focusable[0]!;
+      const last = focusable.at(-1)!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    dialog?.addEventListener("keydown", handleDialogKeyDown);
+    return () => {
+      dialog?.removeEventListener("keydown", handleDialogKeyDown);
+      document.body.style.overflow = previousOverflow;
+      filterToggle?.focus();
+    };
+  }, [showFilters]);
 
   const activeSummary = [
     keyword.trim() ? `Từ khóa: ${keyword.trim()}` : "",
@@ -1017,13 +1164,24 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   }
 
   function navigateToSearch(nextKeyword = keyword, nextLocation = location) {
-    const query = new URLSearchParams();
-    const normalizedKeyword = nextKeyword.trim();
-
-    if (normalizedKeyword) query.set("keyword", normalizedKeyword);
-    if (nextLocation !== ALL_LOCATIONS) query.set("location", nextLocation);
-
-    navigate(`/jobs${query.size ? `?${query.toString()}` : ""}`);
+    const nextPath = buildJobsSearchPath({
+      keyword: nextKeyword,
+      location: nextLocation,
+      category: activeCategory,
+      title: titleFilter,
+      skill: skillFilter,
+      company: companyFilter,
+      jobCategory: jobCategoryFilter,
+      expertise: expertiseFilter,
+      activeFilters,
+      salaryFilters,
+      experienceFilters: expFilters,
+      technologyFilters: techFilters,
+      sort,
+      page: 1,
+    });
+    skipNextFilterReplaceRef.current = nextPath !== currentFilterPath;
+    navigate(nextPath);
   }
 
   function runSearch(event?: React.FormEvent<HTMLFormElement>) {
@@ -1033,6 +1191,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
   }
 
   function resetFilters() {
+    skipNextFilterReplaceRef.current = true;
     setKeyword("");
     setLocation(ALL_LOCATIONS);
     setActiveCategory("all");
@@ -1040,9 +1199,6 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
     setSalaryFilters([]);
     setExpFilters([]);
     setTechFilters([]);
-    setTechQuery("");
-    setCustomMinSalary("");
-    setCustomMaxSalary("");
     setSort("relevant");
     setPage(1);
     navigate("/jobs");
@@ -1082,7 +1238,9 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   type="text"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  placeholder="Tìm kiếm theo vị trí, kỹ năng, công ty..."
+                  placeholder="VD: Senior React remote ở HCM, lương từ 30 triệu"
+                  aria-label="Từ khóa tìm việc"
+                  aria-describedby="jobs-search-help"
                   className="w-full border-none bg-transparent py-2 text-sm font-medium text-slate-800 placeholder-slate-400 outline-none"
                 />
               </div>
@@ -1114,6 +1272,33 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                 Tìm kiếm
               </button>
             </form>
+            <p id="jobs-search-help" className="mt-2 px-1 text-xs leading-relaxed text-slate-500">
+              Mô tả công việc bạn muốn bằng tiếng Việt hoặc tiếng Anh; UpNext sẽ tách các tiêu chí
+              có thể kiểm chứng để lọc kết quả.
+            </p>
+
+            {deferredKeyword.trim() && naturalSearchAnalysis.facets.length > 0 ? (
+              <output
+                className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5"
+                aria-live="polite"
+              >
+                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
+                  <Sparkle size={15} weight="fill" aria-hidden="true" />
+                  UpNext đã hiểu:
+                </span>
+                {naturalSearchAnalysis.facets.map((facet) => (
+                  <span
+                    key={facet.key}
+                    className="rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700"
+                  >
+                    {facet.label}
+                  </span>
+                ))}
+                <span className="text-xs text-slate-500">
+                  Bạn có thể tinh chỉnh thêm bằng bộ lọc nâng cao.
+                </span>
+              </output>
+            ) : null}
           </div>
 
           {/* Popular Keywords */}
@@ -1156,6 +1341,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                 key={category.key}
                 type="button"
                 disabled={category.count === 0}
+                aria-pressed={activeCategory === category.key}
                 className={`flex cursor-pointer items-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-semibold whitespace-nowrap transition ${
                   activeCategory === category.key
                     ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
@@ -1189,7 +1375,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                 <div className="flex items-center gap-6 text-sm font-semibold">
                   <button
                     type="button"
-                    onClick={() => setSort("relevant")}
+                    onClick={() => {
+                      setSort("relevant");
+                      setPage(1);
+                    }}
+                    aria-pressed={sort === "relevant"}
                     className={`cursor-pointer border-b-2 pb-3 transition ${
                       sort === "relevant"
                         ? "border-emerald-600 text-emerald-600"
@@ -1200,7 +1390,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSort("newest")}
+                    onClick={() => {
+                      setSort("newest");
+                      setPage(1);
+                    }}
+                    aria-pressed={sort === "newest"}
                     className={`cursor-pointer border-b-2 pb-3 transition ${
                       sort === "newest"
                         ? "border-emerald-600 text-emerald-600"
@@ -1211,7 +1405,11 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSort("salary")}
+                    onClick={() => {
+                      setSort("salary");
+                      setPage(1);
+                    }}
+                    aria-pressed={sort === "salary"}
                     className={`cursor-pointer border-b-2 pb-3 transition ${
                       sort === "salary"
                         ? "border-emerald-600 text-emerald-600"
@@ -1222,9 +1420,12 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   </button>
                 </div>
                 <button
+                  ref={filterToggleRef}
                   type="button"
                   className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold transition hover:bg-slate-50 lg:hidden"
                   onClick={() => setShowFilters(true)}
+                  aria-controls="jobs-advanced-filters"
+                  aria-expanded={showFilters}
                 >
                   <SlidersHorizontal size={14} /> Bộ lọc
                 </button>
@@ -1251,6 +1452,18 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   </button>
                 </div>
               )}
+
+              <output className="text-sm text-slate-600" aria-live="polite" aria-atomic="true">
+                {isJobsPending ? (
+                  "Đang tìm việc làm phù hợp..."
+                ) : (
+                  <>
+                    Tìm thấy{" "}
+                    <strong className="font-bold text-slate-900">{filteredJobs.length}</strong> việc
+                    làm phù hợp
+                  </>
+                )}
+              </output>
 
               {/* Job Cards */}
               {isJobsPending ? (
@@ -1393,6 +1606,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                               type="button"
                               onClick={() => {
                                 if (!toggleSaveJob(job.id)) {
+                                  toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
                                   navigate("/login?redirect=/jobs");
                                 }
                               }}
@@ -1459,12 +1673,13 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
 
               {/* Pagination */}
               {filteredJobs.length > 0 && totalPages > 1 && (
-                <div
+                <nav
                   className="mt-4 flex items-center justify-center gap-2"
                   aria-label="Phân trang"
                 >
                   <button
                     type="button"
+                    aria-label="Trang trước"
                     disabled={currentPage === 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
@@ -1484,6 +1699,8 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                       <button
                         key={pageNum}
                         type="button"
+                        aria-label={`Trang ${pageNum}`}
+                        aria-current={pageNum === currentPage ? "page" : undefined}
                         onClick={() => setPage(pageNum)}
                         className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-sm font-semibold transition ${
                           pageNum === currentPage
@@ -1497,18 +1714,24 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   })}
                   <button
                     type="button"
+                    aria-label="Trang sau"
                     disabled={currentPage === totalPages}
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
                   >
                     <CaretRight size={16} />
                   </button>
-                </div>
+                </nav>
               )}
             </div>
 
             {/* Right Column: Filter Sidebar (sticky on desktop, modal on mobile) */}
             <aside
+              id="jobs-advanced-filters"
+              ref={filterDialogRef}
+              role={showFilters ? "dialog" : undefined}
+              aria-modal={showFilters ? true : undefined}
+              aria-labelledby="jobs-filter-heading"
               className={`lg:col-span-4 xl:col-span-3 ${
                 showFilters
                   ? "fixed inset-0 z-50 flex flex-col gap-6 overflow-y-auto bg-white p-6"
@@ -1517,7 +1740,10 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
             >
               <div className="flex flex-col gap-5 rounded-2xl bg-white lg:sticky lg:top-24 lg:border lg:border-slate-200 lg:p-5">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h2 className="flex items-center gap-1.5 text-base font-bold text-slate-900">
+                  <h2
+                    id="jobs-filter-heading"
+                    className="flex items-center gap-1.5 text-base font-bold text-slate-900"
+                  >
                     <SlidersHorizontal size={18} className="text-slate-600" />
                     Bộ lọc tìm kiếm
                   </h2>
@@ -1531,6 +1757,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                     </button>
                     {showFilters && (
                       <button
+                        ref={filterCloseRef}
                         type="button"
                         onClick={() => setShowFilters(false)}
                         className="cursor-pointer text-slate-400 hover:text-slate-600 lg:hidden"
@@ -1548,30 +1775,39 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                     <legend className="mb-3 block text-sm font-semibold text-slate-800">
                       Kinh nghiệm
                     </legend>
-                    <div className="flex flex-col gap-2.5">
-                      {experienceOptionsList.map((item) => (
-                        <label
-                          key={item.value}
-                          className={`group flex items-center gap-2.5 ${
-                            item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            disabled={item.count === 0}
-                            aria-label={item.label}
-                            checked={expFilters.includes(item.value)}
-                            onChange={() => toggleIn(setExpFilters, item.value)}
-                            className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
-                          />
-                          <span className="flex flex-1 justify-between text-sm text-slate-600 transition group-hover:text-slate-900">
-                            <span>{item.label}</span>
-                            <span className="text-xs font-medium text-slate-400">
-                              ({item.count})
+                    <div className="flex flex-col gap-1">
+                      {experienceOptionsList.map((item) => {
+                        const isChecked = expFilters.includes(item.value);
+                        // A picked option keeps working at zero so it can always be cleared.
+                        const isDisabled = item.count === 0 && !isChecked;
+
+                        return (
+                          <label
+                            key={item.value}
+                            aria-label={`${item.label}, ${item.count} việc làm`}
+                            className={`jobs-filter-option group flex min-h-8 items-center gap-2.5 rounded-lg px-1.5 py-0.5 ${
+                              isDisabled
+                                ? "cursor-not-allowed opacity-50"
+                                : "jobs-filter-option-enabled cursor-pointer"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              aria-label={item.label}
+                              disabled={isDisabled}
+                              checked={isChecked}
+                              onChange={() => toggleIn(setExpFilters, item.value)}
+                              className="jobs-filter-checkbox h-5 w-5 shrink-0"
+                            />
+                            <span className="jobs-filter-option-copy flex min-w-0 flex-1 justify-between text-sm">
+                              <span>{item.label}</span>
+                              <span className="text-xs font-medium text-slate-400">
+                                ({item.count})
+                              </span>
                             </span>
-                          </span>
-                        </label>
-                      ))}
+                          </label>
+                        );
+                      })}
                     </div>
                   </fieldset>
                 )}
@@ -1581,32 +1817,41 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   <legend className="mb-3 block text-sm font-semibold text-slate-800">
                     Cấp bậc
                   </legend>
-                  <div className="flex flex-col gap-2.5">
+                  <div className="flex flex-col gap-1">
                     {filterGroupsList
                       .find((g) => g.title === "Cấp bậc")
-                      ?.items.map((item) => (
-                        <label
-                          key={item.value}
-                          className={`group flex items-center gap-2.5 ${
-                            item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            disabled={item.count === 0}
-                            aria-label={item.label}
-                            checked={activeFilters.includes(item.value)}
-                            onChange={() => toggleFilter(item.value)}
-                            className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
-                          />
-                          <span className="flex flex-1 justify-between text-sm text-slate-600 transition group-hover:text-slate-900">
-                            <span>{item.label}</span>
-                            <span className="text-xs font-medium text-slate-400">
-                              ({item.count})
+                      ?.items.map((item) => {
+                        const isChecked = activeFilters.includes(item.value);
+                        // A picked option keeps working at zero so it can always be cleared.
+                        const isDisabled = item.count === 0 && !isChecked;
+
+                        return (
+                          <label
+                            key={item.value}
+                            aria-label={`${item.label}, ${item.count} việc làm`}
+                            className={`jobs-filter-option group flex min-h-8 items-center gap-2.5 rounded-lg px-1.5 py-0.5 ${
+                              isDisabled
+                                ? "cursor-not-allowed opacity-50"
+                                : "jobs-filter-option-enabled cursor-pointer"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              aria-label={item.label}
+                              disabled={isDisabled}
+                              checked={isChecked}
+                              onChange={() => toggleFilter(item.value)}
+                              className="jobs-filter-checkbox h-5 w-5 shrink-0"
+                            />
+                            <span className="jobs-filter-option-copy flex min-w-0 flex-1 justify-between text-sm">
+                              <span>{item.label}</span>
+                              <span className="text-xs font-medium text-slate-400">
+                                ({item.count})
+                              </span>
                             </span>
-                          </span>
-                        </label>
-                      ))}
+                          </label>
+                        );
+                      })}
                   </div>
                 </fieldset>
 
@@ -1615,32 +1860,41 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   <legend className="mb-3 block text-sm font-semibold text-slate-800">
                     Hình thức làm việc
                   </legend>
-                  <div className="flex flex-col gap-2.5">
+                  <div className="flex flex-col gap-1">
                     {filterGroupsList
                       .find((g) => g.title === "Hình thức làm việc")
-                      ?.items.map((item) => (
-                        <label
-                          key={item.value}
-                          className={`group flex items-center gap-2.5 ${
-                            item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            disabled={item.count === 0}
-                            aria-label={item.label}
-                            checked={activeFilters.includes(item.value)}
-                            onChange={() => toggleFilter(item.value)}
-                            className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
-                          />
-                          <span className="flex flex-1 justify-between text-sm text-slate-600 transition group-hover:text-slate-900">
-                            <span>{item.label}</span>
-                            <span className="text-xs font-medium text-slate-400">
-                              ({item.count})
+                      ?.items.map((item) => {
+                        const isChecked = activeFilters.includes(item.value);
+                        // A picked option keeps working at zero so it can always be cleared.
+                        const isDisabled = item.count === 0 && !isChecked;
+
+                        return (
+                          <label
+                            key={item.value}
+                            aria-label={`${item.label}, ${item.count} việc làm`}
+                            className={`jobs-filter-option group flex min-h-8 items-center gap-2.5 rounded-lg px-1.5 py-0.5 ${
+                              isDisabled
+                                ? "cursor-not-allowed opacity-50"
+                                : "jobs-filter-option-enabled cursor-pointer"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              aria-label={item.label}
+                              disabled={isDisabled}
+                              checked={isChecked}
+                              onChange={() => toggleFilter(item.value)}
+                              className="jobs-filter-checkbox h-5 w-5 shrink-0"
+                            />
+                            <span className="jobs-filter-option-copy flex min-w-0 flex-1 justify-between text-sm">
+                              <span>{item.label}</span>
+                              <span className="text-xs font-medium text-slate-400">
+                                ({item.count})
+                              </span>
                             </span>
-                          </span>
-                        </label>
-                      ))}
+                          </label>
+                        );
+                      })}
                   </div>
                 </fieldset>
 
@@ -1649,75 +1903,41 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                   <legend className="mb-3 block text-sm font-semibold text-slate-800">
                     Mức lương
                   </legend>
-                  <div className="mb-3 flex flex-col gap-2.5">
-                    {salaryRangesList.map((item) => (
-                      <label
-                        key={item.value}
-                        className={`group flex items-center gap-2.5 ${
-                          item.count === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          disabled={item.count === 0}
-                          aria-label={item.label}
-                          checked={salaryFilters.includes(item.value)}
-                          onChange={() => toggleIn(setSalaryFilters, item.value)}
-                          className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
-                        />
-                        <span className="flex flex-1 justify-between text-sm text-slate-600 transition group-hover:text-slate-900">
-                          <span>{item.label}</span>
-                          <span className="text-xs font-medium text-slate-400">({item.count})</span>
-                        </span>
-                      </label>
-                    ))}
+                  <div className="flex flex-col gap-1">
+                    {salaryRangesList.map((item) => {
+                      const isChecked = salaryFilters.includes(item.value);
+                      // A picked option keeps working at zero so it can always be cleared.
+                      const isDisabled = item.count === 0 && !isChecked;
+
+                      return (
+                        <label
+                          key={item.value}
+                          aria-label={`${item.label}, ${item.count} việc làm`}
+                          className={`jobs-filter-option group flex min-h-8 items-center gap-2.5 rounded-lg px-1.5 py-0.5 ${
+                            isDisabled
+                              ? "cursor-not-allowed opacity-50"
+                              : "jobs-filter-option-enabled cursor-pointer"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            aria-label={item.label}
+                            disabled={isDisabled}
+                            checked={isChecked}
+                            onChange={() => toggleIn(setSalaryFilters, item.value)}
+                            className="jobs-filter-checkbox h-5 w-5 shrink-0"
+                          />
+                          <span className="jobs-filter-option-copy flex min-w-0 flex-1 justify-between text-sm">
+                            <span>{item.label}</span>
+                            <span className="text-xs font-medium text-slate-400">
+                              ({item.count})
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </fieldset>
-
-                {/* Skills Filter */}
-                <div>
-                  <p className="mb-2 block text-sm font-semibold text-slate-800">
-                    Công nghệ / Kỹ năng
-                  </p>
-                  <div className="relative mb-2">
-                    <label className="sr-only" htmlFor="jobs-tech-filter">
-                      Tìm công nghệ hoặc kỹ năng
-                    </label>
-                    <input
-                      id="jobs-tech-filter"
-                      type="text"
-                      placeholder="Tìm công nghệ..."
-                      value={techQuery}
-                      onChange={(e) => setTechQuery(e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 py-2 pr-3 pl-9 text-sm text-slate-700 transition outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                    />
-                    <MagnifyingGlass
-                      size={16}
-                      className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
-                    />
-                  </div>
-                  <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto pr-1">
-                    {techOptionsList
-                      .filter((tech) => tech.toLowerCase().includes(techQuery.toLowerCase()))
-                      .map((tech) => {
-                        const isChecked = techFilters.includes(tech);
-                        return (
-                          <button
-                            key={tech}
-                            type="button"
-                            onClick={() => toggleIn(setTechFilters, tech)}
-                            className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
-                              isChecked
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                : "border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-300"
-                            }`}
-                          >
-                            {tech}
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
 
                 {/* CTA Profile Promotion */}
                 {showFilters && (
@@ -1726,7 +1946,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                     onClick={() => setShowFilters(false)}
                     className="mt-3 w-full cursor-pointer rounded-xl bg-emerald-600 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700"
                   >
-                    Áp dụng bộ lọc
+                    Xem {filteredJobs.length} việc làm
                   </button>
                 )}
 

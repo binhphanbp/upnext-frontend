@@ -322,6 +322,13 @@ export type SavedJobApi = Readonly<{
 
 export type SavedJobMutationApi = Omit<SavedJobApi, "jobPost">;
 
+export type CompanyFollowApi = Readonly<{
+  id: string;
+  candidateProfileId: string;
+  companyId: string;
+  createdAt: string;
+}>;
+
 export type PaginatedResponse<TItem> = Readonly<{
   items: TItem[];
   meta: {
@@ -675,6 +682,26 @@ export function unsaveCandidateJob(token: string, jobPostId: string) {
   });
 }
 
+export function getMyFollowedCompanies(token: string) {
+  return apiRequest<CompanyFollowApi[]>("/company-follows/me", {
+    headers: authHeaders(token),
+  });
+}
+
+export function followCandidateCompany(token: string, companyId: string) {
+  return apiRequest<CompanyFollowApi>(`/companies/${companyId}/follow`, {
+    headers: authHeaders(token),
+    method: "POST",
+  });
+}
+
+export function unfollowCandidateCompany(token: string, companyId: string) {
+  return apiRequest<void>(`/companies/${companyId}/follow`, {
+    headers: authHeaders(token),
+    method: "DELETE",
+  });
+}
+
 export function setCandidateCvDefault(token: string, cvId: string) {
   return apiRequest<CandidateCvApi>(`/cvs/${cvId}/default`, {
     headers: authHeaders(token),
@@ -744,5 +771,17 @@ export function submitApplication(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
+  });
+}
+
+export type CheckAppliedJobApi = Readonly<{
+  applied: boolean;
+  applicationId?: string | null;
+  status?: string | null;
+}>;
+
+export function checkAppliedJob(token: string, jobPostId: string) {
+  return apiRequest<CheckAppliedJobApi>(`/job-posts/${jobPostId}/applications/me`, {
+    headers: authHeaders(token),
   });
 }
