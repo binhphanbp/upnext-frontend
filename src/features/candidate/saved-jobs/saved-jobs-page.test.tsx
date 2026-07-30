@@ -161,24 +161,62 @@ describe("CandidateSavedJobsPage", () => {
     expect(rowFor("Backend con han").getByText(/^Hạn nộp /).className).not.toContain("amber");
   });
 
-  it("offers deadline tabs with a count per urgency", () => {
+  /**
+   * The tracker groups by status behind tabs because it is a queue you monitor. A shortlist is a
+   * working set where every entry is a pending decision, so nothing hides behind a click; sections
+   * put what closes first at the top instead. Tabs were also the tracker's signature control, which
+   * made two very different pages read as the same one.
+   */
+  it("groups by urgency in sections rather than hiding entries behind tabs", () => {
     render(<CandidateSavedJobsPage />);
 
-    const tabs = within(screen.getByRole("group", { name: "Lọc theo hạn nộp" }));
-    expect(tabs.getByRole("button", { name: /^Tất cả/ })).toHaveTextContent("3");
-    expect(tabs.getByRole("button", { name: /^Sắp hết hạn/ })).toHaveTextContent("1");
-    expect(tabs.getByRole("button", { name: /^Còn hạn/ })).toHaveTextContent("1");
-    expect(tabs.getByRole("button", { name: /^Đã đóng/ })).toHaveTextContent("1");
+    expect(screen.queryByRole("group", { name: "Lọc theo hạn nộp" })).not.toBeInTheDocument();
+
+    const headings = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((heading) => heading.textContent);
+    expect(headings).toEqual(["Sắp hết hạn", "Còn hạn"]);
   });
 
-  it("can sort by what closes first", () => {
+  it("puts the closing-soon section above the open one", () => {
     render(<CandidateSavedJobsPage />);
 
-    const options = within(screen.getByLabelText("Sắp xếp việc đã lưu"))
+    const soon = screen.getByRole("heading", { level: 2, name: "Sắp hết hạn" });
+    const open = screen.getByRole("heading", { level: 2, name: "Còn hạn" });
+
+    expect(soon.compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  /** Closed entries stay removable but must not push live decisions down the page. */
+  it("collapses the closed group", () => {
+    const { container } = render(<CandidateSavedJobsPage />);
+
+    const details = container.querySelector("details");
+    expect(details).not.toBeNull();
+    expect(details!.open).toBe(false);
+    expect(within(details!).getByText("Đã đóng")).toBeInTheDocument();
+    expect(within(details!).getByText("(1)")).toBeInTheDocument();
+  });
+
+  it("renders entries as a card grid, not a divided row list", () => {
+    const { container } = render(<CandidateSavedJobsPage />);
+
+    // The tracker uses a single bordered container with divide-y rows.
+    expect(container.querySelector(".divide-y")).toBeNull();
+    expect(container.querySelector("ul.grid")).not.toBeNull();
+  });
+
+  it("defaults to closing-soonest and can sort by pay", () => {
+    render(<CandidateSavedJobsPage />);
+
+    const sortSelect = screen.getByLabelText("Sắp xếp việc đã lưu");
+    expect(sortSelect).toHaveValue("deadline");
+
+    const options = within(sortSelect)
       .getAllByRole("option")
       .map((option) => option.textContent);
-
-    expect(options).toContain("Sắp hết hạn trước");
+    expect(options[0]).toBe("Sắp hết hạn trước");
+    expect(options).toContain("Lương cao nhất");
   });
 
   /**
@@ -192,15 +230,23 @@ describe("CandidateSavedJobsPage", () => {
     expect(screen.queryByText("Đã bỏ việc làm khỏi shortlist.")).not.toBeInTheDocument();
   });
 
-  it("offers a closed row no apply button", () => {
+  it("offers a closed card no apply button", () => {
     render(<CandidateSavedJobsPage />);
 
-    expect(rowFor("Mobile da dong").getByText("Tin đã đóng")).toBeInTheDocument();
     expect(
       rowFor("Mobile da dong").queryByRole("link", { name: /Xem & ứng tuyển/ }),
     ).not.toBeInTheDocument();
+    expect(rowFor("Mobile da dong").getByRole("link", { name: "Xem lại tin" })).toBeInTheDocument();
     expect(
       rowFor("Frontend sap het han").getByRole("link", { name: /Xem & ứng tuyển/ }),
     ).toBeInTheDocument();
+  });
+
+  /** Every card carries a filled apply button, unlike the tracker's read-only rows. */
+  it("gives each open card a primary apply action", () => {
+    render(<CandidateSavedJobsPage />);
+
+    const apply = rowFor("Frontend sap het han").getByRole("link", { name: /Xem & ứng tuyển/ });
+    expect(apply.className).toContain("w-full");
   });
 });

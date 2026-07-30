@@ -172,6 +172,44 @@ export function compareSavedJobDeadline(
   return rank(left) - rank(right);
 }
 
+/** The top of the advertised range, or the floor when only that is published. */
+export function getJobSalaryCeiling(jobPost: CandidateActivityJobPostApi) {
+  if (!jobPost.salaryIsVisible) return null;
+  return toFiniteNumber(jobPost.salaryMax) ?? toFiniteNumber(jobPost.salaryMin);
+}
+
+/** Undisclosed pay sorts last rather than as zero, which would rank it below the worst-paid job. */
+export function compareSavedJobSalary(
+  left: CandidateActivityJobPostApi,
+  right: CandidateActivityJobPostApi,
+) {
+  const ceiling = (jobPost: CandidateActivityJobPostApi) =>
+    getJobSalaryCeiling(jobPost) ?? Number.NEGATIVE_INFINITY;
+
+  return ceiling(right) - ceiling(left);
+}
+
+/**
+ * Sections the shortlist so the closing postings sit at the top of the page.
+ *
+ * Grouping replaces the urgency tabs this page used to carry. A shortlist is small and every entry is
+ * a pending decision, so hiding three quarters of it behind a tab costs more than it saves — and
+ * tabs were also the applications tracker's signature control, which made two very different pages
+ * read as the same one. Empty groups are dropped so no heading announces nothing.
+ */
+export const SAVED_JOB_GROUP_ORDER: readonly SavedJobUrgency[] = ["soon", "open", "closed"];
+
+export function groupSavedJobsByUrgency<TItem>(
+  items: readonly TItem[],
+  readJobPost: (item: TItem) => CandidateActivityJobPostApi,
+  now = new Date(),
+) {
+  return SAVED_JOB_GROUP_ORDER.map((urgency) => ({
+    urgency,
+    items: items.filter((item) => getSavedJobDeadline(readJobPost(item), now).urgency === urgency),
+  })).filter((group) => group.items.length > 0);
+}
+
 function toFiniteNumber(value: number | string | null) {
   if (value === null) return null;
   const parsed = Number(value);

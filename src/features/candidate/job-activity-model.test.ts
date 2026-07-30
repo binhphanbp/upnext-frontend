@@ -8,9 +8,12 @@ import type {
 import {
   canWithdrawApplication,
   compareSavedJobDeadline,
+  compareSavedJobSalary,
   filterApplications,
   getApplicationStatusGroup,
+  getJobSalaryCeiling,
   getSavedJobDeadline,
+  groupSavedJobsByUrgency,
   isSavedJobFilter,
   matchesSavedJobFilter,
   SAVED_JOB_SOON_DAYS,
@@ -157,5 +160,49 @@ describe("saved job deadlines", () => {
     expect(isSavedJobFilter("all")).toBe(true);
     expect(isSavedJobFilter("urgent")).toBe(false);
     expect(isSavedJobFilter(null)).toBe(false);
+  });
+});
+
+describe("saved job grouping and comparison", () => {
+  it("puts the closing group first and the closed group last", () => {
+    const groups = groupSavedJobsByUrgency(
+      [closingInDays(30), closingInDays(-1), closingInDays(2)],
+      (jobPost) => jobPost,
+      now,
+    );
+
+    expect(groups.map((group) => group.urgency)).toEqual(["soon", "open", "closed"]);
+    expect(groups.map((group) => group.items.length)).toEqual([1, 1, 1]);
+  });
+
+  it("drops an empty group so no heading announces nothing", () => {
+    const groups = groupSavedJobsByUrgency([closingInDays(30)], (jobPost) => jobPost, now);
+
+    expect(groups.map((group) => group.urgency)).toEqual(["open"]);
+  });
+
+  it("reads the salary ceiling from the top of the range", () => {
+    expect(
+      getJobSalaryCeiling(savedJobPost({ salaryIsVisible: true, salaryMin: 20, salaryMax: 40 })),
+    ).toBe(40);
+    // Only a floor published: that figure is the best available.
+    expect(
+      getJobSalaryCeiling(savedJobPost({ salaryIsVisible: true, salaryMin: 25, salaryMax: null })),
+    ).toBe(25);
+    expect(getJobSalaryCeiling(savedJobPost({ salaryIsVisible: false, salaryMax: 90 }))).toBeNull();
+  });
+
+  it("sorts the best paid first and sinks undisclosed pay", () => {
+    const jobs = [
+      savedJobPost({ salaryIsVisible: false, title: "Hidden" }),
+      savedJobPost({ salaryIsVisible: true, salaryMax: 30, title: "Thirty" }),
+      savedJobPost({ salaryIsVisible: true, salaryMax: 60, title: "Sixty" }),
+    ];
+
+    expect(jobs.toSorted(compareSavedJobSalary).map((jobPost) => jobPost.title)).toEqual([
+      "Sixty",
+      "Thirty",
+      "Hidden",
+    ]);
   });
 });
