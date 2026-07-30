@@ -21,6 +21,7 @@ import { getAllActivePublicCompanies, type PublicCompany } from "@/features/publ
 import { Link } from "@/i18n/navigation";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { toast } from "@/shared/ui/toast";
+import { Tooltip, TooltipArrow, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
@@ -90,17 +91,17 @@ const copyByLocale = {
       "over-5000": "Trên 5.000 nhân sự",
     } satisfies Record<CompanySizeBand, string>,
     reputationLabel: "Điểm uy tín",
-    reputationSummary: (score: number, tier: string) =>
-      `Uy tín ${score}/${REPUTATION_SCORE_MAX} · ${tier}`,
     reputationTiers: {
       excellent: "Xuất sắc",
       high: "Cao",
       fair: "Khá",
       low: "Thấp",
     } satisfies Record<ReputationTier, string>,
-    reputationHint: (score: number) =>
-      `Điểm uy tín ${score}/${REPUTATION_SCORE_MAX} do UpNext đánh giá dựa trên mức độ hoàn thiện hồ sơ và hoạt động tuyển dụng.`,
-    reputationUnscored: "Chưa có điểm uy tín",
+    // The accessible name, for anyone who cannot reach a hover tooltip.
+    reputationAria: (score: number, tier: string) =>
+      `Điểm uy tín ${score} trên ${REPUTATION_SCORE_MAX}, mức ${tier}`,
+    reputationHint: (score: number, tier: string) =>
+      `Uy tín ${tier} — ${score}/${REPUTATION_SCORE_MAX} điểm, do UpNext đánh giá theo mức độ hoàn thiện hồ sơ và hoạt động tuyển dụng.`,
     follow: "Theo dõi",
     following: "Đang theo dõi",
     followAria: (name: string) => `Theo dõi ${name}`,
@@ -152,17 +153,17 @@ const copyByLocale = {
       "over-5000": "Over 5,000 employees",
     } satisfies Record<CompanySizeBand, string>,
     reputationLabel: "Reputation",
-    reputationSummary: (score: number, tier: string) =>
-      `${score}/${REPUTATION_SCORE_MAX} reputation · ${tier}`,
     reputationTiers: {
       excellent: "Excellent",
       high: "High",
       fair: "Fair",
       low: "Low",
     } satisfies Record<ReputationTier, string>,
-    reputationHint: (score: number) =>
-      `UpNext reputation score of ${score}/${REPUTATION_SCORE_MAX}, based on profile completeness and hiring activity.`,
-    reputationUnscored: "Not scored yet",
+    // The accessible name, for anyone who cannot reach a hover tooltip.
+    reputationAria: (score: number, tier: string) =>
+      `Reputation score ${score} out of ${REPUTATION_SCORE_MAX}, rated ${tier}`,
+    reputationHint: (score: number, tier: string) =>
+      `${tier} reputation — ${score}/${REPUTATION_SCORE_MAX}, scored by UpNext on profile completeness and hiring activity.`,
     follow: "Follow",
     following: "Following",
     followAria: (name: string) => `Follow ${name}`,
@@ -236,18 +237,54 @@ function CompanyLogo({ company }: { company: PublicCompany }) {
   );
 }
 
-/**
- * Only the score itself is tinted. A full-width progress bar was tried first and read as the loudest
- * thing on the card, which is the wrong emphasis twice over: reputation is supporting detail next to
- * the role count, and 94 of 100 live companies score 50-55, so there is barely a difference for a
- * bar to draw. One tinted line carries the same information at the weight it deserves.
- */
 const REPUTATION_TIER_TEXT: Record<ReputationTier, string> = {
   excellent: "text-emerald-700",
   high: "text-emerald-700",
   fair: "text-amber-600",
   low: "text-slate-500",
 };
+
+/**
+ * The score sits in the card corner as a single number, the way a rating usually does, with the
+ * scale and the tier deferred to hover and focus.
+ *
+ * This went through two louder versions first — a full-width bar, then a whole row of its own — and
+ * both over-weighted it: reputation is supporting detail next to the open-role count, and 94 of 100
+ * live companies score 50-55, so there is almost no spread for a prominent treatment to show.
+ *
+ * A number alone would be ambiguous, so the star marks it as a rating. Radix tooltips do not open on
+ * touch, so the trigger carries the whole reading in its accessible name rather than leaving the
+ * scale reachable by pointer only; the tooltip repeats it as the description for sighted users.
+ * An unscored company shows nothing at all, since a dash or a zero would both read as a low score.
+ */
+function ReputationBadge({
+  score,
+  copy,
+}: {
+  score: number | null;
+  copy: (typeof copyByLocale)["vi"] | (typeof copyByLocale)["en"];
+}) {
+  if (score === null) return null;
+
+  const tier = reputationTier(score);
+  const tierLabel = copy.reputationTiers[tier];
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        aria-label={copy.reputationAria(score, tierLabel)}
+        className={`flex shrink-0 cursor-help items-center gap-1 rounded-md px-1 py-0.5 transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:outline-none ${REPUTATION_TIER_TEXT[tier]}`}
+      >
+        <Star size={13} weight="fill" aria-hidden="true" />
+        <span className="text-sm font-extrabold tabular-nums">{score}</span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-[15rem] text-center leading-5">
+        {copy.reputationHint(score, tierLabel)}
+        <TooltipArrow className="fill-slate-950" />
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function PublicCompaniesListPage({ navigate }: CompaniesListPageProps) {
   const locale = useLocale();
@@ -563,7 +600,9 @@ export function PublicCompaniesListPage({ navigate }: CompaniesListPageProps) {
                         <span className="size-14 flex-shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white">
                           <CompanyLogo company={company} />
                         </span>
-                        <div className="min-w-0">
+                        {/* flex-1 + min-w-0 so a long name truncates instead of shoving the score
+                            badge out of the card. */}
+                        <div className="min-w-0 flex-1">
                           <h2 className="truncate text-base font-extrabold text-slate-900">
                             {/* A real link, so a directory entry is crawlable and can be opened
                                 in a new tab like any other search result. */}
@@ -585,6 +624,7 @@ export function PublicCompaniesListPage({ navigate }: CompaniesListPageProps) {
                             ) : null}
                           </p>
                         </div>
+                        <ReputationBadge score={reputation} copy={copy} />
                       </div>
 
                       {company.description ? (
@@ -614,32 +654,6 @@ export function PublicCompaniesListPage({ navigate }: CompaniesListPageProps) {
                           <dt className="sr-only">{copy.jobsLabel}</dt>
                           <Briefcase size={14} aria-hidden="true" />
                           <dd>{copy.jobsCount(company.activeJobsCount)}</dd>
-                        </div>
-                        {/* Sits in the same list as location and headcount rather than above the
-                            buttons, so it reads as one more fact about the company. */}
-                        <div
-                          className="flex items-center gap-2"
-                          {...(reputation !== null
-                            ? { title: copy.reputationHint(reputation) }
-                            : {})}
-                        >
-                          <dt className="sr-only">{copy.reputationLabel}</dt>
-                          <Star
-                            size={14}
-                            weight={reputation === null ? "regular" : "fill"}
-                            aria-hidden="true"
-                            className={reputation === null ? "text-slate-300" : "text-slate-400"}
-                          />
-                          {reputation === null ? (
-                            <dd className="text-slate-400">{copy.reputationUnscored}</dd>
-                          ) : (
-                            <dd className={REPUTATION_TIER_TEXT[reputationTier(reputation)]}>
-                              {copy.reputationSummary(
-                                reputation,
-                                copy.reputationTiers[reputationTier(reputation)],
-                              )}
-                            </dd>
-                          )}
                         </div>
                       </dl>
 

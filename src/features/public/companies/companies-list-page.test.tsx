@@ -3,6 +3,7 @@ import type { AnchorHTMLAttributes } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PublicCompany } from "@/features/public/home/api";
+import { TooltipProvider } from "@/shared/ui/tooltip";
 
 /**
  * The grid only exists after the companies query resolves, which rules out both available
@@ -94,9 +95,16 @@ vi.mock("@tanstack/react-query", () => ({
 
 import { PublicCompaniesListPage } from "./components/companies-list-page";
 
-/** Scoped to the results grid: the header mega menu contributes its own lists and links. */
+/**
+ * Scoped to the results grid: the header mega menu contributes its own lists and links.
+ * TooltipProvider mirrors the real tree, where it sits in Providers at the locale layout root.
+ */
 function renderPage() {
-  render(<PublicCompaniesListPage navigate={vi.fn<(path: string) => void>()} />);
+  render(
+    <TooltipProvider>
+      <PublicCompaniesListPage navigate={vi.fn<(path: string) => void>()} />
+    </TooltipProvider>,
+  );
   return within(screen.getByRole("list", { name: "Danh sách công ty" }));
 }
 
@@ -154,35 +162,54 @@ describe("PublicCompaniesListPage", () => {
     expect(options).toContain("Gia Lai (1)");
   });
 
-  it("shows the reputation score with its tier", () => {
+  it("shows the reputation as a bare score, with the scale in its accessible name", () => {
     renderPage();
 
-    expect(cardFor("FPT Software").getByText("Uy tín 90/100 · Xuất sắc")).toBeInTheDocument();
+    // The corner badge is just the number; the scale and tier are deferred to hover and focus.
+    const badge = cardFor("FPT Software").getByRole("button", {
+      name: "Điểm uy tín 90 trên 100, mức Xuất sắc",
+    });
+    expect(badge).toHaveTextContent("90");
+    expect(badge).not.toHaveTextContent("/100");
     // 50 and 55 must read as one tier, so a five-point gap is not presented as a ranking.
-    expect(cardFor("Tiki Group").getByText("Uy tín 55/100 · Khá")).toBeInTheDocument();
+    expect(
+      cardFor("Tiki Group").getByRole("button", { name: "Điểm uy tín 55 trên 100, mức Khá" }),
+    ).toBeInTheDocument();
   });
 
-  /** A bar was tried first and dominated the card; reputation is supporting detail, not the point. */
-  it("keeps reputation as one line beside the other company facts", () => {
+  /**
+   * A full-width bar and then a whole row were both tried and over-weighted it: reputation is
+   * supporting detail, and 94 of 100 live companies score 50-55 so there is barely any spread.
+   */
+  it("keeps reputation out of the fact list and off any bar", () => {
     renderPage();
 
     const card = cardFor("Tiki Group");
     expect(card.queryByRole("meter")).not.toBeInTheDocument();
     expect(card.queryByRole("progressbar")).not.toBeInTheDocument();
 
-    const facts = card.getByText("Uy tín 55/100 · Khá").closest("dl");
+    const facts = card.getByText("TP. Hồ Chí Minh").closest("dl");
     expect(facts).not.toBeNull();
-    // The same list already holds the city, the headcount and the open-role count.
-    expect(within(facts!).getByText("TP. Hồ Chí Minh")).toBeInTheDocument();
-    expect(within(facts!).getByText("3 vị trí đang mở")).toBeInTheDocument();
+    expect(within(facts!).queryByText(/uy tín/i)).not.toBeInTheDocument();
   });
 
-  it("says a company is unscored instead of drawing it as a zero", () => {
+  /** The badge must be reachable by keyboard, since a hover tooltip is pointer-only. */
+  it("makes the score focusable so its explanation is not hover-only", () => {
+    renderPage();
+
+    const badge = cardFor("Tiki Group").getByRole("button", {
+      name: "Điểm uy tín 55 trên 100, mức Khá",
+    });
+    badge.focus();
+    expect(badge).toHaveFocus();
+  });
+
+  it("shows nothing rather than a zero when a company is unscored", () => {
     renderPage();
 
     const card = cardFor("Chua Cham Diem");
-    expect(card.getByText("Chưa có điểm uy tín")).toBeInTheDocument();
-    expect(card.queryByText(/0\/100/)).not.toBeInTheDocument();
+    expect(card.queryByRole("button", { name: /Điểm uy tín/ })).not.toBeInTheDocument();
+    expect(card.queryByText("0")).not.toBeInTheDocument();
   });
 
   /**
