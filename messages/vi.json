@@ -1781,7 +1781,8 @@
         "resume": "CV đã dùng",
         "resumeVersion": "Phiên bản {version}",
         "submittedAt": "Thời điểm nộp",
-        "coverLetter": "Thư giới thiệu"
+        "coverLetter": "Thư giới thiệu",
+        "viewCv": "Xem CV"
       },
       "current": {
         "title": "Trạng thái hiện tại",
@@ -1835,6 +1836,22 @@
         "confirmAction": "Xác nhận rút",
         "withdrawing": "Đang rút hồ sơ…",
         "error": "Chưa thể rút hồ sơ. Trạng thái có thể vừa thay đổi; hãy tải lại và thử lại."
+      },
+      "changeCv": {
+        "action": "Đổi CV",
+        "title": "Đổi CV đã nộp",
+        "description": "Chọn một CV có sẵn hoặc tải lên CV mới để thay thế CV đính kèm hồ sơ ứng tuyển này.",
+        "currentBadge": "Đang sử dụng",
+        "uploadAnother": "Tải lên CV khác",
+        "uploading": "Đang tải lên…",
+        "uploadError": "Không thể tải lên file. Vui lòng thử lại.",
+        "noCvs": "Bạn chưa có CV nào. Hãy tải lên bên dưới.",
+        "cancel": "Hủy",
+        "submit": "Lưu CV",
+        "submitting": "Đang lưu…",
+        "success": "Đã cập nhật CV thành công.",
+        "error": "Chưa thể cập nhật CV. Trạng thái hồ sơ có thể vừa thay đổi; hãy tải lại và thử lại.",
+        "loadError": "Không thể tải danh sách CV. Vui lòng thử lại."
       }
     },
     "savedJobs": {

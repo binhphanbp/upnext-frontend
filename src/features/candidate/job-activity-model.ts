@@ -16,6 +16,7 @@ const withdrawableStatuses = new Set<CandidateApplicationStatus>([
   "INTERVIEWING",
   "OFFERED",
 ]);
+const cvEditableStatuses = new Set<CandidateApplicationStatus>(["SUBMITTED"]);
 
 export function getApplicationStatusGroup(
   status: CandidateApplicationStatus,
@@ -28,6 +29,10 @@ export function getApplicationStatusGroup(
 
 export function canWithdrawApplication(status: CandidateApplicationStatus) {
   return withdrawableStatuses.has(status);
+}
+
+export function canChangeApplicationCv(status: CandidateApplicationStatus) {
+  return cvEditableStatuses.has(status);
 }
 
 export function filterApplications(

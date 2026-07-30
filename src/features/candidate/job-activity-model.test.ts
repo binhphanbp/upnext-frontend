@@ -20,9 +20,10 @@ function application(
     cvVersion: {
       createdAt: "2026-07-01T00:00:00.000Z",
       cvId: "cv",
+      fileName: "resume.pdf",
       id: "version",
       sourceFileId: null,
-      versionNumber: 1,
+      versionNo: 1,
     },
     cvVersionId: "version",
     hiredAt: null,

@@ -1781,7 +1781,8 @@
         "resume": "Resume used",
         "resumeVersion": "Version {version}",
         "submittedAt": "Submitted at",
-        "coverLetter": "Cover letter"
+        "coverLetter": "Cover letter",
+        "viewCv": "View CV"
       },
       "current": {
         "title": "Current status",
@@ -1835,6 +1836,22 @@
         "confirmAction": "Confirm withdrawal",
         "withdrawing": "Withdrawing…",
         "error": "The application could not be withdrawn. Its status may have changed; reload and try again."
+      },
+      "changeCv": {
+        "action": "Change CV",
+        "title": "Change submitted CV",
+        "description": "Choose one of your existing CVs or upload a new one to replace the CV attached to this application.",
+        "currentBadge": "Currently attached",
+        "uploadAnother": "Upload another CV",
+        "uploading": "Uploading…",
+        "uploadError": "Could not upload the file. Please try again.",
+        "noCvs": "You don't have any CVs yet. Upload one below.",
+        "cancel": "Cancel",
+        "submit": "Save CV",
+        "submitting": "Saving…",
+        "success": "CV updated successfully.",
+        "error": "Could not update the CV. The application status may have changed; reload and try again.",
+        "loadError": "Could not load your CVs. Please try again."
       }
     },
     "savedJobs": {
