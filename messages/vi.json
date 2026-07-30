@@ -1875,13 +1875,26 @@
         "sortLabel": "Sắp xếp việc đã lưu",
         "newest": "Lưu gần đây",
         "oldest": "Lưu lâu nhất",
-        "company": "Tên công ty A–Z"
+        "company": "Tên công ty A–Z",
+        "urgencyLabel": "Lọc theo hạn nộp",
+        "deadline": "Sắp hết hạn trước",
+        "groups": {
+          "all": "Tất cả",
+          "soon": "Sắp hết hạn",
+          "open": "Còn hạn",
+          "closed": "Đã đóng"
+        }
       },
       "card": {
         "savedAt": "Lưu {date}",
         "remove": "Bỏ lưu {title}",
         "viewAndApply": "Xem & ứng tuyển",
-        "unavailable": "Tin đã đóng"
+        "unavailable": "Tin đã đóng",
+        "closesInDays": "Còn {days} ngày để ứng tuyển",
+        "closesToday": "Hết hạn hôm nay",
+        "closesOn": "Hạn nộp {date}",
+        "noDeadline": "Không giới hạn thời gian",
+        "closed": "Đã hết hạn nộp"
       },
       "resume": {
         "title": "Sẵn sàng ứng tuyển",
@@ -1903,7 +1916,13 @@
         "emptyTitle": "Shortlist của bạn đang trống",
         "emptyDescription": "Lưu những công việc thật sự phù hợp để so sánh và quay lại ứng tuyển khi sẵn sàng.",
         "noResultsTitle": "Không có việc làm khớp từ khóa",
-        "noResultsDescription": "Thử một từ khóa khác hoặc xóa tìm kiếm để xem toàn bộ shortlist."
+        "noResultsDescription": "Thử một từ khóa khác hoặc xóa tìm kiếm để xem toàn bộ shortlist.",
+        "noSoonTitle": "Không có tin nào sắp hết hạn",
+        "noSoonDescription": "Các việc đã lưu của bạn đều còn nhiều thời gian. Quay lại đây khi cần ưu tiên xử lý.",
+        "noOpenTitle": "Không còn tin nào đang mở",
+        "noOpenDescription": "Những việc đã lưu đều đã đóng. Tìm thêm cơ hội mới để bổ sung shortlist.",
+        "noClosedTitle": "Chưa có tin nào đã đóng",
+        "noClosedDescription": "Toàn bộ việc trong shortlist vẫn đang nhận hồ sơ."
       },
       "feedback": {
         "removed": "Đã bỏ việc làm khỏi shortlist.",
