@@ -1021,7 +1021,7 @@
   flex: 0 0 auto;
   color: #ffffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   border-radius: 999px;
   background: #10a778;
 }
@@ -1042,16 +1042,18 @@
   white-space: nowrap;
 }
 
+/* Matches the identity inside the panel: the same name must not be one weight on the trigger and
+   another once the menu opens. */
 .marketing-home-account-copy b {
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .marketing-home-account-copy small {
   margin-top: 2px;
   color: #64748b;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .marketing-home-account-trigger > svg:last-child {
@@ -1113,7 +1115,7 @@
   height: 48px;
   color: #ffffff;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   border-radius: 999px;
   background: #10a778;
 }
@@ -1134,17 +1136,21 @@
   white-space: nowrap;
 }
 
+/* The account name is the only thing in this menu that carries emphasis; everything below it is
+   either a quiet label or a navigation item, so the weights step down from here. */
 .marketing-home-account-menu-identity b {
   color: #0f172a;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
+/* The email identifies the account, it is not something to read: semibold made it compete with
+   the name it sits under. */
 .marketing-home-account-menu-identity small {
   margin-top: 3px;
   color: #64748b;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .marketing-home-account-menu-group {
@@ -1156,16 +1162,20 @@
   border-bottom: 0;
 }
 
+/* Uppercase, 11px, tracked out and muted already reads as a section label; 800 on top of all four
+   signals only made it shout over the items it introduces. */
 .marketing-home-account-menu-label {
   display: block;
   padding: 0 10px 7px;
   color: #94a3b8;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
+/* Menu items are the body copy of this panel. At 700 all seven of them competed with the account
+   name and with each other, which is what made the whole menu read as one heavy block. */
 .marketing-home-account-menu button {
   width: 100%;
   display: flex;
@@ -1175,7 +1185,7 @@
   padding: 0 10px;
   color: #334155;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   text-align: left;
   border-radius: 9px;
 }
@@ -1193,8 +1203,10 @@
   right: -6px;
 }
 
+/* Now that items are medium, the current page is the one item that earns extra weight. */
 .marketing-home-account-menu button.is-active {
   color: #0b7f5f;
+  font-weight: 600;
   background: #eafaf2;
 }
 
