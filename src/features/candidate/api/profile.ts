@@ -301,9 +301,10 @@ export type CandidateApplicationApi = Readonly<{
   cvVersion: Readonly<{
     id: string;
     cvId: string;
-    versionNumber: number;
+    versionNo: number;
     sourceFileId: string | null;
     createdAt: string;
+    fileName: string;
   }>;
 }>;
 
@@ -654,6 +655,21 @@ export function getCandidateApplication(token: string, applicationId: string) {
 export function withdrawCandidateApplication(token: string, applicationId: string) {
   return apiRequest<CandidateApplicationMutationApi>(`/applications/${applicationId}/withdraw`, {
     headers: authHeaders(token),
+    method: "PATCH",
+  });
+}
+
+export function updateCandidateApplicationCv(
+  token: string,
+  applicationId: string,
+  payload: { cvVersionId: string },
+) {
+  return apiRequest<CandidateApplicationMutationApi>(`/applications/${applicationId}/cv`, {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
     method: "PATCH",
   });
 }

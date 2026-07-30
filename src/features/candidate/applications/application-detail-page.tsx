@@ -7,8 +7,10 @@ import {
   CalendarBlank,
   Check,
   Clock,
+  Eye,
   FileText,
   MapPin,
+  PencilSimple,
   ShieldCheck,
   SpinnerGap,
   WarningCircle,
@@ -25,6 +27,7 @@ import {
 } from "@/features/candidate/api/profile";
 import { CandidatePageHeader } from "@/features/candidate/candidate-page-header";
 import {
+  canChangeApplicationCv,
   canWithdrawApplication,
   formatJobSalary,
   getCompanyLogo,
@@ -34,7 +37,7 @@ import {
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
 import { getPublicJobs } from "@/features/public/home/api";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/shared/api/http";
+import { ApiError, createApiUrl } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import {
@@ -48,6 +51,7 @@ import {
 import { Skeleton } from "@/shared/ui/skeleton";
 
 import { ApplicationStatusBadge } from "./application-status-badge";
+import { ChangeCvDialog } from "./change-cv-dialog";
 
 type CandidateApplicationDetailPageProps = Readonly<{ applicationId: string }>;
 
@@ -59,6 +63,8 @@ export function CandidateApplicationDetailPage({
   const queryClient = useQueryClient();
   const { isSessionResolved, session } = useCandidateProfileWorkspace();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [changeCvOpen, setChangeCvOpen] = useState(false);
+  const [isViewingCv, setIsViewingCv] = useState(false);
   const detailQueryKey = ["candidate-application", session?.user.id, applicationId] as const;
   const applicationQuery = useQuery({
     enabled: Boolean(session),
@@ -88,6 +94,37 @@ export function CandidateApplicationDetailPage({
       });
     },
   });
+
+  const handleViewCv = async (cvVersionId: string) => {
+    if (!session) return;
+
+    const previewWindow = window.open("about:blank", "_blank");
+    if (!previewWindow) return;
+    previewWindow.opener = null;
+
+    setIsViewingCv(true);
+    try {
+      const response = await fetch(createApiUrl(`/cv-versions/${cvVersionId}/download`), {
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+      });
+      if (!response.ok) throw new Error("CV preview failed");
+
+      const objectUrl = URL.createObjectURL(await response.blob());
+      previewWindow.location.replace(objectUrl);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5 * 60 * 1000);
+    } catch {
+      previewWindow.close();
+    } finally {
+      setIsViewingCv(false);
+    }
+  };
+
+  const handleCvChanged = async () => {
+    await queryClient.invalidateQueries({ queryKey: detailQueryKey });
+    await queryClient.invalidateQueries({
+      queryKey: ["candidate-applications", session?.user.id],
+    });
+  };
 
   const application = applicationQuery.data;
   const isUnauthorized =
@@ -304,7 +341,7 @@ export function CandidateApplicationDetailPage({
               <DetailRow
                 label={t("applicationDetail.submission.resume")}
                 value={t("applicationDetail.submission.resumeVersion", {
-                  version: application.cvVersion.versionNumber,
+                  version: application.cvVersion.versionNo,
                 })}
               />
               <DetailRow
@@ -312,6 +349,33 @@ export function CandidateApplicationDetailPage({
                 value={formatDateTime(application.submittedAt, locale)}
               />
             </dl>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                disabled={isViewingCv}
+                onClick={() => handleViewCv(application.cvVersion.id)}
+              >
+                {isViewingCv ? (
+                  <SpinnerGap aria-hidden="true" className="animate-spin" />
+                ) : (
+                  <Eye aria-hidden="true" />
+                )}
+                {t("applicationDetail.submission.viewCv")}
+              </Button>
+              {canChangeApplicationCv(application.status) ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => setChangeCvOpen(true)}
+                >
+                  <PencilSimple aria-hidden="true" />
+                  {t("applicationDetail.changeCv.action")}
+                </Button>
+              ) : null}
+            </div>
             {application.coverLetter ? (
               <div className="mt-5">
                 <h3 className="text-sm font-bold text-slate-900">
@@ -321,6 +385,16 @@ export function CandidateApplicationDetailPage({
                   {application.coverLetter}
                 </p>
               </div>
+            ) : null}
+            {session ? (
+              <ChangeCvDialog
+                open={changeCvOpen}
+                onOpenChange={setChangeCvOpen}
+                applicationId={applicationId}
+                currentCvVersionId={application.cvVersion.id}
+                accessToken={session.accessToken}
+                onChanged={handleCvChanged}
+              />
             ) : null}
           </section>
         </div>
