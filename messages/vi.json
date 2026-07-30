@@ -1876,14 +1876,8 @@
         "newest": "Lưu gần đây",
         "oldest": "Lưu lâu nhất",
         "company": "Tên công ty A–Z",
-        "urgencyLabel": "Lọc theo hạn nộp",
         "deadline": "Sắp hết hạn trước",
-        "groups": {
-          "all": "Tất cả",
-          "soon": "Sắp hết hạn",
-          "open": "Còn hạn",
-          "closed": "Đã đóng"
-        }
+        "salary": "Lương cao nhất"
       },
       "card": {
         "savedAt": "Lưu {date}",
@@ -1894,7 +1888,10 @@
         "closesToday": "Hết hạn hôm nay",
         "closesOn": "Hạn nộp {date}",
         "noDeadline": "Không giới hạn thời gian",
-        "closed": "Đã hết hạn nộp"
+        "closed": "Đã hết hạn nộp",
+        "locationLabel": "Địa điểm",
+        "salaryLabel": "Mức lương",
+        "viewClosed": "Xem lại tin"
       },
       "resume": {
         "title": "Sẵn sàng ứng tuyển",
@@ -1916,17 +1913,17 @@
         "emptyTitle": "Shortlist của bạn đang trống",
         "emptyDescription": "Lưu những công việc thật sự phù hợp để so sánh và quay lại ứng tuyển khi sẵn sàng.",
         "noResultsTitle": "Không có việc làm khớp từ khóa",
-        "noResultsDescription": "Thử một từ khóa khác hoặc xóa tìm kiếm để xem toàn bộ shortlist.",
-        "noSoonTitle": "Không có tin nào sắp hết hạn",
-        "noSoonDescription": "Các việc đã lưu của bạn đều còn nhiều thời gian. Quay lại đây khi cần ưu tiên xử lý.",
-        "noOpenTitle": "Không còn tin nào đang mở",
-        "noOpenDescription": "Những việc đã lưu đều đã đóng. Tìm thêm cơ hội mới để bổ sung shortlist.",
-        "noClosedTitle": "Chưa có tin nào đã đóng",
-        "noClosedDescription": "Toàn bộ việc trong shortlist vẫn đang nhận hồ sơ."
+        "noResultsDescription": "Thử một từ khóa khác hoặc xóa tìm kiếm để xem toàn bộ shortlist."
       },
       "feedback": {
         "removed": "Đã bỏ việc làm khỏi shortlist.",
         "error": "Không thể cập nhật việc đã lưu. Vui lòng thử lại."
+      },
+      "groups": {
+        "soon": "Sắp hết hạn",
+        "soonHint": "Ưu tiên xử lý trước khi tin đóng.",
+        "open": "Còn hạn",
+        "closed": "Đã đóng"
       }
     }
   },
