@@ -27,7 +27,10 @@ vi.mock("@/i18n/navigation", () => ({
     <a {...props}>{children}</a>
   ),
   usePathname: () => "/companies",
-  useRouter: () => ({ push: vi.fn<(path: string) => void>(), replace: vi.fn() }),
+  useRouter: () => ({
+    push: vi.fn<(path: string) => void>(),
+    replace: vi.fn<(path: string) => void>(),
+  }),
 }));
 vi.mock("@/features/candidate/company-follows", () => ({
   useCandidateCompanyFollows: () => ({
@@ -36,7 +39,7 @@ vi.mock("@/features/candidate/company-follows", () => ({
     isAuthenticated: true,
     isPending: () => false,
     isSessionResolved: true,
-    setCompanyFollowing: vi.fn(),
+    setCompanyFollowing: vi.fn<(companyId: string, following: boolean) => boolean>(),
     toggleFollowCompany,
   }),
 }));

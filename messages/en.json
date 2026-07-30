@@ -1848,13 +1848,26 @@
         "sortLabel": "Sort saved jobs",
         "newest": "Recently saved",
         "oldest": "Oldest saved",
-        "company": "Company name A–Z"
+        "company": "Company name A–Z",
+        "urgencyLabel": "Filter by application deadline",
+        "deadline": "Closing soonest",
+        "groups": {
+          "all": "All",
+          "soon": "Closing soon",
+          "open": "Open",
+          "closed": "Closed"
+        }
       },
       "card": {
         "savedAt": "Saved {date}",
         "remove": "Remove {title} from saved jobs",
         "viewAndApply": "View & apply",
-        "unavailable": "Job closed"
+        "unavailable": "Job closed",
+        "closesInDays": "{days} days left to apply",
+        "closesToday": "Closes today",
+        "closesOn": "Closes {date}",
+        "noDeadline": "No deadline",
+        "closed": "Applications closed"
       },
       "resume": {
         "title": "Ready to apply",
@@ -1876,7 +1889,13 @@
         "emptyTitle": "Your shortlist is empty",
         "emptyDescription": "Save genuinely relevant jobs so you can compare them and apply when ready.",
         "noResultsTitle": "No saved jobs match",
-        "noResultsDescription": "Try another keyword or clear the search to see your full shortlist."
+        "noResultsDescription": "Try another keyword or clear the search to see your full shortlist.",
+        "noSoonTitle": "Nothing closing soon",
+        "noSoonDescription": "Every job you saved still has time left. Come back when something needs priority.",
+        "noOpenTitle": "No open jobs left",
+        "noOpenDescription": "Everything you saved has closed. Find new roles to rebuild your shortlist.",
+        "noClosedTitle": "Nothing has closed yet",
+        "noClosedDescription": "Every job on your shortlist is still accepting applications."
       },
       "feedback": {
         "removed": "Job removed from your shortlist.",

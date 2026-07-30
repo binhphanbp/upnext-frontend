@@ -3,7 +3,9 @@
 import {
   ArrowRight,
   BookmarkSimple,
-  CalendarBlank,
+  CaretLeft,
+  CaretRight,
+  Clock,
   MagnifyingGlass,
   MapPin,
   ShieldCheck,
@@ -25,11 +27,17 @@ import {
 } from "@/features/candidate/api/profile";
 import { CandidatePageHeader } from "@/features/candidate/candidate-page-header";
 import {
+  compareSavedJobDeadline,
   formatJobSalary,
   getCompanyLogo,
   getJobLocation,
   getJobTags,
+  getSavedJobDeadline,
   isJobAvailable,
+  isSavedJobFilter,
+  matchesSavedJobFilter,
+  SAVED_JOB_FILTERS,
+  type SavedJobFilter,
 } from "@/features/candidate/job-activity-model";
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
 import { getPublicJobs } from "@/features/public/home/api";
@@ -39,9 +47,11 @@ import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { toast } from "@/shared/ui/toast";
 
-type SavedJobsSort = "company" | "newest" | "oldest";
+type SavedJobsSort = "company" | "deadline" | "newest" | "oldest";
 const emptySavedJobs: SavedJobApi[] = [];
+const pageSize = 8;
 
 export function CandidateSavedJobsPage() {
   const t = useTranslations("CandidateWorkspace");
@@ -53,10 +63,13 @@ export function CandidateSavedJobsPage() {
   const query = searchParams.get("q") ?? "";
   const sortParam = searchParams.get("sort");
   const sort: SavedJobsSort =
-    sortParam === "company" || sortParam === "oldest" ? sortParam : "newest";
+    sortParam === "company" || sortParam === "oldest" || sortParam === "deadline"
+      ? sortParam
+      : "newest";
+  const urgencyParam = searchParams.get("urgency");
+  const urgency: SavedJobFilter = isSavedJobFilter(urgencyParam) ? urgencyParam : "all";
+  const requestedPage = Math.max(1, Math.floor(Number(searchParams.get("page")) || 1));
   const [draftQuery, setDraftQuery] = useState(query);
-  const [undoJob, setUndoJob] = useState<SavedJobApi | null>(null);
-  const [mutationError, setMutationError] = useState(false);
   const savedJobsQueryKey = ["candidate-saved-jobs", session?.user.id] as const;
 
   const savedJobsQuery = useQuery({
@@ -70,10 +83,21 @@ export function CandidateSavedJobsPage() {
     queryKey: ["public-jobs"],
   });
 
+  const restoreMutation = useMutation({
+    mutationFn: (savedJob: SavedJobApi) =>
+      saveCandidateJob(session!.accessToken, savedJob.jobPostId),
+    onError: () => toast.error(t("savedJobs.feedback.error")),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: savedJobsQueryKey });
+    },
+  });
+
+  /* Removal reports through the app-wide toaster rather than a second fixed layer of this page's
+     own: two stacks pinned to the same corner would overlap, and this one gets the shared
+     stacking, animation and swipe-to-dismiss for free. */
   const unsaveMutation = useMutation({
     mutationFn: (jobPostId: string) => unsaveCandidateJob(session!.accessToken, jobPostId),
     onMutate: async (jobPostId) => {
-      setMutationError(false);
       await queryClient.cancelQueries({ queryKey: savedJobsQueryKey });
       const previous = queryClient.getQueryData<SavedJobApi[]>(savedJobsQueryKey) ?? [];
       const removed = previous.find((savedJob) => savedJob.jobPostId === jobPostId) ?? null;
@@ -84,31 +108,29 @@ export function CandidateSavedJobsPage() {
     },
     onError: (_error, _jobPostId, context) => {
       if (context?.previous) queryClient.setQueryData(savedJobsQueryKey, context.previous);
-      setMutationError(true);
+      toast.error(t("savedJobs.feedback.error"));
     },
     onSuccess: (_data, _jobPostId, context) => {
-      if (context?.removed) setUndoJob(context.removed);
-    },
-  });
-  const restoreMutation = useMutation({
-    mutationFn: (savedJob: SavedJobApi) =>
-      saveCandidateJob(session!.accessToken, savedJob.jobPostId),
-    onError: () => setMutationError(true),
-    onSettled: async () => {
-      setUndoJob(null);
-      await queryClient.invalidateQueries({ queryKey: savedJobsQueryKey });
+      const removed = context?.removed;
+      if (!removed) return;
+
+      const toastId = `unsave-job-${removed.jobPostId}`;
+      toast.success(t("savedJobs.feedback.removed"), {
+        id: toastId,
+        action: {
+          label: t("common.undo"),
+          onClick: () => {
+            toast.dismiss(toastId);
+            restoreMutation.mutate(removed);
+          },
+        },
+      });
     },
   });
 
   useEffect(() => {
     setDraftQuery(query);
   }, [query]);
-
-  useEffect(() => {
-    if (!undoJob) return;
-    const timeout = window.setTimeout(() => setUndoJob(null), 6000);
-    return () => window.clearTimeout(timeout);
-  }, [undoJob]);
 
   const publicJobsById = useMemo(
     () => new Map((publicJobsQuery.data ?? []).map((job) => [job.id, job])),
@@ -117,30 +139,63 @@ export function CandidateSavedJobsPage() {
   const savedJobs = savedJobsQuery.data ?? emptySavedJobs;
   const isUnauthorized =
     savedJobsQuery.error instanceof ApiError && savedJobsQuery.error.status === 401;
+  const matchesQuery = (savedJob: SavedJobApi, normalizedQuery: string) =>
+    !normalizedQuery ||
+    [savedJob.jobPost.title, savedJob.jobPost.company.name]
+      .join(" ")
+      .toLocaleLowerCase()
+      .includes(normalizedQuery);
+
+  /**
+   * Counted within the search but across every urgency, so a tab reports what picking it would show
+   * rather than collapsing to zero once another tab is active.
+   */
+  const urgencyCounts = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const searched = savedJobs.filter((savedJob) => matchesQuery(savedJob, normalizedQuery));
+
+    return SAVED_JOB_FILTERS.reduce<Record<SavedJobFilter, number>>(
+      (result, group) => {
+        result[group] = searched.filter((savedJob) =>
+          matchesSavedJobFilter(savedJob.jobPost, group),
+        ).length;
+        return result;
+      },
+      { all: 0, closed: 0, open: 0, soon: 0 },
+    );
+  }, [query, savedJobs]);
+
   const visibleJobs = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     return savedJobs
-      .filter((savedJob) => {
-        if (!normalizedQuery) return true;
-        return [savedJob.jobPost.title, savedJob.jobPost.company.name]
-          .join(" ")
-          .toLocaleLowerCase()
-          .includes(normalizedQuery);
-      })
+      .filter(
+        (savedJob) =>
+          matchesQuery(savedJob, normalizedQuery) &&
+          matchesSavedJobFilter(savedJob.jobPost, urgency),
+      )
       .toSorted((left, right) => {
         if (sort === "company") {
           return left.jobPost.company.name.localeCompare(right.jobPost.company.name, locale);
         }
+        if (sort === "deadline") {
+          return compareSavedJobDeadline(left.jobPost, right.jobPost);
+        }
         const difference = new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
         return sort === "newest" ? difference : -difference;
       });
-  }, [locale, query, savedJobs, sort]);
+  }, [locale, query, savedJobs, sort, urgency]);
+
+  const totalPages = Math.max(1, Math.ceil(visibleJobs.length / pageSize));
+  const page = Math.min(requestedPage, totalPages);
+  const paginatedJobs = visibleJobs.slice((page - 1) * pageSize, page * pageSize);
   const updateSearch = (changes: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams.toString());
     Object.entries(changes).forEach(([key, value]) => {
       if (!value || (key === "sort" && value === "newest")) next.delete(key);
       else next.set(key, value);
     });
+    // Narrowing the list invalidates the current page, so drop it unless the change is the page.
+    if (!("page" in changes)) next.delete("page");
     const suffix = next.toString();
     router.replace(suffix ? `/candidate/saved-jobs?${suffix}` : "/candidate/saved-jobs", {
       scroll: false,
@@ -215,16 +270,37 @@ export function CandidateSavedJobsPage() {
       {savedJobsQuery.isSuccess ? (
         <section className="min-w-0" aria-labelledby="saved-jobs-list-title">
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 id="saved-jobs-list-title" className="text-lg font-bold text-slate-950">
-                    {t("savedJobs.list.title")}
-                  </h2>
-                  <p className="mt-1 text-xs font-medium text-slate-500">
-                    {t("savedJobs.list.count", { count: visibleJobs.length })}
-                  </p>
-                </div>
+            <div className="border-b border-slate-200 px-4 pt-4 sm:px-5 sm:pt-5">
+              <h2 id="saved-jobs-list-title" className="text-lg font-bold text-slate-950">
+                {t("savedJobs.list.title")}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {t("savedJobs.list.count", { count: visibleJobs.length })}
+              </p>
+              {/* Deadline tabs, not status tabs: a shortlist is triaged by what closes first, and
+                  "Sắp hết hạn" is the whole reason to revisit this page. */}
+              <div
+                className="hide-scroll mt-4 flex gap-5 overflow-x-auto"
+                role="group"
+                aria-label={t("savedJobs.filters.urgencyLabel")}
+              >
+                {SAVED_JOB_FILTERS.map((group) => (
+                  <button
+                    key={group}
+                    type="button"
+                    aria-pressed={urgency === group}
+                    onClick={() => updateSearch({ urgency: group === "all" ? null : group })}
+                    className={cn(
+                      "upnext-focus relative min-h-11 shrink-0 border-b-2 px-0.5 pb-3 text-sm font-bold transition-colors",
+                      urgency === group
+                        ? "border-brand text-accent-foreground"
+                        : "border-transparent text-slate-500 hover:text-slate-900",
+                    )}
+                  >
+                    {t(`savedJobs.filters.groups.${group}`)}
+                    <span className="ml-1.5 text-xs tabular-nums">{urgencyCounts[group]}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -271,15 +347,16 @@ export function CandidateSavedJobsPage() {
                   className="upnext-focus h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700"
                 >
                   <option value="newest">{t("savedJobs.filters.newest")}</option>
+                  <option value="deadline">{t("savedJobs.filters.deadline")}</option>
                   <option value="oldest">{t("savedJobs.filters.oldest")}</option>
                   <option value="company">{t("savedJobs.filters.company")}</option>
                 </select>
               </div>
             </div>
 
-            {visibleJobs.length > 0 ? (
+            {paginatedJobs.length > 0 ? (
               <ul className="divide-y divide-slate-200">
-                {visibleJobs.map((savedJob) => (
+                {paginatedJobs.map((savedJob) => (
                   <li key={savedJob.id}>
                     <SavedJobRow
                       fallbackLogo={
@@ -301,41 +378,19 @@ export function CandidateSavedJobsPage() {
                 ))}
               </ul>
             ) : (
-              <EmptySavedJobs hasSavedJobs={savedJobs.length > 0} />
+              <EmptySavedJobs hasSavedJobs={savedJobs.length > 0} urgency={urgency} />
             )}
+
+            {visibleJobs.length > pageSize ? (
+              <SavedJobsPagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={(nextPage) => updateSearch({ page: String(nextPage) })}
+              />
+            ) : null}
           </div>
         </section>
       ) : null}
-
-      <div
-        className="fixed right-4 bottom-4 z-50 flex w-[min(380px,calc(100vw-32px))] flex-col gap-2"
-        aria-live="polite"
-      >
-        {undoJob ? (
-          <div className="flex items-center gap-3 rounded-xl bg-slate-950 p-3.5 text-white shadow-2xl">
-            <BookmarkSimple aria-hidden="true" className="shrink-0" size={20} />
-            <p className="min-w-0 flex-1 truncate text-sm font-semibold">
-              {t("savedJobs.feedback.removed")}
-            </p>
-            <button
-              type="button"
-              disabled={restoreMutation.isPending}
-              onClick={() => restoreMutation.mutate(undoJob)}
-              className="upnext-focus min-h-9 rounded-lg px-2 text-sm font-bold text-emerald-300 hover:bg-white/10 disabled:opacity-60"
-            >
-              {restoreMutation.isPending ? t("common.restoring") : t("common.undo")}
-            </button>
-          </div>
-        ) : null}
-        {mutationError ? (
-          <div
-            role="alert"
-            className="rounded-xl bg-red-700 px-4 py-3 text-sm font-semibold text-white shadow-2xl"
-          >
-            {t("savedJobs.feedback.error")}
-          </div>
-        ) : null}
-      </div>
     </div>
   );
 }
@@ -362,6 +417,24 @@ function SavedJobRow({
   const savedAt = new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
     new Date(savedJob.createdAt),
   );
+  const { daysLeft, urgency } = getSavedJobDeadline(savedJob.jobPost);
+  const deadlineDate = savedJob.jobPost.expiredAt
+    ? new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
+        new Date(savedJob.jobPost.expiredAt),
+      )
+    : null;
+
+  /**
+   * The deadline, not the save date, is what decides whether to act — the page description promises
+   * applying before a posting expires, so the countdown leads and the save date is demoted.
+   */
+  const deadlineLabel = (() => {
+    if (urgency === "closed") return t("savedJobs.card.closed");
+    if (daysLeft === null) return t("savedJobs.card.noDeadline");
+    if (daysLeft <= 0) return t("savedJobs.card.closesToday");
+    if (urgency === "soon") return t("savedJobs.card.closesInDays", { days: daysLeft });
+    return t("savedJobs.card.closesOn", { date: deadlineDate ?? "" });
+  })();
 
   return (
     <article className="group p-5 transition-colors hover:bg-slate-50 sm:px-6">
@@ -410,13 +483,32 @@ function SavedJobRow({
             </button>
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-500">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-slate-500">
             <span className="inline-flex items-center gap-1.5">
               <MapPin aria-hidden="true" size={15} />
               {location}
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarBlank aria-hidden="true" size={15} />
+            {/* Amber only inside the warning window: colouring every deadline would make the badge
+                mean nothing when one is genuinely close. */}
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-semibold",
+                urgency === "soon"
+                  ? "bg-amber-50 text-amber-800"
+                  : urgency === "closed"
+                    ? "bg-slate-100 text-slate-500"
+                    : "text-slate-500",
+              )}
+            >
+              {urgency === "soon" ? (
+                <Clock aria-hidden="true" size={15} weight="fill" />
+              ) : (
+                <Clock aria-hidden="true" size={15} />
+              )}
+              {deadlineLabel}
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-slate-400">
+              <BookmarkSimple aria-hidden="true" size={15} />
               {t("savedJobs.card.savedAt", { date: savedAt })}
             </span>
           </div>
@@ -457,27 +549,85 @@ function SavedJobRow({
   );
 }
 
-function EmptySavedJobs({ hasSavedJobs }: Readonly<{ hasSavedJobs: boolean }>) {
+/**
+ * An empty tab is not the same as an empty shortlist: "no deadlines close soon" is good news, while
+ * "you saved nothing" needs a nudge to go browse. Saying the right one keeps the page from reading
+ * like a dead end.
+ */
+function EmptySavedJobs({
+  hasSavedJobs,
+  urgency,
+}: Readonly<{ hasSavedJobs: boolean; urgency: SavedJobFilter }>) {
   const t = useTranslations("CandidateWorkspace");
+
+  const state = (() => {
+    if (!hasSavedJobs) {
+      return { key: "empty", clear: false } as const;
+    }
+    if (urgency === "soon") return { key: "noSoon", clear: true } as const;
+    if (urgency === "open") return { key: "noOpen", clear: true } as const;
+    if (urgency === "closed") return { key: "noClosed", clear: true } as const;
+    return { key: "noResults", clear: true } as const;
+  })();
+
   return (
     <div className="px-5 py-14 text-center sm:py-16">
       <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-100 text-slate-500">
         <BookmarkSimple aria-hidden="true" size={26} />
       </span>
       <h2 className="mt-4 text-lg font-bold text-slate-950">
-        {hasSavedJobs ? t("savedJobs.states.noResultsTitle") : t("savedJobs.states.emptyTitle")}
+        {t(`savedJobs.states.${state.key}Title`)}
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-        {hasSavedJobs
-          ? t("savedJobs.states.noResultsDescription")
-          : t("savedJobs.states.emptyDescription")}
+        {t(`savedJobs.states.${state.key}Description`)}
       </p>
-      <Button asChild variant={hasSavedJobs ? "outline" : "primary"} className="mt-5 rounded-xl">
-        <Link href={hasSavedJobs ? "/candidate/saved-jobs" : "/jobs"}>
-          {hasSavedJobs ? t("common.clearFilters") : t("common.exploreJobs")}
+      <Button asChild variant={state.clear ? "outline" : "primary"} className="mt-5 rounded-xl">
+        <Link href={state.clear ? "/candidate/saved-jobs" : "/jobs"}>
+          {state.clear ? t("common.clearFilters") : t("common.exploreJobs")}
         </Link>
       </Button>
     </div>
+  );
+}
+
+function SavedJobsPagination({
+  onPageChange,
+  page,
+  totalPages,
+}: Readonly<{ onPageChange: (page: number) => void; page: number; totalPages: number }>) {
+  const t = useTranslations("CandidateWorkspace");
+
+  return (
+    <nav
+      className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-4 sm:px-5"
+      aria-label={t("common.pagination")}
+    >
+      <p className="text-xs font-semibold text-slate-500 tabular-nums">
+        {t("common.pageCount", { page, totalPages })}
+      </p>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={t("common.previousPage")}
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+          className="rounded-xl"
+        >
+          <CaretLeft aria-hidden="true" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={t("common.nextPage")}
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+          className="rounded-xl"
+        >
+          <CaretRight aria-hidden="true" />
+        </Button>
+      </div>
+    </nav>
   );
 }
 
