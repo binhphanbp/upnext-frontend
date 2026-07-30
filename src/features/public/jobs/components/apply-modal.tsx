@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  BookmarkSimple,
-  CheckCircle,
-  FilePdf,
-  PaperPlaneTilt,
-  Sparkle,
-  UploadSimple,
-  X,
-} from "@phosphor-icons/react";
+import { CheckCircle, FilePdf, UploadSimple, X } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -23,7 +15,6 @@ import { getCandidateSession } from "@/features/candidate/session";
 import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
-import { Card, CardContent } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 
 type ApplyModalProps = Readonly<{
@@ -268,10 +259,14 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                  <label
+                    htmlFor="apply-email"
+                    className="mb-1.5 block text-xs font-bold text-slate-700"
+                  >
                     Địa chỉ email
                   </label>
                   <Input
+                    id="apply-email"
                     type="email"
                     value={session?.user?.email || ""}
                     readOnly
@@ -301,9 +296,9 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
 
               {/* CV Selector */}
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                <p className="mb-1.5 block text-xs font-bold text-slate-700">
                   Chọn CV ứng tuyển <span className="text-red-500">*</span>
-                </label>
+                </p>
 
                 {isLoadingCvs ? (
                   <div className="flex h-16 items-center justify-center rounded-xl border border-slate-100 bg-slate-50">
@@ -359,6 +354,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                 <input
                   type="file"
                   ref={fileInputRef}
+                  aria-label="Tải lên CV"
                   onChange={handleFileUpload}
                   accept=".pdf,.doc,.docx"
                   className="hidden"

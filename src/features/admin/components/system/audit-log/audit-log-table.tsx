@@ -198,7 +198,7 @@ export const getColumns = (t: any): ColumnDef<AdminAuditLog>[] => [
   {
     id: "actions",
     header: () => <div className="text-right">{t("actions")}</div>,
-    cell: ({ row }) => {
+    cell: () => {
       return (
         <div className="text-right">
           <DropdownMenu>

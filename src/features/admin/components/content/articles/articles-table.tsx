@@ -293,6 +293,7 @@ export function ArticlesTable() {
             <th className="w-12 border-r border-slate-300 px-4 py-3 text-center last:border-r-0">
               <input
                 type="checkbox"
+                aria-label="Chọn tất cả"
                 className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
                 checked={isAllPageSelected}
                 onChange={(e) => handleSelectAll(e.target.checked)}
@@ -371,6 +372,7 @@ export function ArticlesTable() {
                   <td className="w-12 border-r border-slate-200 px-4 py-3 text-center last:border-r-0">
                     <input
                       type="checkbox"
+                      aria-label={`Chọn ${article.title}`}
                       className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
                       checked={selectedIds.includes(article.id)}
                       onChange={(e) => handleSelectOne(article.id, e.target.checked)}

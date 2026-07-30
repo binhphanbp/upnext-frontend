@@ -460,41 +460,6 @@ export function RecruiterMembersPage() {
     }
   };
 
-  const handleBulkRoleChange = async (roleId: string) => {
-    if (selectedModifiableMemberIds.length === 0 || !roleId) return;
-
-    const selectedRole = roles.find((r) => r.id === roleId);
-    if (!selectedRole) return;
-
-    const result = await Swal.fire({
-      icon: "warning",
-      title: "Thay đổi vai trò tuyển dụng?",
-      text: `Bạn có chắc chắn muốn đổi vai trò của ${selectedModifiableMemberIds.length} thành viên đã chọn thành "${selectedRole.name}"?`,
-      showCancelButton: true,
-      confirmButtonText: "Đồng ý",
-      cancelButtonText: t("team.actions.cancel"),
-    });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      setLoading(true);
-      await Promise.all(
-        selectedModifiableMemberIds.map((id) => updateCompanyMemberRole(id, roleId, token)),
-      );
-      setRowSelection({});
-      await reload();
-      void toast.fire({
-        icon: "success",
-        title: "Đã thay đổi vai trò các thành viên thành công.",
-      });
-    } catch (error) {
-      showActionError(error, t);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleExport = () => {
     const dataToExport =
       selectedMemberIds.length > 0

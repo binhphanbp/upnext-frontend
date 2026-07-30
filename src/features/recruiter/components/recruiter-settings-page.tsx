@@ -144,17 +144,20 @@ function ToggleSwitch({
   onChange,
   disabled = false,
   id,
+  label,
 }: {
   checked: boolean;
   onChange: (val: boolean) => void;
   disabled?: boolean;
   id?: string;
+  label?: string;
 }) {
   return (
     <button
       type="button"
       id={id}
       role="switch"
+      aria-label={label}
       aria-checked={checked}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
@@ -215,38 +218,6 @@ export function RecruiterSettingsPage() {
 
   // Security tab state
   const [tfaEnabled, setTfaEnabled] = useState(false);
-
-  // Device & IP State
-  const [userIp, setUserIp] = useState("Đang tải...");
-  const [deviceInfo, setDeviceInfo] = useState({ browser: "Chrome", os: "Windows" });
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const ua = navigator.userAgent;
-      let os = "Windows";
-      let browser = "Chrome";
-
-      if (ua.indexOf("Win") !== -1) os = "Windows";
-      else if (ua.indexOf("Mac") !== -1) os = "macOS";
-      else if (ua.indexOf("Linux") !== -1) os = "Linux";
-      else if (ua.indexOf("Android") !== -1) os = "Android";
-      else if (ua.indexOf("like Mac") !== -1) os = "iOS";
-
-      if (ua.indexOf("Firefox") !== -1) browser = "Firefox";
-      else if (ua.indexOf("SamsungBrowser") !== -1) browser = "Samsung Browser";
-      else if (ua.indexOf("Opera") !== -1 || ua.indexOf("OPR") !== -1) browser = "Opera";
-      else if (ua.indexOf("Edge") !== -1 || ua.indexOf("Edg") !== -1) browser = "Edge";
-      else if (ua.indexOf("Chrome") !== -1) browser = "Chrome";
-      else if (ua.indexOf("Safari") !== -1) browser = "Safari";
-
-      setDeviceInfo({ browser, os });
-
-      fetch("https://api.ipify.org?format=json")
-        .then((res) => res.json())
-        .then((data) => setUserIp(data.ip))
-        .catch(() => setUserIp("127.0.0.1"));
-    }
-  }, []);
 
   const fetchDetails = useCallback(
     async (id: string, accessToken: string) => {
@@ -872,7 +843,11 @@ export function RecruiterSettingsPage() {
                         <p className="text-[11px] text-slate-400">{email || "Hộp thư recruiter"}</p>
                       </div>
                     </div>
-                    <ToggleSwitch checked={channelEmail} onChange={setChannelEmail} />
+                    <ToggleSwitch
+                      checked={channelEmail}
+                      onChange={setChannelEmail}
+                      label="Email cá nhân"
+                    />
                   </div>
 
                   {/* Web Push Channel */}
@@ -902,7 +877,11 @@ export function RecruiterSettingsPage() {
                         <p className="text-[11px] text-slate-400">Cảnh báo thả xuống tức thì</p>
                       </div>
                     </div>
-                    <ToggleSwitch checked={channelPush} onChange={setChannelPush} />
+                    <ToggleSwitch
+                      checked={channelPush}
+                      onChange={setChannelPush}
+                      label="Trình duyệt & Web Push"
+                    />
                   </div>
 
                   {/* SMS Channel */}
@@ -932,7 +911,11 @@ export function RecruiterSettingsPage() {
                         <p className="text-[11px] text-slate-400">Dành cho việc gấp & lịch hẹn</p>
                       </div>
                     </div>
-                    <ToggleSwitch checked={channelSms} onChange={setChannelSms} />
+                    <ToggleSwitch
+                      checked={channelSms}
+                      onChange={setChannelSms}
+                      label="Tin nhắn SMS quan trọng"
+                    />
                   </div>
                 </div>
               </div>
@@ -1148,7 +1131,11 @@ export function RecruiterSettingsPage() {
                       </p>
                     </div>
                   </div>
-                  <ToggleSwitch checked={quietHours} onChange={setQuietHours} />
+                  <ToggleSwitch
+                    checked={quietHours}
+                    onChange={setQuietHours}
+                    label="Khung giờ yên tĩnh"
+                  />
                 </div>
               </div>
 

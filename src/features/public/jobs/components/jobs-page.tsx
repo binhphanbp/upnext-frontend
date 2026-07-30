@@ -1559,6 +1559,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                           <input
                             type="checkbox"
                             disabled={item.count === 0}
+                            aria-label={item.label}
                             checked={expFilters.includes(item.value)}
                             onChange={() => toggleIn(setExpFilters, item.value)}
                             className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
@@ -1593,6 +1594,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                           <input
                             type="checkbox"
                             disabled={item.count === 0}
+                            aria-label={item.label}
                             checked={activeFilters.includes(item.value)}
                             onChange={() => toggleFilter(item.value)}
                             className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
@@ -1626,6 +1628,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                           <input
                             type="checkbox"
                             disabled={item.count === 0}
+                            aria-label={item.label}
                             checked={activeFilters.includes(item.value)}
                             onChange={() => toggleFilter(item.value)}
                             className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"
@@ -1657,6 +1660,7 @@ export function PublicJobsPage({ navigate }: PublicJobsPageProps) {
                         <input
                           type="checkbox"
                           disabled={item.count === 0}
+                          aria-label={item.label}
                           checked={salaryFilters.includes(item.value)}
                           onChange={() => toggleIn(setSalaryFilters, item.value)}
                           className="custom-checkbox h-4 w-4 cursor-pointer rounded border-gray-300 accent-emerald-500"

@@ -15,7 +15,6 @@ const toast = Swal.mixin({
 });
 
 import {
-  type AdminReportResponse,
   type AdminReportStatus,
   getAdminReports,
   updateAdminReportStatus,
@@ -26,7 +25,6 @@ import { useRouter } from "@/i18n/navigation";
 import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import { Checkbox } from "@/shared/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -261,6 +259,7 @@ export function ModerationTable() {
             <th className="w-12 border-r border-slate-300 px-4 py-3 text-center last:border-r-0">
               <input
                 type="checkbox"
+                aria-label="Chọn tất cả"
                 className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
                 checked={isAllPageSelected}
                 onChange={(e) => handleSelectAll(e.target.checked)}
@@ -326,6 +325,7 @@ export function ModerationTable() {
                   <td className="border-r border-slate-200 px-4 py-3 text-center align-middle">
                     <input
                       type="checkbox"
+                      aria-label={`Chọn báo cáo ${getTypeLabel(report.targetType)}`}
                       className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
                       checked={isSelected}
                       onChange={(e) => handleSelectOne(report.id, e.target.checked)}

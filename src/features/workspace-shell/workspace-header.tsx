@@ -63,6 +63,8 @@ export type WorkspaceHeaderProps = Readonly<{
   identity: WorkspaceIdentity;
   setMobileOpen: (open: boolean) => void;
   onLogout?: (() => void) | undefined;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }>;
 
 function UkFlag() {
@@ -159,20 +161,39 @@ export function WorkspaceHeader({
 
       <div className="flex items-center gap-5 text-slate-500">
         {workspaceRole === "recruiter" && (
-          <Button
-            className="hidden h-10 items-center justify-center rounded-full px-4 font-semibold text-white hover:opacity-90 lg:flex"
-            style={{
-              background: "linear-gradient(90deg, #213142 .62%, #0a9c4b 99.38%)",
-              border: "1px solid #0db14b",
-              gap: ".572em",
-            }}
-            asChild
-          >
-            <Link href="/recruiter/job-posts?action=create">
-              <PencilSimple size={16} className="shrink-0" weight="bold" />
-              <span>{t("shell.postJob")}</span>
-            </Link>
-          </Button>
+          <>
+            {/* Chat button */}
+            <Button
+              className="hidden h-10 items-center justify-center rounded-full px-4 font-medium text-white hover:opacity-90 lg:flex [&_svg]:!size-5"
+              style={{
+                background: "linear-gradient(90deg, #213142 .62%, #0a9c4b 99.38%)",
+                border: "1px solid #0db14b",
+                gap: ".572em",
+              }}
+              asChild
+              title={t("nav.messages")}
+            >
+              <Link href="/recruiter/messages">
+                <ChatCircleDots size={20} className="shrink-0" weight="bold" />
+                <span>{t("nav.messages")}</span>
+              </Link>
+            </Button>
+
+            <Button
+              className="hidden h-10 items-center justify-center rounded-full px-4 font-medium text-white hover:opacity-90 lg:flex"
+              style={{
+                background: "linear-gradient(90deg, #213142 .62%, #0a9c4b 99.38%)",
+                border: "1px solid #0db14b",
+                gap: ".572em",
+              }}
+              asChild
+            >
+              <Link href="/recruiter/job-posts/create">
+                <PencilSimple size={16} className="shrink-0" weight="bold" />
+                <span>{t("shell.postJob")}</span>
+              </Link>
+            </Button>
+          </>
         )}
 
         {/* Notification dropdown */}

@@ -35,7 +35,7 @@ describe("PublicHeader candidate recruiter chat", () => {
   it("opens the dedicated chat portal from the candidate dropdown", async () => {
     const user = userEvent.setup();
     const navigate = vi.fn<(path: string) => void>();
-    const push = vi.fn();
+    const push = vi.fn<(path: string) => void>();
     vi.spyOn(nextNavigation, "useRouter").mockReturnValue({ push } as any);
 
     render(
@@ -60,7 +60,7 @@ describe("PublicHeader candidate recruiter chat", () => {
   it("clears the green message dot as soon as the candidate opens chat", async () => {
     const user = userEvent.setup();
     const navigate = vi.fn<(path: string) => void>();
-    const push = vi.fn();
+    const push = vi.fn<(path: string) => void>();
     vi.spyOn(nextNavigation, "useRouter").mockReturnValue({ push } as any);
 
     render(<HeaderWithNewMessage navigate={navigate} />);

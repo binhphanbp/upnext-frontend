@@ -540,7 +540,7 @@ export function RecruiterCompanyProfilePage() {
 
   return (
     <div className="space-y-6">
-      <Card className="upnext-shadow rounded-lg bg-white">
+      <Card className="rounded-lg bg-white">
         <div className="border-b border-slate-100 p-5">
           <div className="flex items-center gap-2">
             <Buildings size={20} className="text-emerald-700" />
@@ -833,7 +833,7 @@ function CompanyField({
       type={type}
       required={required || false}
       placeholder={placeholder}
-      className="h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none focus:border-emerald-600 focus:outline-none focus-visible:outline-none"
+      className="h-12 rounded-xl border-slate-200 bg-white text-sm shadow-none focus:border-emerald-600 focus:outline-none focus-visible:outline-none"
       value={value}
       onChange={(event) => onChange(event.target.value)}
     />
@@ -1025,7 +1025,6 @@ function CompanyScannerBanner({
   scanning,
   triggerSelect,
   onScanLicense,
-  onCancelSelection,
 }: CompanyScannerBannerProps) {
   return (
     <div className="relative overflow-hidden rounded-xl border border-dashed border-emerald-500/40 bg-emerald-50/30 p-4 transition-all duration-300 lg:col-span-2">
@@ -1199,7 +1198,7 @@ function CompanyAlbumSection({
   const photosInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <Card className="upnext-shadow rounded-lg bg-white p-5">
+    <Card className="rounded-lg bg-white p-5">
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-4">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white text-blue-500 transition-all duration-300">

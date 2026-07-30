@@ -11,26 +11,41 @@ import {
   Link as LinkIcon,
   ArrowUUpLeft,
   ArrowUUpRight,
+  ArrowsIn,
+  ArrowsOut,
+  Code,
+  CodeBlock,
   Eraser,
+  Minus,
+  TextStrikethrough,
 } from "@phosphor-icons/react/dist/ssr";
 import LinkExtension from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { cn } from "@/shared/lib/cn";
 
 export interface RichTextEditorProps {
+  expandable?: boolean | undefined;
   error?: boolean | undefined;
   onChange: (value: string) => void;
   placeholder?: string | undefined;
   value: string;
 }
 
-export function RichTextEditor({ error, onChange, placeholder, value }: RichTextEditorProps) {
+export function RichTextEditor({
+  expandable = false,
+  error,
+  onChange,
+  placeholder,
+  value,
+}: RichTextEditorProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const extensions = useMemo(
     () => [
       StarterKit.configure({
@@ -93,19 +108,35 @@ export function RichTextEditor({ error, onChange, placeholder, value }: RichText
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
+  useEffect(() => {
+    if (!isExpanded) return undefined;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsExpanded(false);
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isExpanded]);
+
   if (!editor) {
     return <div className="min-h-[180px] w-full rounded-xl border border-slate-200 bg-slate-50" />;
   }
 
-  return (
+  const editorSurface = (
     <div
+      aria-label={isExpanded ? "Trình soạn thảo phóng to" : undefined}
+      aria-modal={isExpanded || undefined}
+      role={isExpanded ? "dialog" : undefined}
       className={cn(
-        "w-full overflow-hidden rounded-xl border bg-white text-sm font-semibold text-slate-700",
+        "w-full overflow-hidden border bg-white text-sm font-normal text-slate-700",
         "focus-within:border-primary focus-within:ring-1 focus-within:ring-primary focus-within:outline-none",
         error ? "border-rose-300" : "border-slate-200",
+        !isExpanded && "rounded-xl",
+        isExpanded && "fixed inset-0 z-[1001] flex flex-col rounded-none shadow-none",
       )}
     >
-      <div className="flex flex-wrap items-center gap-1 border-b border-slate-100 bg-slate-50/50 p-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-slate-100 bg-slate-50/50 p-2">
         <ToolbarButton
           active={editor.isActive("bold")}
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -126,6 +157,20 @@ export function RichTextEditor({ error, onChange, placeholder, value }: RichText
           title="Gạch chân"
         >
           <TextUnderline className="h-4.5 w-4.5" />
+        </ToolbarButton>
+        <ToolbarButton
+          active={editor.isActive("strike")}
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          title="Gạch ngang"
+        >
+          <TextStrikethrough className="h-4.5 w-4.5" />
+        </ToolbarButton>
+        <ToolbarButton
+          active={editor.isActive("code")}
+          onClick={() => editor.chain().focus().toggleCode().run()}
+          title="Code trong dòng"
+        >
+          <Code className="h-4.5 w-4.5" />
         </ToolbarButton>
 
         <div className="mx-1 h-5 w-px bg-slate-200" />
@@ -158,6 +203,19 @@ export function RichTextEditor({ error, onChange, placeholder, value }: RichText
         >
           <Quotes className="h-4.5 w-4.5" />
         </ToolbarButton>
+        <ToolbarButton
+          active={editor.isActive("codeBlock")}
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          title="Khối code"
+        >
+          <CodeBlock className="h-4.5 w-4.5" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          title="Đường phân cách"
+        >
+          <Minus className="h-4.5 w-4.5" />
+        </ToolbarButton>
 
         <div className="mx-1 h-5 w-px bg-slate-200" />
 
@@ -187,21 +245,50 @@ export function RichTextEditor({ error, onChange, placeholder, value }: RichText
         >
           <ArrowUUpRight className="h-4.5 w-4.5" />
         </ToolbarButton>
+        {expandable ? (
+          <ToolbarButton
+            active={isExpanded}
+            ariaLabel={isExpanded ? "Thu gọn trình soạn thảo" : "Phóng to trình soạn thảo"}
+            onClick={() => setIsExpanded((current) => !current)}
+            title={isExpanded ? "Thu gọn trình soạn thảo" : "Phóng to trình soạn thảo"}
+          >
+            {isExpanded ? (
+              <ArrowsIn className="h-4.5 w-4.5" />
+            ) : (
+              <ArrowsOut className="h-4.5 w-4.5" />
+            )}
+          </ToolbarButton>
+        ) : null}
       </div>
 
-      <EditorContent editor={editor} />
+      <EditorContent
+        editor={editor}
+        className={cn(isExpanded && "min-h-0 flex-1 overflow-y-auto [&_.ProseMirror]:min-h-full")}
+      />
     </div>
+  );
+
+  if (!isExpanded) return editorSurface;
+
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-[1000] bg-slate-950/20" aria-hidden="true" />
+      {editorSurface}
+    </>,
+    document.body,
   );
 }
 
 function ToolbarButton({
   active,
+  ariaLabel,
   children,
   disabled,
   onClick,
   title,
 }: Readonly<{
   active?: boolean;
+  ariaLabel?: string;
   children: ReactNode;
   disabled?: boolean;
   onClick: () => void;
@@ -209,6 +296,7 @@ function ToolbarButton({
 }>) {
   return (
     <button
+      aria-label={ariaLabel}
       className={cn(
         "flex h-8 w-8 items-center justify-center rounded-lg transition-colors outline-none",
         active

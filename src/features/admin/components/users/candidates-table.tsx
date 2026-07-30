@@ -14,7 +14,7 @@ import Swal from "sweetalert2";
 import { AdminCandidateResponse, getAdminCandidates } from "@/features/admin/api/candidates";
 import { getAdminSession } from "@/features/admin/session";
 import { RecruiterTableLayout } from "@/features/recruiter/components/recruiter-table-layout";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
 import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";

@@ -887,6 +887,7 @@
           "PUBLISHED": "Published",
           "DRAFT": "Draft",
           "CLOSED": "Closed",
+          "PENDING_REVIEW": "Pending review",
           "ARCHIVED": "Archived"
         }
       },
@@ -913,6 +914,11 @@
           "interviewer": "Interviewer",
           "mode": "Mode"
         }
+      },
+      "notifications": {
+        "title": "Latest updates",
+        "empty": "No new updates available.",
+        "badge": "Announcement"
       },
       "reputation": {
         "title": "Reputation score",
@@ -981,7 +987,11 @@
         "license": "Update business license",
         "agreement": "Update Personal Data Processing Agreement with candidates",
         "firstJob": "Post your first job",
-        "progressLabel": "Profile Completion"
+        "progressLabel": "Profile Completion",
+        "completeSubtitle": "Your recruitment profile is complete. Use the quick shortcuts below to manage job posts, applicant lists, or interview schedules.",
+        "viewJobs": "View job posts list",
+        "viewCandidates": "View candidates list",
+        "viewInterviews": "View interview schedules"
       },
       "accountCard": {
         "title": "Account",

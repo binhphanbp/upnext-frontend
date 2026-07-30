@@ -27,7 +27,7 @@ export function SearchInput({
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}
         className={cn(
-          "h-10 w-full rounded-lg border-slate-200 bg-white pl-9 text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus-visible:ring-1 focus-visible:ring-emerald-500",
+          "h-10 w-full rounded-lg border-slate-200 bg-white pl-9 font-normal text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus-visible:ring-1 focus-visible:ring-emerald-500",
           inputClassName,
         )}
       />

@@ -7,6 +7,7 @@ import {
   Lightning,
   CircleNotch,
   ArrowRight,
+  ArrowLeft,
   CheckCircle,
   CaretLeft,
   CaretRight,
@@ -21,10 +22,11 @@ import {
   Info,
   X,
   Archive,
-  Clock,
   User,
   LockSimple,
-  Plus,
+  Calendar,
+  ArrowUpRight,
+  Bell,
 } from "@phosphor-icons/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useLocale, useTranslations } from "next-intl";
@@ -34,7 +36,10 @@ import { useForm, type FieldErrors, type UseFormRegisterReturn } from "react-hoo
 import Swal, { type SweetAlertIcon } from "sweetalert2";
 import { z } from "zod";
 
-import { getRecruiterInterviews, type Interview } from "@/features/recruiter/api/interviews";
+import {
+  getNotifications,
+  type Notification as RecruiterNotification,
+} from "@/features/notifications/api/notifications";
 import {
   createCompany,
   createRecruiterProfile,
@@ -42,7 +47,6 @@ import {
   getRecruiterAccount,
   getRecruiterStats,
   type CompanyDetail,
-  type CompanyLocation,
   type RecruiterAccountDetail,
   updateRecruiterProfile,
   uploadCompanyBusinessLicense,
@@ -54,7 +58,9 @@ import {
   updateCompanyLocation,
 } from "@/features/recruiter/api/onboarding";
 import {
+  type Appeal,
   createAppeal,
+  getMyAppeals,
   getReputationActivities,
   type ReputationActivity,
 } from "@/features/recruiter/api/reputation";
@@ -76,12 +82,12 @@ import {
   getRecruiterSession,
   setRecruiterCompanyOnboardingSkip,
 } from "@/features/recruiter/session";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
-import { formatAppDate, toDate } from "@/shared/lib/date";
+import { formatAppDate } from "@/shared/lib/date";
 import { Button } from "@/shared/ui/button";
-import { FormInput, Input } from "@/shared/ui/input";
+import { FormInput } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 
 import { RecruiterTableLayout } from "./recruiter-table-layout";
@@ -311,10 +317,11 @@ function getInitialOnboardingStep(
   return 2;
 }
 
-const JOB_STATUS_ORDER = ["PUBLISHED", "DRAFT", "CLOSED", "ARCHIVED"] as const;
+const JOB_STATUS_ORDER = ["PUBLISHED", "DRAFT", "CLOSED", "PENDING_REVIEW"] as const;
+type DashboardJobStatus = (typeof JOB_STATUS_ORDER)[number] | "ARCHIVED";
 
 const JOB_STATUS_CARD_CONFIG: Record<
-  (typeof JOB_STATUS_ORDER)[number],
+  DashboardJobStatus,
   {
     icon: typeof CheckCircle;
     cardBg: string;
@@ -348,12 +355,20 @@ const JOB_STATUS_CARD_CONFIG: Record<
     dotColor: "rgba(239,68,68,0.3)",
     image: "/assets/recruiter/icon/4.png",
   },
-  ARCHIVED: {
-    icon: Archive,
+  PENDING_REVIEW: {
+    icon: WarningCircle,
     cardBg: "bg-[#fef6e6]",
     badgeBg: "bg-amber-500",
     barColor: "bg-amber-500",
     dotColor: "rgba(245,158,11,0.3)",
+    image: "/assets/recruiter/icon/1.png",
+  },
+  ARCHIVED: {
+    icon: Archive,
+    cardBg: "bg-[#eef1f7]",
+    badgeBg: "bg-slate-500",
+    barColor: "bg-slate-500",
+    dotColor: "rgba(100,116,139,0.3)",
     image: "/assets/recruiter/icon/1.png",
   },
 };
@@ -395,14 +410,43 @@ export function RecruiterDashboardPage() {
     null,
   );
   const [jobPosts, setJobPosts] = useState<RecruiterJobPost[]>([]);
-  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [notifications, setNotifications] = useState<RecruiterNotification[]>([]);
+  const [bannerIndex, setBannerIndex] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBannerIndex((prev) => {
+        const maxIndex = isDesktop ? 1 : 2;
+        return prev >= maxIndex ? 0 : prev + 1;
+      });
+    }, 4500); // Autoplay every 4.5 seconds
+    return () => clearInterval(interval);
+  }, [isDesktop]);
+
+  const nextBanner = () => {
+    const maxIndex = isDesktop ? 1 : 2;
+    setBannerIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+  };
+
+  const prevBanner = () => {
+    const maxIndex = isDesktop ? 1 : 2;
+    setBannerIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
+  };
   const [companyDetail, setCompanyDetail] = useState<CompanyDetail | null>(null);
   const [reputationDialogOpen, setReputationDialogOpen] = useState(false);
   const [reputationActivities, setReputationActivities] = useState<ReputationActivity[]>([]);
   const [appealDialogOpen, setAppealDialogOpen] = useState(false);
   const [appealContent, setAppealContent] = useState("");
   const [appealSubmitting, setAppealSubmitting] = useState(false);
-  const [appealSubmitted, setAppealSubmitted] = useState(false);
+  const [latestAppeal, setLatestAppeal] = useState<Appeal | null>(null);
 
   // Lưu trong sessionStorage (không phải localStorage): tải lại trang vẫn giữ
   // trạng thái đã bỏ qua, nhưng đăng xuất hoặc đăng nhập lại ở lần sau sẽ xoá,
@@ -426,6 +470,21 @@ export function RecruiterDashboardPage() {
 
   const isCompanyRestricted = account?.company?.status === "RESTRICTED";
 
+  useEffect(() => {
+    if (!isCompanyRestricted || !token) return;
+
+    void getMyAppeals(token)
+      .then((appeals) => {
+        const latest = [...appeals].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )[0];
+        setLatestAppeal(latest ?? null);
+      })
+      .catch(() => setLatestAppeal(null));
+  }, [isCompanyRestricted, token]);
+
+  const hasPendingAppeal = latestAppeal?.status === "PENDING";
+
   const restrictedDaysLeft = useMemo(() => {
     if (!isCompanyRestricted || !account?.company?.restrictedAt) return null;
     const restrictedAt = new Date(account.company.restrictedAt).getTime();
@@ -442,9 +501,10 @@ export function RecruiterDashboardPage() {
 
     try {
       setAppealSubmitting(true);
-      await createAppeal({ content: appealContent.trim() }, token);
-      setAppealSubmitted(true);
+      const appeal = await createAppeal({ content: appealContent.trim() }, token);
+      setLatestAppeal(appeal);
       setAppealDialogOpen(false);
+      setAppealContent("");
       showToast("success", t("dashboard.restricted.appeal.success"));
     } catch (error) {
       showToast("error", getOnboardingErrorMessage(error, t));
@@ -473,16 +533,18 @@ export function RecruiterDashboardPage() {
     async (accountId: string, accessToken: string) => {
       try {
         setLoading(true);
-        const [accountData, statsData, jobPostsData, interviewsData] = await Promise.all([
+        const [accountData, statsData, jobPostsData, notificationsData] = await Promise.all([
           getRecruiterAccount(accountId, accessToken),
           getRecruiterStats(accountId, accessToken),
           getRecruiterJobPosts(accessToken, accountId).catch(() => [] as RecruiterJobPost[]),
-          getRecruiterInterviews(accessToken).catch(() => [] as Interview[]),
+          getNotifications(accessToken, 1, 5).catch(() => null),
         ]);
         setAccount(accountData);
         setStats(statsData);
         setJobPosts(jobPostsData);
-        setInterviews(interviewsData);
+        if (notificationsData && notificationsData.data) {
+          setNotifications(notificationsData.data);
+        }
 
         const companyId = accountData.company?.id;
         setCompanyDetail(
@@ -516,14 +578,15 @@ export function RecruiterDashboardPage() {
 
   // Onboarding Checklist States & Logic
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [activeCardId, setActiveCardId] = useState("phone");
 
   const hasPhone = Boolean(account?.profile?.phoneNumber);
   const hasCompanyInfo = Boolean(account && isCompanyProfileComplete(account, companyDetail));
   const hasPostedJob = Boolean(stats && stats.totalJobPosts > 0);
 
   const publishedCount = useMemo(
-    () => jobPosts.filter((jp) => jp.status === "PUBLISHED").length,
+    () =>
+      jobPosts.filter((jp) => jp.status === "PUBLISHED" && jp.moderationStatus === "APPROVED")
+        .length,
     [jobPosts],
   );
   const draftCount = useMemo(
@@ -534,19 +597,21 @@ export function RecruiterDashboardPage() {
     () => jobPosts.reduce((sum, jp) => sum + (jp._count?.views ?? 0), 0),
     [jobPosts],
   );
-  const pendingModerationCount = useMemo(
-    () => jobPosts.filter((jp) => jp.moderationStatus === "PENDING").length,
-    [jobPosts],
-  );
   const statusCounts = useMemo(() => {
     const map: Record<(typeof JOB_STATUS_ORDER)[number], number> = {
       PUBLISHED: 0,
       DRAFT: 0,
       CLOSED: 0,
-      ARCHIVED: 0,
+      PENDING_REVIEW: 0,
     };
     for (const jp of jobPosts) {
-      if (jp.status in map) map[jp.status as (typeof JOB_STATUS_ORDER)[number]] += 1;
+      if (jp.status === "PUBLISHED" && jp.moderationStatus === "PENDING") {
+        map.PENDING_REVIEW += 1;
+      } else if (jp.status === "PUBLISHED") {
+        map.PUBLISHED += 1;
+      } else if (jp.status === "DRAFT" || jp.status === "CLOSED") {
+        map[jp.status] += 1;
+      }
     }
     return map;
   }, [jobPosts]);
@@ -557,16 +622,6 @@ export function RecruiterDashboardPage() {
         .slice(0, 5),
     [jobPosts],
   );
-  const upcomingInterviews = useMemo(() => {
-    const now = Date.now();
-    return interviews
-      .filter((interview) => new Date(interview.scheduledStartAt).getTime() >= now)
-      .sort(
-        (a, b) => new Date(a.scheduledStartAt).getTime() - new Date(b.scheduledStartAt).getTime(),
-      )
-      .slice(0, 5);
-  }, [interviews]);
-
   const reputationScore = useMemo(() => {
     const raw = Number(companyDetail?.reputationScore ?? 0);
     return Number.isFinite(raw) ? Math.max(0, Math.min(REPUTATION_SCALE_MAX, raw)) : 0;
@@ -574,34 +629,65 @@ export function RecruiterDashboardPage() {
   const reputationTier = useMemo(() => getReputationTier(reputationScore), [reputationScore]);
   const reputationPercent = Math.round((reputationScore / REPUTATION_SCALE_MAX) * 100);
 
+  const allCompleted = hasPhone && hasCompanyInfo && hasPostedJob;
+
   const tasks = useMemo(() => {
+    if (allCompleted) {
+      return [
+        {
+          id: "jobPosts",
+          label: t("dashboard.onboardingWidget.viewJobs"),
+          completed: false,
+          icon: <Briefcase size={16} weight="bold" />,
+          path: "/recruiter/job-posts",
+        },
+        {
+          id: "candidates",
+          label: t("dashboard.onboardingWidget.viewCandidates"),
+          completed: false,
+          icon: <Users size={16} weight="bold" />,
+          path: "/recruiter/candidates",
+        },
+        {
+          id: "interviews",
+          label: t("dashboard.onboardingWidget.viewInterviews"),
+          completed: false,
+          icon: <Calendar size={16} weight="bold" />,
+          path: "/recruiter/interviews",
+        },
+      ];
+    }
     return [
       {
         id: "phone",
         label: t("dashboard.onboardingWidget.phone"),
         completed: hasPhone,
         path: "/recruiter/settings",
+        icon: undefined,
       },
       {
         id: "companyInfo",
         label: t("dashboard.onboardingWidget.companyInfo"),
         completed: hasCompanyInfo,
         path: "/recruiter/company-profile",
+        icon: undefined,
       },
       {
         id: "firstJob",
         label: t("dashboard.onboardingWidget.firstJob"),
         completed: hasPostedJob,
         path: "/recruiter/job-posts",
+        icon: undefined,
       },
     ];
-  }, [t, hasPhone, hasCompanyInfo, hasPostedJob]);
+  }, [t, hasPhone, hasCompanyInfo, hasPostedJob, allCompleted]);
 
-  const completedCount = useMemo(() => tasks.filter((task) => task.completed).length, [tasks]);
-  const progressPercent = useMemo(
-    () => Math.round((completedCount / tasks.length) * 100),
-    [completedCount, tasks.length],
-  );
+  const completedCount = useMemo(() => {
+    if (allCompleted) return 3;
+    return (hasPhone ? 1 : 0) + (hasCompanyInfo ? 1 : 0) + (hasPostedJob ? 1 : 0);
+  }, [hasPhone, hasCompanyInfo, hasPostedJob, allCompleted]);
+
+  const progressPercent = useMemo(() => Math.round((completedCount / 3) * 100), [completedCount]);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
@@ -659,16 +745,81 @@ export function RecruiterDashboardPage() {
           </div>
           <button
             type="button"
-            disabled={appealSubmitted}
+            disabled={hasPendingAppeal}
             onClick={() => setAppealDialogOpen(true)}
             className="shrink-0 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {appealSubmitted
+            {hasPendingAppeal
               ? t("dashboard.restricted.appeal.submittedButton")
               : t("dashboard.restricted.appeal.cta")}
           </button>
         </div>
       ) : null}
+      {/* Banners Slider */}
+      <div className="relative hidden w-full overflow-visible md:block">
+        {/* Left Arrow Button */}
+        <button
+          type="button"
+          onClick={prevBanner}
+          className="absolute top-1/2 -left-4 z-20 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-white shadow-md transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95"
+          style={{
+            background: "linear-gradient(90deg, #213142 .62%, #0a9c4b 99.38%)",
+            border: "1px solid #0db14b",
+          }}
+          aria-label="Previous banner"
+        >
+          <ArrowLeft size={18} weight="bold" />
+        </button>
+
+        {/* Right Arrow Button */}
+        <button
+          type="button"
+          onClick={nextBanner}
+          className="absolute top-1/2 -right-4 z-20 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full text-white shadow-md transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95"
+          style={{
+            background: "linear-gradient(90deg, #213142 .62%, #0a9c4b 99.38%)",
+            border: "1px solid #0db14b",
+          }}
+          aria-label="Next banner"
+        >
+          <ArrowRight size={18} weight="bold" />
+        </button>
+
+        {/* Banners Track */}
+        <div className="overflow-hidden rounded-xl">
+          <div
+            className="flex gap-4 transition-transform duration-500 ease-in-out"
+            style={{
+              transform: `translateX(calc(-${bannerIndex * (isDesktop ? 50 : 100)}% - ${bannerIndex * (isDesktop ? 8 : 16)}px))`,
+            }}
+          >
+            {/* Banner 1 */}
+            <div className="w-full min-w-full overflow-hidden rounded-xl border border-slate-100/80 bg-white md:w-[calc(50%-8px)] md:min-w-[calc(50%-8px)]">
+              <img
+                src="/assets/recruiter/banner/banner1.png"
+                alt="Banner 1"
+                className="h-auto w-full object-cover"
+              />
+            </div>
+            {/* Banner 2 */}
+            <div className="w-full min-w-full overflow-hidden rounded-xl border border-slate-100/80 bg-white md:w-[calc(50%-8px)] md:min-w-[calc(50%-8px)]">
+              <img
+                src="/assets/recruiter/banner/banner2.png"
+                alt="Banner 2"
+                className="h-auto w-full object-cover"
+              />
+            </div>
+            {/* Banner 3 */}
+            <div className="w-full min-w-full overflow-hidden rounded-xl border border-slate-100/80 bg-white md:w-[calc(50%-8px)] md:min-w-[calc(50%-8px)]">
+              <img
+                src="/assets/recruiter/banner/banner3.png"
+                alt="Banner 3"
+                className="h-auto w-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="recruiter-onboarding-card upnext-shadow relative overflow-hidden rounded-2xl border border-slate-100/90 p-6 shadow-sm">
         <style
@@ -713,7 +864,9 @@ export function RecruiterDashboardPage() {
                   className="transition-all duration-500 ease-in-out"
                 />
               </svg>
-              <span className="absolute text-xl font-bold text-slate-800">{progressPercent}%</span>
+              <span className="absolute text-[clamp(16px,2vw,20px)] font-bold text-slate-800">
+                {progressPercent}%
+              </span>
             </div>
             <span className="text-[14px] font-semibold text-slate-700">
               {t("dashboard.onboardingWidget.progressLabel")}
@@ -724,14 +877,16 @@ export function RecruiterDashboardPage() {
           <div className="z-10 flex flex-col gap-4 lg:col-span-10">
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-1">
-                <h3 className="text-lg font-bold text-slate-800">
+                <h3 className="text-[clamp(16px,2vw,18px)] font-bold text-slate-800">
                   {t("dashboard.onboardingWidget.title", { name: "" })}
                   <span className="text-emerald-600">
                     {account?.profile?.fullName || t("dashboard.defaultName")}
                   </span>
                 </h3>
-                <p className="max-w-xl text-[12px] leading-relaxed font-semibold text-slate-500">
-                  {t("dashboard.onboardingWidget.subtitle")}
+                <p className="max-w-xl text-[12px] leading-relaxed font-normal text-slate-500">
+                  {allCompleted
+                    ? t("dashboard.onboardingWidget.completeSubtitle")
+                    : t("dashboard.onboardingWidget.subtitle")}
                 </p>
               </div>
 
@@ -768,13 +923,10 @@ export function RecruiterDashboardPage() {
                 return (
                   <div
                     key={task.id}
-                    onClick={() => {
-                      setActiveCardId(task.id);
-                      router.push(task.path);
-                    }}
+                    onClick={() => router.push(task.path)}
                     className={cn(
                       "group flex h-14 w-[280px] min-w-[280px] shrink-0 items-center justify-between rounded-xl border px-4 py-2 cursor-pointer transition-all duration-300 select-none md:w-full md:min-w-0 md:shrink",
-                      task.completed
+                      allCompleted || task.completed
                         ? "border-emerald-500 bg-[#f4fcf8] hover:bg-[#ebfaf2]"
                         : "border-slate-200 bg-white hover:border-slate-300",
                     )}
@@ -784,17 +936,17 @@ export function RecruiterDashboardPage() {
                       <div
                         className={cn(
                           "flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all",
-                          task.completed
+                          allCompleted || task.completed
                             ? "bg-emerald-500 text-white"
                             : "bg-slate-100 text-slate-500 group-hover:bg-slate-200",
                         )}
                       >
-                        {num}
+                        {allCompleted ? task.icon : num}
                       </div>
                       <span
                         className={cn(
                           "text-xs font-semibold leading-tight transition-colors",
-                          task.completed
+                          allCompleted || task.completed
                             ? "text-emerald-700"
                             : "text-slate-600 group-hover:text-slate-800",
                         )}
@@ -803,7 +955,12 @@ export function RecruiterDashboardPage() {
                       </span>
                     </div>
 
-                    {task.completed ? (
+                    {allCompleted ? (
+                      <ArrowUpRight
+                        size={15}
+                        className="text-emerald-600 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                      />
+                    ) : task.completed ? (
                       <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -867,7 +1024,7 @@ export function RecruiterDashboardPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="mb-1 text-sm text-slate-400">{t("dashboard.totalJobPosts")}</p>
-                  <h3 className="text-[22px] font-bold text-slate-800">
+                  <h3 className="text-[clamp(20px,2.5vw,24px)] font-bold text-slate-800">
                     {stats ? stats.totalJobPosts.toLocaleString() : "0"}
                   </h3>
                 </div>
@@ -890,7 +1047,7 @@ export function RecruiterDashboardPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="mb-1 text-sm text-slate-400">{t("dashboard.totalCandidates")}</p>
-                  <h3 className="text-[22px] font-bold text-slate-800">
+                  <h3 className="text-[clamp(20px,2.5vw,24px)] font-bold text-slate-800">
                     {stats ? stats.totalCandidates.toLocaleString() : "0"}
                   </h3>
                 </div>
@@ -910,7 +1067,7 @@ export function RecruiterDashboardPage() {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Crown size={18} weight="fill" className="text-amber-500" />
-                <h3 className="text-base font-bold text-slate-800">
+                <h3 className="text-[clamp(14px,1.8vw,16px)] font-bold text-slate-800">
                   {t("dashboard.reputation.title")}
                 </h3>
               </div>
@@ -926,7 +1083,7 @@ export function RecruiterDashboardPage() {
 
             <div className="mb-4 flex items-end justify-between">
               <div>
-                <span className="text-3xl font-extrabold text-slate-800">
+                <span className="text-[clamp(24px,3.5vw,30px)] font-bold text-slate-800">
                   {Math.round(reputationScore)}
                 </span>
                 <span className="ml-1 text-sm font-semibold text-slate-400">/ 100</span>
@@ -980,7 +1137,7 @@ export function RecruiterDashboardPage() {
                 <ChartBar size={24} weight="bold" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-800">
+                <h3 className="text-[clamp(16px,2vw,18px)] font-bold text-slate-800">
                   {t("dashboard.statusDistribution.title")}
                 </h3>
                 <p className="text-[13px] text-slate-400">
@@ -988,12 +1145,6 @@ export function RecruiterDashboardPage() {
                 </p>
               </div>
             </div>
-            {pendingModerationCount > 0 ? (
-              <span className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-600">
-                <WarningCircle size={15} weight="bold" />
-                {t("dashboard.statusDistribution.pending", { count: pendingModerationCount })}
-              </span>
-            ) : null}
           </div>
 
           <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
@@ -1009,7 +1160,7 @@ export function RecruiterDashboardPage() {
                   className="mx-auto h-auto w-[240px] max-w-full object-contain select-none"
                 />
 
-                <h4 className="-mt-6 text-base font-bold text-slate-800">
+                <h4 className="-mt-6 text-[clamp(14px,1.8vw,16px)] font-bold text-slate-700">
                   {t("dashboard.statusDistribution.empty")}
                 </h4>
                 <p className="mt-1 max-w-sm text-xs font-medium text-slate-500">
@@ -1051,7 +1202,9 @@ export function RecruiterDashboardPage() {
                         <Icon size={20} weight="bold" />
                       </span>
                       <div className="mt-4 flex items-baseline gap-2">
-                        <p className="text-2xl font-extrabold text-slate-800">{count}</p>
+                        <p className="text-[clamp(20px,2.5vw,24px)] font-bold text-slate-800">
+                          {count}
+                        </p>
                         <p className="truncate text-sm font-semibold text-slate-600">
                           {t(`dashboard.statusDistribution.status.${status}`)}
                         </p>
@@ -1092,14 +1245,15 @@ export function RecruiterDashboardPage() {
               <TrendUp size={22} weight="bold" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-800">{t("dashboard.topJobs.title")}</h3>
-              <p className="text-xs text-slate-400">{t("dashboard.topJobs.subtitle")}</p>
+              <h3 className="text-[clamp(14px,1.8vw,16px)] font-bold text-slate-800">
+                {t("dashboard.topJobs.title")}
+              </h3>
             </div>
           </div>
           <button
             type="button"
             onClick={() => router.push("/recruiter/analytics")}
-            className="text-primary text-xs font-bold hover:underline"
+            className="text-primary text-sm font-medium hover:underline"
           >
             {t("dashboard.viewAll")}
           </button>
@@ -1144,7 +1298,11 @@ export function RecruiterDashboardPage() {
             </thead>
             <tbody>
               {topJobs.map((jp) => {
-                const config = JOB_STATUS_CARD_CONFIG[jp.status];
+                const displayStatus =
+                  jp.status === "PUBLISHED" && jp.moderationStatus === "PENDING"
+                    ? "PENDING_REVIEW"
+                    : jp.status;
+                const config = JOB_STATUS_CARD_CONFIG[displayStatus];
                 const publishedDate = jp.publishedAt ?? jp.createdAt;
                 return (
                   <tr key={jp.id}>
@@ -1160,20 +1318,21 @@ export function RecruiterDashboardPage() {
                     <td className="border-r border-slate-100/50 px-4 py-3 text-center last:border-r-0">
                       <span
                         className={cn(
-                          "rounded-full px-2 py-1 text-[11px] font-semibold text-white",
+                          "rounded-full px-2 py-1 text-[11px] font-medium text-white",
                           config.badgeBg,
                         )}
                       >
-                        {t(`dashboard.statusDistribution.status.${jp.status}`)}
+                        {t(`dashboard.statusDistribution.status.${displayStatus}`)}
                       </span>
                     </td>
-                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-semibold text-slate-600 last:border-r-0">
-                      {jp._count?.applications ?? 0}
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-medium text-slate-600 last:border-r-0">
+                      {jp._count?.applications ?? 0} /{" "}
+                      <span className="text-primary font-semibold">{jp.vacanciesCount}</span>
                     </td>
-                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-semibold text-slate-600 last:border-r-0">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-medium text-slate-600 last:border-r-0">
                       {jp._count?.views ?? 0}
                     </td>
-                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-semibold text-slate-600 last:border-r-0">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-medium text-slate-600 last:border-r-0">
                       {formatAppDate(publishedDate, locale === "en" ? "en" : "vi")}
                     </td>
                   </tr>
@@ -1184,85 +1343,54 @@ export function RecruiterDashboardPage() {
         )}
       </div>
 
-      {/* ROW: Upcoming interviews (real data, full width) */}
+      {/* ROW: Latest updates */}
       <div className="upnext-shadow flex flex-col rounded-2xl bg-white p-6">
-        <div className="mb-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-[#eef6ff] text-[#0284c7]">
-              <Clock size={22} weight="bold" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-800">
-                {t("dashboard.upcomingInterviews.title")}
-              </h3>
-              <p className="text-xs text-slate-400">{t("dashboard.upcomingInterviews.subtitle")}</p>
-            </div>
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+            <Bell size={22} weight="fill" />
           </div>
-          <button
-            type="button"
-            onClick={() => router.push("/recruiter/interviews")}
-            className="text-primary text-xs font-bold hover:underline"
-          >
-            {t("dashboard.viewAll")}
-          </button>
+          <h3 className="text-[clamp(14px,1.8vw,16px)] font-bold text-slate-800">
+            {t("dashboard.notifications.title")}
+          </h3>
         </div>
 
-        {upcomingInterviews.length === 0 ? (
-          <p className="py-6 text-center text-xs font-medium text-slate-400">
-            {t("dashboard.upcomingInterviews.empty")}
+        {notifications.length === 0 ? (
+          <p className="py-8 text-center text-sm font-medium text-slate-600">
+            {t("dashboard.notifications.empty")}
           </p>
         ) : (
-          <RecruiterTableLayout loading={false}>
-            <thead className="text-left text-xs font-bold text-slate-900">
-              <tr>
-                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
-                  {t("dashboard.upcomingInterviews.table.candidate")}
-                </th>
-                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
-                  {t("dashboard.upcomingInterviews.table.role")}
-                </th>
-                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
-                  {t("dashboard.upcomingInterviews.table.schedule")}
-                </th>
-                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
-                  {t("dashboard.upcomingInterviews.table.interviewer")}
-                </th>
-                <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
-                  {t("dashboard.upcomingInterviews.table.mode")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {upcomingInterviews.map((interview) => {
-                const scheduledAt = toDate(interview.scheduledStartAt);
-                return (
-                  <tr key={interview.id}>
-                    <td className="max-w-[200px] truncate border-r border-slate-100/50 px-4 py-3 font-bold text-slate-800 last:border-r-0">
-                      {interview.application?.candidateProfile.account.fullName ?? "—"}
-                    </td>
-                    <td className="max-w-[180px] truncate border-r border-slate-100/50 px-4 py-3 text-slate-600 last:border-r-0">
-                      {interview.application?.jobPost.title ?? "—"}
-                    </td>
-                    <td className="border-r border-slate-100/50 px-4 py-3 text-slate-600 last:border-r-0">
-                      {formatAppDate(scheduledAt, locale === "en" ? "en" : "vi")} ·{" "}
-                      {scheduledAt.toLocaleTimeString(locale === "en" ? "en-US" : "vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </td>
-                    <td className="border-r border-slate-100/50 px-4 py-3 text-slate-600 last:border-r-0">
-                      {interview.recruiterProfile?.fullName || "—"}
-                    </td>
-                    <td className="border-r border-slate-100/50 px-4 py-3 last:border-r-0">
-                      <span className="rounded-md bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-600">
-                        {t(`interviews.type.${interview.type}` as any)}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </RecruiterTableLayout>
+          <div className="space-y-4">
+            {notifications.map((notif) => {
+              const dateStr = notif.createdAt
+                ? new Date(notif.createdAt).toLocaleDateString("vi-VN", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  })
+                : "—";
+              return (
+                <div
+                  key={notif.id}
+                  className="cursor-pointer rounded-xl border border-slate-100 p-4 transition-all duration-200 hover:border-slate-200 hover:bg-slate-50/20"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="rounded-md bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-500">
+                      {t("dashboard.notifications.badge")}
+                    </span>
+                    <span className="text-xs font-medium text-slate-400">{dateStr}</span>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed font-medium text-slate-700">
+                    {notif.title}
+                  </p>
+                  {notif.body && (
+                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                      {notif.body}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -1400,6 +1528,7 @@ export function RecruiterDashboardPage() {
               {t("dashboard.restricted.appeal.dialogDescription")}
             </DialogPrimitive.Description>
             <textarea
+              aria-label={t("dashboard.restricted.appeal.dialogTitle")}
               value={appealContent}
               onChange={(event) => setAppealContent(event.target.value)}
               rows={5}
@@ -2554,7 +2683,7 @@ function RecruiterOnboardingDialog({
                         Boolean(account.company?.businessLicenseFileId) && !isLicenseDeleted;
                       return (
                         <section className="space-y-4">
-                          <div className="flex items-center gap-2 text-sm font-extrabold text-slate-950">
+                          <div className="flex items-center gap-2 text-sm font-bold text-slate-950">
                             <UploadSimple size={18} />
                             {t("onboarding.step2")}
                           </div>
@@ -2607,11 +2736,15 @@ function RecruiterOnboardingDialog({
                                           e.preventDefault();
                                           e.stopPropagation();
                                           setIsLicenseDeleted(true);
-                                          form.setValue("businessLicense", undefined as any, {
-                                            shouldDirty: true,
-                                            shouldTouch: true,
-                                            shouldValidate: true,
-                                          });
+                                          form.setValue(
+                                            "businessLicense",
+                                            new DataTransfer().files,
+                                            {
+                                              shouldDirty: true,
+                                              shouldTouch: true,
+                                              shouldValidate: true,
+                                            },
+                                          );
                                         }}
                                         className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-xs transition-all hover:border-red-300 hover:bg-red-50 active:scale-[0.98]"
                                       >
@@ -2619,7 +2752,7 @@ function RecruiterOnboardingDialog({
                                       </div>
                                     </div>
                                   ) : (
-                                    <div className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#009b5a] px-5 py-2.5 text-sm font-extrabold text-white shadow-xs transition-all hover:bg-[#00864e] active:scale-[0.98]">
+                                    <div className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#009b5a] px-5 py-2.5 text-sm font-bold text-white shadow-xs transition-all hover:bg-[#00864e] active:scale-[0.98]">
                                       <UploadSimple size={18} className="text-white" />
                                       <span>{t("onboarding.upload.chooseFile")}</span>
                                     </div>
@@ -2761,7 +2894,7 @@ function OnboardingField({
       id={id}
       label={label}
       required={required}
-      className="h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400"
+      className="h-12 rounded-xl border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400"
       placeholder={placeholder}
       type={type}
       {...register}

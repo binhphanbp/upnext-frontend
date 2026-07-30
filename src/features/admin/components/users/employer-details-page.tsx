@@ -2,7 +2,6 @@
 
 import { CaretLeft } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
 import { useState } from "react";
 import Swal from "sweetalert2";
 
@@ -23,7 +22,6 @@ interface EmployerDetailsPageProps {
 }
 
 export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
-  const t = useTranslations("Admin.users.employers");
   const queryClient = useQueryClient();
   const [showReputationHistory, setShowReputationHistory] = useState(false);
 

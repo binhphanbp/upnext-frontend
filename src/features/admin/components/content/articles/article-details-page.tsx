@@ -2,7 +2,6 @@
 
 import { ArrowLeft, CalendarBlank, Eye, User, Tag } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
 import * as React from "react";
 
 import { getAdminPostDetails } from "@/features/admin/api/posts";
@@ -16,7 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 export function ArticleDetailsPage({ id }: { id: string }) {
-  const t = useTranslations("Admin.content.articles.details");
   const router = useRouter();
 
   const {

@@ -14,10 +14,8 @@ import {
   Bookmark,
   BriefcaseBusiness,
   Calendar,
-  CheckCircle,
   Clock,
   Coins,
-  Eye,
   FileText,
   Globe,
   MapPin,
@@ -25,7 +23,6 @@ import {
   PaperPlaneTilt,
   ShareNetwork,
   ShieldCheck,
-  Sparkles,
   Star,
   TrendingUp,
   UsersRound,
@@ -86,13 +83,6 @@ const benefits = [
   },
 ];
 
-const hiringSteps = [
-  { title: "Ứng tuyển", desc: "Gửi CV ứng tuyển qua UpNext" },
-  { title: "Sàng lọc hồ sơ", desc: "Nhà tuyển dụng xem xét và phản hồi" },
-  { title: "Phỏng vấn", desc: "1-2 vòng chuyên môn & văn hóa" },
-  { title: "Offer & Onboard", desc: "Nhận offer và hoàn tất thủ tục" },
-];
-
 const companyStats = [
   { value: "256", label: "Việc làm" },
   { value: "30.000+", label: "Nhân sự" },
@@ -116,13 +106,6 @@ function getCleanHtml(html: string) {
   cleaned = cleaned.replace(/<p>\s*Yêu cầu ứng viên\s*<\/p>/gi, "");
   cleaned = cleaned.replace(/<p>\s*Quyền lợi\s*<\/p>/gi, "");
   return cleaned.trim();
-}
-
-function getCleanText(html: string) {
-  if (!html) return "";
-  let text = html.replace(/<summary[^>]*>([\s\S]*?)<\/summary>/gi, "");
-  text = text.replace(/<[^>]*>/gi, "");
-  return text.replace(/\s+/g, " ").trim();
 }
 
 function getJobId(path: string) {
@@ -398,7 +381,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   <h3 className="mb-3 text-base font-bold text-slate-900">Mô tả công việc</h3>
                   {job.description && job.description.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
-                      className="job-detail-rich-text space-y-2 text-sm leading-relaxed text-slate-700"
+                      className="job-detail-rich-text text-sm leading-relaxed text-slate-700"
                       dangerouslySetInnerHTML={{ __html: getCleanHtml(job.description) }}
                     />
                   ) : (
@@ -414,7 +397,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   {job.requirements &&
                   job.requirements.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
-                      className="job-detail-rich-text space-y-2 text-sm leading-relaxed text-slate-700"
+                      className="job-detail-rich-text text-sm leading-relaxed text-slate-700"
                       dangerouslySetInnerHTML={{ __html: getCleanHtml(job.requirements) }}
                     />
                   ) : (
@@ -429,7 +412,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   <h3 className="mb-3 text-base font-bold text-slate-900">Quyền lợi</h3>
                   {job.benefits && job.benefits.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
-                      className="job-detail-rich-text space-y-2 text-sm leading-relaxed text-slate-700"
+                      className="job-detail-rich-text text-sm leading-relaxed text-slate-700"
                       dangerouslySetInnerHTML={{ __html: getCleanHtml(job.benefits) }}
                     />
                   ) : (
