@@ -9,6 +9,11 @@ export type RecruiterAccountDetail = Readonly<{
     id: string;
     code: string;
     name: string;
+    rolePermissions?: Array<{
+      recruiterPermission: {
+        code: string;
+      };
+    }>;
   } | null;
   company: {
     id: string;
@@ -17,6 +22,8 @@ export type RecruiterAccountDetail = Readonly<{
     verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
     businessLicenseFileId: string | null;
     reputationScore: string;
+    /** Server-side threshold a company must reach before a post can be sent to moderation. */
+    minReputationScoreToPublish?: number;
     restrictedAt: string | null;
   } | null;
   profile: {

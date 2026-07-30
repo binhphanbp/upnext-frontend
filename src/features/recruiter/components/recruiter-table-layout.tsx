@@ -1,6 +1,12 @@
 "use client";
 
-import { CircleNotch } from "@phosphor-icons/react";
+import {
+  CaretDoubleLeft,
+  CaretDoubleRight,
+  CaretLeft,
+  CaretRight,
+  CircleNotch,
+} from "@phosphor-icons/react";
 import { useLocale } from "next-intl";
 import { type ReactNode } from "react";
 
@@ -50,7 +56,7 @@ export function RecruiterTableLayout({
           key={1}
           variant={currentPage === 1 ? "primary" : "outline"}
           className={cn(
-            "h-8 w-8 p-0 text-xs font-bold",
+            "h-8 w-8 p-0 text-xs font-semibold",
             currentPage === 1
               ? "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600"
               : "text-slate-600 hover:bg-slate-50 border-slate-200",
@@ -75,7 +81,7 @@ export function RecruiterTableLayout({
           key={i}
           variant={currentPage === i ? "primary" : "outline"}
           className={cn(
-            "h-8 w-8 p-0 text-xs font-bold",
+            "h-8 w-8 p-0 text-xs font-semibold",
             currentPage === i
               ? "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600"
               : "text-slate-600 hover:bg-slate-50 border-slate-200",
@@ -100,7 +106,7 @@ export function RecruiterTableLayout({
           key={totalPages}
           variant={currentPage === totalPages ? "primary" : "outline"}
           className={cn(
-            "h-8 w-8 p-0 text-xs font-bold",
+            "h-8 w-8 p-0 text-xs font-semibold",
             currentPage === totalPages
               ? "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600"
               : "text-slate-600 hover:bg-slate-50 border-slate-200",
@@ -122,7 +128,7 @@ export function RecruiterTableLayout({
     totalItems > 0;
 
   return (
-    <Card className="upnext-shadow w-full min-w-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0">
+    <Card className="w-full min-w-0 overflow-hidden border border-slate-200 bg-white p-0">
       {/* Filters & Actions Section */}
       {(filterBar || actionBar) && (
         <div className="border-b border-slate-200 bg-white p-4">
@@ -147,7 +153,7 @@ export function RecruiterTableLayout({
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-[1px] transition-all duration-200">
             <div className="flex flex-col items-center gap-2">
               <CircleNotch className="mb-1 size-8 animate-spin text-emerald-600" />
-              <span className="text-xs font-bold text-emerald-600">
+              <span className="text-xs font-semibold text-emerald-600">
                 {locale === "vi" ? "Đang tải dữ liệu..." : "Loading data..."}
               </span>
             </div>
@@ -155,7 +161,7 @@ export function RecruiterTableLayout({
         )}
 
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-full border-collapse text-sm whitespace-nowrap [&_tbody_td[colspan]]:sticky [&_tbody_td[colspan]]:left-0 [&_tbody_td[colspan]]:w-[calc(100vw-48px)] sm:[&_tbody_td[colspan]]:w-[calc(100vw-280px)] lg:[&_tbody_td[colspan]]:w-full [&_tbody_tr]:border-b [&_tbody_tr]:border-slate-200 hover:[&_tbody_tr]:bg-slate-50/40 [&_tbody_tr:nth-child(even)]:bg-slate-50/80 [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-sm [&_th]:font-bold [&_th]:text-slate-800 [&_thead_tr]:border-b [&_thead_tr]:border-slate-300 [&_thead_tr]:bg-slate-200">
+          <table className="w-full min-w-full border-collapse text-sm whitespace-nowrap [&_tbody_td[colspan]]:sticky [&_tbody_td[colspan]]:left-0 [&_tbody_td[colspan]]:w-[calc(100vw-48px)] sm:[&_tbody_td[colspan]]:w-[calc(100vw-280px)] lg:[&_tbody_td[colspan]]:w-full [&_tbody_tr]:border-b [&_tbody_tr]:border-slate-200 hover:[&_tbody_tr]:bg-slate-50/40 [&_tbody_tr:nth-child(even)]:bg-slate-50/80 [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold [&_th]:text-slate-800 [&_thead_tr]:border-b [&_thead_tr]:border-slate-300 [&_thead_tr]:bg-slate-200">
             {children}
           </table>
         </div>
@@ -198,43 +204,43 @@ export function RecruiterTableLayout({
             <Button
               variant="outline"
               size="sm"
-              className="h-8 w-8 border-slate-200 p-0 font-bold text-slate-600 hover:bg-slate-50"
+              className="h-8 w-8 border-slate-200 p-0 font-semibold text-slate-600 hover:bg-slate-50"
               disabled={currentPage === 1}
               onClick={() => onPageChange?.(1)}
               aria-label="First Page"
             >
-              &laquo;
+              <CaretDoubleLeft size={16} />
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 w-8 border-slate-200 p-0 font-bold text-slate-600 hover:bg-slate-50"
+              className="h-8 w-8 border-slate-200 p-0 font-semibold text-slate-600 hover:bg-slate-50"
               disabled={currentPage === 1}
               onClick={() => onPageChange?.(currentPage - 1)}
               aria-label="Previous Page"
             >
-              &lsaquo;
+              <CaretLeft size={16} />
             </Button>
             {renderPageNumbers()}
             <Button
               variant="outline"
               size="sm"
-              className="h-8 w-8 border-slate-200 p-0 font-bold text-slate-600 hover:bg-slate-50"
+              className="h-8 w-8 border-slate-200 p-0 font-semibold text-slate-600 hover:bg-slate-50"
               disabled={currentPage === totalPages}
               onClick={() => onPageChange?.(currentPage + 1)}
               aria-label="Next Page"
             >
-              &rsaquo;
+              <CaretRight size={16} />
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 w-8 border-slate-200 p-0 font-bold text-slate-600 hover:bg-slate-50"
+              className="h-8 w-8 border-slate-200 p-0 font-semibold text-slate-600 hover:bg-slate-50"
               disabled={currentPage === totalPages}
               onClick={() => onPageChange?.(totalPages)}
               aria-label="Last Page"
             >
-              &raquo;
+              <CaretDoubleRight size={16} />
             </Button>
           </div>
         </div>

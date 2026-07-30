@@ -12,7 +12,6 @@ import {
   IdentificationBadge,
   ListChecks,
   MagnifyingGlass,
-  MapPin,
   Package,
   Receipt,
   ShieldCheck,

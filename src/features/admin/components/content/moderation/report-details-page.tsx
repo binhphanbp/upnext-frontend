@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   CalendarBlank,
-  Eye,
   Flag,
   User,
   FileText,

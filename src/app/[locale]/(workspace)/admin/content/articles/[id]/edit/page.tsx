@@ -1,11 +1,7 @@
-import { getTranslations } from "next-intl/server";
-
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/shared/ui/button";
 
 export default async function EditArticlePage() {
-  const t = await getTranslations("Admin.content.articles");
-
   return (
     <div className="flex flex-col gap-6 p-6">
       <div>

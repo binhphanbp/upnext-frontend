@@ -34,7 +34,7 @@ function showToast(icon: SweetAlertIcon, title: string) {
 }
 
 const authInputClassName =
-  "recruiter-auth-input h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400";
+  "recruiter-auth-input h-12 rounded-xl border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400";
 
 function setAuthInputFocusStyle(event: FocusEvent<HTMLInputElement>) {
   event.currentTarget.style.setProperty("border-color", "#10a778", "important");

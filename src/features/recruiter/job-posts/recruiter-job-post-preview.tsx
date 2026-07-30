@@ -240,7 +240,7 @@ function PreviewRichText({
       <h3 className="mb-3 text-base font-bold text-slate-900">{title}</h3>
       {hasContent ? (
         <div
-          className="job-detail-rich-text space-y-2 text-sm leading-relaxed text-slate-700"
+          className="job-detail-rich-text text-sm leading-relaxed text-slate-700"
           dangerouslySetInnerHTML={{ __html: getCleanHtml(html ?? "") }}
         />
       ) : (

@@ -2,14 +2,11 @@
 
 import {
   ArrowsClockwise,
-  CalendarCheck,
-  CalendarX,
   CaretDown,
   Clock,
   Funnel,
   MagnifyingGlass,
   Plus,
-  VideoCamera,
   X,
 } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
@@ -270,6 +267,7 @@ export function RecruiterInterviewsPage() {
                     <input
                       type="text"
                       placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
+                      aria-label={locale === "vi" ? "Tìm tin tuyển dụng" : "Search jobs"}
                       value={jobSearch}
                       onChange={(e) => setJobSearch(e.target.value)}
                       className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-8 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
@@ -409,6 +407,7 @@ export function RecruiterInterviewsPage() {
                     <input
                       type="text"
                       placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
+                      aria-label={locale === "vi" ? "Tìm tin tuyển dụng" : "Search jobs"}
                       value={jobSearch}
                       onChange={(e) => setJobSearch(e.target.value)}
                       className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-8 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:ring-1 focus:ring-emerald-500 focus:outline-none"

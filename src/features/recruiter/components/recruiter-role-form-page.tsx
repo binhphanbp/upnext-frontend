@@ -294,7 +294,7 @@ export function RecruiterRoleFormPage({ mode, roleId }: RecruiterRoleFormPagePro
         </div>
       </header>
 
-      <Card className="upnext-shadow space-y-6 rounded-xl border-slate-200 bg-white p-5">
+      <Card className="space-y-6 rounded-xl border-slate-200 bg-white p-5">
         <div className="grid gap-4 lg:grid-cols-2">
           <FormInput
             id="recruiter-role-name"

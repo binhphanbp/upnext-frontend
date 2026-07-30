@@ -291,6 +291,7 @@ export function RecruiterRolesPage() {
                     <input
                       type="checkbox"
                       checked={selectedRoleIds.includes(role.id)}
+                      aria-label={`Chọn ${role.name}`}
                       disabled={!canModifyRole}
                       onChange={(event) => {
                         if (event.target.checked) {

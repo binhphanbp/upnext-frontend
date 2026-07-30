@@ -2,7 +2,6 @@
 
 import { CaretLeft } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
 
 import { getAdminCandidateDetails } from "@/features/admin/api/candidates";
 import { getAdminSession } from "@/features/admin/session";
@@ -17,8 +16,6 @@ interface CandidateDetailsPageProps {
 }
 
 export function CandidateDetailsPage({ candidateId }: CandidateDetailsPageProps) {
-  const t = useTranslations("Admin.users.candidates");
-
   const {
     data: candidate,
     isLoading,

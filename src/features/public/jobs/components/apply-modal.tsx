@@ -421,10 +421,14 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                  <label
+                    htmlFor="apply-email"
+                    className="mb-1.5 block text-xs font-bold text-slate-700"
+                  >
                     Địa chỉ email
                   </label>
                   <Input
+                    id="apply-email"
                     type="email"
                     value={session?.user?.email || ""}
                     readOnly
@@ -454,9 +458,9 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
 
               {/* CV Selector */}
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                <p className="mb-1.5 block text-xs font-bold text-slate-700">
                   Chọn CV ứng tuyển <span className="text-red-500">*</span>
-                </label>
+                </p>
 
                 {isLoadingCvs ? (
                   <div className="flex h-16 items-center justify-center rounded-xl border border-slate-100 bg-slate-50">
@@ -529,6 +533,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
               <div className="mt-3">
                 <input
                   type="file"
+                  aria-label="Tải lên CV"
                   ref={fileInputRef}
                   onChange={handleFileUpload}
                   accept=".pdf,.doc,.docx"

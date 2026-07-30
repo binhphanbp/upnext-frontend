@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/shared/api/http";
 
-import { runCvScreening } from "../api/cv-screening-api";
+import { getCvScreeningResults, getCvScreeningRun, runCvScreening } from "../api/cv-screening-api";
 import { useCvScreening } from "./use-cv-screening";
 
 vi.mock("../api/cv-screening-api", () => ({
-  runCvScreening: vi.fn(),
-  getCvScreeningRun: vi.fn(),
-  getCvScreeningResults: vi.fn(),
+  runCvScreening: vi.fn<typeof runCvScreening>(),
+  getCvScreeningRun: vi.fn<typeof getCvScreeningRun>(),
+  getCvScreeningResults: vi.fn<typeof getCvScreeningResults>(),
 }));
 
 describe("useCvScreening", () => {
@@ -19,7 +19,7 @@ describe("useCvScreening", () => {
   });
 
   it("ends the run and reports an expired recruiter session once", async () => {
-    const onUnauthorized = vi.fn();
+    const onUnauthorized = vi.fn<() => void>();
     vi.mocked(runCvScreening).mockRejectedValue(
       new ApiError(401, "Unauthorized", { message: "Unauthorized" }),
     );

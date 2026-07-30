@@ -5,15 +5,9 @@ import {
   Sparkle,
   X,
   DiamondsFour,
-  Browser,
-  ChatCircleDots,
-  Sliders,
-  ChartBar,
-  GridFour,
   Shield,
   CaretDown,
   CaretDoubleRight,
-  MagnifyingGlass,
   LockSimple,
 } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
@@ -37,6 +31,8 @@ export type WorkspaceSidebarProps = Readonly<{
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
   onLogout?: (() => void) | undefined;
+  collapsed?: boolean;
+  setCollapsed?: (collapsed: boolean) => void;
 }>;
 
 export function WorkspaceSidebar({
@@ -46,9 +42,29 @@ export function WorkspaceSidebar({
   mobileOpen,
   setMobileOpen,
   onLogout,
+  collapsed,
+  setCollapsed,
 }: WorkspaceSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+
+  const [localCollapsed, setLocalCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const saved = localStorage.getItem("workspace_sidebar_collapsed");
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  const activeCollapsed = collapsed !== undefined ? collapsed : localCollapsed;
+
+  const handleToggleCollapse = () => {
+    const nextCollapsed = !activeCollapsed;
+    if (setCollapsed) {
+      setCollapsed(nextCollapsed);
+    } else {
+      setLocalCollapsed(nextCollapsed);
+    }
+    localStorage.setItem("workspace_sidebar_collapsed", JSON.stringify(nextCollapsed));
+  };
 
   const handleLockedClick = (reason?: string) => {
     void Swal.fire({
@@ -63,8 +79,6 @@ export function WorkspaceSidebar({
       }
     });
   };
-
-  const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [showSecurityTooltip, setShowSecurityTooltip] = useState(false);
 
@@ -121,148 +135,40 @@ export function WorkspaceSidebar({
   }, [pathname, navGroups]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("workspace_sidebar_collapsed");
-    if (saved !== null) {
-      setCollapsed(JSON.parse(saved));
-    }
-  }, []);
-
-  useEffect(() => {
     // Remove hover reset logic
   }, [pathname]);
-
-  const handleToggleCollapse = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("workspace_sidebar_collapsed", JSON.stringify(next));
-      return next;
-    });
-  };
 
   const tNamespace = workspaceRole.charAt(0).toUpperCase() + workspaceRole.slice(1);
   const t = useTranslations(tNamespace as any);
   const tShell = useTranslations("WorkspaceShell");
 
-  const isMessagesPage =
-    pathname.startsWith("/recruiter/messages") || pathname.startsWith("/candidate/messages");
   const isCurrentGroupStandalone = !!(
     navGroups[activeGroupIndex]?.href && navGroups[activeGroupIndex]?.items?.length === 0
   );
-  const displayGroupIndex =
-    (navGroups[activeGroupIndex]?.items?.length ?? 0) > 0 ? activeGroupIndex : 0;
 
   return (
     <>
       <div className="relative z-20 flex h-full flex-shrink-0 bg-white">
         <aside
           className={cn(
-            "relative z-20 flex hidden w-[80px] flex-shrink-0 flex-col items-center md:flex transition-colors duration-300 bg-transparent",
+            "bg-transparent flex-shrink-0 transition-all duration-300 ease-in-out h-full relative z-10 hidden lg:flex bg-white",
+            isCurrentGroupStandalone
+              ? "w-0 opacity-0 overflow-hidden border-r-0"
+              : !activeCollapsed
+                ? "w-[260px]"
+                : "w-[80px]",
           )}
         >
           <div
             className={cn(
-              "flex h-[76px] w-full shrink-0 items-center justify-center",
-              workspaceRole === "admin" ? "bg-white border-b border-slate-200" : "bg-[#212f3f]",
+              "flex h-full flex-shrink-0 flex-col transition-all duration-300",
+              isCurrentGroupStandalone
+                ? "w-0 overflow-hidden"
+                : !activeCollapsed
+                  ? "w-[260px]"
+                  : "w-[80px]",
             )}
           >
-            <button
-              onClick={handleToggleCollapse}
-              className="cursor-pointer text-slate-300 transition hover:text-white"
-              aria-label="Toggle Sidebar"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-                className="iconify iconify--solar"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-              >
-                <g fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5">
-                  <path d="M20 7H4"></path>
-                  <path d="M20 12H4" opacity=".5"></path>
-                  <path d="M20 17H4"></path>
-                </g>
-              </svg>
-            </button>
-          </div>
-
-          <nav className="flex w-full flex-1 flex-col items-center gap-4 border-r border-slate-100 py-5">
-            {navGroups.map((group, index) => {
-              const Icon = group.icon || DiamondsFour; // fallback
-              const isActive = index === activeGroupIndex;
-              // Attempt to translate group label for tooltip
-              const labelTrans = group.label.includes(".") ? t(group.label as any) : group.label;
-              return (
-                <button
-                  key={group.label}
-                  onClick={() => {
-                    if (group.href) {
-                      router.push(group.href);
-                    } else {
-                      setActiveGroupIndex(index);
-                      if (collapsed) setCollapsed(false);
-                      const element = document.getElementById(`sidebar-section-${index}`);
-                      element?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }
-                  }}
-                  className={cn(
-                    "flex h-12 w-12 items-center justify-center rounded-xl transition cursor-pointer",
-                    isActive
-                      ? "bg-primary text-white"
-                      : "text-slate-400 hover:bg-slate-100 hover:text-slate-900",
-                  )}
-                  title={labelTrans}
-                >
-                  <Icon size={24} />
-                </button>
-              );
-            })}
-          </nav>
-
-          {workspaceRole === "admin" && (
-            <div className="mt-auto mb-6 flex w-full justify-center">
-              <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-white shadow-sm">
-                N
-              </div>
-            </div>
-          )}
-        </aside>
-
-        <aside
-          className={cn(
-            "bg-transparent flex-shrink-0 transition-[width,opacity] duration-300 ease-in-out h-full relative z-10 hidden lg:flex",
-            !collapsed && !isCurrentGroupStandalone
-              ? "w-[260px] opacity-100 border-transparent"
-              : "w-0 opacity-0 overflow-hidden border-r-0 lg:w-0 lg:border-r-0",
-          )}
-        >
-          <div className="flex h-full w-[260px] flex-shrink-0 flex-col">
-            <div
-              className={cn(
-                "flex h-[76px] items-center justify-between px-6",
-                workspaceRole === "admin"
-                  ? "bg-white border-b border-slate-200"
-                  : "bg-[#212f3f] border-b border-transparent",
-              )}
-            >
-              {workspaceRole === "recruiter" ? (
-                <Link href="/recruiter" className="upnext-focus inline-flex rounded-md">
-                  <Image
-                    src="/upnext-logo/upnext-recruiter.svg"
-                    alt="UpNext Recruiter"
-                    width={150}
-                    height={38}
-                    priority
-                    className="h-8 w-auto object-contain"
-                  />
-                </Link>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <Logo className="w-[150px]" />
-                </div>
-              )}
-            </div>
             <ScrollArea className="flex-1 space-y-1 px-4 py-4">
               <nav className="space-y-1" aria-label={`Điều hướng ${workspaceRole}`}>
                 {navGroups
@@ -285,30 +191,42 @@ export function WorkspaceSidebar({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setOpenMenus((prev) => ({
-                                      ...prev,
-                                      [item.label]: !prev[item.label],
-                                    }));
+                                    if (activeCollapsed) {
+                                      handleToggleCollapse();
+                                    } else {
+                                      setOpenMenus((prev) => ({
+                                        ...prev,
+                                        [item.label]: !prev[item.label],
+                                      }));
+                                    }
                                   }}
                                   className={cn(
-                                    "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
+                                    "rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
+                                    !activeCollapsed
+                                      ? "flex w-full items-center gap-3 px-4 py-[10px]"
+                                      : "flex h-10 w-10 mx-auto items-center justify-center p-0",
                                     isAnyChildActive
                                       ? "bg-slate-100 text-slate-900 font-semibold"
                                       : "text-slate-600 hover:bg-slate-50 hover:text-primary",
                                   )}
+                                  title={activeCollapsed ? item.label : undefined}
                                 >
-                                  <Icon size={20} />
-                                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                                  <CaretDown
-                                    size={16}
-                                    className={cn(
-                                      "text-slate-400 transition-transform duration-200",
-                                      isMenuOpen && "rotate-180",
-                                    )}
-                                  />
+                                  <Icon size={20} className="shrink-0" />
+                                  {!activeCollapsed && (
+                                    <>
+                                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                                      <CaretDown
+                                        size={16}
+                                        className={cn(
+                                          "text-slate-400 transition-transform duration-200",
+                                          isMenuOpen && "rotate-180",
+                                        )}
+                                      />
+                                    </>
+                                  )}
                                 </button>
 
-                                {isMenuOpen && (
+                                {!activeCollapsed && isMenuOpen && (
                                   <div className="space-y-1 pl-9 transition-all">
                                     {item.children?.map((child) => {
                                       const active = pathname === child.href;
@@ -368,11 +286,21 @@ export function WorkspaceSidebar({
                                 key={item.href}
                                 type="button"
                                 onClick={() => handleLockedClick(item.lockedReason)}
-                                className="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-4 py-[10px] text-left text-[14px] font-medium text-slate-400 opacity-70"
+                                className={cn(
+                                  "cursor-not-allowed items-center font-medium text-slate-400 opacity-70 transition-all duration-150",
+                                  !activeCollapsed
+                                    ? "flex w-full gap-3 px-4 py-[10px] text-left text-[14px] rounded-lg"
+                                    : "flex h-10 w-10 mx-auto justify-center p-0",
+                                )}
+                                title={activeCollapsed ? item.label : undefined}
                               >
-                                <Icon size={20} />
-                                <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                                <LockSimple size={14} className="shrink-0 text-slate-300" />
+                                <Icon size={20} className="shrink-0" />
+                                {!activeCollapsed && (
+                                  <>
+                                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                                    <LockSimple size={14} className="shrink-0 text-slate-300" />
+                                  </>
+                                )}
                               </button>
                             );
                           }
@@ -382,17 +310,25 @@ export function WorkspaceSidebar({
                               key={item.href}
                               href={item.href}
                               className={cn(
-                                "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
+                                "items-center font-medium text-[14px] transition-all duration-150",
+                                !activeCollapsed
+                                  ? "flex w-full gap-3 px-4 py-[10px] rounded-lg"
+                                  : "flex h-10 w-10 mx-auto justify-center p-0",
                                 active
                                   ? "bg-primary text-white"
                                   : "text-slate-600 hover:bg-slate-50 hover:text-primary",
                               )}
+                              title={activeCollapsed ? item.label : undefined}
                             >
-                              <Icon size={20} />
-                              <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                              {item.badge ? (
-                                <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
-                              ) : null}
+                              <Icon size={20} className="shrink-0" />
+                              {!activeCollapsed && (
+                                <>
+                                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                                  {item.badge ? (
+                                    <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
+                                  ) : null}
+                                </>
+                              )}
                             </Link>
                           );
                         })}
@@ -406,68 +342,99 @@ export function WorkspaceSidebar({
               {workspaceRole === "admin" ? (
                 <button
                   onClick={onLogout}
-                  className="flex w-full items-center gap-3 rounded-lg px-4 py-[10px] text-[14px] font-bold text-red-500 transition-all duration-150 hover:bg-red-50 hover:text-red-600"
+                  className={cn(
+                    "rounded-lg font-bold text-red-500 transition-all duration-150 hover:bg-red-50 hover:text-red-600",
+                    !activeCollapsed
+                      ? "flex w-full items-center gap-3 px-4 py-[10px] text-[14px]"
+                      : "flex h-10 w-10 mx-auto items-center justify-center p-0",
+                  )}
+                  title={tShell("account.logout")}
                 >
                   <SignOut size={20} weight="bold" />
-                  <span>{tShell("account.logout")}</span>
+                  {!activeCollapsed && <span>{tShell("account.logout")}</span>}
                 </button>
               ) : (
                 <div>
-                  <div className="flex items-center gap-3">
-                    {identity.avatarUrl ? (
-                      <Image
-                        src={identity.avatarUrl}
-                        alt="Avatar"
-                        width={38}
-                        height={38}
-                        unoptimized
-                        className="size-[38px] shrink-0 rounded-full border border-slate-200 bg-white object-cover"
-                      />
-                    ) : (
-                      <div className="flex size-[38px] shrink-0 items-center justify-center rounded-full border border-slate-200 bg-emerald-50 text-xs font-bold text-emerald-600">
-                        {identity.initials}
-                      </div>
+                  <div
+                    className={cn(
+                      "flex items-center",
+                      !activeCollapsed ? "gap-3 justify-between" : "justify-center",
                     )}
+                  >
+                    <div className="flex items-center gap-3">
+                      {identity.avatarUrl ? (
+                        <Image
+                          src={identity.avatarUrl}
+                          alt="Avatar"
+                          width={38}
+                          height={38}
+                          unoptimized
+                          className="size-[38px] shrink-0 rounded-full border border-slate-200 bg-white object-cover"
+                        />
+                      ) : (
+                        <div className="flex size-[38px] shrink-0 items-center justify-center rounded-full border border-slate-200 bg-emerald-50 text-xs font-bold text-emerald-600">
+                          {identity.initials}
+                        </div>
+                      )}
 
-                    <div className="min-w-0 flex-1">
-                      <h4 className="truncate text-[13px] font-bold text-slate-800">
-                        {identity.name}
-                      </h4>
-                      <p className="truncate text-[11px] font-semibold text-slate-500">
-                        {identity.roleLabel}
-                      </p>
+                      {!activeCollapsed && (
+                        <div className="min-w-0 flex-1">
+                          <h4 className="truncate text-[13px] font-bold text-slate-800">
+                            {identity.name}
+                          </h4>
+                          <p className="truncate text-[11px] font-semibold text-slate-500">
+                            {identity.roleLabel}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
-                    <Button
-                      onClick={onLogout}
-                      className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg p-0 text-slate-400 hover:bg-slate-100 hover:text-red-500"
-                      variant="ghost"
-                      aria-label={tShell("account.logout")}
-                    >
-                      <SignOut size={18} />
-                    </Button>
+                    {!activeCollapsed && (
+                      <Button
+                        onClick={onLogout}
+                        className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg p-0 text-slate-400 hover:bg-slate-100 hover:text-red-500"
+                        variant="ghost"
+                        aria-label={tShell("account.logout")}
+                      >
+                        <SignOut size={18} />
+                      </Button>
+                    )}
                   </div>
 
                   <div
-                    className="relative mt-3"
+                    className={cn(
+                      "relative",
+                      !activeCollapsed ? "mt-3" : "mt-3 flex justify-center",
+                    )}
                     onMouseEnter={() => setShowSecurityTooltip(true)}
                     onMouseLeave={() => setShowSecurityTooltip(false)}
                   >
-                    <button
-                      type="button"
-                      onClick={() => setShowSecurityTooltip(!showSecurityTooltip)}
-                      className="flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-full bg-[#e03a3a] px-4 py-1.5 text-left text-[11px] font-bold text-white shadow-xs transition hover:bg-[#c62828]"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <Shield size={14} weight="fill" className="shrink-0 text-white" />
-                        <span>Tài khoản chưa đủ an toàn</span>
-                      </div>
-                      <CaretDoubleRight
-                        size={10}
-                        weight="bold"
-                        className="shrink-0 text-white/80"
-                      />
-                    </button>
+                    {activeCollapsed ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowSecurityTooltip(!showSecurityTooltip)}
+                        className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-[#e03a3a] text-white shadow-xs transition hover:bg-[#c62828]"
+                        title="Tài khoản chưa đủ an toàn"
+                      >
+                        <Shield size={16} weight="fill" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowSecurityTooltip(!showSecurityTooltip)}
+                        className="flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-full bg-[#e03a3a] px-4 py-1.5 text-left text-[11px] font-bold text-white shadow-xs transition hover:bg-[#c62828]"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Shield size={14} weight="fill" className="shrink-0 text-white" />
+                          <span>Tài khoản chưa đủ an toàn</span>
+                        </div>
+                        <CaretDoubleRight
+                          size={10}
+                          weight="bold"
+                          className="shrink-0 text-white/80"
+                        />
+                      </button>
+                    )}
 
                     {showSecurityTooltip && (
                       <div className="absolute bottom-full left-1/2 z-50 w-[220px] -translate-x-1/2 cursor-default pb-2.5">
@@ -508,7 +475,7 @@ export function WorkspaceSidebar({
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-slate-200 bg-white shadow-xl transition-transform duration-200 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col bg-white shadow-xl transition-transform duration-200 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -566,7 +533,7 @@ export function WorkspaceSidebar({
                       "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
                       active
                         ? "bg-primary text-white"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-primary",
+                        : "text-slate-700 hover:bg-slate-50 hover:text-primary",
                     )}
                   >
                     <Icon size={18} className="flex-shrink-0" />

@@ -424,6 +424,7 @@ export function RecruiterCompanyAddressesPage() {
                   <input
                     type="checkbox"
                     checked={selectedIds.includes(loc.id)}
+                    aria-label={`Chọn ${loc.name}`}
                     onChange={(event) => {
                       if (event.target.checked) {
                         setSelectedIds((current) => [...current, loc.id]);

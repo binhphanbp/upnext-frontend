@@ -9,7 +9,7 @@ import { Link } from "@/i18n/navigation";
 import { useRouter } from "@/i18n/navigation";
 
 import { getPublicPostCategories, getPublicPosts } from "../api/posts";
-import type { PaginatedPostsResponse, Post, PostCategory } from "../types/post";
+import type { PaginatedPostsResponse, PostCategory } from "../types/post";
 
 export function PostsPageContent() {
   const router = useRouter();
@@ -136,6 +136,7 @@ export function PostsPageContent() {
                 <input
                   type="text"
                   placeholder="Search Blogs"
+                  aria-label="Search Blogs"
                   className="w-full px-4 py-2.5 text-sm text-slate-800 focus:outline-none"
                   value={searchQuery}
                   onChange={(e) => {
@@ -272,6 +273,7 @@ export function PostsPageContent() {
                         <input
                           type="email"
                           placeholder="Email của bạn"
+                          aria-label="Email của bạn"
                           required
                           className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs shadow-2xs focus:border-[#10a778] focus:outline-none"
                         />

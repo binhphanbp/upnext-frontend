@@ -58,7 +58,7 @@ export default function RecruiterEmailVerificationPage() {
         const result = await verifyRecruiterEmail(token);
         clearRecruiterEmailVerificationPending(result.email);
         setSuccess(true);
-      } catch (error) {
+      } catch {
         setSuccess(false);
         setErrorMsg(t("tokenExpiredError"));
       } finally {
@@ -173,7 +173,7 @@ export default function RecruiterEmailVerificationPage() {
                     placeholder="name@company.com"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
-                    className="h-11 rounded-lg border-slate-200"
+                    className="h-12 rounded-xl border-slate-200"
                   />
                 </div>
 

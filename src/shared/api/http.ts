@@ -55,11 +55,27 @@ export async function apiRequest<TResponse>(
     throw new ApiError(response.status, message, payload);
   }
 
-  if (response.status === 204) {
+  if (response.status === 204 || response.status === 205 || response.status === 304) {
     return undefined as TResponse;
   }
 
-  return (await response.json()) as TResponse;
+  // Some endpoints answer 200 with no body at all (a NestJS handler that returns void). Calling
+  // `response.json()` on that throws a SyntaxError, which every caller then reports as a lost
+  // connection — the request had in fact succeeded.
+  const body = await response.text();
+  if (body.trim() === "") {
+    return undefined as TResponse;
+  }
+
+  try {
+    return JSON.parse(body) as TResponse;
+  } catch {
+    throw new ApiError(
+      response.status,
+      "Phản hồi từ hệ thống không đúng định dạng. Vui lòng thử lại.",
+      body,
+    );
+  }
 }
 
 async function readResponsePayload(response: Response) {

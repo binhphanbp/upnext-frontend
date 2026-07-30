@@ -321,6 +321,7 @@ export function ScheduleInterviewDialog({
                   <input
                     type="text"
                     placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
+                    aria-label={locale === "vi" ? "Tìm tin tuyển dụng" : "Search jobs"}
                     value={jobSearch}
                     onChange={(e) => setJobSearch(e.target.value)}
                     className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-8 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
@@ -434,6 +435,7 @@ export function ScheduleInterviewDialog({
                     <input
                       type="text"
                       placeholder={locale === "vi" ? "Tìm ứng viên..." : "Search candidates..."}
+                      aria-label={locale === "vi" ? "Tìm ứng viên" : "Search candidates"}
                       value={candidateSearch}
                       onChange={(e) => setCandidateSearch(e.target.value)}
                       className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-8 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:ring-1 focus:ring-emerald-500 focus:outline-none"

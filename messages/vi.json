@@ -940,6 +940,7 @@
           "PUBLISHED": "Đang đăng",
           "DRAFT": "Nháp",
           "CLOSED": "Đã đóng",
+          "PENDING_REVIEW": "Chờ duyệt",
           "ARCHIVED": "Lưu trữ"
         }
       },
@@ -966,6 +967,11 @@
           "interviewer": "Người phỏng vấn",
           "mode": "Hình thức"
         }
+      },
+      "notifications": {
+        "title": "Cập nhật mới nhất",
+        "empty": "Chưa có cập nhật mới nào.",
+        "badge": "Thông báo"
       },
       "reputation": {
         "title": "Điểm uy tín",
@@ -1034,7 +1040,11 @@
         "license": "Cập nhật Giấy đăng ký doanh nghiệp",
         "agreement": "Cập nhật Thỏa thuận xử lý DLCN với ứng viên",
         "firstJob": "Đăng tin tuyển dụng đầu tiên",
-        "progressLabel": "Hoàn tất hồ sơ"
+        "progressLabel": "Hoàn tất hồ sơ",
+        "completeSubtitle": "Hồ sơ tuyển dụng của bạn đã hoàn tất. Sử dụng các phím tắt nhanh dưới đây để quản lý tin tuyển dụng, danh sách ứng viên hoặc lịch phỏng vấn.",
+        "viewJobs": "Xem danh sách tin tuyển dụng",
+        "viewCandidates": "Xem danh sách ứng viên",
+        "viewInterviews": "Xem lịch hẹn phỏng vấn"
       },
       "accountCard": {
         "title": "Tài khoản",

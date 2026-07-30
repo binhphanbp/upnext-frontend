@@ -2,29 +2,18 @@
 
 import {
   ArrowsCounterClockwise,
-  Briefcase,
   CaretDown,
   Check,
   CircleNotch,
   DotsThree,
   DownloadSimple,
-  Envelope,
   Eye,
   FileArrowDown,
-  GraduationCap,
-  MagicWand,
   MagnifyingGlass,
-  Phone,
-  Printer,
   Sparkle,
-  Brain,
-  Sliders,
   CheckCircle,
   XCircle,
   Info,
-  TrendUp,
-  User,
-  Users,
   X,
   WarningCircle,
   ArrowSquareOut,
@@ -77,7 +66,7 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { FormInput } from "@/shared/ui/input";
 import { ScrollArea } from "@/shared/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/shared/ui/select";
 import { Separator } from "@/shared/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
@@ -597,6 +586,7 @@ export function RecruiterCandidatesPage() {
                         <input
                           type="text"
                           placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
+                          aria-label={locale === "vi" ? "Tìm tin tuyển dụng" : "Search jobs"}
                           value={jobSearch}
                           onChange={(e) => setJobSearch(e.target.value)}
                           className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-3 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:outline-none"
@@ -1057,7 +1047,6 @@ function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>, l
 
 function CvRankingTable({
   jobs,
-  t,
   locale,
   saving,
   onStatusChange,
@@ -1341,6 +1330,7 @@ function CvRankingTable({
                     <input
                       type="text"
                       placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
+                      aria-label={locale === "vi" ? "Tìm tin tuyển dụng" : "Search jobs"}
                       value={jobSearch}
                       onChange={(e) => setJobSearch(e.target.value)}
                       className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-3 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:outline-none"

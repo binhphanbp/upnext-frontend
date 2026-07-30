@@ -327,7 +327,7 @@ export function AddressSelector({ value, onChange }: AddressSelectorProps) {
         </Label>
         <Input
           type="text"
-          className="h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none"
+          className="h-12 rounded-xl border-slate-200 bg-white text-sm shadow-none"
           placeholder="Ví dụ: 123 Đường Nguyễn Huệ"
           value={street}
           onChange={(e) => handleStreetChange(e.target.value)}

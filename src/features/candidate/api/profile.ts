@@ -616,10 +616,12 @@ export function searchSkills(query: string) {
   return apiRequest<SkillOptionApi[]>(`/skills/search?${params.toString()}`);
 }
 
-export function createSkillOption(name: string) {
+/** Extending the shared skill catalog needs a signed-in actor; the API rejects anonymous writes. */
+export function createSkillOption(name: string, token: string) {
   return apiRequest<SkillOptionApi>("/skills", {
     body: JSON.stringify({ name }),
     headers: {
+      ...authHeaders(token),
       "Content-Type": "application/json",
     },
     method: "POST",

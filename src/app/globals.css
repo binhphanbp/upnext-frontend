@@ -487,6 +487,86 @@ body.swal2-shown {
   pointer-events: auto !important;
 }
 
+/*
+ * Rendered job-post rich text (description / requirements / benefits).
+ *
+ * `.job-detail-rich-text` was already on every one of these containers but had no rules behind it,
+ * so Tailwind's preflight reset won: bullet markers and list indentation disappeared and the public
+ * page looked nothing like what the recruiter typed. These values mirror the TipTap editor content
+ * styles in `src/shared/ui/rich-text-editor.tsx` — keep the two in step.
+ */
+.job-detail-rich-text > :first-child {
+  margin-top: 0;
+}
+
+.job-detail-rich-text > :last-child {
+  margin-bottom: 0;
+}
+
+.job-detail-rich-text p {
+  margin-bottom: 0.75rem;
+}
+
+.job-detail-rich-text h2 {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+  color: var(--color-slate-900);
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.job-detail-rich-text h3 {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 700;
+  color: var(--color-slate-900);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.job-detail-rich-text ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.job-detail-rich-text ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.job-detail-rich-text li {
+  margin-bottom: 0.25rem;
+}
+
+.job-detail-rich-text li::marker {
+  color: var(--color-slate-400);
+}
+
+.job-detail-rich-text blockquote {
+  border-left: 4px solid var(--color-slate-300);
+  padding-left: 1rem;
+  font-style: italic;
+  color: var(--color-slate-500);
+  margin: 0.75rem 0;
+}
+
+.job-detail-rich-text a {
+  color: var(--color-emerald-600);
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
+}
+
+.job-detail-rich-text a:hover {
+  color: var(--color-emerald-700);
+}
+
+.job-detail-rich-text strong {
+  font-weight: 700;
+}
+
 /* Custom scrollbar for recruiter workspace */
 .recruiter-workspace,
 .recruiter-workspace * {

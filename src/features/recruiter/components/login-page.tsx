@@ -51,7 +51,7 @@ type ResetPasswordValues = {
 };
 
 const authInputClassName =
-  "recruiter-auth-input h-11 rounded-lg border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400";
+  "recruiter-auth-input h-12 rounded-xl border-slate-200 bg-white text-sm shadow-none placeholder:text-slate-400";
 
 const Toast = Swal.mixin({
   toast: true,
