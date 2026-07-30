@@ -73,6 +73,11 @@ export interface PublicCompany {
   website?: string | null;
   address?: string | null;
   description?: string | null;
+  /** Headcount band as free text, e.g. "201-500" or "10000+". */
+  companySize?: string | null;
+  /** The API sends this as a numeric string, so parse before comparing. */
+  reputationScore?: number | string | null;
+  verificationStatus?: string | null;
 }
 
 export interface PublicCompanyDetail extends Omit<PublicCompany, "activeJobsCount"> {

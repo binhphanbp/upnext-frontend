@@ -1,29 +1,17 @@
 "use client";
 
+import { useCallback } from "react";
+
 import { useRouter } from "@/i18n/navigation";
 
-import { PublicFooter } from "../shared/public-footer";
-import { PublicHeader } from "../shared/public-header";
-import { PublicCompanyPage } from "./components";
+import { PublicCompaniesListPage, PublicCompanyPage } from "./components";
 
 export function CompaniesRoute({ slug }: { slug?: string }) {
   const router = useRouter();
-  const navigate = (path: string) => router.push(path);
+  const navigate = useCallback((path: string) => router.push(path), [router]);
 
   if (!slug) {
-    return (
-      <main className="company-page">
-        <PublicHeader navigate={navigate} />
-        <section className="company-page-state">
-          <h1>Danh sách công ty</h1>
-          <p>Chọn một công ty từ trang chủ hoặc kết quả tìm kiếm để xem thông tin chi tiết.</p>
-          <button type="button" onClick={() => navigate("/")}>
-            Về trang chủ
-          </button>
-        </section>
-        <PublicFooter navigate={navigate} />
-      </main>
-    );
+    return <PublicCompaniesListPage navigate={navigate} />;
   }
 
   return <PublicCompanyPage slug={slug} navigate={navigate} />;
