@@ -12,6 +12,7 @@ import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
 import { formatJobSalaryDisplay } from "@/features/public/jobs/components/jobs-page";
 import { useRouter } from "@/i18n/navigation";
 import { toast } from "@/shared/ui/toast";
+import { useLocationPreference } from "@/shared/utils/location-preference";
 import { removeVietnameseAccents } from "@/shared/utils/natural-search";
 
 import { PublicFooter } from "../shared/public-footer";
@@ -449,6 +450,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   const locale = useLocale();
   const [keyword, setKeyword] = useState("");
   const [location, setLocation] = useState("");
+  const locationPreference = useLocationPreference();
   const [openField, setOpenField] = useState<FieldKey | null>(null);
   const [applyJob, setApplyJob] = useState<{ id: string; title: string; company: string } | null>(
     null,
@@ -462,6 +464,12 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   const heroPopularKeywords = popularKeywords.slice(0, 6);
 
   const searchCardRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!location && locationPreference.location) {
+      setLocation(locationPreference.location);
+    }
+  }, [location, locationPreference.location]);
 
   const { data: apiJobsData } = useQuery({
     queryKey: ["public-jobs"],
@@ -710,7 +718,12 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                   icon={<MapPin size={19} />}
                   placeholder={copy.locationPlaceholder}
                   value={location}
-                  options={locationOptions}
+                  options={
+                    locationPreference.location &&
+                    !locationOptions.includes(locationPreference.location)
+                      ? [locationPreference.location, ...locationOptions]
+                      : locationOptions
+                  }
                   open={openField === "location"}
                   onToggle={() => toggleField("location")}
                   onSelect={(value) => {

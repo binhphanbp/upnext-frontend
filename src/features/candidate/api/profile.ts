@@ -12,6 +12,7 @@ export type CandidateProfileApi = Readonly<{
   phoneNumber: string | null;
   gender: "MALE" | "FEMALE" | null;
   address: string | null;
+  preferredSearchCity?: string | null;
   birthdate: string | null;
   description: string | null;
   jobSearchStatus: "OPEN_TO_WORK" | "NOT_LOOKING";
@@ -125,6 +126,7 @@ export type UpdateCandidateProfilePayload = Readonly<
     phoneNumber: string;
     gender: "MALE" | "FEMALE";
     address: string;
+    preferredSearchCity: string | null;
     birthdate: string;
     description: string;
     jobSearchStatus: "OPEN_TO_WORK" | "NOT_LOOKING";

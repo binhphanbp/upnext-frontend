@@ -105,7 +105,15 @@ function normalizeNullableNumber(value: number | string | null) {
 }
 
 export async function getPublicJobs() {
-  const jobs = await apiRequest<PublicJobWire[]>("/job-posts");
+  return getPublicJobsWithFilters({});
+}
+
+export async function getPublicJobsWithFilters(options: { keyword?: string; location?: string }) {
+  const params = new URLSearchParams();
+  if (options.keyword?.trim()) params.set("keyword", options.keyword.trim());
+  if (options.location?.trim()) params.set("location", options.location.trim());
+  const query = params.size ? `?${params.toString()}` : "";
+  const jobs = await apiRequest<PublicJobWire[]>(`/job-posts${query}`);
 
   return jobs.map<PublicJob>((job) => ({
     ...job,
