@@ -2,6 +2,10 @@ import { apiRequest } from "@/shared/api/http";
 
 export interface PublicJob {
   id: string;
+  /** Public visibility fields are supplied by the API after the homepage contract update. */
+  status?: string | null;
+  moderationStatus?: string | null;
+  isHidden?: boolean | null;
   title: string;
   description: string;
   requirements: string | null;

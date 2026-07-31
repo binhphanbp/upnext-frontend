@@ -57,6 +57,20 @@ describe("homepage section selectors", () => {
     expect(selected.map((item) => item.id)).toEqual(["seven-days", "fourteen-days"]);
   });
 
+  it("honours the public visibility contract returned by the API", () => {
+    const selected = selectLatestJobs(
+      [
+        job("published", { status: "PUBLISHED", moderationStatus: "APPROVED", isHidden: false }),
+        job("draft", { status: "DRAFT", moderationStatus: "APPROVED", isHidden: false }),
+        job("moderation", { status: "PUBLISHED", moderationStatus: "PENDING", isHidden: false }),
+        job("hidden", { status: "PUBLISHED", moderationStatus: "APPROVED", isHidden: true }),
+      ],
+      { now },
+    );
+
+    expect(selected.map((item) => item.id)).toEqual(["published"]);
+  });
+
   it("sorts latest jobs by published date and respects de-duplication", () => {
     const selected = selectLatestJobs(
       [
