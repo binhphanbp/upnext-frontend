@@ -12,7 +12,9 @@ import {
   BookOpen,
   MagnifyingGlass,
   MapPin,
+  Rows,
   Sparkle,
+  SquaresFour,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
@@ -32,6 +34,20 @@ import {
   matchesSalaryFilter,
   matchesTechnologyFilter,
 } from "@/features/public/jobs/jobs-facets";
+import {
+  DEFAULT_JOB_PAGE_SIZE,
+  DEFAULT_JOB_SORT,
+  DEFAULT_JOB_VIEW,
+  getResultRange,
+  isJobView,
+  JOB_PAGE_SIZES,
+  type JobPageSize,
+  type JobSort,
+  type JobView,
+  parseJobPageSize,
+  parseJobSort,
+  sortJobs,
+} from "@/features/public/jobs/jobs-results-view";
 import { apiRequest } from "@/shared/api/http";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
@@ -109,6 +125,8 @@ export type Job = {
   level: string;
   type: string;
   posted: string;
+  /** Raw instant behind `posted`; null when the API never published a date. */
+  publishedAt?: string | null;
   applicants?: number;
   tags: string[];
   description: string;
@@ -442,7 +460,18 @@ const MODE_FILTERS = new Set(["hybrid", "remote", "onsite"]);
 const LEVEL_FILTERS = new Set(["fresher", "middle", "senior"]);
 const SALARY_FILTERS = new Set(salaryRanges.map((item) => item.value));
 const EXPERIENCE_FILTERS = new Set(experienceOptions.map((item) => item.value));
-const SORT_OPTIONS = new Set(["relevant", "newest", "salary"]);
+
+/**
+ * Rendered in this order, and typed against JobSort so the dropdown cannot drift from the orderings
+ * the sorter actually implements.
+ */
+const JOB_SORT_LABELS: readonly { value: JobSort; label: string }[] = [
+  { value: "relevant", label: "Phù hợp nhất" },
+  { value: "newest", label: "Mới nhất" },
+  { value: "oldest", label: "Cũ nhất" },
+  { value: "salary-desc", label: "Lương cao nhất" },
+  { value: "salary-asc", label: "Lương thấp nhất" },
+];
 
 type JobsSearchUrlState = {
   keyword: string;
@@ -457,8 +486,10 @@ type JobsSearchUrlState = {
   salaryFilters: string[];
   experienceFilters: string[];
   technologyFilters: string[];
-  sort: string;
+  sort: JobSort;
   page: number;
+  pageSize: JobPageSize;
+  view: JobView;
 };
 
 function buildJobsSearchPath(state: JobsSearchUrlState) {
@@ -482,15 +513,13 @@ function buildJobsSearchPath(state: JobsSearchUrlState) {
   state.experienceFilters.forEach((filter) => query.append("experienceRange", filter));
   state.technologyFilters.forEach((filter) => query.append("technology", filter));
 
-  if (state.sort !== "relevant") query.set("sort", state.sort);
+  if (state.sort !== DEFAULT_JOB_SORT) query.set("sort", state.sort);
   if (state.page > 1) query.set("page", String(state.page));
+  // Only non-defaults reach the URL, so a plain /jobs link stays clean and shareable.
+  if (state.pageSize !== DEFAULT_JOB_PAGE_SIZE) query.set("perPage", String(state.pageSize));
+  if (state.view !== DEFAULT_JOB_VIEW) query.set("view", state.view);
 
   return `/jobs${query.size > 0 ? `?${query.toString()}` : ""}`;
-}
-
-function salaryValue(job: Job) {
-  const values = job.salary.match(/\d+/g)?.map(Number) ?? [];
-  return values.length ? Math.max(...values) : 0;
 }
 
 function LogoMark({ src, name, color }: { src: string; name: string; color: string }) {
@@ -570,10 +599,11 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     .getAll("experienceRange")
     .filter((filter) => EXPERIENCE_FILTERS.has(filter));
   const queryTechnologyFilters = params.getAll("technology").filter(Boolean);
-  const querySort = SORT_OPTIONS.has(params.get("sort") ?? "")
-    ? (params.get("sort") ?? "relevant")
-    : "relevant";
+  const querySort = parseJobSort(params.get("sort"));
   const queryPage = Math.max(1, Number(params.get("page") ?? "1") || 1);
+  const queryPageSize = parseJobPageSize(params.get("perPage"));
+  const viewParam = params.get("view");
+  const queryView: JobView = isJobView(viewParam) ? viewParam : DEFAULT_JOB_VIEW;
   const queryActiveFiltersKey = queryActiveFilters.join("|");
   const querySalaryFiltersKey = querySalaryFilters.join("|");
   const queryExperienceFiltersKey = queryExperienceFilters.join("|");
@@ -586,7 +616,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const [salaryFilters, setSalaryFilters] = useState<string[]>(querySalaryFilters);
   const [expFilters, setExpFilters] = useState<string[]>(queryExperienceFilters);
   const [techFilters, setTechFilters] = useState<string[]>(queryTechnologyFilters);
-  const [sort, setSort] = useState(querySort);
+  const [sort, setSort] = useState<JobSort>(querySort);
+  const [pageSize, setPageSize] = useState<JobPageSize>(queryPageSize);
+  const [view, setView] = useState<JobView>(queryView);
   const {
     isPending: isSavedJobPending,
     isSessionResolved: isSavedJobsSessionResolved,
@@ -596,7 +628,6 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const [applyJob, setApplyJob] = useState<Job | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(queryPage);
-  const pageSize = 7;
   const lastLoggedKeywordRef = useRef<string>("");
   const lastObservedQueryRef = useRef(querySignature);
   const skipNextFilterReplaceRef = useRef(false);
@@ -618,7 +649,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
       expFilters.join("|") === queryExperienceFiltersKey &&
       techFilters.join("|") === queryTechnologyFiltersKey &&
       sort === querySort &&
-      page === queryPage;
+      page === queryPage &&
+      pageSize === queryPageSize &&
+      view === queryView;
 
     if (stateAlreadyMatchesUrl) return;
     skipNextFilterReplaceRef.current = true;
@@ -631,6 +664,8 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     setTechFilters(queryTechnologyFiltersKey ? queryTechnologyFiltersKey.split("|") : []);
     setSort(querySort);
     setPage(queryPage);
+    setPageSize(queryPageSize);
+    setView(queryView);
   }, [
     activeCategory,
     activeFilters,
@@ -644,13 +679,17 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     queryKeyword,
     queryLocation,
     queryPage,
+    queryPageSize,
     querySalaryFiltersKey,
     querySignature,
     querySort,
     queryTechnologyFiltersKey,
+    queryView,
     salaryFilters,
     sort,
     techFilters,
+    pageSize,
+    view,
   ]);
 
   const logKeyword = async (term: string, count: number) => {
@@ -803,6 +842,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         level: job.experienceLevel?.name || "Middle",
         type: job.employmentType?.name || "Full-time",
         posted: job.publishedAt ? formatRelativeTime(job.publishedAt, locale as any) : "Mới đăng",
+        // Kept alongside the formatted string: "Mới nhất" has to compare instants, and
+        // "16 ngày trước" vs "8 ngày trước" does not order correctly as text.
+        publishedAt: job.publishedAt,
         skills: Array.from(
           new Set(
             (job.jobPostSkills ?? [])
@@ -970,26 +1012,15 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     [countOptionForGroup],
   );
 
-  const filteredJobs = useMemo(() => {
-    return searchScopedJobs
-      .filter((job) => matchesAllFacetGroups(job, facetGroupMatchers))
-      .sort((a, b) => {
-        if (sort === "newest") {
-          if (a.posted === "Hôm nay" || a.posted === "Mới đăng") return -1;
-          if (b.posted === "Hôm nay" || b.posted === "Mới đăng") return 1;
-          return a.posted.localeCompare(b.posted, "vi");
-        }
-        if (sort === "salary") {
-          return salaryValue(b) - salaryValue(a);
-        }
-        const naturalScoreDifference =
-          (naturalSearchScores.get(b.id)?.score ?? 0) - (naturalSearchScores.get(a.id)?.score ?? 0);
-        if (naturalScoreDifference !== 0) return naturalScoreDifference;
-        const aScore = (a.featured ? 2 : 0) + (a.urgent ? 1 : 0);
-        const bScore = (b.featured ? 2 : 0) + (b.urgent ? 1 : 0);
-        return bScore - aScore;
-      });
-  }, [facetGroupMatchers, naturalSearchScores, searchScopedJobs, sort]);
+  const filteredJobs = useMemo(
+    () =>
+      sortJobs(
+        searchScopedJobs.filter((job) => matchesAllFacetGroups(job, facetGroupMatchers)),
+        sort,
+        (job) => naturalSearchScores.get(job.id)?.score ?? 0,
+      ),
+    [facetGroupMatchers, naturalSearchScores, searchScopedJobs, sort],
+  );
 
   useEffect(() => {
     if (queryKeyword.trim().length >= 2) {
@@ -997,8 +1028,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     }
   }, [filteredJobs.length, queryKeyword]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
+  const resultRange = getResultRange(page, pageSize, filteredJobs.length);
+  const totalPages = resultRange.totalPages;
+  const currentPage = resultRange.page;
   const shownJobs = filteredJobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const salaryRangesList = useMemo(
@@ -1062,6 +1094,8 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         technologyFilters: techFilters,
         sort,
         page,
+        pageSize,
+        view,
       }),
     [
       activeCategory,
@@ -1072,12 +1106,14 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
       jobCategoryFilter,
       location,
       page,
+      pageSize,
       queryKeyword,
       salaryFilters,
       skillFilter,
       sort,
       techFilters,
       titleFilter,
+      view,
     ],
   );
 
@@ -1179,6 +1215,8 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
       technologyFilters: techFilters,
       sort,
       page: 1,
+      pageSize,
+      view,
     });
     skipNextFilterReplaceRef.current = nextPath !== currentFilterPath;
     navigate(nextPath);
@@ -1199,7 +1237,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     setSalaryFilters([]);
     setExpFilters([]);
     setTechFilters([]);
-    setSort("relevant");
+    setSort(DEFAULT_JOB_SORT);
     setPage(1);
     navigate("/jobs");
   }
@@ -1370,65 +1408,110 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
           <div className="jobs-container mt-2 grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* Left Column: Job Cards List */}
             <div className="flex flex-col gap-4 lg:col-span-8 xl:col-span-9">
-              {/* Sort options bar */}
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-6 text-sm font-semibold">
+              {/* Results toolbar: what is on screen, then the controls that change it. */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                <output className="text-sm text-slate-600" aria-live="polite" aria-atomic="true">
+                  {isJobsPending ? (
+                    "Đang tìm việc làm phù hợp…"
+                  ) : filteredJobs.length === 0 ? (
+                    "Không có việc làm phù hợp"
+                  ) : (
+                    <>
+                      Vị trí{" "}
+                      <strong className="font-bold text-slate-900">
+                        {resultRange.from}–{resultRange.to}
+                      </strong>{" "}
+                      của{" "}
+                      <strong className="font-bold text-slate-900">{filteredJobs.length}</strong>{" "}
+                      việc làm
+                    </>
+                  )}
+                </output>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600">
+                    <span className="text-slate-500">Hiển thị:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(event) => {
+                        // Row 30 of page 1 at 12/page is row 30 of page 1 at 48/page, but not of
+                        // page 3 — so any size change restarts from the first page.
+                        setPageSize(parseJobPageSize(event.target.value));
+                        setPage(1);
+                      }}
+                      className="cursor-pointer bg-transparent font-bold text-slate-900 focus:outline-none"
+                      aria-label="Số việc làm mỗi trang"
+                    >
+                      {JOB_PAGE_SIZES.map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600">
+                    <span className="text-slate-500">Sắp xếp:</span>
+                    <select
+                      value={sort}
+                      onChange={(event) => {
+                        // Reordering changes which rows land on page 1, so the reader goes back to
+                        // the top rather than to page 3 of a different order.
+                        setSort(parseJobSort(event.target.value));
+                        setPage(1);
+                      }}
+                      className="cursor-pointer bg-transparent font-bold text-slate-900 focus:outline-none"
+                      aria-label="Sắp xếp kết quả"
+                    >
+                      {JOB_SORT_LABELS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {/* Layout only — changing it must not move the reader off their current page.
+                      Each button carries its own label and pressed state, so the wrapper needs no
+                      role of its own. */}
+                  <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5">
+                    {(
+                      [
+                        { value: "list", label: "Dạng danh sách", icon: Rows },
+                        { value: "grid", label: "Dạng lưới", icon: SquaresFour },
+                      ] as const
+                    ).map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          aria-label={option.label}
+                          aria-pressed={view === option.value}
+                          onClick={() => setView(option.value)}
+                          className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition ${
+                            view === option.value
+                              ? "bg-emerald-600 text-white"
+                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                          }`}
+                        >
+                          <Icon size={16} weight={view === option.value ? "fill" : "regular"} />
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   <button
+                    ref={filterToggleRef}
                     type="button"
-                    onClick={() => {
-                      setSort("relevant");
-                      setPage(1);
-                    }}
-                    aria-pressed={sort === "relevant"}
-                    className={`cursor-pointer border-b-2 pb-3 transition ${
-                      sort === "relevant"
-                        ? "border-emerald-600 text-emerald-600"
-                        : "border-transparent text-slate-500 hover:text-slate-800"
-                    }`}
+                    className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold transition hover:bg-slate-50 lg:hidden"
+                    onClick={() => setShowFilters(true)}
+                    aria-controls="jobs-advanced-filters"
+                    aria-expanded={showFilters}
                   >
-                    Phù hợp nhất
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSort("newest");
-                      setPage(1);
-                    }}
-                    aria-pressed={sort === "newest"}
-                    className={`cursor-pointer border-b-2 pb-3 transition ${
-                      sort === "newest"
-                        ? "border-emerald-600 text-emerald-600"
-                        : "border-transparent text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    Mới nhất
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSort("salary");
-                      setPage(1);
-                    }}
-                    aria-pressed={sort === "salary"}
-                    className={`cursor-pointer border-b-2 pb-3 transition ${
-                      sort === "salary"
-                        ? "border-emerald-600 text-emerald-600"
-                        : "border-transparent text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    Lương cao nhất
+                    <SlidersHorizontal size={14} /> Bộ lọc
                   </button>
                 </div>
-                <button
-                  ref={filterToggleRef}
-                  type="button"
-                  className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold transition hover:bg-slate-50 lg:hidden"
-                  onClick={() => setShowFilters(true)}
-                  aria-controls="jobs-advanced-filters"
-                  aria-expanded={showFilters}
-                >
-                  <SlidersHorizontal size={14} /> Bộ lọc
-                </button>
               </div>
 
               {/* Active Filters Summary */}
@@ -1452,18 +1535,6 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                   </button>
                 </div>
               )}
-
-              <output className="text-sm text-slate-600" aria-live="polite" aria-atomic="true">
-                {isJobsPending ? (
-                  "Đang tìm việc làm phù hợp..."
-                ) : (
-                  <>
-                    Tìm thấy{" "}
-                    <strong className="font-bold text-slate-900">{filteredJobs.length}</strong> việc
-                    làm phù hợp
-                  </>
-                )}
-              </output>
 
               {/* Job Cards */}
               {isJobsPending ? (
@@ -1497,13 +1568,52 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                   </button>
                 </div>
               ) : shownJobs.length > 0 ? (
-                <div className="flex flex-col gap-4">
+                <div
+                  className={
+                    view === "grid"
+                      ? "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                      : "flex flex-col gap-4"
+                  }
+                >
                   {shownJobs.map((job) => (
                     <div
                       key={job.id}
-                      className="group relative rounded-2xl border border-slate-200 bg-white p-5 transition duration-200 hover:border-emerald-500 hover:shadow-lg"
+                      className="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition duration-200 hover:border-emerald-500 hover:shadow-lg"
                     >
-                      <div className="flex flex-col gap-5 sm:flex-row">
+                      {/* Saving is a bookmark on the card itself, not a step in applying, so it sits
+                          in the corner instead of competing for width with Chi tiết and Ứng tuyển. */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!toggleSaveJob(job.id)) {
+                            toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
+                            navigate("/login?redirect=/jobs");
+                          }
+                        }}
+                        disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
+                        className={`absolute top-3 right-3 z-10 flex size-9 cursor-pointer items-center justify-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                          savedJobIds.includes(job.id)
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                            : "border-transparent text-slate-400 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700"
+                        }`}
+                        aria-label={savedJobIds.includes(job.id) ? "Bỏ lưu tin" : "Lưu tin"}
+                        aria-pressed={savedJobIds.includes(job.id)}
+                      >
+                        <BookmarkSimple
+                          size={18}
+                          weight={savedJobIds.includes(job.id) ? "fill" : "regular"}
+                        />
+                      </button>
+
+                      {/* In the grid the card is a narrow column, so the same content stacks
+                          instead of running edge to edge. */}
+                      <div
+                        className={
+                          view === "grid"
+                            ? "flex flex-1 flex-col gap-4"
+                            : "flex flex-col gap-5 sm:flex-row"
+                        }
+                      >
                         {/* Logo */}
                         <button
                           type="button"
@@ -1514,53 +1624,69 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                           <LogoMark src={job.logo} name={job.company} color={job.logoColor} />
                         </button>
 
-                        {/* Body */}
-                        <div className="flex flex-1 flex-col gap-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-semibold text-slate-500">
+                        {/* Body. Right padding keeps a long title clear of the corner bookmark. */}
+                        <div className="flex min-w-0 flex-1 flex-col gap-1 pr-10">
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <span className="truncate text-xs font-semibold text-slate-500">
                               {job.company}
                             </span>
                             {job.verified && (
-                              <CheckCircle size={14} className="text-emerald-500" weight="fill" />
+                              <CheckCircle
+                                size={14}
+                                className="shrink-0 text-emerald-500"
+                                weight="fill"
+                              />
+                            )}
+                            {/* Status markers live beside the company, not trailing the title: inline
+                                after a long title they push it onto a second line, and in a grid
+                                column there is no width to spare. */}
+                            {job.urgent && (
+                              <span className="shrink-0 rounded border border-red-100 bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">
+                                Tuyển gấp
+                              </span>
+                            )}
+                            {job.featured && (
+                              <span className="shrink-0 rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                                Nổi bật
+                              </span>
                             )}
                           </div>
-                          <h3 className="line-clamp-1 text-base font-bold text-slate-900">
+                          <h3 className="text-base font-bold text-slate-900">
                             <button
                               type="button"
                               onClick={() => navigate(`/jobs/${job.id}`)}
-                              className="cursor-pointer text-left transition group-hover:text-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                              title={job.title}
+                              className="block w-full cursor-pointer text-left transition group-hover:text-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
                             >
-                              {job.title}
-                              {job.urgent && (
-                                <span className="ml-2 inline-flex items-center rounded border border-red-100 bg-red-50 px-1.5 py-0.5 align-middle text-[10px] font-bold text-red-500">
-                                  Tuyển gấp
-                                </span>
-                              )}
-                              {job.featured && (
-                                <span className="ml-2 inline-flex items-center rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 align-middle text-[10px] font-bold text-amber-600">
-                                  Nổi bật
-                                </span>
-                              )}
+                              {/* The clamp has to sit on the element that directly wraps the text.
+                                  On the h3 it only ever clamped this button's single line, which is
+                                  why long titles still ran to two rows. */}
+                              <span className="line-clamp-1">{job.title}</span>
                             </button>
                           </h3>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500">
-                            <span className="flex items-center gap-1">
-                              <MapPin size={14} className="mr-1 inline-block" /> {job.location}
+                          {/* One line, never wrapping: the city is what gives, since the posted date
+                              is short and fixed-width. */}
+                          <div className="mt-1 flex min-w-0 items-center gap-x-3 text-xs text-slate-500">
+                            <span className="flex min-w-0 items-center gap-1">
+                              <MapPin size={14} className="shrink-0" />
+                              <span className="truncate">{job.location}</span>
                             </span>
-                            {job.applicants ? (
-                              <span className="flex items-center gap-1">
-                                <Users size={14} className="mr-1 inline-block" /> {job.applicants}{" "}
-                                ứng viên
+                            {job.applicants && view !== "grid" ? (
+                              <span className="flex shrink-0 items-center gap-1">
+                                <Users size={14} /> {job.applicants} ứng viên
                               </span>
                             ) : null}
-                            <span className="flex items-center gap-1">
-                              <Clock size={14} className="mr-1 inline-block" /> {job.posted}
+                            <span className="flex shrink-0 items-center gap-1">
+                              <Clock size={14} /> {job.posted}
                             </span>
                           </div>
-                          <div className="mt-3 flex flex-wrap gap-1.5">
+                          <div className="mt-3 flex gap-1.5 overflow-hidden">
                             {(() => {
-                              const maxTags = 3;
-                              const maxChars = 22;
+                              /* Budgeted per layout: the grid column is roughly half the width of a
+                                 list row, so the same three tags that fit a row wrapped onto a
+                                 second line in the grid. */
+                              const maxTags = view === "grid" ? 2 : 3;
+                              const maxChars = view === "grid" ? 18 : 22;
                               const shown: string[] = [];
                               let currentChars = 0;
                               for (const tag of job.tags) {
@@ -1577,14 +1703,14 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                                   {shown.map((tag) => (
                                     <span
                                       key={tag}
-                                      className="rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600"
+                                      className="shrink-0 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-slate-600"
                                     >
                                       {tag}
                                     </span>
                                   ))}
                                   {extraCount > 0 && (
                                     <span
-                                      className="rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-400"
+                                      className="shrink-0 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-400"
                                       title={job.tags.slice(shown.length).join(", ")}
                                     >
                                       +{extraCount}
@@ -1596,38 +1722,41 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                           </div>
                         </div>
 
-                        {/* Side Actions */}
-                        <div className="flex min-w-[140px] items-end justify-between gap-2.5 sm:flex-col sm:justify-start">
-                          <span className="text-base font-bold whitespace-nowrap text-slate-900">
+                        {/* Side Actions. In the grid a card is one narrow column, so the salary and
+                            the buttons stack; side by side they overflowed the card. */}
+                        <div
+                          className={
+                            view === "grid"
+                              ? "mt-auto flex flex-col gap-2.5 border-t border-slate-100 pt-3"
+                              : "flex min-w-[140px] items-end justify-between gap-2.5 sm:flex-col sm:justify-start"
+                          }
+                        >
+                          {/* In the list layout this sits directly below the corner bookmark, so it
+                              is padded clear of it; in the grid it lives in the footer instead. */}
+                          <span
+                            className={`text-base font-bold whitespace-nowrap text-slate-900 ${
+                              view === "grid" ? "" : "sm:pr-11"
+                            }`}
+                          >
                             {job.salary}
                           </span>
-                          <div className="mt-auto flex w-full items-center gap-2 sm:w-auto">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!toggleSaveJob(job.id)) {
-                                  toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
-                                  navigate("/login?redirect=/jobs");
-                                }
-                              }}
-                              disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
-                              className={`flex cursor-pointer items-center justify-center rounded-lg border p-2 transition ${
-                                savedJobIds.includes(job.id)
-                                  ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                                  : "border-slate-200 bg-white text-slate-500 hover:text-slate-800"
-                              }`}
-                              aria-label={savedJobIds.includes(job.id) ? "Bỏ lưu tin" : "Lưu tin"}
-                              aria-pressed={savedJobIds.includes(job.id)}
-                            >
-                              <BookmarkSimple
-                                size={18}
-                                weight={savedJobIds.includes(job.id) ? "fill" : "regular"}
-                              />
-                            </button>
+                          <div
+                            className={
+                              view === "grid"
+                                ? "flex w-full items-center gap-2"
+                                : "mt-auto flex w-full items-center gap-2 sm:w-auto"
+                            }
+                          >
+                            {/* In the grid the pair fills the card, so no dead strip is left beside
+                                them; `sm:flex-initial` is what used to shrink them back to their
+                                text and leave that gap. In the list they hug their labels, because
+                                the row already ends at the card edge. */}
                             <button
                               type="button"
                               onClick={() => navigate(`/jobs/${job.id}`)}
-                              className="flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+                              className={`flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 ${
+                                view === "grid" ? "" : "sm:flex-initial"
+                              }`}
                             >
                               Chi tiết <ArrowRight size={12} />
                             </button>
@@ -1641,7 +1770,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                                   navigate(`/register?job=${job.id}`);
                                 }
                               }}
-                              className="flex-1 cursor-pointer rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700 sm:flex-initial"
+                              className={`flex-1 cursor-pointer rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700 ${
+                                view === "grid" ? "" : "sm:flex-initial"
+                              }`}
                             >
                               Ứng tuyển
                             </button>
@@ -1745,7 +1876,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                     className="flex items-center gap-1.5 text-base font-bold text-slate-900"
                   >
                     <SlidersHorizontal size={18} className="text-slate-600" />
-                    Bộ lọc tìm kiếm
+                    Bộ lọc nâng cao
                   </h2>
                   <div className="flex items-center gap-3">
                     <button
