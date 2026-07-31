@@ -15,6 +15,10 @@ export type DeadlineTone = "critical" | "warning" | "neutral";
  * item cannot leak into a homepage section while the API is being refreshed.
  */
 export function isPublicJobAvailable(job: PublicJob, now = Date.now()) {
+  if (job.status && job.status.toUpperCase() !== "PUBLISHED") return false;
+  if (job.moderationStatus && job.moderationStatus.toUpperCase() !== "APPROVED") return false;
+  if (job.isHidden === true) return false;
+
   const publishedAt = job.publishedAt ? new Date(job.publishedAt).getTime() : null;
   const expiredAt = job.expiredAt ? new Date(job.expiredAt).getTime() : null;
 

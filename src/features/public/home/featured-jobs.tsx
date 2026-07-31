@@ -10,6 +10,7 @@ import { formatJobSalaryDisplay } from "@/features/public/jobs/components/jobs-p
 import { toast } from "@/shared/ui/toast";
 
 import type { PublicJob } from "./api";
+import type { RecommendationReasonCode } from "./home-personalization";
 import { getJobCities, getJobTags, selectLatestJobs } from "./home-section-selectors";
 import {
   ArrowRight,
@@ -24,6 +25,7 @@ import {
   MapPin,
   Monitor,
   ShieldCheck,
+  Sparkles,
 } from "./marketing-icons";
 import { useAnchoredJobPreview } from "./use-anchored-job-preview";
 
@@ -36,6 +38,10 @@ type FeaturedJobsProps = {
   isError: boolean;
   onRetry: () => void;
   isRetrying: boolean;
+  selectedJobs?: readonly PublicJob[] | undefined;
+  matchReasons?: ReadonlyMap<string, readonly RecommendationReasonCode[]> | undefined;
+  sectionTitle?: string | undefined;
+  sectionDescription?: string | undefined;
 };
 
 type JobCard = {
@@ -57,6 +63,7 @@ type JobCard = {
   description?: string;
   /** Public aggregate from the API. Null means UpNext has no verified count to disclose. */
   viewCount: number | null;
+  matchReasons: readonly RecommendationReasonCode[];
 };
 
 function getPlainText(value: string | null | undefined) {
@@ -192,7 +199,10 @@ function VerifiedBadge() {
   );
 }
 
-function mapPublicJobToJobCard(job: PublicJob): JobCard {
+function mapPublicJobToJobCard(
+  job: PublicJob,
+  matchReasons: readonly RecommendationReasonCode[] = [],
+): JobCard {
   const description = getPreviewDescription(job.description);
 
   return {
@@ -210,6 +220,7 @@ function mapPublicJobToJobCard(job: PublicJob): JobCard {
     deadline: formatApplicationDeadline(job.expiredAt),
     ...(description ? { description } : {}),
     viewCount: normalizeViewCount(job.viewCount),
+    matchReasons,
   };
 }
 
@@ -222,6 +233,10 @@ export function FeaturedJobs({
   isError,
   onRetry,
   isRetrying,
+  selectedJobs,
+  matchReasons,
+  sectionTitle,
+  sectionDescription,
 }: FeaturedJobsProps) {
   const locale = useLocale();
   const copy = locale === "en" ? interestCopy.en : interestCopy.vi;
@@ -285,9 +300,30 @@ export function FeaturedJobs({
   } = useCandidateSavedJobs();
 
   const jobs = useMemo(() => {
-    const selected = selectLatestJobs(apiJobsData, { excludedIds: excludedJobIds });
-    return selected.map((job) => mapPublicJobToJobCard(job));
-  }, [apiJobsData, excludedJobIds]);
+    const selected = selectedJobs ?? selectLatestJobs(apiJobsData, { excludedIds: excludedJobIds });
+    return selected.map((job) => mapPublicJobToJobCard(job, matchReasons?.get(job.id)));
+  }, [apiJobsData, excludedJobIds, matchReasons, selectedJobs]);
+
+  const displayTitle = sectionTitle ?? copy.title;
+  const displayDescription = sectionDescription ?? copy.description;
+  const reasonLabels: Record<RecommendationReasonCode, string> =
+    locale === "en"
+      ? {
+          skill: "Matches your skills",
+          position: "Matches your target role",
+          workingModel: "Matches your work preference",
+          level: "Matches your experience level",
+          salary: "Within your salary range",
+          followedCompany: "From a company you follow",
+        }
+      : {
+          skill: "Khớp kỹ năng của bạn",
+          position: "Khớp vị trí bạn quan tâm",
+          workingModel: "Khớp mô hình làm việc",
+          level: "Khớp cấp bậc kinh nghiệm",
+          salary: "Trong khoảng lương mong muốn",
+          followedCompany: "Từ công ty bạn đang theo dõi",
+        };
 
   // Split into pages of PAGE_SIZE, then append a clone of page 1 at the end so
   // the loop from last → first slides FORWARD seamlessly instead of rewinding.
@@ -447,11 +483,11 @@ export function FeaturedJobs({
 
   if (isLoading || isError || jobs.length === 0) {
     return (
-      <section className="marketing-home-jobs" aria-label={copy.title}>
+      <section className="marketing-home-jobs" aria-label={displayTitle}>
         <header className="marketing-home-jobs-head">
           <div>
-            <h2>{copy.title}</h2>
-            <p>{copy.description}</p>
+            <h2>{displayTitle}</h2>
+            <p>{displayDescription}</p>
           </div>
         </header>
         {isLoading ? (
@@ -483,7 +519,7 @@ export function FeaturedJobs({
   return (
     <section
       className="marketing-home-jobs"
-      aria-label={copy.title}
+      aria-label={displayTitle}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -491,8 +527,8 @@ export function FeaturedJobs({
     >
       <header className="marketing-home-jobs-head">
         <div>
-          <h2>{copy.title}</h2>
-          <p>{copy.description}</p>
+          <h2>{displayTitle}</h2>
+          <p>{displayDescription}</p>
         </div>
         <button type="button" className="marketing-home-jobs-all" onClick={() => navigate("/jobs")}>
           {copy.viewAll} <ChevronRight size={16} />
@@ -632,6 +668,13 @@ export function FeaturedJobs({
                           </i>
                         )}
                       </div>
+
+                      {job.matchReasons.length > 0 && (
+                        <p className="featured-job-match-reason">
+                          <Sparkles size={13} aria-hidden="true" />
+                          {reasonLabels[job.matchReasons[0]!]}
+                        </p>
+                      )}
 
                       <footer className="featured-job-foot">
                         {job.viewCount === null ? (

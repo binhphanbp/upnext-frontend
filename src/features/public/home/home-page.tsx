@@ -19,12 +19,15 @@ import { PublicHeader } from "../shared/public-header";
 import { getAllActivePublicCompanies, getPublicJobs } from "./api";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
+import { selectFollowedCompanyFreshJobs, selectRecommendedJobs } from "./home-personalization";
 import {
   getDeadlineTone,
   getDaysUntilExpiration,
   getJobTags,
   isPublicJobAvailable,
+  selectLatestJobs,
   selectExpiringJobs,
+  selectTopCompanies,
 } from "./home-section-selectors";
 import { InsightsCarousel } from "./insights-carousel";
 import { JobMarket } from "./job-market";
@@ -45,6 +48,7 @@ import {
 } from "./marketing-icons";
 import { getPopularKeywordsForLocale } from "./popular-keywords";
 import { useAnchoredJobPreview } from "./use-anchored-job-preview";
+import { useHomeCandidateContext } from "./use-home-candidate-context";
 
 type MarketingHomeExperienceProps = {
   navigate: (path: string) => void;
@@ -176,6 +180,21 @@ const homeCopy = {
     statsCompanies: "Công ty công nghệ",
     statsNewJobs: "Việc làm mới trong 7 ngày",
     trustedBy: "Nhà tuyển dụng đang hoạt động trên UpNext",
+    latestJobsTitle: "Việc làm mới nhất",
+    latestJobsDescription: "Các vị trí IT mới được đăng từ những nhà tuyển dụng đang hoạt động.",
+    recommendedJobsTitle: "Gợi ý phù hợp với bạn",
+    recommendedJobsDescription:
+      "Các vị trí được chọn dựa trên kỹ năng và ưu tiên việc làm của bạn.",
+    profileActionTitle: "Hoàn thiện hồ sơ để nhận gợi ý phù hợp",
+    profileActionDescription:
+      "Thêm kỹ năng và ưu tiên việc làm để UpNext hiểu rõ hướng đi của bạn hơn.",
+    profileActionCta: "Cập nhật hồ sơ",
+    cvActionTitle: "Thêm CV để sẵn sàng ứng tuyển",
+    cvActionDescription: "Một CV hoàn chỉnh giúp bạn ứng tuyển nhanh hơn khi gặp cơ hội phù hợp.",
+    cvActionCta: "Quản lý CV",
+    followedJobsActionTitle: "Công ty bạn theo dõi vừa có việc mới",
+    followedJobsActionDescription: "Xem những cơ hội mới được đăng trong 7 ngày qua.",
+    followedJobsActionCta: "Xem việc làm",
     footerPrimary: "Tìm việc ngay",
     footerSecondary: "Tạo hồ sơ miễn phí",
     footerEmailPlaceholder: "Nhập email của bạn",
@@ -210,6 +229,20 @@ const homeCopy = {
     statsCompanies: "Tech companies",
     statsNewJobs: "Jobs posted in the last 7 days",
     trustedBy: "Employers hiring on UpNext",
+    latestJobsTitle: "Latest IT jobs",
+    latestJobsDescription: "New IT roles from employers currently hiring on UpNext.",
+    recommendedJobsTitle: "Recommended for you",
+    recommendedJobsDescription: "Roles selected from your skills and job preferences.",
+    profileActionTitle: "Complete your profile for better matches",
+    profileActionDescription:
+      "Add skills and job preferences so UpNext can tailor opportunities to you.",
+    profileActionCta: "Update profile",
+    cvActionTitle: "Add a CV before you apply",
+    cvActionDescription: "A complete CV helps you apply faster when the right opportunity appears.",
+    cvActionCta: "Manage CVs",
+    followedJobsActionTitle: "A followed company just posted new jobs",
+    followedJobsActionDescription: "Explore roles published in the last seven days.",
+    followedJobsActionCta: "View jobs",
     footerPrimary: "Find jobs now",
     footerSecondary: "Create free profile",
     footerEmailPlaceholder: "Enter your email",
@@ -233,6 +266,12 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   );
 
   const copy = locale === "en" ? homeCopy.en : homeCopy.vi;
+  const {
+    candidateContext,
+    cvsCount,
+    isActivityResolved,
+    state: candidateState,
+  } = useHomeCandidateContext();
   const popularKeywords = useMemo(
     () => getPopularKeywordsForLocale(locale === "en" ? "en" : "vi"),
     [locale],
@@ -283,6 +322,10 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
       new Set(activeJobs.map((job) => job.company?.id).filter(Boolean)).size,
     [activeJobs, apiCompaniesData],
   );
+  const trustCompanies = useMemo(
+    () => selectTopCompanies(apiCompaniesData?.items, 8),
+    [apiCompaniesData?.items],
+  );
   const newJobsCount = useMemo(
     () =>
       activeJobs.filter((job) => {
@@ -314,8 +357,47 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     };
   }, [companiesCount, jobsCount, locale, newJobsCount]);
 
+  const appliedJobIds = candidateContext.appliedJobIds;
+  const urgentExcludedIds = useMemo(() => new Set(appliedJobIds), [appliedJobIds]);
+  const urgentJobs = useMemo(
+    () => selectExpiringJobs(apiJobsData, { now, excludedIds: urgentExcludedIds }),
+    [apiJobsData, now, urgentExcludedIds],
+  );
+  const urgentJobIds = useMemo(() => new Set(urgentJobs.map((job) => job.id)), [urgentJobs]);
+  const primaryExcludedJobIds = useMemo(
+    () => new Set([...urgentJobIds, ...appliedJobIds]),
+    [appliedJobIds, urgentJobIds],
+  );
+  const personalizedRecommendations = useMemo(
+    () =>
+      selectRecommendedJobs(apiJobsData, {
+        context: candidateContext,
+        now,
+        excludedIds: primaryExcludedJobIds,
+      }),
+    [apiJobsData, candidateContext, now, primaryExcludedJobIds],
+  );
+  const showRecommendations =
+    candidateState === "ready" && isActivityResolved && personalizedRecommendations.length >= 6;
+  const primaryJobSelection = useMemo(() => {
+    if (showRecommendations) return personalizedRecommendations.map((item) => item.job);
+    return selectLatestJobs(apiJobsData, {
+      now,
+      excludedIds: primaryExcludedJobIds,
+    });
+  }, [apiJobsData, now, personalizedRecommendations, primaryExcludedJobIds, showRecommendations]);
+  const recommendationReasons = useMemo(
+    () =>
+      new Map(personalizedRecommendations.map((item) => [item.job.id, item.reasonCodes] as const)),
+    [personalizedRecommendations],
+  );
+  const followedCompanyFreshJobs = useMemo(
+    () => selectFollowedCompanyFreshJobs(apiJobsData, candidateContext, now),
+    [apiJobsData, candidateContext, now],
+  );
+
   const urgentJobsList = useMemo(() => {
-    return selectExpiringJobs(apiJobsData, { now }).map((job, index) => {
+    return urgentJobs.map((job, index) => {
       const daysUntilExpiration = getDaysUntilExpiration(job, now);
       return {
         id: job.id,
@@ -344,11 +426,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 : "bg-rose-500",
       };
     });
-  }, [apiJobsData, now]);
-  const urgentJobIds = useMemo(
-    () => new Set(urgentJobsList.map((job) => job.id)),
-    [urgentJobsList],
-  );
+  }, [urgentJobs, now]);
 
   useEffect(() => {
     if (!openField) return undefined;
@@ -540,7 +618,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             <span>{copy.trustedBy}</span>
             <div className="marketing-home-marquee">
               <div className="marketing-home-marquee-track" aria-hidden="true">
-                {(apiCompaniesData?.items ?? []).slice(0, 8).map((company) => (
+                {trustCompanies.map((company) => (
                   <b
                     className={`marketing-home-company marketing-home-company-${company.id}`}
                     key={company.id}
@@ -549,7 +627,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                   </b>
                 ))}
                 {/* Duplicate set creates the seamless loop; hidden when motion is reduced. */}
-                {(apiCompaniesData?.items ?? []).slice(0, 8).map((company) => (
+                {trustCompanies.map((company) => (
                   <b
                     className={`marketing-home-company marketing-home-company-clone marketing-home-company-${company.id}`}
                     key={`${company.id}-clone`}
@@ -562,11 +640,24 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           </div>
         </section>
 
+        <HomeCandidateActionPanel
+          navigate={navigate}
+          copy={copy}
+          candidateState={candidateState}
+          cvsCount={cvsCount}
+          followedJobsCount={followedCompanyFreshJobs.length}
+        />
         <FeaturedJobs
           navigate={navigate}
           onApply={setApplyJob}
           jobs={apiJobsData}
-          excludedJobIds={urgentJobIds}
+          excludedJobIds={primaryExcludedJobIds}
+          selectedJobs={primaryJobSelection}
+          matchReasons={showRecommendations ? recommendationReasons : undefined}
+          sectionTitle={showRecommendations ? copy.recommendedJobsTitle : copy.latestJobsTitle}
+          sectionDescription={
+            showRecommendations ? copy.recommendedJobsDescription : copy.latestJobsDescription
+          }
           isLoading={isJobsPending}
           isError={isJobsError && !apiJobsData}
           onRetry={() => void refetchJobs()}
@@ -600,6 +691,79 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
       </section>
     </main>
   );
+}
+
+function HomeCandidateActionPanel({
+  navigate,
+  copy,
+  candidateState,
+  cvsCount,
+  followedJobsCount,
+}: {
+  navigate: (path: string) => void;
+  copy: (typeof homeCopy)["vi"] | (typeof homeCopy)["en"];
+  candidateState:
+    | "resolving"
+    | "guest"
+    | "profile-incomplete"
+    | "ready"
+    | "not-looking"
+    | "unavailable";
+  cvsCount: number;
+  followedJobsCount: number;
+}) {
+  if (candidateState === "profile-incomplete") {
+    return (
+      <section className="marketing-home-candidate-action" aria-labelledby="home-action-title">
+        <span className="marketing-home-candidate-action-icon" aria-hidden="true">
+          <Sparkles size={18} />
+        </span>
+        <div>
+          <h2 id="home-action-title">{copy.profileActionTitle}</h2>
+          <p>{copy.profileActionDescription}</p>
+        </div>
+        <button type="button" onClick={() => navigate("/candidate/profile")}>
+          {copy.profileActionCta} <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </section>
+    );
+  }
+
+  if (candidateState === "ready" && cvsCount === 0) {
+    return (
+      <section className="marketing-home-candidate-action" aria-labelledby="home-action-title">
+        <span className="marketing-home-candidate-action-icon" aria-hidden="true">
+          <BriefcaseBusiness size={18} />
+        </span>
+        <div>
+          <h2 id="home-action-title">{copy.cvActionTitle}</h2>
+          <p>{copy.cvActionDescription}</p>
+        </div>
+        <button type="button" onClick={() => navigate("/candidate/profile?section=documents")}>
+          {copy.cvActionCta} <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </section>
+    );
+  }
+
+  if (candidateState === "ready" && followedJobsCount > 0) {
+    return (
+      <section className="marketing-home-candidate-action" aria-labelledby="home-action-title">
+        <span className="marketing-home-candidate-action-icon" aria-hidden="true">
+          <Sparkles size={18} />
+        </span>
+        <div>
+          <h2 id="home-action-title">{copy.followedJobsActionTitle}</h2>
+          <p>{copy.followedJobsActionDescription}</p>
+        </div>
+        <button type="button" onClick={() => navigate("/jobs")}>
+          {copy.followedJobsActionCta} <ArrowRight size={16} aria-hidden="true" />
+        </button>
+      </section>
+    );
+  }
+
+  return null;
 }
 
 function UrgentJobsSection({
