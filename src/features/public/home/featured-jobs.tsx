@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
@@ -9,13 +9,13 @@ import { getCandidateSession } from "@/features/candidate/session";
 import { formatJobSalaryDisplay } from "@/features/public/jobs/components/jobs-page";
 import { toast } from "@/shared/ui/toast";
 
-import { getPublicJobs, type PublicJob } from "./api";
+import type { PublicJob } from "./api";
+import { getJobCities, getJobTags, selectLatestJobs } from "./home-section-selectors";
 import {
   ArrowRight,
   BadgeCheck,
   Bookmark,
   Briefcase,
-  Check,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -30,14 +30,16 @@ import { useAnchoredJobPreview } from "./use-anchored-job-preview";
 type FeaturedJobsProps = {
   navigate: (path: string) => void;
   onApply: (job: { id: string; title: string; company: string }) => void;
+  jobs: PublicJob[] | undefined;
+  excludedJobIds: ReadonlySet<string>;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  isRetrying: boolean;
 };
-
-type BadgeTone = "featured" | "new" | "urgent" | "remote" | "salary";
-type FilterKey = "remote" | "high-salary" | "newest";
 
 type JobCard = {
   id: string;
-  badge: { label: string; tone: BadgeTone };
   company: string;
   verified: boolean;
   /** Logo file under /public/assets/marketing/home/companies, or '' for a monogram. */
@@ -55,7 +57,6 @@ type JobCard = {
   description?: string;
   /** Public aggregate from the API. Null means UpNext has no verified count to disclose. */
   viewCount: number | null;
-  filters: FilterKey[];
 };
 
 function getPlainText(value: string | null | undefined) {
@@ -105,15 +106,9 @@ function normalizeViewCount(viewCount: number | null | undefined) {
 }
 
 function formatJobLocation(job: PublicJob) {
-  const cities = Array.from(
-    new Set(
-      (job.jobPostLocations ?? [])
-        .map((location) => location.jobLocation?.city?.trim())
-        .filter((city): city is string => Boolean(city)),
-    ),
-  );
+  const cities = getJobCities(job);
 
-  if (cities.length === 0) return "Việt Nam";
+  if (cities.length === 0) return "Chưa cập nhật địa điểm";
   if (cities.length === 1) return cities[0]!;
 
   return `${cities[0]} +${cities.length - 1}`;
@@ -124,17 +119,29 @@ function formatViewCount(viewCount: number, locale: string) {
 }
 
 const interestCopy = {
-  vi: { views: "lượt xem" },
-  en: { views: "views" },
+  vi: {
+    title: "Việc làm mới nhất",
+    description: "Các vị trí IT mới được đăng từ những nhà tuyển dụng đang hoạt động.",
+    viewAll: "Xem tất cả việc làm",
+    views: "lượt xem",
+    loading: "Đang tải việc làm mới nhất…",
+    error: "Không thể tải việc làm mới nhất.",
+    retry: "Thử lại",
+    retrying: "Đang thử lại…",
+    empty: "Hiện chưa có việc làm phù hợp để hiển thị.",
+  },
+  en: {
+    title: "Latest IT jobs",
+    description: "New IT roles from employers currently hiring on UpNext.",
+    viewAll: "View all jobs",
+    views: "views",
+    loading: "Loading latest jobs…",
+    error: "Could not load the latest jobs.",
+    retry: "Try again",
+    retrying: "Trying again…",
+    empty: "There are no jobs to show right now.",
+  },
 } as const;
-
-const verifyPoints = [
-  "Đã xác thực email tên miền công ty",
-  "Đã xác thực số điện thoại",
-  "Đã duyệt giấy phép kinh doanh",
-  "Tài khoản được tạo tối thiểu 6 tháng",
-  "Chưa có lịch sử bị báo cáo tin đăng",
-];
 
 /** Logo image with a colored-monogram fallback. */
 function CompanyLogo({ src, name, color }: { src: string; name: string; color: string }) {
@@ -150,11 +157,12 @@ function CompanyLogo({ src, name, color }: { src: string; name: string; color: s
 
   return (
     <i className="featured-job-logo">
-      <img
+      <Image
         src={src}
         alt={`Logo ${name}`}
         width={48}
         height={48}
+        unoptimized
         className="size-full object-contain"
         onError={() => setFailed(true)}
       />
@@ -162,7 +170,7 @@ function CompanyLogo({ src, name, color }: { src: string; name: string; color: s
   );
 }
 
-/** Verified company badge with an on-hover/focus trust tooltip. */
+/** Verified company badge with a concise, API-backed trust tooltip. */
 function VerifiedBadge() {
   return (
     <span className="featured-job-verify">
@@ -177,304 +185,20 @@ function VerifiedBadge() {
       <span className="featured-job-verify-pop" role="tooltip">
         <span className="featured-job-verify-head">
           <ShieldCheck size={15} />
-          Nhà tuyển dụng đã được xác thực
+          Nhà tuyển dụng đã được xác thực trên UpNext
         </span>
-        <ul>
-          {verifyPoints.map((point) => (
-            <li key={point}>
-              <Check size={13} />
-              {point}
-            </li>
-          ))}
-        </ul>
       </span>
     </span>
   );
 }
 
-const logo = (file: string) => `/assets/marketing/home/companies/${file}`;
-
-// Six curated edge-case jobs sit first so they're visible on page 1:
-// long title, very long company name, many tags, minimal tags, short name.
-const curatedJobs: JobCard[] = [
-  {
-    id: "sepay-fullstack",
-    badge: { label: "Nổi bật", tone: "featured" },
-    company: "CÔNG TY CỔ PHẦN GIẢI PHÁP CÔNG NGHỆ TÀI CHÍNH SEPAY VIỆT NAM",
-    verified: true,
-    logo: logo("fpt.png"),
-    logoColor: "#2563eb",
-    title:
-      "Senior Fullstack Developer (ReactJS/NodeJS) - Thu Nhập Hấp Dẫn Lên Đến 60 Triệu Kèm Thưởng Dự Án",
-    salary: "Thỏa thuận",
-    location: "Hồ Chí Minh",
-    mode: "Hybrid",
-    experience: "3 - 5 năm",
-    tags: ["ReactJS", "NodeJS", "TypeScript", "PostgreSQL", "Docker", "AWS", "Redis", "GraphQL"],
-    deadline: "Còn 18 ngày để nộp",
-    viewCount: null,
-    filters: ["high-salary"],
-  },
-  {
-    id: "vng-backend",
-    badge: { label: "Mới đăng", tone: "new" },
-    company: "VNG",
-    verified: true,
-    logo: logo("vng.png"),
-    logoColor: "#1a8cff",
-    title: "Backend Developer",
-    salary: "25 - 40 triệu",
-    location: "Hồ Chí Minh",
-    mode: "Hybrid",
-    experience: "2 - 4 năm",
-    tags: ["Java", "Spring Boot"],
-    deadline: "Còn 2 ngày để nộp",
-    viewCount: null,
-    filters: ["newest"],
-  },
-  {
-    id: "viettel-devops",
-    badge: { label: "Tuyển gấp", tone: "urgent" },
-    company: "Viettel Solutions",
-    verified: true,
-    logo: logo("viettel.png"),
-    logoColor: "#ee0033",
-    title: "DevOps Engineer (Kubernetes/Terraform)",
-    salary: "28 - 50 triệu",
-    location: "Đà Nẵng",
-    mode: "Onsite",
-    experience: "3 - 6 năm",
-    tags: ["AWS", "Docker", "Kubernetes", "Terraform", "CI/CD", "Ansible"],
-    deadline: "Còn 1 ngày để nộp",
-    viewCount: null,
-    filters: ["high-salary"],
-  },
-  {
-    id: "momo-data",
-    badge: { label: "Remote", tone: "remote" },
-    company: "MoMo",
-    verified: true,
-    logo: logo("momo.png"),
-    logoColor: "#a50064",
-    title: "Data Engineer",
-    salary: "27 - 45 triệu",
-    location: "Remote",
-    mode: "Remote",
-    experience: "2 - 5 năm",
-    tags: ["Python", "Spark", "Snowflake", "Airflow"],
-    deadline: "Còn 5 ngày để nộp",
-    viewCount: null,
-    filters: ["remote", "high-salary"],
-  },
-  {
-    id: "tiki-mobile",
-    badge: { label: "Lương tốt", tone: "salary" },
-    company: "Tiki",
-    verified: false,
-    logo: logo("tiki.png"),
-    logoColor: "#1a94ff",
-    title: "Mobile Developer (Flutter)",
-    salary: "22 - 38 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    experience: "1 - 3 năm",
-    tags: ["Flutter", "Dart", "Firebase"],
-    deadline: "Còn 6 ngày để nộp",
-    viewCount: null,
-    filters: ["newest"],
-  },
-  {
-    id: "vnpay-qa",
-    badge: { label: "Nổi bật", tone: "featured" },
-    company: "VNPAY",
-    verified: true,
-    logo: logo("vnpay.png"),
-    logoColor: "#005baa",
-    title: "QA Automation Engineer (Selenium / Cypress / Playwright) Cho Hệ Thống Thanh Toán",
-    salary: "18 - 30 triệu",
-    location: "Hồ Chí Minh",
-    mode: "Hybrid",
-    experience: "2 - 4 năm",
-    tags: ["Selenium", "Cypress", "Playwright", "API Testing", "JIRA"],
-    deadline: "Còn 8 ngày để nộp",
-    viewCount: null,
-    filters: ["newest"],
-  },
-];
-
-// --- Pools used to synthesise the remaining jobs for pagination testing. ---
-const companyPool = [
-  { name: "FPT Software", file: "fpt.png", color: "#2563eb" },
-  { name: "VNG Corporation", file: "vng.png", color: "#1a8cff" },
-  { name: "Viettel Solutions", file: "viettel.png", color: "#ee0033" },
-  { name: "MoMo", file: "momo.png", color: "#a50064" },
-  { name: "Tiki", file: "tiki.png", color: "#1a94ff" },
-  { name: "VNPAY", file: "vnpay.png", color: "#005baa" },
-  { name: "KMS Technology", file: "", color: "#0aa56f" },
-  { name: "NashTech Vietnam", file: "", color: "#db2777" },
-  { name: "Axon Active Vietnam", file: "", color: "#7c3aed" },
-  { name: "Got It AI", file: "", color: "#d97706" },
-  {
-    name: "CÔNG TY TNHH GIẢI PHÁP PHẦN MỀM VÀ DỊCH VỤ CÔNG NGHỆ CAO SAO BẮC ĐẨU",
-    file: "",
-    color: "#0891b2",
-  },
-  { name: "Zalo", file: "", color: "#0068ff" },
-];
-
-const rolePool: Array<{ title: string; tags: string[]; filter: FilterKey }> = [
-  {
-    title: "Frontend Developer (ReactJS)",
-    tags: ["React", "TypeScript", "Redux", "Vite", "Tailwind CSS", "Jest"],
-    filter: "newest",
-  },
-  {
-    title: "Senior Backend Engineer (Golang)",
-    tags: ["Go", "gRPC", "PostgreSQL", "Kafka", "Docker"],
-    filter: "high-salary",
-  },
-  {
-    title: "Fullstack Developer (NodeJS/ReactJS)",
-    tags: ["Node.js", "React", "MongoDB", "AWS"],
-    filter: "newest",
-  },
-  {
-    title: "AI/ML Engineer",
-    tags: ["Python", "PyTorch", "LLM", "MLOps", "Kubernetes"],
-    filter: "high-salary",
-  },
-  {
-    title: "Cloud Engineer (AWS)",
-    tags: ["AWS", "Terraform", "Lambda", "CloudFormation"],
-    filter: "high-salary",
-  },
-  {
-    title: "UI/UX Designer",
-    tags: ["Figma", "Design System", "Prototyping"],
-    filter: "newest",
-  },
-  {
-    title: "Business Analyst (IT)",
-    tags: ["SQL", "BPMN", "Agile"],
-    filter: "newest",
-  },
-  {
-    title: "Embedded Software Engineer (C/C++)",
-    tags: ["C", "C++", "RTOS", "ARM", "Linux Kernel"],
-    filter: "high-salary",
-  },
-  {
-    title: "Security Engineer (Pentest)",
-    tags: ["Pentest", "OWASP", "Burp Suite", "Python"],
-    filter: "high-salary",
-  },
-  {
-    title: "Mobile Developer (React Native)",
-    tags: ["React Native", "TypeScript", "Redux"],
-    filter: "newest",
-  },
-  {
-    title: "Database Administrator (Oracle/PostgreSQL)",
-    tags: ["Oracle", "PostgreSQL", "Tuning", "Backup"],
-    filter: "newest",
-  },
-  {
-    title: "Solution Architect",
-    tags: ["Microservices", "AWS", "System Design", "Kafka", "DDD"],
-    filter: "high-salary",
-  },
-];
-
-const badgePool: Array<{ label: string; tone: BadgeTone }> = [
-  { label: "Nổi bật", tone: "featured" },
-  { label: "Mới đăng", tone: "new" },
-  { label: "Tuyển gấp", tone: "urgent" },
-  { label: "Remote", tone: "remote" },
-  { label: "Lương tốt", tone: "salary" },
-];
-
-const locationPool = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Remote", "Cần Thơ", "Bình Dương"];
-const modePool = ["Hybrid", "Onsite", "Remote"];
-const expPool = ["Dưới 1 năm", "1 - 3 năm", "2 - 4 năm", "3 - 5 năm", "5+ năm"];
-const salaryPool = [
-  "Thỏa thuận",
-  "15 - 25 triệu",
-  "20 - 35 triệu",
-  "25 - 40 triệu",
-  "30 - 50 triệu",
-  "40 - 60 triệu",
-];
-
-function buildJobs(): JobCard[] {
-  const generated: JobCard[] = [];
-  const target = 40 - curatedJobs.length;
-
-  for (let i = 0; i < target; i += 1) {
-    const role = rolePool[i % rolePool.length]!;
-    const company = companyPool[i % companyPool.length]!;
-    const mode = modePool[i % modePool.length]!;
-    const location = mode === "Remote" ? "Remote" : locationPool[i % locationPool.length]!;
-    const salary = salaryPool[i % salaryPool.length]!;
-
-    const filters: FilterKey[] = [];
-    if (mode === "Remote" || location === "Remote") filters.push("remote");
-    if (role.filter === "high-salary" || salary === "40 - 60 triệu") {
-      filters.push("high-salary");
-    }
-    if (i % 2 === 0) filters.push("newest");
-
-    generated.push({
-      id: `gen-${i}`,
-      badge: badgePool[i % badgePool.length]!,
-      company: company.name,
-      verified: i % 4 !== 0,
-      logo: company.file ? logo(company.file) : "",
-      logoColor: company.color,
-      title: role.title,
-      salary,
-      location,
-      mode,
-      experience: expPool[i % expPool.length]!,
-      tags: role.tags,
-      deadline: `Còn ${((i * 3) % 29) + 1} ngày để nộp`,
-      viewCount: null,
-      filters: Array.from(new Set(filters)),
-    });
-  }
-
-  return [...curatedJobs, ...generated];
-}
-
-const staticJobs = buildJobs();
-
-function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
-  const isRemote =
-    job.employmentType?.name.toLowerCase().includes("remote") ||
-    job.title.toLowerCase().includes("remote");
-  const isHighSalary =
-    (job.salaryMin && job.salaryMin >= 30000000) || (job.salaryMax && job.salaryMax >= 30000000);
-
-  const filters: FilterKey[] = [];
-  if (isRemote) filters.push("remote");
-  if (isHighSalary) filters.push("high-salary");
-  filters.push("newest");
-
-  const tones: BadgeTone[] = ["featured", "new", "urgent", "remote", "salary"];
-  const tone = tones[index % tones.length]!;
-  const labelMap: Record<BadgeTone, string> = {
-    featured: "Nổi bật",
-    new: "Mới đăng",
-    urgent: "Tuyển gấp",
-    remote: "Remote",
-    salary: "Lương tốt",
-  };
+function mapPublicJobToJobCard(job: PublicJob): JobCard {
   const description = getPreviewDescription(job.description);
 
   return {
     id: job.id,
-    badge: { label: labelMap[tone], tone },
     company: job.company?.name || "UpNext Partner",
-    verified: true,
+    verified: job.company?.verificationStatus?.toUpperCase() === "VERIFIED",
     logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
     logoColor: "#10b981",
     title: job.title,
@@ -482,20 +206,23 @@ function mapPublicJobToJobCard(job: PublicJob, index: number): JobCard {
     location: formatJobLocation(job),
     mode: job.employmentType?.name || "Full-time",
     experience: job.experienceLevel?.name || "1 - 3 năm",
-    tags:
-      job.jobPostSkills && job.jobPostSkills.length > 0
-        ? job.jobPostSkills.map((s) => s.skill.name)
-        : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
-            Boolean,
-          ) as string[]),
+    tags: getJobTags(job),
     deadline: formatApplicationDeadline(job.expiredAt),
     ...(description ? { description } : {}),
     viewCount: normalizeViewCount(job.viewCount),
-    filters: Array.from(new Set(filters)),
   };
 }
 
-export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
+export function FeaturedJobs({
+  navigate,
+  onApply,
+  jobs: apiJobsData,
+  excludedJobIds,
+  isLoading,
+  isError,
+  onRetry,
+  isRetrying,
+}: FeaturedJobsProps) {
   const locale = useLocale();
   const copy = locale === "en" ? interestCopy.en : interestCopy.vi;
   const previewCopy =
@@ -557,16 +284,10 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
     toggleSaveJob,
   } = useCandidateSavedJobs();
 
-  const { data: apiJobsData } = useQuery({
-    queryKey: ["public-jobs"],
-    queryFn: getPublicJobs,
-  });
-
   const jobs = useMemo(() => {
-    if (!apiJobsData || apiJobsData.length === 0) return staticJobs;
-    const mapped = apiJobsData.map((job, idx) => mapPublicJobToJobCard(job, idx));
-    return mapped;
-  }, [apiJobsData]);
+    const selected = selectLatestJobs(apiJobsData, { excludedIds: excludedJobIds });
+    return selected.map((job) => mapPublicJobToJobCard(job));
+  }, [apiJobsData, excludedJobIds]);
 
   // Split into pages of PAGE_SIZE, then append a clone of page 1 at the end so
   // the loop from last → first slides FORWARD seamlessly instead of rewinding.
@@ -583,6 +304,10 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
   const slides = hasLoop ? [...pages, pages[0]!] : pages;
   const displayPage = (index % totalPages) + 1;
   const previewJob = jobs.find((job) => job.id === previewJobId) ?? null;
+
+  useEffect(() => {
+    setIndex((current) => Math.min(current, Math.max(0, totalPages - 1)));
+  }, [totalPages]);
 
   useEffect(() => {
     return () => {
@@ -720,10 +445,45 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
     }
   }
 
+  if (isLoading || isError || jobs.length === 0) {
+    return (
+      <section className="marketing-home-jobs" aria-label={copy.title}>
+        <header className="marketing-home-jobs-head">
+          <div>
+            <h2>{copy.title}</h2>
+            <p>{copy.description}</p>
+          </div>
+        </header>
+        {isLoading ? (
+          <output className="marketing-home-section-skeleton" aria-live="polite">
+            <span>{copy.loading}</span>
+            <i />
+            <i />
+            <i />
+          </output>
+        ) : isError ? (
+          <div className="marketing-home-action-state" role="alert">
+            <p className="marketing-home-action-error">{copy.error}</p>
+            <button
+              type="button"
+              className="marketing-home-action-retry"
+              onClick={onRetry}
+              disabled={isRetrying}
+            >
+              {isRetrying ? copy.retrying : copy.retry}
+            </button>
+          </div>
+        ) : (
+          <output className="marketing-home-action-error">{copy.empty}</output>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section
       className="marketing-home-jobs"
-      aria-label="Cơ hội đang được quan tâm"
+      aria-label={copy.title}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -731,11 +491,11 @@ export function FeaturedJobs({ navigate, onApply }: FeaturedJobsProps) {
     >
       <header className="marketing-home-jobs-head">
         <div>
-          <h2>Cơ hội đang được quan tâm</h2>
-          <p>Những vị trí IT nổi bật từ các công ty uy tín, được cập nhật liên tục.</p>
+          <h2>{copy.title}</h2>
+          <p>{copy.description}</p>
         </div>
         <button type="button" className="marketing-home-jobs-all" onClick={() => navigate("/jobs")}>
-          Xem tất cả <ChevronRight size={16} />
+          {copy.viewAll} <ChevronRight size={16} />
         </button>
       </header>
       {savedJobsError && isAuthenticated ? (

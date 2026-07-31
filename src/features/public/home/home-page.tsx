@@ -16,9 +16,16 @@ import { removeVietnameseAccents } from "@/shared/utils/natural-search";
 
 import { PublicFooter } from "../shared/public-footer";
 import { PublicHeader } from "../shared/public-header";
-import { getPublicCompanies, getPublicJobs } from "./api";
+import { getAllActivePublicCompanies, getPublicJobs } from "./api";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
+import {
+  getDeadlineTone,
+  getDaysUntilExpiration,
+  getJobTags,
+  isPublicJobAvailable,
+  selectExpiringJobs,
+} from "./home-section-selectors";
 import { InsightsCarousel } from "./insights-carousel";
 import { JobMarket } from "./job-market";
 import {
@@ -31,10 +38,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Coins,
+  Clock,
   MapPin,
   Search,
   Sparkles,
-  UsersRound,
 } from "./marketing-icons";
 import { getPopularKeywordsForLocale } from "./popular-keywords";
 import { useAnchoredJobPreview } from "./use-anchored-job-preview";
@@ -81,14 +88,6 @@ const keywordSuggestions = [
   "Business Analyst",
 ];
 
-const trustedCompanies = [
-  ["FPT", "Software"],
-  ["VNG", ""],
-  ["viettel", "solutions"],
-  ["tiki", ""],
-  ["momo", ""],
-];
-
 function formatDeadlineWithDate(expiredAt: string | Date | null | undefined) {
   if (!expiredAt) return "Không giới hạn";
 
@@ -103,7 +102,7 @@ function formatDeadlineWithDate(expiredAt: string | Date | null | undefined) {
 }
 
 function formatCompactLocation(city?: string | null) {
-  if (!city) return "Việt Nam";
+  if (!city) return "Chưa cập nhật địa điểm";
   if (city.includes("Hồ Chí Minh") || city.includes("HCM") || city.includes("Hcm")) return "TP.HCM";
   if (city.includes("Hà Nội")) return "Hà Nội";
   if (city.includes("Đà Nẵng")) return "Đà Nẵng";
@@ -153,225 +152,6 @@ function getPlainText(value: string | null | undefined) {
     .trim();
 }
 
-const urgentJobs = [
-  {
-    id: "brighttech-frontend",
-    logo: "",
-    title: "Frontend Developer",
-    company: "BrightTech",
-    salary: "18 - 25 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["React", "TypeScript", "Next.js"],
-    deadline: "Còn 3 ngày",
-    deadlineTone: "red",
-    applicants: "12 ứng viên",
-    views: "185 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Junior",
-    bgClass: "bg-slate-800",
-  },
-  {
-    id: "novalabs-backend",
-    logo: "",
-    title: "Backend Developer",
-    company: "Nova Labs",
-    salary: "20 - 30 triệu",
-    location: "TP.HCM",
-    mode: "Remote",
-    tags: ["Node.js", "PostgreSQL", "Docker"],
-    deadline: "Còn 5 ngày",
-    deadlineTone: "red",
-    applicants: "18 ứng viên",
-    views: "245 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-purple-600",
-  },
-  {
-    id: "skysoft-data",
-    logo: "",
-    title: "Data Engineer",
-    company: "SkySoft",
-    salary: "22 - 35 triệu",
-    location: "Đà Nẵng",
-    mode: "Onsite",
-    tags: ["Python", "SQL", "Airflow"],
-    deadline: "Còn 2 ngày",
-    deadlineTone: "red",
-    applicants: "9 ứng viên",
-    views: "112 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-sky-500",
-  },
-  {
-    id: "pixelworks-uiux",
-    logo: "",
-    title: "UI/UX Designer",
-    company: "Pixel Works",
-    salary: "15 - 22 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["Figma", "Design System", "UX Research"],
-    deadline: "Còn 4 ngày",
-    deadlineTone: "red",
-    applicants: "14 ứng viên",
-    views: "192 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Junior",
-    bgClass: "bg-rose-500",
-  },
-  {
-    id: "fpt-devops-cloud",
-    logo: "",
-    title: "DevOps Cloud Infrastructure Engineer",
-    company: "FPT Software",
-    salary: "40 - 70 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["AWS", "Kubernetes", "Docker"],
-    deadline: "Còn 7 ngày",
-    deadlineTone: "red",
-    applicants: "15 ứng viên",
-    views: "210 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Senior",
-    bgClass: "bg-slate-800",
-  },
-  {
-    id: "vng-mobile-engineer",
-    logo: "",
-    title: "Mobile Engineer (React Native)",
-    company: "VNG Corporation",
-    salary: "22 - 40 triệu",
-    location: "TP.HCM",
-    mode: "Hybrid",
-    tags: ["React Native", "iOS", "Android"],
-    deadline: "Còn 10 ngày",
-    deadlineTone: "red",
-    applicants: "20 ứng viên",
-    views: "310 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-purple-600",
-  },
-  {
-    id: "luvina-bridge-engineer",
-    logo: "",
-    title: "Bridge System Engineer (BrSE)",
-    company: "Luvina Software",
-    salary: "22 - 40 triệu",
-    location: "Hà Nội",
-    mode: "Onsite",
-    tags: ["Japanese", "Java", "System Design"],
-    deadline: "Còn 12 ngày",
-    deadlineTone: "red",
-    applicants: "8 ứng viên",
-    views: "150 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-sky-500",
-  },
-  {
-    id: "misa-product-designer",
-    logo: "",
-    title: "Product Designer - Business Software",
-    company: "MISA",
-    salary: "22 - 40 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["Figma", "UI/UX", "User Research"],
-    deadline: "Còn 15 ngày",
-    deadlineTone: "red",
-    applicants: "16 ứng viên",
-    views: "230 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-rose-500",
-  },
-  {
-    id: "cmc-data-engineer",
-    logo: "",
-    title: "Senior Data Engineer",
-    company: "CMC Global",
-    salary: "22 - 40 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["Python", "Spark", "PostgreSQL"],
-    deadline: "Còn 18 ngày",
-    deadlineTone: "red",
-    applicants: "11 ứng viên",
-    views: "175 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Senior",
-    bgClass: "bg-slate-800",
-  },
-  {
-    id: "mw-product-manager",
-    logo: "",
-    title: "Product Manager - Retail Technology",
-    company: "Mobile World Investment",
-    salary: "40 - 70 triệu",
-    location: "TP.HCM",
-    mode: "Onsite",
-    tags: ["Product Strategy", "Agile", "E-commerce"],
-    deadline: "Còn 22 ngày",
-    deadlineTone: "red",
-    applicants: "14 ứng viên",
-    views: "190 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Lead",
-    bgClass: "bg-purple-600",
-  },
-  {
-    id: "viettel-security-engineer",
-    logo: "",
-    title: "Cyber Security Specialist",
-    company: "Viettel Solutions",
-    salary: "30 - 55 triệu",
-    location: "Đà Nẵng",
-    mode: "Onsite",
-    tags: ["Pentest", "SIEM", "Cloud Security"],
-    deadline: "Còn 25 ngày",
-    deadlineTone: "red",
-    applicants: "7 ứng viên",
-    views: "140 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Senior",
-    bgClass: "bg-sky-500",
-  },
-  {
-    id: "sepay-fullstack-dev",
-    logo: "",
-    title: "Fullstack Engineer (React/Node)",
-    company: "SePay Vietnam",
-    salary: "25 - 45 triệu",
-    location: "TP.HCM",
-    mode: "Hybrid",
-    tags: ["React", "Node.js", "PostgreSQL"],
-    deadline: "Còn 28 ngày",
-    deadlineTone: "red",
-    applicants: "19 ứng viên",
-    views: "280 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-rose-500",
-  },
-];
-
 const homeCopy = {
   vi: {
     employerSmall: "Dành cho",
@@ -394,9 +174,8 @@ const homeCopy = {
     popular: "Tìm kiếm phổ biến:",
     statsJobs: "Việc làm IT đang tuyển",
     statsCompanies: "Công ty công nghệ",
-    statsMatches: "Hồ sơ được kết nối",
-    statsCandidates: "Ứng viên đã tin tưởng",
-    trustedBy: "Được tin tưởng bởi các công ty công nghệ hàng đầu",
+    statsNewJobs: "Việc làm mới trong 7 ngày",
+    trustedBy: "Nhà tuyển dụng đang hoạt động trên UpNext",
     footerPrimary: "Tìm việc ngay",
     footerSecondary: "Tạo hồ sơ miễn phí",
     footerEmailPlaceholder: "Nhập email của bạn",
@@ -429,9 +208,8 @@ const homeCopy = {
     popular: "Popular searches:",
     statsJobs: "Open IT jobs",
     statsCompanies: "Tech companies",
-    statsMatches: "Profiles matched",
-    statsCandidates: "Trusted candidates",
-    trustedBy: "Trusted by leading technology companies",
+    statsNewJobs: "Jobs posted in the last 7 days",
+    trustedBy: "Employers hiring on UpNext",
     footerPrimary: "Find jobs now",
     footerSecondary: "Create free profile",
     footerEmailPlaceholder: "Enter your email",
@@ -463,14 +241,28 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
   const searchCardRef = useRef<HTMLElement | null>(null);
 
-  const { data: apiJobsData } = useQuery({
+  const {
+    data: apiJobsData,
+    isError: isJobsError,
+    isFetching: isJobsFetching,
+    isPending: isJobsPending,
+    refetch: refetchJobs,
+  } = useQuery({
     queryKey: ["public-jobs"],
     queryFn: getPublicJobs,
+    staleTime: 60_000,
   });
 
-  const { data: apiCompaniesData } = useQuery({
-    queryKey: ["public-companies"],
-    queryFn: () => getPublicCompanies(),
+  const {
+    data: apiCompaniesData,
+    isError: isCompaniesError,
+    isFetching: isCompaniesFetching,
+    isPending: isCompaniesPending,
+    refetch: refetchCompanies,
+  } = useQuery({
+    queryKey: ["public-companies", "all-active"],
+    queryFn: getAllActivePublicCompanies,
+    staleTime: 60_000,
   });
 
   const { data: apiPostsData, isLoading: isPostsLoading } = useQuery({
@@ -479,15 +271,25 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     staleTime: 5 * 60 * 1000,
   });
 
-  const jobsCount = useMemo(() => apiJobsData?.length || 0, [apiJobsData]);
-  const companiesCount = useMemo(
-    () => apiCompaniesData?.meta?.total || apiCompaniesData?.items?.length || 0,
-    [apiCompaniesData],
+  const [now] = useState(() => Date.now());
+  const activeJobs = useMemo(
+    () => (apiJobsData ?? []).filter((job) => isPublicJobAvailable(job, now)),
+    [apiJobsData, now],
   );
-  // Estimate candidates count starting from 50,000 plus dynamic variation
-  const candidatesCount = useMemo(
-    () => 50000 + jobsCount * 15 + companiesCount * 40,
-    [jobsCount, companiesCount],
+  const jobsCount = activeJobs.length;
+  const companiesCount = useMemo(
+    () =>
+      apiCompaniesData?.items.filter((company) => company.activeJobsCount > 0).length ??
+      new Set(activeJobs.map((job) => job.company?.id).filter(Boolean)).size,
+    [activeJobs, apiCompaniesData],
+  );
+  const newJobsCount = useMemo(
+    () =>
+      activeJobs.filter((job) => {
+        const publishedTime = new Date(job.publishedAt ?? job.createdAt).getTime();
+        return Number.isFinite(publishedTime) && now - publishedTime <= 7 * 24 * 60 * 60 * 1000;
+      }).length,
+    [activeJobs, now],
   );
 
   const formattedStats = useMemo(() => {
@@ -508,48 +310,13 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     return {
       jobs: formatStatNumber(jobsCount),
       companies: formatStatNumber(companiesCount),
-      candidates: formatStatNumber(candidatesCount),
+      newJobs: formatStatNumber(newJobsCount),
     };
-  }, [jobsCount, companiesCount, candidatesCount, locale]);
+  }, [companiesCount, jobsCount, locale, newJobsCount]);
 
   const urgentJobsList = useMemo(() => {
-    if (!apiJobsData || apiJobsData.length === 0) return urgentJobs.slice(0, 90);
-
-    const now = Date.now();
-    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-
-    // Filter active jobs expiring within 30 days (0 < remainingTime <= 30 days)
-    const validJobs = apiJobsData.filter((job) => {
-      if (!job.expiredAt) return false;
-      const expirationTime = new Date(job.expiredAt).getTime();
-      const remainingTime = expirationTime - now;
-      return remainingTime > 0 && remainingTime <= THIRTY_DAYS_MS;
-    });
-
-    // Sort by nearest deadline first (expiredAt ASC)
-    const sorted = [...validJobs].sort((a, b) => {
-      const timeA = new Date(a.expiredAt!).getTime();
-      const timeB = new Date(b.expiredAt!).getTime();
-      return timeA - timeB;
-    });
-
-    // Fallback if less than 3 jobs match strictly 30 days: take any unexpired job sorted by deadline
-    const listSource =
-      sorted.length >= 3
-        ? sorted
-        : apiJobsData
-            .filter((job) => {
-              if (!job.expiredAt) return true;
-              return new Date(job.expiredAt).getTime() > now;
-            })
-            .sort((a, b) => {
-              const timeA = a.expiredAt ? new Date(a.expiredAt).getTime() : Infinity;
-              const timeB = b.expiredAt ? new Date(b.expiredAt).getTime() : Infinity;
-              return timeA - timeB;
-            });
-
-    const mapped = listSource.map((job, index) => {
-      const isUrgent = index % 2 === 0;
+    return selectExpiringJobs(apiJobsData, { now }).map((job, index) => {
+      const daysUntilExpiration = getDaysUntilExpiration(job, now);
       return {
         id: job.id,
         logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
@@ -558,18 +325,9 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         salary: formatJobSalaryDisplay(job, ""),
         location: formatCompactLocation(job.jobPostLocations?.[0]?.jobLocation?.city),
         mode: job.employmentType?.name || "Full-time",
-        tags:
-          job.jobPostSkills && job.jobPostSkills.length > 0
-            ? job.jobPostSkills.map((s) => s.skill.name)
-            : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
-                Boolean,
-              ) as string[]),
+        tags: getJobTags(job),
         deadline: formatDeadlineWithDate(job.expiredAt),
-        deadlineTone: isUrgent ? "red" : "amber",
-        applicants: "12 ứng viên",
-        views: "185 lượt xem",
-        competition: "Mới mở · ít ứng viên",
-        progress: 25,
+        deadlineTone: getDeadlineTone(daysUntilExpiration),
         level: job.experienceLevel?.name || "Junior",
         description: getPlainText(job.description),
         address:
@@ -586,9 +344,11 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 : "bg-rose-500",
       };
     });
-
-    return mapped.slice(0, 90);
-  }, [apiJobsData]);
+  }, [apiJobsData, now]);
+  const urgentJobIds = useMemo(
+    () => new Set(urgentJobsList.map((job) => job.id)),
+    [urgentJobsList],
+  );
 
   useEffect(() => {
     if (!openField) return undefined;
@@ -752,7 +512,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <BriefcaseBusiness size={25} />
               </i>
               <p>
-                <strong>{formattedStats.jobs}</strong>
+                <strong>{isJobsPending ? "…" : formattedStats.jobs}</strong>
                 <span>{copy.statsJobs}</span>
               </p>
             </article>
@@ -761,17 +521,17 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <Building2 size={25} />
               </i>
               <p>
-                <strong>{formattedStats.companies}</strong>
+                <strong>{isCompaniesPending ? "…" : formattedStats.companies}</strong>
                 <span>{copy.statsCompanies}</span>
               </p>
             </article>
             <article>
               <i>
-                <UsersRound size={25} />
+                <Sparkles size={25} />
               </i>
               <p>
-                <strong>{formattedStats.candidates}</strong>
-                <span>{copy.statsCandidates}</span>
+                <strong>{isJobsPending ? "…" : formattedStats.newJobs}</strong>
+                <span>{copy.statsNewJobs}</span>
               </p>
             </article>
           </div>
@@ -780,20 +540,21 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             <span>{copy.trustedBy}</span>
             <div className="marketing-home-marquee">
               <div className="marketing-home-marquee-track" aria-hidden="true">
-                {trustedCompanies.map(([name, suffix]) => (
-                  <b className={`marketing-home-company marketing-home-company-${name}`} key={name}>
-                    {name}
-                    <small>{suffix}</small>
+                {(apiCompaniesData?.items ?? []).slice(0, 8).map((company) => (
+                  <b
+                    className={`marketing-home-company marketing-home-company-${company.id}`}
+                    key={company.id}
+                  >
+                    {company.name}
                   </b>
                 ))}
                 {/* Duplicate set creates the seamless loop; hidden when motion is reduced. */}
-                {trustedCompanies.map(([name, suffix]) => (
+                {(apiCompaniesData?.items ?? []).slice(0, 8).map((company) => (
                   <b
-                    className={`marketing-home-company marketing-home-company-clone marketing-home-company-${name}`}
-                    key={`${name}-clone`}
+                    className={`marketing-home-company marketing-home-company-clone marketing-home-company-${company.id}`}
+                    key={`${company.id}-clone`}
                   >
-                    {name}
-                    <small>{suffix}</small>
+                    {company.name}
                   </b>
                 ))}
               </div>
@@ -801,10 +562,33 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           </div>
         </section>
 
-        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} onApply={setApplyJob} />
-
-        <FeaturedJobs navigate={navigate} onApply={setApplyJob} />
-        <FeaturedCompanies navigate={navigate} />
+        <FeaturedJobs
+          navigate={navigate}
+          onApply={setApplyJob}
+          jobs={apiJobsData}
+          excludedJobIds={urgentJobIds}
+          isLoading={isJobsPending}
+          isError={isJobsError && !apiJobsData}
+          onRetry={() => void refetchJobs()}
+          isRetrying={isJobsFetching}
+        />
+        <UrgentJobsSection
+          navigate={navigate}
+          urgentJobs={urgentJobsList}
+          onApply={setApplyJob}
+          isLoading={isJobsPending}
+          isError={isJobsError && !apiJobsData}
+          onRetry={() => void refetchJobs()}
+          isRetrying={isJobsFetching}
+        />
+        <FeaturedCompanies
+          navigate={navigate}
+          companies={apiCompaniesData}
+          isLoading={isCompaniesPending}
+          isError={isCompaniesError && !apiCompaniesData}
+          onRetry={() => void refetchCompanies()}
+          isRetrying={isCompaniesFetching}
+        />
         <JobMarket />
         <InsightsCarousel isLoading={isPostsLoading} posts={apiPostsData?.items ?? []} />
 
@@ -822,6 +606,10 @@ function UrgentJobsSection({
   navigate,
   urgentJobs,
   onApply,
+  isLoading,
+  isError,
+  onRetry,
+  isRetrying,
 }: {
   navigate: (path: string) => void;
   onApply: (job: { id: string; title: string; company: string }) => void;
@@ -835,20 +623,18 @@ function UrgentJobsSection({
     mode: string;
     tags: string[];
     deadline: string;
-    deadlineTone: string;
-    applicants: string;
-    views: string;
-    competition: string;
-    progress: number;
+    deadlineTone: "critical" | "warning" | "neutral";
     level: string;
     bgClass: string;
     description?: string;
     address?: string;
   }>;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  isRetrying: boolean;
 }) {
   const {
-    error: savedJobsError,
-    isAuthenticated,
     isPending: isSavedJobPending,
     isSessionResolved: isSavedJobsSessionResolved,
     setSavedJob,
@@ -904,6 +690,34 @@ function UrgentJobsSection({
     previewStyle,
     setPreviewAnchor,
   } = useAnchoredJobPreview(previewJobId);
+
+  const locale = useLocale();
+  const copy =
+    locale === "en"
+      ? {
+          ariaLabel: "Jobs closing soon",
+          title: "Closing soon",
+          description: "Open roles with an application deadline within the next 14 days.",
+          viewAll: "View all jobs",
+          loading: "Loading jobs closing soon…",
+          error: "Could not load jobs closing soon.",
+          retry: "Try again",
+          retrying: "Trying again…",
+          previous: "Previous page",
+          next: "Next page",
+        }
+      : {
+          ariaLabel: "Việc làm sắp hết hạn",
+          title: "Sắp hết hạn ứng tuyển",
+          description: "Các vị trí còn hạn nộp hồ sơ trong 14 ngày tới.",
+          viewAll: "Xem tất cả việc làm",
+          loading: "Đang tải việc làm sắp hết hạn…",
+          error: "Không thể tải việc làm sắp hết hạn.",
+          retry: "Thử lại",
+          retrying: "Đang thử lại…",
+          previous: "Trang trước",
+          next: "Trang sau",
+        };
 
   useEffect(() => {
     function checkMobile() {
@@ -1008,10 +822,43 @@ function UrgentJobsSection({
     dragStartRef.current = null;
   }
 
+  if (isLoading) {
+    return (
+      <section className="marketing-home-urgent" aria-label={copy.ariaLabel}>
+        <output className="marketing-home-section-skeleton" aria-live="polite">
+          <span>{copy.loading}</span>
+          <i />
+          <i />
+          <i />
+        </output>
+      </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section className="marketing-home-urgent" aria-label={copy.ariaLabel}>
+        <div className="marketing-home-action-state" role="alert">
+          <p className="marketing-home-action-error">{copy.error}</p>
+          <button
+            type="button"
+            className="marketing-home-action-retry"
+            onClick={onRetry}
+            disabled={isRetrying}
+          >
+            {isRetrying ? copy.retrying : copy.retry}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (urgentJobs.length === 0) return null;
+
   return (
     <section
       className="marketing-home-urgent"
-      aria-label="Việc cần tuyển gấp"
+      aria-label={copy.ariaLabel}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -1020,22 +867,17 @@ function UrgentJobsSection({
       <header className="marketing-home-urgent-head">
         <div>
           <h2 className="m-0 inline-flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900">
-            <span className="relative inline-flex h-3 w-3 shrink-0 items-center justify-center">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
-            </span>
-            <span>Việc cần tuyển gấp</span>
+            <Clock size={20} aria-hidden="true" className="text-emerald-600" />
+            <span>{copy.title}</span>
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Các vị trí đang cần tuyển gấp – nộp hồ sơ ngay để không bỏ lỡ cơ hội nghề nghiệp tốt.
-          </p>
+          <p className="mt-1 text-sm text-slate-600">{copy.description}</p>
         </div>
         <button
           type="button"
           className="marketing-home-urgent-all"
           onClick={() => navigate("/jobs")}
         >
-          Xem tất cả <ChevronRight size={16} />
+          {copy.viewAll} <ChevronRight size={16} />
         </button>
       </header>
 
@@ -1144,8 +986,10 @@ function UrgentJobsSection({
                             {job.location}
                           </span>
                         </div>
-                        <span className="urgent-job-deadline-badge flex items-center gap-1">
-                          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                        <span
+                          className={`urgent-job-deadline-badge is-${job.deadlineTone} flex items-center gap-1`}
+                        >
+                          <span className="urgent-job-deadline-dot" />
                           {job.deadline}
                         </span>
                       </div>
@@ -1272,13 +1116,13 @@ function UrgentJobsSection({
       )}
 
       {totalPages > 1 && (
-        <nav className="urgent-jobs-pagination" aria-label="Phân trang việc tuyển gấp">
+        <nav className="urgent-jobs-pagination" aria-label={copy.ariaLabel}>
           <button
             type="button"
             className="urgent-jobs-nav-btn"
             disabled={safePage === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            aria-label="Trang trước"
+            aria-label={copy.previous}
           >
             <ChevronLeft size={16} />
           </button>
@@ -1300,7 +1144,7 @@ function UrgentJobsSection({
             className="urgent-jobs-nav-btn"
             disabled={safePage === totalPages - 1}
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            aria-label="Trang sau"
+            aria-label={copy.next}
           >
             <ChevronRight size={16} />
           </button>
