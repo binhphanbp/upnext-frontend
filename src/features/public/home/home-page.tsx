@@ -28,7 +28,14 @@ import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
 import { selectPrimaryHomeAction } from "./home-actions";
 import type { RecommendationReasonCode } from "./home-personalization";
-import { getDeadlineTone, getDaysUntilExpiration, getJobTags } from "./home-section-selectors";
+import {
+  getDeadlineTone,
+  getDaysUntilExpiration,
+  getJobTags,
+  isPublicJobAvailable,
+  selectExpiringJobs,
+  selectLatestJobs,
+} from "./home-section-selectors";
 import { InsightsCarousel } from "./insights-carousel";
 import { JobMarket } from "./job-market";
 import {
@@ -187,6 +194,10 @@ const homeCopy = {
     recommendedJobsTitle: "Gợi ý phù hợp với bạn",
     recommendedJobsDescription:
       "Các vị trí được chọn dựa trên kỹ năng và ưu tiên việc làm của bạn.",
+    guestPromptTitle: "Nhận gợi ý việc làm phù hợp hơn",
+    guestPromptDescription:
+      "Đăng nhập và cập nhật sở thích để UpNext ưu tiên những cơ hội sát với mục tiêu của bạn.",
+    guestPromptCta: "Đăng nhập",
     profileActionTitle: "Hoàn thiện hồ sơ để nhận gợi ý phù hợp",
     profileActionDescription:
       "Thêm kỹ năng và ưu tiên việc làm để UpNext hiểu rõ hướng đi của bạn hơn.",
@@ -245,6 +256,10 @@ const homeCopy = {
     latestJobsDescription: "New IT roles from employers currently hiring on UpNext.",
     recommendedJobsTitle: "Recommended for you",
     recommendedJobsDescription: "Roles selected from your skills and job preferences.",
+    guestPromptTitle: "Get more relevant job recommendations",
+    guestPromptDescription:
+      "Log in and update your preferences so UpNext can prioritize opportunities aligned with your goals.",
+    guestPromptCta: "Log in",
     profileActionTitle: "Complete your profile for better matches",
     profileActionDescription:
       "Add skills and job preferences so UpNext can tailor opportunities to you.",
@@ -330,7 +345,11 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     staleTime: 60_000,
   });
 
-  const [now] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
   const candidateState = useMemo(() => {
     if (candidateSession === undefined || isHomePending) return "resolving" as const;
     if (isHomeError) return "unavailable" as const;
@@ -349,28 +368,35 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   }, [candidateSession, homeData?.personalization?.state, isHomeError, isHomePending]);
 
   const urgentJobs = useMemo(
-    () => (homeData?.jobsSection.expiring.items ?? []).map(mapHomeJobCard),
-    [homeData?.jobsSection.expiring.items],
+    () =>
+      selectExpiringJobs((homeData?.jobsSection.expiring.items ?? []).map(mapHomeJobCard), { now }),
+    [homeData?.jobsSection.expiring.items, now],
   );
   const urgentJobIds = useMemo(() => new Set(urgentJobs.map((job) => job.id)), [urgentJobs]);
   const latestJobs = useMemo(
     () =>
-      (homeData?.jobsSection.latest.items ?? [])
-        .map(mapHomeJobCard)
-        .filter((job) => !urgentJobIds.has(job.id)),
-    [homeData?.jobsSection.latest.items, urgentJobIds],
+      selectLatestJobs((homeData?.jobsSection.latest.items ?? []).map(mapHomeJobCard), {
+        now,
+        excludedIds: urgentJobIds,
+      }),
+    [homeData?.jobsSection.latest.items, now, urgentJobIds],
   );
   const personalizedRecommendations = useMemo(
     () =>
       (homeData?.recommendations?.title === "RECOMMENDED" ? homeData.recommendations.items : [])
-        .filter((item) => !urgentJobIds.has(item.job.id))
         .map((item) => ({
           job: mapHomeJobCard(item.job),
           reasonCodes: item.reasonCodes.flatMap((reason) => {
             return isHomeRecommendationReasonCode(reason) ? [recommendationReasonMap[reason]] : [];
           }),
-        })),
-    [homeData?.recommendations, urgentJobIds],
+        }))
+        .filter(
+          (item) =>
+            !urgentJobIds.has(item.job.id) &&
+            isPublicJobAvailable(item.job, now) &&
+            item.reasonCodes.length > 0,
+        ),
+    [homeData?.recommendations, now, urgentJobIds],
   );
   const showRecommendations = candidateState === "ready" && personalizedRecommendations.length >= 6;
   const primaryJobSelection = useMemo(
@@ -412,6 +438,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     };
   }, [homeData?.stats, locale]);
   const homeHasFatalError = isHomeError && !homeData;
+  const allowApplicationCtas = candidateState !== "not-looking";
 
   const urgentJobsList = useMemo(() => {
     return urgentJobs.map((job, index) => {
@@ -710,6 +737,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             <FeaturedJobs
               navigate={navigate}
               onApply={setApplyJob}
+              allowApply={allowApplicationCtas}
               jobs={apiJobsData}
               excludedJobIds={primaryExcludedJobIds}
               selectedJobs={primaryJobSelection}
@@ -723,10 +751,16 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
               onRetry={() => void refetchHome()}
               isRetrying={isHomeFetching}
             />
+            <HomeGuestRecommendationPrompt
+              navigate={navigate}
+              copy={copy}
+              candidateState={candidateState}
+            />
             <UrgentJobsSection
               navigate={navigate}
               urgentJobs={urgentJobsList}
               onApply={setApplyJob}
+              allowApply={allowApplicationCtas}
               isLoading={isHomePending}
               isError={false}
               onRetry={() => void refetchHome()}
@@ -759,6 +793,42 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         )}
       </section>
     </main>
+  );
+}
+
+function HomeGuestRecommendationPrompt({
+  navigate,
+  copy,
+  candidateState,
+}: {
+  navigate: (path: string) => void;
+  copy: (typeof homeCopy)["vi"] | (typeof homeCopy)["en"];
+  candidateState:
+    | "resolving"
+    | "guest"
+    | "profile-incomplete"
+    | "ready"
+    | "not-looking"
+    | "unavailable";
+}) {
+  if (candidateState !== "guest") return null;
+
+  return (
+    <section
+      className="marketing-home-candidate-action"
+      aria-labelledby="home-guest-recommendation-title"
+    >
+      <span className="marketing-home-candidate-action-icon" aria-hidden="true">
+        <Sparkles size={18} />
+      </span>
+      <div>
+        <h2 id="home-guest-recommendation-title">{copy.guestPromptTitle}</h2>
+        <p>{copy.guestPromptDescription}</p>
+      </div>
+      <button type="button" onClick={() => navigate("/login")}>
+        {copy.guestPromptCta} <ArrowRight size={16} aria-hidden="true" />
+      </button>
+    </section>
   );
 }
 
@@ -860,6 +930,7 @@ function UrgentJobsSection({
   navigate,
   urgentJobs,
   onApply,
+  allowApply,
   isLoading,
   isError,
   onRetry,
@@ -867,6 +938,7 @@ function UrgentJobsSection({
 }: {
   navigate: (path: string) => void;
   onApply: (job: { id: string; title: string; company: string }) => void;
+  allowApply: boolean;
   urgentJobs: Array<{
     id: string;
     logo: string;
@@ -1390,20 +1462,22 @@ function UrgentJobsSection({
                 </button>
               );
             })()}
-            <button
-              type="button"
-              className="urgent-job-preview-apply"
-              onClick={() =>
-                onApply({
-                  id: previewJob.id,
-                  title: previewJob.title,
-                  company: previewJob.company,
-                })
-              }
-            >
-              <BriefcaseBusiness size={18} aria-hidden="true" />
-              {copy.apply}
-            </button>
+            {allowApply ? (
+              <button
+                type="button"
+                className="urgent-job-preview-apply"
+                onClick={() =>
+                  onApply({
+                    id: previewJob.id,
+                    title: previewJob.title,
+                    company: previewJob.company,
+                  })
+                }
+              >
+                <BriefcaseBusiness size={18} aria-hidden="true" />
+                {copy.apply}
+              </button>
+            ) : null}
           </div>
         </dialog>
       )}

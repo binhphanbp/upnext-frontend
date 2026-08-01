@@ -491,3 +491,31 @@ Các luồng đã có regression coverage:
 Các spec aggregate đã chạy xanh độc lập gồm:
 `home-featured-jobs`, `home-featured-companies`, `home-job-market`, `home-insights`,
 `home-primary-actions`, `home-personalization` và các assertion tương ứng trong `home.spec`.
+
+## 12. Audit hoàn tất sau PR #176
+
+Ngày đối chiếu: 2026-08-01.
+
+Audit production contract phát hiện aggregate controller của backend được mount tại `/api/home`
+và `/api/home/candidate`, không nằm dưới prefix `/api/v1`. FE đã chuẩn hoá request cho cả base URL
+staging tuyệt đối và proxy local, đồng thời thêm regression test khóa chính xác hai pathname này.
+
+Các khoảng trống UX/logic cuối đã được khép lại:
+
+- Job hết hạn sẽ tự rời khỏi homepage trong lúc tab vẫn mở; không cần tải lại trang.
+- Candidate `NOT_LOOKING` vẫn được xem và lưu tin nhưng không bị thúc ép bằng CTA ứng tuyển.
+- Section chỉ mang tên recommendation khi có tối thiểu 6 item còn hiệu lực và mỗi item đều có
+  reason code mà FE giải thích được; nếu không sẽ fallback toàn section về latest jobs.
+- Guest được xem toàn bộ nội dung trước, sau cụm job mới nhận một CTA đăng nhập nhẹ để bật cá
+  nhân hoá.
+- Luồng loading → error → retry thành công, saved state sau reload và live expiry đều có browser
+  regression test.
+
+Kết quả kiểm chứng phạm vi aggregate homepage:
+
+- 15 unit test selector, adapter, action và personalization chạy xanh.
+- 25 browser test trong các spec aggregate homepage chạy xanh trên production build.
+- Typecheck, lint, format check và production build chạy thành công.
+
+Các giới hạn backend ở mục 10 vẫn là cải tiến tiếp theo, không làm FE hiển thị dữ liệu suy diễn.
+Task chuẩn hoá logic hiển thị homepage được xem là hoàn tất trong phạm vi contract hiện có.

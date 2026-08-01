@@ -72,10 +72,20 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
+    const proxyOrigin = apiProxyOrigin.replace(/\/$/u, "");
+
     return [
       {
+        source: "/api/home",
+        destination: `${proxyOrigin}/api/home`,
+      },
+      {
+        source: "/api/home/:path*",
+        destination: `${proxyOrigin}/api/home/:path*`,
+      },
+      {
         source: "/api/v1/:path*",
-        destination: `${apiProxyOrigin.replace(/\/$/u, "")}/api/v1/:path*`,
+        destination: `${proxyOrigin}/api/v1/:path*`,
       },
     ];
   },
