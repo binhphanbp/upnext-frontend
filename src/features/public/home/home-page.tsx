@@ -335,10 +335,9 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     }
   }, [location, locationPreference.location]);
 
-  const { data: apiJobsData } = useQuery({
-    queryKey: ["public-jobs"],
-    queryFn: getPublicJobs,
-  });
+  useEffect(() => {
+    setCandidateSession(getCandidateSession());
+  }, []);
 
   const {
     data: homeData,
