@@ -437,7 +437,7 @@ Kết luận vận hành:
 - Khi BE hoàn tất, FE tích hợp API mới.
 - Giai đoạn 4 được thực hiện xuyên suốt và chốt bằng kiểm thử staging.
 
-## 10. Trạng thái tích hợp sau PR #174
+## 10. Trạng thái tích hợp sau PR #175
 
 Ngày đối chiếu: 2026-08-01. Contract được kiểm tra trực tiếp với `origin/dev` của backend,
 commit merge `d7d0095`.
@@ -473,3 +473,21 @@ commit merge `d7d0095`.
 
 Các mục trên không chặn public homepage. FE chỉ hiển thị dữ liệu contract thực sự cung cấp và
 không suy diễn giá trị còn thiếu.
+
+## 11. Kiểm chứng Giai đoạn 4 trên FE
+
+Ngày đối chiếu: 2026-08-01. FE đã bổ sung fixture contract dùng chung tại
+`e2e/fixtures/home-api.ts` để mô phỏng đúng response `/home` và `/home/candidate`, thay cho các
+mock endpoint rời rạc đã lỗi thời.
+
+Các luồng đã có regression coverage:
+
+- Guest: latest jobs, sắp hết hạn, market snapshot, company ranking, cover và empty state.
+- Candidate: lưu job, theo dõi công ty, `ELIGIBLE`, `INSUFFICIENT` và `NOT_LOOKING`.
+- Tính đúng: sort/de-dup job, giới hạn company bento, địa điểm theo city, không render views giả.
+- Trạng thái lỗi: aggregate error hiển thị một lỗi rõ ràng và retry, không dựng số liệu ước tính.
+- UX: desktop/mobile, carousel focus, keyboard controls, reduced motion và không overflow ngang.
+
+Các spec aggregate đã chạy xanh độc lập gồm:
+`home-featured-jobs`, `home-featured-companies`, `home-job-market`, `home-insights`,
+`home-primary-actions`, `home-personalization` và các assertion tương ứng trong `home.spec`.
