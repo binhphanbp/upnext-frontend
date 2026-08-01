@@ -102,15 +102,82 @@ function getCleanLeadText(html: string) {
 }
 function getCleanHtml(html: string) {
   if (!html) return "";
-  let cleaned = html.replace(/<summary[^>]*>([\s\S]*?)<\/summary>/gi, "");
-  cleaned = cleaned.replace(/<details[^>]*>/gi, "").replace(/<\/details>/gi, "");
-  cleaned = cleaned.replace(/<li>\s*Mô tả công việc\s*<\/li>/gi, "");
-  cleaned = cleaned.replace(/<li>\s*Yêu cầu ứng viên\s*<\/li>/gi, "");
-  cleaned = cleaned.replace(/<li>\s*Quyền lợi\s*<\/li>/gi, "");
-  cleaned = cleaned.replace(/<p>\s*Mô tả công việc\s*<\/p>/gi, "");
-  cleaned = cleaned.replace(/<p>\s*Yêu cầu ứng viên\s*<\/p>/gi, "");
-  cleaned = cleaned.replace(/<p>\s*Quyền lợi\s*<\/p>/gi, "");
-  return cleaned.trim();
+
+  let cleaned = html
+    .replace(/<summary[^>]*>([\s\S]*?)<\/summary>/gi, "")
+    .replace(/<details[^>]*>/gi, "")
+    .replace(/<\/details>/gi, "");
+
+  const headings = [
+    "Mô tả công việc",
+    "Yêu cầu công việc",
+    "Yêu cầu ứng viên",
+    "Quyền lợi",
+    "Phúc lợi",
+    "Quyền lợi / Phúc lợi",
+  ];
+  for (const h of headings) {
+    cleaned = cleaned
+      .replace(new RegExp(`<h[1-6][^>]*>\\s*${h}\\s*<\\/h[1-6]>`, "gi"), "")
+      .replace(
+        new RegExp(`<p[^>]*>\\s*(?:<strong[^>]*>)?\\s*${h}\\s*(?:<\\/strong>)?\\s*<\\/p>`, "gi"),
+        "",
+      )
+      .replace(new RegExp(`<li[^>]*>\\s*${h}\\s*<\\/li>`, "gi"), "");
+  }
+
+  cleaned = cleaned.trim();
+  if (!cleaned) return "";
+
+  const hasHtmlTags = /<(?:p|ul|ol|li|div|h[1-6]|br)[^>]*>/i.test(cleaned);
+  if (hasHtmlTags) {
+    return cleaned;
+  }
+
+  const rawLines = cleaned
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (rawLines.length === 0) return "";
+
+  let resultHtml = "";
+  let inList = false;
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i]!;
+    const isExplicitBullet = /^[-•*]\s+/.test(line);
+    const isImplicitBullet =
+      !isExplicitBullet &&
+      (i > 0 || rawLines.length > 2) &&
+      !line.endsWith(":") &&
+      line.length > 5 &&
+      !/^(mô tả|yêu cầu|quyền lợi)/i.test(line);
+
+    if (isExplicitBullet || isImplicitBullet) {
+      if (!inList) {
+        resultHtml += "<ul>";
+        inList = true;
+      }
+      const itemText = line.replace(/^[-•*]\s+/, "");
+      resultHtml += `<li>${itemText}</li>`;
+    } else {
+      if (inList) {
+        resultHtml += "</ul>";
+        inList = false;
+      }
+      if (line.endsWith(":") || (line.length < 40 && !line.includes("."))) {
+        resultHtml += `<h3>${line.replace(/:$/, "")}</h3>`;
+      } else {
+        resultHtml += `<p>${line}</p>`;
+      }
+    }
+  }
+
+  if (inList) {
+    resultHtml += "</ul>";
+  }
+
+  return resultHtml;
 }
 
 function getJobId(path: string) {
@@ -308,7 +375,11 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   >
                     {job.company}
                   </button>
-                  <p>{job.categories.join(" • ")}</p>
+                  <p>
+                    {job.categories
+                      .filter((c) => c !== "high-salary" && c !== "remote")
+                      .join(" • ") || "Công nghệ thông tin"}
+                  </p>
                 </div>
                 {job.verified && (
                   <span className="job-detail-verified">
@@ -387,7 +458,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
                   aria-pressed={saved}
                 >
-                  <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
+                  <Bookmark size={18} weight={saved ? "fill" : "regular"} />
                   {saved ? "Đã lưu" : "Lưu tin"}
                 </button>
                 <button type="button">
@@ -542,7 +613,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
                 aria-pressed={saved}
               >
-                <Bookmark size={18} fill={saved ? "currentColor" : "none"} />
+                <Bookmark size={18} weight={saved ? "fill" : "regular"} />
                 {saved ? "Đã lưu tin" : "Lưu tin"}
               </button>
               <div className="job-detail-deadline">

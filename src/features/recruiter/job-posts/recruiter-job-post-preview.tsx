@@ -363,11 +363,65 @@ function getCleanText(html: string) {
 }
 
 function getCleanHtml(html: string) {
-  return removeDuplicateSectionHeadings(html)
+  if (!html) return "";
+
+  let cleaned = removeDuplicateSectionHeadings(html)
     .replace(/<summary[^>]*>([\s\S]*?)<\/summary>/gi, "")
     .replace(/<details[^>]*>/gi, "")
     .replace(/<\/details>/gi, "")
     .trim();
+
+  if (!cleaned) return "";
+
+  const hasHtmlTags = /<(?:p|ul|ol|li|div|h[1-6]|br)[^>]*>/i.test(cleaned);
+  if (hasHtmlTags) {
+    return cleaned;
+  }
+
+  const rawLines = cleaned
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (rawLines.length === 0) return "";
+
+  let resultHtml = "";
+  let inList = false;
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i]!;
+    const isExplicitBullet = /^[-•*]\s+/.test(line);
+    const isImplicitBullet =
+      !isExplicitBullet &&
+      (i > 0 || rawLines.length > 2) &&
+      !line.endsWith(":") &&
+      line.length > 5 &&
+      !/^(mô tả|yêu cầu|quyền lợi)/i.test(line);
+
+    if (isExplicitBullet || isImplicitBullet) {
+      if (!inList) {
+        resultHtml += "<ul>";
+        inList = true;
+      }
+      const itemText = line.replace(/^[-•*]\s+/, "");
+      resultHtml += `<li>${itemText}</li>`;
+    } else {
+      if (inList) {
+        resultHtml += "</ul>";
+        inList = false;
+      }
+      if (line.endsWith(":") || (line.length < 40 && !line.includes("."))) {
+        resultHtml += `<h3>${line.replace(/:$/, "")}</h3>`;
+      } else {
+        resultHtml += `<p>${line}</p>`;
+      }
+    }
+  }
+
+  if (inList) {
+    resultHtml += "</ul>";
+  }
+
+  return resultHtml;
 }
 
 function removeDuplicateSectionHeadings(html: string) {
