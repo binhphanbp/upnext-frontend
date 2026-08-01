@@ -139,7 +139,7 @@ describe("homepage API adapters", () => {
       "https://upnext.local",
     );
     expect(publicRequestUrl.pathname).toBe("/api/home");
-    expect(publicRequestUrl.searchParams.get("topCompaniesLimit")).toBe("20");
+    expect(publicRequestUrl.searchParams.get("topCompaniesLimit")).toBe("30");
     expect(candidateRequestUrl.pathname).toBe("/api/home/candidate");
     const candidateHeaders = new Headers(fetchMock.mock.calls[1]?.[1]?.headers);
     expect(candidateHeaders.get("Authorization")).toBe("Bearer candidate-token");
