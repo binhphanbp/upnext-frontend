@@ -4338,7 +4338,8 @@ button.marketing-home-control {
 .featured-company-card-main:focus-visible,
 .featured-company-follow:focus-visible,
 .featured-company-featured-view:focus-visible,
-.featured-company-featured-follow:focus-visible {
+.featured-company-featured-follow:focus-visible,
+.marketing-home-co-dot:focus-visible {
   outline: 3px solid rgba(16, 185, 129, 0.34);
   outline-offset: 3px;
 }

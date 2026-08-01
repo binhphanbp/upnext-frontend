@@ -150,8 +150,18 @@ test("respects a candidate who is not looking and keeps the generic latest-jobs 
   await expect(jobsSection.getByRole("heading", { name: "Việc làm mới nhất" })).toBeVisible();
   await expect(jobsSection.getByText(latestJob.title, { exact: true })).toBeVisible();
   await expect(jobsSection.getByText("Home API Engineer 500", { exact: true })).toHaveCount(0);
-  await expect(jobsSection.getByRole("button", { name: "Ứng tuyển ngay" })).toHaveCount(0);
+  await expect(jobsSection.getByRole("button", { name: "Ứng tuyển ngay" })).toBeVisible();
   await expect(page.locator(".marketing-home-candidate-action")).toHaveCount(0);
+
+  const expiringSection = page.locator(".marketing-home-urgent");
+  await expiringSection
+    .getByRole("button", { name: "Closing Soon Platform Engineer", exact: true })
+    .hover();
+  await expect(
+    page
+      .getByRole("dialog", { name: "Closing Soon Platform Engineer" })
+      .getByRole("button", { name: "Ứng tuyển ngay" }),
+  ).toBeVisible();
 });
 
 test("falls back to latest jobs when recommendation cards cannot explain their match", async ({

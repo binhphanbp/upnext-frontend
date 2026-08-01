@@ -32,7 +32,6 @@ import { useAnchoredJobPreview } from "./use-anchored-job-preview";
 type FeaturedJobsProps = {
   navigate: (path: string) => void;
   onApply: (job: { id: string; title: string; company: string }) => void;
-  allowApply: boolean;
   jobs: PublicJob[] | undefined;
   excludedJobIds: ReadonlySet<string>;
   isLoading: boolean;
@@ -235,7 +234,6 @@ function mapPublicJobToJobCard(
 export function FeaturedJobs({
   navigate,
   onApply,
-  allowApply,
   jobs: apiJobsData,
   excludedJobIds,
   isLoading,
@@ -705,23 +703,21 @@ export function FeaturedJobs({
                             {formatViewCount(job.viewCount, locale)} {copy.views}
                           </span>
                         )}
-                        {allowApply ? (
-                          <button
-                            type="button"
-                            className="featured-job-apply"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              const session = getCandidateSession();
-                              if (session) {
-                                onApply(job);
-                              } else {
-                                navigate(`/register?job=${job.id}`);
-                              }
-                            }}
-                          >
-                            {previewCopy.apply} <ArrowRight size={15} />
-                          </button>
-                        ) : null}
+                        <button
+                          type="button"
+                          className="featured-job-apply"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            const session = getCandidateSession();
+                            if (session) {
+                              onApply(job);
+                            } else {
+                              navigate(`/register?job=${job.id}`);
+                            }
+                          }}
+                        >
+                          {previewCopy.apply} <ArrowRight size={15} />
+                        </button>
                       </footer>
                     </article>
                   );
@@ -827,22 +823,20 @@ export function FeaturedJobs({
                 </button>
               );
             })()}
-            {allowApply ? (
-              <button
-                type="button"
-                className="urgent-job-preview-apply"
-                onClick={() => {
-                  const session = getCandidateSession();
-                  if (session) {
-                    onApply(previewJob);
-                  } else {
-                    navigate(`/register?job=${previewJob.id}`);
-                  }
-                }}
-              >
-                {previewCopy.apply} <ArrowRight size={15} aria-hidden="true" />
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="urgent-job-preview-apply"
+              onClick={() => {
+                const session = getCandidateSession();
+                if (session) {
+                  onApply(previewJob);
+                } else {
+                  navigate(`/register?job=${previewJob.id}`);
+                }
+              }}
+            >
+              {previewCopy.apply} <ArrowRight size={15} aria-hidden="true" />
+            </button>
           </div>
         </dialog>
       )}

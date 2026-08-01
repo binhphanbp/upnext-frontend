@@ -438,8 +438,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     };
   }, [homeData?.stats, locale]);
   const homeHasFatalError = isHomeError && !homeData;
-  const allowApplicationCtas = candidateState !== "not-looking";
-
   const urgentJobsList = useMemo(() => {
     return urgentJobs.map((job, index) => {
       const daysUntilExpiration = getDaysUntilExpiration(job, now);
@@ -737,7 +735,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             <FeaturedJobs
               navigate={navigate}
               onApply={setApplyJob}
-              allowApply={allowApplicationCtas}
               jobs={apiJobsData}
               excludedJobIds={primaryExcludedJobIds}
               selectedJobs={primaryJobSelection}
@@ -760,7 +757,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
               navigate={navigate}
               urgentJobs={urgentJobsList}
               onApply={setApplyJob}
-              allowApply={allowApplicationCtas}
               isLoading={isHomePending}
               isError={false}
               onRetry={() => void refetchHome()}
@@ -930,7 +926,6 @@ function UrgentJobsSection({
   navigate,
   urgentJobs,
   onApply,
-  allowApply,
   isLoading,
   isError,
   onRetry,
@@ -938,7 +933,6 @@ function UrgentJobsSection({
 }: {
   navigate: (path: string) => void;
   onApply: (job: { id: string; title: string; company: string }) => void;
-  allowApply: boolean;
   urgentJobs: Array<{
     id: string;
     logo: string;
@@ -1462,22 +1456,20 @@ function UrgentJobsSection({
                 </button>
               );
             })()}
-            {allowApply ? (
-              <button
-                type="button"
-                className="urgent-job-preview-apply"
-                onClick={() =>
-                  onApply({
-                    id: previewJob.id,
-                    title: previewJob.title,
-                    company: previewJob.company,
-                  })
-                }
-              >
-                <BriefcaseBusiness size={18} aria-hidden="true" />
-                {copy.apply}
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="urgent-job-preview-apply"
+              onClick={() =>
+                onApply({
+                  id: previewJob.id,
+                  title: previewJob.title,
+                  company: previewJob.company,
+                })
+              }
+            >
+              <BriefcaseBusiness size={18} aria-hidden="true" />
+              {copy.apply}
+            </button>
           </div>
         </dialog>
       )}
