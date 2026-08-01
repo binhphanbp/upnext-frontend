@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { HomeData, HomeJobCard } from "./api";
-import { getHomeData, getHomeJobCity, mapHomeCompanies, mapHomeJobCard } from "./api";
+import {
+  getHomeData,
+  getHomeJobCity,
+  getPublicJobDetail,
+  mapHomeCompanies,
+  mapHomeJobCard,
+} from "./api";
 
 function homeJob(overrides: Partial<HomeJobCard> = {}): HomeJobCard {
   return {
@@ -182,5 +188,33 @@ describe("homepage API adapters", () => {
     expect(mapped.items.map((company) => company.id)).toEqual(["spotlight-ready", "rank-1"]);
     expect(mapped.items[0]?.slug).toBe("spotlight-ready");
     expect(mapped.items.some((company) => company.id === "inactive")).toBe(false);
+  });
+
+  it("loads and normalizes one public job detail on demand", async () => {
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      async () =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              id: "job-detail",
+              description: "<p>Mô tả đầy đủ</p>",
+              salaryMin: "25000000",
+              salaryMax: "",
+            }),
+            {
+              headers: { "content-type": "application/json" },
+              status: 200,
+            },
+          ),
+        ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const job = await getPublicJobDetail("job-detail");
+
+    const requestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]), "https://upnext.local");
+    expect(requestUrl.pathname).toBe("/api/v1/job-posts/job-detail");
+    expect(job.salaryMin).toBe(25_000_000);
+    expect(job.salaryMax).toBeNull();
   });
 });

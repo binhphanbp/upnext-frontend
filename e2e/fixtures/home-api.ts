@@ -81,6 +81,58 @@ export function createHomeJob(index: number, overrides: Partial<HomeJobCard> = {
   };
 }
 
+export function createPublicJobDetail(job: HomeJobCard, overrides: { description?: string } = {}) {
+  return {
+    id: job.id,
+    title: job.title,
+    description:
+      overrides.description ??
+      `<p>Mô tả đầy đủ cho vị trí ${job.title}, được tải khi ứng viên mở xem nhanh.</p>`,
+    requirements: null,
+    benefits: null,
+    salaryMin: job.salary.min ?? null,
+    salaryMax: job.salary.max ?? null,
+    salaryCurrency: job.salary.currency ?? "VND",
+    salaryIsNegotiable: false,
+    salaryIsVisible: true,
+    publishedAt: job.publishedAt ?? job.createdAt,
+    expiredAt: job.deadline,
+    createdAt: job.createdAt,
+    company: {
+      id: job.company.id,
+      name: job.company.name,
+      logoUrl: job.company.logo ?? null,
+      logoFile: job.company.logo ? { publicUrl: job.company.logo } : null,
+    },
+    employmentType: { name: job.employmentType },
+    experienceLevel: { name: job.experience },
+    jobPostLocations: [
+      {
+        jobLocation: {
+          city: "TP. Hồ Chí Minh",
+          workingModel: job.workMode,
+          address: job.location,
+        },
+      },
+    ],
+    jobPostSkills: job.skills.map((skill) => ({ skill })),
+  };
+}
+
+export async function mockPublicJobDetail(
+  page: Page,
+  job: HomeJobCard,
+  overrides: { description?: string } = {},
+) {
+  const escapedId = job.id.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  await page.route(new RegExp(`/job-posts/${escapedId}(?:\\?.*)?$`), async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(createPublicJobDetail(job, overrides)),
+    });
+  });
+}
+
 export function createTopCompany(
   index: number,
   overrides: Partial<HomeTopCompany> = {},

@@ -12,6 +12,7 @@ import { toast } from "@/shared/ui/toast";
 import type { PublicJob } from "./api";
 import type { RecommendationReasonCode } from "./home-personalization";
 import { getJobCities, getJobTags, selectLatestJobs } from "./home-section-selectors";
+import { getJobPreviewDescription } from "./job-preview-description";
 import {
   ArrowRight,
   BadgeCheck,
@@ -28,6 +29,7 @@ import {
   Sparkles,
 } from "./marketing-icons";
 import { useAnchoredJobPreview } from "./use-anchored-job-preview";
+import { useJobPreviewDetail } from "./use-job-preview-detail";
 
 type FeaturedJobsProps = {
   navigate: (path: string) => void;
@@ -65,27 +67,6 @@ type JobCard = {
   viewCount: number | null;
   matchReasons: readonly RecommendationReasonCode[];
 };
-
-function getPlainText(value: string | null | undefined) {
-  if (!value) return "";
-  return value
-    .replace(/<br\s*\/?>/giu, " ")
-    .replace(/<[^>]+>/gu, " ")
-    .replace(/&nbsp;/giu, " ")
-    .replace(/&amp;/giu, "&")
-    .replace(/&lt;/giu, "<")
-    .replace(/&gt;/giu, ">")
-    .replace(/\s+/gu, " ")
-    .trim();
-}
-
-function getPreviewDescription(value: string | null | undefined) {
-  return (
-    getPlainText(value)
-      .replace(/^(?:mô tả công việc|job description)\s*[:\-–—]?\s*/iu, "")
-      .trim() || undefined
-  );
-}
 
 const PAGE_SIZE = 6;
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
@@ -210,7 +191,7 @@ function mapPublicJobToJobCard(
   matchReasons: readonly RecommendationReasonCode[] = [],
   locale = "vi",
 ): JobCard {
-  const description = getPreviewDescription(job.description);
+  const description = getJobPreviewDescription(job.description);
 
   return {
     id: job.id,
@@ -255,8 +236,9 @@ export function FeaturedJobs({
           save: (title: string) => `Save ${title}`,
           unsave: (title: string) => `Remove ${title} from saved jobs`,
           apply: "Apply now",
-          fallback: (company: string, title: string) =>
-            `Join ${company} as a ${title}. View the full job details to explore the requirements and benefits for candidates.`,
+          loadingDescription: "Loading the full job description…",
+          unavailableDescription:
+            "The full job description could not be loaded. View the job details.",
         }
       : {
           description: "Mô tả công việc",
@@ -264,8 +246,8 @@ export function FeaturedJobs({
           save: (title: string) => `Lưu tin ${title}`,
           unsave: (title: string) => `Bỏ lưu tin ${title}`,
           apply: "Ứng tuyển ngay",
-          fallback: (company: string, title: string) =>
-            `Cơ hội gia nhập ${company} ở vị trí ${title}. Xem chi tiết để khám phá yêu cầu công việc và quyền lợi dành cho ứng viên.`,
+          loadingDescription: "Đang tải mô tả đầy đủ…",
+          unavailableDescription: "Chưa thể tải mô tả đầy đủ. Hãy xem chi tiết tin tuyển dụng.",
         };
   const notificationCopy =
     locale === "en"
@@ -347,6 +329,12 @@ export function FeaturedJobs({
   const slides = hasLoop ? [...pages, pages[0]!] : pages;
   const displayPage = (index % totalPages) + 1;
   const previewJob = jobs.find((job) => job.id === previewJobId) ?? null;
+  const { data: previewJobDetail, isPending: isPreviewDescriptionLoading } = useJobPreviewDetail(
+    previewJob?.id,
+  );
+  const previewDescription = getJobPreviewDescription(
+    previewJobDetail?.description ?? previewJob?.description,
+  );
 
   useEffect(() => {
     setIndex((current) => Math.min(current, Math.max(0, totalPages - 1)));
@@ -773,15 +761,14 @@ export function FeaturedJobs({
 
           <div className="urgent-job-preview-body">
             <strong>{previewCopy.description}</strong>
-            <textarea
+            <section
               className="urgent-job-preview-description"
               aria-label={`${previewCopy.description} ${previewJob.title}`}
-              readOnly
-              rows={7}
-              value={
-                previewJob.description || previewCopy.fallback(previewJob.company, previewJob.title)
-              }
-            />
+            >
+              {isPreviewDescriptionLoading
+                ? previewCopy.loadingDescription
+                : previewDescription || previewCopy.unavailableDescription}
+            </section>
             <div className="urgent-job-preview-tags">
               {previewJob.tags.slice(0, 4).map((tag) => (
                 <span key={tag}>{tag}</span>

@@ -6,6 +6,7 @@ import {
   installCandidateSession,
   mockCandidateHomeApi,
   mockHomeApi,
+  mockPublicJobDetail,
 } from "./fixtures/home-api";
 
 test.beforeEach(async ({ page }) => {
@@ -751,12 +752,15 @@ test("loads live backend data for every jobs menu category", async ({ page }) =>
 test("shows an interactive preview only for urgent job titles", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await installCandidateSession(page);
-  await mockCandidateHomeApi(
-    page,
-    createHomeData({
-      personalization: { state: "INSUFFICIENT", signalGroups: [], missingSignals: ["SKILLS"] },
-    }),
-  );
+  const data = createHomeData({
+    personalization: { state: "INSUFFICIENT", signalGroups: [], missingSignals: ["SKILLS"] },
+  });
+  const urgentJob = data.jobsSection.expiring.items[0]!;
+  await mockCandidateHomeApi(page, data);
+  await mockPublicJobDetail(page, urgentJob, {
+    description:
+      "<p>Mô tả chi tiết được tải từ tin tuyển dụng gốc khi ứng viên mở xem nhanh.</p><ul><li>Theo dõi tiến độ nộp hồ sơ.</li></ul>",
+  });
   await page.route(/\/saved-jobs(?:\/[^?]+)?(?:\?|$)/, async (route) => {
     if (route.request().method() === "POST") {
       await route.fulfill({
@@ -789,6 +793,8 @@ test("shows an interactive preview only for urgent job titles", async ({ page })
 
   const description = preview.locator(".urgent-job-preview-description");
   await expect(description).toBeVisible();
+  await expect(description).toContainText("Mô tả chi tiết được tải từ tin tuyển dụng gốc");
+  await expect(description).toContainText("• Theo dõi tiến độ nộp hồ sơ.");
   const descriptionState = await description.evaluate((element) => {
     const style = getComputedStyle(element);
     return {
