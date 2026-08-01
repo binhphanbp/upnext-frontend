@@ -68,3 +68,52 @@ test("shows one clear homepage error when aggregate data is unavailable", async 
   await expect(page.getByRole("button", { name: "Try again" })).toBeEnabled();
   await expect(page.locator(".marketing-home-market")).toHaveCount(0);
 });
+
+test("shows aggregate loading feedback and recovers through the single retry action", async ({
+  page,
+}) => {
+  let shouldSucceed = false;
+  let releaseInitialRequest: (() => void) | undefined;
+  const initialRequest = new Promise<void>((resolve) => {
+    releaseInitialRequest = resolve;
+  });
+  let requestCount = 0;
+
+  await page.route(/\/home(?:\?.*)?$/, async (route) => {
+    requestCount += 1;
+    if (requestCount === 1) await initialRequest;
+
+    if (!shouldSucceed) {
+      await route.fulfill({
+        body: JSON.stringify({ message: "Unavailable" }),
+        contentType: "application/json",
+        status: 503,
+      });
+      return;
+    }
+
+    await route.fulfill({
+      body: JSON.stringify({ success: true, data: createHomeData() }),
+      contentType: "application/json",
+    });
+  });
+
+  await page.goto("/vi", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("Đang tải việc làm mới nhất…", { exact: true })).toBeVisible();
+
+  releaseInitialRequest?.();
+  await expect(
+    page.getByRole("heading", { name: "Chưa thể tải nội dung trang chủ" }),
+  ).toBeVisible();
+
+  shouldSucceed = true;
+  await page.getByRole("button", { name: "Thử lại" }).click();
+
+  await expect(
+    page.locator(".marketing-home-jobs").getByRole("heading", { name: "Việc làm mới nhất" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Xu hướng tuyển dụng IT trên UpNext" }),
+  ).toBeVisible();
+  expect(requestCount).toBeGreaterThanOrEqual(2);
+});

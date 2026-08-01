@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { HomeData, HomeJobCard } from "./api";
-import { getHomeJobCity, mapHomeCompanies, mapHomeJobCard } from "./api";
+import { getHomeData, getHomeJobCity, mapHomeCompanies, mapHomeJobCard } from "./api";
 
 function homeJob(overrides: Partial<HomeJobCard> = {}): HomeJobCard {
   return {
@@ -113,7 +113,37 @@ function homeData(): HomeData {
   };
 }
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe("homepage API adapters", () => {
+  it("targets the unversioned aggregate routes used by the deployed backend", async () => {
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      async () =>
+        Promise.resolve(
+          new Response(JSON.stringify({ success: true, data: homeData() }), {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          }),
+        ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getHomeData();
+    await getHomeData("candidate-token");
+
+    const publicRequestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]), "https://upnext.local");
+    const candidateRequestUrl = new URL(
+      String(fetchMock.mock.calls[1]?.[0]),
+      "https://upnext.local",
+    );
+    expect(publicRequestUrl.pathname).toBe("/api/home");
+    expect(candidateRequestUrl.pathname).toBe("/api/home/candidate");
+    const candidateHeaders = new Headers(fetchMock.mock.calls[1]?.[1]?.headers);
+    expect(candidateHeaders.get("Authorization")).toBe("Bearer candidate-token");
+  });
+
   it("keeps the full address for previews but displays only the city on job cards", () => {
     const mapped = mapHomeJobCard(homeJob());
 

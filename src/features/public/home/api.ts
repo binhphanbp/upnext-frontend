@@ -334,8 +334,11 @@ export async function getHomeData(accessToken?: string) {
     topCompaniesLimit: "8",
     latestJobsLimit: "3",
   });
-  const requestHome = (path: "/home" | "/home/candidate", token?: string) =>
-    apiRequest<HomeApiResponse>(`${path}?${params.toString()}`, {
+  const requestHome = (path: "home" | "home/candidate", token?: string) =>
+    // The aggregate controller is mounted at `/api/home`, while the rest of the public API uses
+    // `/api/v1`. Resolving one segment above the configured v1 base keeps both absolute staging
+    // URLs and the local `/api/v1` proxy configuration correct.
+    apiRequest<HomeApiResponse>(`../${path}?${params.toString()}`, {
       ...(token
         ? {
             headers: {
@@ -348,7 +351,7 @@ export async function getHomeData(accessToken?: string) {
   let response: HomeApiResponse;
   let candidateFallbackStatus: number | null = null;
   try {
-    response = await requestHome(accessToken ? "/home/candidate" : "/home", accessToken);
+    response = await requestHome(accessToken ? "home/candidate" : "home", accessToken);
   } catch (error) {
     // A stale session or an account whose candidate profile is still being created must not make
     // the entire public homepage unavailable. Keep server failures visible, but gracefully fall
@@ -357,7 +360,7 @@ export async function getHomeData(accessToken?: string) {
       throw error;
     }
     candidateFallbackStatus = error.status;
-    response = await requestHome("/home");
+    response = await requestHome("home");
   }
 
   const data = "data" in response ? response.data : response;

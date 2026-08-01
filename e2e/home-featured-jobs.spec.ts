@@ -124,6 +124,38 @@ test("persists a featured job bookmark for a signed-in candidate", async ({ page
   await expect.poll(() => saved).toBe(true);
   await expect(saveButton).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Đã lưu Home API Engineer 0", { exact: true })).toBeVisible();
+
+  await page.reload();
+  await expect(
+    page
+      .locator(".marketing-home-jobs")
+      .getByRole("button", { name: "Bỏ lưu tin Home API Engineer 0" }),
+  ).toHaveAttribute("aria-pressed", "true");
+});
+
+test("removes a closing-soon job after its deadline while the homepage remains open", async ({
+  page,
+}) => {
+  const now = new Date("2026-08-01T00:00:00.000Z");
+  await page.clock.install({ time: now });
+  const expiringJob = createHomeJob(40, {
+    id: "live-expiring-job",
+    title: "Job expiring while open",
+    deadline: "2026-08-01T00:00:30.000Z",
+    daysRemaining: 1,
+    urgencyTone: "URGENT",
+  });
+  await mockHomeApi(page, createHomeData({ expiringJobs: [expiringJob] }));
+
+  await page.goto("/vi");
+
+  const expiring = page.locator(".marketing-home-urgent");
+  await expect(expiring.getByText(expiringJob.title, { exact: true })).toBeVisible();
+
+  await page.clock.fastForward(61_000);
+
+  await expect(page.locator(".marketing-home-urgent")).toHaveCount(0);
+  await expect(page.getByText(expiringJob.title, { exact: true })).toHaveCount(0);
 });
 
 test("keeps the aggregate jobs UI responsive without redundant filters", async ({ page }) => {
