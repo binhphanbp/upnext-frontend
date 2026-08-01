@@ -1,55 +1,17 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import {
+  createHomeData,
+  createHomeJob,
+  installCandidateSession,
+  mockCandidateHomeApi,
+  mockHomeApi,
+} from "./fixtures/home-api";
+
 test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await mockHomeApi(page);
 });
-
-const homePosts = Array.from({ length: 6 }, (_, index) => ({
-  category: {
-    id: `category-${index}`,
-    name: "Career advice",
-    slug: "career-advice",
-  },
-  content: `<p>Practical career advice ${index + 1}</p>`,
-  coverImageFile: null,
-  createdAt: "2026-07-25T00:00:00.000Z",
-  id: `home-post-${index}`,
-  postTags: [],
-  slug: `home-api-post-${index + 1}`,
-  status: "PUBLISHED",
-  thumbnailFile: null,
-  title: `Home API post ${index + 1}`,
-  type: "BLOG",
-  updatedAt: "2026-07-25T00:00:00.000Z",
-}));
-
-async function mockHomePosts(page: Page) {
-  await page.route(/\/posts(?:\?|$)/, async (route) => {
-    const requestUrl = new URL(route.request().url());
-    if (
-      requestUrl.searchParams.get("page") !== "1" ||
-      requestUrl.searchParams.get("limit") !== "6"
-    ) {
-      await route.continue();
-      return;
-    }
-
-    await route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        items: homePosts,
-        meta: {
-          hasNextPage: false,
-          hasPrevPage: false,
-          limit: 6,
-          page: 1,
-          total: homePosts.length,
-          totalPages: 1,
-        },
-      }),
-    });
-  });
-}
 
 async function activeGalleryThumbnailIsFullyVisible(galleryDialog: Locator) {
   return galleryDialog.evaluate((dialog) => {
@@ -181,13 +143,13 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await mockHomePosts(page);
   await page.goto("/vi");
 
   const section = page.locator(".marketing-home-insights");
   const viewport = section.locator(".marketing-home-insights-viewport");
 
-  await section.scrollIntoViewIfNeeded();
+  await expect(section).toBeVisible();
+  await section.evaluate((element) => element.scrollIntoView({ block: "center" }));
   await expect(
     section.getByRole("heading", { name: "Cẩm nang nghề nghiệp", exact: true }),
   ).toBeVisible();
@@ -285,7 +247,6 @@ test("keeps the home insights carousel accessible by button, keyboard, and drag"
 
 test("keeps the home insights carousel within a compact mobile viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await mockHomePosts(page);
   await page.goto("/vi");
 
   const section = page.locator(".marketing-home-insights");
@@ -364,7 +325,9 @@ test("uses API jobs for search and keeps the sidebar focused on advanced filters
   const sidebar = page.locator("aside");
   await expect(sidebar.getByLabel("Từ khóa")).toHaveCount(0);
   await expect(sidebar.getByLabel("Địa điểm")).toHaveCount(0);
-  await expect(sidebar.getByRole("button", { name: "React", exact: true })).toBeVisible();
+  const levelGroup = sidebar.getByRole("group", { name: "Cấp bậc", exact: true });
+  await expect(levelGroup).toBeVisible();
+  await expect(levelGroup.getByRole("checkbox", { name: "Middle", exact: true })).toBeVisible();
 
   await page.locator("#jobs-search-location").selectOption("Hà Nội");
   await page.getByRole("button", { name: "Tìm kiếm", exact: true }).click();
@@ -372,44 +335,19 @@ test("uses API jobs for search and keeps the sidebar focused on advanced filters
   await expect(page.getByText("Không tìm thấy việc làm phù hợp")).toBeVisible();
 });
 
-test("uses job cities, not the country, on featured job cards", async ({ page }) => {
-  await page.route(/\/job-posts(?:\?|$)/, async (route) => {
-    await route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify([
-        {
-          id: "job-multi-city",
-          title: "Platform Engineer",
-          description: "Build the platform.",
-          requirements: null,
-          benefits: null,
-          salaryMin: 30000000,
-          salaryMax: 45000000,
-          salaryCurrency: "VND",
-          salaryIsNegotiable: false,
-          salaryIsVisible: true,
-          publishedAt: "2026-07-16T00:00:00.000Z",
-          createdAt: "2026-07-16T00:00:00.000Z",
-          company: { id: "company-1", name: "UpNext Labs" },
-          jobCategory: { name: "Frontend Engineering" },
-          employmentType: { name: "Full-time" },
-          experienceLevel: { name: "Middle" },
-          jobPostSkills: [{ minYearsExperience: 2, skill: { name: "React" } }],
-          jobPostLocations: [
-            { jobLocation: { city: "Hà Nội" } },
-            { jobLocation: { city: "TP. Hồ Chí Minh" } },
-            { jobLocation: { city: "Hà Nội" } },
-          ],
-        },
-      ]),
-    });
+test("uses the city, not the country, from aggregate job locations", async ({ page }) => {
+  const locationJob = createHomeJob(70, {
+    id: "job-city-from-address",
+    title: "Platform Engineer",
+    location: "12 Lê Lợi, Quận 1, TP. Hồ Chí Minh, Việt Nam",
   });
+  await mockHomeApi(page, createHomeData({ latestJobs: [locationJob] }));
 
   await page.goto("/vi");
 
   const section = page.locator(".marketing-home-jobs");
   await expect(section.getByText("Platform Engineer", { exact: true })).toBeVisible();
-  await expect(section.getByText("Hà Nội +1", { exact: true })).toBeVisible();
+  await expect(section.getByText("TP. Hồ Chí Minh", { exact: true })).toBeVisible();
   await expect(section.getByText("Việt Nam", { exact: true })).toHaveCount(0);
 });
 
@@ -812,6 +750,24 @@ test("loads live backend data for every jobs menu category", async ({ page }) =>
 
 test("shows an interactive preview only for urgent job titles", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  await installCandidateSession(page);
+  await mockCandidateHomeApi(
+    page,
+    createHomeData({
+      personalization: { state: "INSUFFICIENT", signalGroups: [], missingSignals: ["SKILLS"] },
+    }),
+  );
+  await page.route(/\/saved-jobs(?:\/[^?]+)?(?:\?|$)/, async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ id: "saved" }),
+        status: 201,
+      });
+      return;
+    }
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify([]) });
+  });
   await page.goto("/vi");
 
   const urgentSection = page.locator(".marketing-home-urgent");
