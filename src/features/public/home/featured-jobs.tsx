@@ -91,17 +91,20 @@ const PAGE_SIZE = 6;
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
-function formatApplicationDeadline(expiredAt: string | null | undefined) {
-  if (!expiredAt) return "Không giới hạn";
+function formatApplicationDeadline(expiredAt: string | null | undefined, locale: string) {
+  const isEnglish = locale === "en";
+  if (!expiredAt) return isEnglish ? "No deadline" : "Không giới hạn";
 
   const expirationTime = new Date(expiredAt).getTime();
-  if (Number.isNaN(expirationTime)) return "Chưa cập nhật";
+  if (Number.isNaN(expirationTime)) return isEnglish ? "Not updated" : "Chưa cập nhật";
 
   const remainingTime = expirationTime - Date.now();
-  if (remainingTime < 0) return "Đã hết hạn";
+  if (remainingTime < 0) return isEnglish ? "Expired" : "Đã hết hạn";
 
   const remainingDays = Math.max(1, Math.ceil(remainingTime / DAY_IN_MILLISECONDS));
-  return `Còn ${remainingDays} ngày`;
+  return isEnglish
+    ? `${remainingDays} ${remainingDays === 1 ? "day" : "days"} left`
+    : `Còn ${remainingDays} ngày`;
 }
 
 function normalizeViewCount(viewCount: number | null | undefined) {
@@ -112,10 +115,10 @@ function normalizeViewCount(viewCount: number | null | undefined) {
   return Math.floor(viewCount);
 }
 
-function formatJobLocation(job: PublicJob) {
+function formatJobLocation(job: PublicJob, locale: string) {
   const cities = getJobCities(job);
 
-  if (cities.length === 0) return "Chưa cập nhật địa điểm";
+  if (cities.length === 0) return locale === "en" ? "Location pending" : "Chưa cập nhật địa điểm";
   if (cities.length === 1) return cities[0]!;
 
   return `${cities[0]} +${cities.length - 1}`;
@@ -178,13 +181,14 @@ function CompanyLogo({ src, name, color }: { src: string; name: string; color: s
 }
 
 /** Verified company badge with a concise, API-backed trust tooltip. */
-function VerifiedBadge() {
+function VerifiedBadge({ locale }: { locale: string }) {
+  const isEnglish = locale === "en";
   return (
     <span className="featured-job-verify">
       <button
         type="button"
         className="featured-job-verify-btn"
-        aria-label="Nhà tuyển dụng đã được xác thực"
+        aria-label={isEnglish ? "Verified employer" : "Nhà tuyển dụng đã được xác thực"}
         onClick={(event) => event.stopPropagation()}
       >
         <BadgeCheck size={15} />
@@ -192,7 +196,9 @@ function VerifiedBadge() {
       <span className="featured-job-verify-pop" role="tooltip">
         <span className="featured-job-verify-head">
           <ShieldCheck size={15} />
-          Nhà tuyển dụng đã được xác thực trên UpNext
+          {isEnglish
+            ? "Employer verified by UpNext"
+            : "Nhà tuyển dụng đã được xác thực trên UpNext"}
         </span>
       </span>
     </span>
@@ -202,6 +208,7 @@ function VerifiedBadge() {
 function mapPublicJobToJobCard(
   job: PublicJob,
   matchReasons: readonly RecommendationReasonCode[] = [],
+  locale = "vi",
 ): JobCard {
   const description = getPreviewDescription(job.description);
 
@@ -213,11 +220,11 @@ function mapPublicJobToJobCard(
     logoColor: "#10b981",
     title: job.title,
     salary: formatJobSalaryDisplay(job, ""),
-    location: formatJobLocation(job),
+    location: formatJobLocation(job, locale),
     mode: job.employmentType?.name || "Full-time",
-    experience: job.experienceLevel?.name || "1 - 3 năm",
+    experience: job.experienceLevel?.name || (locale === "en" ? "1 - 3 years" : "1 - 3 năm"),
     tags: getJobTags(job),
-    deadline: formatApplicationDeadline(job.expiredAt),
+    deadline: formatApplicationDeadline(job.expiredAt, locale),
     ...(description ? { description } : {}),
     viewCount: normalizeViewCount(job.viewCount),
     matchReasons,
@@ -301,8 +308,8 @@ export function FeaturedJobs({
 
   const jobs = useMemo(() => {
     const selected = selectedJobs ?? selectLatestJobs(apiJobsData, { excludedIds: excludedJobIds });
-    return selected.map((job) => mapPublicJobToJobCard(job, matchReasons?.get(job.id)));
-  }, [apiJobsData, excludedJobIds, matchReasons, selectedJobs]);
+    return selected.map((job) => mapPublicJobToJobCard(job, matchReasons?.get(job.id), locale));
+  }, [apiJobsData, excludedJobIds, locale, matchReasons, selectedJobs]);
 
   const displayTitle = sectionTitle ?? copy.title;
   const displayDescription = sectionDescription ?? copy.description;
@@ -476,7 +483,11 @@ export function FeaturedJobs({
     });
 
     if (!didStart) {
-      toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
+      toast.info(
+        locale === "en"
+          ? "Please log in to save this job."
+          : "Vui lòng đăng nhập để lưu công việc yêu thích.",
+      );
       navigate("/login?redirect=/");
     }
   }
@@ -536,7 +547,9 @@ export function FeaturedJobs({
       </header>
       {savedJobsError && isAuthenticated ? (
         <p className="marketing-home-action-error" role="alert">
-          Không thể đồng bộ việc làm đã lưu. Vui lòng thử lại.
+          {locale === "en"
+            ? "Could not sync your saved jobs. Please try again."
+            : "Không thể đồng bộ việc làm đã lưu. Vui lòng thử lại."}
         </p>
       ) : null}
 
@@ -585,12 +598,14 @@ export function FeaturedJobs({
                           <span className="featured-job-company-name" title={job.company}>
                             {job.company}
                           </span>
-                          {job.verified && <VerifiedBadge />}
+                          {job.verified && <VerifiedBadge locale={locale} />}
                         </span>
                         <button
                           type="button"
                           className={`featured-job-save ml-auto${saved ? " is-saved" : ""}`}
-                          aria-label={saved ? `Bỏ lưu tin ${job.title}` : `Lưu tin ${job.title}`}
+                          aria-label={
+                            saved ? previewCopy.unsave(job.title) : previewCopy.save(job.title)
+                          }
                           aria-pressed={saved}
                           disabled={
                             !isSavedJobsSessionResolved ||
@@ -701,7 +716,7 @@ export function FeaturedJobs({
                             }
                           }}
                         >
-                          Ứng tuyển <ArrowRight size={15} />
+                          {previewCopy.apply} <ArrowRight size={15} />
                         </button>
                       </footer>
                     </article>

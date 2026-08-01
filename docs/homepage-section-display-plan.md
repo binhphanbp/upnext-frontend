@@ -1,6 +1,6 @@
 # Kế hoạch chuẩn hoá logic hiển thị trang chủ UpNext
 
-> Phiên bản: 1.0
+> Phiên bản: 1.1
 > Ngày lập: 2026-07-31
 > Phạm vi: Trang chủ public, candidate chưa đăng nhập/đã đăng nhập, API public và phối hợp FE–BE.
 
@@ -436,3 +436,40 @@ Kết luận vận hành:
 - BE triển khai Giai đoạn 3 song song, không cần chờ FE xong toàn bộ.
 - Khi BE hoàn tất, FE tích hợp API mới.
 - Giai đoạn 4 được thực hiện xuyên suốt và chốt bằng kiểm thử staging.
+
+## 10. Trạng thái tích hợp sau PR #174
+
+Ngày đối chiếu: 2026-08-01. Contract được kiểm tra trực tiếp với `origin/dev` của backend,
+commit merge `d7d0095`.
+
+### Đã xác nhận
+
+- Giai đoạn 1 vẫn đáp ứng điều kiện public, sort latest/expiring, giới hạn 14 ngày và loại
+  trùng giữa hai section.
+- Giai đoạn 2 vẫn phân biệt guest, candidate thiếu tín hiệu, candidate đủ tín hiệu và
+  `NOT_LOOKING`; recommendation chỉ mang nhãn cá nhân hóa khi BE trả `RECOMMENDED` và có ít
+  nhất 6 item.
+- FE chuyển trang chủ sang một aggregate request `/home` hoặc `/home/candidate`.
+- Market section dùng snapshot aggregate, không tải toàn bộ job để tự tổng hợp.
+- Company list dùng cover từ aggregate response, không gọi detail waterfall.
+- FE có adapter cho ngày biểu đồ `dd/MM`, địa điểm dạng đầy đủ, company UUID khi contract không
+  có slug, salary thỏa thuận và thứ tự ưu tiên action.
+
+### Backend cần tiếp tục hoàn thiện
+
+1. `getCandidateActions` hiện mới tạo `MISSING_CV`, `MISSING_PREFERENCES` và
+   `APPLICATION_UPDATED`; chưa tạo `SAVED_JOB_EXPIRING` hoặc `FOLLOWED_COMPANY_NEW_JOB` dù type
+   đã khai báo.
+2. `APPLICATION_UPDATED` chưa có mốc đã xem/đã đọc, nên một application ở trạng thái phù hợp có
+   thể xuất hiện lại vô thời hạn.
+3. Recommendation chưa đối chiếu currency khi tính salary overlap và chưa có preferred location.
+4. `HomeJobCard` chưa trả verification hoặc engagement; FE vì vậy không hiển thị badge xác thực
+   hay gọi section là “được quan tâm”.
+5. `getTopCompanies` chưa có `HAVING active_jobs_count > 0`; FE đang lọc bảo vệ nhưng điều kiện
+   này nên nằm ở query để contract trung thực ngay từ nguồn.
+6. `getJobsSection` lấy đủ trang `latest` rồi mới loại ID thuộc `expiring`, nên danh sách latest có
+   thể thiếu item và pagination meta không còn khớp. BE nên loại expiring ngay trong query latest
+   hoặc refill sau khi de-dup.
+
+Các mục trên không chặn public homepage. FE chỉ hiển thị dữ liệu contract thực sự cung cấp và
+không suy diễn giá trị còn thiếu.

@@ -10,7 +10,6 @@ import { toast } from "@/shared/ui/toast";
 import { Tooltip, TooltipArrow, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 
 import type { PublicCompanyListResponse } from "./api";
-import { selectTopCompanies } from "./home-section-selectors";
 import {
   ArrowRight,
   Briefcase,
@@ -226,7 +225,9 @@ export function FeaturedCompanies({
   } = useCandidateCompanyFollows();
 
   const pages = useMemo(() => {
-    const apiItems = selectTopCompanies(apiCosData?.items);
+    // The home adapter has already applied the API ranking and promoted the first company with a
+    // complete spotlight profile. Preserve that stable order here instead of re-sorting it again.
+    const apiItems = apiCosData?.items.filter((company) => company.activeJobsCount > 0) ?? [];
     const mapped: Company[] = apiItems.map((co) => ({
       id: co.id,
       name: co.name,
