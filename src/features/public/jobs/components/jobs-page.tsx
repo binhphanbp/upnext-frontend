@@ -52,12 +52,13 @@ import { apiRequest } from "@/shared/api/http";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { toast } from "@/shared/ui/toast";
+import { normalizeSearchCity, useLocationPreference } from "@/shared/utils/location-preference";
 import {
   analyzeNaturalLanguageQuery,
   scoreNaturalLanguageSearch,
 } from "@/shared/utils/natural-search";
 
-import { getPublicJobs } from "../../home/api";
+import { getPublicJobsWithFilters } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
 import { ApplyModal } from "./apply-modal";
@@ -455,6 +456,22 @@ const filterLabelByValue = new Map(
 );
 
 const ALL_LOCATIONS = "Tất cả địa điểm";
+const COMMON_SEARCH_LOCATIONS = [
+  "TP. Hồ Chí Minh",
+  "Hà Nội",
+  "Đà Nẵng",
+  "Bình Dương",
+  "Cần Thơ",
+  "Hải Phòng",
+  "Đồng Nai",
+  "Bắc Ninh",
+  "Huế",
+  "Khánh Hòa",
+  "Lâm Đồng",
+  "Tây Ninh",
+  "Quảng Ninh",
+  "Thái Nguyên",
+];
 
 const MODE_FILTERS = new Set(["hybrid", "remote", "onsite"]);
 const LEVEL_FILTERS = new Set(["fresher", "middle", "senior"]);
@@ -611,6 +628,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const querySignature = params.toString();
   const [keyword, setKeyword] = useState(queryKeyword);
   const [location, setLocation] = useState(queryLocation);
+  const [autoLocationDisabled, setAutoLocationDisabled] = useState(false);
   const [activeCategory, setActiveCategory] = useState(queryCategory);
   const [activeFilters, setActiveFilters] = useState<string[]>(queryActiveFilters);
   const [salaryFilters, setSalaryFilters] = useState<string[]>(querySalaryFilters);
@@ -635,6 +653,28 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const filterToggleRef = useRef<HTMLButtonElement | null>(null);
   const filterCloseRef = useRef<HTMLButtonElement | null>(null);
   const deferredKeyword = useDeferredValue(keyword);
+  const locationPreference = useLocationPreference();
+
+  useEffect(() => {
+    if (
+      autoLocationDisabled ||
+      locationPreference.status !== "ready" ||
+      !locationPreference.location ||
+      params.has("location") ||
+      location !== ALL_LOCATIONS
+    ) {
+      return;
+    }
+
+    setLocation(locationPreference.location);
+    setPage(1);
+  }, [
+    autoLocationDisabled,
+    location,
+    locationPreference.location,
+    locationPreference.status,
+    params,
+  ]);
 
   useEffect(() => {
     if (lastObservedQueryRef.current === querySignature) return;
@@ -727,8 +767,16 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     isPending: isJobsPending,
     refetch: refetchJobs,
   } = useQuery({
-    queryKey: ["public-jobs"],
-    queryFn: getPublicJobs,
+    queryKey: ["public-jobs", { keyword: queryKeyword, location: queryLocation }],
+    queryFn: () =>
+      getPublicJobsWithFilters({
+        // Natural-language queries are still interpreted locally; simple one-token searches can
+        // be narrowed at the API so the browser does not download the whole catalogue.
+        ...(queryKeyword.trim().split(/\s+/u).length === 1 && queryKeyword.trim()
+          ? { keyword: queryKeyword }
+          : {}),
+        ...(queryLocation !== ALL_LOCATIONS ? { location: queryLocation } : {}),
+      }),
     staleTime: 60_000,
   });
 
@@ -886,8 +934,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         set.add(j.location);
       }
     });
-    return [ALL_LOCATIONS, ...Array.from(set)];
-  }, [jobs]);
+    if (location !== ALL_LOCATIONS) set.add(location);
+    return [ALL_LOCATIONS, ...Array.from(new Set([...COMMON_SEARCH_LOCATIONS, ...set]))];
+  }, [jobs, location]);
 
   const techOptionsList = useMemo(() => {
     const skills = Array.from(new Set(jobs.flatMap((job) => job.skills ?? []))).toSorted((a, b) =>
@@ -931,8 +980,12 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
           job.specializations?.some(
             (specialization) => specialization.toLowerCase() === expertiseFilter.toLowerCase(),
           );
+        const selectedCity = normalizeSearchCity(location);
+        const jobCity = normalizeSearchCity(job.location);
         const matchesLocation =
-          location === ALL_LOCATIONS || job.location.toLowerCase().includes(location.toLowerCase());
+          location === ALL_LOCATIONS ||
+          (selectedCity !== null && jobCity !== null && selectedCity === jobCity) ||
+          job.location.toLowerCase().includes(location.toLowerCase());
 
         return (
           matchesKeyword &&
@@ -1232,6 +1285,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     skipNextFilterReplaceRef.current = true;
     setKeyword("");
     setLocation(ALL_LOCATIONS);
+    setAutoLocationDisabled(true);
     setActiveCategory("all");
     setActiveFilters([]);
     setSalaryFilters([]);
@@ -1291,6 +1345,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                   id="jobs-search-location"
                   value={location}
                   onChange={(e) => {
+                    setAutoLocationDisabled(true);
                     setLocation(e.target.value);
                     setPage(1);
                   }}
@@ -1315,7 +1370,8 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
               có thể kiểm chứng để lọc kết quả.
             </p>
 
-            {deferredKeyword.trim() && naturalSearchAnalysis.facets.length > 0 ? (
+            {(deferredKeyword.trim() || location !== ALL_LOCATIONS) &&
+            (naturalSearchAnalysis.facets.length > 0 || location !== ALL_LOCATIONS) ? (
               <output
                 className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5"
                 aria-live="polite"
@@ -1332,6 +1388,24 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                     {facet.label}
                   </span>
                 ))}
+                {location !== ALL_LOCATIONS ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">
+                    <MapPin size={13} aria-hidden="true" />
+                    {location}
+                    <button
+                      type="button"
+                      className="ml-0.5 rounded-full p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                      aria-label={`Tắt bộ lọc địa điểm ${location}`}
+                      onClick={() => {
+                        setAutoLocationDisabled(true);
+                        setLocation(ALL_LOCATIONS);
+                        setPage(1);
+                      }}
+                    >
+                      <X size={13} weight="bold" />
+                    </button>
+                  </span>
+                ) : null}
                 <span className="text-xs text-slate-500">
                   Bạn có thể tinh chỉnh thêm bằng bộ lọc nâng cao.
                 </span>
