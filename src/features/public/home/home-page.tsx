@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
-import { getPublicPosts } from "@/features/posts/api/posts";
+import { getCandidateSession, type CandidateSession } from "@/features/candidate/session";
 import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
 import { formatJobSalaryDisplay } from "@/features/public/jobs/components/jobs-page";
 import { useRouter } from "@/i18n/navigation";
@@ -16,19 +16,19 @@ import { removeVietnameseAccents } from "@/shared/utils/natural-search";
 
 import { PublicFooter } from "../shared/public-footer";
 import { PublicHeader } from "../shared/public-header";
-import { getAllActivePublicCompanies, getPublicJobs } from "./api";
+import {
+  getHomeData,
+  mapHomeCompanies,
+  mapHomeJobCard,
+  mapHomePost,
+  type HomeAction,
+  type HomeRecommendationReasonCode,
+} from "./api";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
-import { selectFollowedCompanyFreshJobs, selectRecommendedJobs } from "./home-personalization";
-import {
-  getDeadlineTone,
-  getDaysUntilExpiration,
-  getJobTags,
-  isPublicJobAvailable,
-  selectLatestJobs,
-  selectExpiringJobs,
-  selectTopCompanies,
-} from "./home-section-selectors";
+import { selectPrimaryHomeAction } from "./home-actions";
+import type { RecommendationReasonCode } from "./home-personalization";
+import { getDeadlineTone, getDaysUntilExpiration, getJobTags } from "./home-section-selectors";
 import { InsightsCarousel } from "./insights-carousel";
 import { JobMarket } from "./job-market";
 import {
@@ -48,7 +48,6 @@ import {
 } from "./marketing-icons";
 import { getPopularKeywordsForLocale } from "./popular-keywords";
 import { useAnchoredJobPreview } from "./use-anchored-job-preview";
-import { useHomeCandidateContext } from "./use-home-candidate-context";
 
 type MarketingHomeExperienceProps = {
   navigate: (path: string) => void;
@@ -92,21 +91,24 @@ const keywordSuggestions = [
   "Business Analyst",
 ];
 
-function formatDeadlineWithDate(expiredAt: string | Date | null | undefined) {
-  if (!expiredAt) return "Không giới hạn";
+function formatDeadlineWithDate(expiredAt: string | Date | null | undefined, locale: string) {
+  const isEnglish = locale === "en";
+  if (!expiredAt) return isEnglish ? "No deadline" : "Không giới hạn";
 
   const expirationTime = new Date(expiredAt).getTime();
-  if (Number.isNaN(expirationTime)) return "Chưa cập nhật";
+  if (Number.isNaN(expirationTime)) return isEnglish ? "Not updated" : "Chưa cập nhật";
 
   const remainingTime = expirationTime - Date.now();
-  if (remainingTime < 0) return "Đã hết hạn";
+  if (remainingTime < 0) return isEnglish ? "Expired" : "Đã hết hạn";
 
   const remainingDays = Math.max(1, Math.ceil(remainingTime / (24 * 60 * 60 * 1000)));
-  return `Còn ${remainingDays} ngày`;
+  return isEnglish
+    ? `${remainingDays} ${remainingDays === 1 ? "day" : "days"} left`
+    : `Còn ${remainingDays} ngày`;
 }
 
-function formatCompactLocation(city?: string | null) {
-  if (!city) return "Chưa cập nhật địa điểm";
+function formatCompactLocation(city: string | null | undefined, locale: string) {
+  if (!city) return locale === "en" ? "Location pending" : "Chưa cập nhật địa điểm";
   if (city.includes("Hồ Chí Minh") || city.includes("HCM") || city.includes("Hcm")) return "TP.HCM";
   if (city.includes("Hà Nội")) return "Hà Nội";
   if (city.includes("Đà Nẵng")) return "Đà Nẵng";
@@ -195,6 +197,16 @@ const homeCopy = {
     followedJobsActionTitle: "Công ty bạn theo dõi vừa có việc mới",
     followedJobsActionDescription: "Xem những cơ hội mới được đăng trong 7 ngày qua.",
     followedJobsActionCta: "Xem việc làm",
+    applicationActionTitle: "Hồ sơ ứng tuyển của bạn vừa được cập nhật",
+    applicationActionDescription: "Kiểm tra trạng thái mới và chuẩn bị cho bước tiếp theo.",
+    applicationActionCta: "Xem tiến trình",
+    savedJobActionTitle: "Việc làm bạn đã lưu sắp hết hạn",
+    savedJobActionDescription: "Xem lại cơ hội này trước khi thời hạn ứng tuyển kết thúc.",
+    savedJobActionCta: "Xem việc làm",
+    homeDataErrorTitle: "Chưa thể tải nội dung trang chủ",
+    homeDataErrorDescription: "Vui lòng thử lại để xem các việc làm và xu hướng mới nhất.",
+    homeDataRetry: "Thử lại",
+    homeDataRetrying: "Đang thử lại…",
     footerPrimary: "Tìm việc ngay",
     footerSecondary: "Tạo hồ sơ miễn phí",
     footerEmailPlaceholder: "Nhập email của bạn",
@@ -243,6 +255,16 @@ const homeCopy = {
     followedJobsActionTitle: "A followed company just posted new jobs",
     followedJobsActionDescription: "Explore roles published in the last seven days.",
     followedJobsActionCta: "View jobs",
+    applicationActionTitle: "Your application status was updated",
+    applicationActionDescription: "Review the latest status and prepare for the next step.",
+    applicationActionCta: "View progress",
+    savedJobActionTitle: "A saved job is closing soon",
+    savedJobActionDescription: "Review this opportunity before the application deadline.",
+    savedJobActionCta: "View job",
+    homeDataErrorTitle: "We could not load the homepage",
+    homeDataErrorDescription: "Try again to see the latest jobs and hiring trends.",
+    homeDataRetry: "Try again",
+    homeDataRetrying: "Trying again…",
     footerPrimary: "Find jobs now",
     footerSecondary: "Create free profile",
     footerEmailPlaceholder: "Enter your email",
@@ -256,6 +278,19 @@ const homeCopy = {
   },
 } as const;
 
+const recommendationReasonMap: Record<HomeRecommendationReasonCode, RecommendationReasonCode> = {
+  SKILL_MATCH: "skill",
+  POSITION_MATCH: "position",
+  WORKING_MODEL_MATCH: "workingModel",
+  LEVEL_MATCH: "level",
+  SALARY_OVERLAP: "salary",
+  FOLLOWED_COMPANY: "followedCompany",
+};
+
+function isHomeRecommendationReasonCode(value: string): value is HomeRecommendationReasonCode {
+  return Object.hasOwn(recommendationReasonMap, value);
+}
+
 export function MarketingHomeExperience({ navigate }: MarketingHomeExperienceProps) {
   const locale = useLocale();
   const [keyword, setKeyword] = useState("");
@@ -266,12 +301,9 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   );
 
   const copy = locale === "en" ? homeCopy.en : homeCopy.vi;
-  const {
-    candidateContext,
-    cvsCount,
-    isActivityResolved,
-    state: candidateState,
-  } = useHomeCandidateContext();
+  const [candidateSession, setCandidateSession] = useState<CandidateSession | null | undefined>(
+    undefined,
+  );
   const popularKeywords = useMemo(
     () => getPopularKeywordsForLocale(locale === "en" ? "en" : "vi"),
     [locale],
@@ -280,121 +312,106 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
 
   const searchCardRef = useRef<HTMLElement | null>(null);
 
-  const {
-    data: apiJobsData,
-    isError: isJobsError,
-    isFetching: isJobsFetching,
-    isPending: isJobsPending,
-    refetch: refetchJobs,
-  } = useQuery({
-    queryKey: ["public-jobs"],
-    queryFn: getPublicJobs,
-    staleTime: 60_000,
-  });
+  useEffect(() => {
+    setCandidateSession(getCandidateSession());
+  }, []);
 
   const {
-    data: apiCompaniesData,
-    isError: isCompaniesError,
-    isFetching: isCompaniesFetching,
-    isPending: isCompaniesPending,
-    refetch: refetchCompanies,
+    data: homeData,
+    dataUpdatedAt: homeDataUpdatedAt,
+    isError: isHomeError,
+    isFetching: isHomeFetching,
+    isPending: isHomePending,
+    refetch: refetchHome,
   } = useQuery({
-    queryKey: ["public-companies", "all-active"],
-    queryFn: getAllActivePublicCompanies,
+    enabled: candidateSession !== undefined,
+    queryKey: ["home", candidateSession?.user.id ?? "guest"],
+    queryFn: () => getHomeData(candidateSession?.accessToken),
     staleTime: 60_000,
-  });
-
-  const { data: apiPostsData, isLoading: isPostsLoading } = useQuery({
-    queryKey: ["public-posts", { limit: 6, page: 1 }],
-    queryFn: () => getPublicPosts({ limit: 6, page: 1 }),
-    staleTime: 5 * 60 * 1000,
   });
 
   const [now] = useState(() => Date.now());
-  const activeJobs = useMemo(
-    () => (apiJobsData ?? []).filter((job) => isPublicJobAvailable(job, now)),
-    [apiJobsData, now],
-  );
-  const jobsCount = activeJobs.length;
-  const companiesCount = useMemo(
-    () =>
-      apiCompaniesData?.items.filter((company) => company.activeJobsCount > 0).length ??
-      new Set(activeJobs.map((job) => job.company?.id).filter(Boolean)).size,
-    [activeJobs, apiCompaniesData],
-  );
-  const trustCompanies = useMemo(
-    () => selectTopCompanies(apiCompaniesData?.items, 8),
-    [apiCompaniesData?.items],
-  );
-  const newJobsCount = useMemo(
-    () =>
-      activeJobs.filter((job) => {
-        const publishedTime = new Date(job.publishedAt ?? job.createdAt).getTime();
-        return Number.isFinite(publishedTime) && now - publishedTime <= 7 * 24 * 60 * 60 * 1000;
-      }).length,
-    [activeJobs, now],
-  );
+  const candidateState = useMemo(() => {
+    if (candidateSession === undefined || isHomePending) return "resolving" as const;
+    if (isHomeError) return "unavailable" as const;
+    if (!candidateSession) return "guest" as const;
 
-  const formattedStats = useMemo(() => {
-    function formatStatNumber(num: number) {
-      if (num <= 0) return "0+";
-      let rounded = num;
-      if (num >= 1000) {
-        rounded = Math.floor(num / 100) * 100;
-      } else if (num >= 100) {
-        rounded = Math.floor(num / 10) * 10;
-      } else if (num >= 10) {
-        rounded = Math.floor(num / 5) * 5;
-      }
-      const formatted = new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN").format(rounded);
-      return `${formatted}+`;
+    switch (homeData?.personalization?.state) {
+      case "ELIGIBLE":
+        return "ready" as const;
+      case "INSUFFICIENT":
+        return "profile-incomplete" as const;
+      case "NOT_LOOKING":
+        return "not-looking" as const;
+      default:
+        return "unavailable" as const;
     }
+  }, [candidateSession, homeData?.personalization?.state, isHomeError, isHomePending]);
 
-    return {
-      jobs: formatStatNumber(jobsCount),
-      companies: formatStatNumber(companiesCount),
-      newJobs: formatStatNumber(newJobsCount),
-    };
-  }, [companiesCount, jobsCount, locale, newJobsCount]);
-
-  const appliedJobIds = candidateContext.appliedJobIds;
-  const urgentExcludedIds = useMemo(() => new Set(appliedJobIds), [appliedJobIds]);
   const urgentJobs = useMemo(
-    () => selectExpiringJobs(apiJobsData, { now, excludedIds: urgentExcludedIds }),
-    [apiJobsData, now, urgentExcludedIds],
+    () => (homeData?.jobsSection.expiring.items ?? []).map(mapHomeJobCard),
+    [homeData?.jobsSection.expiring.items],
   );
   const urgentJobIds = useMemo(() => new Set(urgentJobs.map((job) => job.id)), [urgentJobs]);
-  const primaryExcludedJobIds = useMemo(
-    () => new Set([...urgentJobIds, ...appliedJobIds]),
-    [appliedJobIds, urgentJobIds],
+  const latestJobs = useMemo(
+    () =>
+      (homeData?.jobsSection.latest.items ?? [])
+        .map(mapHomeJobCard)
+        .filter((job) => !urgentJobIds.has(job.id)),
+    [homeData?.jobsSection.latest.items, urgentJobIds],
   );
   const personalizedRecommendations = useMemo(
     () =>
-      selectRecommendedJobs(apiJobsData, {
-        context: candidateContext,
-        now,
-        excludedIds: primaryExcludedJobIds,
-      }),
-    [apiJobsData, candidateContext, now, primaryExcludedJobIds],
+      (homeData?.recommendations?.title === "RECOMMENDED" ? homeData.recommendations.items : [])
+        .filter((item) => !urgentJobIds.has(item.job.id))
+        .map((item) => ({
+          job: mapHomeJobCard(item.job),
+          reasonCodes: item.reasonCodes.flatMap((reason) => {
+            return isHomeRecommendationReasonCode(reason) ? [recommendationReasonMap[reason]] : [];
+          }),
+        })),
+    [homeData?.recommendations, urgentJobIds],
   );
-  const showRecommendations =
-    candidateState === "ready" && isActivityResolved && personalizedRecommendations.length >= 6;
-  const primaryJobSelection = useMemo(() => {
-    if (showRecommendations) return personalizedRecommendations.map((item) => item.job);
-    return selectLatestJobs(apiJobsData, {
-      now,
-      excludedIds: primaryExcludedJobIds,
-    });
-  }, [apiJobsData, now, personalizedRecommendations, primaryExcludedJobIds, showRecommendations]);
+  const showRecommendations = candidateState === "ready" && personalizedRecommendations.length >= 6;
+  const primaryJobSelection = useMemo(
+    () => (showRecommendations ? personalizedRecommendations.map((item) => item.job) : latestJobs),
+    [latestJobs, personalizedRecommendations, showRecommendations],
+  );
   const recommendationReasons = useMemo(
     () =>
       new Map(personalizedRecommendations.map((item) => [item.job.id, item.reasonCodes] as const)),
     [personalizedRecommendations],
   );
-  const followedCompanyFreshJobs = useMemo(
-    () => selectFollowedCompanyFreshJobs(apiJobsData, candidateContext, now),
-    [apiJobsData, candidateContext, now],
+  const primaryExcludedJobIds = urgentJobIds;
+  const apiJobsData = useMemo(
+    () => [...primaryJobSelection, ...urgentJobs],
+    [primaryJobSelection, urgentJobs],
   );
+  const apiCompaniesData = useMemo(
+    () => (homeData ? mapHomeCompanies(homeData) : undefined),
+    [homeData],
+  );
+  const apiPostsData = useMemo(
+    () => homeData?.latestPosts.map(mapHomePost) ?? [],
+    [homeData?.latestPosts],
+  );
+  const trustCompanies = useMemo(
+    () => homeData?.topCompanies.filter((company) => company.activeJobsCount > 0) ?? [],
+    [homeData?.topCompanies],
+  );
+
+  const formattedStats = useMemo(() => {
+    function formatStatNumber(num: number) {
+      return new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN").format(Math.max(0, num));
+    }
+
+    return {
+      jobs: formatStatNumber(homeData?.stats.openJobsCount ?? 0),
+      companies: formatStatNumber(homeData?.stats.activeEmployersCount ?? 0),
+      newJobs: formatStatNumber(homeData?.stats.newJobs7dCount ?? 0),
+    };
+  }, [homeData?.stats, locale]);
+  const homeHasFatalError = isHomeError && !homeData;
 
   const urgentJobsList = useMemo(() => {
     return urgentJobs.map((job, index) => {
@@ -405,10 +422,10 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         title: job.title,
         company: job.company?.name || "UpNext Partner",
         salary: formatJobSalaryDisplay(job, ""),
-        location: formatCompactLocation(job.jobPostLocations?.[0]?.jobLocation?.city),
+        location: formatCompactLocation(job.jobPostLocations?.[0]?.jobLocation?.city, locale),
         mode: job.employmentType?.name || "Full-time",
         tags: getJobTags(job),
-        deadline: formatDeadlineWithDate(job.expiredAt),
+        deadline: formatDeadlineWithDate(job.expiredAt, locale),
         deadlineTone: getDeadlineTone(daysUntilExpiration),
         level: job.experienceLevel?.name || "Junior",
         description: getPlainText(job.description),
@@ -426,7 +443,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 : "bg-rose-500",
       };
     });
-  }, [urgentJobs, now]);
+  }, [locale, urgentJobs, now]);
 
   useEffect(() => {
     if (!openField) return undefined;
@@ -590,7 +607,9 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <BriefcaseBusiness size={25} />
               </i>
               <p>
-                <strong>{isJobsPending ? "…" : formattedStats.jobs}</strong>
+                <strong>
+                  {isHomePending ? "…" : homeHasFatalError ? "—" : formattedStats.jobs}
+                </strong>
                 <span>{copy.statsJobs}</span>
               </p>
             </article>
@@ -599,7 +618,9 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <Building2 size={25} />
               </i>
               <p>
-                <strong>{isCompaniesPending ? "…" : formattedStats.companies}</strong>
+                <strong>
+                  {isHomePending ? "…" : homeHasFatalError ? "—" : formattedStats.companies}
+                </strong>
                 <span>{copy.statsCompanies}</span>
               </p>
             </article>
@@ -608,80 +629,128 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <Sparkles size={25} />
               </i>
               <p>
-                <strong>{isJobsPending ? "…" : formattedStats.newJobs}</strong>
+                <strong>
+                  {isHomePending ? "…" : homeHasFatalError ? "—" : formattedStats.newJobs}
+                </strong>
                 <span>{copy.statsNewJobs}</span>
               </p>
             </article>
           </div>
 
-          <div className="marketing-home-trusted">
-            <span>{copy.trustedBy}</span>
-            <div className="marketing-home-marquee">
-              <div className="marketing-home-marquee-track" aria-hidden="true">
-                {trustCompanies.map((company) => (
-                  <b
-                    className={`marketing-home-company marketing-home-company-${company.id}`}
-                    key={company.id}
-                  >
-                    {company.name}
-                  </b>
-                ))}
-                {/* Duplicate set creates the seamless loop; hidden when motion is reduced. */}
-                {trustCompanies.map((company) => (
-                  <b
-                    className={`marketing-home-company marketing-home-company-clone marketing-home-company-${company.id}`}
-                    key={`${company.id}-clone`}
-                  >
-                    {company.name}
-                  </b>
-                ))}
+          {isHomePending ? (
+            <div className="marketing-home-trusted" aria-hidden="true">
+              <span>{copy.trustedBy}</span>
+              <div className="marketing-home-marquee">
+                <div className="marketing-home-marquee-track">
+                  <b className="marketing-home-company">•••</b>
+                  <b className="marketing-home-company">•••</b>
+                  <b className="marketing-home-company">•••</b>
+                </div>
               </div>
             </div>
-          </div>
+          ) : trustCompanies.length > 0 ? (
+            <div className="marketing-home-trusted">
+              <span>{copy.trustedBy}</span>
+              <div className="marketing-home-marquee">
+                <div className="marketing-home-marquee-track" aria-hidden="true">
+                  {trustCompanies.map((company) => (
+                    <b
+                      className={`marketing-home-company marketing-home-company-${company.id}`}
+                      key={company.id}
+                    >
+                      {company.name}
+                    </b>
+                  ))}
+                  {/* Duplicate set creates the seamless loop; hidden when motion is reduced. */}
+                  {trustCompanies.map((company) => (
+                    <b
+                      className={`marketing-home-company marketing-home-company-clone marketing-home-company-${company.id}`}
+                      key={`${company.id}-clone`}
+                    >
+                      {company.name}
+                    </b>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </section>
 
-        <HomeCandidateActionPanel
-          navigate={navigate}
-          copy={copy}
-          candidateState={candidateState}
-          cvsCount={cvsCount}
-          followedJobsCount={followedCompanyFreshJobs.length}
-        />
-        <FeaturedJobs
-          navigate={navigate}
-          onApply={setApplyJob}
-          jobs={apiJobsData}
-          excludedJobIds={primaryExcludedJobIds}
-          selectedJobs={primaryJobSelection}
-          matchReasons={showRecommendations ? recommendationReasons : undefined}
-          sectionTitle={showRecommendations ? copy.recommendedJobsTitle : copy.latestJobsTitle}
-          sectionDescription={
-            showRecommendations ? copy.recommendedJobsDescription : copy.latestJobsDescription
-          }
-          isLoading={isJobsPending}
-          isError={isJobsError && !apiJobsData}
-          onRetry={() => void refetchJobs()}
-          isRetrying={isJobsFetching}
-        />
-        <UrgentJobsSection
-          navigate={navigate}
-          urgentJobs={urgentJobsList}
-          onApply={setApplyJob}
-          isLoading={isJobsPending}
-          isError={isJobsError && !apiJobsData}
-          onRetry={() => void refetchJobs()}
-          isRetrying={isJobsFetching}
-        />
-        <FeaturedCompanies
-          navigate={navigate}
-          companies={apiCompaniesData}
-          isLoading={isCompaniesPending}
-          isError={isCompaniesError && !apiCompaniesData}
-          onRetry={() => void refetchCompanies()}
-          isRetrying={isCompaniesFetching}
-        />
-        <JobMarket />
-        <InsightsCarousel isLoading={isPostsLoading} posts={apiPostsData?.items ?? []} />
+        {homeHasFatalError ? (
+          <section
+            className="marketing-home-jobs"
+            aria-labelledby="home-data-error-title"
+            role="alert"
+          >
+            <header className="marketing-home-jobs-head">
+              <div>
+                <h2 id="home-data-error-title">{copy.homeDataErrorTitle}</h2>
+                <p>{copy.homeDataErrorDescription}</p>
+              </div>
+            </header>
+            <div className="marketing-home-action-state">
+              <button
+                type="button"
+                className="marketing-home-action-retry"
+                onClick={() => void refetchHome()}
+                disabled={isHomeFetching}
+              >
+                {isHomeFetching ? copy.homeDataRetrying : copy.homeDataRetry}
+              </button>
+            </div>
+          </section>
+        ) : (
+          <>
+            <HomeCandidateActionPanel
+              navigate={navigate}
+              copy={copy}
+              candidateState={candidateState}
+              actions={homeData?.actions ?? []}
+            />
+            <FeaturedJobs
+              navigate={navigate}
+              onApply={setApplyJob}
+              jobs={apiJobsData}
+              excludedJobIds={primaryExcludedJobIds}
+              selectedJobs={primaryJobSelection}
+              matchReasons={showRecommendations ? recommendationReasons : undefined}
+              sectionTitle={showRecommendations ? copy.recommendedJobsTitle : copy.latestJobsTitle}
+              sectionDescription={
+                showRecommendations ? copy.recommendedJobsDescription : copy.latestJobsDescription
+              }
+              isLoading={isHomePending}
+              isError={false}
+              onRetry={() => void refetchHome()}
+              isRetrying={isHomeFetching}
+            />
+            <UrgentJobsSection
+              navigate={navigate}
+              urgentJobs={urgentJobsList}
+              onApply={setApplyJob}
+              isLoading={isHomePending}
+              isError={false}
+              onRetry={() => void refetchHome()}
+              isRetrying={isHomeFetching}
+            />
+            <FeaturedCompanies
+              navigate={navigate}
+              companies={apiCompaniesData}
+              isLoading={isHomePending}
+              isError={false}
+              onRetry={() => void refetchHome()}
+              isRetrying={isHomeFetching}
+            />
+            <JobMarket
+              {...(homeData?.marketInsight ? { insight: homeData.marketInsight } : {})}
+              updatedAt={homeDataUpdatedAt}
+              isLoading={isHomePending}
+              isError={!homeData?.marketInsight && !isHomePending}
+              onRetry={() => void refetchHome()}
+              isRetrying={isHomeFetching}
+            />
+            <InsightsCarousel isLoading={isHomePending} posts={apiPostsData} />
+          </>
+        )}
 
         <PublicFooter navigate={navigate} />
 
@@ -697,8 +766,7 @@ function HomeCandidateActionPanel({
   navigate,
   copy,
   candidateState,
-  cvsCount,
-  followedJobsCount,
+  actions,
 }: {
   navigate: (path: string) => void;
   copy: (typeof homeCopy)["vi"] | (typeof homeCopy)["en"];
@@ -709,61 +777,83 @@ function HomeCandidateActionPanel({
     | "ready"
     | "not-looking"
     | "unavailable";
-  cvsCount: number;
-  followedJobsCount: number;
+  actions: readonly HomeAction[];
 }) {
-  if (candidateState === "profile-incomplete") {
-    return (
-      <section className="marketing-home-candidate-action" aria-labelledby="home-action-title">
-        <span className="marketing-home-candidate-action-icon" aria-hidden="true">
-          <Sparkles size={18} />
-        </span>
-        <div>
-          <h2 id="home-action-title">{copy.profileActionTitle}</h2>
-          <p>{copy.profileActionDescription}</p>
-        </div>
-        <button type="button" onClick={() => navigate("/candidate/profile")}>
-          {copy.profileActionCta} <ArrowRight size={16} aria-hidden="true" />
-        </button>
-      </section>
-    );
+  if (
+    candidateState === "guest" ||
+    candidateState === "resolving" ||
+    candidateState === "not-looking" ||
+    candidateState === "unavailable"
+  ) {
+    return null;
   }
 
-  if (candidateState === "ready" && cvsCount === 0) {
-    return (
-      <section className="marketing-home-candidate-action" aria-labelledby="home-action-title">
-        <span className="marketing-home-candidate-action-icon" aria-hidden="true">
-          <BriefcaseBusiness size={18} />
-        </span>
-        <div>
-          <h2 id="home-action-title">{copy.cvActionTitle}</h2>
-          <p>{copy.cvActionDescription}</p>
-        </div>
-        <button type="button" onClick={() => navigate("/candidate/profile?section=documents")}>
-          {copy.cvActionCta} <ArrowRight size={16} aria-hidden="true" />
-        </button>
-      </section>
-    );
-  }
+  const action =
+    selectPrimaryHomeAction(actions) ??
+    (candidateState === "profile-incomplete" ? ({ type: "MISSING_PREFERENCES" } as const) : null);
+  if (!action) return null;
 
-  if (candidateState === "ready" && followedJobsCount > 0) {
-    return (
-      <section className="marketing-home-candidate-action" aria-labelledby="home-action-title">
-        <span className="marketing-home-candidate-action-icon" aria-hidden="true">
-          <Sparkles size={18} />
-        </span>
-        <div>
-          <h2 id="home-action-title">{copy.followedJobsActionTitle}</h2>
-          <p>{copy.followedJobsActionDescription}</p>
-        </div>
-        <button type="button" onClick={() => navigate("/jobs")}>
-          {copy.followedJobsActionCta} <ArrowRight size={16} aria-hidden="true" />
-        </button>
-      </section>
-    );
-  }
+  const content = (() => {
+    switch (action.type) {
+      case "APPLICATION_UPDATED":
+        return {
+          title: copy.applicationActionTitle,
+          description: copy.applicationActionDescription,
+          cta: copy.applicationActionCta,
+          href: action.applicationId
+            ? `/candidate/applications/${action.applicationId}`
+            : "/candidate/applications",
+          icon: <BriefcaseBusiness size={18} />,
+        };
+      case "SAVED_JOB_EXPIRING":
+        return {
+          title: copy.savedJobActionTitle,
+          description: copy.savedJobActionDescription,
+          cta: copy.savedJobActionCta,
+          href: action.jobId ? `/jobs/${action.jobId}` : "/candidate/saved-jobs",
+          icon: <Clock size={18} />,
+        };
+      case "FOLLOWED_COMPANY_NEW_JOB":
+        return {
+          title: copy.followedJobsActionTitle,
+          description: copy.followedJobsActionDescription,
+          cta: copy.followedJobsActionCta,
+          href: action.jobId ? `/jobs/${action.jobId}` : "/jobs",
+          icon: <Sparkles size={18} />,
+        };
+      case "MISSING_CV":
+        return {
+          title: copy.cvActionTitle,
+          description: copy.cvActionDescription,
+          cta: copy.cvActionCta,
+          href: "/candidate/profile?section=documents",
+          icon: <BriefcaseBusiness size={18} />,
+        };
+      case "MISSING_PREFERENCES":
+        return {
+          title: copy.profileActionTitle,
+          description: copy.profileActionDescription,
+          cta: copy.profileActionCta,
+          href: "/candidate/profile",
+          icon: <Sparkles size={18} />,
+        };
+    }
+  })();
 
-  return null;
+  return (
+    <section className="marketing-home-candidate-action" aria-labelledby="home-action-title">
+      <span className="marketing-home-candidate-action-icon" aria-hidden="true">
+        {content.icon}
+      </span>
+      <div>
+        <h2 id="home-action-title">{content.title}</h2>
+        <p>{content.description}</p>
+      </div>
+      <button type="button" onClick={() => navigate(content.href)}>
+        {content.cta} <ArrowRight size={16} aria-hidden="true" />
+      </button>
+    </section>
+  );
 }
 
 function UrgentJobsSection({
@@ -808,33 +898,62 @@ function UrgentJobsSection({
 
   function handleSaveJob(jobId: string, jobTitle: string) {
     const didStart = toggleSaveJob(jobId, {
-      onError: () => toast.error("Không thể cập nhật việc làm đã lưu. Vui lòng thử lại."),
+      onError: () =>
+        toast.error(
+          locale === "en"
+            ? "Could not update saved jobs. Please try again."
+            : "Không thể cập nhật việc làm đã lưu. Vui lòng thử lại.",
+        ),
       onSuccess: (isSaved) => {
         const toastId = `save-job-${jobId}`;
-        toast.success(isSaved ? `Đã lưu ${jobTitle}` : `Đã bỏ lưu ${jobTitle}`, {
-          action: {
-            label: "Hoàn tác",
-            onClick: () => {
-              toast.dismiss(toastId);
-              const didUndoStart = setSavedJob(jobId, !isSaved, {
-                onError: () => toast.error("Không thể hoàn tác. Vui lòng thử lại."),
-                onSuccess: (restored) => {
-                  toast.success(
-                    restored ? `Đã lưu lại ${jobTitle}` : `Đã hoàn tác lưu ${jobTitle}`,
-                  );
-                },
-              });
-              if (!didUndoStart) navigate("/login?redirect=/");
+        toast.success(
+          locale === "en"
+            ? isSaved
+              ? `Saved ${jobTitle}`
+              : `Removed ${jobTitle} from saved jobs`
+            : isSaved
+              ? `Đã lưu ${jobTitle}`
+              : `Đã bỏ lưu ${jobTitle}`,
+          {
+            action: {
+              label: locale === "en" ? "Undo" : "Hoàn tác",
+              onClick: () => {
+                toast.dismiss(toastId);
+                const didUndoStart = setSavedJob(jobId, !isSaved, {
+                  onError: () =>
+                    toast.error(
+                      locale === "en"
+                        ? "Could not undo this change. Please try again."
+                        : "Không thể hoàn tác. Vui lòng thử lại.",
+                    ),
+                  onSuccess: (restored) => {
+                    toast.success(
+                      locale === "en"
+                        ? restored
+                          ? `Saved ${jobTitle} again`
+                          : `Undid saving ${jobTitle}`
+                        : restored
+                          ? `Đã lưu lại ${jobTitle}`
+                          : `Đã hoàn tác lưu ${jobTitle}`,
+                    );
+                  },
+                });
+                if (!didUndoStart) navigate("/login?redirect=/");
+              },
             },
+            duration: 8_000,
+            id: toastId,
           },
-          duration: 8_000,
-          id: toastId,
-        });
+        );
       },
     });
 
     if (!didStart) {
-      toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
+      toast.info(
+        locale === "en"
+          ? "Please log in to save this job."
+          : "Vui lòng đăng nhập để lưu công việc yêu thích.",
+      );
       const redirectPath = typeof window !== "undefined" ? window.location.pathname : "/";
       navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
     }
@@ -869,6 +988,14 @@ function UrgentJobsSection({
           retrying: "Trying again…",
           previous: "Previous page",
           next: "Next page",
+          save: (title: string) => `Save ${title}`,
+          unsave: (title: string) => `Remove ${title} from saved jobs`,
+          descriptionTitle: "Job description",
+          descriptionAria: (title: string) => `Full job description for ${title}`,
+          fallbackDescription: (company: string, title: string) =>
+            `Join ${company} as a ${title}. View the full job details to explore the requirements and benefits.`,
+          details: "View details",
+          apply: "Apply now",
         }
       : {
           ariaLabel: "Việc làm sắp hết hạn",
@@ -881,6 +1008,14 @@ function UrgentJobsSection({
           retrying: "Đang thử lại…",
           previous: "Trang trước",
           next: "Trang sau",
+          save: (title: string) => `Lưu công việc ${title}`,
+          unsave: (title: string) => `Bỏ lưu công việc ${title}`,
+          descriptionTitle: "Mô tả công việc",
+          descriptionAria: (title: string) => `Mô tả đầy đủ công việc ${title}`,
+          fallbackDescription: (company: string, title: string) =>
+            `Cơ hội gia nhập ${company} ở vị trí ${title}. Xem chi tiết để khám phá yêu cầu công việc và quyền lợi dành cho ứng viên.`,
+          details: "Xem chi tiết",
+          apply: "Ứng tuyển ngay",
         };
 
   useEffect(() => {
@@ -1120,11 +1255,7 @@ function UrgentJobsSection({
                             <button
                               type="button"
                               className="urgent-job-save"
-                              aria-label={
-                                isSaved
-                                  ? `Bỏ lưu công việc ${job.title}`
-                                  : `Lưu công việc ${job.title}`
-                              }
+                              aria-label={isSaved ? copy.unsave(job.title) : copy.save(job.title)}
                               aria-pressed={isSaved}
                               disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
                               onClick={(e) => {
@@ -1220,15 +1351,15 @@ function UrgentJobsSection({
           </p>
 
           <div className="urgent-job-preview-body">
-            <strong>Mô tả công việc</strong>
+            <strong>{copy.descriptionTitle}</strong>
             <textarea
               className="urgent-job-preview-description"
-              aria-label={`Mô tả đầy đủ công việc ${previewJob.title}`}
+              aria-label={copy.descriptionAria(previewJob.title)}
               readOnly
               rows={7}
               value={
                 previewJob.description ||
-                `Cơ hội gia nhập ${previewJob.company} ở vị trí ${previewJob.title}. Xem chi tiết để khám phá yêu cầu công việc và quyền lợi dành cho ứng viên.`
+                copy.fallbackDescription(previewJob.company, previewJob.title)
               }
             />
             <div className="urgent-job-preview-tags">
@@ -1237,7 +1368,7 @@ function UrgentJobsSection({
               ))}
             </div>
             <button type="button" onClick={() => navigate(`/jobs/${previewJob.id}`)}>
-              Xem chi tiết <ArrowRight size={15} aria-hidden="true" />
+              {copy.details} <ArrowRight size={15} aria-hidden="true" />
             </button>
           </div>
 
@@ -1249,9 +1380,7 @@ function UrgentJobsSection({
                   type="button"
                   className="urgent-job-preview-save"
                   aria-label={
-                    isPreviewSaved
-                      ? `Bỏ lưu công việc ${previewJob.title}`
-                      : `Lưu công việc ${previewJob.title}`
+                    isPreviewSaved ? copy.unsave(previewJob.title) : copy.save(previewJob.title)
                   }
                   aria-pressed={isPreviewSaved}
                   disabled={!isSavedJobsSessionResolved || isSavedJobPending(previewJob.id)}
@@ -1273,7 +1402,7 @@ function UrgentJobsSection({
               }
             >
               <BriefcaseBusiness size={18} aria-hidden="true" />
-              Ứng tuyển ngay
+              {copy.apply}
             </button>
           </div>
         </dialog>

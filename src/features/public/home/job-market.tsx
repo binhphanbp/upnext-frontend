@@ -19,8 +19,9 @@ import {
 
 import { Link } from "@/i18n/navigation";
 
-import type { PublicJob } from "./api";
-import { getPublicJobs } from "./api";
+import type { HomeMarketInsight, HomeMarketLatestJob, PublicJob } from "./api";
+import { getHomeJobCity, getPublicJobs } from "./api";
+import { getSalaryBandIndex, parseMarketPointDate } from "./home-market-data";
 import { Bot, BriefcaseBusiness, ChevronRight, PieChart, TrendingUp, Zap } from "./marketing-icons";
 
 type MarketChart = "weekly" | "salary";
@@ -43,6 +44,15 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
 
 const barColors = ["#48d6a5", "#10b981", "#8b6cf4", "#4cb7e9", "#f6b528"];
+
+type JobMarketProps = {
+  insight?: HomeMarketInsight;
+  isLoading?: boolean;
+  isError?: boolean;
+  isRetrying?: boolean;
+  updatedAt?: number;
+  onRetry?: () => void;
+};
 
 function localeCode(locale: string) {
   return locale === "en" ? "en-US" : "vi-VN";
@@ -150,6 +160,47 @@ function publishedSalaryMidpoint(job: PublicJob) {
   }
 
   return Math.round((minimum + maximum) / 2);
+}
+
+function mapMarketLatestJob(job: HomeMarketLatestJob): PublicJob {
+  const logo = job.company.logo ?? job.company.avatar ?? null;
+
+  return {
+    id: job.id,
+    status: "PUBLISHED",
+    moderationStatus: "APPROVED",
+    isHidden: false,
+    title: job.title,
+    description: "",
+    requirements: null,
+    benefits: null,
+    salaryMin: null,
+    salaryMax: null,
+    salaryCurrency: "VND",
+    salaryIsNegotiable: true,
+    salaryIsVisible: false,
+    publishedAt: job.publishedAt ?? job.createdAt,
+    expiredAt: null,
+    createdAt: job.createdAt,
+    company: {
+      id: job.company.id,
+      name: job.company.name,
+      logoUrl: logo,
+      logoFile: logo ? { publicUrl: logo } : null,
+    },
+    employmentType: job.employmentType ? { name: job.employmentType } : null,
+    jobPostLocations: job.location
+      ? [
+          {
+            jobLocation: {
+              city: getHomeJobCity(job.location, job.workMode),
+              address: job.location,
+              workingModel: job.workMode,
+            },
+          },
+        ]
+      : [],
+  };
 }
 
 function MarketHeader({
@@ -283,7 +334,14 @@ function MarketIllustration() {
   );
 }
 
-export function JobMarket() {
+export function JobMarket({
+  insight,
+  isLoading,
+  isError,
+  isRetrying,
+  updatedAt,
+  onRetry,
+}: JobMarketProps = {}) {
   const locale = useLocale();
   const t = useTranslations("HomePage.content.market.snapshot");
   const isCompact = useCompactViewport();
@@ -295,7 +353,13 @@ export function JobMarket() {
     [locale],
   );
 
+  const isManagedByHome =
+    insight !== undefined ||
+    isLoading !== undefined ||
+    isError !== undefined ||
+    onRetry !== undefined;
   const jobsQuery = useQuery({
+    enabled: !isManagedByHome,
     queryKey: ["public-jobs"],
     queryFn: getPublicJobs,
     staleTime: 30_000,
@@ -345,6 +409,50 @@ export function JobMarket() {
   const snapshot = useMemo(() => {
     const now = new Date();
     const nowTimestamp = now.getTime();
+
+    if (insight) {
+      const labelFormatter = new Intl.DateTimeFormat(localeCode(locale), {
+        day: "2-digit",
+        month: "2-digit",
+      });
+      const weeklySeries = insight.jobGrowthLineChart.points.flatMap((point) => {
+        const start = parseMarketPointDate(
+          point.date,
+          insight.jobGrowthLineChart.from,
+          insight.jobGrowthLineChart.to,
+        );
+        if (!start) return [];
+        const end = new Date(Math.min(start.getTime() + 6 * DAY_MS, startOfDay(now).getTime()));
+        return [
+          {
+            label: labelFormatter.format(start),
+            rangeLabel: formatDateRange(start, end, locale),
+            value: Math.max(0, point.jobsCount),
+          },
+        ];
+      });
+      const salaryValues = Array.from({ length: salaryBands.length }, () => 0);
+      insight.salaryDemandBarChart.forEach((entry, index) => {
+        const bandIndex = getSalaryBandIndex(entry.salaryRange, index);
+        salaryValues[bandIndex] = (salaryValues[bandIndex] ?? 0) + Math.max(0, entry.jobsCount);
+      });
+
+      return {
+        latestJobs: insight.latestJobs.map(mapMarketLatestJob),
+        activeJobsCount: Math.max(
+          0,
+          insight.summary.openJobsCount ?? insight.summary.activeJobsCount,
+        ),
+        newJobs24h: Math.max(0, insight.summary.newJobs24hCount),
+        hiringCompanies: Math.max(0, insight.summary.activeEmployersCount),
+        weeklySeries,
+        salaryDistribution: salaryBands.map((band, index) => ({
+          ...band,
+          value: salaryValues[index] ?? 0,
+        })),
+      };
+    }
+
     const jobs = jobsQuery.data ?? [];
     const visibleJobs = jobs.filter((job) => {
       const published = publicationTime(job);
@@ -383,13 +491,13 @@ export function JobMarket() {
 
     return {
       latestJobs,
-      visibleJobs,
+      activeJobsCount: visibleJobs.length,
       newJobs24h,
       hiringCompanies,
       weeklySeries,
       salaryDistribution,
     };
-  }, [jobsQuery.data, locale, salaryBands]);
+  }, [insight, jobsQuery.data, locale, salaryBands]);
 
   const hasWeeklyData = snapshot.weeklySeries.some((point) => point.value > 0);
   const salaryJobCount = snapshot.salaryDistribution.reduce((sum, band) => sum + band.value, 0);
@@ -417,19 +525,24 @@ export function JobMarket() {
         snapshot.salaryDistribution[0]!,
       )
     : null;
-  const updatedAt = jobsQuery.dataUpdatedAt
+  const resolvedUpdatedAt = updatedAt ?? jobsQuery.dataUpdatedAt;
+  const formattedUpdatedAt = resolvedUpdatedAt
     ? new Intl.DateTimeFormat(localeCode(locale), {
         day: "2-digit",
         month: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
-      }).format(new Date(jobsQuery.dataUpdatedAt))
+      }).format(new Date(resolvedUpdatedAt))
     : "";
+  const marketIsLoading = isManagedByHome ? Boolean(isLoading) : jobsQuery.isPending;
+  const marketIsError = isManagedByHome ? Boolean(isError) : jobsQuery.isError;
+  const marketIsRetrying = isManagedByHome ? Boolean(isRetrying) : jobsQuery.isFetching;
+  const retryMarket = onRetry ?? (() => void jobsQuery.refetch());
 
   const title = t("title");
   const description = t("description");
 
-  if (jobsQuery.isPending) {
+  if (marketIsLoading) {
     return (
       <section className="marketing-home-market" aria-busy="true" aria-label={title}>
         <MarketHeader title={title} description={description} exploreJobsLabel={t("exploreJobs")} />
@@ -442,7 +555,7 @@ export function JobMarket() {
     );
   }
 
-  if (jobsQuery.isError) {
+  if (marketIsError) {
     return (
       <section className="marketing-home-market" aria-label={title}>
         <MarketHeader title={title} description={description} exploreJobsLabel={t("exploreJobs")} />
@@ -450,14 +563,14 @@ export function JobMarket() {
           title={t("marketDataErrorTitle")}
           description={t("marketDataErrorDescription")}
           actionLabel={t("retry")}
-          onAction={() => void jobsQuery.refetch()}
-          isRetrying={jobsQuery.isFetching}
+          onAction={retryMarket}
+          isRetrying={marketIsRetrying}
         />
       </section>
     );
   }
 
-  if (snapshot.visibleJobs.length === 0) {
+  if (snapshot.activeJobsCount === 0) {
     return (
       <section className="marketing-home-market" aria-label={title}>
         <MarketHeader title={title} description={description} exploreJobsLabel={t("exploreJobs")} />
@@ -467,8 +580,8 @@ export function JobMarket() {
   }
 
   const scope = t("scope", {
-    count: numberFormatter.format(snapshot.visibleJobs.length),
-    updatedAt,
+    count: numberFormatter.format(snapshot.activeJobsCount),
+    updatedAt: formattedUpdatedAt,
   });
   const chartHeading = (chart: MarketChart) =>
     chart === "weekly" ? t("showWeeklyChart") : t("showSalaryChart");
@@ -538,7 +651,7 @@ export function JobMarket() {
             {[
               { value: snapshot.newJobs24h, label: t("newJobs24h"), accentClass: "jm-kpi-mint" },
               {
-                value: snapshot.visibleJobs.length,
+                value: snapshot.activeJobsCount,
                 label: t("visibleJobs"),
                 accentClass: "jm-kpi-green",
               },
@@ -781,7 +894,7 @@ export function JobMarket() {
                     <em>{t("coverage")}</em>
                     <b>
                       {numberFormatter.format(salaryJobCount)}/
-                      {numberFormatter.format(snapshot.visibleJobs.length)} {t("jobs")}
+                      {numberFormatter.format(snapshot.activeJobsCount)} {t("jobs")}
                     </b>
                   </span>
                 </div>
