@@ -854,7 +854,7 @@
   margin: 0;
   color: #0f172a;
   font-size: clamp(34px, 3.6vw, 54px);
-  font-weight: 850;
+  font-weight: 600;
   line-height: 1.06;
   letter-spacing: -0.04em;
   text-wrap: balance;
@@ -2341,7 +2341,7 @@
 
 .job-detail-company-name {
   color: #0f172a;
-  font-size: 17px;
+  font-size: 22px;
   font-weight: 850;
   text-align: left;
 }
@@ -2381,7 +2381,7 @@
   margin: 0;
   color: #0f172a;
   font-size: clamp(28px, 3vw, 42px);
-  font-weight: 850;
+  font-weight: 600;
   line-height: 1.14;
   letter-spacing: 0;
 }
@@ -3043,8 +3043,8 @@
 
 .job-detail-company-name {
   color: #111827;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 850;
 }
 
 .job-detail-company-row p {
@@ -3072,7 +3072,7 @@
 .job-detail-title-row h1 {
   color: #111827;
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.2;
 }
 
