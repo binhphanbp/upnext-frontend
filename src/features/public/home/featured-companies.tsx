@@ -120,12 +120,12 @@ function CoverImage({ company }: { company: FeaturedCompany }) {
    - mobile (<=820px): featured only (0 small cards) + slider */
 function useVisibleCount() {
   const getCount = () => {
-    if (typeof window === "undefined") return 7;
+    if (typeof window === "undefined") return 9;
     if (window.matchMedia("(max-width: 820px)").matches) return 0;
-    if (window.matchMedia("(max-width: 1180px)").matches) return 6;
-    return 7;
+    if (window.matchMedia("(max-width: 1180px)").matches) return 9;
+    return 9;
   };
-  const [count, setCount] = useState(7);
+  const [count, setCount] = useState(9);
 
   useEffect(() => {
     const update = () => setCount(getCount());
@@ -239,7 +239,7 @@ export function FeaturedCompanies({
     }));
 
     const result: CompanyPage[] = [];
-    const PAGE_SIZE = 8;
+    const PAGE_SIZE = 10;
 
     for (let i = 0; i < mapped.length; i += PAGE_SIZE) {
       const chunk = mapped.slice(i, i + PAGE_SIZE);

@@ -342,7 +342,7 @@ export async function getHomeData(accessToken?: string) {
     // The aggregate contract allows at most 20 companies. Request the full curated window so the
     // homepage carousel has meaningful pages while the directory CTA remains the path to all
     // active employers.
-    topCompaniesLimit: "20",
+    topCompaniesLimit: "30",
     latestJobsLimit: "3",
   });
   const requestHome = (path: "home" | "home/candidate", token?: string) =>
