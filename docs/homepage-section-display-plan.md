@@ -120,8 +120,8 @@ Không hiển thị phần trăm phù hợp nếu chưa có mô hình recommenda
 
 Nếu `jobSearchStatus=NOT_LOOKING`:
 
-- Không dùng CTA thúc ép như “Ứng tuyển ngay”.
-- Vẫn cho phép xem job và thị trường.
+- Không dùng recommendation hoặc action panel thúc ép chủ động.
+- Vẫn cho phép xem, lưu và tự nguyện ứng tuyển job; trạng thái tìm việc không phải quyền hạn.
 - Ưu tiên bài viết, market insight và cập nhật công ty đang theo dõi.
 - Có thể hiển thị CTA cập nhật trạng thái tìm việc khi người dùng chủ động muốn nhận gợi ý.
 
@@ -240,7 +240,8 @@ Sort:
 - Card thường cần logo, tên và ít nhất một job đang mở.
 - Hero panel ưu tiên company có logo, cover và description.
 - Hero company không lặp lại trong card.
-- Tối đa 8 company.
+- Aggregate homepage lấy tối đa 20 company để tạo nhiều trang carousel; mỗi trang hiển thị tối đa
+  1 spotlight + 7 card. Directory vẫn là nơi xem toàn bộ công ty.
 - API list phải trả cover cần thiết; không gọi detail waterfall cho từng item.
 
 Verification badge chỉ hiển thị nếu `verificationStatus` thực sự phân biệt được công ty. Nếu 100% đều `VERIFIED`, badge không tạo giá trị xếp hạng và nên được giảm vai trò trong dense card.
@@ -503,7 +504,8 @@ staging tuyệt đối và proxy local, đồng thời thêm regression test kh�
 Các khoảng trống UX/logic cuối đã được khép lại:
 
 - Job hết hạn sẽ tự rời khỏi homepage trong lúc tab vẫn mở; không cần tải lại trang.
-- Candidate `NOT_LOOKING` vẫn được xem và lưu tin nhưng không bị thúc ép bằng CTA ứng tuyển.
+- Candidate `NOT_LOOKING` không nhận recommendation/action panel thúc ép nhưng vẫn có thể chủ
+  động xem, lưu và ứng tuyển.
 - Section chỉ mang tên recommendation khi có tối thiểu 6 item còn hiệu lực và mỗi item đều có
   reason code mà FE giải thích được; nếu không sẽ fallback toàn section về latest jobs.
 - Guest được xem toàn bộ nội dung trước, sau cụm job mới nhận một CTA đăng nhập nhẹ để bật cá

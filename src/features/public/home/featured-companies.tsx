@@ -179,7 +179,7 @@ export function FeaturedCompanies({
       ? {
           title: "Employers hiring the most",
           description: "Explore employers with the most open IT roles on UpNext.",
-          companyCount: "employers hiring",
+          companyCount: (count: string) => `${count} featured employers`,
           jobs: (count: number) => `${count} jobs`,
           openJobs: (count: number) => `${count} open jobs`,
           viewCompany: "View company",
@@ -198,7 +198,7 @@ export function FeaturedCompanies({
           title: "Nhà tuyển dụng đang tuyển nhiều",
           description:
             "Khám phá những nhà tuyển dụng đang có nhiều việc làm IT đang mở trên UpNext.",
-          companyCount: "công ty tuyển dụng",
+          companyCount: (count: string) => `${count} nhà tuyển dụng nổi bật`,
           jobs: (count: number) => `${count} việc làm`,
           openJobs: (count: number) => `${count} việc làm đang tuyển`,
           viewCompany: "Xem công ty",
@@ -275,7 +275,9 @@ export function FeaturedCompanies({
   }, [totalPages]);
 
   const cards = useMemo(() => page?.companies.slice(0, visibleCount) ?? [], [page, visibleCount]);
-  const totalCompanies = apiCosData?.meta.total.toLocaleString(locale === "en" ? "en-US" : "vi-VN");
+  const featuredCompanyCount = apiCosData
+    ? apiCosData.items.length.toLocaleString(locale === "en" ? "en-US" : "vi-VN")
+    : "…";
 
   function showFollowError() {
     toast.error(notificationCopy.followError);
@@ -337,7 +339,7 @@ export function FeaturedCompanies({
         <div className="marketing-home-co-head-actions">
           <span className="marketing-home-co-count">
             <UsersRound size={16} />
-            {totalCompanies ?? "…"} {copy.companyCount}
+            {copy.companyCount(featuredCompanyCount)}
           </span>
           <button
             type="button"
@@ -366,14 +368,16 @@ export function FeaturedCompanies({
       ) : featured ? (
         <>
           <div className="marketing-home-co-stage">
-            <button
-              type="button"
-              className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-prev"
-              aria-label={copy.previous}
-              onClick={() => step(-1)}
-            >
-              <ChevronLeft size={20} />
-            </button>
+            {totalPages > 1 ? (
+              <button
+                type="button"
+                className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-prev"
+                aria-label={copy.previous}
+                onClick={() => step(-1)}
+              >
+                <ChevronLeft size={20} />
+              </button>
+            ) : null}
 
             <div className="marketing-home-co-bento" key={pageIndex}>
               <FeaturedCard
@@ -457,29 +461,32 @@ export function FeaturedCompanies({
               })}
             </div>
 
-            <button
-              type="button"
-              className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-next"
-              aria-label={copy.next}
-              onClick={() => step(1)}
-            >
-              <ChevronRight size={20} />
-            </button>
+            {totalPages > 1 ? (
+              <button
+                type="button"
+                className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-next"
+                aria-label={copy.next}
+                onClick={() => step(1)}
+              >
+                <ChevronRight size={20} />
+              </button>
+            ) : null}
           </div>
 
-          <div className="marketing-home-co-dots" role="tablist" aria-label={copy.choosePage}>
-            {pages.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                role="tab"
-                aria-selected={i === pageIndex}
-                aria-label={copy.page(i + 1)}
-                className={`marketing-home-co-dot${i === pageIndex ? " is-active" : ""}`}
-                onClick={() => setPageIndex(i)}
-              />
-            ))}
-          </div>
+          {totalPages > 1 ? (
+            <nav className="marketing-home-co-dots" aria-label={copy.choosePage}>
+              {pages.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-current={i === pageIndex ? "page" : undefined}
+                  aria-label={copy.page(i + 1)}
+                  className={`marketing-home-co-dot${i === pageIndex ? " is-active" : ""}`}
+                  onClick={() => setPageIndex(i)}
+                />
+              ))}
+            </nav>
+          ) : null}
         </>
       ) : isCompaniesError ? (
         <div className="marketing-home-action-state" role="alert">

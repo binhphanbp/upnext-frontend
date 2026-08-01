@@ -331,7 +331,10 @@ export async function getHomeData(accessToken?: string) {
   const params = new URLSearchParams({
     jobPage: "1",
     jobLimit: "12",
-    topCompaniesLimit: "8",
+    // The aggregate contract allows at most 20 companies. Request the full curated window so the
+    // homepage carousel has meaningful pages while the directory CTA remains the path to all
+    // active employers.
+    topCompaniesLimit: "20",
     latestJobsLimit: "3",
   });
   const requestHome = (path: "home" | "home/candidate", token?: string) =>

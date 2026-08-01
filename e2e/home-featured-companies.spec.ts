@@ -17,7 +17,7 @@ test("uses aggregate ranking and cover data without repeating the spotlight comp
   await page.goto("/vi");
 
   const section = page.locator(".marketing-home-companies");
-  await expect(section.getByText("9 công ty tuyển dụng", { exact: true })).toBeVisible();
+  await expect(section.getByText("9 nhà tuyển dụng nổi bật", { exact: true })).toBeVisible();
   await expect(section.locator(".featured-company-featured")).toHaveCount(1);
   await expect(section.locator(".featured-company-card")).toHaveCount(7);
   await expect(section.getByText("FPT Software", { exact: true })).toHaveCount(1);
@@ -42,6 +42,54 @@ test("keeps only active employers and caps the homepage bento to one spotlight p
   await expect(section.locator(".featured-company-featured")).toHaveCount(1);
   await expect(section.locator(".featured-company-card")).toHaveCount(7);
   await expect(section.getByText("Inactive employer", { exact: true })).toHaveCount(0);
+});
+
+test("keeps every returned top employer reachable across desktop carousel pages", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1200 });
+  const companies = Array.from({ length: 20 }, (_, index) => createTopCompany(index));
+  await mockHomeApi(
+    page,
+    createHomeData({
+      stats: { activeEmployersCount: 100 },
+      topCompanies: companies,
+    }),
+  );
+
+  await page.goto("/vi");
+
+  const section = page.locator(".marketing-home-companies");
+  await expect(section.getByText("20 nhà tuyển dụng nổi bật", { exact: true })).toBeVisible();
+  await expect(section.locator(".marketing-home-co-dot")).toHaveCount(3);
+  await expect(section.getByText("Home Company 7", { exact: true })).toBeVisible();
+
+  await section.getByRole("button", { name: "Trang sau" }).click();
+  await expect(section.getByText("Home Company 8", { exact: true })).toBeVisible();
+  await expect(section.getByText("Home Company 15", { exact: true })).toBeVisible();
+
+  await section.getByRole("button", { name: "Trang sau" }).click();
+  await expect(section.getByText("Home Company 16", { exact: true })).toBeVisible();
+  await expect(section.getByText("Home Company 19", { exact: true })).toBeVisible();
+  await expect(section.locator(".featured-company-card")).toHaveCount(3);
+});
+
+test("does not render inert carousel controls when only one company page is available", async ({
+  page,
+}) => {
+  await mockHomeApi(
+    page,
+    createHomeData({
+      topCompanies: Array.from({ length: 8 }, (_, index) => createTopCompany(index)),
+    }),
+  );
+
+  await page.goto("/vi");
+
+  const section = page.locator(".marketing-home-companies");
+  await expect(section.getByRole("button", { name: "Trang trước" })).toHaveCount(0);
+  await expect(section.getByRole("button", { name: "Trang sau" })).toHaveCount(0);
+  await expect(section.locator(".marketing-home-co-dot")).toHaveCount(0);
 });
 
 test("persists company follow state from an authenticated candidate home response", async ({
