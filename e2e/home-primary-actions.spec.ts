@@ -1,5 +1,7 @@
 import { expect, test, type Locator } from "@playwright/test";
 
+import { mockHomeApi } from "./fixtures/home-api";
+
 const primaryBackground = "rgb(10, 165, 111)";
 const primaryBorder = "rgb(16, 167, 120)";
 const primaryHoverBackground = "rgb(9, 143, 99)";
@@ -18,6 +20,7 @@ async function primarySurface(locator: Locator) {
 
 test("uses the header registration treatment for homepage primary actions", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  await mockHomeApi(page);
   await page.goto("/vi");
 
   const register = page.locator(".marketing-home-header-actions .marketing-home-register");
@@ -49,6 +52,7 @@ test("uses the header registration treatment for homepage primary actions", asyn
 
 test("keeps the primary job-search action within a compact viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await mockHomeApi(page);
   await page.goto("/vi");
 
   await expect(page.locator(".marketing-home-search-submit")).toBeVisible();

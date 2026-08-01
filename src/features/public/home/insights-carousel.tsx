@@ -19,6 +19,9 @@ type InsightArticle = {
 
 type InsightsCarouselProps = {
   isLoading: boolean;
+  isError?: boolean;
+  isRetrying?: boolean;
+  onRetry?: () => void;
   posts: Post[];
 };
 
@@ -41,6 +44,9 @@ const copyByLocale = {
     carousel: "Danh sách bài viết và định hướng nghề nghiệp",
     instructions: "Kéo ngang hoặc dùng các nút điều hướng để xem thêm bài viết.",
     loading: "Đang tải bài viết mới nhất",
+    error: "Chưa thể tải cẩm nang nghề nghiệp.",
+    retry: "Thử lại",
+    retrying: "Đang thử lại…",
     more: "Xem chi tiết",
     next: "Bài viết tiếp theo",
     position: (position: number, total: number) => `Bài viết ${position} trên ${total}`,
@@ -52,6 +58,9 @@ const copyByLocale = {
     carousel: "Career and article carousel",
     instructions: "Drag horizontally or use the navigation controls to see more articles.",
     loading: "Loading latest articles",
+    error: "We could not load career insights.",
+    retry: "Try again",
+    retrying: "Trying again…",
     more: "Read article",
     next: "Next article",
     position: (position: number, total: number) => `Article ${position} of ${total}`,
@@ -67,7 +76,13 @@ function getInsightImage(post: Post, index: number) {
     : fallbackImages[index % fallbackImages.length]!;
 }
 
-export function InsightsCarousel({ isLoading, posts }: InsightsCarouselProps) {
+export function InsightsCarousel({
+  isLoading,
+  isError = false,
+  isRetrying = false,
+  onRetry,
+  posts,
+}: InsightsCarouselProps) {
   const locale = useLocale() === "en" ? "en" : "vi";
   const copy = copyByLocale[locale];
   const articles = useMemo(
@@ -81,6 +96,29 @@ export function InsightsCarousel({ isLoading, posts }: InsightsCarouselProps) {
       })),
     [posts],
   );
+
+  if (isError && articles.length === 0) {
+    return (
+      <section className="marketing-home-insights" aria-labelledby="insights-heading">
+        <header className="marketing-home-insights-head">
+          <h2 id="insights-heading">{copy.title}</h2>
+        </header>
+        <div className="marketing-home-action-state" role="alert">
+          <p className="marketing-home-action-error">{copy.error}</p>
+          {onRetry ? (
+            <button
+              type="button"
+              className="marketing-home-action-retry"
+              onClick={onRetry}
+              disabled={isRetrying}
+            >
+              {isRetrying ? copy.retrying : copy.retry}
+            </button>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
 
   if (articles.length === 0) {
     if (!isLoading) return null;

@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -10,7 +9,7 @@ import { useCandidateCompanyFollows } from "@/features/candidate/company-follows
 import { toast } from "@/shared/ui/toast";
 import { Tooltip, TooltipArrow, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 
-import { getAllActivePublicCompanies, getPublicCompanyDetail } from "./api";
+import type { PublicCompanyListResponse } from "./api";
 import {
   ArrowRight,
   Briefcase,
@@ -23,6 +22,11 @@ import {
 
 type FeaturedCompaniesProps = {
   navigate: (path: string) => void;
+  companies: PublicCompanyListResponse | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  isRetrying: boolean;
 };
 
 type Company = {
@@ -72,11 +76,12 @@ function Logo({ company }: { company: Company | FeaturedCompany }) {
     );
   }
   return (
-    <img
+    <Image
       src={company.logo}
       alt={`Logo ${company.name}`}
       width={56}
       height={56}
+      unoptimized
       className="size-full object-contain"
       onError={() => setFailed(true)}
     />
@@ -110,17 +115,17 @@ function CoverImage({ company }: { company: FeaturedCompany }) {
 }
 
 /** Responsive small-card count, aligned with the CSS breakpoints:
-   - desktop (>1180px): full bento — featured + 9 cards
+   - desktop (>1180px): full bento — featured + 7 cards
    - tablet (821-1180px): featured hidden, 6 small cards + slider
    - mobile (<=820px): featured only (0 small cards) + slider */
 function useVisibleCount() {
   const getCount = () => {
-    if (typeof window === "undefined") return 9;
+    if (typeof window === "undefined") return 7;
     if (window.matchMedia("(max-width: 820px)").matches) return 0;
     if (window.matchMedia("(max-width: 1180px)").matches) return 6;
-    return 9;
+    return 7;
   };
-  const [count, setCount] = useState(9);
+  const [count, setCount] = useState(7);
 
   useEffect(() => {
     const update = () => setCount(getCount());
@@ -132,7 +137,14 @@ function useVisibleCount() {
   return count;
 }
 
-export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
+export function FeaturedCompanies({
+  navigate,
+  companies: apiCosData,
+  isLoading: isCompaniesPending,
+  isError: isCompaniesError,
+  onRetry,
+  isRetrying,
+}: FeaturedCompaniesProps) {
   const locale = useLocale();
   const notificationCopy =
     locale === "en"
@@ -140,7 +152,6 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
           followError: "Could not update followed companies. Please try again.",
           following: "Following",
           followedAgain: "Following again",
-          follow: "Follow",
           undo: "Undo",
           undoFollow: "Undo following",
           unfollowed: "Unfollowed",
@@ -149,7 +160,6 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
           followError: "Không thể cập nhật công ty đang theo dõi. Vui lòng thử lại.",
           following: "Đã theo dõi",
           followedAgain: "Đã theo dõi lại",
-          follow: "Theo dõi",
           undo: "Hoàn tác",
           undoFollow: "Hoàn tác theo dõi",
           unfollowed: "Đã bỏ theo dõi",
@@ -164,6 +174,45 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
           active: "Bạn sẽ nhận thông báo khi công ty có việc làm mới.",
           inactive: "Theo dõi để nhận thông báo khi công ty có việc làm mới.",
         };
+  const copy =
+    locale === "en"
+      ? {
+          title: "Employers hiring the most",
+          description: "Explore employers with the most open IT roles on UpNext.",
+          companyCount: "employers hiring",
+          jobs: (count: number) => `${count} jobs`,
+          openJobs: (count: number) => `${count} open jobs`,
+          viewCompany: "View company",
+          viewAll: "View all companies",
+          previous: "Previous page",
+          next: "Next page",
+          choosePage: "Choose company page",
+          page: (number: number) => `Page ${number}`,
+          unsupported: "Follow is not available for this company yet",
+          updating: "Updating…",
+          following: "Following",
+          unfollow: "Unfollow",
+          follow: "Follow",
+        }
+      : {
+          title: "Nhà tuyển dụng đang tuyển nhiều",
+          description:
+            "Khám phá những nhà tuyển dụng đang có nhiều việc làm IT đang mở trên UpNext.",
+          companyCount: "công ty tuyển dụng",
+          jobs: (count: number) => `${count} việc làm`,
+          openJobs: (count: number) => `${count} việc làm đang tuyển`,
+          viewCompany: "Xem công ty",
+          viewAll: "Xem tất cả công ty",
+          previous: "Trang trước",
+          next: "Trang sau",
+          choosePage: "Chọn trang công ty",
+          page: (number: number) => `Trang ${number}`,
+          unsupported: "Chưa hỗ trợ theo dõi công ty này",
+          updating: "Đang cập nhật…",
+          following: "Đang theo dõi",
+          unfollow: "Bỏ theo dõi",
+          follow: "Theo dõi",
+        };
   const [pageIndex, setPageIndex] = useState(0);
   const visibleCount = useVisibleCount();
   const {
@@ -175,17 +224,10 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
     toggleFollowCompany,
   } = useCandidateCompanyFollows();
 
-  const {
-    data: apiCosData,
-    isError: isCompaniesError,
-    isPending: isCompaniesPending,
-  } = useQuery({
-    queryKey: ["public-companies", "all-active"],
-    queryFn: getAllActivePublicCompanies,
-  });
-
   const pages = useMemo(() => {
-    const apiItems = apiCosData?.items ?? [];
+    // The home adapter has already applied the API ranking and promoted the first company with a
+    // complete spotlight profile. Preserve that stable order here instead of re-sorting it again.
+    const apiItems = apiCosData?.items.filter((company) => company.activeJobsCount > 0) ?? [];
     const mapped: Company[] = apiItems.map((co) => ({
       id: co.id,
       name: co.name,
@@ -197,11 +239,12 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
     }));
 
     const result: CompanyPage[] = [];
-    const PAGE_SIZE = 10;
+    const PAGE_SIZE = 8;
 
     for (let i = 0; i < mapped.length; i += PAGE_SIZE) {
       const chunk = mapped.slice(i, i + PAGE_SIZE);
-      const first = apiItems[i]!;
+      const first = apiItems[i];
+      if (!first) continue;
       const featured: FeaturedCompany = {
         id: first.id,
         name: first.name,
@@ -214,7 +257,6 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
         tags: [first.type || "Technology"],
         description: first.description || "",
       };
-
       result.push({
         featured,
         companies: chunk.slice(1),
@@ -226,24 +268,11 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
 
   const page = pages[pageIndex] ?? null;
   const totalPages = pages.length;
+  const featured = page?.featured ?? null;
 
-  const { data: featuredCompanyDetail } = useQuery({
-    queryKey: ["public-featured-company-cover", page?.featured.slug],
-    queryFn: () => getPublicCompanyDetail(page!.featured.slug!),
-    enabled: Boolean(page?.featured.slug && !page.featured.cover),
-    staleTime: 5 * 60_000,
-  });
-
-  const featured = useMemo(
-    () =>
-      page
-        ? {
-            ...page.featured,
-            cover: featuredCompanyDetail?.coverFile?.publicUrl || page.featured.cover,
-          }
-        : null,
-    [featuredCompanyDetail?.coverFile?.publicUrl, page],
-  );
+  useEffect(() => {
+    setPageIndex((current) => Math.min(current, Math.max(0, totalPages - 1)));
+  }, [totalPages]);
 
   const cards = useMemo(() => page?.companies.slice(0, visibleCount) ?? [], [page, visibleCount]);
   const totalCompanies = apiCosData?.meta.total.toLocaleString(locale === "en" ? "en-US" : "vi-VN");
@@ -299,23 +328,23 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
   }
 
   return (
-    <section className="marketing-home-companies" aria-label="Công ty công nghệ tiêu biểu">
+    <section className="marketing-home-companies" aria-label={copy.title}>
       <header className="marketing-home-jobs-head">
         <div>
-          <h2>Công ty công nghệ tiêu biểu</h2>
-          <p>Khám phá những công ty công nghệ đang tuyển dụng nhiều việc làm IT chất lượng.</p>
+          <h2>{copy.title}</h2>
+          <p>{copy.description}</p>
         </div>
         <div className="marketing-home-co-head-actions">
           <span className="marketing-home-co-count">
             <UsersRound size={16} />
-            {totalCompanies ?? "…"} công ty tuyển dụng
+            {totalCompanies ?? "…"} {copy.companyCount}
           </span>
           <button
             type="button"
             className="marketing-home-jobs-all"
             onClick={() => navigate("/companies")}
           >
-            Xem tất cả <ChevronRight size={16} />
+            {copy.viewAll} <ChevronRight size={16} />
           </button>
         </div>
       </header>
@@ -325,13 +354,22 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
         </p>
       ) : null}
 
-      {featured ? (
+      {isCompaniesPending ? (
+        <output className="marketing-home-section-skeleton" aria-live="polite">
+          <span>
+            {locale === "en" ? "Loading employers hiring the most…" : "Đang tải nhà tuyển dụng…"}
+          </span>
+          <i />
+          <i />
+          <i />
+        </output>
+      ) : featured ? (
         <>
           <div className="marketing-home-co-stage">
             <button
               type="button"
               className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-prev"
-              aria-label="Trang trước"
+              aria-label={copy.previous}
               onClick={() => step(-1)}
             >
               <ChevronLeft size={20} />
@@ -347,6 +385,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
                   !isCompanyFollowsSessionResolved || isCompanyFollowPending(featured.id)
                 }
                 followTooltip={followTooltip}
+                copy={copy}
                 navigate={navigate}
               />
 
@@ -371,12 +410,12 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
                         <span className="featured-company-cat">{company.category}</span>
                         <span className="featured-company-jobs">
                           <Briefcase size={14} />
-                          {company.jobs} việc làm
+                          {copy.jobs(company.jobs)}
                         </span>
                       </span>
                     </button>
                     {followUnavailable ? (
-                      <span className="featured-company-follow-status">Chưa hỗ trợ theo dõi</span>
+                      <span className="featured-company-follow-status">{copy.unsupported}</span>
                     ) : (
                       <FollowTooltip
                         content={following ? followTooltip.active : followTooltip.inactive}
@@ -386,10 +425,10 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
                           className={`featured-company-follow${following ? " is-following" : ""}`}
                           aria-label={
                             followLoading
-                              ? `Đang cập nhật theo dõi ${company.name}`
+                              ? `${copy.updating} ${company.name}`
                               : following
-                                ? `Bỏ theo dõi ${company.name}`
-                                : `Theo dõi ${company.name}`
+                                ? `${copy.unfollow} ${company.name}`
+                                : `${copy.follow} ${company.name}`
                           }
                           aria-busy={followLoading || undefined}
                           aria-pressed={following}
@@ -400,14 +439,14 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
                           }}
                         >
                           {followLoading ? (
-                            "Đang cập nhật…"
+                            copy.updating
                           ) : following ? (
                             <>
-                              <Check size={14} /> Đang theo dõi
+                              <Check size={14} /> {copy.following}
                             </>
                           ) : (
                             <>
-                              <Plus size={14} aria-hidden="true" /> Theo dõi
+                              <Plus size={14} aria-hidden="true" /> {copy.follow}
                             </>
                           )}
                         </button>
@@ -421,35 +460,55 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
             <button
               type="button"
               className="marketing-home-carousel-nav marketing-home-co-arrow marketing-home-co-arrow-next"
-              aria-label="Trang sau"
+              aria-label={copy.next}
               onClick={() => step(1)}
             >
               <ChevronRight size={20} />
             </button>
           </div>
 
-          <div className="marketing-home-co-dots" role="tablist" aria-label="Chọn trang công ty">
+          <div className="marketing-home-co-dots" role="tablist" aria-label={copy.choosePage}>
             {pages.map((_, i) => (
               <button
                 key={i}
                 type="button"
                 role="tab"
                 aria-selected={i === pageIndex}
-                aria-label={`Trang ${i + 1}`}
+                aria-label={copy.page(i + 1)}
                 className={`marketing-home-co-dot${i === pageIndex ? " is-active" : ""}`}
                 onClick={() => setPageIndex(i)}
               />
             ))}
           </div>
         </>
+      ) : isCompaniesError ? (
+        <div className="marketing-home-action-state" role="alert">
+          <p className="marketing-home-action-error">
+            {locale === "en"
+              ? "Could not load employers from the system."
+              : "Không thể tải danh sách công ty từ hệ thống."}
+          </p>
+          <button
+            type="button"
+            className="marketing-home-action-retry"
+            onClick={onRetry}
+            disabled={isRetrying}
+          >
+            {isRetrying
+              ? locale === "en"
+                ? "Trying again…"
+                : "Đang thử lại…"
+              : locale === "en"
+                ? "Try again"
+                : "Thử lại"}
+          </button>
+        </div>
       ) : (
-        <p className="marketing-home-action-error" role={isCompaniesPending ? "status" : "alert"}>
-          {isCompaniesPending
-            ? "Đang tải danh sách công ty…"
-            : isCompaniesError
-              ? "Không thể tải danh sách công ty từ hệ thống. Vui lòng thử lại."
-              : "Hiện chưa có công ty đang hoạt động."}
-        </p>
+        <output className="marketing-home-action-error">
+          {locale === "en"
+            ? "There are no active employers right now."
+            : "Hiện chưa có công ty đang hoạt động."}
+        </output>
       )}
 
       <button
@@ -457,7 +516,7 @@ export function FeaturedCompanies({ navigate }: FeaturedCompaniesProps) {
         className="marketing-home-co-more"
         onClick={() => navigate("/companies")}
       >
-        Xem tất cả công ty <ArrowRight size={16} />
+        {copy.viewAll} <ArrowRight size={16} />
       </button>
     </section>
   );
@@ -470,6 +529,7 @@ function FeaturedCard({
   followUnavailable,
   followLoading,
   followTooltip,
+  copy,
   navigate,
 }: {
   company: FeaturedCompany;
@@ -478,6 +538,15 @@ function FeaturedCard({
   followUnavailable: boolean;
   followLoading: boolean;
   followTooltip: { active: string; inactive: string };
+  copy: {
+    openJobs: (count: number) => string;
+    viewCompany: string;
+    unsupported: string;
+    updating: string;
+    following: string;
+    unfollow: string;
+    follow: string;
+  };
   navigate: (path: string) => void;
 }) {
   return (
@@ -502,7 +571,7 @@ function FeaturedCard({
         {company.description ? <p>{company.description}</p> : null}
         <span className="featured-company-featured-jobs">
           <Briefcase size={15} />
-          {company.jobs} việc làm đang tuyển
+          {copy.openJobs(company.jobs)}
         </span>
         <div className="featured-company-featured-actions">
           <button
@@ -510,10 +579,10 @@ function FeaturedCard({
             className="featured-company-featured-view"
             onClick={() => navigate(getCompanyDetailPath(company))}
           >
-            Xem công ty <ArrowRight size={15} />
+            {copy.viewCompany} <ArrowRight size={15} />
           </button>
           {followUnavailable ? (
-            <span className="featured-company-featured-follow-status">Chưa hỗ trợ theo dõi</span>
+            <span className="featured-company-featured-follow-status">{copy.unsupported}</span>
           ) : (
             <FollowTooltip content={following ? followTooltip.active : followTooltip.inactive}>
               <button
@@ -521,10 +590,10 @@ function FeaturedCard({
                 className={`featured-company-featured-follow${following ? " is-following" : ""}`}
                 aria-label={
                   followLoading
-                    ? `Đang cập nhật theo dõi ${company.name}`
+                    ? `${copy.updating} ${company.name}`
                     : following
-                      ? `Bỏ theo dõi ${company.name}`
-                      : `Theo dõi ${company.name}`
+                      ? `${copy.unfollow} ${company.name}`
+                      : `${copy.follow} ${company.name}`
                 }
                 aria-busy={followLoading || undefined}
                 aria-pressed={following}
@@ -532,14 +601,14 @@ function FeaturedCard({
                 onClick={onFollow}
               >
                 {followLoading ? (
-                  "Đang cập nhật…"
+                  copy.updating
                 ) : following ? (
                   <>
-                    <Check size={15} /> Đang theo dõi
+                    <Check size={15} /> {copy.following}
                   </>
                 ) : (
                   <>
-                    <Plus size={15} /> Theo dõi
+                    <Plus size={15} /> {copy.follow}
                   </>
                 )}
               </button>

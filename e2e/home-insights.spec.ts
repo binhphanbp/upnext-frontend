@@ -1,51 +1,6 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
-const homePosts = Array.from({ length: 6 }, (_, index) => ({
-  category: {
-    id: `category-${index}`,
-    name: "Career advice",
-    slug: "career-advice",
-  },
-  content: `<p>Practical career advice ${index + 1}</p>`,
-  coverImageFile: null,
-  createdAt: "2026-07-25T00:00:00.000Z",
-  id: `home-post-${index}`,
-  postTags: [],
-  slug: `home-api-post-${index + 1}`,
-  status: "PUBLISHED",
-  thumbnailFile: null,
-  title: `Home API post ${index + 1}`,
-  type: "BLOG",
-  updatedAt: "2026-07-25T00:00:00.000Z",
-}));
-
-async function mockHomePosts(page: Page) {
-  await page.route(/\/posts(?:\?|$)/, async (route) => {
-    const requestUrl = new URL(route.request().url());
-    if (
-      requestUrl.searchParams.get("page") !== "1" ||
-      requestUrl.searchParams.get("limit") !== "6"
-    ) {
-      await route.continue();
-      return;
-    }
-
-    await route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        items: homePosts,
-        meta: {
-          hasNextPage: false,
-          hasPrevPage: false,
-          limit: 6,
-          page: 1,
-          total: homePosts.length,
-          totalPages: 1,
-        },
-      }),
-    });
-  });
-}
+import { mockHomeApi } from "./fixtures/home-api";
 
 async function sectionActionSurface(locator: Locator) {
   return locator.evaluate((element) => {
@@ -92,7 +47,7 @@ async function expectFocusedCardIsCentered(section: Locator) {
 test("loops the home insights rail without disabling the next control", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await mockHomePosts(page);
+  await mockHomeApi(page);
   await page.goto("/vi");
 
   const section = page.locator(".marketing-home-insights");
@@ -115,7 +70,7 @@ test("loops the home insights rail without disabling the next control", async ({
 test("settles on exactly one centered article after consecutive long drags", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await mockHomePosts(page);
+  await mockHomeApi(page);
   await page.goto("/vi");
 
   const section = page.locator(".marketing-home-insights");
@@ -141,7 +96,7 @@ test("settles on exactly one centered article after consecutive long drags", asy
 
 test("uses the featured companies navigation treatment for insights controls", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await mockHomePosts(page);
+  await mockHomeApi(page);
   await page.goto("/vi");
 
   const insightsArrow = page
@@ -165,7 +120,7 @@ test("uses the latest posts API for carousel content and article destinations", 
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await mockHomePosts(page);
+  await mockHomeApi(page);
   await page.goto("/vi");
 
   const section = page.locator(".marketing-home-insights");

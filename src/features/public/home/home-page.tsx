@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
-import { getPublicPosts } from "@/features/posts/api/posts";
+import { getCandidateSession, type CandidateSession } from "@/features/candidate/session";
 import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
 import { formatJobSalaryDisplay } from "@/features/public/jobs/components/jobs-page";
 import { useRouter } from "@/i18n/navigation";
@@ -17,9 +17,26 @@ import { removeVietnameseAccents } from "@/shared/utils/natural-search";
 
 import { PublicFooter } from "../shared/public-footer";
 import { PublicHeader } from "../shared/public-header";
-import { getPublicCompanies, getPublicJobs } from "./api";
+import {
+  getHomeData,
+  mapHomeCompanies,
+  mapHomeJobCard,
+  mapHomePost,
+  type HomeAction,
+  type HomeRecommendationReasonCode,
+} from "./api";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
+import { selectPrimaryHomeAction } from "./home-actions";
+import type { RecommendationReasonCode } from "./home-personalization";
+import {
+  getDeadlineTone,
+  getDaysUntilExpiration,
+  getJobTags,
+  isPublicJobAvailable,
+  selectExpiringJobs,
+  selectLatestJobs,
+} from "./home-section-selectors";
 import { InsightsCarousel } from "./insights-carousel";
 import { JobMarket } from "./job-market";
 import {
@@ -32,10 +49,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Coins,
+  Clock,
   MapPin,
   Search,
   Sparkles,
-  UsersRound,
 } from "./marketing-icons";
 import { getPopularKeywordsForLocale } from "./popular-keywords";
 import { useAnchoredJobPreview } from "./use-anchored-job-preview";
@@ -82,29 +99,24 @@ const keywordSuggestions = [
   "Business Analyst",
 ];
 
-const trustedCompanies = [
-  ["FPT", "Software"],
-  ["VNG", ""],
-  ["viettel", "solutions"],
-  ["tiki", ""],
-  ["momo", ""],
-];
-
-function formatDeadlineWithDate(expiredAt: string | Date | null | undefined) {
-  if (!expiredAt) return "Không giới hạn";
+function formatDeadlineWithDate(expiredAt: string | Date | null | undefined, locale: string) {
+  const isEnglish = locale === "en";
+  if (!expiredAt) return isEnglish ? "No deadline" : "Không giới hạn";
 
   const expirationTime = new Date(expiredAt).getTime();
-  if (Number.isNaN(expirationTime)) return "Chưa cập nhật";
+  if (Number.isNaN(expirationTime)) return isEnglish ? "Not updated" : "Chưa cập nhật";
 
   const remainingTime = expirationTime - Date.now();
-  if (remainingTime < 0) return "Đã hết hạn";
+  if (remainingTime < 0) return isEnglish ? "Expired" : "Đã hết hạn";
 
   const remainingDays = Math.max(1, Math.ceil(remainingTime / (24 * 60 * 60 * 1000)));
-  return `Còn ${remainingDays} ngày`;
+  return isEnglish
+    ? `${remainingDays} ${remainingDays === 1 ? "day" : "days"} left`
+    : `Còn ${remainingDays} ngày`;
 }
 
-function formatCompactLocation(city?: string | null) {
-  if (!city) return "Việt Nam";
+function formatCompactLocation(city: string | null | undefined, locale: string) {
+  if (!city) return locale === "en" ? "Location pending" : "Chưa cập nhật địa điểm";
   if (city.includes("Hồ Chí Minh") || city.includes("HCM") || city.includes("Hcm")) return "TP.HCM";
   if (city.includes("Hà Nội")) return "Hà Nội";
   if (city.includes("Đà Nẵng")) return "Đà Nẵng";
@@ -154,225 +166,6 @@ function getPlainText(value: string | null | undefined) {
     .trim();
 }
 
-const urgentJobs = [
-  {
-    id: "brighttech-frontend",
-    logo: "",
-    title: "Frontend Developer",
-    company: "BrightTech",
-    salary: "18 - 25 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["React", "TypeScript", "Next.js"],
-    deadline: "Còn 3 ngày",
-    deadlineTone: "red",
-    applicants: "12 ứng viên",
-    views: "185 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Junior",
-    bgClass: "bg-slate-800",
-  },
-  {
-    id: "novalabs-backend",
-    logo: "",
-    title: "Backend Developer",
-    company: "Nova Labs",
-    salary: "20 - 30 triệu",
-    location: "TP.HCM",
-    mode: "Remote",
-    tags: ["Node.js", "PostgreSQL", "Docker"],
-    deadline: "Còn 5 ngày",
-    deadlineTone: "red",
-    applicants: "18 ứng viên",
-    views: "245 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-purple-600",
-  },
-  {
-    id: "skysoft-data",
-    logo: "",
-    title: "Data Engineer",
-    company: "SkySoft",
-    salary: "22 - 35 triệu",
-    location: "Đà Nẵng",
-    mode: "Onsite",
-    tags: ["Python", "SQL", "Airflow"],
-    deadline: "Còn 2 ngày",
-    deadlineTone: "red",
-    applicants: "9 ứng viên",
-    views: "112 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-sky-500",
-  },
-  {
-    id: "pixelworks-uiux",
-    logo: "",
-    title: "UI/UX Designer",
-    company: "Pixel Works",
-    salary: "15 - 22 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["Figma", "Design System", "UX Research"],
-    deadline: "Còn 4 ngày",
-    deadlineTone: "red",
-    applicants: "14 ứng viên",
-    views: "192 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Junior",
-    bgClass: "bg-rose-500",
-  },
-  {
-    id: "fpt-devops-cloud",
-    logo: "",
-    title: "DevOps Cloud Infrastructure Engineer",
-    company: "FPT Software",
-    salary: "40 - 70 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["AWS", "Kubernetes", "Docker"],
-    deadline: "Còn 7 ngày",
-    deadlineTone: "red",
-    applicants: "15 ứng viên",
-    views: "210 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Senior",
-    bgClass: "bg-slate-800",
-  },
-  {
-    id: "vng-mobile-engineer",
-    logo: "",
-    title: "Mobile Engineer (React Native)",
-    company: "VNG Corporation",
-    salary: "22 - 40 triệu",
-    location: "TP.HCM",
-    mode: "Hybrid",
-    tags: ["React Native", "iOS", "Android"],
-    deadline: "Còn 10 ngày",
-    deadlineTone: "red",
-    applicants: "20 ứng viên",
-    views: "310 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-purple-600",
-  },
-  {
-    id: "luvina-bridge-engineer",
-    logo: "",
-    title: "Bridge System Engineer (BrSE)",
-    company: "Luvina Software",
-    salary: "22 - 40 triệu",
-    location: "Hà Nội",
-    mode: "Onsite",
-    tags: ["Japanese", "Java", "System Design"],
-    deadline: "Còn 12 ngày",
-    deadlineTone: "red",
-    applicants: "8 ứng viên",
-    views: "150 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-sky-500",
-  },
-  {
-    id: "misa-product-designer",
-    logo: "",
-    title: "Product Designer - Business Software",
-    company: "MISA",
-    salary: "22 - 40 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["Figma", "UI/UX", "User Research"],
-    deadline: "Còn 15 ngày",
-    deadlineTone: "red",
-    applicants: "16 ứng viên",
-    views: "230 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-rose-500",
-  },
-  {
-    id: "cmc-data-engineer",
-    logo: "",
-    title: "Senior Data Engineer",
-    company: "CMC Global",
-    salary: "22 - 40 triệu",
-    location: "Hà Nội",
-    mode: "Hybrid",
-    tags: ["Python", "Spark", "PostgreSQL"],
-    deadline: "Còn 18 ngày",
-    deadlineTone: "red",
-    applicants: "11 ứng viên",
-    views: "175 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Senior",
-    bgClass: "bg-slate-800",
-  },
-  {
-    id: "mw-product-manager",
-    logo: "",
-    title: "Product Manager - Retail Technology",
-    company: "Mobile World Investment",
-    salary: "40 - 70 triệu",
-    location: "TP.HCM",
-    mode: "Onsite",
-    tags: ["Product Strategy", "Agile", "E-commerce"],
-    deadline: "Còn 22 ngày",
-    deadlineTone: "red",
-    applicants: "14 ứng viên",
-    views: "190 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Lead",
-    bgClass: "bg-purple-600",
-  },
-  {
-    id: "viettel-security-engineer",
-    logo: "",
-    title: "Cyber Security Specialist",
-    company: "Viettel Solutions",
-    salary: "30 - 55 triệu",
-    location: "Đà Nẵng",
-    mode: "Onsite",
-    tags: ["Pentest", "SIEM", "Cloud Security"],
-    deadline: "Còn 25 ngày",
-    deadlineTone: "red",
-    applicants: "7 ứng viên",
-    views: "140 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Senior",
-    bgClass: "bg-sky-500",
-  },
-  {
-    id: "sepay-fullstack-dev",
-    logo: "",
-    title: "Fullstack Engineer (React/Node)",
-    company: "SePay Vietnam",
-    salary: "25 - 45 triệu",
-    location: "TP.HCM",
-    mode: "Hybrid",
-    tags: ["React", "Node.js", "PostgreSQL"],
-    deadline: "Còn 28 ngày",
-    deadlineTone: "red",
-    applicants: "19 ứng viên",
-    views: "280 lượt xem",
-    competition: "Mới mở · ít ứng viên",
-    progress: 25,
-    level: "Middle",
-    bgClass: "bg-rose-500",
-  },
-];
-
 const homeCopy = {
   vi: {
     employerSmall: "Dành cho",
@@ -395,9 +188,37 @@ const homeCopy = {
     popular: "Tìm kiếm phổ biến:",
     statsJobs: "Việc làm IT đang tuyển",
     statsCompanies: "Công ty công nghệ",
-    statsMatches: "Hồ sơ được kết nối",
-    statsCandidates: "Ứng viên đã tin tưởng",
-    trustedBy: "Được tin tưởng bởi các công ty công nghệ hàng đầu",
+    statsNewJobs: "Việc làm mới trong 7 ngày",
+    trustedBy: "Nhà tuyển dụng đang hoạt động trên UpNext",
+    latestJobsTitle: "Việc làm mới nhất",
+    latestJobsDescription: "Các vị trí IT mới được đăng từ những nhà tuyển dụng đang hoạt động.",
+    recommendedJobsTitle: "Gợi ý phù hợp với bạn",
+    recommendedJobsDescription:
+      "Các vị trí được chọn dựa trên kỹ năng và ưu tiên việc làm của bạn.",
+    guestPromptTitle: "Nhận gợi ý việc làm phù hợp hơn",
+    guestPromptDescription:
+      "Đăng nhập và cập nhật sở thích để UpNext ưu tiên những cơ hội sát với mục tiêu của bạn.",
+    guestPromptCta: "Đăng nhập",
+    profileActionTitle: "Hoàn thiện hồ sơ để nhận gợi ý phù hợp",
+    profileActionDescription:
+      "Thêm kỹ năng và ưu tiên việc làm để UpNext hiểu rõ hướng đi của bạn hơn.",
+    profileActionCta: "Cập nhật hồ sơ",
+    cvActionTitle: "Thêm CV để sẵn sàng ứng tuyển",
+    cvActionDescription: "Một CV hoàn chỉnh giúp bạn ứng tuyển nhanh hơn khi gặp cơ hội phù hợp.",
+    cvActionCta: "Quản lý CV",
+    followedJobsActionTitle: "Công ty bạn theo dõi vừa có việc mới",
+    followedJobsActionDescription: "Xem những cơ hội mới được đăng trong 7 ngày qua.",
+    followedJobsActionCta: "Xem việc làm",
+    applicationActionTitle: "Hồ sơ ứng tuyển của bạn vừa được cập nhật",
+    applicationActionDescription: "Kiểm tra trạng thái mới và chuẩn bị cho bước tiếp theo.",
+    applicationActionCta: "Xem tiến trình",
+    savedJobActionTitle: "Việc làm bạn đã lưu sắp hết hạn",
+    savedJobActionDescription: "Xem lại cơ hội này trước khi thời hạn ứng tuyển kết thúc.",
+    savedJobActionCta: "Xem việc làm",
+    homeDataErrorTitle: "Chưa thể tải nội dung trang chủ",
+    homeDataErrorDescription: "Vui lòng thử lại để xem các việc làm và xu hướng mới nhất.",
+    homeDataRetry: "Thử lại",
+    homeDataRetrying: "Đang thử lại…",
     footerPrimary: "Tìm việc ngay",
     footerSecondary: "Tạo hồ sơ miễn phí",
     footerEmailPlaceholder: "Nhập email của bạn",
@@ -430,9 +251,36 @@ const homeCopy = {
     popular: "Popular searches:",
     statsJobs: "Open IT jobs",
     statsCompanies: "Tech companies",
-    statsMatches: "Profiles matched",
-    statsCandidates: "Trusted candidates",
-    trustedBy: "Trusted by leading technology companies",
+    statsNewJobs: "Jobs posted in the last 7 days",
+    trustedBy: "Employers hiring on UpNext",
+    latestJobsTitle: "Latest IT jobs",
+    latestJobsDescription: "New IT roles from employers currently hiring on UpNext.",
+    recommendedJobsTitle: "Recommended for you",
+    recommendedJobsDescription: "Roles selected from your skills and job preferences.",
+    guestPromptTitle: "Get more relevant job recommendations",
+    guestPromptDescription:
+      "Log in and update your preferences so UpNext can prioritize opportunities aligned with your goals.",
+    guestPromptCta: "Log in",
+    profileActionTitle: "Complete your profile for better matches",
+    profileActionDescription:
+      "Add skills and job preferences so UpNext can tailor opportunities to you.",
+    profileActionCta: "Update profile",
+    cvActionTitle: "Add a CV before you apply",
+    cvActionDescription: "A complete CV helps you apply faster when the right opportunity appears.",
+    cvActionCta: "Manage CVs",
+    followedJobsActionTitle: "A followed company just posted new jobs",
+    followedJobsActionDescription: "Explore roles published in the last seven days.",
+    followedJobsActionCta: "View jobs",
+    applicationActionTitle: "Your application status was updated",
+    applicationActionDescription: "Review the latest status and prepare for the next step.",
+    applicationActionCta: "View progress",
+    savedJobActionTitle: "A saved job is closing soon",
+    savedJobActionDescription: "Review this opportunity before the application deadline.",
+    savedJobActionCta: "View job",
+    homeDataErrorTitle: "We could not load the homepage",
+    homeDataErrorDescription: "Try again to see the latest jobs and hiring trends.",
+    homeDataRetry: "Try again",
+    homeDataRetrying: "Trying again…",
     footerPrimary: "Find jobs now",
     footerSecondary: "Create free profile",
     footerEmailPlaceholder: "Enter your email",
@@ -446,6 +294,19 @@ const homeCopy = {
   },
 } as const;
 
+const recommendationReasonMap: Record<HomeRecommendationReasonCode, RecommendationReasonCode> = {
+  SKILL_MATCH: "skill",
+  POSITION_MATCH: "position",
+  WORKING_MODEL_MATCH: "workingModel",
+  LEVEL_MATCH: "level",
+  SALARY_OVERLAP: "salary",
+  FOLLOWED_COMPANY: "followedCompany",
+};
+
+function isHomeRecommendationReasonCode(value: string): value is HomeRecommendationReasonCode {
+  return Object.hasOwn(recommendationReasonMap, value);
+}
+
 export function MarketingHomeExperience({ navigate }: MarketingHomeExperienceProps) {
   const locale = useLocale();
   const [keyword, setKeyword] = useState("");
@@ -457,6 +318,9 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   );
 
   const copy = locale === "en" ? homeCopy.en : homeCopy.vi;
+  const [candidateSession, setCandidateSession] = useState<CandidateSession | null | undefined>(
+    undefined,
+  );
   const popularKeywords = useMemo(
     () => getPopularKeywordsForLocale(locale === "en" ? "en" : "vi"),
     [locale],
@@ -476,108 +340,129 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     queryFn: getPublicJobs,
   });
 
-  const { data: apiCompaniesData } = useQuery({
-    queryKey: ["public-companies"],
-    queryFn: () => getPublicCompanies(),
+  const {
+    data: homeData,
+    dataUpdatedAt: homeDataUpdatedAt,
+    isError: isHomeError,
+    isFetching: isHomeFetching,
+    isPending: isHomePending,
+    refetch: refetchHome,
+  } = useQuery({
+    enabled: candidateSession !== undefined,
+    queryKey: ["home", candidateSession?.user.id ?? "guest"],
+    queryFn: () => getHomeData(candidateSession?.accessToken),
+    staleTime: 60_000,
   });
 
-  const { data: apiPostsData, isLoading: isPostsLoading } = useQuery({
-    queryKey: ["public-posts", { limit: 6, page: 1 }],
-    queryFn: () => getPublicPosts({ limit: 6, page: 1 }),
-    staleTime: 5 * 60 * 1000,
-  });
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+  const candidateState = useMemo(() => {
+    if (candidateSession === undefined || isHomePending) return "resolving" as const;
+    if (isHomeError) return "unavailable" as const;
+    if (!candidateSession) return "guest" as const;
 
-  const jobsCount = useMemo(() => apiJobsData?.length || 0, [apiJobsData]);
-  const companiesCount = useMemo(
-    () => apiCompaniesData?.meta?.total || apiCompaniesData?.items?.length || 0,
-    [apiCompaniesData],
+    switch (homeData?.personalization?.state) {
+      case "ELIGIBLE":
+        return "ready" as const;
+      case "INSUFFICIENT":
+        return "profile-incomplete" as const;
+      case "NOT_LOOKING":
+        return "not-looking" as const;
+      default:
+        return "unavailable" as const;
+    }
+  }, [candidateSession, homeData?.personalization?.state, isHomeError, isHomePending]);
+
+  const urgentJobs = useMemo(
+    () =>
+      selectExpiringJobs((homeData?.jobsSection.expiring.items ?? []).map(mapHomeJobCard), { now }),
+    [homeData?.jobsSection.expiring.items, now],
   );
-  // Estimate candidates count starting from 50,000 plus dynamic variation
-  const candidatesCount = useMemo(
-    () => 50000 + jobsCount * 15 + companiesCount * 40,
-    [jobsCount, companiesCount],
+  const urgentJobIds = useMemo(() => new Set(urgentJobs.map((job) => job.id)), [urgentJobs]);
+  const latestJobs = useMemo(
+    () =>
+      selectLatestJobs((homeData?.jobsSection.latest.items ?? []).map(mapHomeJobCard), {
+        now,
+        excludedIds: urgentJobIds,
+      }),
+    [homeData?.jobsSection.latest.items, now, urgentJobIds],
+  );
+  const personalizedRecommendations = useMemo(
+    () =>
+      (homeData?.recommendations?.title === "RECOMMENDED" ? homeData.recommendations.items : [])
+        .map((item) => ({
+          job: mapHomeJobCard(item.job),
+          reasonCodes: item.reasonCodes.flatMap((reason) => {
+            return isHomeRecommendationReasonCode(reason) ? [recommendationReasonMap[reason]] : [];
+          }),
+        }))
+        .filter(
+          (item) =>
+            !urgentJobIds.has(item.job.id) &&
+            isPublicJobAvailable(item.job, now) &&
+            item.reasonCodes.length > 0,
+        ),
+    [homeData?.recommendations, now, urgentJobIds],
+  );
+  const showRecommendations = candidateState === "ready" && personalizedRecommendations.length >= 6;
+  const primaryJobSelection = useMemo(
+    () => (showRecommendations ? personalizedRecommendations.map((item) => item.job) : latestJobs),
+    [latestJobs, personalizedRecommendations, showRecommendations],
+  );
+  const recommendationReasons = useMemo(
+    () =>
+      new Map(personalizedRecommendations.map((item) => [item.job.id, item.reasonCodes] as const)),
+    [personalizedRecommendations],
+  );
+  const primaryExcludedJobIds = urgentJobIds;
+  const apiJobsData = useMemo(
+    () => [...primaryJobSelection, ...urgentJobs],
+    [primaryJobSelection, urgentJobs],
+  );
+  const apiCompaniesData = useMemo(
+    () => (homeData ? mapHomeCompanies(homeData) : undefined),
+    [homeData],
+  );
+  const apiPostsData = useMemo(
+    () => homeData?.latestPosts.map(mapHomePost) ?? [],
+    [homeData?.latestPosts],
+  );
+  const trustCompanies = useMemo(
+    () => homeData?.topCompanies.filter((company) => company.activeJobsCount > 0) ?? [],
+    [homeData?.topCompanies],
   );
 
   const formattedStats = useMemo(() => {
     function formatStatNumber(num: number) {
-      if (num <= 0) return "0+";
-      let rounded = num;
-      if (num >= 1000) {
-        rounded = Math.floor(num / 100) * 100;
-      } else if (num >= 100) {
-        rounded = Math.floor(num / 10) * 10;
-      } else if (num >= 10) {
-        rounded = Math.floor(num / 5) * 5;
-      }
-      const formatted = new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN").format(rounded);
-      return `${formatted}+`;
+      return new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN").format(Math.max(0, num));
     }
 
     return {
-      jobs: formatStatNumber(jobsCount),
-      companies: formatStatNumber(companiesCount),
-      candidates: formatStatNumber(candidatesCount),
+      jobs: formatStatNumber(homeData?.stats.openJobsCount ?? 0),
+      companies: formatStatNumber(homeData?.stats.activeEmployersCount ?? 0),
+      newJobs: formatStatNumber(homeData?.stats.newJobs7dCount ?? 0),
     };
-  }, [jobsCount, companiesCount, candidatesCount, locale]);
+  }, [homeData?.stats, locale]);
+  const homeHasFatalError = isHomeError && !homeData;
+  const allowApplicationCtas = candidateState !== "not-looking";
 
   const urgentJobsList = useMemo(() => {
-    if (!apiJobsData || apiJobsData.length === 0) return urgentJobs.slice(0, 90);
-
-    const now = Date.now();
-    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-
-    // Filter active jobs expiring within 30 days (0 < remainingTime <= 30 days)
-    const validJobs = apiJobsData.filter((job) => {
-      if (!job.expiredAt) return false;
-      const expirationTime = new Date(job.expiredAt).getTime();
-      const remainingTime = expirationTime - now;
-      return remainingTime > 0 && remainingTime <= THIRTY_DAYS_MS;
-    });
-
-    // Sort by nearest deadline first (expiredAt ASC)
-    const sorted = [...validJobs].sort((a, b) => {
-      const timeA = new Date(a.expiredAt!).getTime();
-      const timeB = new Date(b.expiredAt!).getTime();
-      return timeA - timeB;
-    });
-
-    // Fallback if less than 3 jobs match strictly 30 days: take any unexpired job sorted by deadline
-    const listSource =
-      sorted.length >= 3
-        ? sorted
-        : apiJobsData
-            .filter((job) => {
-              if (!job.expiredAt) return true;
-              return new Date(job.expiredAt).getTime() > now;
-            })
-            .sort((a, b) => {
-              const timeA = a.expiredAt ? new Date(a.expiredAt).getTime() : Infinity;
-              const timeB = b.expiredAt ? new Date(b.expiredAt).getTime() : Infinity;
-              return timeA - timeB;
-            });
-
-    const mapped = listSource.map((job, index) => {
-      const isUrgent = index % 2 === 0;
+    return urgentJobs.map((job, index) => {
+      const daysUntilExpiration = getDaysUntilExpiration(job, now);
       return {
         id: job.id,
         logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
         title: job.title,
         company: job.company?.name || "UpNext Partner",
         salary: formatJobSalaryDisplay(job, ""),
-        location: formatCompactLocation(job.jobPostLocations?.[0]?.jobLocation?.city),
+        location: formatCompactLocation(job.jobPostLocations?.[0]?.jobLocation?.city, locale),
         mode: job.employmentType?.name || "Full-time",
-        tags:
-          job.jobPostSkills && job.jobPostSkills.length > 0
-            ? job.jobPostSkills.map((s) => s.skill.name)
-            : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
-                Boolean,
-              ) as string[]),
-        deadline: formatDeadlineWithDate(job.expiredAt),
-        deadlineTone: isUrgent ? "red" : "amber",
-        applicants: "12 ứng viên",
-        views: "185 lượt xem",
-        competition: "Mới mở · ít ứng viên",
-        progress: 25,
+        tags: getJobTags(job),
+        deadline: formatDeadlineWithDate(job.expiredAt, locale),
+        deadlineTone: getDeadlineTone(daysUntilExpiration),
         level: job.experienceLevel?.name || "Junior",
         description: getPlainText(job.description),
         address:
@@ -594,9 +479,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 : "bg-rose-500",
       };
     });
-
-    return mapped.slice(0, 90);
-  }, [apiJobsData]);
+  }, [locale, urgentJobs, now]);
 
   useEffect(() => {
     if (!openField) return undefined;
@@ -765,7 +648,9 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <BriefcaseBusiness size={25} />
               </i>
               <p>
-                <strong>{formattedStats.jobs}</strong>
+                <strong>
+                  {isHomePending ? "…" : homeHasFatalError ? "—" : formattedStats.jobs}
+                </strong>
                 <span>{copy.statsJobs}</span>
               </p>
             </article>
@@ -774,52 +659,146 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
                 <Building2 size={25} />
               </i>
               <p>
-                <strong>{formattedStats.companies}</strong>
+                <strong>
+                  {isHomePending ? "…" : homeHasFatalError ? "—" : formattedStats.companies}
+                </strong>
                 <span>{copy.statsCompanies}</span>
               </p>
             </article>
             <article>
               <i>
-                <UsersRound size={25} />
+                <Sparkles size={25} />
               </i>
               <p>
-                <strong>{formattedStats.candidates}</strong>
-                <span>{copy.statsCandidates}</span>
+                <strong>
+                  {isHomePending ? "…" : homeHasFatalError ? "—" : formattedStats.newJobs}
+                </strong>
+                <span>{copy.statsNewJobs}</span>
               </p>
             </article>
           </div>
 
-          <div className="marketing-home-trusted">
-            <span>{copy.trustedBy}</span>
-            <div className="marketing-home-marquee">
-              <div className="marketing-home-marquee-track" aria-hidden="true">
-                {trustedCompanies.map(([name, suffix]) => (
-                  <b className={`marketing-home-company marketing-home-company-${name}`} key={name}>
-                    {name}
-                    <small>{suffix}</small>
-                  </b>
-                ))}
-                {/* Duplicate set creates the seamless loop; hidden when motion is reduced. */}
-                {trustedCompanies.map(([name, suffix]) => (
-                  <b
-                    className={`marketing-home-company marketing-home-company-clone marketing-home-company-${name}`}
-                    key={`${name}-clone`}
-                  >
-                    {name}
-                    <small>{suffix}</small>
-                  </b>
-                ))}
+          {isHomePending ? (
+            <div className="marketing-home-trusted" aria-hidden="true">
+              <span>{copy.trustedBy}</span>
+              <div className="marketing-home-marquee">
+                <div className="marketing-home-marquee-track">
+                  <b className="marketing-home-company">•••</b>
+                  <b className="marketing-home-company">•••</b>
+                  <b className="marketing-home-company">•••</b>
+                </div>
               </div>
             </div>
-          </div>
+          ) : trustCompanies.length > 0 ? (
+            <div className="marketing-home-trusted">
+              <span>{copy.trustedBy}</span>
+              <div className="marketing-home-marquee">
+                <div className="marketing-home-marquee-track" aria-hidden="true">
+                  {trustCompanies.map((company) => (
+                    <b
+                      className={`marketing-home-company marketing-home-company-${company.id}`}
+                      key={company.id}
+                    >
+                      {company.name}
+                    </b>
+                  ))}
+                  {/* Duplicate set creates the seamless loop; hidden when motion is reduced. */}
+                  {trustCompanies.map((company) => (
+                    <b
+                      className={`marketing-home-company marketing-home-company-clone marketing-home-company-${company.id}`}
+                      key={`${company.id}-clone`}
+                    >
+                      {company.name}
+                    </b>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </section>
 
-        <UrgentJobsSection navigate={navigate} urgentJobs={urgentJobsList} onApply={setApplyJob} />
-
-        <FeaturedJobs navigate={navigate} onApply={setApplyJob} />
-        <FeaturedCompanies navigate={navigate} />
-        <JobMarket />
-        <InsightsCarousel isLoading={isPostsLoading} posts={apiPostsData?.items ?? []} />
+        {homeHasFatalError ? (
+          <section
+            className="marketing-home-jobs"
+            aria-labelledby="home-data-error-title"
+            role="alert"
+          >
+            <header className="marketing-home-jobs-head">
+              <div>
+                <h2 id="home-data-error-title">{copy.homeDataErrorTitle}</h2>
+                <p>{copy.homeDataErrorDescription}</p>
+              </div>
+            </header>
+            <div className="marketing-home-action-state">
+              <button
+                type="button"
+                className="marketing-home-action-retry"
+                onClick={() => void refetchHome()}
+                disabled={isHomeFetching}
+              >
+                {isHomeFetching ? copy.homeDataRetrying : copy.homeDataRetry}
+              </button>
+            </div>
+          </section>
+        ) : (
+          <>
+            <HomeCandidateActionPanel
+              navigate={navigate}
+              copy={copy}
+              candidateState={candidateState}
+              actions={homeData?.actions ?? []}
+            />
+            <FeaturedJobs
+              navigate={navigate}
+              onApply={setApplyJob}
+              allowApply={allowApplicationCtas}
+              jobs={apiJobsData}
+              excludedJobIds={primaryExcludedJobIds}
+              selectedJobs={primaryJobSelection}
+              matchReasons={showRecommendations ? recommendationReasons : undefined}
+              sectionTitle={showRecommendations ? copy.recommendedJobsTitle : copy.latestJobsTitle}
+              sectionDescription={
+                showRecommendations ? copy.recommendedJobsDescription : copy.latestJobsDescription
+              }
+              isLoading={isHomePending}
+              isError={false}
+              onRetry={() => void refetchHome()}
+              isRetrying={isHomeFetching}
+            />
+            <HomeGuestRecommendationPrompt
+              navigate={navigate}
+              copy={copy}
+              candidateState={candidateState}
+            />
+            <UrgentJobsSection
+              navigate={navigate}
+              urgentJobs={urgentJobsList}
+              onApply={setApplyJob}
+              allowApply={allowApplicationCtas}
+              isLoading={isHomePending}
+              isError={false}
+              onRetry={() => void refetchHome()}
+              isRetrying={isHomeFetching}
+            />
+            <FeaturedCompanies
+              navigate={navigate}
+              companies={apiCompaniesData}
+              isLoading={isHomePending}
+              isError={false}
+              onRetry={() => void refetchHome()}
+              isRetrying={isHomeFetching}
+            />
+            <JobMarket
+              {...(homeData?.marketInsight ? { insight: homeData.marketInsight } : {})}
+              updatedAt={homeDataUpdatedAt}
+              isLoading={isHomePending}
+              isError={!homeData?.marketInsight && !isHomePending}
+              onRetry={() => void refetchHome()}
+              isRetrying={isHomeFetching}
+            />
+            <InsightsCarousel isLoading={isHomePending} posts={apiPostsData} />
+          </>
+        )}
 
         <PublicFooter navigate={navigate} />
 
@@ -831,13 +810,149 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   );
 }
 
+function HomeGuestRecommendationPrompt({
+  navigate,
+  copy,
+  candidateState,
+}: {
+  navigate: (path: string) => void;
+  copy: (typeof homeCopy)["vi"] | (typeof homeCopy)["en"];
+  candidateState:
+    | "resolving"
+    | "guest"
+    | "profile-incomplete"
+    | "ready"
+    | "not-looking"
+    | "unavailable";
+}) {
+  if (candidateState !== "guest") return null;
+
+  return (
+    <section
+      className="marketing-home-candidate-action"
+      aria-labelledby="home-guest-recommendation-title"
+    >
+      <span className="marketing-home-candidate-action-icon" aria-hidden="true">
+        <Sparkles size={18} />
+      </span>
+      <div>
+        <h2 id="home-guest-recommendation-title">{copy.guestPromptTitle}</h2>
+        <p>{copy.guestPromptDescription}</p>
+      </div>
+      <button type="button" onClick={() => navigate("/login")}>
+        {copy.guestPromptCta} <ArrowRight size={16} aria-hidden="true" />
+      </button>
+    </section>
+  );
+}
+
+function HomeCandidateActionPanel({
+  navigate,
+  copy,
+  candidateState,
+  actions,
+}: {
+  navigate: (path: string) => void;
+  copy: (typeof homeCopy)["vi"] | (typeof homeCopy)["en"];
+  candidateState:
+    | "resolving"
+    | "guest"
+    | "profile-incomplete"
+    | "ready"
+    | "not-looking"
+    | "unavailable";
+  actions: readonly HomeAction[];
+}) {
+  if (
+    candidateState === "guest" ||
+    candidateState === "resolving" ||
+    candidateState === "not-looking" ||
+    candidateState === "unavailable"
+  ) {
+    return null;
+  }
+
+  const action =
+    selectPrimaryHomeAction(actions) ??
+    (candidateState === "profile-incomplete" ? ({ type: "MISSING_PREFERENCES" } as const) : null);
+  if (!action) return null;
+
+  const content = (() => {
+    switch (action.type) {
+      case "APPLICATION_UPDATED":
+        return {
+          title: copy.applicationActionTitle,
+          description: copy.applicationActionDescription,
+          cta: copy.applicationActionCta,
+          href: action.applicationId
+            ? `/candidate/applications/${action.applicationId}`
+            : "/candidate/applications",
+          icon: <BriefcaseBusiness size={18} />,
+        };
+      case "SAVED_JOB_EXPIRING":
+        return {
+          title: copy.savedJobActionTitle,
+          description: copy.savedJobActionDescription,
+          cta: copy.savedJobActionCta,
+          href: action.jobId ? `/jobs/${action.jobId}` : "/candidate/saved-jobs",
+          icon: <Clock size={18} />,
+        };
+      case "FOLLOWED_COMPANY_NEW_JOB":
+        return {
+          title: copy.followedJobsActionTitle,
+          description: copy.followedJobsActionDescription,
+          cta: copy.followedJobsActionCta,
+          href: action.jobId ? `/jobs/${action.jobId}` : "/jobs",
+          icon: <Sparkles size={18} />,
+        };
+      case "MISSING_CV":
+        return {
+          title: copy.cvActionTitle,
+          description: copy.cvActionDescription,
+          cta: copy.cvActionCta,
+          href: "/candidate/profile?section=documents",
+          icon: <BriefcaseBusiness size={18} />,
+        };
+      case "MISSING_PREFERENCES":
+        return {
+          title: copy.profileActionTitle,
+          description: copy.profileActionDescription,
+          cta: copy.profileActionCta,
+          href: "/candidate/profile",
+          icon: <Sparkles size={18} />,
+        };
+    }
+  })();
+
+  return (
+    <section className="marketing-home-candidate-action" aria-labelledby="home-action-title">
+      <span className="marketing-home-candidate-action-icon" aria-hidden="true">
+        {content.icon}
+      </span>
+      <div>
+        <h2 id="home-action-title">{content.title}</h2>
+        <p>{content.description}</p>
+      </div>
+      <button type="button" onClick={() => navigate(content.href)}>
+        {content.cta} <ArrowRight size={16} aria-hidden="true" />
+      </button>
+    </section>
+  );
+}
+
 function UrgentJobsSection({
   navigate,
   urgentJobs,
   onApply,
+  allowApply,
+  isLoading,
+  isError,
+  onRetry,
+  isRetrying,
 }: {
   navigate: (path: string) => void;
   onApply: (job: { id: string; title: string; company: string }) => void;
+  allowApply: boolean;
   urgentJobs: Array<{
     id: string;
     logo: string;
@@ -848,20 +963,18 @@ function UrgentJobsSection({
     mode: string;
     tags: string[];
     deadline: string;
-    deadlineTone: string;
-    applicants: string;
-    views: string;
-    competition: string;
-    progress: number;
+    deadlineTone: "critical" | "warning" | "neutral";
     level: string;
     bgClass: string;
     description?: string;
     address?: string;
   }>;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  isRetrying: boolean;
 }) {
   const {
-    error: savedJobsError,
-    isAuthenticated,
     isPending: isSavedJobPending,
     isSessionResolved: isSavedJobsSessionResolved,
     setSavedJob,
@@ -871,33 +984,62 @@ function UrgentJobsSection({
 
   function handleSaveJob(jobId: string, jobTitle: string) {
     const didStart = toggleSaveJob(jobId, {
-      onError: () => toast.error("Không thể cập nhật việc làm đã lưu. Vui lòng thử lại."),
+      onError: () =>
+        toast.error(
+          locale === "en"
+            ? "Could not update saved jobs. Please try again."
+            : "Không thể cập nhật việc làm đã lưu. Vui lòng thử lại.",
+        ),
       onSuccess: (isSaved) => {
         const toastId = `save-job-${jobId}`;
-        toast.success(isSaved ? `Đã lưu ${jobTitle}` : `Đã bỏ lưu ${jobTitle}`, {
-          action: {
-            label: "Hoàn tác",
-            onClick: () => {
-              toast.dismiss(toastId);
-              const didUndoStart = setSavedJob(jobId, !isSaved, {
-                onError: () => toast.error("Không thể hoàn tác. Vui lòng thử lại."),
-                onSuccess: (restored) => {
-                  toast.success(
-                    restored ? `Đã lưu lại ${jobTitle}` : `Đã hoàn tác lưu ${jobTitle}`,
-                  );
-                },
-              });
-              if (!didUndoStart) navigate("/login?redirect=/");
+        toast.success(
+          locale === "en"
+            ? isSaved
+              ? `Saved ${jobTitle}`
+              : `Removed ${jobTitle} from saved jobs`
+            : isSaved
+              ? `Đã lưu ${jobTitle}`
+              : `Đã bỏ lưu ${jobTitle}`,
+          {
+            action: {
+              label: locale === "en" ? "Undo" : "Hoàn tác",
+              onClick: () => {
+                toast.dismiss(toastId);
+                const didUndoStart = setSavedJob(jobId, !isSaved, {
+                  onError: () =>
+                    toast.error(
+                      locale === "en"
+                        ? "Could not undo this change. Please try again."
+                        : "Không thể hoàn tác. Vui lòng thử lại.",
+                    ),
+                  onSuccess: (restored) => {
+                    toast.success(
+                      locale === "en"
+                        ? restored
+                          ? `Saved ${jobTitle} again`
+                          : `Undid saving ${jobTitle}`
+                        : restored
+                          ? `Đã lưu lại ${jobTitle}`
+                          : `Đã hoàn tác lưu ${jobTitle}`,
+                    );
+                  },
+                });
+                if (!didUndoStart) navigate("/login?redirect=/");
+              },
             },
+            duration: 8_000,
+            id: toastId,
           },
-          duration: 8_000,
-          id: toastId,
-        });
+        );
       },
     });
 
     if (!didStart) {
-      toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
+      toast.info(
+        locale === "en"
+          ? "Please log in to save this job."
+          : "Vui lòng đăng nhập để lưu công việc yêu thích.",
+      );
       const redirectPath = typeof window !== "undefined" ? window.location.pathname : "/";
       navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
     }
@@ -917,6 +1059,50 @@ function UrgentJobsSection({
     previewStyle,
     setPreviewAnchor,
   } = useAnchoredJobPreview(previewJobId);
+
+  const locale = useLocale();
+  const copy =
+    locale === "en"
+      ? {
+          ariaLabel: "Jobs closing soon",
+          title: "Closing soon",
+          description: "Open roles with an application deadline within the next 14 days.",
+          viewAll: "View all jobs",
+          loading: "Loading jobs closing soon…",
+          error: "Could not load jobs closing soon.",
+          retry: "Try again",
+          retrying: "Trying again…",
+          previous: "Previous page",
+          next: "Next page",
+          save: (title: string) => `Save ${title}`,
+          unsave: (title: string) => `Remove ${title} from saved jobs`,
+          descriptionTitle: "Job description",
+          descriptionAria: (title: string) => `Full job description for ${title}`,
+          fallbackDescription: (company: string, title: string) =>
+            `Join ${company} as a ${title}. View the full job details to explore the requirements and benefits.`,
+          details: "View details",
+          apply: "Apply now",
+        }
+      : {
+          ariaLabel: "Việc làm sắp hết hạn",
+          title: "Sắp hết hạn ứng tuyển",
+          description: "Các vị trí còn hạn nộp hồ sơ trong 14 ngày tới.",
+          viewAll: "Xem tất cả việc làm",
+          loading: "Đang tải việc làm sắp hết hạn…",
+          error: "Không thể tải việc làm sắp hết hạn.",
+          retry: "Thử lại",
+          retrying: "Đang thử lại…",
+          previous: "Trang trước",
+          next: "Trang sau",
+          save: (title: string) => `Lưu công việc ${title}`,
+          unsave: (title: string) => `Bỏ lưu công việc ${title}`,
+          descriptionTitle: "Mô tả công việc",
+          descriptionAria: (title: string) => `Mô tả đầy đủ công việc ${title}`,
+          fallbackDescription: (company: string, title: string) =>
+            `Cơ hội gia nhập ${company} ở vị trí ${title}. Xem chi tiết để khám phá yêu cầu công việc và quyền lợi dành cho ứng viên.`,
+          details: "Xem chi tiết",
+          apply: "Ứng tuyển ngay",
+        };
 
   useEffect(() => {
     function checkMobile() {
@@ -1021,10 +1207,43 @@ function UrgentJobsSection({
     dragStartRef.current = null;
   }
 
+  if (isLoading) {
+    return (
+      <section className="marketing-home-urgent" aria-label={copy.ariaLabel}>
+        <output className="marketing-home-section-skeleton" aria-live="polite">
+          <span>{copy.loading}</span>
+          <i />
+          <i />
+          <i />
+        </output>
+      </section>
+    );
+  }
+
+  if (isError) {
+    return (
+      <section className="marketing-home-urgent" aria-label={copy.ariaLabel}>
+        <div className="marketing-home-action-state" role="alert">
+          <p className="marketing-home-action-error">{copy.error}</p>
+          <button
+            type="button"
+            className="marketing-home-action-retry"
+            onClick={onRetry}
+            disabled={isRetrying}
+          >
+            {isRetrying ? copy.retrying : copy.retry}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (urgentJobs.length === 0) return null;
+
   return (
     <section
       className="marketing-home-urgent"
-      aria-label="Việc cần tuyển gấp"
+      aria-label={copy.ariaLabel}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -1033,22 +1252,17 @@ function UrgentJobsSection({
       <header className="marketing-home-urgent-head">
         <div>
           <h2 className="m-0 inline-flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900">
-            <span className="relative inline-flex h-3 w-3 shrink-0 items-center justify-center">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
-            </span>
-            <span>Việc cần tuyển gấp</span>
+            <Clock size={20} aria-hidden="true" className="text-emerald-600" />
+            <span>{copy.title}</span>
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Các vị trí đang cần tuyển gấp – nộp hồ sơ ngay để không bỏ lỡ cơ hội nghề nghiệp tốt.
-          </p>
+          <p className="mt-1 text-sm text-slate-600">{copy.description}</p>
         </div>
         <button
           type="button"
           className="marketing-home-urgent-all"
           onClick={() => navigate("/jobs")}
         >
-          Xem tất cả <ChevronRight size={16} />
+          {copy.viewAll} <ChevronRight size={16} />
         </button>
       </header>
 
@@ -1127,11 +1341,7 @@ function UrgentJobsSection({
                             <button
                               type="button"
                               className="urgent-job-save"
-                              aria-label={
-                                isSaved
-                                  ? `Bỏ lưu công việc ${job.title}`
-                                  : `Lưu công việc ${job.title}`
-                              }
+                              aria-label={isSaved ? copy.unsave(job.title) : copy.save(job.title)}
                               aria-pressed={isSaved}
                               disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
                               onClick={(e) => {
@@ -1157,8 +1367,10 @@ function UrgentJobsSection({
                             {job.location}
                           </span>
                         </div>
-                        <span className="urgent-job-deadline-badge flex items-center gap-1">
-                          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                        <span
+                          className={`urgent-job-deadline-badge is-${job.deadlineTone} flex items-center gap-1`}
+                        >
+                          <span className="urgent-job-deadline-dot" />
                           {job.deadline}
                         </span>
                       </div>
@@ -1225,15 +1437,15 @@ function UrgentJobsSection({
           </p>
 
           <div className="urgent-job-preview-body">
-            <strong>Mô tả công việc</strong>
+            <strong>{copy.descriptionTitle}</strong>
             <textarea
               className="urgent-job-preview-description"
-              aria-label={`Mô tả đầy đủ công việc ${previewJob.title}`}
+              aria-label={copy.descriptionAria(previewJob.title)}
               readOnly
               rows={7}
               value={
                 previewJob.description ||
-                `Cơ hội gia nhập ${previewJob.company} ở vị trí ${previewJob.title}. Xem chi tiết để khám phá yêu cầu công việc và quyền lợi dành cho ứng viên.`
+                copy.fallbackDescription(previewJob.company, previewJob.title)
               }
             />
             <div className="urgent-job-preview-tags">
@@ -1242,7 +1454,7 @@ function UrgentJobsSection({
               ))}
             </div>
             <button type="button" onClick={() => navigate(`/jobs/${previewJob.id}`)}>
-              Xem chi tiết <ArrowRight size={15} aria-hidden="true" />
+              {copy.details} <ArrowRight size={15} aria-hidden="true" />
             </button>
           </div>
 
@@ -1254,9 +1466,7 @@ function UrgentJobsSection({
                   type="button"
                   className="urgent-job-preview-save"
                   aria-label={
-                    isPreviewSaved
-                      ? `Bỏ lưu công việc ${previewJob.title}`
-                      : `Lưu công việc ${previewJob.title}`
+                    isPreviewSaved ? copy.unsave(previewJob.title) : copy.save(previewJob.title)
                   }
                   aria-pressed={isPreviewSaved}
                   disabled={!isSavedJobsSessionResolved || isSavedJobPending(previewJob.id)}
@@ -1266,32 +1476,34 @@ function UrgentJobsSection({
                 </button>
               );
             })()}
-            <button
-              type="button"
-              className="urgent-job-preview-apply"
-              onClick={() =>
-                onApply({
-                  id: previewJob.id,
-                  title: previewJob.title,
-                  company: previewJob.company,
-                })
-              }
-            >
-              <BriefcaseBusiness size={18} aria-hidden="true" />
-              Ứng tuyển ngay
-            </button>
+            {allowApply ? (
+              <button
+                type="button"
+                className="urgent-job-preview-apply"
+                onClick={() =>
+                  onApply({
+                    id: previewJob.id,
+                    title: previewJob.title,
+                    company: previewJob.company,
+                  })
+                }
+              >
+                <BriefcaseBusiness size={18} aria-hidden="true" />
+                {copy.apply}
+              </button>
+            ) : null}
           </div>
         </dialog>
       )}
 
       {totalPages > 1 && (
-        <nav className="urgent-jobs-pagination" aria-label="Phân trang việc tuyển gấp">
+        <nav className="urgent-jobs-pagination" aria-label={copy.ariaLabel}>
           <button
             type="button"
             className="urgent-jobs-nav-btn"
             disabled={safePage === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            aria-label="Trang trước"
+            aria-label={copy.previous}
           >
             <ChevronLeft size={16} />
           </button>
@@ -1313,7 +1525,7 @@ function UrgentJobsSection({
             className="urgent-jobs-nav-btn"
             disabled={safePage === totalPages - 1}
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            aria-label="Trang sau"
+            aria-label={copy.next}
           >
             <ChevronRight size={16} />
           </button>

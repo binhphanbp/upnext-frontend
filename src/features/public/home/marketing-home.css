@@ -2490,6 +2490,33 @@ button.marketing-home-control {
   white-space: nowrap;
 }
 
+.urgent-job-deadline-badge.is-critical {
+  color: #b42318;
+  background: #fef3f2;
+  border-color: #fecdca;
+}
+
+.urgent-job-deadline-badge.is-warning {
+  color: #b54708;
+  background: #fffaeb;
+  border-color: #fedf89;
+}
+
+.urgent-job-deadline-badge.is-neutral {
+  color: #526581;
+  background: #f8fafc;
+  border-color: #dbe4ee;
+}
+
+.urgent-job-deadline-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: currentColor;
+}
+
 .urgent-job-company {
   display: block;
   max-width: 100%;
@@ -3059,6 +3086,71 @@ button.marketing-home-control {
   transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+.marketing-home-candidate-action {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-top: 48px;
+  padding: 18px 20px;
+  border: 1px solid #cdeee2;
+  border-radius: 16px;
+  background: linear-gradient(100deg, #f2fcf8 0%, #ffffff 72%);
+}
+
+.marketing-home-candidate-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  color: #0baa70;
+  border-radius: 12px;
+  background: #d9f8eb;
+}
+
+.marketing-home-candidate-action h2 {
+  margin: 0;
+  color: #132238;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.marketing-home-candidate-action p {
+  margin: 3px 0 0;
+  color: #66758a;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.marketing-home-candidate-action button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 15px;
+  color: #087a58;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid #b8e8d7;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.marketing-home-candidate-action button:hover {
+  color: #ffffff;
+  border-color: #0baa70;
+  background: #0baa70;
+}
+
 /* ============================================================
    Section: Cơ hội đang được quan tâm (featured jobs)
    ============================================================ */
@@ -3512,6 +3604,26 @@ button.marketing-home-control {
   color: #0b7f5f;
   background: #e4f8f0;
   cursor: default;
+}
+
+.featured-job-match-reason {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  gap: 6px;
+  margin: 0 0 12px;
+  overflow: hidden;
+  color: #0b8f6a;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.featured-job-match-reason svg {
+  flex: 0 0 auto;
 }
 
 .featured-job-foot {
@@ -4085,11 +4197,100 @@ button.marketing-home-control {
 }
 
 .marketing-home-action-error {
+  display: block;
   margin: 12px 0 0;
   color: #b42318;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.5;
+}
+
+.marketing-home-action-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.marketing-home-action-state .marketing-home-action-error {
+  margin: 0;
+}
+
+.marketing-home-action-retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  color: #087f5b;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid #b8e5d4;
+  border-radius: 9px;
+  background: #f4fcf8;
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.marketing-home-action-retry:hover:not(:disabled),
+.marketing-home-action-retry:focus-visible {
+  color: #ffffff;
+  border-color: #0aa774;
+  background: #0aa774;
+}
+
+.marketing-home-action-retry:disabled {
+  cursor: progress;
+  opacity: 0.65;
+}
+
+.marketing-home-section-skeleton {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-height: 194px;
+  margin-top: 20px;
+  padding: 16px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #e3ebf0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.marketing-home-section-skeleton span {
+  grid-column: 1 / -1;
+  align-self: center;
+  min-height: 18px;
+}
+
+.marketing-home-section-skeleton i {
+  display: block;
+  min-height: 100px;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #edf3f5 20%, #f8fbfc 40%, #edf3f5 60%);
+  background-size: 200% 100%;
+  animation: marketing-home-skeleton 1.35s ease-in-out infinite;
+}
+
+@keyframes marketing-home-skeleton {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing-home-section-skeleton i {
+    animation: none;
+  }
 }
 
 .marketing-home-follow-tooltip {
@@ -5886,6 +6087,17 @@ button.marketing-home-control {
 
   .marketing-home-jobs {
     margin-top: 44px;
+  }
+
+  .marketing-home-candidate-action {
+    grid-template-columns: auto minmax(0, 1fr);
+    margin-top: 36px;
+    padding: 16px;
+  }
+
+  .marketing-home-candidate-action button {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .marketing-home-jobs-head {
