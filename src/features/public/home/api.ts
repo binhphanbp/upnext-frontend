@@ -291,11 +291,21 @@ export async function getPublicJobsWithFilters(options: { keyword?: string; loca
   const query = params.size ? `?${params.toString()}` : "";
   const jobs = await apiRequest<PublicJobWire[]>(`/job-posts${query}`);
 
-  return jobs.map<PublicJob>((job) => ({
+  return jobs.map(normalizePublicJob);
+}
+
+/** Fetches the full public record on demand, for example from a job quick preview. */
+export async function getPublicJobDetail(id: string) {
+  const job = await apiRequest<PublicJobWire>(`/job-posts/${encodeURIComponent(id)}`);
+  return normalizePublicJob(job);
+}
+
+function normalizePublicJob(job: PublicJobWire): PublicJob {
+  return {
     ...job,
     salaryMin: normalizeNullableNumber(job.salaryMin),
     salaryMax: normalizeNullableNumber(job.salaryMax),
-  }));
+  };
 }
 
 export function getPublicCompanies({ page, limit }: { page?: number; limit?: number } = {}) {

@@ -6,6 +6,7 @@ import {
   installCandidateSession,
   mockCandidateHomeApi,
   mockHomeApi,
+  mockPublicJobDetail,
 } from "./fixtures/home-api";
 
 test("renders latest and closing-soon jobs from the aggregate home contract", async ({ page }) => {
@@ -59,6 +60,48 @@ test("does not duplicate an expiring job in the primary latest-jobs section", as
       .locator(".marketing-home-jobs")
       .getByText("Closing Soon Platform Engineer", { exact: true }),
   ).toHaveCount(0);
+});
+
+test("loads the full source description only after a job preview is requested", async ({
+  page,
+}) => {
+  const job = createHomeJob(50, {
+    id: "preview-description-job",
+    title: "Senior Platform Engineer",
+  });
+  let detailRequestCount = 0;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith(`/job-posts/${job.id}`)) {
+      detailRequestCount += 1;
+    }
+  });
+  await mockHomeApi(page, createHomeData({ latestJobs: [job] }));
+  await mockPublicJobDetail(page, job, {
+    description: `
+      <details open>
+        <summary><strong>Mô tả công việc</strong></summary>
+        <p>Dẫn dắt việc phát triển nền tảng dữ liệu phục vụ các sản phẩm có quy mô lớn.</p>
+        <ul>
+          <li>Thiết kế các dịch vụ có khả năng mở rộng và vận hành ổn định.</li>
+          <li>Phối hợp cùng đội ngũ để cải thiện độ tin cậy của hệ thống.</li>
+        </ul>
+      </details>
+    `,
+  });
+
+  await page.goto("/vi");
+
+  const section = page.locator(".marketing-home-jobs");
+  const title = section.getByRole("button", { name: job.title, exact: true });
+  await expect.poll(() => detailRequestCount).toBe(0);
+
+  await title.hover();
+
+  const preview = section.getByRole("dialog", { name: job.title });
+  const description = preview.locator(".urgent-job-preview-description");
+  await expect(description).toContainText("Dẫn dắt việc phát triển nền tảng dữ liệu");
+  await expect(description).toContainText("• Thiết kế các dịch vụ có khả năng mở rộng");
+  await expect.poll(() => detailRequestCount).toBe(1);
 });
 
 test("persists a featured job bookmark for a signed-in candidate", async ({ page }) => {

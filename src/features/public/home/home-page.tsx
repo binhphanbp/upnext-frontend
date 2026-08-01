@@ -39,6 +39,7 @@ import {
 } from "./home-section-selectors";
 import { InsightsCarousel } from "./insights-carousel";
 import { JobMarket } from "./job-market";
+import { getJobPreviewDescription } from "./job-preview-description";
 import {
   ArrowRight,
   Bookmark,
@@ -56,6 +57,7 @@ import {
 } from "./marketing-icons";
 import { getPopularKeywordsForLocale } from "./popular-keywords";
 import { useAnchoredJobPreview } from "./use-anchored-job-preview";
+import { useJobPreviewDetail } from "./use-job-preview-detail";
 
 type MarketingHomeExperienceProps = {
   navigate: (path: string) => void;
@@ -151,19 +153,6 @@ function getCompanyInitials(companyName: string) {
     .map((word) => word.charAt(0))
     .join("")
     .toLocaleUpperCase("vi");
-}
-
-function getPlainText(value: string | null | undefined) {
-  if (!value) return "";
-  return value
-    .replace(/<br\s*\/?>/giu, " ")
-    .replace(/<[^>]+>/gu, " ")
-    .replace(/&nbsp;/giu, " ")
-    .replace(/&amp;/giu, "&")
-    .replace(/&lt;/giu, "<")
-    .replace(/&gt;/giu, ">")
-    .replace(/\s+/gu, " ")
-    .trim();
 }
 
 const homeCopy = {
@@ -449,6 +438,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   const urgentJobsList = useMemo(() => {
     return urgentJobs.map((job, index) => {
       const daysUntilExpiration = getDaysUntilExpiration(job, now);
+      const description = getJobPreviewDescription(job.description);
       return {
         id: job.id,
         logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
@@ -461,7 +451,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         deadline: formatDeadlineWithDate(job.expiredAt, locale),
         deadlineTone: getDeadlineTone(daysUntilExpiration),
         level: job.experienceLevel?.name || "Junior",
-        description: getPlainText(job.description),
+        ...(description ? { description } : {}),
         address:
           job.jobPostLocations?.[0]?.jobLocation?.address ||
           job.jobPostLocations?.[0]?.jobLocation?.city ||
@@ -1071,8 +1061,9 @@ function UrgentJobsSection({
           unsave: (title: string) => `Remove ${title} from saved jobs`,
           descriptionTitle: "Job description",
           descriptionAria: (title: string) => `Full job description for ${title}`,
-          fallbackDescription: (company: string, title: string) =>
-            `Join ${company} as a ${title}. View the full job details to explore the requirements and benefits.`,
+          loadingDescription: "Loading the full job description…",
+          unavailableDescription:
+            "The full job description could not be loaded. View the job details.",
           details: "View details",
           apply: "Apply now",
         }
@@ -1091,8 +1082,8 @@ function UrgentJobsSection({
           unsave: (title: string) => `Bỏ lưu công việc ${title}`,
           descriptionTitle: "Mô tả công việc",
           descriptionAria: (title: string) => `Mô tả đầy đủ công việc ${title}`,
-          fallbackDescription: (company: string, title: string) =>
-            `Cơ hội gia nhập ${company} ở vị trí ${title}. Xem chi tiết để khám phá yêu cầu công việc và quyền lợi dành cho ứng viên.`,
+          loadingDescription: "Đang tải mô tả đầy đủ…",
+          unavailableDescription: "Chưa thể tải mô tả đầy đủ. Hãy xem chi tiết tin tuyển dụng.",
           details: "Xem chi tiết",
           apply: "Ứng tuyển ngay",
         };
@@ -1119,6 +1110,12 @@ function UrgentJobsSection({
   const totalPages = pages.length;
   const safePage = Math.min(page, Math.max(0, totalPages - 1));
   const previewJob = urgentJobs.find((job) => job.id === previewJobId) ?? null;
+  const { data: previewJobDetail, isPending: isPreviewDescriptionLoading } = useJobPreviewDetail(
+    previewJob?.id,
+  );
+  const previewDescription = getJobPreviewDescription(
+    previewJobDetail?.description ?? previewJob?.description,
+  );
 
   // Auto-advance urgent jobs every 6s unless paused or reduced-motion is enabled
   useEffect(() => {
@@ -1431,16 +1428,14 @@ function UrgentJobsSection({
 
           <div className="urgent-job-preview-body">
             <strong>{copy.descriptionTitle}</strong>
-            <textarea
+            <section
               className="urgent-job-preview-description"
               aria-label={copy.descriptionAria(previewJob.title)}
-              readOnly
-              rows={7}
-              value={
-                previewJob.description ||
-                copy.fallbackDescription(previewJob.company, previewJob.title)
-              }
-            />
+            >
+              {isPreviewDescriptionLoading
+                ? copy.loadingDescription
+                : previewDescription || copy.unavailableDescription}
+            </section>
             <div className="urgent-job-preview-tags">
               {previewJob.tags.slice(0, 4).map((tag) => (
                 <span key={tag}>{tag}</span>
