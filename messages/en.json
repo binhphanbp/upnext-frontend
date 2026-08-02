@@ -2645,7 +2645,11 @@
           "hoursAgo": "{count} hours ago",
           "daysAgo": "{count} days ago"
         }
-      }
+      },
+      "totalCandidates": "Total candidates",
+      "totalRecruiters": "Total recruiters",
+      "pendingCompanyApprovals": "Company approvals",
+      "pendingJobApprovals": "Job approvals"
     },
     "shell": {
       "loading": "Loading admin workspace...",
