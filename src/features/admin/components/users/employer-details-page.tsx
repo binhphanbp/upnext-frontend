@@ -212,19 +212,19 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
           <h2 className="mb-4 text-lg font-bold text-slate-900">Thông tin chi tiết</h2>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Email liên hệ
               </p>
               <p className="font-medium text-slate-900">{company.email || "Chưa cập nhật"}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Số điện thoại
               </p>
               <p className="font-medium text-slate-900">{company.phone || "Chưa cập nhật"}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Website
               </p>
               <p className="font-medium text-slate-900">
@@ -243,19 +243,19 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Ngày tham gia
               </p>
               <p className="font-medium text-slate-900">{formatAppDate(company.createdAt)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Quy mô nhân sự
               </p>
               <p className="font-medium text-slate-900">{company.companySize || "Chưa cập nhật"}</p>
             </div>
             <div className="space-y-1 md:col-span-2 lg:col-span-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Phúc lợi
               </p>
               {company.benefits ? (
@@ -268,7 +268,7 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
               )}
             </div>
             <div className="space-y-1 md:col-span-2 lg:col-span-3">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Điểm uy tín
               </p>
               <div className="flex items-center gap-3">
@@ -299,7 +299,9 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
                           </span>
                           <span
                             className={
-                              delta >= 0 ? "font-bold text-emerald-600" : "font-bold text-red-600"
+                              delta >= 0
+                                ? "font-semibold text-emerald-600"
+                                : "font-semibold text-red-600"
                             }
                           >
                             {delta >= 0 ? `+${delta}` : delta}
@@ -312,32 +314,32 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
               ) : null}
             </div>
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Số lượng thành viên
               </p>
               <p className="font-medium text-slate-900">{company.members?.length || 0}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Tài khoản tuyển dụng
               </p>
               <p className="font-medium text-slate-900">{company.recruiterAccounts?.length || 0}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Tin tuyển dụng
               </p>
               <p className="font-medium text-slate-900">{company.jobPosts?.length || 0}</p>
             </div>
             <div className="space-y-1 md:col-span-2 lg:col-span-3">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Địa chỉ
               </p>
               <p className="font-medium text-slate-900">{company.address || "Chưa cập nhật"}</p>
             </div>
             {(company.description || company.shortDescription) && (
               <div className="space-y-1 md:col-span-2 lg:col-span-3">
-                <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+                <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                   Mô tả công ty
                 </p>
                 <div

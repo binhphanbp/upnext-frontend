@@ -1,0 +1,259 @@
+"use client";
+
+import {
+  CaretDoubleLeft,
+  CaretDoubleRight,
+  CaretLeft,
+  CaretRight,
+  CircleNotch,
+} from "@phosphor-icons/react";
+import { useLocale } from "next-intl";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+
+import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+
+interface AdminTableLayoutProps {
+  loading?: boolean;
+  filterBar?: ReactNode;
+  actionBar?: ReactNode;
+  title?: ReactNode;
+  totalItems?: number;
+  currentPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
+  children: ReactNode;
+}
+
+export function AdminTableLayout({
+  loading = false,
+  filterBar,
+  actionBar,
+  title,
+  totalItems,
+  currentPage,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+  children,
+}: AdminTableLayoutProps) {
+  const locale = useLocale();
+
+  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setHeaderTarget(document.getElementById("admin-header-actions"));
+  }, []);
+
+  const totalPages = totalItems && pageSize ? Math.ceil(totalItems / pageSize) || 1 : 1;
+
+  const renderPageNumbers = () => {
+    if (!currentPage || !totalPages) return null;
+
+    const pages = [];
+    const range = 2;
+    const start = Math.max(1, currentPage - range);
+    const end = Math.min(totalPages, currentPage + range);
+
+    if (start > 1) {
+      pages.push(
+        <Button
+          key={1}
+          variant={currentPage === 1 ? "primary" : "outline"}
+          className={cn(
+            "h-8 w-8 p-0 text-xs font-semibold",
+            currentPage === 1
+              ? "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600"
+              : "text-slate-600 hover:bg-slate-50 border-slate-200",
+          )}
+          onClick={() => onPageChange?.(1)}
+        >
+          1
+        </Button>,
+      );
+      if (start > 2) {
+        pages.push(
+          <span key="ell-start" className="px-1 text-slate-400">
+            ...
+          </span>,
+        );
+      }
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(
+        <Button
+          key={i}
+          variant={currentPage === i ? "primary" : "outline"}
+          className={cn(
+            "h-8 w-8 p-0 text-xs font-semibold",
+            currentPage === i
+              ? "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600"
+              : "text-slate-600 hover:bg-slate-50 border-slate-200",
+          )}
+          onClick={() => onPageChange?.(i)}
+        >
+          {i}
+        </Button>,
+      );
+    }
+
+    if (end < totalPages) {
+      if (end < totalPages - 1) {
+        pages.push(
+          <span key="ell-end" className="px-1 text-slate-400">
+            ...
+          </span>,
+        );
+      }
+      pages.push(
+        <Button
+          key={totalPages}
+          variant={currentPage === totalPages ? "primary" : "outline"}
+          className={cn(
+            "h-8 w-8 p-0 text-xs font-semibold",
+            currentPage === totalPages
+              ? "bg-emerald-600 text-white hover:bg-emerald-700 border-emerald-600"
+              : "text-slate-600 hover:bg-slate-50 border-slate-200",
+          )}
+          onClick={() => onPageChange?.(totalPages)}
+        >
+          {totalPages}
+        </Button>,
+      );
+    }
+
+    return pages;
+  };
+
+  const showPagination =
+    totalItems !== undefined &&
+    currentPage !== undefined &&
+    pageSize !== undefined &&
+    totalItems > 0;
+
+  return (
+    <div className="flex flex-col gap-6">
+      {headerTarget &&
+        (filterBar || actionBar) &&
+        createPortal(
+          <div className="flex w-full flex-1 flex-wrap items-center justify-between gap-4 border-t border-slate-200 px-8 py-4">
+            {filterBar && (
+              <div className="flex min-w-0 flex-wrap items-center gap-3">{filterBar}</div>
+            )}
+            {actionBar && (
+              <div className="ml-auto flex shrink-0 items-center gap-2.5">{actionBar}</div>
+            )}
+          </div>,
+          headerTarget,
+        )}
+
+      {/* Table Content Container */}
+      <Card className="w-full min-w-0 border border-slate-200 bg-white p-0 shadow-sm">
+        <div className="relative">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-[1px] transition-all duration-200">
+              <div className="flex flex-col items-center gap-2">
+                <CircleNotch className="mb-1 size-8 animate-spin text-emerald-600" />
+                <span className="text-xs font-semibold text-emerald-600">
+                  {locale === "vi" ? "Đang tải dữ liệu..." : "Loading data..."}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="w-full overflow-x-auto">
+            <table className="w-full min-w-full border-collapse text-sm whitespace-nowrap [&_tbody_td[colspan]]:sticky [&_tbody_td[colspan]]:left-0 [&_tbody_td[colspan]]:w-[calc(100vw-48px)] sm:[&_tbody_td[colspan]]:w-[calc(100vw-280px)] lg:[&_tbody_td[colspan]]:w-full [&_tbody_tr]:border-b [&_tbody_tr]:border-slate-200 hover:[&_tbody_tr]:bg-slate-50/40 [&_tbody_tr:nth-child(even)]:bg-slate-50/80 [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold [&_th]:text-slate-800 [&_thead_tr]:border-b [&_thead_tr]:border-slate-300 [&_thead_tr]:bg-slate-200">
+              {children}
+            </table>
+          </div>
+        </div>
+
+        {/* Pagination Section */}
+        {showPagination && (
+          <div className="flex flex-col gap-4 border-t border-slate-200 bg-slate-50/50 p-4 text-sm font-medium text-slate-600 select-none sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span>
+                {locale === "vi"
+                  ? `Tổng số: ${totalItems} bản ghi`
+                  : `Total: ${totalItems} records`}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(val) => {
+                    onPageSizeChange?.(Number(val));
+                    onPageChange?.(1);
+                  }}
+                >
+                  <SelectTrigger
+                    aria-label="Page Size Selector"
+                    className="h-8 w-[80px] rounded border border-slate-200 bg-white px-2 text-xs shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50, 100].map((size) => (
+                      <SelectItem key={size} value={String(size)}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span>{locale === "vi" ? "bản ghi/trang" : "records/page"}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 border-slate-200 p-0 font-semibold text-slate-600 hover:bg-slate-50"
+                disabled={currentPage === 1}
+                onClick={() => onPageChange?.(1)}
+                aria-label="First Page"
+              >
+                <CaretDoubleLeft size={16} />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 border-slate-200 p-0 font-semibold text-slate-600 hover:bg-slate-50"
+                disabled={currentPage === 1}
+                onClick={() => onPageChange?.(currentPage - 1)}
+                aria-label="Previous Page"
+              >
+                <CaretLeft size={16} />
+              </Button>
+              {renderPageNumbers()}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 border-slate-200 p-0 font-semibold text-slate-600 hover:bg-slate-50"
+                disabled={currentPage === totalPages}
+                onClick={() => onPageChange?.(currentPage + 1)}
+                aria-label="Next Page"
+              >
+                <CaretRight size={16} />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 border-slate-200 p-0 font-semibold text-slate-600 hover:bg-slate-50"
+                disabled={currentPage === totalPages}
+                onClick={() => onPageChange?.(totalPages)}
+                aria-label="Last Page"
+              >
+                <CaretDoubleRight size={16} />
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}

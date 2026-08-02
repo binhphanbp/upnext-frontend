@@ -11,8 +11,8 @@ import { useTranslations } from "next-intl";
 import * as React from "react";
 
 import { getAdminRecruiters, type AdminRecruiterResponse } from "@/features/admin/api/recruiters";
+import { AdminTableLayout } from "@/features/admin/components/admin-table-layout";
 import { clearAdminSession, getAdminSession } from "@/features/admin/session";
-import { RecruiterTableLayout } from "@/features/recruiter/components/recruiter-table-layout";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
@@ -165,7 +165,7 @@ export function RecruitersTable() {
 
   return (
     <div className="mt-6">
-      <RecruiterTableLayout
+      <AdminTableLayout
         loading={isLoading}
         totalItems={filteredData.length}
         currentPage={currentPage}
@@ -220,7 +220,7 @@ export function RecruitersTable() {
             </Button>
             <Button
               variant="outline"
-              className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border-emerald-600 px-4 font-bold text-emerald-600 shadow-none transition-all hover:bg-emerald-50/50"
+              className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border-emerald-600 px-4 font-semibold text-emerald-600 shadow-none transition-all hover:bg-emerald-50/50"
             >
               <DownloadSimple size={18} />
               <span>{t("exportExcel")}</span>
@@ -239,22 +239,22 @@ export function RecruitersTable() {
                 onChange={(e) => handleSelectAll(e.target.checked)}
               />
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("user")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("company")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("role")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("status")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-right font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-right font-semibold last:border-r-0">
               {t("joinedDate")}
             </th>
-            <th className="px-4 py-3 text-right font-bold">{t("actions")}</th>
+            <th className="px-4 py-3 text-right font-semibold">{t("actions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -295,7 +295,7 @@ export function RecruitersTable() {
                   </td>
                   <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
                     <div>
-                      <p className="text-foreground font-bold">{item.fullName}</p>
+                      <p className="text-foreground font-semibold">{item.fullName}</p>
                       <p className="text-muted-foreground text-xs">{item.email}</p>
                     </div>
                   </td>
@@ -345,7 +345,7 @@ export function RecruitersTable() {
             })
           )}
         </tbody>
-      </RecruiterTableLayout>
+      </AdminTableLayout>
     </div>
   );
 }

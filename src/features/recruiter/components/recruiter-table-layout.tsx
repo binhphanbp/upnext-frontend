@@ -128,10 +128,10 @@ export function RecruiterTableLayout({
     totalItems > 0;
 
   return (
-    <Card className="w-full min-w-0 overflow-hidden border border-slate-200 bg-white p-0">
+    <Card className="w-full min-w-0 border border-slate-200 bg-white p-0">
       {/* Filters & Actions Section */}
       {(filterBar || actionBar) && (
-        <div className="border-b border-slate-200 bg-white p-4">
+        <div className="sticky top-0 z-20 rounded-t-xl border-b border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             {filterBar && (
               <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">

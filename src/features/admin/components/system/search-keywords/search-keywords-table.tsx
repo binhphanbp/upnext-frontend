@@ -140,7 +140,7 @@ export function SearchKeywordsTable() {
             <Clock size={22} className="text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-sm leading-none font-bold tracking-tight text-slate-800">
+            <div className="text-sm leading-none font-semibold tracking-tight text-slate-800">
               {loading ? (
                 <Skeleton className="h-6 w-full" />
               ) : data ? (
@@ -314,7 +314,7 @@ export function SearchKeywordsTable() {
                       key={item.canonicalKeyword}
                       className="text-sm text-slate-700 transition-colors hover:bg-slate-50/50"
                     >
-                      <td className="px-6 py-4 text-center font-bold text-slate-400">
+                      <td className="px-6 py-4 text-center font-semibold text-slate-400">
                         {index + 1}
                       </td>
                       <td className="px-6 py-4 font-semibold text-slate-900">{item.keyword}</td>
@@ -326,7 +326,7 @@ export function SearchKeywordsTable() {
                           {item.canonicalKeyword}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center font-bold text-blue-600">
+                      <td className="px-6 py-4 text-center font-semibold text-blue-600">
                         {item.searchCount}
                       </td>
                       <td className="px-6 py-4 text-center">

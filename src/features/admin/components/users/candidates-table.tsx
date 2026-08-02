@@ -12,8 +12,8 @@ import * as React from "react";
 import Swal from "sweetalert2";
 
 import { AdminCandidateResponse, getAdminCandidates } from "@/features/admin/api/candidates";
+import { AdminTableLayout } from "@/features/admin/components/admin-table-layout";
 import { getAdminSession } from "@/features/admin/session";
-import { RecruiterTableLayout } from "@/features/recruiter/components/recruiter-table-layout";
 import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
 import { formatAppDate } from "@/shared/lib/date";
@@ -135,7 +135,7 @@ export function CandidatesTable() {
           </p>
         </div>
       )}
-      <RecruiterTableLayout
+      <AdminTableLayout
         loading={isLoading}
         totalItems={filteredData.length}
         currentPage={currentPage}
@@ -218,22 +218,22 @@ export function CandidatesTable() {
                 aria-label="Select all"
               />
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("candidate")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("specialty")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("status")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-right font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-right font-semibold last:border-r-0">
               {t("applications")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-right font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-right font-semibold last:border-r-0">
               {t("joinedDate")}
             </th>
-            <th className="px-4 py-3 text-right font-bold">{t("actions")}</th>
+            <th className="px-4 py-3 text-right font-semibold">{t("actions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -298,7 +298,7 @@ export function CandidatesTable() {
                 </td>
                 <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
                   <div>
-                    <p className="text-foreground font-bold">{candidate.name}</p>
+                    <p className="text-foreground font-semibold">{candidate.name}</p>
                     <p className="text-muted-foreground text-xs">{candidate.email}</p>
                   </div>
                 </td>
@@ -377,7 +377,7 @@ export function CandidatesTable() {
             ))
           )}
         </tbody>
-      </RecruiterTableLayout>
+      </AdminTableLayout>
     </div>
   );
 }

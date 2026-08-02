@@ -32,7 +32,7 @@ export function RecentActivity({ activities }: { activities?: AdminRecentActivit
                 <div key={task.id} className="flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1 space-y-1">
                     <p
-                      className="text-foreground line-clamp-2 text-sm leading-tight font-bold"
+                      className="text-foreground line-clamp-2 text-sm leading-tight font-semibold"
                       title={task.title}
                     >
                       {task.title}

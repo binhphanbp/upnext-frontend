@@ -19,8 +19,8 @@ import {
   getAdminReports,
   updateAdminReportStatus,
 } from "@/features/admin/api/reports";
+import { AdminTableLayout } from "@/features/admin/components/admin-table-layout";
 import { getAdminSession } from "@/features/admin/session";
-import { RecruiterTableLayout } from "@/features/recruiter/components/recruiter-table-layout";
 import { useRouter } from "@/i18n/navigation";
 import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
@@ -197,7 +197,7 @@ export function ModerationTable() {
 
   return (
     <div className="mt-6">
-      <RecruiterTableLayout
+      <AdminTableLayout
         loading={isLoading}
         totalItems={totalItems}
         currentPage={currentPage}
@@ -265,22 +265,22 @@ export function ModerationTable() {
                 onChange={(e) => handleSelectAll(e.target.checked)}
               />
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-left font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left font-semibold last:border-r-0">
               {t("contentType")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-left font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left font-semibold last:border-r-0">
               {t("reporter")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-left font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left font-semibold last:border-r-0">
               {t("reason")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-center font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-center font-semibold last:border-r-0">
               {t("status")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-left font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left font-semibold last:border-r-0">
               {t("reportedDate")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-right font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-right font-semibold last:border-r-0">
               {t("actions")}
             </th>
           </tr>
@@ -397,7 +397,7 @@ export function ModerationTable() {
             })
           )}
         </tbody>
-      </RecruiterTableLayout>
+      </AdminTableLayout>
     </div>
   );
 }

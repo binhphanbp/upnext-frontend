@@ -134,7 +134,7 @@ export const getColumns = (t: any): ColumnDef<AdminMasterData>[] => [
     header: t("name"),
     cell: ({ row }) => (
       <div>
-        <p className="text-foreground font-bold">{row.original.name}</p>
+        <p className="text-foreground font-semibold">{row.original.name}</p>
         <p className="text-muted-foreground text-xs">{row.original.id}</p>
       </div>
     ),

@@ -117,13 +117,13 @@ export function CandidateDetailsPage({ candidateId }: CandidateDetailsPageProps)
           <h2 className="mb-4 text-lg font-bold text-slate-900">Thông tin tài khoản</h2>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Phương thức đăng nhập
               </p>
               <p className="font-medium text-slate-900">{candidate.authProvider}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Xác thực Email
               </p>
               <p className="font-medium text-slate-900">
@@ -137,14 +137,14 @@ export function CandidateDetailsPage({ candidateId }: CandidateDetailsPageProps)
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Ngày tham gia
               </p>
               <p className="font-medium text-slate-900">{formatAppDate(candidate.createdAt)}</p>
             </div>
             {candidate.providerUserId && (
               <div className="space-y-1">
-                <p className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+                <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                   Provider ID
                 </p>
                 <p className="font-medium text-slate-900">{candidate.providerUserId}</p>
