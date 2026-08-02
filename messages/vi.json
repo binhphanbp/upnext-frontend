@@ -2650,7 +2650,11 @@
         "empty": "Không có hoạt động nào gần đây."
       },
       "totalUsersDesc": "Nhà tuyển dụng & ứng viên",
-      "comparedToLastWeek": "so với tuần trước"
+      "comparedToLastWeek": "so với tuần trước",
+      "totalCandidates": "Tổng ứng viên",
+      "totalRecruiters": "Tổng nhà tuyển dụng",
+      "pendingCompanyApprovals": "Kiểm duyệt công ty",
+      "pendingJobApprovals": "Kiểm duyệt tin đăng"
     },
     "shell": {
       "loading": "Đang tải không gian quản trị...",

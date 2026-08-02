@@ -259,6 +259,7 @@ export function WorkspaceSidebar({
                                             active
                                               ? "text-primary bg-emerald-50 font-semibold"
                                               : "text-slate-500 hover:text-primary hover:bg-slate-50",
+                                            child.disabled && "pointer-events-none opacity-50",
                                           )}
                                         >
                                           <span className="truncate">{child.label}</span>
@@ -317,6 +318,7 @@ export function WorkspaceSidebar({
                                 active
                                   ? "bg-primary text-white"
                                   : "text-slate-600 hover:bg-slate-50 hover:text-primary",
+                                item.disabled && "pointer-events-none opacity-50",
                               )}
                               title={activeCollapsed ? item.label : undefined}
                             >

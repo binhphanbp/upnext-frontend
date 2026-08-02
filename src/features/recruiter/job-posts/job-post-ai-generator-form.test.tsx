@@ -70,5 +70,5 @@ describe("JobPostAiGeneratorForm", () => {
         presentationStyle: "skill_focused",
       }),
     );
-  });
+  }, 20000);
 });

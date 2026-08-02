@@ -1,11 +1,13 @@
 "use client";
 
+import { Buildings, CalendarBlank, Check, EnvelopeSimple, X } from "@phosphor-icons/react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import Swal from "sweetalert2";
 
 import { getAdminAppeals, resolveAdminAppeal } from "@/features/admin/api/appeals";
 import { getAdminSession } from "@/features/admin/session";
+import { cn } from "@/shared/lib/cn";
 import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -64,21 +66,24 @@ export function AppealsTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => setStatusFilter(tab.value)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-              statusFilter === tab.value
-                ? "bg-slate-900 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="border-b border-slate-200">
+        <nav className="-mb-px flex space-x-6">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setStatusFilter(tab.value)}
+              className={cn(
+                "whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors",
+                statusFilter === tab.value
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700",
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
       </div>
 
       {isLoading ? (
@@ -88,61 +93,73 @@ export function AppealsTable() {
           Không có kháng cáo nào.
         </div>
       ) : (
-        <div className="space-y-3">
-          {appeals.map((appeal) => (
-            <div
-              key={appeal.id}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-bold text-slate-900">
-                    {appeal.recruiterAccount?.company?.name ?? "—"}
-                  </p>
-                  <p className="text-xs text-slate-500">{appeal.recruiterAccount?.email}</p>
-                  <p className="mt-2 text-sm whitespace-pre-wrap text-slate-700">
-                    {appeal.content}
-                  </p>
-                  <p className="mt-2 text-xs text-slate-400">
-                    Gửi lúc {formatAppDate(appeal.createdAt)}
-                  </p>
-                </div>
-                <Badge
-                  tone={
-                    appeal.status === "PENDING"
-                      ? "warning"
-                      : appeal.status === "APPROVED"
-                        ? "success"
-                        : "error"
-                  }
-                >
-                  {appeal.status === "PENDING"
-                    ? "Đang chờ"
-                    : appeal.status === "APPROVED"
-                      ? "Đã duyệt"
-                      : "Đã từ chối"}
-                </Badge>
-              </div>
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="divide-y divide-slate-100">
+            {appeals.map((appeal) => (
+              <div key={appeal.id} className="p-6 transition-colors hover:bg-slate-50/50">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="flex-1 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-base font-semibold text-slate-900">
+                        {appeal.recruiterAccount?.company?.name ?? "Công ty ẩn danh"}
+                      </h3>
+                      <Badge
+                        tone={
+                          appeal.status === "PENDING"
+                            ? "warning"
+                            : appeal.status === "APPROVED"
+                              ? "success"
+                              : "error"
+                        }
+                        className="shadow-sm"
+                      >
+                        {appeal.status === "PENDING"
+                          ? "Đang chờ xử lý"
+                          : appeal.status === "APPROVED"
+                            ? "Đã duyệt"
+                            : "Đã từ chối"}
+                      </Badge>
+                    </div>
 
-              {appeal.status === "PENDING" ? (
-                <div className="mt-4 flex gap-2">
-                  <Button
-                    onClick={() => void handleResolve(appeal.id, "APPROVED")}
-                    disabled={resolveMutation.isPending}
-                  >
-                    Duyệt kháng cáo
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => void handleResolve(appeal.id, "REJECTED")}
-                    disabled={resolveMutation.isPending}
-                  >
-                    Từ chối
-                  </Button>
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+                      <span className="flex items-center gap-1.5">
+                        <EnvelopeSimple size={16} />
+                        {appeal.recruiterAccount?.email}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <CalendarBlank size={16} />
+                        {formatAppDate(appeal.createdAt)}
+                      </span>
+                    </div>
+
+                    <div className="max-w-3xl text-sm leading-relaxed whitespace-pre-wrap text-slate-700">
+                      {appeal.content}
+                    </div>
+                  </div>
+
+                  {appeal.status === "PENDING" ? (
+                    <div className="mt-4 flex shrink-0 items-center gap-2 md:mt-0">
+                      <Button
+                        variant="outline"
+                        onClick={() => void handleResolve(appeal.id, "REJECTED")}
+                        disabled={resolveMutation.isPending}
+                        className="bg-white text-slate-600 shadow-sm"
+                      >
+                        Từ chối
+                      </Button>
+                      <Button
+                        onClick={() => void handleResolve(appeal.id, "APPROVED")}
+                        disabled={resolveMutation.isPending}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                      >
+                        Duyệt kháng cáo
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

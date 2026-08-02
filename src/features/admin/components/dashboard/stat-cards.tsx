@@ -2,6 +2,7 @@
 
 import {
   Briefcase,
+  Buildings,
   CurrencyCircleDollar,
   ShieldCheck,
   TrendDown,
@@ -60,12 +61,27 @@ export function StatCards({ stats }: { stats?: AdminDashboardSummary | undefined
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-bold">{t("totalUsers")}</CardTitle>
+          <CardTitle className="text-sm font-bold">{(t as any)("totalCandidates")}</CardTitle>
           <Users className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
           <div className="text-foreground text-2xl font-extrabold">
-            {stats?.totalUsers?.toLocaleString() ?? 0}
+            {stats?.totalCandidates?.toLocaleString() ?? 0}
+          </div>
+          <p className="text-muted-foreground mt-1 flex items-center text-xs">
+            {renderPercent(stats?.newUsers?.growthPercent)}
+            {(t as any)("comparedToLastWeek")}
+          </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-bold">{(t as any)("totalRecruiters")}</CardTitle>
+          <Buildings className="text-muted-foreground" size={20} />
+        </CardHeader>
+        <CardContent>
+          <div className="text-foreground text-2xl font-extrabold">
+            {stats?.totalRecruiters?.toLocaleString() ?? 0}
           </div>
           <p className="text-muted-foreground mt-1 flex items-center text-xs">
             {renderPercent(stats?.newUsers?.growthPercent)}
@@ -90,21 +106,28 @@ export function StatCards({ stats }: { stats?: AdminDashboardSummary | undefined
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-bold">{t("pendingApprovals")}</CardTitle>
+          <CardTitle className="text-sm font-bold">
+            {(t as any)("pendingCompanyApprovals")}
+          </CardTitle>
           <ShieldCheck className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
           <div className="text-warning text-2xl font-extrabold">
-            {stats?.pendingReview?.total ?? 0}
+            {stats?.pendingReview?.companyRegistrations ?? 0}
           </div>
-          <p className="text-muted-foreground mt-1 text-xs">
-            <span className="text-foreground font-bold">
-              {stats?.pendingReview?.companyRegistrations ?? 0}
-            </span>{" "}
-            {t("companies")},{" "}
-            <span className="text-foreground font-bold">{stats?.pendingReview?.jobPosts ?? 0}</span>{" "}
-            {t("jobs")}
-          </p>
+          <p className="text-muted-foreground mt-1 text-xs">{t("companies")}</p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-bold">{(t as any)("pendingJobApprovals")}</CardTitle>
+          <ShieldCheck className="text-muted-foreground" size={20} />
+        </CardHeader>
+        <CardContent>
+          <div className="text-warning text-2xl font-extrabold">
+            {stats?.pendingReview?.jobPosts ?? 0}
+          </div>
+          <p className="text-muted-foreground mt-1 text-xs">{t("jobs")}</p>
         </CardContent>
       </Card>
     </div>

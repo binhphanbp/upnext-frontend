@@ -95,13 +95,8 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
       { label: "operationsAndContent.companies", href: "/admin/users/employers", icon: Buildings },
       { label: "operationsAndContent.jobs", href: "/admin/content/jobs", icon: Briefcase },
       { label: "operationsAndContent.articles", href: "/admin/content/articles", icon: Article },
-      {
-        label: "operationsAndContent.moderation",
-        href: "/admin/content/moderation",
-        icon: ShieldCheck,
-      },
+
       { label: "operationsAndContent.appeals", href: "/admin/appeals", icon: ShieldCheck },
-      { label: "operationsAndContent.support", href: "/admin/content/support", icon: Headset },
     ],
   },
   {
@@ -113,6 +108,7 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
         label: "financeAndBusiness.transactions",
         href: "/admin/finance/transactions",
         icon: Receipt,
+        disabled: true,
       },
     ],
   },
@@ -120,13 +116,35 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
     label: "systemAdmin.title",
     icon: Database,
     items: [
-      { label: "systemAdmin.masterData", href: "/admin/system/master-data", icon: Database },
-      { label: "systemAdmin.roles", href: "/admin/system/roles", icon: IdentificationBadge },
-      { label: "systemAdmin.auditLog", href: "/admin/system/audit-log", icon: ListChecks },
+      {
+        label: "systemAdmin.masterData",
+        href: "/admin/system/master-data",
+        icon: Database,
+        disabled: true,
+      },
+      {
+        label: "systemAdmin.roles",
+        href: "/admin/system/roles",
+        icon: IdentificationBadge,
+        disabled: true,
+      },
+      {
+        label: "systemAdmin.auditLog",
+        href: "/admin/system/audit-log",
+        icon: ListChecks,
+        disabled: true,
+      },
       {
         label: "systemAdmin.searchKeywords",
         href: "/admin/system/search-keywords",
         icon: MagnifyingGlass,
+        disabled: true,
+      },
+      {
+        label: "operationsAndContent.support",
+        href: "/admin/content/support",
+        icon: Headset,
+        disabled: true,
       },
     ],
   },

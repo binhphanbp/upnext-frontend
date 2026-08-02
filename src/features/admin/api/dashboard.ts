@@ -32,6 +32,8 @@ export type AdminDashboardSummary = {
     jobPosts: number;
   };
   totalUsers?: number; // Injected from parallel API calls
+  totalCandidates?: number;
+  totalRecruiters?: number;
 };
 
 export type AdminRevenueChartData = {
@@ -116,6 +118,8 @@ export async function getAdminDashboard(
 
   if (data && data.summary) {
     data.summary.totalUsers = totalCandidates + totalCompanies + totalRecruiters;
+    data.summary.totalCandidates = totalCandidates;
+    data.summary.totalRecruiters = totalRecruiters;
 
     // Calculate pending companies since the dashboard API might not return it accurately yet
     if (companiesRes && companiesRes.items) {
