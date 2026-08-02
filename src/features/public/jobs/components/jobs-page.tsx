@@ -61,6 +61,7 @@ import {
 import { getPublicJobsWithFilters } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
+import { startJobApplication } from "../start-job-application";
 import { ApplyModal } from "./apply-modal";
 
 import "../jobs-page.css";
@@ -654,6 +655,15 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const filterCloseRef = useRef<HTMLButtonElement | null>(null);
   const deferredKeyword = useDeferredValue(keyword);
   const locationPreference = useLocationPreference();
+
+  function handleApply(job: Job) {
+    startJobApplication({
+      jobId: job.id,
+      locale,
+      navigate,
+      onAuthenticated: () => setApplyJob(job),
+    });
+  }
 
   useEffect(() => {
     if (
@@ -1836,14 +1846,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
-                                const session = getCandidateSession();
-                                if (session) {
-                                  setApplyJob(job);
-                                } else {
-                                  navigate(`/register?job=${job.id}`);
-                                }
-                              }}
+                              onClick={() => handleApply(job)}
                               className={`flex-1 cursor-pointer rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700 ${
                                 view === "grid" ? "" : "sm:flex-initial"
                               }`}

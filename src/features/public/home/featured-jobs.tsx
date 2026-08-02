@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
-import { getCandidateSession } from "@/features/candidate/session";
 import { formatJobSalaryDisplay } from "@/features/public/jobs/components/jobs-page";
 import { toast } from "@/shared/ui/toast";
 
@@ -696,12 +695,7 @@ export function FeaturedJobs({
                           className="featured-job-apply"
                           onClick={(event) => {
                             event.stopPropagation();
-                            const session = getCandidateSession();
-                            if (session) {
-                              onApply(job);
-                            } else {
-                              navigate(`/register?job=${job.id}`);
-                            }
+                            onApply(job);
                           }}
                         >
                           {previewCopy.apply} <ArrowRight size={15} />
@@ -813,14 +807,7 @@ export function FeaturedJobs({
             <button
               type="button"
               className="urgent-job-preview-apply"
-              onClick={() => {
-                const session = getCandidateSession();
-                if (session) {
-                  onApply(previewJob);
-                } else {
-                  navigate(`/register?job=${previewJob.id}`);
-                }
-              }}
+              onClick={() => onApply(previewJob)}
             >
               {previewCopy.apply} <ArrowRight size={15} aria-hidden="true" />
             </button>

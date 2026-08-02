@@ -403,6 +403,8 @@
       "processingDescription": "Vui lòng chờ trong giây lát…",
       "failedTitle": "Không thể hoàn tất đăng nhập",
       "failedDescription": "Liên kết đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.",
+      "successTitle": "Chào mừng bạn đến với UpNext!",
+      "successDescription": "Đăng nhập thành công. Cùng khám phá những cơ hội phù hợp nhé.",
       "returnToLogin": "Quay lại đăng nhập"
     },
     "fields": {
@@ -426,6 +428,8 @@
       "forgotPassword": "Quên mật khẩu?",
       "submit": "Đăng nhập",
       "submitting": "Đang đăng nhập…",
+      "successTitle": "Chào mừng bạn trở lại!",
+      "successDescription": "Bạn đã đăng nhập thành công. Cùng khám phá những cơ hội phù hợp nhé.",
       "signupPrompt": "Chưa có tài khoản?",
       "signupLink": "Đăng ký"
     },
@@ -438,6 +442,8 @@
       "emailDivider": "hoặc đăng ký bằng email",
       "submit": "Tạo tài khoản",
       "submitting": "Đang tạo tài khoản…",
+      "successTitle": "Tạo tài khoản thành công!",
+      "successDescription": "Chào mừng bạn đến với UpNext. Hãy hoàn thiện hồ sơ để nổi bật hơn với nhà tuyển dụng nhé.",
       "loginPrompt": "Đã có tài khoản?",
       "loginLink": "Đăng nhập"
     },

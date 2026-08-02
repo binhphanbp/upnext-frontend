@@ -967,6 +967,20 @@
   line-height: 1.65;
 }
 
+.job-detail-section .job-detail-rich-text p,
+.job-detail-section .job-detail-rich-text li {
+  color: #475569;
+}
+
+.job-detail-section .job-detail-rich-text p,
+.job-detail-section .job-detail-rich-text li,
+.job-detail-section .job-detail-rich-text h2,
+.job-detail-section .job-detail-rich-text h3,
+.job-detail-section .job-detail-rich-text strong,
+.job-detail-section .job-detail-rich-text b {
+  font-weight: 600;
+}
+
 .job-detail-section li svg {
   margin-top: 4px;
   color: #059669;
@@ -3242,7 +3256,7 @@
 .job-detail-card-head h2 {
   color: #111827;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .job-detail-section > p {
@@ -3469,6 +3483,19 @@
 .job-detail-deadline span {
   color: #ef4444;
   font-weight: 700;
+}
+
+.job-detail-hero-deadline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  text-align: left;
+}
+
+.job-detail-hero-deadline svg {
+  flex: 0 0 auto;
+  color: #059669;
 }
 
 .job-detail-verified-box {

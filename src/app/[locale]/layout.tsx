@@ -47,6 +47,14 @@ export async function generateMetadata({
       title: "UpNext",
     },
     icons: {
+      icon: [
+        {
+          url: "/pwa/icon-192.png",
+          sizes: "192x192",
+          type: "image/png",
+        },
+      ],
+      shortcut: "/pwa/icon-192.png",
       apple: [
         {
           url: "/pwa/apple-touch-icon.png",

@@ -10,10 +10,10 @@ import {
   LockKey,
   User,
 } from "@phosphor-icons/react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { loginCandidate, registerCandidate } from "@/features/candidate/api/auth";
@@ -64,6 +64,7 @@ function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTarget = searchParams.get("redirect");
+  const oauthError = searchParams.get("error");
   const t = useTranslations("Auth");
   const validationMessages = useAuthValidationMessages();
   const [showPassword, setShowPassword] = useState(false);
@@ -75,12 +76,24 @@ function LoginPage() {
   const passwordError = form.formState.errors.password?.message;
   const isSubmitting = form.formState.isSubmitting;
 
+  useEffect(() => {
+    if (!oauthError) return;
+
+    toast.error(t("oauth.failedTitle"), {
+      description: t("oauth.failedDescription"),
+      id: "candidate-oauth-error",
+    });
+  }, [oauthError, t]);
+
   async function submit(values: LoginValues) {
     try {
       const session = await loginCandidate(values);
       saveCandidateSession(session);
       rememberCandidateSession();
-      toast.success("Đăng nhập thành công!");
+      toast.success(t("login.successTitle"), {
+        description: t("login.successDescription"),
+        id: "candidate-login-success",
+      });
       router.replace(redirectTarget || "/candidate/profile");
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -207,6 +220,10 @@ function RegisterPage() {
       });
       saveCandidateSession(session);
       rememberCandidateSession();
+      toast.success(t("register.successTitle"), {
+        description: t("register.successDescription"),
+        id: "candidate-register-success",
+      });
       router.replace("/candidate/profile");
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
@@ -411,13 +428,17 @@ function SocialAuthOptions({
   githubLabel: string;
   githubUnavailableLabel: string;
 }>) {
+  const locale = useLocale();
+
   return (
     <>
       <div className="login-social-actions">
         <button
           type="button"
           className="login-social-button login-social-button-google"
-          onClick={() => window.location.assign(createApiUrl("candidate/auth/google"))}
+          onClick={() =>
+            window.location.assign(createApiUrl(`candidate/auth/google?locale=${locale}`))
+          }
         >
           <GoogleLogo size={18} weight="bold" aria-hidden="true" />
           <span>{googleLabel}</span>

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { saveCandidateSession } from "@/features/candidate/session";
 import { Link, useRouter } from "@/i18n/navigation";
+import { toast } from "@/shared/ui/toast";
 
 type CandidateTokenPayload = Readonly<{
   sub?: string;
@@ -38,8 +39,12 @@ export function CandidateOAuthCallbackPage() {
     });
     window.localStorage.setItem(demoAuthStorageKey, "candidate");
     window.dispatchEvent(new Event(demoAuthChangeEvent));
+    toast.success(t("successTitle"), {
+      description: t("successDescription"),
+      id: "candidate-oauth-success",
+    });
     router.replace("/candidate/profile");
-  }, [router, searchParams]);
+  }, [router, searchParams, t]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-slate-950">

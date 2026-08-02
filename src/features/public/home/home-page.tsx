@@ -10,6 +10,7 @@ import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession, type CandidateSession } from "@/features/candidate/session";
 import { ApplyModal } from "@/features/public/jobs/components/apply-modal";
 import { formatJobSalaryDisplay } from "@/features/public/jobs/components/jobs-page";
+import { startJobApplication } from "@/features/public/jobs/start-job-application";
 import { useRouter } from "@/i18n/navigation";
 import { toast } from "@/shared/ui/toast";
 import { useLocationPreference } from "@/shared/utils/location-preference";
@@ -418,6 +419,15 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     () => homeData?.latestPosts.map(mapHomePost) ?? [],
     [homeData?.latestPosts],
   );
+
+  function handleApply(job: { id: string; title: string; company: string }) {
+    startJobApplication({
+      jobId: job.id,
+      locale,
+      navigate,
+      onAuthenticated: () => setApplyJob(job),
+    });
+  }
   const trustCompanies = useMemo(
     () => homeData?.topCompanies.filter((company) => company.activeJobsCount > 0) ?? [],
     [homeData?.topCompanies],
@@ -737,7 +747,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             />
             <FeaturedJobs
               navigate={navigate}
-              onApply={setApplyJob}
+              onApply={handleApply}
               jobs={apiJobsData}
               excludedJobIds={primaryExcludedJobIds}
               selectedJobs={primaryJobSelection}
@@ -759,7 +769,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             <UrgentJobsSection
               navigate={navigate}
               urgentJobs={urgentJobsList}
-              onApply={setApplyJob}
+              onApply={handleApply}
               isLoading={isHomePending}
               isError={false}
               onRetry={() => void refetchHome()}
