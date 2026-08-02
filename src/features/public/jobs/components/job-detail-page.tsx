@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useLocale } from "next-intl";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
 import { checkAppliedJob } from "@/features/candidate/api/profile";
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
-import { getCandidateSession } from "@/features/candidate/session";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { toast } from "@/shared/ui/toast";
@@ -35,6 +35,7 @@ import {
 } from "../../home/marketing-icons";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
+import { startJobApplication } from "../start-job-application";
 import { ApplyModal } from "./apply-modal";
 import { jobs, type Job, formatJobSalaryDisplay } from "./jobs-page";
 
@@ -236,6 +237,7 @@ function LogoMark({ job, size = "normal" }: { job: Job; size?: "normal" | "large
 }
 
 export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps) {
+  const locale = useLocale();
   const jobId = getJobId(path);
   const fallbackJob = jobs[0];
   if (!fallbackJob) {
@@ -328,6 +330,15 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
 
   const hasApplied = appliedData?.applied === true;
   const [isOpenApply, setIsOpenApply] = useState(false);
+
+  function handleApply() {
+    startJobApplication({
+      jobId: job.id,
+      locale,
+      navigate,
+      onAuthenticated: () => setIsOpenApply(true),
+    });
+  }
 
   const similarJobs = useMemo(() => {
     let filtered = jobsList.filter(
@@ -431,17 +442,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                     Đã ứng tuyển
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const session = getCandidateSession();
-                      if (session) {
-                        setIsOpenApply(true);
-                      } else {
-                        navigate(`/register?job=${job.id}`);
-                      }
-                    }}
-                  >
+                  <button type="button" onClick={handleApply}>
                     <PaperPlaneTilt size={18} />
                     Ứng tuyển ngay
                   </button>
@@ -466,6 +467,11 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   Chia sẻ
                 </button>
               </div>
+              <div className="job-detail-deadline job-detail-hero-deadline">
+                <Calendar size={17} aria-hidden="true" />
+                Hạn nộp hồ sơ: <b>{deadlineInfo.date}</b>{" "}
+                <span>({deadlineInfo.remainingText})</span>
+              </div>
             </section>
 
             <section className="job-detail-card job-detail-section">
@@ -478,14 +484,14 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               <div>
                 {/* Mô tả công việc */}
                 <div className="pb-5">
-                  <h3 className="mb-3 text-base font-bold text-slate-900">Mô tả công việc</h3>
+                  <h3 className="mb-3 text-base font-semibold text-slate-900">Mô tả công việc</h3>
                   {job.description && job.description.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
-                      className="job-detail-rich-text text-sm leading-relaxed text-slate-700"
+                      className="job-detail-rich-text text-sm leading-relaxed text-slate-900"
                       dangerouslySetInnerHTML={{ __html: getCleanHtml(job.description) }}
                     />
                   ) : (
-                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-700">
+                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-900">
                       <BulletList items={responsibilities} />
                     </div>
                   )}
@@ -493,15 +499,15 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
 
                 {/* Yêu cầu ứng viên */}
                 <div className="border-t border-slate-100 py-5">
-                  <h3 className="mb-3 text-base font-bold text-slate-900">Yêu cầu ứng viên</h3>
+                  <h3 className="mb-3 text-base font-semibold text-slate-900">Yêu cầu ứng viên</h3>
                   {job.requirements &&
                   job.requirements.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
-                      className="job-detail-rich-text text-sm leading-relaxed text-slate-700"
+                      className="job-detail-rich-text text-sm leading-relaxed text-slate-900"
                       dangerouslySetInnerHTML={{ __html: getCleanHtml(job.requirements) }}
                     />
                   ) : (
-                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-700">
+                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-900">
                       <BulletList items={requirements} />
                     </div>
                   )}
@@ -509,14 +515,14 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
 
                 {/* Quyền lợi */}
                 <div className="border-t border-slate-100 pt-5">
-                  <h3 className="mb-3 text-base font-bold text-slate-900">Quyền lợi</h3>
+                  <h3 className="mb-3 text-base font-semibold text-slate-900">Quyền lợi</h3>
                   {job.benefits && job.benefits.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
-                      className="job-detail-rich-text text-sm leading-relaxed text-slate-700"
+                      className="job-detail-rich-text text-sm leading-relaxed text-slate-900"
                       dangerouslySetInnerHTML={{ __html: getCleanHtml(job.benefits) }}
                     />
                   ) : (
-                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-700">
+                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-900">
                       <BulletList items={benefits.map((b) => b.desc)} />
                     </div>
                   )}
@@ -573,62 +579,6 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
           </article>
 
           <aside className="job-detail-aside">
-            <section className="job-detail-card job-detail-ready-card">
-              <h2>Sẵn sàng ứng tuyển?</h2>
-              <p>Gia tăng cơ hội với hồ sơ nổi bật</p>
-              {hasApplied ? (
-                <button type="button" disabled className="is-applied">
-                  <CheckCircle size={18} weight="fill" />
-                  Đã ứng tuyển
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const session = getCandidateSession();
-                    if (session) {
-                      setIsOpenApply(true);
-                    } else {
-                      navigate(`/register?job=${job.id}`);
-                    }
-                  }}
-                >
-                  <PaperPlaneTilt size={18} />
-                  Ứng tuyển ngay
-                </button>
-              )}
-              <button type="button">
-                <Coins size={18} />
-                Xem lương phù hợp
-              </button>
-              <button
-                type="button"
-                className={saved ? "is-saved" : ""}
-                onClick={() => {
-                  if (!toggleSaveJob(job.id)) {
-                    toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
-                    navigate(`/login?redirect=/jobs/${job.id}`);
-                  }
-                }}
-                disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
-                aria-pressed={saved}
-              >
-                <Bookmark size={18} weight={saved ? "fill" : "regular"} />
-                {saved ? "Đã lưu tin" : "Lưu tin"}
-              </button>
-              <div className="job-detail-deadline">
-                Hạn nộp hồ sơ: <b>{deadlineInfo.date}</b>{" "}
-                <span>({deadlineInfo.remainingText})</span>
-              </div>
-              <div className="job-detail-verified-box">
-                <ShieldCheck size={20} weight="fill" />
-                <span>
-                  <b>Tin tuyển dụng đã xác thực</b>
-                  <small>Thông tin được kiểm duyệt bởi UpNext</small>
-                </span>
-              </div>
-            </section>
-
             <section className="job-detail-card job-detail-overview-card">
               <h2>Tổng quan công việc</h2>
               <InfoLine icon={<Coins size={17} />} label="Mức lương" value={job.salary} />

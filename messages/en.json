@@ -403,6 +403,8 @@
       "processingDescription": "Please wait a moment…",
       "failedTitle": "We could not complete your sign-in",
       "failedDescription": "This sign-in link is invalid or has expired. Please try again.",
+      "successTitle": "Welcome to UpNext!",
+      "successDescription": "You're signed in. Let's discover opportunities that fit you.",
       "returnToLogin": "Back to login"
     },
     "fields": {
@@ -426,6 +428,8 @@
       "forgotPassword": "Forgot password?",
       "submit": "Log in",
       "submitting": "Logging in…",
+      "successTitle": "Welcome back!",
+      "successDescription": "You're signed in. Let's discover opportunities that fit you.",
       "signupPrompt": "Don't have an account?",
       "signupLink": "Sign up"
     },
@@ -438,6 +442,8 @@
       "emailDivider": "or sign up with email",
       "submit": "Create account",
       "submitting": "Creating account…",
+      "successTitle": "Your account is ready!",
+      "successDescription": "Welcome to UpNext. Complete your profile to stand out to employers.",
       "loginPrompt": "Already have an account?",
       "loginLink": "Log in"
     },

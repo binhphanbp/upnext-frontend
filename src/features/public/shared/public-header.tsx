@@ -832,10 +832,9 @@ export function PublicHeader({
     let ignore = false;
 
     async function syncViewer() {
-      const role = window.localStorage.getItem(demoAuthStorageKey);
       const session = getCandidateSession();
 
-      if (role !== "candidate" && !session) {
+      if (!session) {
         setStoredViewer(null);
         return;
       }
@@ -845,8 +844,6 @@ export function PublicHeader({
       });
 
       setStoredViewer(fallbackViewer);
-
-      if (!session) return;
 
       try {
         const profile = await getMyCandidateProfile(session.accessToken);
@@ -1031,7 +1028,7 @@ export function PublicHeader({
           })}
         </nav>
 
-        <div className="marketing-home-header-actions">
+        <div className="marketing-home-header-actions" suppressHydrationWarning>
           <div
             className={`marketing-home-compact-menu${compactMenuOpen ? " is-open" : ""}`}
             ref={compactMenuRef}
