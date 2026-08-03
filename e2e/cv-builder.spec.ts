@@ -99,6 +99,66 @@ test("maps target-job keywords to evidence already present in the CV", async ({ 
   await expect(evidenceMap.getByText(/không phải “điểm ATS”/i)).toBeVisible();
 });
 
+test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page }) => {
+  const snapshots: Record<string, unknown>[] = [];
+  await page.route("**/cvs", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+
+    snapshots.push(route.request().postDataJSON() as Record<string, unknown>);
+    await route.fulfill({
+      body: JSON.stringify({
+        id: "cv-builder-e2e",
+        source: "BUILDER",
+        status: "ACTIVE",
+        title: "Frontend Developer · UpNext",
+      }),
+      contentType: "application/json",
+      status: 201,
+    });
+  });
+
+  await page.goto("/vi/candidate/cv-builder");
+  await page.getByRole("button", { name: /^Thông tin/ }).click();
+  await expect(page.getByLabel("Họ và tên")).toHaveValue("Nguyễn Minh Anh");
+
+  await page.getByRole("button", { name: /^Dự án/ }).click();
+  await page.getByRole("button", { name: "Thêm dự án" }).click();
+  await page.getByLabel("Tên dự án").fill("UpNext candidate workspace");
+  await page.getByLabel("Vai trò").fill("Frontend Developer");
+  await page
+    .getByLabel("Mô tả dự án")
+    .fill("Xây dựng luồng tìm việc có kiểm thử, phân quyền và khả năng truy cập cho ứng viên.");
+
+  await page.getByRole("button", { name: "Lưu bản CV vào UpNext" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Lưu một bản CV vào UpNext");
+  await page.getByLabel("Tên bản CV").fill("Frontend Developer · UpNext");
+  await page.getByRole("button", { name: "Lưu bản CV", exact: true }).click();
+
+  await expect(page.getByText("Đã lưu “Frontend Developer · UpNext” vào UpNext.")).toBeVisible();
+  await expect.poll(() => snapshots).toHaveLength(1);
+  const snapshot = snapshots[0];
+  expect(snapshot).toBeDefined();
+  if (!snapshot) throw new Error("Expected one CV snapshot request");
+
+  expect(snapshot).toMatchObject({
+    isDefault: false,
+    source: "BUILDER",
+    status: "ACTIVE",
+    title: "Frontend Developer · UpNext",
+  });
+  expect(snapshot.contentJson).toEqual(
+    expect.objectContaining({
+      projects: expect.arrayContaining([
+        expect.objectContaining({ name: "UpNext candidate workspace" }),
+      ]),
+    }),
+  );
+  expect(snapshot.parsedText).toContain("UpNext candidate workspace");
+});
+
 test("switches between edit and preview without page overflow on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/vi/candidate/cv-builder");

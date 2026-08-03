@@ -39,6 +39,20 @@
       "privateTitle": "Bản nháp riêng tư",
       "privateDescription": "Nội dung được tự lưu trong trình duyệt của tài khoản này, chưa gửi lên máy chủ."
     },
+    "serverSave": {
+      "button": "Lưu bản CV vào UpNext",
+      "buttonShort": "Lưu CV",
+      "title": "Lưu một bản CV vào UpNext",
+      "description": "UpNext sẽ tạo một bản CV riêng để bạn có thể chọn khi ứng tuyển. Bản nháp đang chỉnh sửa trên thiết bị vẫn được giữ nguyên.",
+      "nameLabel": "Tên bản CV",
+      "namePlaceholder": "Ví dụ: Frontend Developer · UpNext",
+      "note": "Đây là một snapshot tại thời điểm lưu. Các thay đổi tiếp theo trong Studio không tự ghi đè lên bản CV này.",
+      "confirm": "Lưu bản CV",
+      "saving": "Đang lưu…",
+      "success": "Đã lưu “{title}” vào UpNext. Bạn có thể chọn bản CV này khi ứng tuyển.",
+      "error": "Chưa thể lưu bản CV vào UpNext. Kiểm tra kết nối rồi thử lại.",
+      "defaultTitle": "CV ứng tuyển"
+    },
     "mobile": {
       "viewMode": "Chế độ làm việc",
       "edit": "Chỉnh sửa",
