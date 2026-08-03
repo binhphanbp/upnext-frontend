@@ -330,7 +330,7 @@
     },
     "clearDialog": {
       "title": "Clear all CV content?",
-      "description": "Entered information will be removed from the on-device draft. Design choices remain, and you can Undo afterward.",
+      "description": "Information entered in this CV will be removed from the on-device draft. The target opportunity and design remain, and you can undo afterward.",
       "confirm": "Clear content"
     },
     "exportValidation": {

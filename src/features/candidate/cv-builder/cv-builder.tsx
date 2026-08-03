@@ -103,6 +103,10 @@ function createCvSnapshotText(cvData: CvData) {
     [
       cvData.personalInfo.fullName,
       cvData.personalInfo.title,
+      cvData.personalInfo.email,
+      cvData.personalInfo.phoneNumber,
+      cvData.personalInfo.address,
+      cvData.personalInfo.website,
       cvData.summary,
       ...cvData.experiences.flatMap((experience) => [
         experience.positionTitle,
@@ -343,7 +347,7 @@ function TargetingEditor({ evaluation }: Readonly<{ evaluation: CvEvaluation }>)
             </div>
           </div>
           <div className="cv-form-grid">
-            <FormField id="cv-target-role" label={t("targeting.role")} required showError={false}>
+            <FormField id="cv-target-role" label={t("targeting.role")} showError={false}>
               <Input
                 autoComplete="off"
                 id="cv-target-role"
@@ -1526,10 +1530,12 @@ function DesignEditor() {
 
 function ReviewEditor({
   evaluation,
+  onFixIssue,
   onNavigate,
   pageCount,
 }: Readonly<{
   evaluation: CvEvaluation;
+  onFixIssue: (issue: CvIssue) => void;
   onNavigate: (section: CvEditorSectionKey) => void;
   pageCount: number;
 }>) {
@@ -1717,7 +1723,7 @@ function ReviewEditor({
                   {issue.severity === "error" ? <WarningCircle /> : <Info />}
                 </span>
                 <p>{t(`validation.${issue.code}`)}</p>
-                <button onClick={() => onNavigate(issue.section)} type="button">
+                <button onClick={() => onFixIssue(issue)} type="button">
                   {t("review.fix")}
                 </button>
               </li>
@@ -1835,7 +1841,7 @@ export function CandidateCvBuilder() {
         if (isCvEmpty(currentDraft)) {
           useCvBuilderStore
             .getState()
-            .setCvData(mapProfileToCvData(candidateProfile, currentDraft));
+            .hydrateCvData(mapProfileToCvData(candidateProfile, currentDraft));
         }
       } catch {
         // A local draft remains fully usable when the optional profile request is unavailable.
@@ -1990,20 +1996,29 @@ export function CandidateCvBuilder() {
     window.requestAnimationFrame(() => editorScrollRef.current?.scrollTo({ top: 0 }));
   };
 
-  const goToIssueSection = (section: CvEditorSectionKey) => {
+  const focusIssue = (section: CvEditorSectionKey, issue?: CvIssue) => {
+    setRevealValidation(true);
     goToSection(section);
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         const sectionRoot =
           editorScrollRef.current?.querySelector<HTMLElement>(".cv-editor-section");
-        const target = sectionRoot?.querySelector<HTMLElement>(
-          '[aria-invalid="true"], input[required]:invalid, textarea[required]:invalid, button',
-        );
+        const issueMessageId = issue ? `cv-error-${issue.path.replaceAll(".", "-")}` : undefined;
+        const target =
+          (issueMessageId
+            ? sectionRoot?.querySelector<HTMLElement>(`[aria-describedby~="${issueMessageId}"]`)
+            : undefined) ??
+          sectionRoot?.querySelector<HTMLElement>(
+            '[aria-invalid="true"], input[required]:invalid, textarea[required]:invalid, button',
+          );
         target?.focus({ preventScroll: true });
         target?.scrollIntoView({ block: "center" });
       });
     });
   };
+
+  const goToIssueSection = (section: CvEditorSectionKey) => focusIssue(section);
+  const goToIssue = (issue: CvIssue) => focusIssue(issue.section, issue);
 
   const renderEditor = () => {
     switch (activeSection) {
@@ -2023,7 +2038,12 @@ export function CandidateCvBuilder() {
         return <SkillsEditor evaluation={evaluation} revealValidation={revealValidation} />;
       case "review":
         return (
-          <ReviewEditor evaluation={evaluation} onNavigate={goToSection} pageCount={pageCount} />
+          <ReviewEditor
+            evaluation={evaluation}
+            onFixIssue={goToIssue}
+            onNavigate={goToSection}
+            pageCount={pageCount}
+          />
         );
       case "styling":
         return <DesignEditor />;

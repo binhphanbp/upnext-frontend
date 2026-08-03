@@ -165,6 +165,7 @@ export interface CvBuilderState {
   selectTemplate: (template: CvData["selectedTemplate"]) => void;
   setCvLanguage: (lang: CvData["cvLanguage"]) => void;
   setCvData: (data: CvData) => void;
+  hydrateCvData: (data: CvData) => void;
   clearCv: () => void;
   toggleSectionVisibility: (key: CvSectionKey) => void;
   renameSection: (key: CvSectionKey, newName: string) => void;
@@ -370,6 +371,13 @@ export const useCvBuilderStore = create<CvBuilderState>()(
         get().updateCvData((cvData) => ({ ...cvData, selectedTemplate })),
       setCvLanguage: (cvLanguage) => get().updateCvData((cvData) => ({ ...cvData, cvLanguage })),
       setCvData: (cvData) => get().updateCvData(() => normalizeCvData(cvData)),
+      hydrateCvData: (cvData) =>
+        set({
+          cvData: normalizeCvData(cvData),
+          draftSavedAt: new Date().toISOString(),
+          past: [],
+          future: [],
+        }),
       clearCv: () =>
         get().updateCvData((cvData) => ({
           ...createInitialCvData(cvData.cvLanguage),

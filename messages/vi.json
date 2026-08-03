@@ -330,7 +330,7 @@
     },
     "clearDialog": {
       "title": "Xóa toàn bộ nội dung CV?",
-      "description": "Thông tin đã nhập sẽ bị xóa khỏi bản nháp trên thiết bị. Mẫu thiết kế được giữ lại và bạn vẫn có thể Hoàn tác sau đó.",
+      "description": "Thông tin đã nhập trong CV sẽ bị xóa khỏi bản nháp trên thiết bị. Công việc mục tiêu và mẫu thiết kế được giữ lại; bạn vẫn có thể Hoàn tác sau đó.",
       "confirm": "Xóa nội dung"
     },
     "exportValidation": {

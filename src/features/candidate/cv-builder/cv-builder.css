@@ -3174,6 +3174,16 @@
     -webkit-print-color-adjust: exact;
   }
 
+  .cv-document-section > h2 {
+    break-after: avoid-page;
+  }
+
+  .cv-document-copy,
+  .cv-document-list {
+    orphans: 3;
+    widows: 3;
+  }
+
   .cv-document--margin-sm {
     padding: 12mm 13mm !important;
   }
