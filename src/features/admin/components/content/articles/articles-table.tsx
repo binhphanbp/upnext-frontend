@@ -12,8 +12,8 @@ import * as React from "react";
 import Swal from "sweetalert2";
 
 import { getAdminPosts, type AdminPostResponse } from "@/features/admin/api/posts";
+import { AdminTableLayout } from "@/features/admin/components/admin-table-layout";
 import { getAdminSession, clearAdminSession } from "@/features/admin/session";
-import { RecruiterTableLayout } from "@/features/recruiter/components/recruiter-table-layout";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
@@ -225,7 +225,7 @@ export function ArticlesTable() {
 
   return (
     <div className="mt-6">
-      <RecruiterTableLayout
+      <AdminTableLayout
         loading={isLoading}
         totalItems={filteredData.length}
         currentPage={currentPage}
@@ -280,7 +280,7 @@ export function ArticlesTable() {
             </Button>
             <Button
               variant="outline"
-              className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border-emerald-600 px-4 font-bold text-emerald-600 shadow-none transition-all hover:bg-emerald-50/50"
+              className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border-emerald-600 px-4 font-semibold text-emerald-600 shadow-none transition-all hover:bg-emerald-50/50"
             >
               <DownloadSimple size={18} />
               <span>Xuất Excel</span>
@@ -299,22 +299,22 @@ export function ArticlesTable() {
                 onChange={(e) => handleSelectAll(e.target.checked)}
               />
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("article")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("author")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("status")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-right font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-right font-semibold last:border-r-0">
               {t("views")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-bold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("date")}
             </th>
-            <th className="px-4 py-3 text-right font-bold">Thao tác</th>
+            <th className="px-4 py-3 text-right font-semibold">Thao tác</th>
           </tr>
         </thead>
         <tbody>
@@ -380,7 +380,7 @@ export function ArticlesTable() {
                   </td>
                   <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
                     <div>
-                      <p className="text-foreground font-bold">{article.title}</p>
+                      <p className="text-foreground font-semibold">{article.title}</p>
                       <p className="text-muted-foreground text-xs">
                         {t(`categoryOptions.${categoryKey}`)}
                       </p>
@@ -465,7 +465,7 @@ export function ArticlesTable() {
             })
           )}
         </tbody>
-      </RecruiterTableLayout>
+      </AdminTableLayout>
     </div>
   );
 }

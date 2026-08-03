@@ -7,13 +7,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 export default function AdminSalesPage() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Sales CRM</h1>
-          <p className="text-muted-foreground">
-            Quản lý phễu khách hàng B2B (Nhà tuyển dụng), theo dõi tiến độ chốt sale.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <AddSalesLeadDialog />
       </div>
 

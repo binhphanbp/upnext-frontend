@@ -178,7 +178,7 @@ export const getColumns = (t: any): ColumnDef<AdminTransaction>[] => [
 
       return (
         <div>
-          <p className="text-foreground font-bold">{client}</p>
+          <p className="text-foreground font-semibold">{client}</p>
           <p className="text-muted-foreground text-xs">{service}</p>
         </div>
       );

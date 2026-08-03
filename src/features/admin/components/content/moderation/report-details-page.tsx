@@ -272,7 +272,7 @@ export function ReportDetailsPage({ id }: { id: string }) {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-bold">{t("stats")}</CardTitle>
+              <CardTitle className="text-base font-semibold">{t("stats")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 last:border-0 last:pb-0">

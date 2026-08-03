@@ -240,7 +240,7 @@ export const getColumns = (
 
       return (
         <div>
-          <p className="text-foreground font-bold">{translatedName}</p>
+          <p className="text-foreground font-semibold">{translatedName}</p>
           <p className="text-muted-foreground text-xs">{id}</p>
         </div>
       );

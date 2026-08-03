@@ -79,7 +79,7 @@ export const columns: ColumnDef<AdminSalesLead>[] = [
     header: "Khách hàng (Công ty)",
     cell: ({ row }) => (
       <div>
-        <p className="text-foreground font-bold">{row.original.companyName}</p>
+        <p className="text-foreground font-semibold">{row.original.companyName}</p>
         <p className="text-muted-foreground text-xs">{row.original.contactName}</p>
       </div>
     ),

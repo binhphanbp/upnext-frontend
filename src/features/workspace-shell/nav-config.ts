@@ -96,7 +96,7 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
       { label: "operationsAndContent.jobs", href: "/admin/content/jobs", icon: Briefcase },
       { label: "operationsAndContent.articles", href: "/admin/content/articles", icon: Article },
 
-      { label: "operationsAndContent.appeals", href: "/admin/appeals", icon: ShieldCheck },
+      { label: "operationsAndContent.reports", href: "/admin/reports", icon: ShieldCheck },
     ],
   },
   {

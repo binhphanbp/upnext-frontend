@@ -7,11 +7,6 @@ export default async function RecruitersPage() {
 
   return (
     <div className="flex-1 space-y-6">
-      <div>
-        <h2 className="text-foreground text-3xl font-extrabold tracking-tight">{t("title")}</h2>
-        <p className="text-muted-foreground mt-1">{t("subtitle")}</p>
-      </div>
-
       <RecruitersTable />
     </div>
   );

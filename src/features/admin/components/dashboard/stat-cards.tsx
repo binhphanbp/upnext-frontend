@@ -46,7 +46,7 @@ export function StatCards({ stats }: { stats?: AdminDashboardSummary | undefined
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-bold">{t("totalRevenue")}</CardTitle>
+          <CardTitle className="text-sm font-semibold">{t("totalRevenue")}</CardTitle>
           <CurrencyCircleDollar className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
@@ -61,7 +61,7 @@ export function StatCards({ stats }: { stats?: AdminDashboardSummary | undefined
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-bold">{(t as any)("totalCandidates")}</CardTitle>
+          <CardTitle className="text-sm font-semibold">{(t as any)("totalCandidates")}</CardTitle>
           <Users className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
@@ -76,7 +76,7 @@ export function StatCards({ stats }: { stats?: AdminDashboardSummary | undefined
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-bold">{(t as any)("totalRecruiters")}</CardTitle>
+          <CardTitle className="text-sm font-semibold">{(t as any)("totalRecruiters")}</CardTitle>
           <Buildings className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
@@ -91,7 +91,7 @@ export function StatCards({ stats }: { stats?: AdminDashboardSummary | undefined
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-bold">{t("activeJobs")}</CardTitle>
+          <CardTitle className="text-sm font-semibold">{t("activeJobs")}</CardTitle>
           <Briefcase className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>
@@ -106,7 +106,7 @@ export function StatCards({ stats }: { stats?: AdminDashboardSummary | undefined
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-bold">
+          <CardTitle className="text-sm font-semibold">
             {(t as any)("pendingCompanyApprovals")}
           </CardTitle>
           <ShieldCheck className="text-muted-foreground" size={20} />
@@ -120,7 +120,9 @@ export function StatCards({ stats }: { stats?: AdminDashboardSummary | undefined
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-bold">{(t as any)("pendingJobApprovals")}</CardTitle>
+          <CardTitle className="text-sm font-semibold">
+            {(t as any)("pendingJobApprovals")}
+          </CardTitle>
           <ShieldCheck className="text-muted-foreground" size={20} />
         </CardHeader>
         <CardContent>

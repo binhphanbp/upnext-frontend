@@ -136,7 +136,7 @@ export function ArticleDetailsPage({ id }: { id: string }) {
           <Card>
             <CardContent className="pt-6">
               <div
-                className="prose prose-slate prose-headings:font-bold prose-a:text-primary hover:prose-a:underline max-w-none"
+                className="prose prose-slate prose-headings:font-semibold prose-a:text-primary hover:prose-a:underline max-w-none"
                 dangerouslySetInnerHTML={{
                   __html:
                     article.content ||
@@ -151,7 +151,7 @@ export function ArticleDetailsPage({ id }: { id: string }) {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-bold">Thông tin thống kê</CardTitle>
+              <CardTitle className="text-base font-semibold">Thông tin thống kê</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 last:border-0 last:pb-0">

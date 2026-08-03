@@ -132,7 +132,7 @@ export const getColumns = (t: any): ColumnDef<AdminRole>[] => [
 
       return (
         <div>
-          <p className="text-foreground font-bold">{name}</p>
+          <p className="text-foreground font-semibold">{name}</p>
           <p className="text-muted-foreground text-xs">{description}</p>
         </div>
       );
