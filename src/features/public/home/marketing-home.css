@@ -2077,7 +2077,7 @@ button.marketing-home-control {
 
 .marketing-home-marquee-track .marketing-home-company {
   flex: 0 0 auto;
-  margin-right: 56px;
+  margin-right: 24px;
 }
 
 @keyframes marketing-home-marquee {
@@ -2094,7 +2094,7 @@ button.marketing-home-control {
     animation: none;
     width: auto;
     flex-wrap: wrap;
-    gap: 20px 40px;
+    gap: 16px 24px;
   }
 
   .marketing-home-company-clone {
@@ -2127,40 +2127,18 @@ button.marketing-home-control {
 }
 
 .marketing-home-company {
-  color: #111827;
-  font-size: 23px;
-  font-style: normal;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 0.9;
-  white-space: nowrap;
+  display: grid;
+  width: 104px;
+  height: 42px;
+  place-items: center;
 }
 
-.marketing-home-company small {
-  display: block;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-align: center;
-}
-
-.marketing-home-company-FPT {
-  color: #1682c4;
-  font-size: 22px;
-}
-.marketing-home-company-VNG {
-  color: #ef6c21;
-}
-.marketing-home-company-viettel {
-  color: #ef1c2c;
-}
-.marketing-home-company-tiki {
-  color: #0876ef;
-  font-size: 29px;
-}
-.marketing-home-company-momo {
-  color: #a50070;
-  font-size: 25px;
+.marketing-home-company img {
+  width: auto;
+  height: auto;
+  max-width: 104px;
+  max-height: 42px;
+  object-fit: contain;
 }
 
 /* ============================================================
@@ -6079,7 +6057,7 @@ button.marketing-home-control {
   }
 
   .marketing-home-marquee-track .marketing-home-company {
-    margin-right: 40px;
+    margin-right: 18px;
   }
 
   .marketing-home-jobs {
