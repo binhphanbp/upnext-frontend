@@ -19,14 +19,19 @@ import {
   type CandidateCvApi,
   checkAppliedJob,
   createCandidateCv,
+  downloadCandidateCvVersion,
   getMyCandidateCvs,
   getMyCandidateProfile,
   submitApplication,
   uploadCandidateCvFile,
 } from "@/features/candidate/api/profile";
+import {
+  getLatestCandidateCvVersion,
+  resolveCandidateCvSelection,
+} from "@/features/candidate/cv-selection";
 import { getCandidateSession } from "@/features/candidate/session";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError, createApiUrl } from "@/shared/api/http";
+import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -61,6 +66,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const [appliedApplicationId, setAppliedApplicationId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [previewingCvId, setPreviewingCvId] = useState<string | null>(null);
+  const [unavailableCvIds, setUnavailableCvIds] = useState<ReadonlySet<string>>(() => new Set());
 
   // CV Preview
   const [previewCv, setPreviewCv] = useState<{
@@ -127,16 +133,10 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   // applicationId: ưu tiên từ state (khi 409), sau đó từ query check
   const resolvedApplicationId = appliedApplicationId ?? appliedData?.applicationId ?? null;
 
-  // Auto-select default CV
+  // A default is only the initial suggestion. Preserve a CV the candidate has
+  // selected (especially one they have just uploaded) after query refreshes.
   useEffect(() => {
-    if (cvsData?.items) {
-      const defaultCv = cvsData.items.find((cv) => cv.isDefault);
-      if (defaultCv) {
-        setSelectedCvId(defaultCv.id);
-      } else if (cvsData.items.length > 0 && cvsData.items[0]) {
-        setSelectedCvId(cvsData.items[0].id);
-      }
-    }
+    setSelectedCvId((current) => resolveCandidateCvSelection(cvsData?.items, current));
   }, [cvsData]);
 
   // Prefill candidate details when profile loads
@@ -173,9 +173,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const handlePreviewCv = async (cv: CandidateCvApi) => {
     if (!session) return;
 
-    const latestVersion = [...cv.versions].sort(
-      (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
-    )[0];
+    const latestVersion = getLatestCandidateCvVersion(cv);
 
     if (!latestVersion) {
       setErrorMessage("CV này chưa có phiên bản để xem.");
@@ -186,14 +184,10 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(createApiUrl(`/cv-versions/${latestVersion.id}/download`), {
-        headers: { Authorization: `Bearer ${session.accessToken}` },
-      });
-      if (!response.ok) {
-        throw new Error("CV preview failed");
-      }
-
-      const blob = await response.blob();
+      const { blob, mimeType } = await downloadCandidateCvVersion(
+        session.accessToken,
+        latestVersion.id,
+      );
       if (previewObjectUrlRef.current) {
         URL.revokeObjectURL(previewObjectUrlRef.current);
       }
@@ -203,10 +197,17 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       setPreviewCv({
         title: cv.title,
         url: objectUrl,
-        mimeType: latestVersion.sourceFile?.mimeType || blob.type || "application/octet-stream",
+        mimeType: mimeType || latestVersion.sourceFile?.mimeType || "application/octet-stream",
       });
-    } catch {
-      setErrorMessage("Không thể mở bản xem trước CV. Vui lòng thử lại.");
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        setUnavailableCvIds((current) => new Set(current).add(cv.id));
+        setErrorMessage(
+          "Không thể mở CV này vì tệp gốc không còn trên hệ thống. Vui lòng tải lên bản CV mới để tiếp tục.",
+        );
+      } else {
+        setErrorMessage("Không thể mở bản xem trước CV. Vui lòng thử lại.");
+      }
     } finally {
       setPreviewingCvId(null);
     }
@@ -232,6 +233,11 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       // 3. Refresh and select
       await refetchCvs();
       setSelectedCvId(cvRes.id);
+      setUnavailableCvIds((current) => {
+        const next = new Set(current);
+        next.delete(cvRes.id);
+        return next;
+      });
     } catch (err: any) {
       console.error("Failed to upload CV", err);
       setErrorMessage("Không thể tải lên file CV. Vui lòng thử lại.");
@@ -278,6 +284,8 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       setSubmitting(false);
     }
   };
+
+  const isSelectedCvUnavailable = selectedCvId ? unavailableCvIds.has(selectedCvId) : false;
 
   // Helper hook to prevent SSR error
   function useMemoSession() {
@@ -469,57 +477,77 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                 ) : (
                   <div className="space-y-2">
                     {cvsData?.items && cvsData.items.length > 0 ? (
-                      cvsData.items.map((cv) => {
-                        return (
-                          <button
-                            type="button"
-                            key={cv.id}
-                            onClick={() => {
-                              setSelectedCvId(cv.id);
-                              void handlePreviewCv(cv);
-                            }}
-                            disabled={previewingCvId === cv.id}
-                            aria-label={`Chọn và xem CV ${cv.title}`}
-                            className={cn(
-                              "flex w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition disabled:cursor-wait disabled:opacity-70",
-                              selectedCvId === cv.id
-                                ? "border-emerald-500 bg-emerald-50/20"
-                                : "border-slate-200 bg-white hover:bg-slate-50/40",
-                            )}
-                          >
-                            <div className="flex min-w-0 items-center gap-2.5">
-                              <FilePdf
-                                size={20}
-                                weight="fill"
-                                className="flex-shrink-0 text-red-500"
-                              />
-                              <div className="min-w-0">
-                                <p className="truncate text-xs font-bold text-slate-800">
-                                  {cv.title}
-                                </p>
-                                <p className="mt-0.5 text-[10px] text-slate-400">
-                                  Cập nhật: {new Date(cv.updatedAt).toLocaleDateString("vi-VN")}
-                                </p>
+                      <div className="space-y-2">
+                        {cvsData.items.map((cv) => {
+                          const isSelected = selectedCvId === cv.id;
+                          const isUnavailable = unavailableCvIds.has(cv.id);
+                          return (
+                            <div
+                              key={cv.id}
+                              className={cn(
+                                "flex w-full items-center justify-between rounded-xl border p-3 text-left transition",
+                                isSelected
+                                  ? "border-emerald-500 bg-emerald-50/20"
+                                  : "border-slate-200 bg-white hover:bg-slate-50/40",
+                              )}
+                            >
+                              <button
+                                type="button"
+                                aria-pressed={isSelected}
+                                aria-label={`Chọn CV ${cv.title}`}
+                                onClick={() => {
+                                  setSelectedCvId(cv.id);
+                                  setErrorMessage(null);
+                                }}
+                                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                              >
+                                <FilePdf
+                                  size={20}
+                                  weight="fill"
+                                  className="flex-shrink-0 text-red-500"
+                                />
+                                <span className="min-w-0">
+                                  <span className="block truncate text-xs font-bold text-slate-800">
+                                    {cv.title}
+                                  </span>
+                                  <span className="mt-0.5 block text-[10px] text-slate-400">
+                                    Cập nhật: {new Date(cv.updatedAt).toLocaleDateString("vi-VN")}
+                                  </span>
+                                  {isUnavailable ? (
+                                    <span className="mt-1 block text-[10px] font-semibold text-amber-700">
+                                      Tệp gốc không còn khả dụng
+                                    </span>
+                                  ) : null}
+                                </span>
+                              </button>
+                              <div className="ml-2 flex flex-shrink-0 items-center gap-2">
+                                {cv.isDefault && (
+                                  <span className="rounded bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700 uppercase">
+                                    Mặc định
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  disabled={previewingCvId === cv.id}
+                                  onClick={() => void handlePreviewCv(cv)}
+                                  className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none disabled:cursor-wait disabled:opacity-70"
+                                  aria-label={`Xem trước CV ${cv.title}`}
+                                >
+                                  {previewingCvId === cv.id ? (
+                                    <SpinnerGap
+                                      size={15}
+                                      className="animate-spin text-emerald-600"
+                                    />
+                                  ) : (
+                                    <Eye size={15} />
+                                  )}
+                                  Xem CV
+                                </button>
                               </div>
                             </div>
-                            <div className="flex flex-shrink-0 items-center gap-2">
-                              {cv.isDefault && (
-                                <span className="rounded bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700 uppercase">
-                                  Mặc định
-                                </span>
-                              )}
-                              <span className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-semibold text-slate-500">
-                                {previewingCvId === cv.id ? (
-                                  <SpinnerGap size={15} className="animate-spin text-emerald-600" />
-                                ) : (
-                                  <Eye size={15} />
-                                )}
-                                Xem CV
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })
+                          );
+                        })}
+                      </div>
                     ) : (
                       <p className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-500 italic">
                         Bạn chưa tải lên CV nào. Vui lòng chọn tải lên bên dưới.
@@ -590,7 +618,12 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
               <Button
                 type="submit"
                 disabled={
-                  submitting || uploading || !selectedCvVersionId || !phoneNumber || !fullName
+                  submitting ||
+                  uploading ||
+                  !selectedCvVersionId ||
+                  !phoneNumber ||
+                  !fullName ||
+                  isSelectedCvUnavailable
                 }
                 className="w-full cursor-pointer rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
