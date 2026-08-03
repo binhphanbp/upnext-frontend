@@ -157,6 +157,54 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
     }),
   );
   expect(snapshot.parsedText).toContain("UpNext candidate workspace");
+  expect(snapshot.parsedText).toContain("minhanh@example.com");
+  expect(snapshot.parsedText).toContain("0901234567");
+  expect(snapshot.parsedText).toContain("TP. Hồ Chí Minh");
+});
+
+test("takes a reviewer directly to the first field that needs attention", async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 960 });
+  await page.goto("/vi/candidate/cv-builder");
+
+  await page.getByRole("button", { name: "Xóa nội dung CV" }).click();
+  await page.getByRole("button", { name: "Xóa nội dung", exact: true }).click();
+  await page.getByRole("button", { name: /^Kiểm tra/ }).click();
+  await page.getByRole("button", { name: "Chỉnh sửa", exact: true }).first().click();
+
+  await expect(page.getByLabel("Họ và tên")).toBeFocused();
+});
+
+test("takes a reviewer to the specific field behind a non-blocking suggestion", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1536, height: 960 });
+  await page.goto("/vi/candidate/cv-builder");
+
+  await page.getByRole("button", { name: /^Tóm tắt/ }).click();
+  await page.getByLabel("Giới thiệu ngắn").fill("Frontend Developer có kinh nghiệm React.");
+  await page.getByRole("button", { name: /^Kiểm tra/ }).click();
+
+  const summaryIssue = page.locator(".cv-review-list li").filter({
+    hasText: "Nên viết ít nhất 60 ký tự",
+  });
+  await summaryIssue.getByRole("button", { name: "Chỉnh sửa", exact: true }).click();
+
+  await expect(page.getByLabel("Giới thiệu ngắn")).toBeFocused();
+});
+
+test("keeps workspace controls usable at tablet width", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("/vi/candidate/cv-builder");
+
+  await expect(page.locator(".cv-mobile-mode-switch")).toBeVisible();
+  await page.getByRole("button", { name: "Xem trước", exact: true }).click();
+  await expect(page.getByLabel("Bản xem trước A4")).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+    .toBe(true);
+
+  await page.getByRole("button", { name: "Chỉnh sửa", exact: true }).click();
+  await expect(page.getByRole("button", { name: "In / lưu PDF", exact: true })).toBeVisible();
 });
 
 test("switches between edit and preview without page overflow on mobile", async ({ page }) => {
