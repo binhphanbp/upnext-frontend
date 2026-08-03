@@ -6,13 +6,14 @@ import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { getPostCover } from "@/features/posts/post-cover";
 import type { Post } from "@/features/posts/types/post";
 import { Link } from "@/i18n/navigation";
 
 type InsightArticle = {
   id: string;
   image: string;
-  imageAlt: string;
+  isFallbackImage: boolean;
   slug: string;
   title: string;
 };
@@ -29,14 +30,6 @@ type InsightsCarouselRailProps = {
   articles: InsightArticle[];
   locale: "en" | "vi";
 };
-
-const fallbackImages = [
-  "/assets/marketing/home/market-ai.png",
-  "/assets/company-profile/office1.png",
-  "/assets/company-profile/office2.png",
-  "/assets/company-profile/office3.png",
-  "/anh.png",
-];
 
 const copyByLocale = {
   vi: {
@@ -69,13 +62,6 @@ const copyByLocale = {
   },
 } as const;
 
-function getInsightImage(post: Post, index: number) {
-  const image = post.coverImageFile?.publicUrl ?? post.thumbnailFile?.publicUrl;
-  return image && (/^https?:\/\//u.test(image) || image.startsWith("/"))
-    ? image
-    : fallbackImages[index % fallbackImages.length]!;
-}
-
 export function InsightsCarousel({
   isLoading,
   isError = false,
@@ -87,13 +73,16 @@ export function InsightsCarousel({
   const copy = copyByLocale[locale];
   const articles = useMemo(
     () =>
-      posts.map((post, index) => ({
-        id: post.id,
-        image: getInsightImage(post, index),
-        imageAlt: post.title,
-        slug: post.slug,
-        title: post.title,
-      })),
+      posts.map((post) => {
+        const cover = getPostCover(post);
+        return {
+          id: post.id,
+          image: cover.src,
+          isFallbackImage: cover.isFallback,
+          slug: post.slug,
+          title: post.title,
+        };
+      }),
     [posts],
   );
 
@@ -236,7 +225,7 @@ function InsightsCarouselRail({ articles, locale }: InsightsCarouselRailProps) {
                     <div className="marketing-home-insights-image">
                       <Image
                         src={article.image}
-                        alt={article.imageAlt}
+                        alt={article.isFallbackImage ? "" : article.title}
                         width={960}
                         height={620}
                         sizes="(max-width: 760px) 84vw, 650px"

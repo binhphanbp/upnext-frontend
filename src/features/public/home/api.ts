@@ -234,6 +234,12 @@ export type HomePostCard = {
   createdAt: string;
 };
 
+export type HomeCompanyLogo = {
+  slug: string;
+  name: string;
+  logo: string;
+};
+
 export type HomeData = {
   stats: {
     jobsCount: number;
@@ -252,7 +258,7 @@ export type HomeData = {
   };
   topCompanies: HomeTopCompany[];
   marketInsight: HomeMarketInsight;
-  companyLogos: Array<{ slug: string; name: string; logo: string }>;
+  companyLogos: HomeCompanyLogo[];
   latestPosts: HomePostCard[];
   personalization?: {
     state: HomePersonalizationState;
@@ -398,6 +404,17 @@ export async function getHomeData(accessToken?: string) {
   }
 
   return data;
+}
+
+/**
+ * The home aggregate has a dedicated companyLogos collection for the hero trust strip.
+ * Do not substitute topCompanies here: that collection is ranked for the company section and
+ * may contain records without a logo.
+ */
+export function getHomeTrustCompanies(home: Pick<HomeData, "companyLogos">): HomeCompanyLogo[] {
+  return home.companyLogos.filter(
+    (company) => company.name.trim().length > 0 && /^https?:\/\//u.test(company.logo.trim()),
+  );
 }
 
 export function mapHomeJobCard(job: HomeJobCard): PublicJob {

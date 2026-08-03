@@ -8,6 +8,7 @@ import { Link } from "@/i18n/navigation";
 import { useRouter } from "@/i18n/navigation";
 
 import { getPublicPostBySlug, getPublicPosts } from "../api/posts";
+import { DEFAULT_POST_COVER_URL, getPostCover } from "../post-cover";
 import type { Post } from "../types/post";
 import { PostCard } from "./post-card";
 
@@ -120,9 +121,7 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
   const readingTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
   const categoryName = post?.category?.name || "Bài viết UpNext";
-  const coverUrl =
-    post?.thumbnailFile?.publicUrl ||
-    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80";
+  const cover = post ? getPostCover(post) : { src: DEFAULT_POST_COVER_URL, isFallback: true };
 
   const [isTocOpen, setIsTocOpen] = useState(true);
 
@@ -258,12 +257,11 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
             {/* Cover Image */}
             <div className="mb-10 aspect-video w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm">
               <img
-                src={coverUrl}
-                alt={post.title}
+                src={cover.src}
+                alt={cover.isFallback ? "" : post.title}
                 className="h-full w-full object-cover"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src =
-                    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80";
+                  (e.currentTarget as HTMLImageElement).src = DEFAULT_POST_COVER_URL;
                 }}
               />
             </div>

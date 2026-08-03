@@ -4,6 +4,7 @@ import type { HomeData, HomeJobCard } from "./api";
 import {
   getHomeData,
   getHomeJobCity,
+  getHomeTrustCompanies,
   getPublicJobDetail,
   mapHomeCompanies,
   mapHomeJobCard,
@@ -188,6 +189,18 @@ describe("homepage API adapters", () => {
     expect(mapped.items.map((company) => company.id)).toEqual(["spotlight-ready", "rank-1"]);
     expect(mapped.items[0]?.slug).toBe("spotlight-ready");
     expect(mapped.items.some((company) => company.id === "inactive")).toBe(false);
+  });
+
+  it("uses only the dedicated logo payload for the hero trust strip", () => {
+    const data = homeData();
+    data.companyLogos = [
+      { slug: "fpt", name: "FPT Software", logo: "https://cdn.example.com/fpt.png" },
+      { slug: "missing-logo", name: "Missing logo", logo: "" },
+    ];
+
+    expect(getHomeTrustCompanies(data)).toEqual([
+      { slug: "fpt", name: "FPT Software", logo: "https://cdn.example.com/fpt.png" },
+    ]);
   });
 
   it("loads and normalizes one public job detail on demand", async () => {

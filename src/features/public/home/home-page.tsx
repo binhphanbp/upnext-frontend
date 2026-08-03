@@ -20,6 +20,7 @@ import { PublicFooter } from "../shared/public-footer";
 import { PublicHeader } from "../shared/public-header";
 import {
   getHomeData,
+  getHomeTrustCompanies,
   mapHomeCompanies,
   mapHomeJobCard,
   mapHomePost,
@@ -429,8 +430,8 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     });
   }
   const trustCompanies = useMemo(
-    () => homeData?.topCompanies.filter((company) => company.activeJobsCount > 0) ?? [],
-    [homeData?.topCompanies],
+    () => (homeData ? getHomeTrustCompanies(homeData) : []),
+    [homeData],
   );
 
   const formattedStats = useMemo(() => {
@@ -690,23 +691,30 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             <div className="marketing-home-trusted">
               <span>{copy.trustedBy}</span>
               <div className="marketing-home-marquee">
-                <div className="marketing-home-marquee-track" aria-hidden="true">
+                <div className="marketing-home-marquee-track">
                   {trustCompanies.map((company) => (
-                    <b
-                      className={`marketing-home-company marketing-home-company-${company.id}`}
-                      key={company.id}
-                    >
-                      {company.name}
-                    </b>
+                    <span className="marketing-home-company" key={company.slug}>
+                      {/* External logo URLs are provided by the Home API and keep their native aspect ratio. */}
+                      {/* oxlint-disable-next-line next/no-img-element */}
+                      <img alt={company.name} decoding="async" loading="lazy" src={company.logo} />
+                    </span>
                   ))}
-                  {/* Duplicate set creates the seamless loop; hidden when motion is reduced. */}
+                  {/* Duplicate set creates the seamless loop; hidden from assistive technology. */}
                   {trustCompanies.map((company) => (
-                    <b
-                      className={`marketing-home-company marketing-home-company-clone marketing-home-company-${company.id}`}
-                      key={`${company.id}-clone`}
+                    <span
+                      aria-hidden="true"
+                      className="marketing-home-company marketing-home-company-clone"
+                      key={`${company.slug}-clone`}
                     >
-                      {company.name}
-                    </b>
+                      {/* oxlint-disable-next-line next/no-img-element */}
+                      <img
+                        alt=""
+                        aria-hidden="true"
+                        decoding="async"
+                        loading="lazy"
+                        src={company.logo}
+                      />
+                    </span>
                   ))}
                 </div>
               </div>
