@@ -199,6 +199,18 @@
   color: #087a59 !important;
 }
 
+.cv-toolbar-save {
+  border-color: #b9d9cf !important;
+  color: #087a59 !important;
+  background: #f7fcfa !important;
+}
+
+.cv-toolbar-save:hover {
+  border-color: #8acdb8 !important;
+  color: #075e4b !important;
+  background: #eaf8f2 !important;
+}
+
 .cv-toolbar-danger {
   color: #64748b !important;
 }
@@ -1293,7 +1305,7 @@
   margin-bottom: 6px;
   color: var(--cv-accent);
   font-size: 8px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
@@ -1302,7 +1314,7 @@
   color: #111827;
   font-size: 30px;
   line-height: 1.05;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.035em;
 }
 
@@ -1361,7 +1373,7 @@
   color: var(--cv-accent-dark);
   font-size: 11px;
   line-height: 1.2;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
@@ -1388,7 +1400,7 @@
   color: #1f2937;
   font-size: 11.5px;
   line-height: 1.3;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .cv-document-organization {
@@ -1545,6 +1557,28 @@
 .cv-dialog-callout strong,
 .cv-dialog-callout span {
   display: block;
+}
+
+.cv-server-save-note {
+  display: flex;
+  padding: 10px 11px;
+  border: 1px solid #dbe8e2;
+  border-radius: 10px;
+  color: #526273;
+  background: #f7fcfa;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.cv-server-save-note > svg {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: #0b9570;
 }
 
 .cv-dialog-callout strong {
@@ -1898,19 +1932,27 @@
   }
 }
 
-/* CV Studio refinement */
+/* CV Studio refinement
+ *
+ * Keep the workspace UI deliberately quieter than the printed CV. The canvas is
+ * a focused editing tool; the document preview remains the visual hierarchy a
+ * recruiter sees. These overrides also consolidate the former large/bold
+ * treatment into the shared type scale below.
+ */
 .cv-builder-topbar {
-  min-height: 72px;
-  padding: 10px 20px;
+  min-height: 64px;
+  padding: 8px 18px;
 }
 
 .cv-builder-brand h1 {
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .cv-builder-brand p {
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .cv-builder-status-cluster {
@@ -1964,7 +2006,7 @@
 .cv-target-context small {
   color: #638176;
   font-size: 9px;
-  font-weight: 750;
+  font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1973,6 +2015,7 @@
   overflow: hidden;
   margin-top: 2px;
   font-size: 11.5px;
+  font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2036,7 +2079,7 @@
   color: #718096;
   font-size: 9px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 650;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2052,7 +2095,7 @@
   margin-top: 3px;
   color: #173f34;
   font-size: 12px;
-  font-weight: 780;
+  font-weight: 680;
 }
 
 .cv-sidebar-target em {
@@ -2065,6 +2108,7 @@
 .cv-progress-card p,
 .cv-section-nav-label strong {
   font-size: 12px;
+  font-weight: 650;
 }
 
 .cv-progress-card small,
@@ -2099,15 +2143,40 @@
 }
 
 .cv-editor-heading > p {
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.cv-editor-heading h2 {
+  font-size: clamp(20px, 2vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.cv-builder-save-state,
+.cv-section-status,
+.cv-local-draft-note strong,
+.cv-item-card__header span,
+.cv-segmented-control button,
+.cv-review-list li button {
+  font-weight: 650;
+}
+
+.cv-empty-state h3,
+.cv-item-card__header h3,
+.cv-review-hero h3,
+.cv-review-list h3 {
+  font-weight: 680;
 }
 
 .cv-editor-heading span {
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .cv-form-field > label {
   font-size: 13px;
+  font-weight: 650;
 }
 
 .cv-form-field input,
@@ -2123,12 +2192,14 @@
 .cv-writing-guide p,
 .cv-checkbox-row {
   font-size: 12px;
+  font-weight: 500;
 }
 
 .cv-writing-guide strong,
 .cv-design-group legend,
 .cv-design-group > h3 {
   font-size: 13px;
+  font-weight: 650;
 }
 
 .cv-editor-footer {
@@ -2211,8 +2282,8 @@
 
 .cv-panel-heading h3 {
   color: #172033;
-  font-size: 15px;
-  font-weight: 790;
+  font-size: 14px;
+  font-weight: 680;
   text-wrap: balance;
 }
 
@@ -2220,6 +2291,7 @@
   margin-top: 4px;
   color: #64748b;
   font-size: 12px;
+  font-weight: 500;
   line-height: 1.5;
 }
 
@@ -2324,6 +2396,7 @@
 
 .cv-match-score-row > div:last-child > strong {
   font-size: 13px;
+  font-weight: 680;
 }
 
 .cv-match-score-row p {
@@ -2342,7 +2415,7 @@
   display: block;
   margin-bottom: 9px;
   font-size: 11px;
-  font-weight: 760;
+  font-weight: 650;
 }
 
 .cv-keyword-list {
@@ -2500,7 +2573,7 @@
   align-items: center;
   gap: 5px;
   font-size: 10px;
-  font-weight: 780;
+  font-weight: 650;
 }
 
 .cv-review-hero.is-ready .cv-review-status-badge {
@@ -2541,8 +2614,8 @@
 .cv-review-list .cv-review-section-heading h3 {
   margin: 0;
   color: #172033;
-  font-size: 16px;
-  font-weight: 790;
+  font-size: 15px;
+  font-weight: 680;
 }
 
 .cv-review-section-heading > p {
@@ -2598,7 +2671,7 @@
   margin-top: 7px;
   color: #263244;
   font-size: 11.5px;
-  font-weight: 780;
+  font-weight: 650;
 }
 
 .cv-insight-grid p {
@@ -2616,7 +2689,7 @@
   align-items: center;
   gap: 4px;
   font-size: 10.5px;
-  font-weight: 760;
+  font-weight: 650;
 }
 
 .cv-insight-grid button svg {
@@ -2742,6 +2815,7 @@
   justify-content: space-between;
   gap: 5px;
   font-size: 12px;
+  font-weight: 650;
 }
 
 .cv-template-copy em {
@@ -2751,7 +2825,7 @@
   background: #e6f7f1;
   font-size: 8px;
   font-style: normal;
-  font-weight: 780;
+  font-weight: 650;
 }
 
 .cv-template-option small {
@@ -2766,6 +2840,7 @@
 
 .cv-preview-toolbar strong {
   font-size: 12px;
+  font-weight: 650;
 }
 
 .cv-preview-toolbar span {
@@ -2779,7 +2854,7 @@
   color: #c8d5db !important;
   background: rgba(255, 255, 255, 0.04);
   font-size: 9.5px !important;
-  font-weight: 680;
+  font-weight: 600;
 }
 
 .cv-preview-toolbar button {

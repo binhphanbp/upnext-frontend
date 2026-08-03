@@ -758,8 +758,11 @@ export function uploadCandidateCvFile(file: File, token: string) {
 export function createCandidateCv(
   token: string,
   payload: {
+    contentJson?: Record<string, unknown>;
+    parsedText?: string;
     title: string;
     source: "UPLOAD" | "BUILDER";
+    status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
     isDefault?: boolean;
     sourceFileId?: string;
   },

@@ -39,6 +39,20 @@
       "privateTitle": "Private draft",
       "privateDescription": "Content is saved in this browser for this account and has not been sent to the server."
     },
+    "serverSave": {
+      "button": "Save a CV to UpNext",
+      "buttonShort": "Save CV",
+      "title": "Save a CV to UpNext",
+      "description": "UpNext will create a separate CV you can select when applying. Your on-device Studio draft remains unchanged.",
+      "nameLabel": "CV name",
+      "namePlaceholder": "Example: Frontend Developer · UpNext",
+      "note": "This is a snapshot at the time of saving. Later Studio edits will not overwrite this CV automatically.",
+      "confirm": "Save CV",
+      "saving": "Saving…",
+      "success": "“{title}” has been saved to UpNext. You can select it when applying.",
+      "error": "UpNext could not save this CV. Check your connection and try again.",
+      "defaultTitle": "Application CV"
+    },
     "mobile": {
       "viewMode": "Workspace view",
       "edit": "Edit",

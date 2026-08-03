@@ -43,7 +43,11 @@ import {
   useState,
 } from "react";
 
-import { getMyCandidateProfile, type CandidateProfileApi } from "@/features/candidate/api/profile";
+import {
+  createCandidateCv,
+  getMyCandidateProfile,
+  type CandidateProfileApi,
+} from "@/features/candidate/api/profile";
 import { getCandidateSession } from "@/features/candidate/session";
 import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
@@ -93,6 +97,35 @@ const CONTENT_SECTIONS: CvSectionKey[] = [
   "education",
   "skills",
 ];
+
+function createCvSnapshotText(cvData: CvData) {
+  return toPlainText(
+    [
+      cvData.personalInfo.fullName,
+      cvData.personalInfo.title,
+      cvData.summary,
+      ...cvData.experiences.flatMap((experience) => [
+        experience.positionTitle,
+        experience.companyName,
+        experience.description,
+        experience.technologies,
+      ]),
+      ...cvData.projects.flatMap((project) => [
+        project.name,
+        project.role,
+        project.description,
+        project.technologies,
+      ]),
+      ...cvData.educations.flatMap((education) => [
+        education.schoolName,
+        education.degree,
+        education.major,
+        education.description,
+      ]),
+      ...cvData.skills.map((skill) => skill.name),
+    ].join("\n"),
+  );
+}
 
 const EDITOR_SEQUENCE: CvEditorSectionKey[] = [
   "targeting",
@@ -1718,6 +1751,10 @@ export function CandidateCvBuilder() {
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [saveCvDialogOpen, setSaveCvDialogOpen] = useState(false);
+  const [saveCvTitle, setSaveCvTitle] = useState("");
+  const [saveCvError, setSaveCvError] = useState<string | null>(null);
+  const [savingCv, setSavingCv] = useState(false);
   const [exportDialog, setExportDialog] = useState<"closed" | "blocked" | "guide">("closed");
   const [revealValidation, setRevealValidation] = useState(false);
   const editorScrollRef = useRef<HTMLDivElement>(null);
@@ -1877,6 +1914,50 @@ export function CandidateCvBuilder() {
     setExportDialog("guide");
   };
 
+  const requestSaveToUpNext = () => {
+    setRevealValidation(true);
+    if (!evaluation.exportReady) {
+      setExportDialog("blocked");
+      return;
+    }
+
+    const role = cvData.targetJob.role.trim() || cvData.personalInfo.title.trim();
+    const company = cvData.targetJob.company.trim();
+    setSaveCvTitle([role || t("serverSave.defaultTitle"), company].filter(Boolean).join(" · "));
+    setSaveCvError(null);
+    setSaveCvDialogOpen(true);
+  };
+
+  const saveSnapshotToUpNext = async () => {
+    const session = getCandidateSession();
+    const title = saveCvTitle.trim();
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+    if (!title) return;
+
+    setSavingCv(true);
+    setSaveCvError(null);
+    setProfileNotice(null);
+    try {
+      await createCandidateCv(session.accessToken, {
+        contentJson: cvData as unknown as Record<string, unknown>,
+        isDefault: false,
+        parsedText: createCvSnapshotText(cvData),
+        source: "BUILDER",
+        status: "ACTIVE",
+        title,
+      });
+      setSaveCvDialogOpen(false);
+      setProfileNotice(t("serverSave.success", { title }));
+    } catch {
+      setSaveCvError(t("serverSave.error"));
+    } finally {
+      setSavingCv(false);
+    }
+  };
+
   const proceedToPrint = () => {
     setExportDialog("closed");
     window.setTimeout(() => window.print(), 100);
@@ -2034,6 +2115,15 @@ export function CandidateCvBuilder() {
             variant="ghost"
           >
             <Trash /> <span>{t("resetShort")}</span>
+          </Button>
+          <Button
+            aria-label={t("serverSave.button")}
+            className="cv-toolbar-save"
+            onClick={requestSaveToUpNext}
+            size="sm"
+            variant="outline"
+          >
+            <CheckCircle /> <span>{t("serverSave.buttonShort")}</span>
           </Button>
           <Button onClick={requestExport} size="sm">
             <DownloadSimple /> <span>{t("export")}</span>
@@ -2319,6 +2409,67 @@ export function CandidateCvBuilder() {
               variant="destructive"
             >
               <Trash /> {t("clearDialog.confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        onOpenChange={(open) => {
+          if (!savingCv) {
+            setSaveCvDialogOpen(open);
+            if (!open) setSaveCvError(null);
+          }
+        }}
+        open={saveCvDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("serverSave.title")}</DialogTitle>
+            <DialogDescription>{t("serverSave.description")}</DialogDescription>
+          </DialogHeader>
+          <FormField id="cv-server-title" label={t("serverSave.nameLabel")} showError={false}>
+            <Input
+              autoComplete="off"
+              id="cv-server-title"
+              maxLength={150}
+              name="cvTitle"
+              onChange={(event) => setSaveCvTitle(event.target.value)}
+              placeholder={t("serverSave.namePlaceholder")}
+              value={saveCvTitle}
+            />
+          </FormField>
+          <p className="cv-server-save-note">
+            <Info aria-hidden="true" />
+            <span>{t("serverSave.note")}</span>
+          </p>
+          {saveCvError ? (
+            <p className="cv-field-message cv-field-message--error" role="alert">
+              <WarningCircle aria-hidden="true" />
+              {saveCvError}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              disabled={savingCv}
+              onClick={() => {
+                setSaveCvDialogOpen(false);
+                setSaveCvError(null);
+              }}
+              variant="outline"
+            >
+              {t("actions.cancel")}
+            </Button>
+            <Button
+              disabled={savingCv || !saveCvTitle.trim()}
+              onClick={() => void saveSnapshotToUpNext()}
+            >
+              {savingCv ? (
+                <ArrowClockwise aria-hidden="true" className="animate-spin" />
+              ) : (
+                <CheckCircle aria-hidden="true" />
+              )}
+              {savingCv ? t("serverSave.saving") : t("serverSave.confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
