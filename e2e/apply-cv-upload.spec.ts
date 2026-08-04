@@ -14,10 +14,7 @@ test("keeps a newly uploaded CV selected and previews its own version", async ({
   await page.goto(`/vi/jobs/${jobId}`);
   await page.getByRole("button", { name: "Ứng tuyển ngay" }).click();
 
-  await expect(page.getByRole("button", { name: "Chọn CV CV cũ.pdf" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(page.getByLabel("Chọn CV CV cũ.pdf")).toBeChecked();
 
   await page.getByLabel("Tải lên CV").setInputFiles({
     buffer: Buffer.from("%PDF-1.7 uploaded CV"),
@@ -25,16 +22,18 @@ test("keeps a newly uploaded CV selected and previews its own version", async ({
     name: "CV mới.pdf",
   });
 
-  const uploadedCv = page.getByRole("button", { name: "Chọn CV CV mới.pdf" });
-  await expect(uploadedCv).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("button", { name: "Chọn CV CV cũ.pdf" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  const uploadedCv = page.getByLabel("Chọn CV CV mới.pdf");
+  await expect(uploadedCv).toBeChecked();
+  await expect(page.getByLabel("Chọn CV CV cũ.pdf")).not.toBeChecked();
 
   await page.getByRole("button", { name: "Xem trước CV CV mới.pdf" }).click();
   await expect(page.getByRole("button", { name: "Đóng xem CV" })).toBeVisible();
-  await expect(page.locator('iframe[title="CV mới.pdf"]')).toBeVisible();
+  const preview = page.locator('iframe[title="Bản xem trước CV mới.pdf"]');
+  await expect(preview).toBeVisible();
+  await expect(preview).not.toHaveAttribute("src", /toolbar=0/);
+  await page.keyboard.press("Escape");
+  await expect(preview).toBeHidden();
+  await expect(page.getByRole("button", { name: "Xem trước CV CV mới.pdf" })).toBeFocused();
   expect(state.previewedVersionIds).toEqual([uploadedVersionId]);
 });
 
@@ -53,9 +52,30 @@ test("explains an unavailable legacy CV and prevents using it for an application
       "Chưa thể mở CV này. Bạn có thể chọn một CV khác hoặc tải lại tệp bên dưới để tiếp tục ứng tuyển.",
     ),
   ).toBeVisible();
-  await expect(page.getByText("CV chưa thể xem trước")).toBeVisible();
-  await expect(page.getByText("Chưa thể xem trước — chọn CV khác hoặc tải lại tệp")).toBeVisible();
+  await expect(page.getByText("Cần bạn lưu ý")).toBeVisible();
+  await expect(
+    page.getByText("Chưa thể xem trước — hãy chọn CV khác hoặc tải lại tệp."),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" })).toBeDisabled();
+});
+
+test("keeps the application action visible on a mobile viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installCandidateSession(page);
+  await mockApplyCvFlow(page);
+
+  await page.goto(`/vi/jobs/${jobId}`);
+  await page.getByRole("button", { name: "Ứng tuyển ngay" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Biểu mẫu ứng tuyển" });
+  await expect(dialog).toBeVisible();
+  await expect(page.getByText("Thông tin liên hệ")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" })).toBeInViewport();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
 });
 
 test("requires a valid phone number before an application can be submitted", async ({ page }) => {

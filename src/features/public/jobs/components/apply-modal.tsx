@@ -6,8 +6,6 @@ import {
   Eye,
   FileDoc,
   FilePdf,
-  Minus,
-  Plus,
   SpinnerGap,
   UploadSimple,
   Warning,
@@ -50,11 +48,39 @@ type ApplyModalProps = Readonly<{
 }>;
 
 const looseUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+const focusableSelector =
+  'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])';
+
+function keepFocusInDialog(event: React.KeyboardEvent<HTMLElement>) {
+  if (event.key !== "Tab") return;
+
+  const focusableElements = Array.from(
+    event.currentTarget.querySelectorAll<HTMLElement>(focusableSelector),
+  ).filter((element) => !element.hasAttribute("aria-hidden"));
+
+  if (focusableElements.length === 0) {
+    event.preventDefault();
+    return;
+  }
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements.at(-1);
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault();
+    lastElement?.focus();
+  } else if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault();
+    firstElement?.focus();
+  }
+}
 
 export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewObjectUrlRef = useRef<string | null>(null);
+  const previewTriggerRef = useRef<HTMLElement | null>(null);
+  const applicationDialogRef = useRef<HTMLDialogElement>(null);
 
   const [mounted, setMounted] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -109,6 +135,29 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       document.body.style.paddingRight = previousPaddingRight;
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !mounted) return;
+
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    window.requestAnimationFrame(() => applicationDialogRef.current?.focus());
+
+    return () => {
+      previousFocus?.focus();
+    };
+  }, [isOpen, mounted]);
+
+  useEffect(() => {
+    if (!isOpen || previewCv) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose, previewCv]);
 
   const {
     data: cvsData,
@@ -177,15 +226,20 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     : null;
 
   const closePreview = () => {
+    const previewTrigger = previewTriggerRef.current;
     setPreviewCv(null);
     if (previewObjectUrlRef.current) {
       URL.revokeObjectURL(previewObjectUrlRef.current);
       previewObjectUrlRef.current = null;
     }
+    window.requestAnimationFrame(() => previewTrigger?.focus());
   };
 
   const handlePreviewCv = async (cv: CandidateCvApi) => {
     if (!session) return;
+
+    previewTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     const latestVersion = getLatestCandidateCvVersion(cv);
 
@@ -327,20 +381,31 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   if (!isOpen || !mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       {/* Backdrop */}
-      <div
+      <button
+        type="button"
+        aria-label="Đóng biểu mẫu ứng tuyển"
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Dialog */}
-      <div className="relative z-50 flex max-h-[90vh] w-[min(540px,calc(100vw-32px))] flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl transition-all">
+      <dialog
+        open
+        ref={applicationDialogRef}
+        aria-modal="true"
+        aria-label="Biểu mẫu ứng tuyển"
+        aria-hidden={previewCv ? true : undefined}
+        tabIndex={-1}
+        onKeyDown={keepFocusInDialog}
+        className="relative z-50 m-0 flex max-h-[calc(100dvh-12px)] w-full flex-col overflow-hidden rounded-t-2xl border border-slate-100 bg-white shadow-2xl transition-all outline-none sm:max-h-[min(780px,calc(100dvh-32px))] sm:w-[min(640px,calc(100vw-32px))] sm:rounded-2xl"
+      >
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 cursor-pointer rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
+          className="absolute top-4 right-4 z-10 cursor-pointer rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
           aria-label="Đóng"
         >
           <X size={18} />
@@ -348,13 +413,13 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
 
         {isCheckingApplied ? (
           /* Loading state while checking applied status */
-          <div className="flex flex-1 flex-col items-center justify-center py-12">
+          <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600" />
             <p className="mt-3 text-xs text-slate-500">Đang kiểm tra trạng thái ứng tuyển...</p>
           </div>
         ) : isSuccess ? (
           /* Success Screen View */
-          <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center px-6 py-8 text-center">
             <span className="mb-5 flex h-16 w-16 animate-bounce items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
               <CheckCircle size={36} weight="fill" />
             </span>
@@ -385,7 +450,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
           </div>
         ) : hasApplied ? (
           /* Already Applied Screen View */
-          <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center px-6 py-8 text-center">
             <span className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-amber-500">
               <Warning size={36} weight="fill" />
             </span>
@@ -422,67 +487,83 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
           /* Application Form View */
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             {/* Header info */}
-            <div className="mb-5 pr-8">
-              <h2 className="text-lg leading-snug font-bold text-slate-900">
+            <div className="shrink-0 border-b border-slate-100 px-5 py-4 pr-12 sm:px-6 sm:py-5 sm:pr-14">
+              <p className="text-[11px] font-semibold tracking-wide text-emerald-700 uppercase">
+                Ứng tuyển việc làm
+              </p>
+              <h2
+                id="apply-modal-title"
+                className="mt-1 text-lg leading-snug font-bold text-slate-900 sm:text-xl"
+              >
                 Ứng tuyển vị trí <span className="text-emerald-600">{job.title}</span>
               </h2>
-              <p className="mt-1 text-xs font-semibold text-slate-500">Công ty: {job.company}</p>
+              <p className="mt-1 text-xs text-slate-500">Tại {job.company}</p>
             </div>
 
-            {/* Error Message */}
-            {errorMessage && (
-              <div
-                role="alert"
-                className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-900"
-              >
-                <Warning size={17} weight="fill" className="mt-0.5 shrink-0 text-amber-600" />
-                <div>
-                  <p className="font-semibold">CV chưa thể xem trước</p>
-                  <p className="mt-0.5 leading-relaxed text-amber-800">{errorMessage}</p>
-                </div>
-              </div>
-            )}
-
             {/* Scrollable Form Body */}
-            <div className="max-h-[50vh] flex-1 space-y-4 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+              {/* Error Message */}
+              {errorMessage && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-900"
+                >
+                  <Warning size={17} weight="fill" className="mt-0.5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="font-semibold">Cần bạn lưu ý</p>
+                    <p className="mt-0.5 leading-relaxed text-amber-800">{errorMessage}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Contact Details Grid */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="apply-name"
-                    className="mb-1.5 block text-xs font-bold text-slate-700"
-                  >
-                    Họ và tên <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    id="apply-name"
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Nhập họ và tên của bạn"
-                    className="h-10 rounded-lg border-slate-200 text-xs focus:border-emerald-500 focus:ring-emerald-500"
-                  />
+              <section aria-labelledby="apply-contact-heading">
+                <div className="mb-3">
+                  <h3 id="apply-contact-heading" className="text-sm font-bold text-slate-800">
+                    Thông tin liên hệ
+                  </h3>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                    Nhà tuyển dụng sẽ dùng thông tin này để liên hệ với bạn.
+                  </p>
                 </div>
-                <div>
-                  <label
-                    htmlFor="apply-email"
-                    className="mb-1.5 block text-xs font-bold text-slate-700"
-                  >
-                    Địa chỉ email
-                  </label>
-                  <Input
-                    id="apply-email"
-                    type="email"
-                    value={session?.user?.email || ""}
-                    readOnly
-                    className="h-10 cursor-not-allowed rounded-lg border-slate-200 bg-slate-50/60 text-xs text-slate-500"
-                  />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="apply-name"
+                      className="mb-1.5 block text-xs font-bold text-slate-700"
+                    >
+                      Họ và tên <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      id="apply-name"
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Nhập họ và tên của bạn"
+                      className="h-10 rounded-lg border-slate-200 text-xs focus:border-emerald-500 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="apply-email"
+                      className="mb-1.5 block text-xs font-bold text-slate-700"
+                    >
+                      Địa chỉ email
+                    </label>
+                    <Input
+                      id="apply-email"
+                      type="email"
+                      value={session?.user?.email || ""}
+                      readOnly
+                      className="h-10 cursor-not-allowed rounded-lg border-slate-200 bg-slate-50/60 text-xs text-slate-500"
+                    />
+                  </div>
                 </div>
-              </div>
+              </section>
 
               {/* Phone number */}
-              <div>
+              <div className="-mt-2">
                 <label
                   htmlFor="apply-phone"
                   className="mb-1.5 block text-xs font-bold text-slate-700"
@@ -523,148 +604,181 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
               </div>
 
               {/* CV Selector */}
-              <div>
-                <p className="mb-1.5 block text-xs font-bold text-slate-700">
-                  Chọn CV ứng tuyển <span className="text-red-500">*</span>
-                </p>
+              <section aria-labelledby="apply-cv-heading">
+                <div className="mb-3 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 id="apply-cv-heading" className="text-sm font-bold text-slate-800">
+                      CV ứng tuyển <span className="text-red-500">*</span>
+                    </h3>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                      Chọn CV phù hợp nhất với vị trí này.
+                    </p>
+                  </div>
+                  {selectedCvId ? (
+                    <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                      Đã chọn
+                    </span>
+                  ) : null}
+                </div>
 
                 {isLoadingCvs ? (
-                  <div className="flex h-16 items-center justify-center rounded-xl border border-slate-100 bg-slate-50">
+                  <div className="flex h-24 items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600" />
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    {cvsData?.items && cvsData.items.length > 0 ? (
-                      <div className="space-y-2">
-                        {cvsData.items.map((cv) => {
-                          const isSelected = selectedCvId === cv.id;
-                          const isUnavailable = unavailableCvIds.has(cv.id);
-                          return (
-                            <div
-                              key={cv.id}
+                ) : cvsData?.items && cvsData.items.length > 0 ? (
+                  <div className="max-h-64 space-y-2 overflow-y-auto overscroll-contain pr-1">
+                    {cvsData.items.map((cv) => {
+                      const isSelected = selectedCvId === cv.id;
+                      const isUnavailable = unavailableCvIds.has(cv.id);
+                      return (
+                        <div
+                          key={cv.id}
+                          className={cn(
+                            "flex min-h-[76px] items-center rounded-xl border p-2 transition",
+                            isSelected
+                              ? "border-emerald-500 bg-emerald-50/60 shadow-sm"
+                              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60",
+                          )}
+                        >
+                          <input
+                            id={`apply-cv-${cv.id}`}
+                            type="radio"
+                            name="application-cv"
+                            value={cv.id}
+                            checked={isSelected}
+                            aria-label={`Chọn CV ${cv.title}`}
+                            onChange={() => {
+                              setSelectedCvId(cv.id);
+                              setErrorMessage(null);
+                            }}
+                            className="peer sr-only"
+                          />
+                          <label
+                            htmlFor={`apply-cv-${cv.id}`}
+                            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-lg p-1 text-left outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-500 peer-focus-visible:ring-offset-2"
+                          >
+                            <span
                               className={cn(
-                                "flex w-full items-center justify-between rounded-xl border p-3 text-left transition",
-                                isSelected
-                                  ? "border-emerald-500 bg-emerald-50/20"
-                                  : "border-slate-200 bg-white hover:bg-slate-50/40",
+                                "flex size-8 shrink-0 items-center justify-center rounded-lg",
+                                isSelected ? "bg-white" : "bg-slate-50",
                               )}
                             >
-                              <button
-                                type="button"
-                                aria-pressed={isSelected}
-                                aria-label={`Chọn CV ${cv.title}`}
-                                onClick={() => {
-                                  setSelectedCvId(cv.id);
-                                  setErrorMessage(null);
-                                }}
-                                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                              >
-                                <FilePdf
-                                  size={20}
-                                  weight="fill"
-                                  className="flex-shrink-0 text-red-500"
-                                />
-                                <span className="min-w-0">
-                                  <span className="block truncate text-xs font-bold text-slate-800">
-                                    {cv.title}
-                                  </span>
-                                  <span className="mt-0.5 block text-[10px] text-slate-400">
-                                    Cập nhật: {new Date(cv.updatedAt).toLocaleDateString("vi-VN")}
-                                  </span>
-                                  {isUnavailable ? (
-                                    <span className="mt-1 block text-[10px] font-semibold text-amber-700">
-                                      Chưa thể xem trước — chọn CV khác hoặc tải lại tệp
-                                    </span>
-                                  ) : null}
+                              <FilePdf size={18} weight="fill" className="text-red-500" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-xs font-bold text-slate-800">
+                                {cv.title}
+                              </span>
+                              <span className="mt-0.5 block text-[11px] text-slate-500">
+                                Cập nhật {new Date(cv.updatedAt).toLocaleDateString("vi-VN")}
+                              </span>
+                              {isUnavailable ? (
+                                <span className="mt-1 block text-[10px] font-semibold text-amber-700">
+                                  Chưa thể xem trước — hãy chọn CV khác hoặc tải lại tệp.
                                 </span>
-                              </button>
-                              <div className="ml-2 flex flex-shrink-0 items-center gap-2">
-                                {cv.isDefault && (
-                                  <span className="rounded bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700 uppercase">
-                                    Mặc định
-                                  </span>
-                                )}
-                                <button
-                                  type="button"
-                                  disabled={previewingCvId === cv.id}
-                                  onClick={() => void handlePreviewCv(cv)}
-                                  className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none disabled:cursor-wait disabled:opacity-70"
-                                  aria-label={`Xem trước CV ${cv.title}`}
-                                >
-                                  {previewingCvId === cv.id ? (
-                                    <SpinnerGap
-                                      size={15}
-                                      className="animate-spin text-emerald-600"
-                                    />
-                                  ) : (
-                                    <Eye size={15} />
-                                  )}
-                                  Xem CV
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-500 italic">
-                        Bạn chưa tải lên CV nào. Vui lòng chọn tải lên bên dưới.
-                      </p>
-                    )}
+                              ) : null}
+                            </span>
+                          </label>
+                          <div className="ml-2 flex shrink-0 items-center gap-1 sm:gap-2">
+                            {isSelected ? (
+                              <span className="hidden items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white sm:flex">
+                                <CheckCircle size={12} weight="fill" />
+                                Đang chọn
+                              </span>
+                            ) : cv.isDefault ? (
+                              <span className="hidden rounded-md bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-600 sm:block">
+                                Mặc định
+                              </span>
+                            ) : null}
+                            <button
+                              type="button"
+                              disabled={previewingCvId === cv.id}
+                              onClick={() => void handlePreviewCv(cv)}
+                              className="flex size-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none disabled:cursor-wait disabled:opacity-70 sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:py-1.5 sm:text-[11px] sm:font-semibold"
+                              aria-label={`Xem trước CV ${cv.title}`}
+                              title="Xem trước CV"
+                            >
+                              {previewingCvId === cv.id ? (
+                                <SpinnerGap size={15} className="animate-spin text-emerald-600" />
+                              ) : (
+                                <Eye size={15} />
+                              )}
+                              <span className="hidden sm:inline">Xem trước</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center">
+                    <FilePdf size={24} weight="duotone" className="mx-auto text-slate-400" />
+                    <p className="mt-2 text-xs font-semibold text-slate-700">
+                      Bạn chưa có CV để ứng tuyển
+                    </p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                      Tải lên CV ở bên dưới để tiếp tục.
+                    </p>
                   </div>
                 )}
-              </div>
 
-              {/* Upload zone */}
-              <div className="mt-3">
-                <input
-                  type="file"
-                  aria-label="Tải lên CV"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept=".pdf,.doc,.docx"
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  disabled={uploading}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 py-3.5 text-xs font-bold text-slate-600 transition hover:border-emerald-500 hover:bg-emerald-50/10 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {uploading ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-emerald-600" />
-                      Đang tải lên file CV...
-                    </>
-                  ) : (
-                    <>
-                      <UploadSimple size={16} />
-                      Tải lên CV khác (.pdf, .doc, .docx)
-                    </>
-                  )}
-                </button>
-              </div>
+                {/* Upload zone */}
+                <div className="mt-3">
+                  <input
+                    type="file"
+                    aria-label="Tải lên CV"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept=".pdf,.doc,.docx"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white py-3 text-xs font-bold text-slate-600 transition hover:border-emerald-500 hover:bg-emerald-50/30 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {uploading ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-emerald-600" />
+                        Đang tải lên file CV...
+                      </>
+                    ) : (
+                      <>
+                        <UploadSimple size={16} />
+                        Tải lên CV mới (.pdf, .doc, .docx)
+                      </>
+                    )}
+                  </button>
+                </div>
+              </section>
 
               {/* Cover Letter */}
-              <div>
+              <section aria-labelledby="apply-letter-heading">
                 <label
                   htmlFor="apply-letter"
-                  className="mb-1.5 block text-xs font-bold text-slate-700"
+                  id="apply-letter-heading"
+                  className="block text-sm font-bold text-slate-800"
                 >
-                  Thư giới thiệu (Không bắt buộc)
+                  Thư giới thiệu{" "}
+                  <span className="text-xs font-normal text-slate-500">(không bắt buộc)</span>
                 </label>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  Nêu ngắn gọn điểm phù hợp của bạn với vị trí này.
+                </p>
                 <textarea
                   id="apply-letter"
+                  aria-labelledby="apply-letter-heading"
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
                   placeholder="Viết một lời chào ngắn hoặc chia sẻ thêm kỹ năng, kinh nghiệm phù hợp để thu hút nhà tuyển dụng..."
-                  className="min-h-[90px] w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                  className="mt-3 min-h-24 w-full resize-y rounded-xl border border-slate-200 p-3 text-xs leading-relaxed text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                 />
-              </div>
+              </section>
             </div>
 
             {/* Footer buttons */}
-            <div className="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4">
+            <div className="grid shrink-0 grid-cols-2 gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:px-6">
               <Button
                 variant="outline"
                 type="button"
@@ -697,7 +811,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
             </div>
           </form>
         )}
-      </div>
+      </dialog>
 
       {/* CV Preview Modal */}
       {previewCv && (
@@ -727,11 +841,7 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
   const isPdf = mimeType === "application/pdf" || url.toLowerCase().endsWith(".pdf");
   const isWordDocument =
     mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  const [zoom, setZoom] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const dragStartRef = useRef({ pointerX: 0, pointerY: 0, x: 0, y: 0 });
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     const previousFocus =
@@ -749,91 +859,61 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
     };
   }, [onClose]);
 
-  const updateZoom = (nextZoom: number) => {
-    const clampedZoom = Math.min(3, Math.max(0.75, nextZoom));
-    setZoom(clampedZoom);
-    if (clampedZoom === 1) {
-      setPosition({ x: 0, y: 0 });
-    }
-  };
-
-  const resetView = () => {
-    setZoom(1);
-    setPosition({ x: 0, y: 0 });
-  };
-
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4">
       {/* Backdrop */}
       <button
         type="button"
         aria-label="Đóng bản xem trước CV"
-        className="fixed inset-0 cursor-default bg-slate-900/75 backdrop-blur-sm"
+        className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Panel */}
-      <div
+      <dialog
+        open
         ref={dialogRef}
-        role="dialog"
         aria-modal="true"
         aria-labelledby="cv-preview-title"
         tabIndex={-1}
-        className="relative z-[61] flex h-[92vh] w-[min(860px,calc(100vw-24px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl focus:outline-none"
+        onKeyDown={keepFocusInDialog}
+        className="relative z-[61] m-0 flex h-[calc(100dvh-16px)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/20 bg-white shadow-2xl outline-none sm:h-[min(920px,calc(100dvh-32px))]"
       >
         {/* Top bar */}
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-2.5">
-            <FilePdf size={18} weight="fill" className="flex-shrink-0 text-red-500" />
-            <p id="cv-preview-title" className="truncate text-sm font-bold text-slate-800">
-              {title}
-            </p>
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500">
+              <FilePdf size={19} weight="fill" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
+                Xem CV
+              </p>
+              <h2
+                id="cv-preview-title"
+                className="truncate text-sm font-bold text-slate-800"
+                title={title}
+              >
+                {title}
+              </h2>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            {isPdf && (
-              <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-                <button
-                  type="button"
-                  onClick={() => updateZoom(zoom - 0.15)}
-                  disabled={zoom <= 0.75}
-                  aria-label="Thu nhỏ CV"
-                  className="flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-600 transition hover:bg-white hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Minus size={13} />
-                </button>
-                <button
-                  type="button"
-                  onClick={resetView}
-                  title="Đặt lại kích thước và vị trí"
-                  className="min-w-12 cursor-pointer rounded-md px-1.5 py-1 text-[10px] font-bold text-slate-600 transition hover:bg-white hover:text-emerald-700"
-                >
-                  {Math.round(zoom * 100)}%
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateZoom(zoom + 0.15)}
-                  disabled={zoom >= 3}
-                  aria-label="Phóng to CV"
-                  className="flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-600 transition hover:bg-white hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Plus size={13} />
-                </button>
-              </div>
-            )}
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              title="Mở trong tab mới"
-              className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700"
+              title="Mở CV trong tab mới"
+              aria-label="Mở CV trong tab mới"
+              className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-600 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none sm:px-3"
             >
-              <ArrowSquareOut size={13} />
-              Mở tab mới
+              <ArrowSquareOut size={15} />
+              <span className="hidden sm:inline">Mở tab mới</span>
             </a>
             <button
               type="button"
               onClick={onClose}
-              className="flex cursor-pointer items-center justify-center rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
               aria-label="Đóng xem CV"
             >
               <X size={18} />
@@ -842,73 +922,14 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
         </div>
 
         {/* Content */}
-        <div className="flex min-h-0 flex-1 bg-slate-100">
+        <div className="flex min-h-0 flex-1 bg-slate-100 p-1 sm:p-2">
           {isPdf ? (
-            <div
-              className={cn(
-                "relative h-full w-full touch-none overflow-hidden select-none",
-                isDragging ? "cursor-grabbing" : "cursor-grab",
-              )}
-              onWheel={(event) => {
-                event.preventDefault();
-                updateZoom(zoom + (event.deltaY < 0 ? 0.1 : -0.1));
-              }}
-              onPointerDown={(event) => {
-                event.currentTarget.setPointerCapture(event.pointerId);
-                dragStartRef.current = {
-                  pointerX: event.clientX,
-                  pointerY: event.clientY,
-                  x: position.x,
-                  y: position.y,
-                };
-                setIsDragging(true);
-              }}
-              onPointerMove={(event) => {
-                if (!isDragging) return;
-                setPosition({
-                  x: dragStartRef.current.x + event.clientX - dragStartRef.current.pointerX,
-                  y: dragStartRef.current.y + event.clientY - dragStartRef.current.pointerY,
-                });
-              }}
-              onPointerUp={(event) => {
-                event.currentTarget.releasePointerCapture(event.pointerId);
-                setIsDragging(false);
-              }}
-              onPointerCancel={() => setIsDragging(false)}
-              onDoubleClick={resetView}
-              onKeyDown={(event) => {
-                if (event.key === "+" || event.key === "=") {
-                  event.preventDefault();
-                  updateZoom(zoom + 0.15);
-                } else if (event.key === "-") {
-                  event.preventDefault();
-                  updateZoom(zoom - 0.15);
-                } else if (event.key === "0") {
-                  event.preventDefault();
-                  resetView();
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label="Bản xem trước CV. Giữ chuột và kéo để di chuyển, lăn chuột để thu phóng."
-            >
-              <iframe
-                src={url.includes("#") ? url : `${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                title={title}
-                className={cn(
-                  "absolute inset-0 h-full w-full border-0",
-                  isDragging ? "pointer-events-none" : "pointer-events-auto",
-                )}
-                style={{
-                  transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
-                  transformOrigin: "center",
-                }}
-                allow="fullscreen"
-              />
-              <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900/75 px-3 py-1.5 text-[10px] font-medium whitespace-nowrap text-white shadow-lg backdrop-blur-sm">
-                Giữ chuột để kéo · Lăn chuột để thu phóng · Nhấp đúp để đặt lại
-              </div>
-            </div>
+            <iframe
+              src={url.includes("#") ? url : `${url}#view=FitH`}
+              title={`Bản xem trước ${title}`}
+              className="h-full w-full rounded-lg border-0 bg-white"
+              allow="fullscreen"
+            />
           ) : (
             /* Fallback for non-PDF files */
             <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
@@ -917,11 +938,16 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
               ) : (
                 <FilePdf size={48} weight="duotone" className="text-slate-300" />
               )}
-              <p className="text-sm text-slate-500">
-                {isWordDocument
-                  ? "Tệp Word không thể xem trực tiếp trên trình duyệt."
-                  : "Định dạng tệp này không thể xem trực tiếp trên trình duyệt."}
-              </p>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">
+                  Tệp này cần được mở bằng ứng dụng phù hợp
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  {isWordDocument
+                    ? "Trình duyệt không thể hiển thị trực tiếp tệp Word. Hãy mở tệp trong tab mới hoặc tải về thiết bị."
+                    : "Định dạng tệp này không thể xem trực tiếp trên trình duyệt. Hãy mở tệp trong tab mới hoặc tải về thiết bị."}
+                </p>
+              </div>
               <a
                 href={url}
                 target="_blank"
@@ -929,12 +955,12 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
                 className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700"
               >
                 <ArrowSquareOut size={14} />
-                Tải xuống / Mở file
+                Mở hoặc tải tệp
               </a>
             </div>
           )}
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }
