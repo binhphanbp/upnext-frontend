@@ -1,4 +1,4 @@
-import { apiRequest } from "@/shared/api/http";
+import { ApiError, apiRequest, createApiUrl } from "@/shared/api/http";
 
 function authHeaders(token: string) {
   return {
@@ -640,6 +640,51 @@ export function getMyCandidateCvs(token: string, page = 1, limit = 100) {
   return apiRequest<PaginatedResponse<CandidateCvApi>>(`/cvs/me?${params.toString()}`, {
     headers: authHeaders(token),
   });
+}
+
+/**
+ * Fetches a protected CV file without exposing the storage provider to the
+ * browser. `sourceFile.publicUrl` is intentionally not used because uploaded
+ * CVs are private; the API authorizes the candidate before streaming bytes.
+ */
+export async function downloadCandidateCvVersion(token: string, cvVersionId: string) {
+  const response = await fetch(createApiUrl(`/cv-versions/${cvVersionId}/download`), {
+    headers: {
+      ...authHeaders(token),
+      Accept:
+        "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/octet-stream",
+    },
+  });
+
+  if (!response.ok) {
+    const payload = await readDownloadErrorPayload(response);
+    const message =
+      typeof payload === "object" &&
+      payload !== null &&
+      "message" in payload &&
+      typeof payload.message === "string"
+        ? payload.message
+        : "Không thể tải tệp CV. Vui lòng thử lại.";
+
+    throw new ApiError(response.status, message, payload);
+  }
+
+  const blob = await response.blob();
+  return {
+    blob,
+    mimeType: response.headers.get("content-type")?.split(";", 1)[0] || blob.type,
+  };
+}
+
+async function readDownloadErrorPayload(response: Response): Promise<unknown> {
+  const responseText = await response.text();
+  if (!responseText.trim()) return null;
+
+  try {
+    return JSON.parse(responseText) as unknown;
+  } catch {
+    return responseText;
+  }
 }
 
 export function getMyCandidateApplications(token: string) {
