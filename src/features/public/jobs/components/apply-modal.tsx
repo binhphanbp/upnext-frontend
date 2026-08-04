@@ -24,6 +24,7 @@ import {
   getMyCandidateCvs,
   getMyCandidateProfile,
   submitApplication,
+  updateMyCandidateProfile,
   uploadCandidateCvFile,
 } from "@/features/candidate/api/profile";
 import {
@@ -34,6 +35,7 @@ import { getCandidateSession } from "@/features/candidate/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
+import { isValidVietnamesePhoneNumber, normalizeVietnamesePhoneNumber } from "@/shared/lib/phone";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
@@ -57,6 +59,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const [mounted, setMounted] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneTouched, setPhoneTouched] = useState(false);
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
 
@@ -148,6 +151,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       }
       if (profileData.phoneNumber) {
         setPhoneNumber(profileData.phoneNumber);
+        setPhoneTouched(!isValidVietnamesePhoneNumber(profileData.phoneNumber));
       }
     }
   }, [profileData]);
@@ -162,6 +166,15 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       )[0]?.id ?? null
     );
   }, [cvsData, selectedCvId]);
+
+  const hasValidPhoneNumber = isValidVietnamesePhoneNumber(phoneNumber);
+  const phoneError = phoneTouched
+    ? phoneNumber.trim()
+      ? hasValidPhoneNumber
+        ? null
+        : "Nhập số điện thoại Việt Nam hợp lệ, ví dụ 0912 345 678."
+      : "Vui lòng nhập số điện thoại để nhà tuyển dụng liên hệ."
+    : null;
 
   const closePreview = () => {
     setPreviewCv(null);
@@ -255,6 +268,9 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     e.preventDefault();
     if (!session || !selectedCvVersionId) return;
 
+    setPhoneTouched(true);
+    if (!hasValidPhoneNumber) return;
+
     if (!looseUuidPattern.test(job.id)) {
       setErrorMessage(
         "Tin tuyển dụng này không còn khả dụng. Vui lòng chọn một tin tuyển dụng khác.",
@@ -266,6 +282,16 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     setErrorMessage(null);
 
     try {
+      const normalizedPhoneNumber = normalizeVietnamesePhoneNumber(phoneNumber);
+      if (
+        normalizedPhoneNumber !== normalizeVietnamesePhoneNumber(profileData?.phoneNumber ?? "")
+      ) {
+        const updatedProfile = await updateMyCandidateProfile(session.accessToken, {
+          phoneNumber: normalizedPhoneNumber,
+        });
+        queryClient.setQueryData(["candidate-profile", session.user.id], updatedProfile);
+      }
+
       await submitApplication(session.accessToken, {
         jobPostId: job.id,
         cvVersionId: selectedCvVersionId,
@@ -470,10 +496,32 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                   type="tel"
                   required
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="Nhập số điện thoại để nhà tuyển dụng liên hệ"
-                  className="h-10 rounded-lg border-slate-200 text-xs focus:border-emerald-500 focus:ring-emerald-500"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  aria-describedby={phoneError ? "apply-phone-error" : undefined}
+                  aria-invalid={Boolean(phoneError)}
+                  onBlur={() => setPhoneTouched(true)}
+                  onChange={(e) => {
+                    setPhoneNumber(e.target.value);
+                    setPhoneTouched(true);
+                  }}
+                  placeholder="Ví dụ: 0912 345 678"
+                  className={cn(
+                    "h-10 rounded-lg text-xs focus:ring-emerald-500",
+                    phoneError
+                      ? "border-red-400 focus:border-red-500 focus:ring-red-500"
+                      : "border-slate-200 focus:border-emerald-500",
+                  )}
                 />
+                {phoneError ? (
+                  <p id="apply-phone-error" className="mt-1.5 text-xs text-red-600" role="alert">
+                    {phoneError}
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-[11px] text-slate-500">
+                    Số này sẽ được lưu vào hồ sơ để nhà tuyển dụng liên hệ.
+                  </p>
+                )}
               </div>
 
               {/* CV Selector */}
@@ -633,7 +681,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                   submitting ||
                   uploading ||
                   !selectedCvVersionId ||
-                  !phoneNumber ||
+                  !hasValidPhoneNumber ||
                   !fullName ||
                   isSelectedCvUnavailable
                 }
