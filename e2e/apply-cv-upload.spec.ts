@@ -58,9 +58,7 @@ test("explains an unavailable legacy CV and prevents using it for an application
   await expect(page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" })).toBeDisabled();
 });
 
-test("requires a valid Vietnamese phone number before an application can be submitted", async ({
-  page,
-}) => {
+test("requires a valid phone number before an application can be submitted", async ({ page }) => {
   await installCandidateSession(page);
   const state = await mockApplyCvFlow(page);
 
@@ -71,17 +69,19 @@ test("requires a valid Vietnamese phone number before an application can be subm
   await phoneInput.fill("0");
   await expect(phoneInput).toHaveAttribute("aria-invalid", "true");
   await expect(
-    page.getByText("Nhập số điện thoại Việt Nam hợp lệ, ví dụ 0912 345 678."),
+    page.getByText(
+      "Kiểm tra lại số điện thoại. Với số quốc tế, hãy thêm mã quốc gia, ví dụ +1 415 555 2671.",
+    ),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" })).toBeDisabled();
 
-  await phoneInput.fill("0382 823 609");
+  await phoneInput.fill("+1 415 555 2671");
   await expect(phoneInput).toHaveAttribute("aria-invalid", "false");
   const submitButton = page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" });
   await expect(submitButton).toBeEnabled();
   await submitButton.click();
 
-  await expect.poll(() => state.updatedPhoneNumbers).toEqual(["0382823609"]);
+  await expect.poll(() => state.updatedPhoneNumbers).toEqual(["+14155552671"]);
   await expect.poll(() => state.submittedApplicationCount).toBe(1);
 });
 

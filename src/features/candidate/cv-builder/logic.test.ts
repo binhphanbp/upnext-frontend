@@ -62,6 +62,7 @@ describe("CV Builder business rules", () => {
     );
     expect(isValidEmail("candidate@upnext.works")).toBe(true);
     expect(isValidPhone("+84 901 234 567")).toBe(true);
+    expect(isValidPhone("+1 415 555 2671")).toBe(true);
     expect(isValidPhone("123")).toBe(false);
     expect(isValidExternalUrl("github.com/upnext")).toBe(true);
     expect(toExternalHref("github.com/upnext")).toBe("https://github.com/upnext");

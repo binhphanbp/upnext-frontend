@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isValidPhoneNumber } from "@/shared/lib/phone";
+
 export type ProfileValidationMessages = Readonly<{
   dateRange: string;
   gpaRange: string;
@@ -44,7 +46,7 @@ export function createProfileBasicsSchema(messages: ProfileValidationMessages) {
     description: optionalText(5_000, messages),
     gender: z.enum(["", "MALE", "FEMALE"]),
     phoneNumber: optionalText(30, messages).refine(
-      (value) => value.length === 0 || /^\+?[\d\s().-]{7,30}$/u.test(value),
+      (value) => value.length === 0 || isValidPhoneNumber(value),
       { message: messages.invalidPhone },
     ),
   });

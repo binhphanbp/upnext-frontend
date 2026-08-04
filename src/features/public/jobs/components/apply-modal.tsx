@@ -35,7 +35,7 @@ import { getCandidateSession } from "@/features/candidate/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
-import { isValidVietnamesePhoneNumber, normalizeVietnamesePhoneNumber } from "@/shared/lib/phone";
+import { isValidPhoneNumber, normalizePhoneNumber } from "@/shared/lib/phone";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
@@ -151,7 +151,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       }
       if (profileData.phoneNumber) {
         setPhoneNumber(profileData.phoneNumber);
-        setPhoneTouched(!isValidVietnamesePhoneNumber(profileData.phoneNumber));
+        setPhoneTouched(!isValidPhoneNumber(profileData.phoneNumber));
       }
     }
   }, [profileData]);
@@ -167,12 +167,12 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     );
   }, [cvsData, selectedCvId]);
 
-  const hasValidPhoneNumber = isValidVietnamesePhoneNumber(phoneNumber);
+  const hasValidPhoneNumber = isValidPhoneNumber(phoneNumber);
   const phoneError = phoneTouched
     ? phoneNumber.trim()
       ? hasValidPhoneNumber
         ? null
-        : "Nhập số điện thoại Việt Nam hợp lệ, ví dụ 0912 345 678."
+        : "Kiểm tra lại số điện thoại. Với số quốc tế, hãy thêm mã quốc gia, ví dụ +1 415 555 2671."
       : "Vui lòng nhập số điện thoại để nhà tuyển dụng liên hệ."
     : null;
 
@@ -282,10 +282,8 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     setErrorMessage(null);
 
     try {
-      const normalizedPhoneNumber = normalizeVietnamesePhoneNumber(phoneNumber);
-      if (
-        normalizedPhoneNumber !== normalizeVietnamesePhoneNumber(profileData?.phoneNumber ?? "")
-      ) {
+      const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
+      if (normalizedPhoneNumber !== normalizePhoneNumber(profileData?.phoneNumber ?? "")) {
         const updatedProfile = await updateMyCandidateProfile(session.accessToken, {
           phoneNumber: normalizedPhoneNumber,
         });
@@ -505,7 +503,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                     setPhoneNumber(e.target.value);
                     setPhoneTouched(true);
                   }}
-                  placeholder="Ví dụ: 0912 345 678"
+                  placeholder="Ví dụ: +1 415 555 2671 hoặc 0912 345 678"
                   className={cn(
                     "h-10 rounded-lg text-xs focus:ring-emerald-500",
                     phoneError
@@ -519,7 +517,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                   </p>
                 ) : (
                   <p className="mt-1.5 text-[11px] text-slate-500">
-                    Số này sẽ được lưu vào hồ sơ để nhà tuyển dụng liên hệ.
+                    Dùng số Việt Nam hoặc số quốc tế kèm mã quốc gia. Số này sẽ được lưu vào hồ sơ.
                   </p>
                 )}
               </div>
