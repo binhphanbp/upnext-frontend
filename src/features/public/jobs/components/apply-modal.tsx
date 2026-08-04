@@ -203,7 +203,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       if (error instanceof ApiError && error.status === 404) {
         setUnavailableCvIds((current) => new Set(current).add(cv.id));
         setErrorMessage(
-          "Không thể mở CV này vì tệp gốc không còn trên hệ thống. Vui lòng tải lên bản CV mới để tiếp tục.",
+          "Chưa thể mở CV này. Bạn có thể chọn một CV khác hoặc tải lại tệp bên dưới để tiếp tục ứng tuyển.",
         );
       } else {
         setErrorMessage("Không thể mở bản xem trước CV. Vui lòng thử lại.");
@@ -402,8 +402,15 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
 
             {/* Error Message */}
             {errorMessage && (
-              <div className="mb-4 rounded-xl bg-red-50 p-3.5 text-xs font-medium text-red-600">
-                {errorMessage}
+              <div
+                role="alert"
+                className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-900"
+              >
+                <Warning size={17} weight="fill" className="mt-0.5 shrink-0 text-amber-600" />
+                <div>
+                  <p className="font-semibold">CV chưa thể xem trước</p>
+                  <p className="mt-0.5 leading-relaxed text-amber-800">{errorMessage}</p>
+                </div>
               </div>
             )}
 
@@ -515,7 +522,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                                   </span>
                                   {isUnavailable ? (
                                     <span className="mt-1 block text-[10px] font-semibold text-amber-700">
-                                      Tệp gốc không còn khả dụng
+                                      Chưa thể xem trước — chọn CV khác hoặc tải lại tệp
                                     </span>
                                   ) : null}
                                 </span>

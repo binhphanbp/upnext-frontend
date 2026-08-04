@@ -49,10 +49,11 @@ test("explains an unavailable legacy CV and prevents using it for an application
 
   await expect(
     page.getByText(
-      "Không thể mở CV này vì tệp gốc không còn trên hệ thống. Vui lòng tải lên bản CV mới để tiếp tục.",
+      "Chưa thể mở CV này. Bạn có thể chọn một CV khác hoặc tải lại tệp bên dưới để tiếp tục ứng tuyển.",
     ),
   ).toBeVisible();
-  await expect(page.getByText("Tệp gốc không còn khả dụng")).toBeVisible();
+  await expect(page.getByText("CV chưa thể xem trước")).toBeVisible();
+  await expect(page.getByText("Chưa thể xem trước — chọn CV khác hoặc tải lại tệp")).toBeVisible();
   await expect(page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" })).toBeDisabled();
 });
 
