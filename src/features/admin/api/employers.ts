@@ -9,6 +9,12 @@ export type AdminCompanyResponse = {
   verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
   createdAt: string;
   updatedAt: string;
+  lockedAt?: string;
+  members?: any[];
+  recruiterAccounts?: any[];
+  _count?: {
+    jobPosts: number;
+  };
 };
 
 export type AdminCompaniesPaginatedResponse = {

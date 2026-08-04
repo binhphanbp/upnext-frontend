@@ -13,6 +13,7 @@ import Swal from "sweetalert2";
 
 import {
   getAdminEmployers,
+  getAdminCompanyDetails,
   verifyCompany,
   type AdminCompanyResponse,
 } from "@/features/admin/api/employers";
@@ -45,6 +46,7 @@ export type Employer = {
   status: "Chờ duyệt" | "Đã xác thực" | "Bị khóa";
   activeJobs: number;
   joinDate: string;
+  lockedAt?: string;
 };
 
 function mapToEmployer(apiCompany: AdminCompanyResponse): Employer {
@@ -55,16 +57,164 @@ function mapToEmployer(apiCompany: AdminCompanyResponse): Employer {
     mappedStatus = "Chờ duyệt";
   }
 
-  return {
+  let representative = "Chưa cập nhật";
+  if (apiCompany.members && apiCompany.members.length > 0) {
+    // Try to find the OWNER, if not fallback to the first member
+    const owner = apiCompany.members.find((m: any) => m.role?.code === "OWNER");
+    const member = owner || apiCompany.members[0];
+    representative =
+      member.recruiterAccount?.profile?.fullName ||
+      member.recruiterAccount?.email ||
+      member.invitedEmail ||
+      "Chưa cập nhật";
+  } else if (apiCompany.recruiterAccounts && apiCompany.recruiterAccounts.length > 0) {
+    const recruiter = apiCompany.recruiterAccounts[0];
+    representative = recruiter.profile?.fullName || recruiter.email || "Chưa cập nhật";
+  }
+
+  const employer: Employer = {
     id: apiCompany.id,
     companyName: apiCompany.name,
-    representative: "Chưa cập nhật",
+    representative,
     email: apiCompany.email || "Chưa cập nhật",
     plan: "Free", // API doesn't provide plan info yet
     status: mappedStatus,
-    activeJobs: 0,
+    activeJobs: apiCompany._count?.jobPosts || 0,
     joinDate: formatAppDate(apiCompany.createdAt),
   };
+
+  if (apiCompany.lockedAt) {
+    employer.lockedAt = formatAppDate(apiCompany.lockedAt);
+  }
+
+  return employer;
+}
+
+function EmployerRow({
+  employer,
+  selected,
+  onSelect,
+  onVerify,
+  tone,
+}: {
+  employer: Employer;
+  selected: boolean;
+  onSelect: (id: string, checked: boolean) => void;
+  onVerify: (id: string, status: "VERIFIED" | "REJECTED") => void;
+  tone: "success" | "warning" | "error";
+}) {
+  const t = useTranslations("Admin.users.employers.table");
+  const router = useRouter();
+
+  const { data: details } = useQuery({
+    queryKey: ["adminCompanyDetails", employer.id],
+    queryFn: async () => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return getAdminCompanyDetails(session.accessToken, employer.id);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  let representative = employer.representative;
+  let activeJobs = employer.activeJobs;
+
+  if (details) {
+    if (details.members && details.members.length > 0) {
+      const owner = details.members.find((m: any) => m.role?.code === "OWNER");
+      const member = owner || details.members[0];
+      representative =
+        member.recruiterAccount?.email ||
+        member.invitedEmail ||
+        member.recruiterAccount?.profile?.fullName ||
+        "Chưa cập nhật";
+    } else if (details.recruiterAccounts && details.recruiterAccounts.length > 0) {
+      const recruiter = details.recruiterAccounts[0];
+      representative = recruiter.email || recruiter.profile?.fullName || "Chưa cập nhật";
+    }
+
+    if (details.jobPosts) {
+      activeJobs = details.jobPosts.length;
+    }
+  }
+
+  return (
+    <tr
+      className={cn(
+        "border-b border-slate-200 bg-white transition-colors duration-150 last:border-b-0 even:bg-slate-100/50 hover:bg-sky-50/30",
+        selected && "bg-primary/5 hover:bg-primary/10",
+      )}
+    >
+      <td className="w-12 border-r border-slate-200 px-4 py-3 text-center last:border-r-0">
+        <input
+          type="checkbox"
+          aria-label={`Chọn ${employer.companyName}`}
+          className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
+          checked={selected}
+          onChange={(e) => onSelect(employer.id, e.target.checked)}
+        />
+      </td>
+      <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
+        <div>
+          <p className="text-foreground font-semibold">{employer.companyName}</p>
+          <p className="text-muted-foreground text-xs">{employer.email}</p>
+        </div>
+      </td>
+      <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">{representative}</td>
+      <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-800">
+          {employer.plan}
+        </span>
+      </td>
+      <td className="border-r border-slate-200 px-4 py-3 text-sm last:border-r-0">
+        {employer.joinDate}
+      </td>
+      <td className="border-r border-slate-200 px-4 py-3 text-sm last:border-r-0">
+        {employer.lockedAt || "-"}
+      </td>
+      <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
+        <Badge tone={tone}>{employer.status}</Badge>
+      </td>
+      <td className="border-r border-slate-200 px-4 py-3 text-right font-medium last:border-r-0">
+        {activeJobs}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="h-8 w-8 p-0"
+              aria-label={`Mở menu thao tác cho ${employer.companyName}`}
+            >
+              <DotsThree size={20} weight="bold" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => router.push(`/admin/users/employers/${employer.id}`)}
+            >
+              Chi tiết hồ sơ
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {employer.status === "Chờ duyệt" && (
+              <DropdownMenuItem
+                className="text-success cursor-pointer"
+                onClick={() => onVerify(employer.id, "VERIFIED")}
+              >
+                {t("actionOptions.approve")}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem>{t("actionOptions.upgrade")}</DropdownMenuItem>
+            {employer.status !== "Bị khóa" && (
+              <DropdownMenuItem className="text-error">{t("actionOptions.lock")}</DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </td>
+    </tr>
+  );
 }
 
 export function EmployersTable() {
@@ -280,6 +430,12 @@ export function EmployersTable() {
               Gói dịch vụ
             </th>
             <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
+              Ngày tạo
+            </th>
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
+              Ngày đóng
+            </th>
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("status")}
             </th>
             <th className="border-r border-slate-300 px-4 py-3 text-right font-semibold last:border-r-0">
@@ -291,7 +447,7 @@ export function EmployersTable() {
         <tbody>
           {paginatedData.length === 0 ? (
             <tr>
-              <td colSpan={7} className="py-12 text-center">
+              <td colSpan={9} className="py-12 text-center">
                 <div className="text-muted-foreground flex flex-col items-center justify-center gap-2">
                   <MagnifyingGlass size={32} />
                   <p>Không tìm thấy công ty nào phù hợp</p>
@@ -308,80 +464,14 @@ export function EmployersTable() {
                     : "error";
 
               return (
-                <tr
+                <EmployerRow
                   key={employer.id}
-                  className={cn(
-                    "border-b border-slate-200 bg-white transition-colors duration-150 last:border-b-0 even:bg-slate-100/50 hover:bg-sky-50/30",
-                    selectedIds.includes(employer.id) && "bg-primary/5 hover:bg-primary/10",
-                  )}
-                >
-                  <td className="w-12 border-r border-slate-200 px-4 py-3 text-center last:border-r-0">
-                    <input
-                      type="checkbox"
-                      aria-label={`Chọn ${employer.companyName}`}
-                      className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
-                      checked={selectedIds.includes(employer.id)}
-                      onChange={(e) => handleSelectOne(employer.id, e.target.checked)}
-                    />
-                  </td>
-                  <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
-                    <div>
-                      <p className="text-foreground font-semibold">{employer.companyName}</p>
-                      <p className="text-muted-foreground text-xs">{employer.email}</p>
-                    </div>
-                  </td>
-                  <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
-                    {employer.representative}
-                  </td>
-                  <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
-                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-800">
-                      {employer.plan}
-                    </span>
-                  </td>
-                  <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
-                    <Badge tone={tone}>{employer.status}</Badge>
-                  </td>
-                  <td className="border-r border-slate-200 px-4 py-3 text-right font-medium last:border-r-0">
-                    {employer.activeJobs}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="h-8 w-8 p-0"
-                          aria-label={`Mở menu thao tác cho ${employer.companyName}`}
-                        >
-                          <DotsThree size={20} weight="bold" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => router.push(`/admin/users/employers/${employer.id}`)}
-                        >
-                          Chi tiết hồ sơ
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {employer.status === "Chờ duyệt" && (
-                          <DropdownMenuItem
-                            className="text-success cursor-pointer"
-                            onClick={() => handleVerify(employer.id, "VERIFIED")}
-                          >
-                            {t("actionOptions.approve")}
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem>{t("actionOptions.upgrade")}</DropdownMenuItem>
-                        {employer.status !== "Bị khóa" && (
-                          <DropdownMenuItem className="text-error">
-                            {t("actionOptions.lock")}
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
+                  employer={employer}
+                  selected={selectedIds.includes(employer.id)}
+                  onSelect={handleSelectOne}
+                  onVerify={handleVerify}
+                  tone={tone}
+                />
               );
             })
           )}
