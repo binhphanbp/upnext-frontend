@@ -171,10 +171,14 @@ export function RecruiterLoginPage() {
   const form = useForm<LoginValues>({
     resolver: zodResolver(
       createLoginSchema({
+        emailRequired: tAuth("validation.emailRequired"),
         invalidEmail: tAuth("validation.invalidEmail"),
+        emailMax: tAuth("validation.emailMax"),
         passwordRequired: tAuth("validation.passwordRequired"),
         fullNameMin: tAuth("validation.fullNameMin"),
+        fullNameMax: tAuth("validation.fullNameMax"),
         passwordMin: tAuth("validation.passwordMin"),
+        passwordMax: tAuth("validation.passwordMax"),
         confirmRequired: tAuth("validation.confirmRequired"),
         passwordMismatch: tAuth("validation.passwordMismatch"),
       }),

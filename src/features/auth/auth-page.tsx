@@ -1,15 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  EnvelopeSimple,
-  Eye,
-  EyeSlash,
-  GithubLogo,
-  GoogleLogo,
-  LockKey,
-  User,
-} from "@phosphor-icons/react";
+import { EnvelopeSimple, Eye, EyeSlash, GithubLogo, LockKey, User } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -51,10 +43,14 @@ function useAuthValidationMessages() {
   const t = useTranslations("Auth");
 
   return {
+    emailRequired: t("validation.emailRequired"),
     invalidEmail: t("validation.invalidEmail"),
+    emailMax: t("validation.emailMax"),
     passwordRequired: t("validation.passwordRequired"),
     fullNameMin: t("validation.fullNameMin"),
+    fullNameMax: t("validation.fullNameMax"),
     passwordMin: t("validation.passwordMin"),
+    passwordMax: t("validation.passwordMax"),
     confirmRequired: t("validation.confirmRequired"),
     passwordMismatch: t("validation.passwordMismatch"),
   };
@@ -71,6 +67,8 @@ function LoginPage() {
   const form = useForm<LoginValues>({
     resolver: zodResolver(createLoginSchema(validationMessages)),
     defaultValues: { email: "", password: "" },
+    mode: "onBlur",
+    reValidateMode: "onChange",
   });
   const emailError = form.formState.errors.email?.message;
   const passwordError = form.formState.errors.password?.message;
@@ -142,6 +140,7 @@ function LoginPage() {
                 type="email"
                 placeholder={t("fields.emailPlaceholder")}
                 autoComplete="email"
+                maxLength={255}
                 spellCheck={false}
                 aria-invalid={Boolean(emailError) || undefined}
                 aria-describedby={emailError ? "login-email-error" : undefined}
@@ -162,6 +161,7 @@ function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 placeholder={t("fields.passwordPlaceholder")}
                 autoComplete="current-password"
+                maxLength={72}
                 aria-invalid={Boolean(passwordError) || undefined}
                 aria-describedby={passwordError ? "login-password-error" : undefined}
               />
@@ -173,9 +173,9 @@ function LoginPage() {
                 onClick={() => setShowPassword((value) => !value)}
               >
                 {showPassword ? (
-                  <EyeSlash size={18} aria-hidden="true" />
-                ) : (
                   <Eye size={18} aria-hidden="true" />
+                ) : (
+                  <EyeSlash size={18} aria-hidden="true" />
                 )}
               </button>
             </div>
@@ -204,12 +204,15 @@ function RegisterPage() {
   const form = useForm<RegisterValues>({
     resolver: zodResolver(createRegisterSchema(validationMessages)),
     defaultValues: { fullName: "", email: "", password: "", confirm: "" },
+    mode: "onBlur",
+    reValidateMode: "onChange",
   });
   const fullNameError = form.formState.errors.fullName?.message;
   const emailError = form.formState.errors.email?.message;
   const passwordError = form.formState.errors.password?.message;
   const confirmError = form.formState.errors.confirm?.message;
   const isSubmitting = form.formState.isSubmitting;
+  const passwordField = form.register("password");
 
   async function submit(values: RegisterValues) {
     try {
@@ -272,6 +275,7 @@ function RegisterPage() {
                 type="text"
                 placeholder={t("fields.fullNamePlaceholder")}
                 autoComplete="name"
+                maxLength={150}
                 aria-invalid={Boolean(fullNameError) || undefined}
                 aria-describedby={fullNameError ? "register-full-name-error" : undefined}
               />
@@ -291,6 +295,7 @@ function RegisterPage() {
                 type="email"
                 placeholder={t("fields.emailPlaceholder")}
                 autoComplete="email"
+                maxLength={255}
                 spellCheck={false}
                 aria-invalid={Boolean(emailError) || undefined}
                 aria-describedby={emailError ? "register-email-error" : undefined}
@@ -308,12 +313,20 @@ function RegisterPage() {
                 <LockKey size={18} aria-hidden="true" />
                 <input
                   id="register-password"
-                  {...form.register("password")}
+                  {...passwordField}
                   type={showPassword ? "text" : "password"}
                   placeholder={t("fields.createPasswordPlaceholder")}
                   autoComplete="new-password"
+                  maxLength={72}
                   aria-invalid={Boolean(passwordError) || undefined}
                   aria-describedby={passwordError ? "register-password-error" : undefined}
+                  onChange={(event) => {
+                    passwordField.onChange(event);
+
+                    if (form.getFieldState("confirm").isTouched) {
+                      void form.trigger("confirm");
+                    }
+                  }}
                 />
                 <button
                   type="button"
@@ -323,9 +336,9 @@ function RegisterPage() {
                   onClick={() => setShowPassword((value) => !value)}
                 >
                   {showPassword ? (
-                    <EyeSlash size={18} aria-hidden="true" />
-                  ) : (
                     <Eye size={18} aria-hidden="true" />
+                  ) : (
+                    <EyeSlash size={18} aria-hidden="true" />
                   )}
                 </button>
               </div>
@@ -344,6 +357,7 @@ function RegisterPage() {
                   type={showConfirm ? "text" : "password"}
                   placeholder={t("fields.confirmPasswordPlaceholder")}
                   autoComplete="new-password"
+                  maxLength={72}
                   aria-invalid={Boolean(confirmError) || undefined}
                   aria-describedby={confirmError ? "register-confirm-error" : undefined}
                 />
@@ -355,9 +369,9 @@ function RegisterPage() {
                   onClick={() => setShowConfirm((value) => !value)}
                 >
                   {showConfirm ? (
-                    <EyeSlash size={18} aria-hidden="true" />
-                  ) : (
                     <Eye size={18} aria-hidden="true" />
+                  ) : (
+                    <EyeSlash size={18} aria-hidden="true" />
                   )}
                 </button>
               </div>
@@ -429,6 +443,7 @@ function SocialAuthOptions({
   githubUnavailableLabel: string;
 }>) {
   const locale = useLocale();
+  const t = useTranslations("Auth");
 
   return (
     <>
@@ -440,23 +455,25 @@ function SocialAuthOptions({
             window.location.assign(createApiUrl(`candidate/auth/google?locale=${locale}`))
           }
         >
-          <GoogleLogo size={18} weight="bold" aria-hidden="true" />
+          <span className="login-social-provider-icon" aria-hidden="true">
+            <Image src="/assets/google.png" alt="" width={18} height={18} />
+          </span>
           <span>{googleLabel}</span>
         </button>
         <button
           type="button"
           className="login-social-button login-social-button-github"
           disabled
-          aria-describedby="github-auth-availability"
+          aria-label={`${githubLabel} — ${githubUnavailableLabel}`}
           title={githubUnavailableLabel}
         >
-          <GithubLogo size={18} weight="fill" aria-hidden="true" />
+          <span className="login-social-provider-icon" aria-hidden="true">
+            <GithubLogo size={19} weight="fill" />
+          </span>
           <span>{githubLabel}</span>
+          <span className="login-social-badge">{t("social.githubSoon")}</span>
         </button>
       </div>
-      <span id="github-auth-availability" className="login-visually-hidden">
-        {githubUnavailableLabel}
-      </span>
       <div className="login-email-divider" aria-hidden="true">
         <span />
         <p>{dividerLabel}</p>

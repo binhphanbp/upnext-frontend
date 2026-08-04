@@ -52,7 +52,7 @@ test("logs a candidate in through the API and stores the returned session", asyn
 });
 
 test("starts the supported Google OAuth flow from the candidate login", async ({ page }) => {
-  await page.route("**/candidate/auth/google", async (route) => {
+  await page.route(/\/candidate\/auth\/google\?locale=vi$/, async (route) => {
     await route.fulfill({ body: "Google OAuth started", contentType: "text/plain", status: 200 });
   });
 
@@ -60,7 +60,7 @@ test("starts the supported Google OAuth flow from the candidate login", async ({
   await page.waitForTimeout(250);
   await page.getByRole("button", { name: "Đăng nhập với Google" }).click();
 
-  await expect(page).toHaveURL(/\/candidate\/auth\/google$/);
+  await expect(page).toHaveURL(/\/candidate\/auth\/google\?locale=vi$/);
 });
 
 test("stores the candidate session after the Google OAuth callback", async ({ page }) => {
@@ -132,4 +132,38 @@ test("validates registration before sending the API request and submits the requ
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
   expect(hasHorizontalOverflow).toBe(false);
+});
+
+test("keeps the desktop registration form within the viewport and validates fields after blur", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 768 });
+  await page.goto("/vi/register");
+
+  await expect(page.getByRole("heading", { name: "Tạo tài khoản" })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight))
+    .toBe(true);
+
+  const fullName = page.getByLabel("Họ và tên");
+  await fullName.fill("  ");
+  await fullName.press("Tab");
+  await expect(fullName).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByText("Vui lòng nhập họ và tên")).toBeVisible();
+
+  const email = page.getByLabel("Email");
+  await email.fill("not-an-email");
+  await email.press("Tab");
+  await expect(email).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByText("Email không hợp lệ")).toBeVisible();
+
+  const password = page.getByLabel("Mật khẩu", { exact: true });
+  await password.fill("short");
+  await password.press("Tab");
+  await expect(password).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByText("Mật khẩu tối thiểu 8 ký tự")).toBeVisible();
+
+  const submit = page.getByRole("button", { name: "Tạo tài khoản", exact: true });
+  await submit.hover();
+  await expect(submit).toHaveCSS("background-color", "rgb(9, 143, 99)");
 });
