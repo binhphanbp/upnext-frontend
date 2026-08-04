@@ -410,6 +410,7 @@
     "social": {
       "google": "Tiếp tục với Google",
       "github": "Tiếp tục với GitHub",
+      "githubSoon": "Sắp ra mắt",
       "githubUnavailable": "Đăng nhập bằng GitHub sẽ khả dụng khi dịch vụ xác thực được hoàn tất."
     },
     "oauth": {
@@ -468,10 +469,14 @@
       "connectionFailed": "Không thể kết nối đến máy chủ. Vui lòng thử lại."
     },
     "validation": {
+      "emailRequired": "Vui lòng nhập email",
       "invalidEmail": "Email không hợp lệ",
+      "emailMax": "Email không được vượt quá 255 ký tự",
       "passwordRequired": "Vui lòng nhập mật khẩu",
       "fullNameMin": "Vui lòng nhập họ và tên",
+      "fullNameMax": "Họ và tên không được vượt quá 150 ký tự",
       "passwordMin": "Mật khẩu tối thiểu 8 ký tự",
+      "passwordMax": "Mật khẩu không được vượt quá 72 ký tự",
       "confirmRequired": "Vui lòng xác nhận mật khẩu",
       "passwordMismatch": "Mật khẩu xác nhận không khớp"
     }
