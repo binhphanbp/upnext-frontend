@@ -58,6 +58,33 @@ test("explains an unavailable legacy CV and prevents using it for an application
   await expect(page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" })).toBeDisabled();
 });
 
+test("requires a valid Vietnamese phone number before an application can be submitted", async ({
+  page,
+}) => {
+  await installCandidateSession(page);
+  const state = await mockApplyCvFlow(page);
+
+  await page.goto(`/vi/jobs/${jobId}`);
+  await page.getByRole("button", { name: "Ứng tuyển ngay" }).click();
+
+  const phoneInput = page.getByLabel("Số điện thoại *");
+  await phoneInput.fill("0");
+  await expect(phoneInput).toHaveAttribute("aria-invalid", "true");
+  await expect(
+    page.getByText("Nhập số điện thoại Việt Nam hợp lệ, ví dụ 0912 345 678."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" })).toBeDisabled();
+
+  await phoneInput.fill("0382 823 609");
+  await expect(phoneInput).toHaveAttribute("aria-invalid", "false");
+  const submitButton = page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" });
+  await expect(submitButton).toBeEnabled();
+  await submitButton.click();
+
+  await expect.poll(() => state.updatedPhoneNumbers).toEqual(["0382823609"]);
+  await expect.poll(() => state.submittedApplicationCount).toBe(1);
+});
+
 async function installCandidateSession(page: Page) {
   await page.addInitScript(
     ({ id }) => {
@@ -75,6 +102,8 @@ async function installCandidateSession(page: Page) {
 async function mockApplyCvFlow(page: Page, options: { oldCvUnavailable?: boolean } = {}) {
   let uploaded = false;
   const previewedVersionIds: string[] = [];
+  const updatedPhoneNumbers: string[] = [];
+  let submittedApplicationCount = 0;
 
   const candidateProfile = {
     account: { email: "candidate@example.com", fullName: "Minh Anh", id: candidateId },
@@ -165,6 +194,16 @@ async function mockApplyCvFlow(page: Page, options: { oldCvUnavailable?: boolean
     await route.fulfill({ body: JSON.stringify([job]), contentType: "application/json" });
   });
   await page.route("**/candidate-profiles/me", async (route) => {
+    if (route.request().method() === "PATCH") {
+      const payload = route.request().postDataJSON() as { phoneNumber?: string };
+      if (payload.phoneNumber) updatedPhoneNumbers.push(payload.phoneNumber);
+      await route.fulfill({
+        body: JSON.stringify({ ...candidateProfile, phoneNumber: payload.phoneNumber ?? null }),
+        contentType: "application/json",
+      });
+      return;
+    }
+
     await route.fulfill({
       body: JSON.stringify(candidateProfile),
       contentType: "application/json",
@@ -208,6 +247,14 @@ async function mockApplyCvFlow(page: Page, options: { oldCvUnavailable?: boolean
       status: 201,
     });
   });
+  await page.route(/^.*\/applications$/, async (route) => {
+    submittedApplicationCount += 1;
+    await route.fulfill({
+      body: JSON.stringify({ id: "application-id", status: "SUBMITTED" }),
+      contentType: "application/json",
+      status: 201,
+    });
+  });
   await page.route(/\/cv-versions\/([^/]+)\/download$/, async (route) => {
     const versionId = route.request().url().split("/").at(-2);
     if (versionId) previewedVersionIds.push(versionId);
@@ -229,5 +276,11 @@ async function mockApplyCvFlow(page: Page, options: { oldCvUnavailable?: boolean
     });
   });
 
-  return { previewedVersionIds };
+  return {
+    previewedVersionIds,
+    updatedPhoneNumbers,
+    get submittedApplicationCount() {
+      return submittedApplicationCount;
+    },
+  };
 }
