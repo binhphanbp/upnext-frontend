@@ -34,6 +34,7 @@ test("keeps a newly uploaded CV selected and previews its own version", async ({
 
   await page.getByRole("button", { name: "Xem trước CV CV mới.pdf" }).click();
   await expect(page.getByRole("button", { name: "Đóng xem CV" })).toBeVisible();
+  await expect(page.locator('iframe[title="CV mới.pdf"]')).toBeVisible();
   expect(state.previewedVersionIds).toEqual([uploadedVersionId]);
 });
 
@@ -220,7 +221,10 @@ async function mockApplyCvFlow(page: Page, options: { oldCvUnavailable?: boolean
     }
     await route.fulfill({
       body: "%PDF-1.7 preview",
-      contentType: "application/pdf",
+      // Cloudinary private raw assets are delivered with this generic MIME.
+      // The client must restore the persisted PDF MIME before creating its
+      // object URL, otherwise browsers offer a download instead of a preview.
+      contentType: "application/octet-stream",
       status: 200,
     });
   });

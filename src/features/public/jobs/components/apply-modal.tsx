@@ -4,6 +4,7 @@ import {
   ArrowSquareOut,
   CheckCircle,
   Eye,
+  FileDoc,
   FilePdf,
   Minus,
   Plus,
@@ -187,6 +188,10 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       const { blob, mimeType } = await downloadCandidateCvVersion(
         session.accessToken,
         latestVersion.id,
+        {
+          expectedMimeType: latestVersion.sourceFile?.mimeType ?? null,
+          fileName: latestVersion.sourceFile?.originalName ?? cv.title,
+        },
       );
       if (previewObjectUrlRef.current) {
         URL.revokeObjectURL(previewObjectUrlRef.current);
@@ -197,7 +202,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       setPreviewCv({
         title: cv.title,
         url: objectUrl,
-        mimeType: mimeType || latestVersion.sourceFile?.mimeType || "application/octet-stream",
+        mimeType,
       });
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
@@ -674,10 +679,29 @@ type CvPreviewModalProps = Readonly<{
 
 function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) {
   const isPdf = mimeType === "application/pdf" || url.toLowerCase().endsWith(".pdf");
+  const isWordDocument =
+    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef({ pointerX: 0, pointerY: 0, x: 0, y: 0 });
+
+  useEffect(() => {
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.requestAnimationFrame(() => dialogRef.current?.focus());
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus();
+    };
+  }, [onClose]);
 
   const updateZoom = (nextZoom: number) => {
     const clampedZoom = Math.min(3, Math.max(0.75, nextZoom));
@@ -695,15 +719,29 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center">
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" onClick={onClose} />
+      <button
+        type="button"
+        aria-label="Đóng bản xem trước CV"
+        className="fixed inset-0 cursor-default bg-slate-900/75 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       {/* Panel */}
-      <div className="relative z-[61] flex h-[92vh] w-[min(860px,calc(100vw-24px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cv-preview-title"
+        tabIndex={-1}
+        className="relative z-[61] flex h-[92vh] w-[min(860px,calc(100vw-24px))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl focus:outline-none"
+      >
         {/* Top bar */}
         <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 bg-white px-4 py-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <FilePdf size={18} weight="fill" className="flex-shrink-0 text-red-500" />
-            <p className="truncate text-sm font-bold text-slate-800">{title}</p>
+            <p id="cv-preview-title" className="truncate text-sm font-bold text-slate-800">
+              {title}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {isPdf && (
@@ -828,9 +866,15 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
           ) : (
             /* Fallback for non-PDF files */
             <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-              <FilePdf size={48} weight="duotone" className="text-slate-300" />
+              {isWordDocument ? (
+                <FileDoc size={48} weight="duotone" className="text-slate-300" />
+              ) : (
+                <FilePdf size={48} weight="duotone" className="text-slate-300" />
+              )}
               <p className="text-sm text-slate-500">
-                File này không thể xem trực tiếp trên trình duyệt.
+                {isWordDocument
+                  ? "Tệp Word không thể xem trực tiếp trên trình duyệt."
+                  : "Định dạng tệp này không thể xem trực tiếp trên trình duyệt."}
               </p>
               <a
                 href={url}

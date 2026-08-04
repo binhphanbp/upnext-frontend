@@ -9,11 +9,11 @@ import {
   type CandidateApplicationMutationApi,
   type CandidateCvApi,
   createCandidateCv,
+  downloadCandidateCvVersion,
   getMyCandidateCvs,
   updateCandidateApplicationCv,
   uploadCandidateCvFile,
 } from "@/features/candidate/api/profile";
-import { createApiUrl } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import {
@@ -109,12 +109,12 @@ export function ChangeCvDialog({
 
     setPreviewingCvId(cv.id);
     try {
-      const response = await fetch(createApiUrl(`/cv-versions/${latestVersion.id}/download`), {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const { blob } = await downloadCandidateCvVersion(accessToken, latestVersion.id, {
+        expectedMimeType: latestVersion.sourceFile?.mimeType ?? null,
+        fileName: latestVersion.sourceFile?.originalName ?? cv.title,
       });
-      if (!response.ok) throw new Error("CV preview failed");
 
-      const objectUrl = URL.createObjectURL(await response.blob());
+      const objectUrl = URL.createObjectURL(blob);
       previewWindow.location.replace(objectUrl);
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5 * 60 * 1000);
     } catch {
