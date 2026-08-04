@@ -643,11 +643,63 @@ export function getMyCandidateCvs(token: string, page = 1, limit = 100) {
 }
 
 /**
- * Fetches a protected CV file without exposing the storage provider to the
- * browser. `sourceFile.publicUrl` is intentionally not used because uploaded
- * CVs are private; the API authorizes the candidate before streaming bytes.
+ * Fetches a protected CV file after the API authorizes the candidate.
+ * `sourceFile.publicUrl` is intentionally not used because uploaded CVs are
+ * private; the API may stream bytes itself or redirect to signed storage.
  */
-export async function downloadCandidateCvVersion(token: string, cvVersionId: string) {
+type CandidateCvDownloadOptions = Readonly<{
+  /**
+   * The MIME type stored with the original upload. Cloudinary delivers private
+   * `raw` assets as `application/octet-stream`, even when the file is a PDF.
+   */
+  expectedMimeType?: string | null;
+  fileName?: string | null;
+}>;
+
+const genericBinaryMimeTypes = new Set(["application/octet-stream", "binary/octet-stream"]);
+
+function normaliseMimeType(mimeType?: string | null) {
+  return mimeType?.split(";", 1)[0]?.trim().toLowerCase() ?? "";
+}
+
+function inferCandidateCvMimeType(fileName?: string | null) {
+  if (fileName?.trim().toLowerCase().endsWith(".pdf")) return "application/pdf";
+  if (fileName?.trim().toLowerCase().endsWith(".docx")) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
+
+  return "";
+}
+
+/**
+ * Restores the trusted upload MIME type when private object storage returns a
+ * generic binary response. The replacement Blob is important: an object URL
+ * inherits `blob.type`, so changing display state alone would not make a PDF
+ * render in an iframe.
+ */
+export function prepareCandidateCvPreview(
+  blob: Blob,
+  { expectedMimeType, fileName }: CandidateCvDownloadOptions = {},
+) {
+  const deliveryMimeType = normaliseMimeType(blob.type);
+  const storedMimeType = normaliseMimeType(expectedMimeType);
+  const isGenericDelivery = !deliveryMimeType || genericBinaryMimeTypes.has(deliveryMimeType);
+  const mimeType =
+    (isGenericDelivery ? storedMimeType || inferCandidateCvMimeType(fileName) : deliveryMimeType) ||
+    deliveryMimeType ||
+    "application/octet-stream";
+
+  return {
+    blob: blob.type === mimeType ? blob : new Blob([blob], { type: mimeType }),
+    mimeType,
+  };
+}
+
+export async function downloadCandidateCvVersion(
+  token: string,
+  cvVersionId: string,
+  options?: CandidateCvDownloadOptions,
+) {
   const response = await fetch(createApiUrl(`/cv-versions/${cvVersionId}/download`), {
     headers: {
       ...authHeaders(token),
@@ -670,10 +722,14 @@ export async function downloadCandidateCvVersion(token: string, cvVersionId: str
   }
 
   const blob = await response.blob();
-  return {
-    blob,
-    mimeType: response.headers.get("content-type")?.split(";", 1)[0] || blob.type,
-  };
+  const responseMimeType = response.headers.get("content-type")?.split(";", 1)[0];
+
+  return prepareCandidateCvPreview(
+    responseMimeType && responseMimeType !== blob.type
+      ? new Blob([blob], { type: responseMimeType })
+      : blob,
+    options,
+  );
 }
 
 async function readDownloadErrorPayload(response: Response): Promise<unknown> {

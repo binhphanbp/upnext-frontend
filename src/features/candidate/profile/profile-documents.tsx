@@ -17,11 +17,11 @@ import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import {
   type CandidateCvApi,
   createCandidateCv,
+  downloadCandidateCvVersion,
   setCandidateCvDefault,
   uploadCandidateCvFile,
 } from "@/features/candidate/api/profile";
 import { Link } from "@/i18n/navigation";
-import { createApiUrl } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -153,11 +153,10 @@ export function ProfileDocuments({
     setDownloadingId(cv.id);
     setFeedback(null);
     try {
-      const response = await fetch(createApiUrl(`/cv-versions/${version.id}/download`), {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const { blob } = await downloadCandidateCvVersion(accessToken, version.id, {
+        expectedMimeType: version.sourceFile?.mimeType ?? null,
+        fileName: version.sourceFile?.originalName ?? cv.title,
       });
-      if (!response.ok) throw new Error("CV download failed");
-      const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
@@ -190,12 +189,12 @@ export function ProfileDocuments({
     setPreviewingId(cv.id);
     setFeedback(null);
     try {
-      const response = await fetch(createApiUrl(`/cv-versions/${version.id}/download`), {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const { blob } = await downloadCandidateCvVersion(accessToken, version.id, {
+        expectedMimeType: version.sourceFile?.mimeType ?? null,
+        fileName: version.sourceFile?.originalName ?? cv.title,
       });
-      if (!response.ok) throw new Error("CV preview failed");
 
-      const objectUrl = URL.createObjectURL(await response.blob());
+      const objectUrl = URL.createObjectURL(blob);
       previewWindow.location.replace(objectUrl);
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5 * 60 * 1000);
     } catch {

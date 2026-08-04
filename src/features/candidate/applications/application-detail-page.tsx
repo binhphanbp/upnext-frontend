@@ -21,6 +21,7 @@ import Image from "next/image";
 import { useState, type ReactNode } from "react";
 
 import {
+  downloadCandidateCvVersion,
   getCandidateApplication,
   type CandidateApplicationApi,
   withdrawCandidateApplication,
@@ -37,7 +38,7 @@ import {
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
 import { getPublicJobs } from "@/features/public/home/api";
 import { Link } from "@/i18n/navigation";
-import { ApiError, createApiUrl } from "@/shared/api/http";
+import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import {
@@ -95,7 +96,7 @@ export function CandidateApplicationDetailPage({
     },
   });
 
-  const handleViewCv = async (cvVersionId: string) => {
+  const handleViewCv = async (cvVersionId: string, fileName: string) => {
     if (!session) return;
 
     const previewWindow = window.open("about:blank", "_blank");
@@ -104,12 +105,11 @@ export function CandidateApplicationDetailPage({
 
     setIsViewingCv(true);
     try {
-      const response = await fetch(createApiUrl(`/cv-versions/${cvVersionId}/download`), {
-        headers: { Authorization: `Bearer ${session.accessToken}` },
+      const { blob } = await downloadCandidateCvVersion(session.accessToken, cvVersionId, {
+        fileName,
       });
-      if (!response.ok) throw new Error("CV preview failed");
 
-      const objectUrl = URL.createObjectURL(await response.blob());
+      const objectUrl = URL.createObjectURL(blob);
       previewWindow.location.replace(objectUrl);
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5 * 60 * 1000);
     } catch {
@@ -355,7 +355,9 @@ export function CandidateApplicationDetailPage({
                 size="sm"
                 className="rounded-xl"
                 disabled={isViewingCv}
-                onClick={() => handleViewCv(application.cvVersion.id)}
+                onClick={() =>
+                  handleViewCv(application.cvVersion.id, application.cvVersion.fileName)
+                }
               >
                 {isViewingCv ? (
                   <SpinnerGap aria-hidden="true" className="animate-spin" />
