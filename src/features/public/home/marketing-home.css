@@ -4300,6 +4300,10 @@ button.marketing-home-control {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .marketing-home-co-bento {
+    animation: none;
+  }
+
   .marketing-home-follow-tooltip {
     animation: none;
   }

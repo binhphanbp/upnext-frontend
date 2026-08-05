@@ -214,6 +214,7 @@ export function FeaturedCompanies({
           follow: "Theo dõi",
         };
   const [pageIndex, setPageIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const visibleCount = useVisibleCount();
   const {
     error: companyFollowsError,
@@ -274,6 +275,25 @@ export function FeaturedCompanies({
     setPageIndex((current) => Math.min(current, Math.max(0, totalPages - 1)));
   }, [totalPages]);
 
+  // Keep this carousel consistent with the other home sections without taking
+  // control away from people reading, tabbing through, or interacting with it.
+  useEffect(() => {
+    if (totalPages <= 1 || paused) return undefined;
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      setPageIndex((current) => (current + 1) % totalPages);
+    }, 6_000);
+
+    return () => window.clearInterval(timer);
+  }, [paused, totalPages]);
+
   const cards = useMemo(() => page?.companies.slice(0, visibleCount) ?? [], [page, visibleCount]);
   const featuredCompanyCount = apiCosData
     ? apiCosData.items.length.toLocaleString(locale === "en" ? "en-US" : "vi-VN")
@@ -330,7 +350,14 @@ export function FeaturedCompanies({
   }
 
   return (
-    <section className="marketing-home-companies" aria-label={copy.title}>
+    <section
+      className="marketing-home-companies"
+      aria-label={copy.title}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
+    >
       <header className="marketing-home-jobs-head">
         <div>
           <h2>{copy.title}</h2>
