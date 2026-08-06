@@ -1809,7 +1809,13 @@
         "resumeVersion": "Version {version}",
         "submittedAt": "Submitted at",
         "coverLetter": "Cover letter",
-        "viewCv": "View CV"
+        "viewCv": "View CV",
+        "viewCvUnavailable": "This CV cannot be opened right now. You can choose another CV from Change CV."
+      },
+      "cvPreview": {
+        "description": "This is the CV snapshot saved when it was created on UpNext.",
+        "close": "Close CV preview",
+        "dismiss": "Close"
       },
       "current": {
         "title": "Current status",
@@ -2602,7 +2608,8 @@
         "deleteSuccess": "Resume deleted.",
         "uploadError": "Could not upload the resume. Check the file and try again.",
         "previewUnavailable": "A preview is not available for this file.",
-        "downloadUnavailable": "The file cannot be downloaded right now."
+        "downloadUnavailable": "The file cannot be downloaded right now.",
+        "builderDownloadUnavailable": "A resume created in UpNext can be viewed and edited in CV Builder. Export a PDF there when you need a downloadable file."
       }
     }
   },

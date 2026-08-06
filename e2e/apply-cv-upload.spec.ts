@@ -6,12 +6,15 @@ const oldCvId = "33333333-3333-4333-8333-333333333333";
 const oldVersionId = "44444444-4444-4444-8444-444444444444";
 const uploadedCvId = "55555555-5555-4555-8555-555555555555";
 const uploadedVersionId = "66666666-6666-4666-8666-666666666666";
+const builderCvId = "77777777-7777-4777-8777-777777777777";
+const builderVersionId = "88888888-8888-4888-8888-888888888888";
 
 test("keeps a newly uploaded CV selected and previews its own version", async ({ page }) => {
   await installCandidateSession(page);
   const state = await mockApplyCvFlow(page);
 
   await page.goto(`/vi/jobs/${jobId}`);
+  await waitForCandidateSession(page);
   await page.getByRole("button", { name: "Ứng tuyển ngay" }).click();
 
   await expect(page.getByRole("button", { name: "Chọn CV CV cũ.pdf" })).toHaveAttribute(
@@ -45,6 +48,7 @@ test("explains an unavailable legacy CV and prevents using it for an application
   await mockApplyCvFlow(page, { oldCvUnavailable: true });
 
   await page.goto(`/vi/jobs/${jobId}`);
+  await waitForCandidateSession(page);
   await page.getByRole("button", { name: "Ứng tuyển ngay" }).click();
   await page.getByRole("button", { name: "Xem trước CV CV cũ.pdf" }).click();
 
@@ -58,30 +62,47 @@ test("explains an unavailable legacy CV and prevents using it for an application
   await expect(page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" })).toBeDisabled();
 });
 
-test("requires a valid Vietnamese phone number before an application can be submitted", async ({
+test("previews a Builder CV from its saved snapshot without requesting a file download", async ({
+  page,
+}) => {
+  await installCandidateSession(page);
+  const state = await mockApplyCvFlow(page, { builderCv: true });
+
+  await page.goto(`/vi/jobs/${jobId}`);
+  await waitForCandidateSession(page);
+  await page.getByRole("button", { name: "Ứng tuyển ngay" }).click();
+  await page.getByRole("button", { name: "Xem trước CV CV tạo trên UpNext" }).click();
+
+  await expect(page.getByRole("dialog", { name: "CV tạo trên UpNext" })).toBeVisible();
+  await expect(page.getByText("Nguyễn Minh Anh", { exact: true })).toBeVisible();
+  expect(state.previewedVersionIds).toEqual([]);
+});
+
+test("requires a reachable phone number before an application can be submitted", async ({
   page,
 }) => {
   await installCandidateSession(page);
   const state = await mockApplyCvFlow(page);
 
   await page.goto(`/vi/jobs/${jobId}`);
+  await waitForCandidateSession(page);
   await page.getByRole("button", { name: "Ứng tuyển ngay" }).click();
 
-  const phoneInput = page.getByLabel("Số điện thoại *");
+  const phoneInput = page.getByLabel("Số điện thoại");
   await phoneInput.fill("0");
   await expect(phoneInput).toHaveAttribute("aria-invalid", "true");
   await expect(
-    page.getByText("Nhập số điện thoại Việt Nam hợp lệ, ví dụ 0912 345 678."),
+    page.getByText("Nhập số điện thoại hợp lệ để nhà tuyển dụng có thể liên hệ."),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" })).toBeDisabled();
 
-  await phoneInput.fill("0382 823 609");
+  await phoneInput.fill("+1 202 555 0123");
   await expect(phoneInput).toHaveAttribute("aria-invalid", "false");
   const submitButton = page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" });
   await expect(submitButton).toBeEnabled();
   await submitButton.click();
 
-  await expect.poll(() => state.updatedPhoneNumbers).toEqual(["0382823609"]);
+  await expect.poll(() => state.updatedPhoneNumbers).toEqual(["+12025550123"]);
   await expect.poll(() => state.submittedApplicationCount).toBe(1);
 });
 
@@ -99,7 +120,16 @@ async function installCandidateSession(page: Page) {
   );
 }
 
-async function mockApplyCvFlow(page: Page, options: { oldCvUnavailable?: boolean } = {}) {
+async function waitForCandidateSession(page: Page) {
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("upnext.candidate.accessToken")))
+    .toBe("test-access-token");
+}
+
+async function mockApplyCvFlow(
+  page: Page,
+  options: { builderCv?: boolean; oldCvUnavailable?: boolean } = {},
+) {
   let uploaded = false;
   const previewedVersionIds: string[] = [];
   const updatedPhoneNumbers: string[] = [];
@@ -189,6 +219,56 @@ async function mockApplyCvFlow(page: Page, options: { oldCvUnavailable?: boolean
       },
     ],
   };
+  const builderCv = {
+    createdAt: "2026-08-04T08:00:00.000Z",
+    id: builderCvId,
+    isDefault: true,
+    source: "BUILDER",
+    status: "ACTIVE",
+    title: "CV tạo trên UpNext",
+    updatedAt: "2026-08-04T08:00:00.000Z",
+    versions: [
+      {
+        contentJson: {
+          cvLanguage: "vi",
+          personalInfo: {
+            fullName: "Nguyễn Minh Anh",
+            title: "Frontend Engineer",
+            email: "candidate@example.com",
+            phoneNumber: "+84 912 345 678",
+            address: "Hà Nội",
+            website: "",
+          },
+          summary: "Xây dựng trải nghiệm ứng viên dễ sử dụng.",
+        },
+        createdAt: "2026-08-04T08:00:00.000Z",
+        id: builderVersionId,
+        sourceFile: null,
+        sourceFileId: null,
+      },
+    ],
+  };
+
+  await page.route("**/auth/me", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          id: candidateId,
+          email: "candidate@example.com",
+          fullName: "Minh Anh",
+          role: "CANDIDATE",
+        },
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+  await page.route(/\/conversations(?:\?.*)?$/, async (route) => {
+    await route.fulfill({ body: JSON.stringify([]), contentType: "application/json", status: 200 });
+  });
+  await page.route(/\/saved-jobs(?:\?.*)?$/, async (route) => {
+    await route.fulfill({ body: JSON.stringify([]), contentType: "application/json", status: 200 });
+  });
 
   await page.route(/\/job-posts(?:\?.*)?$/, async (route) => {
     await route.fulfill({ body: JSON.stringify([job]), contentType: "application/json" });
@@ -218,8 +298,13 @@ async function mockApplyCvFlow(page: Page, options: { oldCvUnavailable?: boolean
   await page.route(/\/cvs\/me(?:\?.*)?$/, async (route) => {
     await route.fulfill({
       body: JSON.stringify({
-        items: uploaded ? [oldCv, uploadedCv] : [oldCv],
-        meta: { limit: 100, page: 1, total: uploaded ? 2 : 1, totalPages: 1 },
+        items: options.builderCv ? [builderCv] : uploaded ? [oldCv, uploadedCv] : [oldCv],
+        meta: {
+          limit: 100,
+          page: 1,
+          total: options.builderCv ? 1 : uploaded ? 2 : 1,
+          totalPages: 1,
+        },
       }),
       contentType: "application/json",
     });

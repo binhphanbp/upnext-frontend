@@ -83,8 +83,11 @@ test("renders API-backed applications with consistent navigation and detail", as
   await expect(page.getByRole("link", { name: "Frontend Engineer" })).toBeVisible();
   await expect(page.getByText("Đã xem", { exact: true })).toBeVisible();
 
-  await page.getByRole("link", { name: "Xem tiến trình" }).click();
-  await expect(page).toHaveURL(new RegExp(`/candidate/applications/${applicationId}`));
+  await expect(page.getByRole("link", { name: "Xem tiến trình" })).toHaveAttribute(
+    "href",
+    `/vi/candidate/applications/${applicationId}`,
+  );
+  await page.goto(`/vi/candidate/applications/${applicationId}`);
   await expect(page.getByRole("heading", { name: "Lịch sử ứng tuyển" })).toBeVisible();
   await expect(page.getByText("Nhà tuyển dụng đã xem", { exact: true })).toBeVisible();
   await expect(page.getByText("Phiên bản 2", { exact: true })).toBeVisible();
@@ -94,6 +97,42 @@ test("renders API-backed applications with consistent navigation and detail", as
   );
   expect(hasHorizontalOverflow).toBe(false);
   expect(browserErrors).toEqual([]);
+});
+
+test("opens the immutable Builder CV snapshot from an submitted application", async ({ page }) => {
+  const builderApplication = {
+    ...application,
+    cvVersion: {
+      ...application.cvVersion,
+      contentJson: {
+        cvLanguage: "vi",
+        personalInfo: {
+          fullName: "Nguyễn Minh Anh",
+          title: "Frontend Engineer",
+          email: "candidate@example.com",
+          phoneNumber: "+84 912 345 678",
+          address: "Hà Nội",
+          website: "",
+        },
+        summary: "CV đã nộp được lưu nguyên vẹn cùng đơn ứng tuyển.",
+      },
+      cv: { source: "BUILDER", title: "CV Frontend Builder" },
+      versionNo: 2,
+    },
+  };
+  await page.route(new RegExp(`/api/v1/applications/${applicationId}(?:\\?|$)`), async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(builderApplication),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+
+  await page.goto(`/vi/candidate/applications/${applicationId}`);
+  await page.getByRole("button", { name: "Xem CV" }).click();
+
+  await expect(page.getByRole("dialog", { name: "CV Frontend Builder" })).toBeVisible();
+  await expect(page.getByText("Nguyễn Minh Anh", { exact: true })).toBeVisible();
 });
 
 test("keeps profile as a single destination in the account menu", async ({ page }) => {
@@ -195,6 +234,24 @@ async function mockCandidateActivity(page: Page) {
     { id: accountId },
   );
 
+  await page.route("**/auth/me", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          id: accountId,
+          email: "candidate@example.com",
+          fullName: "Minh Anh",
+          role: "CANDIDATE",
+        },
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+  await page.route(/\/conversations(?:\?.*)?$/, async (route) => {
+    await route.fulfill({ body: JSON.stringify([]), contentType: "application/json", status: 200 });
+  });
+
   await page.route("**/candidate-profiles/me", async (route) => {
     await route.fulfill({
       body: JSON.stringify({
@@ -267,7 +324,7 @@ async function mockCandidateActivity(page: Page) {
       status: 200,
     });
   });
-  await page.route(/\/job-posts$/, async (route) => {
+  await page.route(/\/job-posts(?:\?.*)?$/, async (route) => {
     await route.fulfill({
       body: JSON.stringify([
         {

@@ -14,6 +14,9 @@ import {
   updateCandidateApplicationCv,
   uploadCandidateCvFile,
 } from "@/features/candidate/api/profile";
+import { CvSnapshotPreviewDialog } from "@/features/candidate/cv-builder/cv-snapshot-preview-dialog";
+import { parseCvSnapshot } from "@/features/candidate/cv-builder/store";
+import type { CvData } from "@/features/candidate/cv-builder/types";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import {
@@ -49,6 +52,10 @@ export function ChangeCvDialog({
   const [previewingCvId, setPreviewingCvId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [builderPreview, setBuilderPreview] = useState<{ title: string; cvData: CvData } | null>(
+    null,
+  );
 
   const {
     data: cvsData,
@@ -65,6 +72,8 @@ export function ChangeCvDialog({
     if (!open) {
       setSelectedCvId(null);
       setUploadError(null);
+      setPreviewError(null);
+      setBuilderPreview(null);
     }
   }, [open]);
 
@@ -103,6 +112,17 @@ export function ChangeCvDialog({
     )[0];
     if (!latestVersion) return;
 
+    if (cv.source === "BUILDER") {
+      const cvData = parseCvSnapshot(latestVersion.contentJson);
+      if (cvData) {
+        setPreviewError(null);
+        setBuilderPreview({ title: cv.title, cvData });
+      } else {
+        setPreviewError(t("applicationDetail.submission.viewCvUnavailable"));
+      }
+      return;
+    }
+
     const previewWindow = window.open("about:blank", "_blank");
     if (!previewWindow) return;
     previewWindow.opener = null;
@@ -119,6 +139,7 @@ export function ChangeCvDialog({
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5 * 60 * 1000);
     } catch {
       previewWindow.close();
+      setPreviewError(t("applicationDetail.submission.viewCvUnavailable"));
     } finally {
       setPreviewingCvId(null);
     }
@@ -172,14 +193,8 @@ export function ChangeCvDialog({
             cvsData.items.map((cv) => {
               const isCurrent = cv.versions.some((version) => version.id === currentCvVersionId);
               return (
-                <button
+                <div
                   key={cv.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedCvId(cv.id);
-                    void handlePreview(cv);
-                  }}
-                  disabled={previewingCvId === cv.id}
                   className={cn(
                     "flex w-full items-center justify-between rounded-xl border p-3 text-left transition disabled:cursor-wait disabled:opacity-70",
                     selectedCvId === cv.id
@@ -187,7 +202,12 @@ export function ChangeCvDialog({
                       : "border-slate-200 bg-white hover:bg-slate-50",
                   )}
                 >
-                  <div className="flex min-w-0 items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCvId(cv.id)}
+                    className="focus-visible:outline-brand flex min-w-0 flex-1 items-center gap-2.5 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-2"
+                    aria-pressed={selectedCvId === cv.id}
+                  >
                     <FilePdf
                       aria-hidden="true"
                       size={20}
@@ -197,22 +217,28 @@ export function ChangeCvDialog({
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold text-slate-800">{cv.title}</p>
                     </div>
-                  </div>
+                  </button>
                   <div className="flex shrink-0 items-center gap-2">
                     {isCurrent ? (
                       <span className="bg-brand-muted text-accent-foreground rounded px-2 py-0.5 text-[10px] font-bold uppercase">
                         {t("applicationDetail.changeCv.currentBadge")}
                       </span>
                     ) : null}
-                    <span className="flex items-center gap-1 text-xs font-semibold text-slate-500">
+                    <button
+                      type="button"
+                      onClick={() => void handlePreview(cv)}
+                      disabled={previewingCvId === cv.id}
+                      className="focus-visible:outline-brand rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait"
+                      aria-label={`Xem trước CV ${cv.title}`}
+                    >
                       {previewingCvId === cv.id ? (
                         <SpinnerGap aria-hidden="true" size={15} className="animate-spin" />
                       ) : (
                         <Eye aria-hidden="true" size={15} />
                       )}
-                    </span>
+                    </button>
                   </div>
-                </button>
+                </div>
               );
             })
           ) : (
@@ -250,9 +276,20 @@ export function ChangeCvDialog({
             )}
           </button>
           {uploadError ? (
-            <p className="mt-2 text-xs font-semibold text-red-600">{uploadError}</p>
+            <p role="alert" className="mt-2 text-xs font-semibold text-red-600">
+              {uploadError}
+            </p>
           ) : null}
         </div>
+
+        {previewError ? (
+          <p
+            role="alert"
+            className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800"
+          >
+            {previewError}
+          </p>
+        ) : null}
 
         {mutation.isError ? (
           <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">
@@ -280,6 +317,14 @@ export function ChangeCvDialog({
               : t("applicationDetail.changeCv.submit")}
           </Button>
         </DialogFooter>
+        <CvSnapshotPreviewDialog
+          open={Boolean(builderPreview)}
+          onOpenChange={(open) => {
+            if (!open) setBuilderPreview(null);
+          }}
+          title={builderPreview?.title ?? "Bản xem trước CV"}
+          cvData={builderPreview?.cvData ?? null}
+        />
       </DialogContent>
     </Dialog>
   );

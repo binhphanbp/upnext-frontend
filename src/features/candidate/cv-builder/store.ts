@@ -119,6 +119,47 @@ function normalizeCvData(value: CvData | undefined): CvData {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Restores the immutable snapshot stored with a Builder CV version. Upload CVs
+ * deliberately have no JSON snapshot, so callers can distinguish the two
+ * preview paths without guessing from a missing file.
+ */
+export function parseCvSnapshot(value: unknown): CvData | null {
+  try {
+    const parsed = typeof value === "string" ? (JSON.parse(value) as unknown) : value;
+    if (!isRecord(parsed)) return null;
+
+    const candidate = parsed as Partial<CvData>;
+    const fallback = createInitialCvData(candidate.cvLanguage === "en" ? "en" : "vi");
+    return normalizeCvData({
+      ...fallback,
+      ...candidate,
+      targetJob: isRecord(candidate.targetJob)
+        ? (candidate.targetJob as CvTargetJob)
+        : fallback.targetJob,
+      personalInfo: isRecord(candidate.personalInfo)
+        ? (candidate.personalInfo as CvPersonalInfo)
+        : fallback.personalInfo,
+      style: isRecord(candidate.style) ? (candidate.style as CvStyleConfig) : fallback.style,
+      experiences: Array.isArray(candidate.experiences) ? candidate.experiences : [],
+      educations: Array.isArray(candidate.educations) ? candidate.educations : [],
+      projects: Array.isArray(candidate.projects) ? candidate.projects : [],
+      skills: Array.isArray(candidate.skills) ? candidate.skills : [],
+      sectionsOrder: Array.isArray(candidate.sectionsOrder) ? candidate.sectionsOrder : [],
+      hiddenSections: Array.isArray(candidate.hiddenSections) ? candidate.hiddenSections : [],
+      customSectionNames: isRecord(candidate.customSectionNames)
+        ? (candidate.customSectionNames as Record<string, string>)
+        : {},
+    });
+  } catch {
+    return null;
+  }
+}
+
 function moveItem<T extends { id: string }>(items: T[], id: string, direction: "up" | "down") {
   const nextItems = [...items];
   const currentIndex = nextItems.findIndex((item) => item.id === id);

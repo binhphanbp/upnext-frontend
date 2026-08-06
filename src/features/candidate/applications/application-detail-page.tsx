@@ -27,6 +27,9 @@ import {
   withdrawCandidateApplication,
 } from "@/features/candidate/api/profile";
 import { CandidatePageHeader } from "@/features/candidate/candidate-page-header";
+import { CvSnapshotPreviewDialog } from "@/features/candidate/cv-builder/cv-snapshot-preview-dialog";
+import { parseCvSnapshot } from "@/features/candidate/cv-builder/store";
+import type { CvData } from "@/features/candidate/cv-builder/types";
 import {
   canChangeApplicationCv,
   canWithdrawApplication,
@@ -66,6 +69,10 @@ export function CandidateApplicationDetailPage({
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [changeCvOpen, setChangeCvOpen] = useState(false);
   const [isViewingCv, setIsViewingCv] = useState(false);
+  const [cvPreviewError, setCvPreviewError] = useState<string | null>(null);
+  const [builderPreview, setBuilderPreview] = useState<{ title: string; cvData: CvData } | null>(
+    null,
+  );
   const detailQueryKey = ["candidate-application", session?.user.id, applicationId] as const;
   const applicationQuery = useQuery({
     enabled: Boolean(session),
@@ -96,17 +103,31 @@ export function CandidateApplicationDetailPage({
     },
   });
 
-  const handleViewCv = async (cvVersionId: string, fileName: string) => {
+  const handleViewCv = async (cvVersion: CandidateApplicationApi["cvVersion"]) => {
     if (!session) return;
 
+    setCvPreviewError(null);
+    if (cvVersion.cv?.source === "BUILDER") {
+      const cvData = parseCvSnapshot(cvVersion.contentJson);
+      if (cvData) {
+        setBuilderPreview({ title: cvVersion.cv.title, cvData });
+      } else {
+        setCvPreviewError(t("applicationDetail.submission.viewCvUnavailable"));
+      }
+      return;
+    }
+
     const previewWindow = window.open("about:blank", "_blank");
-    if (!previewWindow) return;
+    if (!previewWindow) {
+      setCvPreviewError(t("applicationDetail.submission.viewCvUnavailable"));
+      return;
+    }
     previewWindow.opener = null;
 
     setIsViewingCv(true);
     try {
-      const { blob } = await downloadCandidateCvVersion(session.accessToken, cvVersionId, {
-        fileName,
+      const { blob } = await downloadCandidateCvVersion(session.accessToken, cvVersion.id, {
+        fileName: cvVersion.fileName,
       });
 
       const objectUrl = URL.createObjectURL(blob);
@@ -114,6 +135,7 @@ export function CandidateApplicationDetailPage({
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 5 * 60 * 1000);
     } catch {
       previewWindow.close();
+      setCvPreviewError(t("applicationDetail.submission.viewCvUnavailable"));
     } finally {
       setIsViewingCv(false);
     }
@@ -355,9 +377,7 @@ export function CandidateApplicationDetailPage({
                 size="sm"
                 className="rounded-xl"
                 disabled={isViewingCv}
-                onClick={() =>
-                  handleViewCv(application.cvVersion.id, application.cvVersion.fileName)
-                }
+                onClick={() => handleViewCv(application.cvVersion)}
               >
                 {isViewingCv ? (
                   <SpinnerGap aria-hidden="true" className="animate-spin" />
@@ -387,6 +407,14 @@ export function CandidateApplicationDetailPage({
                   {application.coverLetter}
                 </p>
               </div>
+            ) : null}
+            {cvPreviewError ? (
+              <p
+                role="alert"
+                className="mt-4 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900"
+              >
+                {cvPreviewError}
+              </p>
             ) : null}
             {session ? (
               <ChangeCvDialog
@@ -468,6 +496,14 @@ export function CandidateApplicationDetailPage({
           ) : null}
         </aside>
       </div>
+      <CvSnapshotPreviewDialog
+        open={Boolean(builderPreview)}
+        onOpenChange={(open) => {
+          if (!open) setBuilderPreview(null);
+        }}
+        title={builderPreview?.title ?? t("applicationDetail.submission.viewCv")}
+        cvData={builderPreview?.cvData ?? null}
+      />
     </div>
   );
 }
