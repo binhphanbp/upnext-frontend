@@ -1302,6 +1302,7 @@ function CvRankingTable({
     <div className="space-y-4">
       <RecruiterTableLayout
         loading={false}
+        stickyFilterBar={false}
         filterBar={
           <>
             <div className="w-full sm:w-[280px]">

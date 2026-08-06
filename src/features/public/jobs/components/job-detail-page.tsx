@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { checkAppliedJob } from "@/features/candidate/api/profile";
@@ -13,6 +13,7 @@ import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { toast } from "@/shared/ui/toast";
 
 import { getPublicJobs, recordPublicJobView } from "../../home/api";
+import { getJobPreviewDescription } from "../../home/job-preview-description";
 import {
   ArrowRight,
   Bookmark,
@@ -33,6 +34,8 @@ import {
   UsersRound,
   WalletCards,
 } from "../../home/marketing-icons";
+import { useAnchoredJobPreview } from "../../home/use-anchored-job-preview";
+import { useJobPreviewDetail } from "../../home/use-job-preview-detail";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
 import { startJobApplication } from "../start-job-application";
@@ -322,6 +325,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               ) as string[]),
         description: job.description || "",
         categories,
+        categoryName: job.jobCategory?.name,
         urgent: false,
         featured: false,
         requirements: job.requirements,
@@ -377,22 +381,34 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   }
 
   const similarJobs = useMemo(() => {
-    let filtered = jobsList.filter(
-      (item) =>
-        item.id !== job.id &&
-        (item.categories.some((c) => job.categories.includes(c)) ||
-          item.tags?.some((t) => job.tags?.includes(t)) ||
-          item.level === job.level),
+    const others = jobsList.filter((item) => item.id !== job.id);
+
+    // 1. Same categoryName (chuyên ngành) — highest priority
+    const sameCategoryName = job.categoryName
+      ? others.filter(
+          (item) =>
+            item.categoryName &&
+            item.categoryName.toLowerCase() === job.categoryName!.toLowerCase(),
+        )
+      : [];
+
+    if (sameCategoryName.length >= 4) return sameCategoryName.slice(0, 4);
+
+    // 2. Fill with shared skills/tags
+    const usedIds = new Set(sameCategoryName.map((j) => j.id));
+    const bySkills = others.filter(
+      (item) => !usedIds.has(item.id) && item.tags?.some((t) => job.tags?.includes(t)),
     );
 
-    if (filtered.length < 4) {
-      const remaining = jobsList.filter(
-        (item) => item.id !== job.id && !filtered.some((f) => f.id === item.id),
-      );
-      filtered = [...filtered, ...remaining];
-    }
+    let result = [...sameCategoryName, ...bySkills];
+    if (result.length >= 4) return result.slice(0, 4);
 
-    return filtered.slice(0, 4);
+    // 3. Fill remaining with any other jobs
+    const resultIds = new Set(result.map((j) => j.id));
+    const remaining = others.filter((item) => !resultIds.has(item.id));
+    result = [...result, ...remaining];
+
+    return result.slice(0, 4);
   }, [job, jobsList]);
 
   return (
@@ -463,6 +479,16 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   value={job.level}
                 />
                 <InfoTile icon={<Clock size={20} />} label="Đăng tuyển" value={job.posted} />
+                <InfoTile
+                  icon={<UsersRound size={20} />}
+                  label="Ứng viên"
+                  value={`${job.applicants} lượt`}
+                />
+                <InfoTile
+                  icon={<Calendar size={20} />}
+                  label="Trạng thái"
+                  value="Đang nhận hồ sơ"
+                />
               </div>
 
               <div className="job-detail-tags" aria-label="Kỹ năng liên quan">
@@ -588,51 +614,14 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               </div>
             </DetailSection>
 
-            <section className="job-detail-card job-detail-similar-section">
-              <div className="job-detail-card-head mb-6">
-                <h2>Việc làm tương tự</h2>
-              </div>
-              <div className="job-detail-similar-grid">
-                {similarJobs.map((item) => (
-                  <div
-                    key={item.id}
-                    className="job-detail-similar-card"
-                    onClick={() => navigate(`/jobs/${item.id}`)}
-                  >
-                    <LogoMark job={item} />
-                    <div className="job-detail-similar-info">
-                      <h3>{item.title}</h3>
-                      <p>{item.company}</p>
-                      <div className="job-detail-similar-meta">
-                        <span className="job-detail-similar-badge">{item.location}</span>
-                        <span className="job-detail-similar-badge is-salary">{item.salary}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+            <SimilarJobsSection
+              similarJobs={similarJobs}
+              navigate={navigate}
+              onApply={handleApply}
+            />
           </article>
 
           <aside className="job-detail-aside">
-            <section className="job-detail-card job-detail-overview-card">
-              <h2>Tổng quan công việc</h2>
-              <InfoLine icon={<Coins size={17} />} label="Mức lương" value={job.salary} />
-              <InfoLine icon={<MapPin size={17} />} label="Địa điểm" value={job.location} />
-              <InfoLine icon={<BriefcaseBusiness size={17} />} label="Hình thức" value={job.mode} />
-              <InfoLine
-                icon={<UsersRound size={17} />}
-                label="Ứng viên"
-                value={`${job.applicants} lượt`}
-              />
-              <InfoLine icon={<Calendar size={17} />} label="Trạng thái" value="Đang nhận hồ sơ" />
-              <InfoLine
-                icon={<Star size={17} />}
-                label="Ưu tiên"
-                value={job.featured ? "Tin nổi bật" : "Tin thường"}
-              />
-            </section>
-
             <section className="job-detail-card job-detail-company-mini">
               <LogoMark job={job} />
               <div>
@@ -742,5 +731,175 @@ function InfoLine({ icon, label, value }: { icon: ReactNode; label: string; valu
         <b className="job-detail-info-value text-left">{value}</b>
       </div>
     </div>
+  );
+}
+
+function SimilarJobsSection({
+  similarJobs,
+  navigate,
+  onApply,
+}: {
+  similarJobs: Job[];
+  navigate: (path: string) => void;
+  onApply: () => void;
+}) {
+  const [previewJobId, setPreviewJobId] = useState<string | null>(null);
+  const previewCloseTimerRef = useRef<number | null>(null);
+  const {
+    placement: previewPlacement,
+    previewRef,
+    previewStyle,
+    setPreviewAnchor,
+  } = useAnchoredJobPreview(previewJobId);
+
+  const previewJob = similarJobs.find((j) => j.id === previewJobId) ?? null;
+  const { data: previewJobDetail, isPending: isPreviewDescriptionLoading } = useJobPreviewDetail(
+    previewJob?.id,
+  );
+  const previewDescription = getJobPreviewDescription(
+    previewJobDetail?.description ?? previewJob?.description,
+  );
+
+  function openPreview(jobId: string, trigger?: HTMLElement) {
+    if (previewCloseTimerRef.current !== null) {
+      window.clearTimeout(previewCloseTimerRef.current);
+      previewCloseTimerRef.current = null;
+    }
+    if (trigger) setPreviewAnchor(trigger, ".job-detail-similar-card");
+    setPreviewJobId(jobId);
+  }
+
+  function schedulePreviewClose() {
+    if (previewCloseTimerRef.current !== null) {
+      window.clearTimeout(previewCloseTimerRef.current);
+    }
+    previewCloseTimerRef.current = window.setTimeout(() => {
+      setPreviewJobId(null);
+      previewCloseTimerRef.current = null;
+    }, 220);
+  }
+
+  return (
+    <section className="job-detail-card job-detail-similar-section">
+      <div className="job-detail-card-head mb-6">
+        <h2>Việc làm tương tự</h2>
+      </div>
+      <div className="job-detail-similar-grid">
+        {similarJobs.map((item) => (
+          <div
+            key={item.id}
+            className={`job-detail-similar-card${previewJobId === item.id ? " is-previewed" : ""}`}
+            onMouseLeave={schedulePreviewClose}
+          >
+            <LogoMark job={item} />
+            <div className="job-detail-similar-info">
+              <h3>
+                <button
+                  type="button"
+                  className="job-detail-similar-title-btn"
+                  onClick={() => navigate(`/jobs/${item.id}`)}
+                  onMouseEnter={(e) => openPreview(item.id, e.currentTarget)}
+                  onFocus={(e) => openPreview(item.id, e.currentTarget)}
+                  onBlur={schedulePreviewClose}
+                  title={item.title}
+                >
+                  {item.title}
+                </button>
+              </h3>
+              <p>{item.company}</p>
+              <div className="job-detail-similar-meta">
+                <span className="job-detail-similar-badge">{item.location}</span>
+                <span className="job-detail-similar-badge is-salary">{item.salary}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {previewJob && (
+        <dialog
+          open
+          ref={previewRef}
+          id="similar-job-preview"
+          className="urgent-job-preview"
+          aria-labelledby="similar-job-preview-title"
+          aria-modal="false"
+          data-placement={previewPlacement}
+          style={previewStyle}
+          onMouseEnter={() => openPreview(previewJob.id)}
+          onMouseLeave={schedulePreviewClose}
+        >
+          <div className="urgent-job-preview-head">
+            <span className="urgent-job-preview-logo">
+              <span aria-hidden="true">{previewJob.company.charAt(0)}</span>
+              {previewJob.logo && (
+                // oxlint-disable-next-line next/no-img-element
+                <img
+                  src={previewJob.logo}
+                  alt=""
+                  width={48}
+                  height={48}
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              )}
+            </span>
+            <div>
+              <h3 id="similar-job-preview-title">{previewJob.title}</h3>
+              <strong>{previewJob.company}</strong>
+              <p>
+                <span>{previewJob.salary}</span>
+                <i aria-hidden="true">•</i>
+                {previewJob.level}
+              </p>
+            </div>
+          </div>
+
+          <p className="urgent-job-preview-address">
+            <MapPin size={16} aria-hidden="true" />
+            {previewJob.location}
+          </p>
+
+          <div className="urgent-job-preview-body">
+            <strong>Mô tả công việc</strong>
+            <section
+              className="urgent-job-preview-description"
+              aria-label={`Mô tả công việc ${previewJob.title}`}
+            >
+              {isPreviewDescriptionLoading
+                ? "Đang tải mô tả đầy đủ…"
+                : previewDescription || "Chưa có mô tả chi tiết."}
+            </section>
+            <div className="urgent-job-preview-tags">
+              {previewJob.tags.slice(0, 4).map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
+            </div>
+            <button type="button" onClick={() => navigate(`/jobs/${previewJob.id}`)}>
+              Xem chi tiết <ArrowRight size={15} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="urgent-job-preview-actions">
+            <button
+              type="button"
+              className="urgent-job-preview-save"
+              aria-label={`Lưu công việc ${previewJob.title}`}
+            >
+              <Bookmark size={21} weight="regular" />
+            </button>
+            <button
+              type="button"
+              className="urgent-job-preview-apply"
+              onClick={() => navigate(`/jobs/${previewJob.id}`)}
+            >
+              <BriefcaseBusiness size={18} aria-hidden="true" />
+              Ứng tuyển ngay
+            </button>
+          </div>
+        </dialog>
+      )}
+    </section>
   );
 }

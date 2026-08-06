@@ -91,10 +91,10 @@ export function OverviewSection({ onDelete, onEdit, profile }: SectionProps) {
           )}
         </ProfileBlock>
         <ProfileBlock icon={<Phone />} title={t("forms.profile.contactSection")}>
-          <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-y-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8 sm:gap-y-3.5">
             {contactItems.map(({ href, icon: Icon, label }) => {
               const content = (
-                <span className="group-hover:text-accent-foreground flex min-w-0 items-center gap-3 text-sm font-semibold text-slate-700 transition-colors">
+                <span className="group-hover:text-accent-foreground flex min-w-0 items-center gap-2.5 text-sm font-semibold text-slate-700 transition-colors">
                   <Icon
                     aria-hidden="true"
                     className="group-hover:text-accent-foreground shrink-0 text-slate-500 transition-colors"
