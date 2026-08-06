@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -9,11 +10,19 @@ import { Link } from "@/i18n/navigation";
 import { useRouter } from "@/i18n/navigation";
 
 import { getPublicPostCategories, getPublicPosts } from "../api/posts";
+import {
+  formatPostDate,
+  getPostLocale,
+  localizePostCategory,
+  postCopy,
+} from "../post-localization";
 import type { PaginatedPostsResponse, PostCategory } from "../types/post";
 
 export function PostsPageContent() {
   const router = useRouter();
   const navigate = (path: string) => router.push(path);
+  const locale = getPostLocale(useLocale());
+  const copy = postCopy[locale];
 
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category") || searchParams.get("categorySlug") || "";
@@ -73,16 +82,6 @@ export function PostsPageContent() {
     posts.length > 0 ? (selectedCategorySlug || searchQuery ? posts : posts.slice(1)) : [];
   const popularPosts = posts.slice(0, 3);
 
-  // Format Helper for Date
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "Jul 21, 2026";
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
   // Helper for Reading Time
   const getReadingTime = (content?: string) => {
     const wordCount = content ? content.split(/\s+/u).length : 120;
@@ -103,10 +102,10 @@ export function PostsPageContent() {
 
           <div className="relative z-10 mx-auto max-w-4xl text-center">
             <p className="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              UPNEXT BLOGS
+              {copy.list.eyebrow}
             </p>
             <h1 className="mb-6 text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl">
-              Your Key to Learning
+              {copy.list.title}
             </h1>
 
             {/* Search Bar & Dropdown */}
@@ -119,10 +118,10 @@ export function PostsPageContent() {
                   setCurrentPage(1);
                 }}
               >
-                <option value="">Categories (All)</option>
-                <option value="blog-upnext">Blog UpNext</option>
-                <option value="su-nghiep-it">Sự nghiệp IT</option>
-                <option value="chuyen-mon-it">Chuyên môn IT</option>
+                <option value="">{copy.categories.all}</option>
+                <option value="blog-upnext">{copy.categories.blogUpNext}</option>
+                <option value="su-nghiep-it">{copy.categories.itCareer}</option>
+                <option value="chuyen-mon-it">{copy.categories.itExpertise}</option>
                 {categories
                   .filter((c) => !["blog-upnext", "su-nghiep-it", "chuyen-mon-it"].includes(c.slug))
                   .map((cat) => (
@@ -135,8 +134,8 @@ export function PostsPageContent() {
               <div className="relative w-full flex-1">
                 <input
                   type="text"
-                  placeholder="Search Blogs"
-                  aria-label="Search Blogs"
+                  placeholder={copy.list.searchPlaceholder}
+                  aria-label={copy.list.searchAriaLabel}
                   className="w-full px-4 py-2.5 text-sm text-slate-800 focus:outline-none"
                   value={searchQuery}
                   onChange={(e) => {
@@ -147,7 +146,7 @@ export function PostsPageContent() {
                 <button
                   type="button"
                   className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  aria-label="Search"
+                  aria-label={copy.list.searchAriaLabel}
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -167,7 +166,7 @@ export function PostsPageContent() {
         {loading ? (
           <div className="mx-auto max-w-7xl px-4 py-24 text-center">
             <div className="mb-3 inline-block h-8 w-8 animate-spin rounded-full border-4 border-teal-500 border-t-transparent" />
-            <p className="text-sm font-medium text-slate-500">Loading articles...</p>
+            <p className="text-sm font-medium text-slate-500">{copy.list.loading}</p>
           </div>
         ) : (
           <>
@@ -200,11 +199,13 @@ export function PostsPageContent() {
                           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white">
                             U
                           </div>
-                          <span className="font-medium text-slate-700">UpNext Editorial</span>
+                          <span className="font-medium text-slate-700">{copy.list.editorial}</span>
                           <span>•</span>
-                          <span>{getReadingTime(featuredPost.content)} min read</span>
+                          <span>
+                            {copy.common.readingTime(getReadingTime(featuredPost.content))}
+                          </span>
                           <span>•</span>
-                          <span>{formatDate(featuredPost.createdAt)}</span>
+                          <span>{formatPostDate(featuredPost.createdAt, locale)}</span>
                         </div>
                       </div>
                       <div>
@@ -212,7 +213,7 @@ export function PostsPageContent() {
                           href={`/posts/${featuredPost.slug}`}
                           className="inline-flex items-center gap-2 rounded-md bg-[#10a778] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#0b7f5f]"
                         >
-                          Read article
+                          {copy.list.readArticle}
                           <svg
                             className="h-3 w-3"
                             fill="none"
@@ -232,7 +233,7 @@ export function PostsPageContent() {
                   </div>
                 ) : (
                   <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-500 lg:col-span-2">
-                    No featured articles found.
+                    {copy.list.noFeaturedArticles}
                   </div>
                 )}
 
@@ -252,15 +253,15 @@ export function PostsPageContent() {
                     </div>
 
                     <h3 className="mb-1 text-base leading-snug font-bold text-slate-900 md:text-lg">
-                      Đừng bỏ lỡ những cập nhật mới nhất
+                      {copy.list.newsletterTitle}
                     </h3>
                     <p className="mb-4 text-xs leading-relaxed text-slate-600">
-                      Nhận thông tin hữu ích và bài viết mới nhất từ UpNext.
+                      {copy.list.newsletterDescription}
                     </p>
 
                     {subscribed ? (
                       <div className="mb-3 rounded-xl bg-emerald-100 p-3 text-xs font-medium text-emerald-900">
-                        ✓ Cảm ơn bạn đã đăng ký nhận bản tin từ UpNext!
+                        ✓ {copy.list.newsletterSuccess}
                       </div>
                     ) : (
                       <form
@@ -272,8 +273,8 @@ export function PostsPageContent() {
                       >
                         <input
                           type="email"
-                          placeholder="Email của bạn"
-                          aria-label="Email của bạn"
+                          placeholder={copy.list.emailPlaceholder}
+                          aria-label={copy.list.emailPlaceholder}
                           required
                           className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs shadow-2xs focus:border-[#10a778] focus:outline-none"
                         />
@@ -281,7 +282,7 @@ export function PostsPageContent() {
                           type="submit"
                           className="flex-shrink-0 rounded-xl bg-[#10a778] px-4 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-[#0b7f5f]"
                         >
-                          Đăng ký
+                          {copy.list.subscribe}
                         </button>
                       </form>
                     )}
@@ -291,14 +292,14 @@ export function PostsPageContent() {
                       className="mt-1 inline-flex items-center gap-2 text-xs font-semibold text-[#10a778] hover:underline"
                       onClick={() => {
                         navigator.clipboard.writeText(window.location.origin + "/rss.xml");
-                        alert("Đã sao chép đường dẫn RSS feed vào bộ nhớ tạm!");
+                        alert(copy.list.rssCopied);
                       }}
                     >
                       <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                         <circle cx="6.18" cy="17.82" r="2.18" />
                         <path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z" />
                       </svg>
-                      Sao chép RSS feed
+                      {copy.list.copyRss}
                     </button>
                   </div>
 
@@ -306,7 +307,7 @@ export function PostsPageContent() {
                   <div className="flex flex-1 flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
                     <div>
                       <h3 className="mb-1 text-base font-bold text-slate-900 md:text-lg">
-                        Bài viết phổ biến
+                        {copy.list.popularArticles}
                       </h3>
                       {/* Short Green Accent Line */}
                       <div className="mb-5 h-1 w-8 rounded-full bg-[#10a778]" />
@@ -340,7 +341,7 @@ export function PostsPageContent() {
                                   {popPost.title}
                                 </h4>
                                 <div className="text-[11px] font-medium text-slate-400">
-                                  {getReadingTime(popPost.content)} min read
+                                  {copy.common.readingTime(getReadingTime(popPost.content))}
                                 </div>
                               </div>
                             </Link>
@@ -355,7 +356,7 @@ export function PostsPageContent() {
                         href="/posts"
                         className="group flex w-full items-center justify-between rounded-xl bg-[#f0fdf4] px-4 py-2.5 text-xs font-bold text-[#0b7f5f] shadow-2xs transition hover:bg-[#dcfce7]"
                       >
-                        <span>Xem tất cả bài viết</span>
+                        <span>{copy.list.viewAllArticles}</span>
                         <svg
                           className="h-4 w-4 text-[#10a778] transition group-hover:translate-x-1"
                           fill="none"
@@ -378,7 +379,7 @@ export function PostsPageContent() {
 
             {/* EXPLORE MORE ARTICLES (GRID 3 COLUMNS) */}
             <section className="mx-auto max-w-7xl px-4 py-8">
-              <h3 className="mb-6 text-lg font-bold text-slate-900">Explore More Articles</h3>
+              <h3 className="mb-6 text-lg font-bold text-slate-900">{copy.list.exploreArticles}</h3>
 
               {gridPosts.length > 0 ? (
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -404,7 +405,8 @@ export function PostsPageContent() {
                       <div className="flex flex-1 flex-col justify-between p-5">
                         <div>
                           <div className="mb-2 text-[11px] text-slate-400">
-                            {getReadingTime(post.content)} min read • {formatDate(post.createdAt)}
+                            {copy.common.readingTime(getReadingTime(post.content))} •{" "}
+                            {formatPostDate(post.createdAt, locale)}
                           </div>
                           <h4 className="mb-4 line-clamp-3 cursor-pointer text-sm font-bold text-slate-900 transition hover:text-[#10a778]">
                             <Link href={`/posts/${post.slug}`}>{post.title}</Link>
@@ -412,9 +414,15 @@ export function PostsPageContent() {
                         </div>
                         <div className="flex items-center gap-2 border-t border-slate-100 pt-2 text-xs text-slate-600">
                           <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#ecfdf5] text-[10px] font-bold text-[#0b7f5f]">
-                            {(post.category?.name || "U")[0]}
+                            {localizePostCategory(
+                              post.category?.slug,
+                              post.category?.name,
+                              locale,
+                            ).charAt(0)}
                           </div>
-                          <span>{post.category?.name || "UpNext Blog"}</span>
+                          <span>
+                            {localizePostCategory(post.category?.slug, post.category?.name, locale)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -422,7 +430,7 @@ export function PostsPageContent() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-500">
-                  No articles found in this category.
+                  {copy.list.noResults}
                 </div>
               )}
 
@@ -437,7 +445,7 @@ export function PostsPageContent() {
                       className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage(1)}
-                      aria-label="First page"
+                      aria-label={copy.list.firstPage}
                     >
                       «
                     </button>
@@ -446,7 +454,7 @@ export function PostsPageContent() {
                       className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      aria-label="Previous page"
+                      aria-label={copy.list.previousPage}
                     >
                       ‹
                     </button>
@@ -471,7 +479,7 @@ export function PostsPageContent() {
                       className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
                       disabled={currentPage === totalPages}
                       onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      aria-label="Next page"
+                      aria-label={copy.list.nextPage}
                     >
                       ›
                     </button>
@@ -480,7 +488,7 @@ export function PostsPageContent() {
                       className="rounded p-2 text-slate-700 hover:bg-slate-200 disabled:opacity-40"
                       disabled={currentPage === totalPages}
                       onClick={() => setCurrentPage(totalPages)}
-                      aria-label="Last page"
+                      aria-label={copy.list.lastPage}
                     >
                       »
                     </button>

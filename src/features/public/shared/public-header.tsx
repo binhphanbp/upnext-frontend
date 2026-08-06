@@ -873,7 +873,11 @@ export function PublicHeader({
   function switchLanguage(language: Language) {
     setLangOpen(false);
     if (language.locale === locale) return;
-    router.replace(pathname, { locale: language.locale });
+
+    const query = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+    router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname, {
+      locale: language.locale,
+    });
   }
 
   function openRecruiterChat() {

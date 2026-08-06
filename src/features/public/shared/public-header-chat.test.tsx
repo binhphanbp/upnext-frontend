@@ -21,6 +21,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(path: string) => void>() }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 import * as nextNavigation from "next/navigation";

@@ -11,6 +11,7 @@ import {
 } from "@phosphor-icons/react";
 import { useLocale } from "next-intl";
 import Image from "next/image";
+import { type MouseEvent as ReactMouseEvent, useEffect, useState } from "react";
 
 import { usePathname, useRouter } from "@/i18n/navigation";
 
@@ -149,6 +150,7 @@ export function PublicFooter({ navigate }: PublicFooterProps) {
   const locale = useLocale() === "en" ? "en" : "vi";
   const router = useRouter();
   const pathname = usePathname();
+  const [queryString, setQueryString] = useState("");
   const copy = copyByLocale[locale];
   const currentYear = new Date().getFullYear();
   const languageOptions = [
@@ -161,8 +163,33 @@ export function PublicFooter({ navigate }: PublicFooterProps) {
     navigate(path);
   }
 
+  useEffect(() => {
+    setQueryString(window.location.search);
+  }, [pathname]);
+
   function getLocaleHref(nextLocale: "vi" | "en") {
-    return `/${nextLocale}${pathname === "/" ? "" : pathname}`;
+    return `/${nextLocale}${pathname === "/" ? "" : pathname}${queryString}`;
+  }
+
+  function handleLanguageLinkClick(
+    event: ReactMouseEvent<HTMLAnchorElement>,
+    nextLocale: "vi" | "en",
+  ) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.shiftKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    window.location.assign(
+      `/${nextLocale}${pathname === "/" ? "" : pathname}${window.location.search}`,
+    );
   }
 
   return (
@@ -265,6 +292,7 @@ export function PublicFooter({ navigate }: PublicFooterProps) {
                 <a
                   key={item.locale}
                   href={getLocaleHref(item.locale)}
+                  onClick={(event) => handleLanguageLinkClick(event, item.locale)}
                   role="menuitemradio"
                   aria-checked={locale === item.locale}
                 >

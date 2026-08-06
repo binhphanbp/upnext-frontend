@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { PublicFooter } from "@/features/public/shared/public-footer";
@@ -9,6 +10,13 @@ import { useRouter } from "@/i18n/navigation";
 
 import { getPublicPostBySlug, getPublicPosts } from "../api/posts";
 import { DEFAULT_POST_COVER_URL, getPostCover } from "../post-cover";
+import {
+  formatPostDate,
+  formatPostNumber,
+  getPostLocale,
+  localizePostCategory,
+  postCopy,
+} from "../post-localization";
 import type { Post } from "../types/post";
 import { PostCard } from "./post-card";
 
@@ -68,15 +76,17 @@ function parseTocHeadings(htmlContent: string): { cleanedHtml: string; tocItems:
 export function PostDetailContent({ slug }: PostDetailContentProps) {
   const router = useRouter();
   const navigate = (path: string) => router.push(path);
+  const locale = getPostLocale(useLocale());
+  const copy = postCopy[locale];
   const [post, setPost] = useState<Post | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     let ignore = false;
     setLoading(true);
-    setError(null);
+    setHasError(false);
 
     getPublicPostBySlug(slug)
       .then((data) => {
@@ -99,7 +109,7 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
       .catch((err) => {
         console.error("Error loading post detail:", err);
         if (!ignore) {
-          setError("Không tìm thấy bài viết hoặc bài viết đã bị xóa.");
+          setHasError(true);
           setLoading(false);
         }
       });
@@ -109,18 +119,12 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
     };
   }, [slug]);
 
-  const formattedDate = post
-    ? new Date(post.createdAt).toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-    : "";
+  const formattedDate = post ? formatPostDate(post.createdAt, locale) : "";
 
   const wordCount = post?.content ? post.content.split(/\s+/u).length : 100;
   const readingTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
-  const categoryName = post?.category?.name || "Bài viết UpNext";
+  const categoryName = localizePostCategory(post?.category?.slug, post?.category?.name, locale);
   const cover = post ? getPostCover(post) : { src: DEFAULT_POST_COVER_URL, isFallback: true };
 
   const [isTocOpen, setIsTocOpen] = useState(true);
@@ -137,7 +141,7 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
     const timer = setTimeout(() => {
       const preElements = document.querySelectorAll(".post-detail-content pre");
       preElements.forEach((pre) => {
-        if (pre.querySelector(".code-copy-btn")) return;
+        pre.querySelector(".code-copy-btn")?.remove();
 
         const copyBtn = document.createElement("button");
         copyBtn.type = "button";
@@ -146,7 +150,7 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
-          <span>Sao chép</span>
+          <span>${copy.detail.copy}</span>
         `;
 
         copyBtn.addEventListener("click", (e) => {
@@ -162,14 +166,14 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
               <svg class="w-3.5 h-3.5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
-              <span class="text-teal-400">Đã chép!</span>
+              <span class="text-teal-400">${copy.detail.copied}</span>
             `;
             setTimeout(() => {
               copyBtn.innerHTML = `
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                <span>Sao chép</span>
+                <span>${copy.detail.copy}</span>
               `;
             }, 2000);
           });
@@ -180,7 +184,7 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [post, cleanedHtml]);
+  }, [copy.detail.copy, copy.detail.copied, post, cleanedHtml]);
 
   const handleScrollToHeading = (id: string) => {
     const element = document.getElementById(id);
@@ -199,17 +203,17 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
         {loading ? (
           <div className="py-24 text-center">
             <div className="mb-4 inline-block h-10 w-10 animate-spin rounded-full border-4 border-teal-500 border-t-transparent" />
-            <p className="font-medium text-slate-500">Đang tải nội dung bài viết...</p>
+            <p className="font-medium text-slate-500">{copy.detail.loading}</p>
           </div>
-        ) : error || !post ? (
+        ) : hasError || !post ? (
           <div className="py-24 text-center">
-            <h2 className="mb-3 text-2xl font-bold text-slate-800">Rất tiếc!</h2>
-            <p className="mb-6 text-slate-600">{error || "Bài viết không tồn tại."}</p>
+            <h2 className="mb-3 text-2xl font-bold text-slate-800">{copy.detail.errorTitle}</h2>
+            <p className="mb-6 text-slate-600">{copy.detail.notFound}</p>
             <Link
               href="/posts"
               className="inline-flex items-center gap-2 rounded-md bg-[#10a778] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0b7f5f]"
             >
-              Quay lại danh sách bài viết
+              {copy.detail.backToPosts}
             </Link>
           </div>
         ) : (
@@ -217,11 +221,11 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
             {/* Breadcrumb */}
             <nav className="post-breadcrumb mb-6 flex items-center gap-2 text-xs text-slate-500">
               <Link href="/" className="hover:underline">
-                Trang chủ
+                {copy.detail.home}
               </Link>
               <span>/</span>
               <Link href="/posts" className="hover:underline">
-                Bài viết
+                {copy.detail.posts}
               </Link>
               <span>/</span>
               <span className="font-semibold text-slate-900">{categoryName}</span>
@@ -240,15 +244,15 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#10a778] text-xs font-bold text-white">
                   U
                 </div>
-                <span className="font-semibold text-slate-800">UpNext Editorial Team</span>
+                <span className="font-semibold text-slate-800">{copy.detail.editorial}</span>
                 <span>•</span>
                 <span>{formattedDate}</span>
                 <span>•</span>
-                <span>{readingTimeMinutes} phút đọc</span>
+                <span>{copy.common.readingTime(readingTimeMinutes)}</span>
                 {typeof post.viewCount === "number" && (
                   <>
                     <span>•</span>
-                    <span>{post.viewCount.toLocaleString("vi-VN")} lượt xem</span>
+                    <span>{copy.common.views(formatPostNumber(post.viewCount, locale))}</span>
                   </>
                 )}
               </div>
@@ -270,11 +274,13 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
             {tocItems.length > 0 && (
               <div className="ez-toc-box">
                 <div className="ez-toc-header">
-                  <h3 className="ez-toc-title">Nội dung bài viết</h3>
+                  <h3 className="ez-toc-title">{copy.detail.tocTitle}</h3>
                   <button
                     onClick={() => setIsTocOpen(!isTocOpen)}
                     className="ez-toc-toggle-btn"
-                    title={isTocOpen ? "Thu gọn mục lục" : "Mở rộng mục lục"}
+                    aria-expanded={isTocOpen}
+                    aria-label={isTocOpen ? copy.detail.collapseToc : copy.detail.expandToc}
+                    title={isTocOpen ? copy.detail.collapseToc : copy.detail.expandToc}
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path
@@ -336,7 +342,7 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
             {post.postTags && post.postTags.length > 0 && (
               <div className="mt-12 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-8">
                 <span className="text-xs font-bold tracking-wider text-slate-700 uppercase">
-                  Thẻ bài viết:
+                  {copy.detail.tags}
                 </span>
                 {post.postTags.map(({ tag }) => (
                   <span
@@ -352,7 +358,9 @@ export function PostDetailContent({ slug }: PostDetailContentProps) {
             {/* Related Posts Section */}
             {relatedPosts.length > 0 && (
               <section className="mt-16 border-t border-slate-200 pt-12">
-                <h3 className="mb-6 text-xl font-bold text-slate-900">Bài viết liên quan</h3>
+                <h3 className="mb-6 text-xl font-bold text-slate-900">
+                  {copy.detail.relatedPosts}
+                </h3>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                   {relatedPosts.map((relPost) => (
                     <PostCard key={relPost.id} post={relPost} />

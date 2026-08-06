@@ -1,12 +1,24 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { PostsPageContent } from "@/features/posts/components/posts-page-content";
+import { getPostLocale, postCopy } from "@/features/posts/post-localization";
 
-export const metadata = {
-  title: "Blog & Bài Viết IT - UpNext Recruitment",
-  description:
-    "Cập nhật xu hướng công nghệ, cẩm nang phỏng vấn, dải lương IT và bài viết chuyên môn hàng đầu.",
+type PostsPageProps = {
+  params: Promise<{
+    locale: string;
+  }>;
 };
+
+export async function generateMetadata({ params }: PostsPageProps): Promise<Metadata> {
+  const { locale: requestedLocale } = await params;
+  const metadata = postCopy[getPostLocale(requestedLocale)].metadata;
+
+  return {
+    title: metadata.listTitle,
+    description: metadata.listDescription,
+  };
+}
 
 export default function PostsPage() {
   return (

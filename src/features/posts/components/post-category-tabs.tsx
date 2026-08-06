@@ -1,5 +1,8 @@
 "use client";
 
+import { useLocale } from "next-intl";
+
+import { getPostLocale, postCopy } from "../post-localization";
 import type { PostCategory } from "../types/post";
 
 type PostCategoryTabsProps = {
@@ -13,18 +16,20 @@ export function PostCategoryTabs({
   activeCategorySlug,
   onSelectCategory,
 }: PostCategoryTabsProps) {
-  // Main parent category options
+  const locale = getPostLocale(useLocale());
+  const copy = postCopy[locale];
   const defaultTabs = [
-    { label: "Tất cả bài viết", slug: "" },
-    { label: "Blog UpNext", slug: "blog-upnext" },
-    { label: "Sự nghiệp IT", slug: "su-nghiep-it" },
-    { label: "Chuyên môn IT", slug: "chuyen-mon-it" },
+    { label: copy.list.allArticles, slug: "" },
+    { label: copy.categories.blogUpNext, slug: "blog-upnext" },
+    { label: copy.categories.itCareer, slug: "su-nghiep-it" },
+    { label: copy.categories.itExpertise, slug: "chuyen-mon-it" },
   ];
 
-  // Merge backend categories if any additional ones exist
+  // Merge backend categories if any additional ones exist.
+  // Their names remain source data until article taxonomy translations are available in the API.
   const additionalCategories = categories
-    .filter((c) => !["blog-upnext", "su-nghiep-it", "chuyen-mon-it"].includes(c.slug))
-    .map((c) => ({ label: c.name, slug: c.slug }));
+    .filter((category) => !["blog-upnext", "su-nghiep-it", "chuyen-mon-it"].includes(category.slug))
+    .map((category) => ({ label: category.name, slug: category.slug }));
 
   const allTabs = [...defaultTabs, ...additionalCategories];
 
