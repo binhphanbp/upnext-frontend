@@ -3,6 +3,8 @@ import type { PublicCompany, PublicJob } from "./api";
 export const EXPIRING_JOB_WINDOW_DAYS = 14;
 export const EXPIRING_JOB_LIMIT = 8;
 export const LATEST_JOB_LIMIT = 12;
+export const INTERESTED_JOB_LIMIT = 12;
+export const MIN_INTERESTED_JOB_COUNT = 3;
 export const TOP_COMPANY_LIMIT = 8;
 
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
@@ -104,6 +106,51 @@ export function selectLatestJobs(
     .filter((job) => isPublicJobAvailable(job, now) && !excludedIds?.has(job.id))
     .toSorted((a, b) => getPublishedTime(b) - getPublishedTime(a))
     .slice(0, limit);
+}
+
+function getPublicViewCount(job: PublicJob) {
+  const viewCount = job.viewCount;
+  if (typeof viewCount !== "number" || !Number.isFinite(viewCount) || viewCount <= 0) return null;
+  return Math.floor(viewCount);
+}
+
+/**
+ * Selects only jobs backed by a real public view aggregate. A minimum avoids
+ * replacing a useful feed with a sparse, misleading "popular" section.
+ */
+export function selectInterestedJobs(
+  jobs: readonly PublicJob[] | undefined,
+  {
+    now = Date.now(),
+    limit = INTERESTED_JOB_LIMIT,
+    minItems = MIN_INTERESTED_JOB_COUNT,
+    excludedIds,
+  }: {
+    now?: number;
+    limit?: number;
+    minItems?: number;
+    excludedIds?: ReadonlySet<string>;
+  } = {},
+) {
+  if (!jobs?.length) return [];
+
+  const selected = jobs
+    .filter(
+      (job) =>
+        isPublicJobAvailable(job, now) &&
+        !excludedIds?.has(job.id) &&
+        getPublicViewCount(job) !== null,
+    )
+    .toSorted((a, b) => {
+      const countDelta = getPublicViewCount(b)! - getPublicViewCount(a)!;
+      if (countDelta !== 0) return countDelta;
+
+      const publishedDelta = getPublishedTime(b) - getPublishedTime(a);
+      return publishedDelta !== 0 ? publishedDelta : a.id.localeCompare(b.id);
+    })
+    .slice(0, limit);
+
+  return selected.length >= minItems ? selected : [];
 }
 
 export function selectTopCompanies(

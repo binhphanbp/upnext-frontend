@@ -6,6 +6,7 @@ import {
   getDaysUntilExpiration,
   hasRemoteWorkingModel,
   selectExpiringJobs,
+  selectInterestedJobs,
   selectLatestJobs,
   selectTopCompanies,
 } from "./home-section-selectors";
@@ -82,6 +83,27 @@ describe("homepage section selectors", () => {
     );
 
     expect(selected.map((item) => item.id)).toEqual(["middle", "old"]);
+  });
+
+  it("uses only real view counts for opportunities getting attention", () => {
+    const selected = selectInterestedJobs(
+      [
+        job("most-viewed", { viewCount: 320, publishedAt: "2026-07-20T00:00:00.000Z" }),
+        job("newer-tie", { viewCount: 120, publishedAt: "2026-07-30T00:00:00.000Z" }),
+        job("older-tie", { viewCount: 120, publishedAt: "2026-07-25T00:00:00.000Z" }),
+        job("zero-views", { viewCount: 0 }),
+        job("unknown-views", { viewCount: null }),
+      ],
+      { now },
+    );
+
+    expect(selected.map((item) => item.id)).toEqual(["most-viewed", "newer-tie", "older-tie"]);
+  });
+
+  it("falls back when too few jobs have a verified view count", () => {
+    expect(
+      selectInterestedJobs([job("one", { viewCount: 40 }), job("two", { viewCount: 12 })], { now }),
+    ).toEqual([]);
   });
 
   it("sorts companies by active jobs and uses a stable name tie-break", () => {
