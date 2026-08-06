@@ -2444,7 +2444,7 @@
 
 .job-detail-meta-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 22px;
 }
@@ -2699,9 +2699,30 @@
   transition: all 0.2s ease;
 }
 
-.job-detail-similar-card:hover {
+.job-detail-similar-card:hover,
+.job-detail-similar-card.is-previewed {
   border-color: #10b981;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.05);
+}
+
+.job-detail-similar-title-btn {
+  all: unset;
+  display: block;
+  width: 100%;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 200ms ease;
+}
+
+.job-detail-similar-card:hover .job-detail-similar-title-btn,
+.job-detail-similar-card.is-previewed .job-detail-similar-title-btn {
+  color: #0b7f5f;
 }
 
 .job-detail-similar-info {

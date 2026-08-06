@@ -315,7 +315,7 @@ export function CandidateProfilePage() {
         </div>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[196px_minmax(0,1fr)] xl:grid-cols-[196px_minmax(0,1fr)_252px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[200px_minmax(0,1fr)] xl:grid-cols-[200px_minmax(0,1fr)_260px] 2xl:grid-cols-[210px_minmax(0,1fr)_275px]">
         <ProfileNavigation activeSection={activeSection} counts={sectionCounts} />
 
         <div className="min-w-0 rounded-xl border border-slate-200/90 bg-white p-4 sm:p-6">
@@ -535,7 +535,7 @@ function ProfileNavigation({
 }>) {
   const t = useTranslations("CandidateProfile.content");
   return (
-    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-2 lg:block">
+    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] shrink-0 overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-2.5 lg:block">
       <div className="mb-2 px-2.5 pt-2">
         <p id="profile-navigation-title" className="text-xs font-semibold text-slate-500">
           {t("navigation.title")}
@@ -623,7 +623,7 @@ function ReadinessRail({
   const isProfileIncomplete = readiness.completed < readiness.total;
 
   return (
-    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-5 xl:block">
+    <aside className="sticky top-24 hidden max-h-[calc(100dvh-7rem)] shrink-0 overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white p-4.5 xl:block">
       <p className="text-xs font-semibold text-slate-500">{t("readiness.title")}</p>
       <div className="mt-2 flex items-end justify-between gap-4">
         <p className="text-3xl font-bold tracking-[-0.04em] text-slate-950">
@@ -666,10 +666,17 @@ function ReadinessRail({
                   <Link
                     href={{ pathname: "/candidate/profile", query: { section: item.section } }}
                     scroll={false}
-                    className="focus-visible:outline-brand hover:border-brand/20 hover:bg-brand-muted hover:text-accent-foreground flex items-center justify-between gap-3 rounded-xl border border-transparent bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2"
+                    className="focus-visible:outline-brand hover:border-brand/20 hover:bg-brand-muted hover:text-accent-foreground group flex items-center justify-between gap-2.5 rounded-xl border border-transparent bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
-                    {t(`readiness.nextActions.${item.id}`)}
-                    <span aria-hidden="true">→</span>
+                    <span className="min-w-0 flex-1 leading-snug">
+                      {t(`readiness.nextActions.${item.id}`)}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="group-hover:text-accent-foreground shrink-0 text-slate-400 transition-colors"
+                    >
+                      →
+                    </span>
                   </Link>
                 </li>
               ))}
