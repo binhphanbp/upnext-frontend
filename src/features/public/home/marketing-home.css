@@ -5717,40 +5717,11 @@ button.marketing-home-control {
   }
 }
 
-/* Keep every action visible through the compact-desktop range.  This is a
-   density adjustment only; tablet switches to its dedicated header below. */
-@media (min-width: 1181px) and (max-width: 1360px) {
-  .marketing-home-utility-content,
-  .marketing-home-header-main {
-    padding-inline: 30px;
-  }
-
-  .marketing-home-header-main {
-    gap: 24px 30px;
-  }
-
-  .marketing-home-nav {
-    gap: 28px;
-  }
-
-  .marketing-home-header-actions {
-    gap: 8px;
-  }
-
-  .marketing-home-header-actions .marketing-home-employer {
-    gap: 7px;
-    padding-inline: 12px 11px;
-  }
-
-  .marketing-home-header-actions .marketing-home-login,
-  .marketing-home-header-actions .marketing-home-register {
-    padding-inline: 16px;
-  }
-}
-
-/* The full desktop navigation no longer has enough room below this point.
-   Collapse deliberately before controls can overlap. */
-@media (min-width: 821px) and (max-width: 1080px) {
+/* The complete desktop navigation needs substantially more horizontal room than
+   the main header itself. Collapse it before the action cluster can be squeezed
+   or clipped; the compact menu keeps the destinations reachable while sign-in
+   and sign-up remain visible for an unauthenticated visitor. */
+@media (min-width: 821px) and (max-width: 1360px) {
   .marketing-home-header-main {
     grid-template-columns: 1fr auto;
     gap: 16px;
@@ -5758,7 +5729,6 @@ button.marketing-home-control {
   }
 
   .marketing-home-nav,
-  .marketing-home-header-actions .marketing-home-login,
   .marketing-home-header-actions .marketing-home-employer,
   .marketing-home-header-actions .marketing-home-lang,
   .marketing-home-action-sep {
@@ -5773,9 +5743,10 @@ button.marketing-home-control {
     display: block;
   }
 
+  .marketing-home-header-actions .marketing-home-login,
   .marketing-home-header-actions .marketing-home-register {
-    min-height: 42px;
-    padding-inline: 18px;
+    min-height: 40px;
+    padding-inline: 16px;
   }
 }
 
