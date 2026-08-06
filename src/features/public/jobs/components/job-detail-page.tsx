@@ -2,18 +2,16 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState , useRef,} from "react";
 import type { ReactNode } from "react";
-
 import { checkAppliedJob } from "@/features/candidate/api/profile";
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { toast } from "@/shared/ui/toast";
-
-import { getPublicJobs } from "../../home/api";
 import { getJobPreviewDescription } from "../../home/job-preview-description";
+import { getPublicJobs, recordPublicJobView } from "../../home/api";
 import {
   ArrowRight,
   Bookmark,
@@ -97,6 +95,28 @@ const companyStats = [
   { value: "30.000+", label: "Nhân sự" },
   { value: "27+", label: "Quốc gia" },
 ];
+
+const visitorKeyStorageName = "upnext:visitor-key:v1";
+const recordedJobViews = new Set<string>();
+
+function getOrCreateVisitorKey() {
+  if (typeof window === "undefined") return undefined;
+
+  try {
+    const existingKey = window.localStorage.getItem(visitorKeyStorageName);
+    if (existingKey) return existingKey;
+
+    const visitorKey =
+      typeof window.crypto?.randomUUID === "function"
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem(visitorKeyStorageName, visitorKey);
+    return visitorKey;
+  } catch {
+    // Privacy mode or a blocked storage area should never prevent viewing a job.
+    return undefined;
+  }
+}
 
 function getCleanLeadText(html: string) {
   if (!html) return "";
@@ -316,6 +336,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   }, [apiJobsData]);
 
   const job = jobsList.find((item) => item.id === jobId) ?? fallbackJob;
+  const hasResolvedRequestedJob = Boolean(apiJobsData?.some((item) => item.id === jobId));
   const deadlineInfo = formatJobDetailDeadline(job.expiredAt);
   const {
     isPending: isSavedJobPending,
@@ -334,6 +355,19 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
 
   const hasApplied = appliedData?.applied === true;
   const [isOpenApply, setIsOpenApply] = useState(false);
+
+  useEffect(() => {
+    // The page initially renders a visual fallback while its public job list
+    // loads. Never attribute that fallback to a real job view.
+    if (!hasResolvedRequestedJob || !job.id || recordedJobViews.has(job.id)) return;
+
+    recordedJobViews.add(job.id);
+    void recordPublicJobView(job.id, getOrCreateVisitorKey()).catch(() => {
+      // View analytics are best-effort. A failed metric must not interrupt a
+      // candidate who is reading or applying for a job.
+      recordedJobViews.delete(job.id);
+    });
+  }, [hasResolvedRequestedJob, job.id]);
 
   function handleApply() {
     startJobApplication({

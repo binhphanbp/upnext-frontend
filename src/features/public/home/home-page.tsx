@@ -37,6 +37,7 @@ import {
   getJobTags,
   isPublicJobAvailable,
   selectExpiringJobs,
+  selectInterestedJobs,
   selectLatestJobs,
 } from "./home-section-selectors";
 import { InsightsCarousel } from "./insights-carousel";
@@ -181,6 +182,8 @@ const homeCopy = {
     statsCompanies: "Công ty công nghệ",
     statsNewJobs: "Việc làm mới trong 7 ngày",
     trustedBy: "Nhà tuyển dụng đang hoạt động trên UpNext",
+    interestedJobsTitle: "Cơ hội đang được quan tâm",
+    interestedJobsDescription: "Những vị trí đang được ứng viên quan tâm trên UpNext.",
     latestJobsTitle: "Việc làm mới nhất",
     latestJobsDescription: "Các vị trí IT mới được đăng từ những nhà tuyển dụng đang hoạt động.",
     recommendedJobsTitle: "Gợi ý phù hợp với bạn",
@@ -244,6 +247,8 @@ const homeCopy = {
     statsCompanies: "Tech companies",
     statsNewJobs: "Jobs posted in the last 7 days",
     trustedBy: "Employers hiring on UpNext",
+    interestedJobsTitle: "Opportunities getting attention",
+    interestedJobsDescription: "Roles candidates are currently engaging with on UpNext.",
     latestJobsTitle: "Latest IT jobs",
     latestJobsDescription: "New IT roles from employers currently hiring on UpNext.",
     recommendedJobsTitle: "Recommended for you",
@@ -372,14 +377,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     [homeData?.jobsSection.expiring.items, now],
   );
   const urgentJobIds = useMemo(() => new Set(urgentJobs.map((job) => job.id)), [urgentJobs]);
-  const latestJobs = useMemo(
-    () =>
-      selectLatestJobs((homeData?.jobsSection.latest.items ?? []).map(mapHomeJobCard), {
-        now,
-        excludedIds: urgentJobIds,
-      }),
-    [homeData?.jobsSection.latest.items, now, urgentJobIds],
-  );
   const personalizedRecommendations = useMemo(
     () =>
       (homeData?.recommendations?.title === "RECOMMENDED" ? homeData.recommendations.items : [])
@@ -397,20 +394,44 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
         ),
     [homeData?.recommendations, now, urgentJobIds],
   );
-  const showRecommendations = candidateState === "ready" && personalizedRecommendations.length >= 6;
-  const primaryJobSelection = useMemo(
-    () => (showRecommendations ? personalizedRecommendations.map((item) => item.job) : latestJobs),
-    [latestJobs, personalizedRecommendations, showRecommendations],
+  // The API is the authority for whether a candidate has enough profile data
+  // and a meaningful recommendation set. Keep the UI policy-free so the
+  // backend threshold can evolve without the two clients drifting apart.
+  const showRecommendations = candidateState === "ready" && personalizedRecommendations.length > 0;
+  const recommendationJobIds = useMemo(
+    () =>
+      new Set(showRecommendations ? personalizedRecommendations.map((item) => item.job.id) : []),
+    [personalizedRecommendations, showRecommendations],
+  );
+  const interestedExcludedJobIds = useMemo(
+    () => new Set([...urgentJobIds, ...recommendationJobIds]),
+    [recommendationJobIds, urgentJobIds],
+  );
+  const interestedJobs = useMemo(
+    () =>
+      selectInterestedJobs((homeData?.jobsSection.popular?.items ?? []).map(mapHomeJobCard), {
+        now,
+        excludedIds: interestedExcludedJobIds,
+      }),
+    [homeData?.jobsSection.popular?.items, interestedExcludedJobIds, now],
+  );
+  const showInterestedJobs = interestedJobs.length > 0;
+  const latestFallbackExcludedJobIds = useMemo(
+    () => new Set([...interestedExcludedJobIds, ...interestedJobs.map((job) => job.id)]),
+    [interestedExcludedJobIds, interestedJobs],
+  );
+  const latestFallbackJobs = useMemo(
+    () =>
+      selectLatestJobs((homeData?.jobsSection.latest.items ?? []).map(mapHomeJobCard), {
+        now,
+        excludedIds: latestFallbackExcludedJobIds,
+      }),
+    [homeData?.jobsSection.latest.items, latestFallbackExcludedJobIds, now],
   );
   const recommendationReasons = useMemo(
     () =>
       new Map(personalizedRecommendations.map((item) => [item.job.id, item.reasonCodes] as const)),
     [personalizedRecommendations],
-  );
-  const primaryExcludedJobIds = urgentJobIds;
-  const apiJobsData = useMemo(
-    () => [...primaryJobSelection, ...urgentJobs],
-    [primaryJobSelection, urgentJobs],
   );
   const apiCompaniesData = useMemo(
     () => (homeData ? mapHomeCompanies(homeData) : undefined),
@@ -753,31 +774,51 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
               candidateState={candidateState}
               actions={homeData?.actions ?? []}
             />
-            <FeaturedJobs
-              navigate={navigate}
-              onApply={handleApply}
-              jobs={apiJobsData}
-              excludedJobIds={primaryExcludedJobIds}
-              selectedJobs={primaryJobSelection}
-              matchReasons={showRecommendations ? recommendationReasons : undefined}
-              sectionTitle={showRecommendations ? copy.recommendedJobsTitle : copy.latestJobsTitle}
-              sectionDescription={
-                showRecommendations ? copy.recommendedJobsDescription : copy.latestJobsDescription
-              }
-              isLoading={isHomePending}
-              isError={false}
-              onRetry={() => void refetchHome()}
-              isRetrying={isHomeFetching}
-            />
             <HomeGuestRecommendationPrompt
               navigate={navigate}
               copy={copy}
               candidateState={candidateState}
             />
+            {showRecommendations ? (
+              <FeaturedJobs
+                navigate={navigate}
+                onApply={handleApply}
+                jobs={personalizedRecommendations.map((item) => item.job)}
+                excludedJobIds={urgentJobIds}
+                selectedJobs={personalizedRecommendations.map((item) => item.job)}
+                matchReasons={recommendationReasons}
+                sectionId="recommended-jobs"
+                sectionTitle={copy.recommendedJobsTitle}
+                sectionDescription={copy.recommendedJobsDescription}
+                isLoading={false}
+                isError={false}
+                onRetry={() => void refetchHome()}
+                isRetrying={isHomeFetching}
+              />
+            ) : null}
             <UrgentJobsSection
               navigate={navigate}
               urgentJobs={urgentJobsList}
               onApply={handleApply}
+              isLoading={isHomePending}
+              isError={false}
+              onRetry={() => void refetchHome()}
+              isRetrying={isHomeFetching}
+            />
+            <FeaturedJobs
+              navigate={navigate}
+              onApply={handleApply}
+              jobs={showInterestedJobs ? interestedJobs : latestFallbackJobs}
+              excludedJobIds={
+                showInterestedJobs ? interestedExcludedJobIds : latestFallbackExcludedJobIds
+              }
+              selectedJobs={showInterestedJobs ? interestedJobs : latestFallbackJobs}
+              sectionId={showInterestedJobs ? "interested-jobs" : "latest-jobs"}
+              sectionTitle={showInterestedJobs ? copy.interestedJobsTitle : copy.latestJobsTitle}
+              sectionDescription={
+                showInterestedJobs ? copy.interestedJobsDescription : copy.latestJobsDescription
+              }
+              footerMetric={showInterestedJobs ? "views" : "deadline"}
               isLoading={isHomePending}
               isError={false}
               onRetry={() => void refetchHome()}
