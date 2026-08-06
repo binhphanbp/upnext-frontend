@@ -27,6 +27,9 @@ import {
   updateMyCandidateProfile,
   uploadCandidateCvFile,
 } from "@/features/candidate/api/profile";
+import { CvSnapshotPreviewDialog } from "@/features/candidate/cv-builder/cv-snapshot-preview-dialog";
+import { parseCvSnapshot } from "@/features/candidate/cv-builder/store";
+import type { CvData } from "@/features/candidate/cv-builder/types";
 import {
   getLatestCandidateCvVersion,
   resolveCandidateCvSelection,
@@ -35,7 +38,7 @@ import { getCandidateSession } from "@/features/candidate/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
-import { isValidVietnamesePhoneNumber, normalizeVietnamesePhoneNumber } from "@/shared/lib/phone";
+import { isValidPhoneNumber, normalizePhoneNumber } from "@/shared/lib/phone";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 
@@ -71,6 +74,9 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [previewingCvId, setPreviewingCvId] = useState<string | null>(null);
   const [unavailableCvIds, setUnavailableCvIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [builderPreview, setBuilderPreview] = useState<{ title: string; cvData: CvData } | null>(
+    null,
+  );
 
   // CV Preview
   const [previewCv, setPreviewCv] = useState<{
@@ -151,7 +157,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       }
       if (profileData.phoneNumber) {
         setPhoneNumber(profileData.phoneNumber);
-        setPhoneTouched(!isValidVietnamesePhoneNumber(profileData.phoneNumber));
+        setPhoneTouched(!isValidPhoneNumber(profileData.phoneNumber));
       }
     }
   }, [profileData]);
@@ -167,12 +173,12 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     );
   }, [cvsData, selectedCvId]);
 
-  const hasValidPhoneNumber = isValidVietnamesePhoneNumber(phoneNumber);
+  const hasValidPhoneNumber = isValidPhoneNumber(phoneNumber);
   const phoneError = phoneTouched
     ? phoneNumber.trim()
       ? hasValidPhoneNumber
         ? null
-        : "Nhập số điện thoại Việt Nam hợp lệ, ví dụ 0912 345 678."
+        : "Nhập số điện thoại hợp lệ để nhà tuyển dụng có thể liên hệ."
       : "Vui lòng nhập số điện thoại để nhà tuyển dụng liên hệ."
     : null;
 
@@ -191,6 +197,20 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
 
     if (!latestVersion) {
       setErrorMessage("CV này chưa có phiên bản để xem.");
+      return;
+    }
+
+    if (cv.source === "BUILDER") {
+      const cvData = parseCvSnapshot(latestVersion.contentJson);
+      if (cvData) {
+        setErrorMessage(null);
+        setBuilderPreview({ title: cv.title, cvData });
+      } else {
+        setUnavailableCvIds((current) => new Set(current).add(cv.id));
+        setErrorMessage(
+          "CV tạo trên UpNext này chưa có dữ liệu xem trước. Bạn có thể chọn một CV khác hoặc mở CV Builder để cập nhật lại.",
+        );
+      }
       return;
     }
 
@@ -282,10 +302,8 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     setErrorMessage(null);
 
     try {
-      const normalizedPhoneNumber = normalizeVietnamesePhoneNumber(phoneNumber);
-      if (
-        normalizedPhoneNumber !== normalizeVietnamesePhoneNumber(profileData?.phoneNumber ?? "")
-      ) {
+      const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
+      if (normalizedPhoneNumber !== normalizePhoneNumber(profileData?.phoneNumber ?? "")) {
         const updatedProfile = await updateMyCandidateProfile(session.accessToken, {
           phoneNumber: normalizedPhoneNumber,
         });
@@ -505,7 +523,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                     setPhoneNumber(e.target.value);
                     setPhoneTouched(true);
                   }}
-                  placeholder="Ví dụ: 0912 345 678"
+                  placeholder="Ví dụ: +84 912 345 678"
                   className={cn(
                     "h-10 rounded-lg text-xs focus:ring-emerald-500",
                     phoneError
@@ -519,7 +537,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                   </p>
                 ) : (
                   <p className="mt-1.5 text-[11px] text-slate-500">
-                    Số này sẽ được lưu vào hồ sơ để nhà tuyển dụng liên hệ.
+                    Dùng số điện thoại nhà tuyển dụng có thể liên hệ; thêm mã quốc gia nếu cần.
                   </p>
                 )}
               </div>
@@ -710,6 +728,14 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
           onClose={closePreview}
         />
       )}
+      <CvSnapshotPreviewDialog
+        open={Boolean(builderPreview)}
+        onOpenChange={(open) => {
+          if (!open) setBuilderPreview(null);
+        }}
+        title={builderPreview?.title ?? "Bản xem trước CV"}
+        cvData={builderPreview?.cvData ?? null}
+      />
     </div>
   );
 }

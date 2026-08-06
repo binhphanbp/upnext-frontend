@@ -1809,7 +1809,13 @@
         "resumeVersion": "Phiên bản {version}",
         "submittedAt": "Thời điểm nộp",
         "coverLetter": "Thư giới thiệu",
-        "viewCv": "Xem CV"
+        "viewCv": "Xem CV",
+        "viewCvUnavailable": "Chưa thể mở CV này. Bạn có thể chọn một CV khác trong phần Đổi CV."
+      },
+      "cvPreview": {
+        "description": "Bản CV được lưu tại thời điểm bạn tạo trên UpNext.",
+        "close": "Đóng bản xem trước CV",
+        "dismiss": "Đóng"
       },
       "current": {
         "title": "Trạng thái hiện tại",
@@ -2602,7 +2608,8 @@
         "deleteSuccess": "Đã xóa CV.",
         "uploadError": "Không thể tải CV lên. Vui lòng kiểm tra tệp và thử lại.",
         "previewUnavailable": "Không có bản xem trước cho tệp này.",
-        "downloadUnavailable": "Không thể tải tệp xuống lúc này."
+        "downloadUnavailable": "Không thể tải tệp xuống lúc này.",
+        "builderDownloadUnavailable": "CV tạo trên UpNext có thể xem và chỉnh sửa trong CV Builder; hãy xuất PDF từ đó nếu cần một tệp tải xuống."
       }
     }
   },

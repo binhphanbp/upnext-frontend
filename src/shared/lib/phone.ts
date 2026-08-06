@@ -1,14 +1,18 @@
-const VIETNAMESE_PHONE_PATTERN = /^(?:\+?84|0)[235789]\d{8,9}$/u;
+const PHONE_PATTERN = /^(?:\+[1-9]\d{6,14}|0\d{6,14}|[1-9]\d{6,14})$/u;
 
-/** Removes presentation characters while preserving the optional `+84` prefix. */
-export function normalizeVietnamesePhoneNumber(value: string) {
+/**
+ * Removes visual separators while preserving an optional international prefix.
+ * We intentionally do not infer a country: candidates can use a reachable
+ * local number or an E.164 number from any country.
+ */
+export function normalizePhoneNumber(value: string) {
   return value.trim().replace(/[\s().-]/gu, "");
 }
 
 /**
- * Accepts current Vietnamese mobile and landline numbers in local (`0…`) or
- * international (`+84…` / `84…`) form.
+ * Basic, country-neutral validation compatible with E.164 length limits.
+ * A country selector is required before applying country-specific rules.
  */
-export function isValidVietnamesePhoneNumber(value: string) {
-  return VIETNAMESE_PHONE_PATTERN.test(normalizeVietnamesePhoneNumber(value));
+export function isValidPhoneNumber(value: string) {
+  return PHONE_PATTERN.test(normalizePhoneNumber(value));
 }

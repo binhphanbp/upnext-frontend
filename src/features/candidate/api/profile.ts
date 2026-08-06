@@ -241,6 +241,8 @@ export type CandidateCvApi = Readonly<{
   versions: Array<{
     id: string;
     sourceFileId: string | null;
+    contentJson?: unknown | null;
+    parsedText?: string | null;
     createdAt: string;
     sourceFile: {
       id: string;
@@ -305,8 +307,13 @@ export type CandidateApplicationApi = Readonly<{
     cvId: string;
     versionNo: number;
     sourceFileId: string | null;
+    contentJson?: unknown | null;
     createdAt: string;
     fileName: string;
+    cv?: Readonly<{
+      source: string;
+      title: string;
+    }> | null;
   }>;
 }>;
 
@@ -743,16 +750,45 @@ async function readDownloadErrorPayload(response: Response): Promise<unknown> {
   }
 }
 
-export function getMyCandidateApplications(token: string) {
-  return apiRequest<CandidateApplicationApi[]>("/applications/me", {
-    headers: authHeaders(token),
-  });
+type CandidateApplicationWireApi = Omit<CandidateApplicationApi, "cvVersion"> & {
+  cvVersion: Omit<CandidateApplicationApi["cvVersion"], "versionNo" | "fileName"> & {
+    versionNo?: number;
+    /** Kept temporarily for API responses created before the field was standardized. */
+    versionNumber?: number;
+    fileName?: string;
+  };
+};
+
+function normalizeCandidateApplication(
+  application: CandidateApplicationWireApi,
+): CandidateApplicationApi {
+  const cvVersion = application.cvVersion;
+
+  return {
+    ...application,
+    cvVersion: {
+      ...cvVersion,
+      versionNo: cvVersion.versionNo ?? cvVersion.versionNumber ?? 1,
+      fileName: cvVersion.fileName ?? cvVersion.cv?.title ?? "CV đã chọn",
+    },
+  };
 }
 
-export function getCandidateApplication(token: string, applicationId: string) {
-  return apiRequest<CandidateApplicationApi>(`/applications/${applicationId}`, {
+export async function getMyCandidateApplications(token: string) {
+  const applications = await apiRequest<CandidateApplicationWireApi[]>("/applications/me", {
     headers: authHeaders(token),
   });
+  return applications.map(normalizeCandidateApplication);
+}
+
+export async function getCandidateApplication(token: string, applicationId: string) {
+  const application = await apiRequest<CandidateApplicationWireApi>(
+    `/applications/${applicationId}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
+  return normalizeCandidateApplication(application);
 }
 
 export function withdrawCandidateApplication(token: string, applicationId: string) {

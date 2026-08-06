@@ -1,4 +1,5 @@
 import type { CandidateProfileApi } from "@/features/candidate/api/profile";
+import { isValidPhoneNumber } from "@/shared/lib/phone";
 
 import type {
   CvContentSignals,
@@ -336,8 +337,7 @@ export function isValidEmail(value: string) {
 }
 
 export function isValidPhone(value: string) {
-  const normalized = value.replace(/[\s().+-]/g, "");
-  return /^\d{7,15}$/.test(normalized);
+  return isValidPhoneNumber(value);
 }
 
 export function toExternalHref(value: string) {

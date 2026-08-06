@@ -21,6 +21,9 @@ import {
   setCandidateCvDefault,
   uploadCandidateCvFile,
 } from "@/features/candidate/api/profile";
+import { CvSnapshotPreviewDialog } from "@/features/candidate/cv-builder/cv-snapshot-preview-dialog";
+import { parseCvSnapshot } from "@/features/candidate/cv-builder/store";
+import type { CvData } from "@/features/candidate/cv-builder/types";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
@@ -67,6 +70,9 @@ export function ProfileDocuments({
   const [pendingDefaultId, setPendingDefaultId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [previewingId, setPreviewingId] = useState<string | null>(null);
+  const [builderPreview, setBuilderPreview] = useState<{ title: string; cvData: CvData } | null>(
+    null,
+  );
 
   const chooseFile = (file: File | undefined) => {
     setFeedback(null);
@@ -150,6 +156,11 @@ export function ProfileDocuments({
       return;
     }
 
+    if (cv.source === "BUILDER") {
+      setFeedback(t("documents.builderDownloadUnavailable"));
+      return;
+    }
+
     setDownloadingId(cv.id);
     setFeedback(null);
     try {
@@ -176,6 +187,17 @@ export function ProfileDocuments({
     const version = getLatestCvVersion(cv);
     if (!version) {
       setFeedback(t("documents.downloadUnavailable"));
+      return;
+    }
+
+    if (cv.source === "BUILDER") {
+      const cvData = parseCvSnapshot(version.contentJson);
+      if (cvData) {
+        setFeedback(null);
+        setBuilderPreview({ title: cv.title, cvData });
+      } else {
+        setFeedback(t("documents.previewUnavailable"));
+      }
       return;
     }
 
@@ -471,6 +493,14 @@ export function ProfileDocuments({
           )}
         </div>
       </div>
+      <CvSnapshotPreviewDialog
+        open={Boolean(builderPreview)}
+        onOpenChange={(open) => {
+          if (!open) setBuilderPreview(null);
+        }}
+        title={builderPreview?.title ?? t("sections.documents.title")}
+        cvData={builderPreview?.cvData ?? null}
+      />
     </section>
   );
 }
