@@ -69,6 +69,10 @@
   gap: 10px;
 }
 
+.cv-builder-brand > div {
+  min-width: 0;
+}
+
 .cv-builder-brand > button,
 .cv-history-actions button,
 .cv-preview-toolbar button,
@@ -2934,6 +2938,31 @@
   .cv-mobile-mode-switch button[aria-pressed="true"] {
     color: #075e4b;
     background: #eaf9f3;
+  }
+}
+
+/* The secondary context was useful on wide desktop, but its fixed middle column
+ * competed with the primary actions at tablet widths. Keep every action
+ * available while reducing the header to its stable two-column layout. */
+@media (max-width: 1240px) and (min-width: 768px) {
+  .cv-builder-topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cv-builder-status-cluster {
+    display: none;
+  }
+}
+
+@media (max-width: 899px) and (min-width: 768px) {
+  .cv-builder-toolbar button {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+  }
+
+  .cv-builder-toolbar button span {
+    display: none;
   }
 }
 

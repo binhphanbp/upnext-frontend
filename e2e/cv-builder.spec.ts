@@ -162,6 +162,40 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
   expect(snapshot.parsedText).toContain("TP. Hồ Chí Minh");
 });
 
+test("keeps unfinished work available across devices as a server-side draft", async ({ page }) => {
+  const snapshots: Record<string, unknown>[] = [];
+  await page.route("**/cvs", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+
+    snapshots.push(route.request().postDataJSON() as Record<string, unknown>);
+    await route.fulfill({
+      body: JSON.stringify({
+        id: "cv-builder-draft-e2e",
+        source: "BUILDER",
+        status: "DRAFT",
+        title: "Frontend draft",
+      }),
+      contentType: "application/json",
+      status: 201,
+    });
+  });
+
+  await page.goto("/vi/candidate/cv-builder");
+  await page.getByRole("button", { name: "Lưu bản CV vào UpNext" }).click();
+  await expect(page.getByRole("dialog")).toContainText("lưu dưới dạng bản nháp");
+  await page.getByLabel("Tên bản CV").fill("Frontend draft");
+  await page.getByRole("button", { name: "Lưu bản CV", exact: true }).click();
+
+  await expect(
+    page.getByText("Đã lưu “Frontend draft” dưới dạng bản nháp vào UpNext."),
+  ).toBeVisible();
+  await expect.poll(() => snapshots).toHaveLength(1);
+  expect(snapshots[0]).toMatchObject({ source: "BUILDER", status: "DRAFT" });
+});
+
 test("takes a reviewer directly to the first field that needs attention", async ({ page }) => {
   await page.setViewportSize({ width: 1536, height: 960 });
   await page.goto("/vi/candidate/cv-builder");
@@ -197,6 +231,9 @@ test("keeps workspace controls usable at tablet width", async ({ page }) => {
   await page.goto("/vi/candidate/cv-builder");
 
   await expect(page.locator(".cv-mobile-mode-switch")).toBeVisible();
+  await expect(page.locator(".cv-builder-status-cluster")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Lưu bản CV vào UpNext" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "In / lưu PDF" })).toBeVisible();
   await page.getByRole("button", { name: "Xem trước", exact: true }).click();
   await expect(page.getByLabel("Bản xem trước A4")).toBeVisible();
   await expect
