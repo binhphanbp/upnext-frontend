@@ -1921,12 +1921,6 @@ export function CandidateCvBuilder() {
   };
 
   const requestSaveToUpNext = () => {
-    setRevealValidation(true);
-    if (!evaluation.exportReady) {
-      setExportDialog("blocked");
-      return;
-    }
-
     const role = cvData.targetJob.role.trim() || cvData.personalInfo.title.trim();
     const company = cvData.targetJob.company.trim();
     setSaveCvTitle([role || t("serverSave.defaultTitle"), company].filter(Boolean).join(" · "));
@@ -1952,11 +1946,13 @@ export function CandidateCvBuilder() {
         isDefault: false,
         parsedText: createCvSnapshotText(cvData),
         source: "BUILDER",
-        status: "ACTIVE",
+        status: evaluation.exportReady ? "ACTIVE" : "DRAFT",
         title,
       });
       setSaveCvDialogOpen(false);
-      setProfileNotice(t("serverSave.success", { title }));
+      setProfileNotice(
+        t(evaluation.exportReady ? "serverSave.success" : "serverSave.draftSuccess", { title }),
+      );
     } catch {
       setSaveCvError(t("serverSave.error"));
     } finally {
@@ -2461,7 +2457,9 @@ export function CandidateCvBuilder() {
           </FormField>
           <p className="cv-server-save-note">
             <Info aria-hidden="true" />
-            <span>{t("serverSave.note")}</span>
+            <span>
+              {t(evaluation.exportReady ? "serverSave.activeNote" : "serverSave.draftNote")}
+            </span>
           </p>
           {saveCvError ? (
             <p className="cv-field-message cv-field-message--error" role="alert">
