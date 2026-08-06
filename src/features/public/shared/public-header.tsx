@@ -20,7 +20,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import Image from "next/image";
-import { useRouter as useNativeRouter, useSearchParams } from "next/navigation";
+import { useRouter as useNativeRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 
@@ -662,7 +662,6 @@ export function PublicHeader({
   const router = useRouter();
   const nativeRouter = useNativeRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const locale = useLocale();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [jobsMegaLeft, setJobsMegaLeft] = useState<number | null>(null);
@@ -875,7 +874,7 @@ export function PublicHeader({
     setLangOpen(false);
     if (language.locale === locale) return;
 
-    const query = Object.fromEntries(searchParams.entries());
+    const query = Object.fromEntries(new URLSearchParams(window.location.search).entries());
     router.replace(Object.keys(query).length > 0 ? { pathname, query } : pathname, {
       locale: language.locale,
     });
