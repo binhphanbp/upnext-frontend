@@ -2,16 +2,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
-import { useEffect, useMemo, useState , useRef,} from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import type { ReactNode } from "react";
+
 import { checkAppliedJob } from "@/features/candidate/api/profile";
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { toast } from "@/shared/ui/toast";
-import { getJobPreviewDescription } from "../../home/job-preview-description";
+
 import { getPublicJobs, recordPublicJobView } from "../../home/api";
+import { getJobPreviewDescription } from "../../home/job-preview-description";
 import {
   ArrowRight,
   Bookmark,
