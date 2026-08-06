@@ -4348,29 +4348,6 @@ button.marketing-home-control {
   background: linear-gradient(100deg, #098f63, #10b981);
 }
 
-/* "See all companies" CTA — only shown on tablet/mobile, where the section is
-   a trimmed teaser and the header button is harder to reach. */
-.marketing-home-co-more {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 50px;
-  margin-top: 22px;
-  color: #0b7f5f;
-  font-size: 14.5px;
-  font-weight: 700;
-  border: 1px solid #cdeadd;
-  border-radius: 12px;
-  background: #ffffff;
-  cursor: pointer;
-}
-
-.marketing-home-co-more svg {
-  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
-}
-
 /* ============================================================
    Section: Thị trường việc làm IT (job market dashboard)
    ============================================================ */
@@ -5698,15 +5675,6 @@ button.marketing-home-control {
     right: -14px;
   }
 
-  /* Trimmed teaser: surface the "see all" CTA, drop the header's duplicate. */
-  .marketing-home-co-more {
-    display: inline-flex;
-  }
-
-  .marketing-home-companies .marketing-home-jobs-all {
-    display: none;
-  }
-
   /* Job market: the rail moves above the charts before cards become too narrow. */
   .marketing-home-market {
     padding: 0;
@@ -6097,6 +6065,28 @@ button.marketing-home-control {
 
   .marketing-home-co-head-actions {
     flex-wrap: wrap;
+  }
+
+  /* Keep the discovery action at the top of the section, before users begin
+     browsing the carousel. On a narrow viewport a quiet text action has a
+     clearer hierarchy than a duplicate full-width button beneath the pager. */
+  .marketing-home-co-head-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .marketing-home-companies .marketing-home-jobs-all {
+    align-self: flex-end;
+    min-height: 32px;
+    padding: 0;
+    color: #0b7f5f;
+    font-size: 13px;
+    font-weight: 650;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
   }
 
   .marketing-home-co-bento {

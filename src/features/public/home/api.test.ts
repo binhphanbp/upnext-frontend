@@ -8,6 +8,7 @@ import {
   getPublicJobDetail,
   mapHomeCompanies,
   mapHomeJobCard,
+  recordPublicJobView,
 } from "./api";
 
 function homeJob(overrides: Partial<HomeJobCard> = {}): HomeJobCard {
@@ -162,6 +163,12 @@ describe("homepage API adapters", () => {
     });
   });
 
+  it("preserves the real public view aggregate returned by the home API", () => {
+    const mapped = mapHomeJobCard(homeJob({ viewCount: 184 }));
+
+    expect(mapped.viewCount).toBe(184);
+  });
+
   it("honours the API salary label when a negotiable job still contains salary bounds", () => {
     const mapped = mapHomeJobCard(
       homeJob({
@@ -229,5 +236,24 @@ describe("homepage API adapters", () => {
     expect(requestUrl.pathname).toBe("/api/v1/job-posts/job-detail");
     expect(job.salaryMin).toBe(25_000_000);
     expect(job.salaryMax).toBeNull();
+  });
+
+  it("records a public job view with the anonymous browser key", async () => {
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(
+      async () => Promise.resolve(new Response(JSON.stringify({ id: "view-1" }), { status: 201 })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await recordPublicJobView("job-detail", "visitor-123");
+
+    const requestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]), "https://upnext.local");
+    expect(requestUrl.pathname).toBe("/api/v1/job-posts/job-detail/views");
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      headers: expect.any(Headers),
+    });
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("x-upnext-visitor-key")).toBe(
+      "visitor-123",
+    );
   });
 });

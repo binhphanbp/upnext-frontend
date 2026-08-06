@@ -544,14 +544,6 @@ export function FeaturedCompanies({
             : "Hiện chưa có công ty đang hoạt động."}
         </output>
       )}
-
-      <button
-        type="button"
-        className="marketing-home-co-more"
-        onClick={() => navigate("/companies")}
-      >
-        {copy.viewAll} <ArrowRight size={16} />
-      </button>
     </section>
   );
 }

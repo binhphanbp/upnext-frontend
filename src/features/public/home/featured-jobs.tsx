@@ -11,6 +11,7 @@ import { toast } from "@/shared/ui/toast";
 import type { PublicJob } from "./api";
 import type { RecommendationReasonCode } from "./home-personalization";
 import { getJobCities, getJobTags, selectLatestJobs } from "./home-section-selectors";
+import { createBalancedPages } from "./job-carousel-pagination";
 import { getJobPreviewDescription } from "./job-preview-description";
 import {
   ArrowRight,
@@ -43,6 +44,10 @@ type FeaturedJobsProps = {
   matchReasons?: ReadonlyMap<string, readonly RecommendationReasonCode[]> | undefined;
   sectionTitle?: string | undefined;
   sectionDescription?: string | undefined;
+  /** Distinguishes repeated job sections for accessible heading/preview IDs. */
+  sectionId?: string | undefined;
+  /** View counts communicate community interest; other feeds retain the application deadline. */
+  footerMetric?: "deadline" | "views" | undefined;
 };
 
 type JobCard = {
@@ -67,7 +72,9 @@ type JobCard = {
   matchReasons: readonly RecommendationReasonCode[];
 };
 
-const PAGE_SIZE = 6;
+const DESKTOP_PAGE_SIZE = 6;
+const TABLET_PAGE_SIZE = 4;
+const MOBILE_PAGE_SIZE = 2;
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
@@ -88,7 +95,7 @@ function formatApplicationDeadline(expiredAt: string | null | undefined, locale:
 }
 
 function normalizeViewCount(viewCount: number | null | undefined) {
-  if (typeof viewCount !== "number" || !Number.isFinite(viewCount) || viewCount < 0) {
+  if (typeof viewCount !== "number" || !Number.isFinite(viewCount) || viewCount <= 0) {
     return null;
   }
 
@@ -106,6 +113,25 @@ function formatJobLocation(job: PublicJob, locale: string) {
 
 function formatViewCount(viewCount: number, locale: string) {
   return new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN").format(viewCount);
+}
+
+function getJobsPageSize(viewportWidth: number) {
+  if (viewportWidth <= 820) return MOBILE_PAGE_SIZE;
+  if (viewportWidth <= 1180) return TABLET_PAGE_SIZE;
+  return DESKTOP_PAGE_SIZE;
+}
+
+function useJobsPageSize() {
+  const [pageSize, setPageSize] = useState(DESKTOP_PAGE_SIZE);
+
+  useEffect(() => {
+    const updatePageSize = () => setPageSize(getJobsPageSize(window.innerWidth));
+    updatePageSize();
+    window.addEventListener("resize", updatePageSize);
+    return () => window.removeEventListener("resize", updatePageSize);
+  }, []);
+
+  return pageSize;
 }
 
 const interestCopy = {
@@ -224,6 +250,8 @@ export function FeaturedJobs({
   matchReasons,
   sectionTitle,
   sectionDescription,
+  sectionId = "latest-jobs",
+  footerMetric = "deadline",
 }: FeaturedJobsProps) {
   const locale = useLocale();
   const copy = locale === "en" ? interestCopy.en : interestCopy.vi;
@@ -270,6 +298,7 @@ export function FeaturedJobs({
   const [animate, setAnimate] = useState(false);
   const [paused, setPaused] = useState(false);
   const [previewJobId, setPreviewJobId] = useState<string | null>(null);
+  const pageSize = useJobsPageSize();
   const previewCloseTimerRef = useRef<number | null>(null);
   const {
     placement: previewPlacement,
@@ -313,15 +342,12 @@ export function FeaturedJobs({
           followedCompany: "Từ công ty bạn đang theo dõi",
         };
 
-  // Split into pages of PAGE_SIZE, then append a clone of page 1 at the end so
-  // the loop from last → first slides FORWARD seamlessly instead of rewinding.
+  // Keep the page capacity aligned with the card grid at each breakpoint. The
+  // items are balanced across those pages so the last slide never degenerates
+  // into a couple of cards inside a viewport sized for a full previous slide.
   const pages = useMemo(() => {
-    const result: JobCard[][] = [];
-    for (let i = 0; i < jobs.length; i += PAGE_SIZE) {
-      result.push(jobs.slice(i, i + PAGE_SIZE));
-    }
-    return result.length ? result : [[]];
-  }, [jobs]);
+    return createBalancedPages(jobs, pageSize);
+  }, [jobs, pageSize]);
 
   const totalPages = pages.length;
   const hasLoop = totalPages > 1;
@@ -484,7 +510,7 @@ export function FeaturedJobs({
       <section className="marketing-home-jobs" aria-label={displayTitle}>
         <header className="marketing-home-jobs-head">
           <div>
-            <h2>{displayTitle}</h2>
+            <h2 id={`${sectionId}-heading`}>{displayTitle}</h2>
             <p>{displayDescription}</p>
           </div>
         </header>
@@ -517,7 +543,7 @@ export function FeaturedJobs({
   return (
     <section
       className="marketing-home-jobs"
-      aria-label={displayTitle}
+      aria-labelledby={`${sectionId}-heading`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -525,7 +551,7 @@ export function FeaturedJobs({
     >
       <header className="marketing-home-jobs-head">
         <div>
-          <h2>{displayTitle}</h2>
+          <h2 id={`${sectionId}-heading`}>{displayTitle}</h2>
           <p>{displayDescription}</p>
         </div>
         <button type="button" className="marketing-home-jobs-all" onClick={() => navigate("/jobs")}>
@@ -617,7 +643,7 @@ export function FeaturedJobs({
                         <button
                           type="button"
                           className="featured-job-title"
-                          id={`featured-job-title-${job.id}`}
+                          id={`${sectionId}-job-title-${job.id}`}
                           title={job.title}
                           onClick={() => navigate(`/jobs/${job.id}`)}
                           onMouseEnter={(event) => openPreview(job.id, event.currentTarget)}
@@ -629,7 +655,7 @@ export function FeaturedJobs({
                               closePreviewAndRestoreFocus();
                             }
                           }}
-                          aria-controls="featured-job-preview"
+                          aria-controls={`${sectionId}-preview`}
                           aria-expanded={previewJobId === job.id}
                           aria-haspopup="dialog"
                         >
@@ -679,15 +705,15 @@ export function FeaturedJobs({
                       )}
 
                       <footer className="featured-job-foot">
-                        {job.viewCount === null ? (
-                          <span className="featured-job-deadline">
-                            <Clock size={14} aria-hidden="true" />
-                            {job.deadline}
-                          </span>
-                        ) : (
+                        {footerMetric === "views" && job.viewCount !== null ? (
                           <span className="featured-job-interest">
                             <Eye size={14} aria-hidden="true" />
                             {formatViewCount(job.viewCount, locale)} {copy.views}
+                          </span>
+                        ) : (
+                          <span className="featured-job-deadline">
+                            <Clock size={14} aria-hidden="true" />
+                            {job.deadline}
                           </span>
                         )}
                         <button
@@ -714,9 +740,9 @@ export function FeaturedJobs({
         <dialog
           open
           ref={previewRef}
-          id="featured-job-preview"
+          id={`${sectionId}-preview`}
           className="urgent-job-preview featured-job-preview"
-          aria-labelledby="featured-job-preview-title"
+          aria-labelledby={`${sectionId}-preview-title`}
           aria-modal="false"
           data-placement={previewPlacement}
           style={previewStyle}
@@ -738,7 +764,7 @@ export function FeaturedJobs({
               color={previewJob.logoColor}
             />
             <div>
-              <h3 id="featured-job-preview-title">{previewJob.title}</h3>
+              <h3 id={`${sectionId}-preview-title`}>{previewJob.title}</h3>
               <strong>{previewJob.company}</strong>
               <p>
                 <span>{previewJob.salary}</span>

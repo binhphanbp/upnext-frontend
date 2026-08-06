@@ -124,6 +124,8 @@ export type HomeJobCard = {
     avatar?: string;
   };
   deadline: string | null;
+  /** Aggregate public views supplied by the home API; never calculate this in the browser. */
+  viewCount?: number | null;
   publishedAt?: string | null;
   daysRemaining?: number | null;
   urgencyTone?: "URGENT" | "WARNING" | "NORMAL" | null;
@@ -254,6 +256,8 @@ export type HomeData = {
     remote: HomeJobSection;
     partTime: HomeJobSection;
     latest: HomeJobSection;
+    /** Optional while older API deployments are still serving the prior contract. */
+    popular?: HomeJobSection;
     expiring: HomeJobSection;
   };
   topCompanies: HomeTopCompany[];
@@ -304,6 +308,18 @@ export async function getPublicJobsWithFilters(options: { keyword?: string; loca
 export async function getPublicJobDetail(id: string) {
   const job = await apiRequest<PublicJobWire>(`/job-posts/${encodeURIComponent(id)}`);
   return normalizePublicJob(job);
+}
+
+/**
+ * Records a job-detail view for the public popularity feed. The visitor key is
+ * an opaque, browser-generated identifier; it is not account data and lets the
+ * API collapse refreshes into one view during its deduplication window.
+ */
+export async function recordPublicJobView(id: string, visitorKey?: string) {
+  await apiRequest<void>(`/job-posts/${encodeURIComponent(id)}/views`, {
+    method: "POST",
+    ...(visitorKey ? { headers: { "x-upnext-visitor-key": visitorKey } } : {}),
+  });
 }
 
 function normalizePublicJob(job: PublicJobWire): PublicJob {
@@ -468,7 +484,7 @@ export function mapHomeJobCard(job: HomeJobCard): PublicJob {
           ]
         : [],
     jobPostSkills: job.skills.map((skill) => ({ skill })),
-    viewCount: null,
+    viewCount: normalizeNullableNumber(job.viewCount ?? null),
   };
 }
 
