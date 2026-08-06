@@ -1,9 +1,17 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import Image from "next/image";
 
 import { Link } from "@/i18n/navigation";
 
+import {
+  formatPostDate,
+  formatPostNumber,
+  getPostLocale,
+  localizePostCategory,
+  postCopy,
+} from "../post-localization";
 import type { Post } from "../types/post";
 
 type PostCardProps = {
@@ -11,21 +19,16 @@ type PostCardProps = {
 };
 
 export function PostCard({ post }: PostCardProps) {
-  // Format publish date
-  const formattedDate = post.createdAt
-    ? new Date(post.createdAt).toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
-    : "Vừa đăng";
+  const locale = getPostLocale(useLocale());
+  const copy = postCopy[locale];
+  const formattedDate = formatPostDate(post.createdAt, locale);
 
   // Calculate reading time (approx 200 words per min)
   const wordCount = post.content ? post.content.split(/\s+/u).length : 100;
   const readingTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
   const thumbnailUrl = post.thumbnailFile?.publicUrl || "/images/placeholder-post.jpg";
-  const categoryName = post.category?.name || "Tin tức UpNext";
+  const categoryName = localizePostCategory(post.category?.slug, post.category?.name, locale);
 
   return (
     <article className="post-card">
@@ -45,7 +48,7 @@ export function PostCard({ post }: PostCardProps) {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-slate-800 text-sm font-semibold text-slate-400">
-            UpNext Blog
+            {copy.categories.fallback}
           </div>
         )}
         <span className="post-card-badge">{categoryName}</span>
@@ -55,11 +58,11 @@ export function PostCard({ post }: PostCardProps) {
         <div className="post-card-meta">
           <span>{formattedDate}</span>
           <span>•</span>
-          <span>{readingTimeMinutes} phút đọc</span>
+          <span>{copy.common.readingTime(readingTimeMinutes)}</span>
           {typeof post.viewCount === "number" && (
             <>
               <span>•</span>
-              <span>{post.viewCount.toLocaleString("vi-VN")} lượt xem</span>
+              <span>{copy.common.views(formatPostNumber(post.viewCount, locale))}</span>
             </>
           )}
         </div>

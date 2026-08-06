@@ -11,6 +11,7 @@ import {
 } from "@phosphor-icons/react";
 import { useLocale } from "next-intl";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 import { usePathname, useRouter } from "@/i18n/navigation";
 
@@ -149,6 +150,7 @@ export function PublicFooter({ navigate }: PublicFooterProps) {
   const locale = useLocale() === "en" ? "en" : "vi";
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const copy = copyByLocale[locale];
   const currentYear = new Date().getFullYear();
   const languageOptions = [
@@ -162,7 +164,8 @@ export function PublicFooter({ navigate }: PublicFooterProps) {
   }
 
   function getLocaleHref(nextLocale: "vi" | "en") {
-    return `/${nextLocale}${pathname === "/" ? "" : pathname}`;
+    const queryString = searchParams.toString();
+    return `/${nextLocale}${pathname === "/" ? "" : pathname}${queryString ? `?${queryString}` : ""}`;
   }
 
   return (

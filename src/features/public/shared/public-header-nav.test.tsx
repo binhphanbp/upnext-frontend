@@ -19,6 +19,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn<(path: string) => void>() }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 import { PublicHeader } from "./public-header";
