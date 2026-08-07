@@ -47,6 +47,7 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
         children: [
           { label: "Thông tin chung", href: "/recruiter/company-profile" },
           { label: "Địa chỉ làm việc", href: "/recruiter/company-addresses" },
+          { label: "Quản lý đánh giá", href: "/recruiter/company-reviews" },
         ],
       },
       {
@@ -97,11 +98,6 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
       { label: "operationsAndContent.articles", href: "/admin/content/articles", icon: Article },
 
       { label: "operationsAndContent.reports", href: "/admin/reports", icon: ShieldCheck },
-      {
-        label: "operationsAndContent.companyReviewReports",
-        href: "/admin/content/company-review-reports",
-        icon: ShieldCheck,
-      },
     ],
   },
   {
