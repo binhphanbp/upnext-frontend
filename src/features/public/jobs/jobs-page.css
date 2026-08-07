@@ -3713,31 +3713,113 @@
   font-size: 12px;
 }
 
-.job-detail-share-card div {
+.job-detail-share-card .job-detail-share-actions {
   gap: 12px;
 }
 
-.job-detail-share-card button {
-  width: 40px;
-  height: 40px;
-  color: #4b5563;
-  border-color: #e5e7eb;
-  border-radius: 999px;
+.job-detail-share-action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  color: #64748b;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   font-size: 12px;
+  text-decoration: none;
   background: #ffffff;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+  touch-action: manipulation;
 }
 
-.job-detail-share-card button:nth-child(2) {
+.job-detail-share-action:hover {
+  transform: translateY(-1px);
+  border-color: currentcolor;
+  background: color-mix(in srgb, currentcolor 8%, #ffffff);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+}
+
+.job-detail-share-action:focus-visible {
+  outline: 3px solid rgba(5, 150, 105, 0.28);
+  outline-offset: 2px;
+}
+
+.job-detail-share-action:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.job-detail-share-action.is-copy {
+  color: #059669;
+}
+
+.job-detail-share-action.is-facebook {
   color: #1877f2;
 }
 
-.job-detail-share-card button:nth-child(3) {
+.job-detail-share-action.is-linkedin {
   color: #0a66c2;
 }
 
-.job-detail-share-card button:nth-child(4) {
+.job-detail-share-action.is-zalo {
   color: #0068ff;
-  font-weight: 800;
+}
+
+.job-detail-share-action.is-zalo span {
+  font-size: 15px;
+  font-weight: 850;
+  letter-spacing: -0.08em;
+}
+
+.job-detail-share-action.is-email {
+  color: #64748b;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .job-detail-share-action::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 9px);
+    left: 50%;
+    z-index: 3;
+    width: max-content;
+    max-width: 190px;
+    padding: 6px 8px;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.25;
+    text-align: center;
+    border-radius: 7px;
+    background: #0f172a;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 4px);
+    transition:
+      opacity 120ms ease,
+      transform 120ms ease;
+  }
+
+  .job-detail-share-action:hover::after,
+  .job-detail-share-action:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .job-detail-share-action,
+  .job-detail-share-action::after {
+    transition: none;
+  }
 }
 
 @media (max-width: 1180px) {

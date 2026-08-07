@@ -1629,6 +1629,22 @@
       }
     }
   },
+  "PublicJobs": {
+    "share": {
+      "heading": "Share this job",
+      "description": "Help the right person in your network discover this opportunity.",
+      "channelsLabel": "Ways to share this job",
+      "copyLink": "Copy job link",
+      "facebook": "Share this job on Facebook",
+      "linkedIn": "Share this job on LinkedIn",
+      "zalo": "Share this job on Zalo",
+      "email": "Share this job by email",
+      "message": "Explore the {jobTitle} opportunity at {company} on UpNext.",
+      "copied": "Job link copied.",
+      "copyFailed": "We couldn't copy the job link. Please try again.",
+      "shareFailed": "We couldn't open the share sheet. Please try again."
+    }
+  },
   "WorkspaceShell": {
     "searchPlaceholder": "Search jobs, resumes, companies, skills...",
     "roles": {

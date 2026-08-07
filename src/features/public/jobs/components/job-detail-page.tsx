@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useRef } from "react";
 import type { ReactNode } from "react";
 
@@ -22,8 +22,12 @@ import {
   CheckCircle,
   Clock,
   Coins,
+  Copy,
   FileText,
   Globe,
+  Facebook,
+  Linkedin,
+  Mail,
   MapPin,
   Monitor,
   PaperPlaneTilt,
@@ -263,6 +267,7 @@ function LogoMark({ job, size = "normal" }: { job: Job; size?: "normal" | "large
 
 export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps) {
   const locale = useLocale();
+  const t = useTranslations("PublicJobs.share");
   const jobId = getJobId(path);
   const fallbackJob = jobs[0];
   if (!fallbackJob) {
@@ -357,6 +362,60 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
 
   const hasApplied = appliedData?.applied === true;
   const [isOpenApply, setIsOpenApply] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+
+  useEffect(() => {
+    setShareUrl(window.location.href);
+  }, []);
+
+  const shareTitle = t("message", { jobTitle: job.title, company: job.company });
+  const encodedShareUrl = encodeURIComponent(shareUrl);
+  const encodedShareTitle = encodeURIComponent(shareTitle);
+
+  async function copyJobLink() {
+    const currentShareUrl = shareUrl || window.location.href;
+
+    try {
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(currentShareUrl);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = currentShareUrl;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.append(textArea);
+        textArea.focus();
+        textArea.select();
+        const copied = document.execCommand("copy");
+        textArea.remove();
+        if (!copied) throw new Error("Clipboard copy was rejected.");
+      }
+      toast.success(t("copied"));
+    } catch {
+      toast.error(t("copyFailed"));
+    }
+  }
+
+  async function shareJob() {
+    const currentShareUrl = shareUrl || window.location.href;
+
+    if (!navigator.share) {
+      await copyJobLink();
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: job.title,
+        text: shareTitle,
+        url: currentShareUrl,
+      });
+    } catch (error) {
+      // Closing the native share sheet is a normal, silent cancellation.
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast.error(t("shareFailed"));
+    }
+  }
 
   useEffect(() => {
     // The page initially renders a visual fallback while its public job list
@@ -524,7 +583,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   <Bookmark size={18} weight={saved ? "fill" : "regular"} />
                   {saved ? "Đã lưu" : "Lưu tin"}
                 </button>
-                <button type="button">
+                <button type="button" onClick={() => void shareJob()}>
                   <ShareNetwork size={18} />
                   Chia sẻ
                 </button>
@@ -646,24 +705,56 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
             </section>
 
             <section className="job-detail-card job-detail-share-card">
-              <h2>Chia sẻ công việc</h2>
-              <p>Giới thiệu công việc hấp dẫn này đến bạn bè của bạn.</p>
-              <div>
-                <button type="button" aria-label="Sao chép liên kết">
-                  <ShareNetwork size={17} />
+              <h2>{t("heading")}</h2>
+              <p>{t("description")}</p>
+              <div className="job-detail-share-actions" aria-label={t("channelsLabel")}>
+                <button
+                  type="button"
+                  className="job-detail-share-action is-copy"
+                  aria-label={t("copyLink")}
+                  data-tooltip={t("copyLink")}
+                  onClick={() => void copyJobLink()}
+                >
+                  <Copy size={19} aria-hidden="true" />
                 </button>
-                <button type="button" aria-label="Chia sẻ qua Facebook">
-                  f
-                </button>
-                <button type="button" aria-label="Chia sẻ qua LinkedIn">
-                  in
-                </button>
-                <button type="button" aria-label="Chia sẻ qua Zalo">
-                  Zalo
-                </button>
-                <button type="button" aria-label="Chia sẻ qua email">
-                  @
-                </button>
+                <a
+                  className="job-detail-share-action is-facebook"
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodedShareUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t("facebook")}
+                  data-tooltip={t("facebook")}
+                >
+                  <Facebook size={19} aria-hidden="true" weight="fill" />
+                </a>
+                <a
+                  className="job-detail-share-action is-linkedin"
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodedShareUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t("linkedIn")}
+                  data-tooltip={t("linkedIn")}
+                >
+                  <Linkedin size={19} aria-hidden="true" weight="fill" />
+                </a>
+                <a
+                  className="job-detail-share-action is-zalo"
+                  href={`https://zalo.me/share?url=${encodedShareUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t("zalo")}
+                  data-tooltip={t("zalo")}
+                >
+                  <span aria-hidden="true">Z</span>
+                </a>
+                <a
+                  className="job-detail-share-action is-email"
+                  href={`mailto:?subject=${encodedShareTitle}&body=${encodeURIComponent(`${shareTitle}\n${shareUrl}`)}`}
+                  aria-label={t("email")}
+                  data-tooltip={t("email")}
+                >
+                  <Mail size={19} aria-hidden="true" />
+                </a>
               </div>
             </section>
           </aside>
