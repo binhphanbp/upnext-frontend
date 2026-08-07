@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { AiCopilotDrawer } from "@/features/ai-copilot";
 import {
   candidateChatSeenStorageKey,
   ChatSocketProvider,
@@ -95,6 +96,11 @@ function CandidateWorkspace({
       <main className="mx-auto w-[min(1400px,calc(100vw-32px))] pt-6 pb-10 md:w-[min(1400px,calc(100vw-60px))] md:pt-8 md:pb-14 xl:w-[min(1400px,calc(100vw-96px))]">
         {children}
       </main>
+
+      {/* Follows the candidate across the workspace and reads the current route
+          as context (§8.3). Left off the CV builder branch above on purpose: that
+          screen is a full-bleed editor with its own bottom action bar. */}
+      <AiCopilotDrawer />
     </div>
   );
 }

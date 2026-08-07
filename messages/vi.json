@@ -3460,5 +3460,208 @@
       "sendErrorTitle": "Lỗi gửi email",
       "sendErrorText": "Email không tồn tại hoặc gửi email thất bại. Vui lòng kiểm tra lại."
     }
+  },
+  "AiCopilot": {
+    "page": {
+      "title": "UpNext AI Copilot",
+      "contextPrefix": "Ngữ cảnh:",
+      "history": "Lịch sử hội thoại",
+      "openHistory": "Mở lịch sử hội thoại"
+    },
+    "context": {
+      "general": "Toàn bộ hồ sơ của bạn",
+      "cv": "CV đang xem",
+      "cvBuilder": "Trình tạo CV",
+      "job": "Tin tuyển dụng đang xem",
+      "savedJobs": "Việc làm đã lưu",
+      "application": "Đơn ứng tuyển đang xem",
+      "applications": "Danh sách ứng tuyển",
+      "interview": "Phiên phỏng vấn thử"
+    },
+    "quickActions": {
+      "analyzeCv": "Phân tích CV của tôi",
+      "findJobs": "Tìm việc phù hợp",
+      "compareJob": "So sánh tôi với công việc này",
+      "skillGap": "Tôi còn thiếu kỹ năng gì?",
+      "prepareInterview": "Chuẩn bị phỏng vấn",
+      "applicationStatus": "Kiểm tra trạng thái ứng tuyển"
+    },
+    "empty": {
+      "title": "Trợ lý tuyển dụng của riêng bạn",
+      "description": "Mình làm việc trên dữ liệu thật trong tài khoản UpNext của bạn — CV, hồ sơ năng lực và đơn ứng tuyển — nên câu trả lời luôn kèm dẫn chứng cụ thể.",
+      "contextHint": "Đang đọc ngữ cảnh từ: {context}",
+      "safetyTitle": "Bạn giữ quyền quyết định",
+      "safetyBody": "Copilot chỉ đọc dữ liệu bạn có quyền xem và không tự thay đổi hồ sơ. Mọi thay đổi đều cần bạn xác nhận trước."
+    },
+    "composer": {
+      "placeholder": "Hỏi về CV, việc làm hoặc đơn ứng tuyển của bạn…",
+      "label": "Nội dung câu hỏi",
+      "send": "Gửi câu hỏi",
+      "stop": "Dừng tạo câu trả lời",
+      "disclaimer": "AI có thể sai. Hãy đối chiếu với dẫn chứng trước khi quyết định.",
+      "hint": "Enter để gửi · Shift + Enter xuống dòng"
+    },
+    "list": {
+      "scrollToBottom": "Xuống cuối hội thoại"
+    },
+    "status": {
+      "idle": "Sẵn sàng",
+      "loading": "Đang chuẩn bị…",
+      "queued": "Đang xếp hàng xử lý…",
+      "processing": "Đang truy xuất dữ liệu của bạn…",
+      "streaming": "Đang soạn câu trả lời…",
+      "completed": "Hoàn tất",
+      "failed": "Thất bại",
+      "rate_limited": "Đã vượt hạn mức",
+      "permission_denied": "Không đủ quyền",
+      "model_unavailable": "Dịch vụ không khả dụng",
+      "partial": "Kết quả một phần"
+    },
+    "runTimeline": {
+      "summary": "Đã dùng {count}/{total} công cụ dữ liệu"
+    },
+    "intent": {
+      "GENERAL_GUIDANCE": "Hướng dẫn chung",
+      "CV_ANALYSIS": "Phân tích CV",
+      "JOB_SEARCH": "Tìm việc phù hợp",
+      "JOB_COMPARISON": "So sánh với tin tuyển dụng",
+      "APPLICATION_STATUS": "Trạng thái ứng tuyển",
+      "MOCK_INTERVIEW": "Phỏng vấn thử",
+      "SKILL_GAP": "Khoảng cách năng lực",
+      "OUT_OF_SCOPE": "Ngoài phạm vi hỗ trợ"
+    },
+    "citations": {
+      "title": "Dẫn chứng",
+      "open": "Mở nguồn: {title}",
+      "source": {
+        "CV": "CV",
+        "JOB": "Tin tuyển dụng",
+        "APPLICATION": "Đơn ứng tuyển",
+        "PROFILE": "Hồ sơ",
+        "POLICY": "Chính sách",
+        "INTERVIEW": "Phỏng vấn"
+      }
+    },
+    "match": {
+      "fit": "Phù hợp",
+      "confidence": "Độ tin cậy dữ liệu",
+      "breakdownTitle": "Cách tính điểm",
+      "unknown": "Chưa đủ",
+      "matched": "Đã đáp ứng",
+      "missing": "Chưa thể hiện trong CV",
+      "toVerify": "Cần xác minh",
+      "disclaimer": "Điểm do thuật toán tính, không phải quyết định tuyển dụng.",
+      "viewJob": "Xem tin"
+    },
+    "cv": {
+      "overall": "Tổng thể",
+      "subtitle": "Phân tích theo bốn tiêu chí, mỗi nhận xét có dẫn chứng từ CV",
+      "strengths": "Điểm mạnh",
+      "weaknesses": "Cần cải thiện",
+      "missingSections": "Mục còn thiếu",
+      "noAutoUpdate": "AI không tự sửa CV của bạn.",
+      "openBuilder": "Mở trình tạo CV",
+      "score": {
+        "completeness": "Đầy đủ",
+        "clarity": "Rõ ràng",
+        "impact": "Sức thuyết phục",
+        "atsReadiness": "Tương thích ATS"
+      }
+    },
+    "gap": {
+      "title": "Khoảng cách năng lực",
+      "required": "Kỹ năng bắt buộc",
+      "niceToHave": "Kỹ năng ưu tiên",
+      "prepare": "Câu hỏi nên chuẩn bị",
+      "status": {
+        "missing": "Chưa có",
+        "partial": "Một phần",
+        "unproven": "Chưa dẫn chứng"
+      }
+    },
+    "application": {
+      "appliedAt": "Nộp ngày {date}",
+      "open": "Xem đơn ứng tuyển"
+    },
+    "interview": {
+      "questionOf": "Câu {index}/{total}",
+      "score": "Điểm",
+      "rubric": "Chấm theo rubric",
+      "strengths": "Điểm tốt",
+      "missingPoints": "Còn thiếu",
+      "openSession": "Mở phiên phỏng vấn",
+      "dimension": {
+        "technicalCorrectness": "Chính xác kỹ thuật",
+        "relevance": "Bám sát câu hỏi",
+        "depth": "Chiều sâu",
+        "clarity": "Diễn đạt",
+        "practicalEvidence": "Dẫn chứng thực tế"
+      }
+    },
+    "action": {
+      "title": "Cần bạn xác nhận",
+      "reject": "Bỏ qua",
+      "note": "Thay đổi chỉ được ghi sau khi bạn xác nhận.",
+      "executed": "Đã áp dụng: {title}",
+      "rejected": "Đã bỏ qua: {title}"
+    },
+    "feedback": {
+      "up": "Câu trả lời hữu ích",
+      "down": "Câu trả lời chưa tốt",
+      "copy": "Sao chép câu trả lời",
+      "thanks": "Cảm ơn phản hồi của bạn."
+    },
+    "meta": {
+      "toggle": "Chi tiết lần chạy",
+      "model": "Model",
+      "promptVersion": "Prompt version",
+      "latency": "Thời gian xử lý",
+      "inputTokens": "Token vào",
+      "outputTokens": "Token ra",
+      "messageId": "Message ID"
+    },
+    "stateNotice": {
+      "failed": "Không tạo được câu trả lời",
+      "rate_limited": "Bạn đã dùng hết hạn mức",
+      "permission_denied": "Yêu cầu bị từ chối vì thiếu quyền",
+      "model_unavailable": "Dịch vụ AI tạm thời không khả dụng",
+      "partial": "Đây là kết quả một phần",
+      "retry": "Thử lại"
+    },
+    "statePreview": {
+      "badge": "Demo",
+      "label": "Chạy thử một kịch bản",
+      "placeholder": "Kịch bản…",
+      "prompt": "Chạy kịch bản demo",
+      "scenario": {
+        "guardrail": "Chặn vượt quyền",
+        "partial": "Kết quả một phần",
+        "rate_limited": "Vượt hạn mức",
+        "model_unavailable": "Mất kết nối AI",
+        "cv_analysis": "Phân tích CV",
+        "job_search": "Gợi ý việc làm",
+        "skill_gap": "Khoảng cách năng lực",
+        "application_status": "Trạng thái ứng tuyển",
+        "mock_interview": "Phỏng vấn thử"
+      }
+    },
+    "sidebar": {
+      "newConversation": "Hội thoại mới",
+      "empty": "Chưa có hội thoại nào. Hãy bắt đầu bằng một câu hỏi.",
+      "untitled": "Hội thoại chưa đặt tên",
+      "messageCount": "{count} tin nhắn",
+      "delete": "Xóa hội thoại: {title}",
+      "bucket": {
+        "today": "Hôm nay",
+        "week": "7 ngày qua",
+        "older": "Cũ hơn"
+      }
+    },
+    "drawer": {
+      "open": "Mở AI Copilot",
+      "close": "Đóng AI Copilot",
+      "launcher": "AI Copilot",
+      "expand": "Mở toàn màn hình"
+    }
   }
 }

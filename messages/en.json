@@ -3439,5 +3439,208 @@
       "sendErrorTitle": "Error sending email",
       "sendErrorText": "The email does not exist or sending failed. Please check and try again."
     }
+  },
+  "AiCopilot": {
+    "page": {
+      "title": "UpNext AI Copilot",
+      "contextPrefix": "Context:",
+      "history": "Conversation history",
+      "openHistory": "Open conversation history"
+    },
+    "context": {
+      "general": "Your whole profile",
+      "cv": "The CV you are viewing",
+      "cvBuilder": "CV builder",
+      "job": "The job you are viewing",
+      "savedJobs": "Saved jobs",
+      "application": "The application you are viewing",
+      "applications": "Your applications",
+      "interview": "Mock interview session"
+    },
+    "quickActions": {
+      "analyzeCv": "Analyse my CV",
+      "findJobs": "Find matching jobs",
+      "compareJob": "Compare me with this job",
+      "skillGap": "Which skills am I missing?",
+      "prepareInterview": "Prepare for the interview",
+      "applicationStatus": "Check my application status"
+    },
+    "empty": {
+      "title": "Your own recruitment assistant",
+      "description": "I work on the real data in your UpNext account — your CV, your skills profile and your applications — so every answer comes with the evidence behind it.",
+      "contextHint": "Reading context from: {context}",
+      "safetyTitle": "You stay in control",
+      "safetyBody": "The Copilot only reads data you are allowed to see and never edits your profile on its own. Every change needs your confirmation first."
+    },
+    "composer": {
+      "placeholder": "Ask about your CV, jobs or applications…",
+      "label": "Your question",
+      "send": "Send question",
+      "stop": "Stop generating",
+      "disclaimer": "AI can be wrong. Check the evidence before you act on it.",
+      "hint": "Enter to send · Shift + Enter for a new line"
+    },
+    "list": {
+      "scrollToBottom": "Jump to latest"
+    },
+    "status": {
+      "idle": "Ready",
+      "loading": "Getting ready…",
+      "queued": "Queued…",
+      "processing": "Reading your data…",
+      "streaming": "Writing the answer…",
+      "completed": "Done",
+      "failed": "Failed",
+      "rate_limited": "Rate limited",
+      "permission_denied": "Not permitted",
+      "model_unavailable": "Service unavailable",
+      "partial": "Partial result"
+    },
+    "runTimeline": {
+      "summary": "Used {count}/{total} data tools"
+    },
+    "intent": {
+      "GENERAL_GUIDANCE": "General guidance",
+      "CV_ANALYSIS": "CV analysis",
+      "JOB_SEARCH": "Job matching",
+      "JOB_COMPARISON": "Job comparison",
+      "APPLICATION_STATUS": "Application status",
+      "MOCK_INTERVIEW": "Mock interview",
+      "SKILL_GAP": "Skill gap",
+      "OUT_OF_SCOPE": "Out of scope"
+    },
+    "citations": {
+      "title": "Evidence",
+      "open": "Open source: {title}",
+      "source": {
+        "CV": "CV",
+        "JOB": "Job post",
+        "APPLICATION": "Application",
+        "PROFILE": "Profile",
+        "POLICY": "Policy",
+        "INTERVIEW": "Interview"
+      }
+    },
+    "match": {
+      "fit": "Fit",
+      "confidence": "Data confidence",
+      "breakdownTitle": "How this is scored",
+      "unknown": "No data",
+      "matched": "Matched",
+      "missing": "Not shown in your CV",
+      "toVerify": "To verify",
+      "disclaimer": "Scored by algorithm — not a hiring decision.",
+      "viewJob": "View job"
+    },
+    "cv": {
+      "overall": "Overall",
+      "subtitle": "Four criteria, every remark backed by a line from your CV",
+      "strengths": "Strengths",
+      "weaknesses": "Needs work",
+      "missingSections": "Missing sections",
+      "noAutoUpdate": "The AI never edits your CV on its own.",
+      "openBuilder": "Open CV builder",
+      "score": {
+        "completeness": "Completeness",
+        "clarity": "Clarity",
+        "impact": "Impact",
+        "atsReadiness": "ATS readiness"
+      }
+    },
+    "gap": {
+      "title": "Skill gap",
+      "required": "Required skills",
+      "niceToHave": "Nice-to-have skills",
+      "prepare": "Questions to prepare",
+      "status": {
+        "missing": "Missing",
+        "partial": "Partial",
+        "unproven": "Unproven"
+      }
+    },
+    "application": {
+      "appliedAt": "Applied on {date}",
+      "open": "Open application"
+    },
+    "interview": {
+      "questionOf": "Question {index}/{total}",
+      "score": "Score",
+      "rubric": "Rubric",
+      "strengths": "What worked",
+      "missingPoints": "What was missing",
+      "openSession": "Open session",
+      "dimension": {
+        "technicalCorrectness": "Technical correctness",
+        "relevance": "Relevance",
+        "depth": "Depth",
+        "clarity": "Clarity",
+        "practicalEvidence": "Practical evidence"
+      }
+    },
+    "action": {
+      "title": "Needs your confirmation",
+      "reject": "Dismiss",
+      "note": "Nothing is written until you confirm.",
+      "executed": "Applied: {title}",
+      "rejected": "Dismissed: {title}"
+    },
+    "feedback": {
+      "up": "Helpful answer",
+      "down": "Unhelpful answer",
+      "copy": "Copy answer",
+      "thanks": "Thanks for the feedback."
+    },
+    "meta": {
+      "toggle": "Run details",
+      "model": "Model",
+      "promptVersion": "Prompt version",
+      "latency": "Latency",
+      "inputTokens": "Input tokens",
+      "outputTokens": "Output tokens",
+      "messageId": "Message ID"
+    },
+    "stateNotice": {
+      "failed": "Could not produce an answer",
+      "rate_limited": "You have used your quota",
+      "permission_denied": "Request refused — insufficient permission",
+      "model_unavailable": "The AI service is temporarily unavailable",
+      "partial": "This is a partial result",
+      "retry": "Try again"
+    },
+    "statePreview": {
+      "badge": "Demo",
+      "label": "Replay a scenario",
+      "placeholder": "Scenario…",
+      "prompt": "Run demo scenario",
+      "scenario": {
+        "guardrail": "Blocked privilege escalation",
+        "partial": "Partial result",
+        "rate_limited": "Rate limited",
+        "model_unavailable": "AI service down",
+        "cv_analysis": "CV analysis",
+        "job_search": "Job recommendations",
+        "skill_gap": "Skill gap",
+        "application_status": "Application status",
+        "mock_interview": "Mock interview"
+      }
+    },
+    "sidebar": {
+      "newConversation": "New conversation",
+      "empty": "No conversations yet. Start with a question.",
+      "untitled": "Untitled conversation",
+      "messageCount": "{count} messages",
+      "delete": "Delete conversation: {title}",
+      "bucket": {
+        "today": "Today",
+        "week": "Past 7 days",
+        "older": "Older"
+      }
+    },
+    "drawer": {
+      "open": "Open AI Copilot",
+      "close": "Close AI Copilot",
+      "launcher": "AI Copilot",
+      "expand": "Open full screen"
+    }
   }
 }
