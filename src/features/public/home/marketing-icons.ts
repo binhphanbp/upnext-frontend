@@ -24,6 +24,7 @@ export {
   Code as Code2,
   Coins,
   Compass,
+  CopySimple as Copy,
   CreditCard as WalletCards,
   DeviceMobile as Smartphone,
   EnvelopeSimple as Mail,

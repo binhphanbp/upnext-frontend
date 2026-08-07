@@ -1629,6 +1629,22 @@
       }
     }
   },
+  "PublicJobs": {
+    "share": {
+      "heading": "Chia sẻ công việc",
+      "description": "Giới thiệu cơ hội này đến người phù hợp trong mạng lưới của bạn.",
+      "channelsLabel": "Các cách chia sẻ công việc",
+      "copyLink": "Sao chép liên kết công việc",
+      "facebook": "Chia sẻ công việc qua Facebook",
+      "linkedIn": "Chia sẻ công việc qua LinkedIn",
+      "zalo": "Chia sẻ công việc qua Zalo",
+      "email": "Chia sẻ công việc qua email",
+      "message": "Khám phá vị trí {jobTitle} tại {company} trên UpNext.",
+      "copied": "Đã sao chép liên kết công việc.",
+      "copyFailed": "Không thể sao chép liên kết. Vui lòng thử lại.",
+      "shareFailed": "Không thể mở bảng chia sẻ. Vui lòng thử lại."
+    }
+  },
   "WorkspaceShell": {
     "searchPlaceholder": "Tìm việc, CV, công ty, kỹ năng...",
     "roles": {
