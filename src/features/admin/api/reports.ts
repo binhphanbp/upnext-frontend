@@ -1,31 +1,54 @@
 import { apiRequest } from "@/shared/api/http";
 
 export type AdminReportStatus = "PENDING" | "REVIEWING" | "RESOLVED" | "REJECTED";
+
+/** Values the backend actually writes to `Report.targetType`. */
 export type AdminReportTargetType =
   | "JOB_POST"
   | "COMPANY"
   | "CANDIDATE"
-  | "USER"
-  | "ARTICLE"
-  | "COMMENT";
+  | "POST"
+  | "COMPANY_REVIEW";
+
+export type AdminReportReporterRole = "CANDIDATE" | "RECRUITER";
+
+/**
+ * `targetDetails` is resolved per `targetType`, so its shape varies. Only the fields the
+ * table renders are declared; everything is optional because an already-deleted target
+ * resolves to null.
+ */
+export interface AdminReportTargetDetails {
+  id?: string;
+  name?: string;
+  title?: string;
+  status?: string;
+  overallRating?: number;
+  summary?: string | null;
+  company?: { id: string; name: string } | null;
+  account?: { fullName?: string } | null;
+}
 
 export interface AdminReportResponse {
   id: string;
+  reporterType: AdminReportReporterRole;
   targetType: AdminReportTargetType;
   targetId: string;
-  targetName?: string;
   reason: string;
-  description?: string;
   status: AdminReportStatus;
-  reporter?: {
-    id: string;
-    email: string;
-    profile?: {
-      fullName?: string;
-    };
-  };
   createdAt: string;
   updatedAt: string;
+  targetDetails?: AdminReportTargetDetails | null;
+  reporterCandidate?: {
+    id: string;
+    account?: { fullName?: string; email?: string };
+  } | null;
+  reporterRecruiterAccount?: {
+    id: string;
+    email: string;
+    company?: { id: string; name: string } | null;
+  } | null;
+  handledByAdmin?: { id: string; fullName: string; email: string } | null;
+  evidenceFile?: { id: string; publicUrl: string | null } | null;
 }
 
 export interface GetAdminReportsParams {
@@ -34,6 +57,7 @@ export interface GetAdminReportsParams {
   q?: string | undefined;
   status?: string | undefined;
   targetType?: string | undefined;
+  reporterRole?: string | undefined;
   sortBy?: string | undefined;
   sortOrder?: "asc" | "desc" | undefined;
 }
@@ -41,11 +65,12 @@ export interface GetAdminReportsParams {
 export interface AdminReportsPaginatedResponse {
   items: AdminReportResponse[];
   meta: {
-    totalItems: number;
-    itemCount: number;
-    itemsPerPage: number;
+    page: number;
+    limit: number;
+    total: number;
     totalPages: number;
-    currentPage: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
   };
 }
 
@@ -62,6 +87,8 @@ export async function getAdminReports(
       searchParams.append("status", String(params.status));
     if (params.targetType && params.targetType !== "all")
       searchParams.append("targetType", String(params.targetType));
+    if (params.reporterRole && params.reporterRole !== "all")
+      searchParams.append("reporterRole", String(params.reporterRole));
     if (params.sortBy) searchParams.append("sortBy", String(params.sortBy));
     if (params.sortOrder) searchParams.append("sortOrder", String(params.sortOrder));
   }
@@ -71,9 +98,7 @@ export async function getAdminReports(
 
   return apiRequest(url, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
@@ -83,12 +108,14 @@ export async function getAdminReportDetails(
 ): Promise<AdminReportResponse> {
   return apiRequest(`/admin/reports/${id}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
 }
 
+/**
+ * Resolving a COMPANY_REVIEW report is what hides that review, so this is also the
+ * "hide review" action — there is no separate endpoint for it.
+ */
 export async function updateAdminReportStatus(
   token: string,
   id: string,
@@ -96,9 +123,7 @@ export async function updateAdminReportStatus(
 ): Promise<AdminReportResponse> {
   return apiRequest(`/admin/reports/${id}/status`, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 }

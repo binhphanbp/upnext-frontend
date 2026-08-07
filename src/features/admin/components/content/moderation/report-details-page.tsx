@@ -153,9 +153,18 @@ export function ReportDetailsPage({ id }: { id: string }) {
           ? "reviewing"
           : "dismissed";
 
+  // A report is filed by either a candidate or a recruiter; `reporterType` says which.
   const reporterName =
-    report.reporter?.profile?.fullName || report.reporter?.email || tTable("anonymous");
-  const targetName = report.targetName || report.targetId;
+    report.reporterType === "RECRUITER"
+      ? report.reporterRecruiterAccount?.email || tTable("anonymous")
+      : report.reporterCandidate?.account?.fullName ||
+        report.reporterCandidate?.account?.email ||
+        tTable("anonymous");
+  const targetName =
+    report.targetDetails?.name ??
+    report.targetDetails?.title ??
+    report.targetDetails?.account?.fullName ??
+    report.targetId;
   const reportedDate = report.createdAt ? formatAppDate(report.createdAt) : "—";
 
   const getTypeLabel = (type: string) => {
@@ -259,7 +268,8 @@ export function ReportDetailsPage({ id }: { id: string }) {
                   {t("description")}
                 </h3>
                 <div className="min-h-[100px] rounded-xl border border-slate-200 bg-white p-4 whitespace-pre-wrap text-slate-700">
-                  {report.description || (
+                  {/* The API has no separate description field — `reason` is the body. */}
+                  {report.reason || (
                     <span className="text-slate-400 italic">{t("noDescription")}</span>
                   )}
                 </div>

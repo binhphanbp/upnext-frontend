@@ -2646,7 +2646,6 @@
       "articles": "Articles",
       "moderation": "Content Moderation",
       "reports": "Reports",
-      "companyReviewReports": "Company Review Reports",
       "appeals": "Appeals",
       "support": "Support Center"
     },
@@ -2927,14 +2926,24 @@
             "dismiss": "Dismiss Report",
             "banTarget": "Ban Offending Target",
             "viewReporter": "View Reporter",
-            "resolveAndRemove": "Resolve (Remove Content)"
+            "resolveAndRemove": "Resolve (Remove Content)",
+            "hideReview": "Hide this review"
           },
           "contentType": "Content Type",
           "reportedDate": "Reported Date",
+          "allReporters": "All Reporters",
+          "allContentTypes": "All Content Types",
+          "reporterOptions": {
+            "candidate": "Candidate",
+            "recruiter": "Employer"
+          },
           "contentTypeOptions": {
             "job": "Job Post",
             "comment": "Comment",
             "review": "Company Review",
+            "company": "Company",
+            "companyReview": "Company Review",
+            "post": "Article",
             "profile": "Profile"
           },
           "reasonOptions": {

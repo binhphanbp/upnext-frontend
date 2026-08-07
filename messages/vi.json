@@ -2646,7 +2646,6 @@
       "articles": "Quản lý bài viết",
       "moderation": "Kiểm duyệt nội dung",
       "reports": "Báo cáo vi phạm",
-      "companyReviewReports": "Báo cáo đánh giá công ty",
       "appeals": "Kháng cáo",
       "support": "Trung tâm hỗ trợ"
     },
@@ -2948,14 +2947,24 @@
             "dismiss": "Từ chối báo cáo (Bỏ qua)",
             "banTarget": "Khóa đối tượng vi phạm",
             "viewReporter": "Xem người báo cáo",
-            "resolveAndRemove": "Giải quyết (Xóa nội dung)"
+            "resolveAndRemove": "Giải quyết (Xóa nội dung)",
+            "hideReview": "Ẩn đánh giá này"
           },
           "contentType": "Loại nội dung",
           "reportedDate": "Ngày báo cáo",
+          "allReporters": "Tất cả người báo cáo",
+          "allContentTypes": "Tất cả loại nội dung",
+          "reporterOptions": {
+            "candidate": "Ứng viên",
+            "recruiter": "Nhà tuyển dụng"
+          },
           "contentTypeOptions": {
             "job": "Tin tuyển dụng",
             "comment": "Bình luận",
             "review": "Review công ty",
+            "company": "Công ty",
+            "companyReview": "Đánh giá công ty",
+            "post": "Bài viết",
             "profile": "Hồ sơ"
           },
           "reasonOptions": {
