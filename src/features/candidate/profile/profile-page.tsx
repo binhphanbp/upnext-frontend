@@ -315,7 +315,7 @@ export function CandidateProfilePage() {
         </div>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[200px_minmax(0,1fr)] xl:grid-cols-[200px_minmax(0,1fr)_260px] 2xl:grid-cols-[210px_minmax(0,1fr)_275px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[230px_minmax(0,1fr)] xl:grid-cols-[230px_minmax(0,1fr)_260px] 2xl:grid-cols-[240px_minmax(0,1fr)_275px]">
         <ProfileNavigation activeSection={activeSection} counts={sectionCounts} />
 
         <div className="min-w-0 rounded-xl border border-slate-200/90 bg-white p-4 sm:p-6">
@@ -560,7 +560,7 @@ function ProfileNavigation({
                   aria-current={isActive ? "page" : undefined}
                   scroll={false}
                   className={cn(
-                    "group relative flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                    "group relative flex items-center gap-2.5 rounded-lg border px-2.5 py-2.5 transition-colors before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                     isActive
                       ? "border-brand/20 bg-brand-muted text-slate-950 before:bg-brand"
                       : "border-transparent text-slate-600 before:bg-transparent hover:bg-slate-50 hover:text-slate-950",

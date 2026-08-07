@@ -86,7 +86,10 @@ function CandidateWorkspace({
   }, [candidateId]);
 
   return (
-    <div className="candidate-workspace min-h-screen bg-slate-50 text-slate-950">
+    <div
+      className="candidate-workspace min-h-screen bg-slate-50 text-slate-950"
+      suppressHydrationWarning
+    >
       <PublicHeader
         navigate={onNavigate}
         hasNewRecruiterMessages={hasNewRecruiterMessages}

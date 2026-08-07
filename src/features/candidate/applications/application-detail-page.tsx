@@ -557,6 +557,38 @@ function getApplicationHistory(
   locale: string,
   t: ReturnType<typeof useTranslations>,
 ) {
+  if (application.statusLogs && application.statusLogs.length > 0) {
+    return application.statusLogs.map((log) => {
+      let title = t(`applications.status.${log.newStatus}.label`, { defaultValue: log.newStatus });
+      let description = t(`applicationDetail.current.${log.newStatus}.description`, {
+        defaultValue: log.note || "",
+      });
+
+      if (log.newStatus === "SUBMITTED") {
+        if (log.oldStatus === "WITHDRAWN") {
+          title = "Đã ứng tuyển lại";
+          description = "Bạn đã chủ động nộp lại hồ sơ ứng tuyển vào vị trí này.";
+        } else {
+          title = t("applicationDetail.history.submitted");
+          description = t("applicationDetail.history.submittedDescription");
+        }
+      } else if (log.newStatus === "WITHDRAWN") {
+        title = t("applications.status.WITHDRAWN.label", { defaultValue: "Đã rút hồ sơ" });
+        description = t("applicationDetail.current.WITHDRAWN.description", {
+          defaultValue: "Bạn đã chủ động rút hồ sơ khỏi quy trình tuyển dụng.",
+        });
+      }
+
+      return {
+        key: log.id,
+        dateTime: log.changedAt,
+        date: formatDateTime(log.changedAt, locale),
+        title,
+        description,
+      };
+    });
+  }
+
   const events = [
     {
       dateTime: application.submittedAt,

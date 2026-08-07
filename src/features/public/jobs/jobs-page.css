@@ -3307,8 +3307,27 @@
   opacity: 1;
 }
 
+.job-detail-action-row button.is-reapply,
+.job-detail-ready-card button.is-reapply {
+  color: #ffffff;
+  border-color: #059669;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  cursor: pointer;
+  opacity: 1;
+}
+
+.job-detail-action-row button.is-reapply:hover,
+.job-detail-ready-card button.is-reapply:hover {
+  border-color: #047857;
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+  transform: translateY(-1px);
+}
+
 .job-detail-action-row button.is-applied svg,
-.job-detail-ready-card button.is-applied svg {
+.job-detail-ready-card button.is-applied svg,
+.job-detail-action-row button.is-reapply svg,
+.job-detail-ready-card button.is-reapply svg {
   flex: 0 0 auto;
   color: #ffffff;
   filter: drop-shadow(0 1px 1px rgba(4, 120, 87, 0.35));

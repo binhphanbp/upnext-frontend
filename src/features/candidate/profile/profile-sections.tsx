@@ -795,7 +795,7 @@ function ProfileBlock({
   title: string;
 }>) {
   return (
-    <div className="grid gap-4 py-7 first:pt-0 last:pb-0 md:grid-cols-[180px_1fr]">
+    <div className="grid gap-4 py-6 md:grid-cols-[210px_1fr]">
       <div>
         <h3 className="flex items-center gap-2.5 text-sm font-bold text-slate-900">
           <span aria-hidden="true" className="text-slate-500 [&_svg]:size-[18px]">

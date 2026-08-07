@@ -940,6 +940,71 @@
       "signOut": "Đăng xuất",
       "postJob": "Đăng tin"
     },
+    "analytics": {
+      "title": "Phân tích tuyển dụng",
+      "subtitle": "Theo dõi hiệu quả các tin tuyển dụng do bạn tạo.",
+      "loading": "Đang tải dữ liệu phân tích...",
+      "error": "Không thể tải dữ liệu phân tích.",
+      "retry": "Thử lại",
+      "emptyState": "Bạn chưa tạo tin tuyển dụng nào.",
+      "filters": {
+        "window7": "7 ngày",
+        "window30": "30 ngày",
+        "window90": "90 ngày",
+        "allJobs": "Tất cả tin",
+        "backToAll": "← Xem tất cả tin"
+      },
+      "jobHeader": {
+        "vacancies": "{count} vị trí cần tuyển",
+        "publishedAt": "Đăng ngày {date}"
+      },
+      "kpis": {
+        "sectionLabel": "Chỉ số tuyển dụng",
+        "totalViews": "Lượt xem",
+        "totalApplications": "Lượt ứng tuyển",
+        "interviewsScheduled": "Lịch phỏng vấn đã đặt",
+        "hires": "Đã tuyển",
+        "avgTimeToHire": "Thời gian tuyển TB",
+        "medianTimeToHire": "Thời gian tuyển (trung vị)",
+        "days": "{count} ngày",
+        "sampleSize": "Trên {count} lượt tuyển",
+        "noData": "—"
+      },
+      "funnel": {
+        "title": "Funnel tuyển dụng",
+        "subtitle": "Xem → Ứng tuyển → Phỏng vấn → Offer → Hired",
+        "count": "Số lượng",
+        "fromPrevious": "so với bước trước",
+        "stages": {
+          "VIEWED": "Xem",
+          "APPLIED": "Ứng tuyển",
+          "INTERVIEWING": "Phỏng vấn",
+          "OFFERED": "Offer",
+          "HIRED": "Hired"
+        }
+      },
+      "timeSeries": {
+        "title": "Hoạt động theo ngày",
+        "subtitle": "Lượt xem, ứng tuyển và tuyển dụng mỗi ngày",
+        "views": "Lượt xem",
+        "applications": "Ứng tuyển",
+        "hires": "Đã tuyển"
+      },
+      "jobTable": {
+        "title": "So sánh hiệu quả từng tin",
+        "empty": "Chưa có tin tuyển dụng nào",
+        "columns": {
+          "job": "Tin tuyển dụng",
+          "views": "Lượt xem",
+          "applications": "Ứng tuyển",
+          "viewToApplyRate": "Tỷ lệ xem→ứng tuyển",
+          "interviewing": "Phỏng vấn",
+          "offered": "Offer",
+          "hired": "Hired",
+          "applyToHireRate": "Tỷ lệ ứng tuyển→tuyển"
+        }
+      }
+    },
     "dashboard": {
       "title": "Tổng quan tuyển dụng",
       "subtitle": "Theo dõi trạng thái xác thực hồ sơ và công ty của bạn.",

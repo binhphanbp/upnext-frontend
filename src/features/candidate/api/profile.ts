@@ -315,6 +315,16 @@ export type CandidateApplicationApi = Readonly<{
       title: string;
     }> | null;
   }>;
+  statusLogs?: ReadonlyArray<{
+    id: string;
+    actorType: string;
+    actorId: string | null;
+    oldStatus: CandidateApplicationStatus | null;
+    newStatus: CandidateApplicationStatus;
+    reason: string | null;
+    note: string | null;
+    changedAt: string;
+  }>;
 }>;
 
 export type CandidateApplicationMutationApi = Pick<

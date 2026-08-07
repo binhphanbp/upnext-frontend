@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowClockwise } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useRef } from "react";
@@ -392,7 +393,8 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
     enabled: Boolean(session && session.accessToken && job?.id),
   });
 
-  const hasApplied = appliedData?.applied === true;
+  const isWithdrawn = appliedData?.status === "WITHDRAWN";
+  const hasApplied = appliedData?.applied === true && !isWithdrawn;
   const [isOpenApply, setIsOpenApply] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
 
@@ -629,7 +631,12 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               )}
 
               <div className="job-detail-action-row">
-                {hasApplied ? (
+                {isWithdrawn ? (
+                  <button type="button" onClick={handleApply} className="is-reapply">
+                    <ArrowClockwise size={18} />
+                    Ứng tuyển lại
+                  </button>
+                ) : hasApplied ? (
                   <button type="button" disabled className="is-applied">
                     <CheckCircle size={18} weight="fill" />
                     Đã ứng tuyển

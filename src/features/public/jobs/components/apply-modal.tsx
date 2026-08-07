@@ -101,6 +101,12 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   useEffect(() => {
     if (!isOpen) return;
 
+    setIsSuccess(false);
+    setAlreadyApplied(false);
+    setAppliedApplicationId(null);
+    setErrorMessage(null);
+    setCoverLetter("");
+
     const previousOverflow = document.body.style.overflow;
     const previousPaddingRight = document.body.style.paddingRight;
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -139,7 +145,8 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     staleTime: 0,
   });
 
-  const hasApplied = alreadyApplied || appliedData?.applied === true;
+  const hasApplied =
+    alreadyApplied || (appliedData?.applied === true && appliedData?.status !== "WITHDRAWN");
   // applicationId: ưu tiên từ state (khi 409), sau đó từ query check
   const resolvedApplicationId = appliedApplicationId ?? appliedData?.applicationId ?? null;
 
@@ -347,7 +354,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   if (!isOpen || !mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
@@ -791,7 +798,7 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center">
+    <div className="fixed inset-0 z-[2100] flex flex-col items-center justify-center">
       {/* Backdrop */}
       <button
         type="button"
