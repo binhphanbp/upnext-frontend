@@ -39,7 +39,7 @@ export function FormInput({
           {label && (
             <Label
               htmlFor={inputId}
-              className={cn("text-sm font-bold text-slate-700", labelClassName)}
+              className={cn("text-sm font-semibold text-slate-700", labelClassName)}
             >
               {label}
               {required && <span className="ml-1 text-red-500">*</span>}

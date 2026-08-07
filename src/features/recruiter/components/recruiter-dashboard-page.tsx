@@ -11,6 +11,7 @@ import {
   CheckCircle,
   CaretLeft,
   CaretRight,
+  CaretDown,
   Briefcase,
   Users,
   Eye,
@@ -27,6 +28,11 @@ import {
   Calendar,
   ArrowUpRight,
   Bell,
+  Funnel,
+  EyeSlash,
+  Clock,
+  CalendarCheck,
+  UserList,
 } from "@phosphor-icons/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useLocale, useTranslations } from "next-intl";
@@ -40,6 +46,10 @@ import {
   getNotifications,
   type Notification as RecruiterNotification,
 } from "@/features/notifications/api/notifications";
+import {
+  getRecruiterCandidateSummary,
+  type RecruiterCandidateSummary,
+} from "@/features/recruiter/api/candidate-summary";
 import {
   createCompany,
   createRecruiterProfile,
@@ -248,7 +258,7 @@ function getOnboardingErrorMessage(error: unknown, t: (key: string) => string) {
 
 function RequiredLabel({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) {
   return (
-    <Label htmlFor={htmlFor} className="text-sm font-bold text-slate-700">
+    <Label htmlFor={htmlFor} className="text-sm font-semibold text-slate-700">
       {children}
       <span className="ml-1 text-red-500">*</span>
     </Label>
@@ -320,6 +330,37 @@ function getInitialOnboardingStep(
 const JOB_STATUS_ORDER = ["PUBLISHED", "DRAFT", "CLOSED", "PENDING_REVIEW"] as const;
 type DashboardJobStatus = (typeof JOB_STATUS_ORDER)[number] | "ARCHIVED";
 
+/**
+ * Mỗi tin chỉ thuộc đúng một nhóm, dùng chung cho thẻ tổng quan, thẻ "Tin theo trạng thái"
+ * và bảng tin nổi bật để các con số không lệch nhau. Bốn nhóm phủ hết mọi trạng thái nên
+ * tổng các thẻ luôn bằng tổng số tin: tin hết hạn / bị từ chối / đang ẩn đều là tin không
+ * còn hiển thị nên gom vào "Đã đóng".
+ */
+function getDashboardJobStatus(jobPost: RecruiterJobPost): (typeof JOB_STATUS_ORDER)[number] {
+  switch (jobPost.status) {
+    case "DRAFT":
+      return "DRAFT";
+    case "CLOSED":
+    case "ARCHIVED":
+    case "EXPIRED":
+    case "HIDDEN":
+      return "CLOSED";
+    default:
+      break;
+  }
+
+  // Còn lại là PUBLISHED: tin chỉ thật sự "đang đăng" khi đã duyệt và chưa hết hạn.
+  if (jobPost.moderationStatus === "PENDING") return "PENDING_REVIEW";
+  if (jobPost.moderationStatus === "REJECTED") return "CLOSED";
+
+  const expiredAt = jobPost.expiredAt ? new Date(jobPost.expiredAt).getTime() : null;
+  if (expiredAt !== null && Number.isFinite(expiredAt) && expiredAt < Date.now()) {
+    return "CLOSED";
+  }
+
+  return "PUBLISHED";
+}
+
 const JOB_STATUS_CARD_CONFIG: Record<
   DashboardJobStatus,
   {
@@ -373,6 +414,46 @@ const JOB_STATUS_CARD_CONFIG: Record<
   },
 };
 
+/** Màu badge cho trạng thái hồ sơ ứng tuyển, dùng chung cho phễu và bảng hồ sơ mới nhất. */
+const APPLICATION_STATUS_STYLE: Record<string, { badge: string; bar: string }> = {
+  SUBMITTED: { badge: "bg-blue-50 text-blue-600", bar: "bg-blue-500" },
+  VIEWED: { badge: "bg-slate-100 text-slate-600", bar: "bg-slate-400" },
+  CONSIDERING: { badge: "bg-violet-50 text-violet-600", bar: "bg-violet-500" },
+  SHORTLISTED: { badge: "bg-cyan-50 text-cyan-700", bar: "bg-cyan-500" },
+  INTERVIEWING: { badge: "bg-amber-50 text-amber-600", bar: "bg-amber-500" },
+  OFFERED: { badge: "bg-indigo-50 text-indigo-600", bar: "bg-indigo-500" },
+  HIRED: { badge: "bg-emerald-50 text-emerald-700", bar: "bg-emerald-500" },
+  REJECTED: { badge: "bg-red-50 text-red-600", bar: "bg-red-500" },
+  WITHDRAWN: { badge: "bg-slate-100 text-slate-500", bar: "bg-slate-300" },
+};
+
+function getApplicationStatusStyle(status: string) {
+  return APPLICATION_STATUS_STYLE[status] ?? APPLICATION_STATUS_STYLE.SUBMITTED!;
+}
+
+/** Cùng ngưỡng với bộ lọc aiLabel ở backend để hai màn hình không lệch nhãn. */
+function getAiScoreClass(score: number) {
+  if (score >= 85) return "text-emerald-600";
+  if (score >= 70) return "text-blue-600";
+  if (score >= 50) return "text-amber-600";
+  return "text-red-500";
+}
+
+/**
+ * Khi API số liệu ứng viên lỗi, khối vẫn phải ở nguyên chỗ và nói rõ là không tải được —
+ * ẩn cả khối đi thì lỗi thật (mất mạng, chưa gắn công ty) trông hệt như "chưa có dữ liệu".
+ */
+function CandidateSummaryUnavailable({ message }: { message: string }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
+      <span className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+        <WarningCircle size={20} weight="bold" />
+      </span>
+      <p className="max-w-xs text-xs font-medium text-slate-500">{message}</p>
+    </div>
+  );
+}
+
 type ReputationTier = "elite" | "trusted" | "standard" | "warning" | "locked";
 
 const REPUTATION_TIERS: ReadonlyArray<{
@@ -410,6 +491,7 @@ export function RecruiterDashboardPage() {
     null,
   );
   const [jobPosts, setJobPosts] = useState<RecruiterJobPost[]>([]);
+  const [candidateSummary, setCandidateSummary] = useState<RecruiterCandidateSummary | null>(null);
   const [notifications, setNotifications] = useState<RecruiterNotification[]>([]);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -443,6 +525,8 @@ export function RecruiterDashboardPage() {
   const [companyDetail, setCompanyDetail] = useState<CompanyDetail | null>(null);
   const [reputationDialogOpen, setReputationDialogOpen] = useState(false);
   const [reputationActivities, setReputationActivities] = useState<ReputationActivity[]>([]);
+  const [reputationGuideOpen, setReputationGuideOpen] = useState(true);
+  const [reputationHistoryOpen, setReputationHistoryOpen] = useState(false);
   const [appealDialogOpen, setAppealDialogOpen] = useState(false);
   const [appealContent, setAppealContent] = useState("");
   const [appealSubmitting, setAppealSubmitting] = useState(false);
@@ -533,15 +617,19 @@ export function RecruiterDashboardPage() {
     async (accountId: string, accessToken: string) => {
       try {
         setLoading(true);
-        const [accountData, statsData, jobPostsData, notificationsData] = await Promise.all([
-          getRecruiterAccount(accountId, accessToken),
-          getRecruiterStats(accountId, accessToken),
-          getRecruiterJobPosts(accessToken, accountId).catch(() => [] as RecruiterJobPost[]),
-          getNotifications(accessToken, 1, 5).catch(() => null),
-        ]);
+        const [accountData, statsData, jobPostsData, candidateSummaryData, notificationsData] =
+          await Promise.all([
+            getRecruiterAccount(accountId, accessToken),
+            getRecruiterStats(accountId, accessToken),
+            getRecruiterJobPosts(accessToken, accountId).catch(() => [] as RecruiterJobPost[]),
+            // Nhà tuyển dụng chưa gắn công ty sẽ nhận 400 ở đây; dashboard vẫn phải hiện được.
+            getRecruiterCandidateSummary(accessToken).catch(() => null),
+            getNotifications(accessToken, 1, 5).catch(() => null),
+          ]);
         setAccount(accountData);
         setStats(statsData);
         setJobPosts(jobPostsData);
+        setCandidateSummary(candidateSummaryData);
         if (notificationsData && notificationsData.data) {
           setNotifications(notificationsData.data);
         }
@@ -583,18 +671,12 @@ export function RecruiterDashboardPage() {
   const hasCompanyInfo = Boolean(account && isCompanyProfileComplete(account, companyDetail));
   const hasPostedJob = Boolean(stats && stats.totalJobPosts > 0);
 
-  const publishedCount = useMemo(
-    () =>
-      jobPosts.filter((jp) => jp.status === "PUBLISHED" && jp.moderationStatus === "APPROVED")
-        .length,
-    [jobPosts],
-  );
-  const draftCount = useMemo(
-    () => jobPosts.filter((jp) => jp.status === "DRAFT").length,
-    [jobPosts],
-  );
   const totalViews = useMemo(
     () => jobPosts.reduce((sum, jp) => sum + (jp._count?.views ?? 0), 0),
+    [jobPosts],
+  );
+  const totalApplications = useMemo(
+    () => jobPosts.reduce((sum, jp) => sum + (jp._count?.applications ?? 0), 0),
     [jobPosts],
   );
   const statusCounts = useMemo(() => {
@@ -605,16 +687,12 @@ export function RecruiterDashboardPage() {
       PENDING_REVIEW: 0,
     };
     for (const jp of jobPosts) {
-      if (jp.status === "PUBLISHED" && jp.moderationStatus === "PENDING") {
-        map.PENDING_REVIEW += 1;
-      } else if (jp.status === "PUBLISHED") {
-        map.PUBLISHED += 1;
-      } else if (jp.status === "DRAFT" || jp.status === "CLOSED") {
-        map[jp.status] += 1;
-      }
+      map[getDashboardJobStatus(jp)] += 1;
     }
     return map;
   }, [jobPosts]);
+  const publishedCount = statusCounts.PUBLISHED;
+  const draftCount = statusCounts.DRAFT;
   const topJobs = useMemo(
     () =>
       [...jobPosts]
@@ -622,6 +700,60 @@ export function RecruiterDashboardPage() {
         .slice(0, 5),
     [jobPosts],
   );
+  // Phễu vẽ theo cột cao nhất chứ không theo tổng: các trạng thái sau luôn nhỏ hơn nhiều
+  // so với "mới nộp", chia theo tổng thì mấy vòng cuối gần như mất hút.
+  const funnelMax = useMemo(
+    () => Math.max(1, ...(candidateSummary?.funnel ?? []).map((stage) => stage.count)),
+    [candidateSummary],
+  );
+
+  const candidateStatCards = useMemo(() => {
+    if (!candidateSummary) return [];
+
+    const { totals } = candidateSummary;
+
+    return [
+      {
+        id: "unviewed",
+        label: t("dashboard.candidates.stat.unviewed"),
+        value: totals.unviewed,
+        icon: EyeSlash,
+        tone: "text-blue-600",
+        toneBg: "bg-blue-50",
+        href: "/recruiter/candidates?viewed=unviewed",
+      },
+      // Hai thẻ dưới đếm theo mốc thời gian, mà trang ứng viên chưa có bộ lọc theo ngày nộp:
+      // bấm vào sẽ ra một danh sách có số lượng khác hẳn con số trên thẻ, nên để tĩnh.
+      {
+        id: "new",
+        label: t("dashboard.candidates.stat.new"),
+        value: totals.newLast7Days,
+        icon: UserList,
+        tone: "text-emerald-600",
+        toneBg: "bg-emerald-50",
+        href: null,
+      },
+      {
+        id: "stale",
+        label: t("dashboard.candidates.stat.stale", { days: totals.staleThresholdDays }),
+        value: totals.staleOver7Days,
+        icon: Clock,
+        tone: totals.staleOver7Days > 0 ? "text-red-500" : "text-slate-400",
+        toneBg: totals.staleOver7Days > 0 ? "bg-red-50" : "bg-slate-100",
+        href: null,
+      },
+      {
+        id: "interviews",
+        label: t("dashboard.candidates.stat.interviews"),
+        value: totals.upcomingInterviews,
+        icon: CalendarCheck,
+        tone: "text-amber-600",
+        toneBg: "bg-amber-50",
+        href: "/recruiter/interviews",
+      },
+    ];
+  }, [candidateSummary, t]);
+
   const reputationScore = useMemo(() => {
     const raw = Number(companyDetail?.reputationScore ?? 0);
     return Number.isFinite(raw) ? Math.max(0, Math.min(REPUTATION_SCALE_MAX, raw)) : 0;
@@ -1019,45 +1151,46 @@ export function RecruiterDashboardPage() {
         <div className="flex flex-col gap-6 xl:col-span-5">
           {/* Mini Cards: Job posts & Candidates (real data) */}
           <div className="grid grid-cols-2 gap-6">
-            {/* Total Job Posts */}
+            {/* Tin tuyển dụng: mọi chỉ số của bài đăng (trạng thái, lượt xem) nằm chung ở đây */}
             <div className="upnext-shadow flex h-40 flex-col justify-between rounded-2xl bg-white p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="mb-1 text-sm text-slate-400">{t("dashboard.totalJobPosts")}</p>
                   <h3 className="text-[clamp(20px,2.5vw,24px)] font-bold text-slate-800">
-                    {stats ? stats.totalJobPosts.toLocaleString() : "0"}
+                    {jobPosts.length.toLocaleString()}
                   </h3>
                 </div>
                 <span className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                   <Briefcase size={20} weight="bold" />
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-semibold">
-                <span className="text-emerald-600">
-                  {t("dashboard.miniCard.publishedCount", { count: publishedCount })}
-                </span>
-                <span className="text-slate-300">·</span>
-                <span className="text-slate-500">
-                  {t("dashboard.miniCard.draftCount", { count: draftCount })}
-                </span>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <span className="text-emerald-600">
+                    {t("dashboard.miniCard.publishedCount", { count: publishedCount })}
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-slate-500">
+                    {t("dashboard.miniCard.draftCount", { count: draftCount })}
+                  </span>
+                </div>
               </div>
             </div>
-            {/* Total Candidates */}
+            {/* Hồ sơ ứng tuyển: đếm số CV đã nộp, không phải số người duy nhất */}
             <div className="upnext-shadow flex h-40 flex-col justify-between rounded-2xl bg-white p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="mb-1 text-sm text-slate-400">{t("dashboard.totalCandidates")}</p>
+                  <p className="mb-1 text-sm text-slate-400">{t("dashboard.totalApplications")}</p>
                   <h3 className="text-[clamp(20px,2.5vw,24px)] font-bold text-slate-800">
-                    {stats ? stats.totalCandidates.toLocaleString() : "0"}
+                    {totalApplications.toLocaleString()}
                   </h3>
                 </div>
                 <span className="flex size-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#5d87ff]">
                   <Users size={20} weight="bold" />
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                <Eye size={15} weight="bold" className="text-slate-400" />
-                <span>{t("dashboard.miniCard.totalViews", { count: totalViews })}</span>
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+                <span>{t("dashboard.miniCard.applicationsHint")}</span>
               </div>
             </div>
           </div>
@@ -1074,7 +1207,7 @@ export function RecruiterDashboardPage() {
               <button
                 type="button"
                 onClick={() => setReputationDialogOpen(true)}
-                className="flex items-center gap-1 text-xs font-bold text-[#5d87ff] hover:underline"
+                className="text-primary flex items-center gap-1 text-xs font-bold hover:underline"
               >
                 <Info size={14} weight="bold" />
                 {t("dashboard.reputation.learnMore")}
@@ -1140,9 +1273,10 @@ export function RecruiterDashboardPage() {
                 <h3 className="text-[clamp(16px,2vw,18px)] font-bold text-slate-800">
                   {t("dashboard.statusDistribution.title")}
                 </h3>
-                <p className="text-[13px] text-slate-400">
-                  {t("dashboard.statusDistribution.subtitle", { count: jobPosts.length })}
-                </p>
+                <div className="flex items-center gap-1.5 text-[13px] text-slate-400">
+                  <Eye size={15} weight="bold" className="text-slate-400" />
+                  <span>{t("dashboard.miniCard.totalViews", { count: totalViews })}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1163,7 +1297,7 @@ export function RecruiterDashboardPage() {
                 <h4 className="-mt-6 text-[clamp(14px,1.8vw,16px)] font-bold text-slate-700">
                   {t("dashboard.statusDistribution.empty")}
                 </h4>
-                <p className="mt-1 max-w-sm text-xs font-medium text-slate-500">
+                <p className="mt-1 max-w-md text-xs font-medium text-balance text-slate-500">
                   {t("dashboard.statusDistribution.emptySubtitle")}
                 </p>
               </div>
@@ -1237,6 +1371,252 @@ export function RecruiterDashboardPage() {
         </div>
       </div>
 
+      {/* ROW: Candidate funnel + latest applications (real data) */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        {/* Left: candidate funnel + quick stats */}
+        <div className="upnext-shadow flex flex-col rounded-2xl bg-white p-6 xl:col-span-5">
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#eef2ff] text-[#5d87ff]">
+                <Funnel size={22} weight="bold" />
+              </div>
+              <div>
+                <h3 className="text-[clamp(14px,1.8vw,16px)] font-bold text-slate-800">
+                  {t("dashboard.candidates.funnelTitle")}
+                </h3>
+                <p className="text-[13px] text-slate-400">
+                  {t("dashboard.candidates.funnelSubtitle", {
+                    count: candidateSummary?.totals.total ?? 0,
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {!candidateSummary ? (
+            <CandidateSummaryUnavailable message={t("dashboard.candidates.loadError")} />
+          ) : (
+            <>
+              <div className="mb-5 grid grid-cols-2 gap-3">
+                {candidateStatCards.map((stat) => {
+                  const StatIcon = stat.icon;
+                  const href = stat.href;
+                  const Tag = href ? "button" : "div";
+                  return (
+                    <Tag
+                      key={stat.id}
+                      {...(href
+                        ? { type: "button" as const, onClick: () => router.push(href) }
+                        : {})}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-left",
+                        href && "transition hover:border-slate-200 hover:bg-slate-50/60",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                          stat.toneBg,
+                          stat.tone,
+                        )}
+                      >
+                        <StatIcon size={18} weight="bold" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[clamp(16px,2vw,20px)] leading-tight font-bold text-slate-800">
+                          {stat.value.toLocaleString()}
+                        </span>
+                        <span className="block truncate text-[11px] font-semibold text-slate-500">
+                          {stat.label}
+                        </span>
+                      </span>
+                    </Tag>
+                  );
+                })}
+              </div>
+
+              {candidateSummary.totals.total === 0 ? (
+                <div className="flex flex-1 flex-col items-center justify-center text-center">
+                  <Image
+                    src="/assets/recruiter/icon/cv-find.png"
+                    alt=""
+                    width={200}
+                    height={150}
+                    unoptimized
+                    className="mx-auto h-auto w-[200px] max-w-full object-contain select-none"
+                  />
+                  <p className="-mt-5 text-sm font-medium text-slate-600">
+                    {t("dashboard.candidates.empty")}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-1 flex-col gap-2.5">
+                  {candidateSummary.funnel.map((stage) => {
+                    const style = getApplicationStatusStyle(stage.status);
+                    const pct = Math.round((stage.count / funnelMax) * 100);
+                    return (
+                      <div key={stage.status} className="flex items-center gap-3">
+                        <span className="w-[104px] shrink-0 truncate text-xs font-semibold text-slate-600">
+                          {t(`dashboard.candidates.status.${stage.status}` as never)}
+                        </span>
+                        <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                          <span
+                            className={cn(
+                              "block h-full rounded-full transition-all duration-500",
+                              style.bar,
+                            )}
+                            style={{ width: `${stage.count > 0 ? Math.max(pct, 4) : 0}%` }}
+                          />
+                        </span>
+                        <span className="w-9 shrink-0 text-right text-xs font-bold text-slate-700">
+                          {stage.count}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                  <div className="mt-auto space-y-1 border-t border-slate-100 pt-3 text-[11px] font-medium text-slate-400">
+                    <p>
+                      {t("dashboard.candidates.aiSummary", {
+                        excellent: candidateSummary.aiScoreBuckets.excellent,
+                        good: candidateSummary.aiScoreBuckets.good,
+                        unscored: candidateSummary.aiScoreBuckets.unscored,
+                      })}
+                    </p>
+                    <p>
+                      {t("dashboard.candidates.closed", {
+                        rejected: candidateSummary.byStatus.REJECTED ?? 0,
+                        withdrawn: candidateSummary.byStatus.WITHDRAWN ?? 0,
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Right: latest applications */}
+        <div className="upnext-shadow flex flex-col rounded-2xl bg-white p-6 xl:col-span-7">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <Users size={22} weight="bold" />
+              </div>
+              <h3 className="text-[clamp(14px,1.8vw,16px)] font-bold text-slate-800">
+                {t("dashboard.candidates.recentTitle")}
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/recruiter/candidates")}
+              className="text-primary shrink-0 text-sm font-medium hover:underline"
+            >
+              {t("dashboard.viewAll")}
+            </button>
+          </div>
+
+          {!candidateSummary ? (
+            <CandidateSummaryUnavailable message={t("dashboard.candidates.loadError")} />
+          ) : candidateSummary.recentApplications.length === 0 ? (
+            <>
+              <Image
+                src="/assets/recruiter/icon/cv-find.png"
+                alt=""
+                width={240}
+                height={180}
+                unoptimized
+                className="mx-auto h-auto w-[240px] max-w-full object-contain select-none"
+              />
+              <p className="-mt-6 pb-4 text-center text-sm font-medium text-slate-600">
+                {t("dashboard.candidates.empty")}
+              </p>
+            </>
+          ) : (
+            <RecruiterTableLayout loading={false}>
+              <thead className="text-left text-xs font-bold text-slate-900">
+                <tr>
+                  <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
+                    {t("dashboard.candidates.table.candidate")}
+                  </th>
+                  <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
+                    {t("dashboard.candidates.table.job")}
+                  </th>
+                  <th
+                    className="border-r border-slate-300 px-4 py-2.5 !text-center last:border-r-0"
+                    scope="col"
+                  >
+                    {t("dashboard.candidates.table.aiScore")}
+                  </th>
+                  <th
+                    className="border-r border-slate-300 px-4 py-2.5 !text-center last:border-r-0"
+                    scope="col"
+                  >
+                    {t("dashboard.candidates.table.submitted")}
+                  </th>
+                  <th
+                    className="border-r border-slate-300 px-4 py-2.5 !text-center last:border-r-0"
+                    scope="col"
+                  >
+                    {t("dashboard.candidates.table.status")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {candidateSummary.recentApplications.map((application) => (
+                  <tr key={application.id}>
+                    <td className="max-w-[200px] border-r border-slate-100/50 px-4 py-3 last:border-r-0">
+                      <button
+                        type="button"
+                        onClick={() => router.push("/recruiter/candidates")}
+                        aria-label={application.candidateName || application.candidateEmail}
+                        className="hover:text-primary flex max-w-full items-center gap-2 text-left"
+                      >
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                          <User size={14} weight="bold" />
+                        </span>
+                        <span className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                          {application.candidateName || application.candidateEmail}
+                        </span>
+                      </button>
+                    </td>
+                    <td className="max-w-[200px] border-r border-slate-100/50 px-4 py-3 last:border-r-0">
+                      <span className="block max-w-full truncate font-medium text-slate-600">
+                        {application.jobPostTitle}
+                      </span>
+                    </td>
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center last:border-r-0">
+                      {application.aiScore === null ? (
+                        <span className="text-xs font-medium text-slate-400">
+                          {t("dashboard.candidates.notScored")}
+                        </span>
+                      ) : (
+                        <span className={cn("font-bold", getAiScoreClass(application.aiScore))}>
+                          {Math.round(application.aiScore)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-medium text-slate-600 last:border-r-0">
+                      {formatAppDate(application.submittedAt, locale === "en" ? "en" : "vi")}
+                    </td>
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center last:border-r-0">
+                      <span
+                        className={cn(
+                          "rounded-full px-2 py-1 text-[11px] font-bold",
+                          getApplicationStatusStyle(application.status).badge,
+                        )}
+                      >
+                        {t(`dashboard.candidates.status.${application.status}` as never)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </RecruiterTableLayout>
+          )}
+        </div>
+      </div>
+
       {/* ROW: Top jobs by applications (real data, full width) */}
       <div className="upnext-shadow flex flex-col rounded-2xl bg-white p-6">
         <div className="mb-5 flex items-center justify-between">
@@ -1260,9 +1640,21 @@ export function RecruiterDashboardPage() {
         </div>
 
         {topJobs.length === 0 ? (
-          <p className="py-6 text-center text-xs font-medium text-slate-400">
-            {t("dashboard.topJobs.empty")}
-          </p>
+          <>
+            <Image
+              src="/assets/recruiter/icon/cv-find.png"
+              alt="Chưa có tin tuyển dụng"
+              width={240}
+              height={180}
+              priority
+              unoptimized
+              className="mx-auto h-auto w-[240px] max-w-full object-contain select-none"
+            />
+
+            <p className="-mt-6 pb-4 text-center text-sm font-medium text-slate-600">
+              {t("dashboard.topJobs.empty")}
+            </p>
+          </>
         ) : (
           <RecruiterTableLayout loading={false}>
             <thead className="text-left text-xs font-bold text-slate-900">
@@ -1298,10 +1690,7 @@ export function RecruiterDashboardPage() {
             </thead>
             <tbody>
               {topJobs.map((jp) => {
-                const displayStatus =
-                  jp.status === "PUBLISHED" && jp.moderationStatus === "PENDING"
-                    ? "PENDING_REVIEW"
-                    : jp.status;
+                const displayStatus = getDashboardJobStatus(jp);
                 const config = JOB_STATUS_CARD_CONFIG[displayStatus];
                 const publishedDate = jp.publishedAt ?? jp.createdAt;
                 return (
@@ -1355,9 +1744,20 @@ export function RecruiterDashboardPage() {
         </div>
 
         {notifications.length === 0 ? (
-          <p className="py-8 text-center text-sm font-medium text-slate-600">
-            {t("dashboard.notifications.empty")}
-          </p>
+          <>
+            <Image
+              src="/assets/recruiter/icon/notification.png"
+              alt="Chưa có tin tuyển dụng"
+              width={240}
+              height={180}
+              priority
+              unoptimized
+              className="mx-auto h-auto w-[240px] max-w-full object-contain select-none"
+            />
+            <p className="py-6 text-center text-sm font-medium text-slate-600">
+              {t("dashboard.notifications.empty")}
+            </p>
+          </>
         ) : (
           <div className="space-y-4">
             {notifications.map((notif) => {
@@ -1417,86 +1817,147 @@ export function RecruiterDashboardPage() {
             </DialogPrimitive.Description>
 
             <div className="flex-1 space-y-4 overflow-y-auto pr-1 text-sm leading-relaxed text-slate-600">
-              <p>{t("dashboard.reputation.dialog.intro")}</p>
+              {/* Dropdown 1: Hướng dẫn */}
+              <div className="rounded-xl border border-slate-100 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setReputationGuideOpen(!reputationGuideOpen)}
+                  className="flex w-full items-center justify-between rounded-xl bg-slate-50/70 p-3.5 text-left text-sm font-bold text-slate-800 transition hover:bg-slate-100/80"
+                >
+                  <div className="flex items-center gap-2">
+                    <Info size={18} className="text-emerald-600" />
+                    <span>
+                      {t("dashboard.reputation.dialog.introTitle") || "Hướng dẫn tính điểm uy tín"}
+                    </span>
+                  </div>
+                  <CaretDown
+                    size={16}
+                    className={cn(
+                      "text-slate-500 transition-transform duration-200",
+                      reputationGuideOpen && "rotate-180",
+                    )}
+                  />
+                </button>
 
-              <div>
-                <h4 className="mb-1 font-bold text-slate-800">
-                  {t("dashboard.reputation.dialog.gainTitle")}
-                </h4>
-                <p>{t("dashboard.reputation.dialog.gainText")}</p>
-              </div>
+                <div
+                  className={cn(
+                    "transition-all duration-300 ease-in-out overflow-hidden px-3.5",
+                    reputationGuideOpen
+                      ? "max-h-[1000px] opacity-100 py-4 space-y-4 border-t border-slate-100"
+                      : "max-h-0 opacity-0",
+                  )}
+                >
+                  <p className="text-sm">{t("dashboard.reputation.dialog.intro")}</p>
 
-              <div>
-                <h4 className="mb-1 font-bold text-slate-800">
-                  {t("dashboard.reputation.dialog.lossTitle")}
-                </h4>
-                <p>{t("dashboard.reputation.dialog.lossText")}</p>
-              </div>
+                  <div className="space-y-1">
+                    <h5 className="text-sm font-bold text-slate-700">
+                      {t("dashboard.reputation.dialog.gainTitle")}
+                    </h5>
+                    <p className="text-sm text-slate-500">
+                      {t("dashboard.reputation.dialog.gainText")}
+                    </p>
+                  </div>
 
-              <div>
-                <h4 className="mb-2 font-bold text-slate-800">
-                  {t("dashboard.reputation.dialog.tiersTitle")}
-                </h4>
-                <ul className="space-y-2">
-                  {[...REPUTATION_TIERS].reverse().map((tier) => (
-                    <li key={tier.id} className="flex gap-2 rounded-lg bg-slate-50 p-3">
-                      <span
-                        className={cn(
-                          "h-fit shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold",
-                          tier.badgeClass,
-                        )}
-                      >
-                        {t(`dashboard.reputation.tier.${tier.id}.range`)}
-                      </span>
-                      <span className="text-xs text-slate-600">
-                        <strong className="text-slate-800">
-                          {t(`dashboard.reputation.tier.${tier.id}.label`)}:
-                        </strong>{" "}
-                        {t(`dashboard.reputation.tier.${tier.id}.description`)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                  <div className="space-y-1">
+                    <h5 className="text-sm font-bold text-slate-700">
+                      {t("dashboard.reputation.dialog.lossTitle")}
+                    </h5>
+                    <p className="text-sm text-slate-500">
+                      {t("dashboard.reputation.dialog.lossText")}
+                    </p>
+                  </div>
 
-              <div>
-                <h4 className="mb-2 font-bold text-slate-800">
-                  {t("dashboard.reputation.dialog.historyTitle")}
-                </h4>
-                {reputationActivities.length === 0 ? (
-                  <p className="text-xs text-slate-400">
-                    {t("dashboard.reputation.dialog.historyEmpty")}
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {reputationActivities.map((activity) => {
-                      const delta = Number(activity.score);
-                      return (
-                        <li
-                          key={activity.id}
-                          className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 text-xs"
-                        >
-                          <div>
-                            <p className="font-semibold text-slate-700">
-                              {activity.reason || activity.actionType}
-                            </p>
-                            <p className="text-slate-400">
-                              {new Date(activity.createdAt).toLocaleDateString(locale)}
-                            </p>
-                          </div>
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-bold text-slate-700">
+                      {t("dashboard.reputation.dialog.tiersTitle")}
+                    </h5>
+                    <ul className="space-y-2">
+                      {[...REPUTATION_TIERS].reverse().map((tier) => (
+                        <li key={tier.id} className="flex gap-2 rounded-lg bg-slate-50 p-3">
                           <span
                             className={cn(
-                              "shrink-0 font-bold",
-                              delta >= 0 ? "text-emerald-600" : "text-red-600",
+                              "h-fit shrink-0 rounded-full px-2 py-0.5 text-xs font-bold",
+                              tier.badgeClass,
                             )}
                           >
-                            {delta >= 0 ? `+${delta}` : delta}
+                            {t(`dashboard.reputation.tier.${tier.id}.range`)}
+                          </span>
+                          <span className="text-xs leading-relaxed text-slate-600">
+                            <strong className="text-slate-700">
+                              {t(`dashboard.reputation.tier.${tier.id}.label`)}:
+                            </strong>{" "}
+                            {t(`dashboard.reputation.tier.${tier.id}.description`)}
                           </span>
                         </li>
-                      );
-                    })}
-                  </ul>
-                )}
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dropdown 2: Lịch sử điểm */}
+              <div className="rounded-xl border border-slate-100 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setReputationHistoryOpen(!reputationHistoryOpen)}
+                  className="flex w-full items-center justify-between rounded-xl bg-slate-50/70 p-3.5 text-left text-sm font-bold text-slate-800 transition hover:bg-slate-100/80"
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar size={18} className="text-emerald-600" />
+                    <span>{t("dashboard.reputation.dialog.historyTitle")}</span>
+                  </div>
+                  <CaretDown
+                    size={16}
+                    className={cn(
+                      "text-slate-500 transition-transform duration-200",
+                      reputationHistoryOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                <div
+                  className={cn(
+                    "transition-all duration-300 ease-in-out overflow-hidden px-3.5",
+                    reputationHistoryOpen
+                      ? "max-h-[600px] opacity-100 py-4 border-t border-slate-100"
+                      : "max-h-0 opacity-0",
+                  )}
+                >
+                  {reputationActivities.length === 0 ? (
+                    <p className="text-sm text-slate-400">
+                      {t("dashboard.reputation.dialog.historyEmpty")}
+                    </p>
+                  ) : (
+                    <ul className="max-h-[300px] space-y-2 overflow-y-auto pr-1">
+                      {reputationActivities.map((activity) => {
+                        const delta = Number(activity.score);
+                        return (
+                          <li
+                            key={activity.id}
+                            className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3 text-sm"
+                          >
+                            <div>
+                              <p className="font-semibold text-slate-700">
+                                {activity.reason || activity.actionType}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {new Date(activity.createdAt).toLocaleDateString(locale)}
+                              </p>
+                            </div>
+                            <span
+                              className={cn(
+                                "shrink-0 font-bold",
+                                delta >= 0 ? "text-emerald-600" : "text-red-600",
+                              )}
+                            >
+                              {delta >= 0 ? `+${delta}` : delta}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
           </DialogPrimitive.Content>
@@ -2660,7 +3121,7 @@ function RecruiterOnboardingDialog({
                     <div className="flex flex-col gap-1.5">
                       <Label
                         htmlFor="recruiter-onboarding-benefits"
-                        className="text-sm font-bold text-slate-700"
+                        className="text-sm font-semibold text-slate-700"
                       >
                         {t("onboarding.companyProfile.fields.benefits")}
                       </Label>
@@ -2683,7 +3144,7 @@ function RecruiterOnboardingDialog({
                         Boolean(account.company?.businessLicenseFileId) && !isLicenseDeleted;
                       return (
                         <section className="space-y-4">
-                          <div className="flex items-center gap-2 text-sm font-bold text-slate-950">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
                             <UploadSimple size={18} />
                             {t("onboarding.step2")}
                           </div>
@@ -2762,7 +3223,7 @@ function RecruiterOnboardingDialog({
                                   <div className="flex flex-col">
                                     {selectedLicenseFile ? (
                                       <>
-                                        <span className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                                        <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
                                           <span className="shrink-0 text-emerald-600">📎</span>
                                           <span
                                             className="max-w-[200px] truncate sm:max-w-[300px]"
@@ -2777,7 +3238,7 @@ function RecruiterOnboardingDialog({
                                       </>
                                     ) : hasExistingLicense ? (
                                       <>
-                                        <span className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                                        <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
                                           <span className="shrink-0 text-emerald-600">📎</span>
                                           <span
                                             className="max-w-[200px] truncate sm:max-w-[300px]"
@@ -2792,7 +3253,7 @@ function RecruiterOnboardingDialog({
                                       </>
                                     ) : (
                                       <>
-                                        <span className="text-sm font-bold text-slate-800">
+                                        <span className="text-sm font-semibold text-slate-800">
                                           {t("onboarding.upload.dragDropText")}
                                         </span>
                                         <span className="mt-0.5 text-xs font-medium text-slate-500">

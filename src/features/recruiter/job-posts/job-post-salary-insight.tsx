@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowSquareOut, Coins, MagnifyingGlass, Sparkle } from "@phosphor-icons/react";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useState } from "react";
 
 import { cn } from "@/shared/lib/cn";
@@ -21,11 +22,19 @@ type JobPostSalaryInsightProps = Readonly<{
   onApply?: (() => void) | undefined;
 }>;
 
-const CONFIDENCE_LABELS = {
-  LOW: "Tham khảo",
-  MEDIUM: "Khá tin cậy",
-  HIGH: "Tin cậy cao",
-} as const;
+function getConfidenceLabel(
+  t: ReturnType<typeof useTranslations>,
+  confidence: "LOW" | "MEDIUM" | "HIGH",
+) {
+  switch (confidence) {
+    case "LOW":
+      return t("jobPostsPage.salaryInsight.confidenceLow");
+    case "MEDIUM":
+      return t("jobPostsPage.salaryInsight.confidenceMedium");
+    case "HIGH":
+      return t("jobPostsPage.salaryInsight.confidenceHigh");
+  }
+}
 
 /**
  * The grounded search fires ~5 Google queries before Gemini answers; measured round trips sit at
@@ -34,6 +43,7 @@ const CONFIDENCE_LABELS = {
 const ESTIMATED_RESEARCH_SECONDS = 35;
 
 function ResearchingIndicator() {
+  const t = useTranslations("Recruiter");
   const [remainingSeconds, setRemainingSeconds] = useState(ESTIMATED_RESEARCH_SECONDS);
 
   useEffect(() => {
@@ -59,11 +69,13 @@ function ResearchingIndicator() {
           />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate-800">AI đang tra cứu nguồn web...</p>
+          <p className="text-sm font-semibold text-slate-800">
+            {t("jobPostsPage.salaryInsight.researchingTitle")}
+          </p>
           <p className="text-xs font-normal text-slate-500">
             {remainingSeconds > 0
-              ? `Dự kiến còn khoảng ${remainingSeconds} giây`
-              : "Sắp xong, AI đang đối chiếu các nguồn..."}
+              ? t("jobPostsPage.salaryInsight.researchingCountdown", { seconds: remainingSeconds })
+              : t("jobPostsPage.salaryInsight.researchingFinishing")}
           </p>
         </div>
       </div>
@@ -77,12 +89,21 @@ function ResearchingIndicator() {
   );
 }
 
-const COMPARISON_LABELS = {
-  NOT_PROVIDED: "Chưa có mức lương để so sánh",
-  BELOW: "Mức đang nhập thấp hơn nhóm thị trường",
-  ALIGNED: "Mức đang nhập nằm trong khoảng thị trường",
-  ABOVE: "Mức đang nhập cao hơn nhóm thị trường",
-} as const;
+function getComparisonLabel(
+  t: ReturnType<typeof useTranslations>,
+  position: "NOT_PROVIDED" | "BELOW" | "ALIGNED" | "ABOVE",
+) {
+  switch (position) {
+    case "NOT_PROVIDED":
+      return t("jobPostsPage.salaryInsight.comparisonNotProvided");
+    case "BELOW":
+      return t("jobPostsPage.salaryInsight.comparisonBelow");
+    case "ALIGNED":
+      return t("jobPostsPage.salaryInsight.comparisonAligned");
+    case "ABOVE":
+      return t("jobPostsPage.salaryInsight.comparisonAbove");
+  }
+}
 
 export function JobPostSalaryInsight({
   insight,
@@ -94,6 +115,8 @@ export function JobPostSalaryInsight({
   onAnalyze,
   onApply,
 }: JobPostSalaryInsightProps) {
+  const t = useTranslations("Recruiter");
+  const locale = useLocale();
   const experienceInputId = useId();
   const isWebGrounded = insight?.available && insight.basis === "WEB_GROUNDED_AI";
 
@@ -109,18 +132,18 @@ export function JobPostSalaryInsight({
           </span>
           <div>
             <h3 id="salary-insight-heading" className="text-sm font-semibold text-slate-900">
-              AI tham chiếu lương thị trường
+              {t("jobPostsPage.salaryInsight.heading")}
             </h3>
             <p className="mt-1 text-xs leading-5 font-normal text-slate-600">
-              Kỹ năng bắt buộc xác định stack chính; kỹ năng và từ khóa liên quan giúp mở rộng nhóm
-              tin cùng vai trò, cấp bậc và kinh nghiệm trên UpNext.
+              {t("jobPostsPage.salaryInsight.description")}
             </p>
           </div>
         </div>
         <div className="grid w-full gap-2">
           <div>
             <Label htmlFor={experienceInputId} className="text-xs font-medium text-slate-700">
-              Số năm kinh nghiệm <span className="text-rose-600">*</span>
+              {t("jobPostsPage.aiGeneratorForm.yearsExperienceLabel")}{" "}
+              <span className="text-rose-600">*</span>
             </Label>
             <FormInput
               id={experienceInputId}
@@ -132,7 +155,7 @@ export function JobPostSalaryInsight({
               aria-required="true"
               value={experienceYears}
               onChange={(event) => onExperienceYearsChange(event.target.value)}
-              placeholder="Ví dụ: 1"
+              placeholder={t("jobPostsPage.aiGeneratorForm.yearsExperiencePlaceholder")}
               className="mt-1 h-10 bg-white font-normal"
             />
           </div>
@@ -144,14 +167,18 @@ export function JobPostSalaryInsight({
             className="w-full bg-white font-medium"
           >
             <Coins size={17} aria-hidden="true" />
-            {isLoading ? "Đang phân tích..." : insight ? "Phân tích lại" : "Phân tích mức lương"}
+            {isLoading
+              ? t("jobPostsPage.salaryInsight.analyzing")
+              : insight
+                ? t("jobPostsPage.salaryInsight.reanalyze")
+                : t("jobPostsPage.salaryInsight.analyze")}
           </Button>
         </div>
       </div>
 
       {!canAnalyze && !insight ? (
         <p className="mt-3 rounded-lg bg-white/80 px-3 py-2 text-xs font-normal text-slate-600">
-          Nhập chức danh, mô tả công việc và số năm kinh nghiệm hợp lệ để bắt đầu phân tích.
+          {t("jobPostsPage.salaryInsight.needMoreInput")}
         </p>
       ) : null}
 
@@ -166,19 +193,32 @@ export function JobPostSalaryInsight({
 
         {!isLoading && insight && !insight.available ? (
           <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3">
-            <p className="text-sm font-medium text-amber-900">Chưa đủ dữ liệu tham chiếu</p>
+            <p className="text-sm font-medium text-amber-900">
+              {t("jobPostsPage.salaryInsight.insufficientDataTitle")}
+            </p>
             <p className="mt-1 text-xs leading-5 font-normal text-amber-800">
-              {insight.message} Hiện tìm thấy {insight.sampleSize} mẫu phù hợp.
+              {t("jobPostsPage.salaryInsight.insufficientDataText", {
+                message: insight.message,
+                sampleSize: insight.sampleSize,
+              })}
             </p>
           </div>
         ) : null}
 
         {!isLoading && insight?.available ? (
           <div className="mt-4 space-y-4">
-            <div className="grid grid-cols-3 gap-2" aria-label="Khoảng lương thị trường theo tháng">
-              <SalaryMetric label="P25" value={insight.market.p25} />
-              <SalaryMetric label="Trung vị" value={insight.market.median} featured />
-              <SalaryMetric label="P75" value={insight.market.p75} />
+            <div
+              className="grid grid-cols-3 gap-2"
+              aria-label={t("jobPostsPage.salaryInsight.marketRangeAria")}
+            >
+              <SalaryMetric label="P25" value={insight.market.p25} locale={locale} />
+              <SalaryMetric
+                label={t("jobPostsPage.salaryInsight.medianLabel")}
+                value={insight.market.median}
+                locale={locale}
+                featured
+              />
+              <SalaryMetric label="P75" value={insight.market.p75} locale={locale} />
             </div>
 
             <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -190,15 +230,20 @@ export function JobPostSalaryInsight({
                   insight.confidence === "LOW" && "bg-amber-100 text-amber-800",
                 )}
               >
-                {CONFIDENCE_LABELS[insight.confidence]}
+                {getConfidenceLabel(t, insight.confidence)}
               </span>
               <span className="font-normal text-slate-600">
                 {isWebGrounded
-                  ? `${insight.sampleSize} nguồn web được trích dẫn`
-                  : `${insight.sampleSize} tin tương đồng · ${insight.lookbackMonths} tháng gần nhất`}
+                  ? t("jobPostsPage.salaryInsight.webSourcesCount", { count: insight.sampleSize })
+                  : t("jobPostsPage.salaryInsight.similarPostsCount", {
+                      count: insight.sampleSize,
+                      months: insight.lookbackMonths,
+                    })}
               </span>
               <span className="rounded-full bg-white px-2.5 py-1 font-medium text-slate-700">
-                {isWebGrounded ? "Google Search + Gemini AI" : "Dữ liệu UpNext"}
+                {isWebGrounded
+                  ? t("jobPostsPage.salaryInsight.googleSearchSource")
+                  : t("jobPostsPage.salaryInsight.upnextDataSource")}
               </span>
             </div>
 
@@ -209,14 +254,20 @@ export function JobPostSalaryInsight({
             ) : null}
 
             <p className="text-sm font-medium text-slate-800">
-              {COMPARISON_LABELS[insight.comparison.position]}
+              {getComparisonLabel(t, insight.comparison.position)}
               {insight.comparison.differencePercent !== null
-                ? ` (${insight.comparison.differencePercent > 0 ? "+" : ""}${insight.comparison.differencePercent}% so với trung vị)`
+                ? t("jobPostsPage.salaryInsight.differencePercentSuffix", {
+                    sign: insight.comparison.differencePercent > 0 ? "+" : "",
+                    percent: insight.comparison.differencePercent,
+                  })
                 : ""}
             </p>
 
             {insight.matchedFactors.length ? (
-              <ul className="flex flex-wrap gap-1.5" aria-label="Yếu tố so khớp">
+              <ul
+                className="flex flex-wrap gap-1.5"
+                aria-label={t("jobPostsPage.salaryInsight.matchedFactorsAria")}
+              >
                 {insight.matchedFactors.map((factor) => (
                   <li
                     key={factor}
@@ -231,12 +282,14 @@ export function JobPostSalaryInsight({
             {insight.sources?.length ? (
               <details className="group rounded-lg border border-emerald-200 bg-white/80">
                 <summary className="upnext-focus cursor-pointer list-none rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-800 marker:hidden">
-                  Nguồn web tham khảo ({insight.sources.length})
+                  {t("jobPostsPage.salaryInsight.webSourcesToggle", {
+                    count: insight.sources.length,
+                  })}
                   <span className="float-right text-xs font-normal text-emerald-700 group-open:hidden">
-                    Xem nguồn
+                    {t("jobPostsPage.salaryInsight.viewSources")}
                   </span>
                   <span className="float-right hidden text-xs font-normal text-emerald-700 group-open:inline">
-                    Thu gọn
+                    {t("jobPostsPage.salaryInsight.collapseSources")}
                   </span>
                 </summary>
                 <div className="border-t border-emerald-100 px-3 py-3">
@@ -251,15 +304,17 @@ export function JobPostSalaryInsight({
                         >
                           <span className="truncate">{source.title}</span>
                           <ArrowSquareOut size={14} className="shrink-0" aria-hidden="true" />
-                          <span className="sr-only">(mở trong tab mới)</span>
+                          <span className="sr-only">
+                            {t("jobPostsPage.salaryInsight.openInNewTab")}
+                          </span>
                         </a>
                       </li>
                     ))}
                   </ul>
                   {insight.searchedAt ? (
                     <p className="mt-3 text-[11px] font-normal text-slate-500">
-                      Nghiên cứu lúc{" "}
-                      {new Intl.DateTimeFormat("vi-VN", {
+                      {t("jobPostsPage.salaryInsight.researchedAtPrefix")}
+                      {new Intl.DateTimeFormat(locale, {
                         dateStyle: "medium",
                         timeStyle: "short",
                       }).format(new Date(insight.searchedAt))}
@@ -272,8 +327,8 @@ export function JobPostSalaryInsight({
             <div className="flex flex-col gap-3 border-t border-emerald-200 pt-3">
               <p className="text-xs leading-5 font-normal text-slate-500">
                 {isWebGrounded
-                  ? "AI tổng hợp từ nguồn web công khai; hãy mở citation và kiểm tra trước khi áp dụng."
-                  : "Dữ liệu tổng hợp, không phải cam kết mức lương cho ứng viên."}
+                  ? t("jobPostsPage.salaryInsight.webGroundedDisclaimer")
+                  : t("jobPostsPage.salaryInsight.upnextDataDisclaimer")}
               </p>
               {onApply ? (
                 <Button
@@ -281,8 +336,10 @@ export function JobPostSalaryInsight({
                   onClick={onApply}
                   className="w-full bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
                 >
-                  Áp dụng khoảng {formatSalary(insight.recommended.salaryMin)} –{" "}
-                  {formatSalary(insight.recommended.salaryMax)}
+                  {t("jobPostsPage.salaryInsight.applyRangeButton", {
+                    min: formatSalary(insight.recommended.salaryMin, locale),
+                    max: formatSalary(insight.recommended.salaryMax, locale),
+                  })}
                 </Button>
               ) : null}
             </div>
@@ -296,8 +353,10 @@ export function JobPostSalaryInsight({
 function SalaryMetric({
   label,
   value,
+  locale,
   featured = false,
-}: Readonly<{ label: string; value: number; featured?: boolean }>) {
+}: Readonly<{ label: string; value: number; locale: string; featured?: boolean }>) {
+  const t = useTranslations("Recruiter");
   return (
     <div
       className={cn(
@@ -309,15 +368,17 @@ function SalaryMetric({
         {label}
       </span>
       <strong className="mt-1 block text-xs font-semibold text-slate-900 sm:text-sm">
-        {formatSalary(value)}
+        {formatSalary(value, locale)}
       </strong>
-      <span className="mt-0.5 block text-[10px] font-normal text-slate-500">/ tháng</span>
+      <span className="mt-0.5 block text-[10px] font-normal text-slate-500">
+        {t("jobPostsPage.salaryInsight.perMonth")}
+      </span>
     </div>
   );
 }
 
-function formatSalary(value: number) {
-  return new Intl.NumberFormat("vi-VN", {
+function formatSalary(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);

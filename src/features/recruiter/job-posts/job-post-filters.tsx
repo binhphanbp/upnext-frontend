@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowsClockwise, Funnel } from "@phosphor-icons/react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { SearchInput } from "@/features/recruiter/components/interviews/search-input";
@@ -40,6 +41,7 @@ export function JobPostFilters({
   onCategoryChange,
   onClear,
 }: JobPostFiltersProps) {
+  const t = useTranslations("Recruiter");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const activeFiltersCount = [status !== "ALL", poster !== "ALL", category !== "ALL"].filter(
     Boolean,
@@ -49,11 +51,11 @@ export function JobPostFilters({
   const renderFilterControls = () => (
     <div className="contents">
       <SelectFilter
-        ariaLabel="Lọc theo trạng thái tin tuyển dụng"
+        ariaLabel={t("jobPostsPage.filters.statusAria")}
         value={status}
         onChange={onStatusChange}
         options={statusOptions}
-        placeholder="Trạng thái"
+        placeholder={t("jobPostsPage.filters.statusPlaceholder")}
         className="w-full lg:w-48"
         triggerClassName={cn(
           "rounded-full",
@@ -61,11 +63,11 @@ export function JobPostFilters({
         )}
       />
       <SelectFilter
-        ariaLabel="Lọc theo người đăng bài"
+        ariaLabel={t("jobPostsPage.filters.posterAria")}
         value={poster}
         onChange={onPosterChange}
         options={posterOptions}
-        placeholder="Người đăng"
+        placeholder={t("jobPostsPage.filters.posterPlaceholder")}
         className="w-full lg:w-52"
         triggerClassName={cn(
           "rounded-full",
@@ -73,11 +75,11 @@ export function JobPostFilters({
         )}
       />
       <SelectFilter
-        ariaLabel="Lọc theo ngành nghề"
+        ariaLabel={t("jobPostsPage.filters.categoryAria")}
         value={category}
         onChange={onCategoryChange}
         options={categoryOptions}
-        placeholder="Ngành nghề"
+        placeholder={t("jobPostsPage.filters.categoryPlaceholder")}
         className="w-full lg:w-52"
         showSearch={true}
         triggerClassName={cn(
@@ -93,26 +95,26 @@ export function JobPostFilters({
         className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
       >
         <ArrowsClockwise size={14} aria-hidden="true" />
-        Đặt lại
+        {t("jobPostsPage.filters.reset")}
       </Button>
     </div>
   );
 
   return (
     <section
-      aria-label="Bộ lọc tin tuyển dụng"
+      aria-label={t("jobPostsPage.filters.sectionAria")}
       className="sticky top-[-16px] z-30 -mx-4 -mt-4 border-y border-slate-200 bg-white px-4 py-4 md:top-[-32px] md:-mx-8 md:-mt-8 md:px-8"
     >
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <span className="hidden shrink-0 text-xs font-semibold text-slate-500 md:inline">
-            Bộ lọc
+            {t("jobPostsPage.filters.label")}
           </span>
           <div className="min-w-0 flex-1">
             <SearchInput
               value={search}
               onChange={onSearchChange}
-              placeholder="Tìm kiếm tin tuyển dụng..."
+              placeholder={t("jobPostsPage.filters.searchPlaceholder")}
               inputClassName="rounded-full"
             />
           </div>
@@ -122,7 +124,9 @@ export function JobPostFilters({
             aria-expanded={showMobileFilters}
             aria-controls="job-post-mobile-filters"
             aria-label={
-              showMobileFilters ? "Ẩn bộ lọc tin tuyển dụng" : "Hiện bộ lọc tin tuyển dụng"
+              showMobileFilters
+                ? t("jobPostsPage.filters.hideAria")
+                : t("jobPostsPage.filters.showAria")
             }
             onClick={() => setShowMobileFilters((visible) => !visible)}
             className={cn(

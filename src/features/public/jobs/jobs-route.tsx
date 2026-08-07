@@ -74,7 +74,7 @@ function RecruiterJobPostPreviewRoute({ navigate }: { navigate: (path: string) =
           <p className="text-sm font-semibold text-emerald-800">Bản xem trước dành cho ứng viên</p>
           <button
             type="button"
-            className="upnext-focus rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:border-emerald-600 hover:text-emerald-700"
+            className="upnext-focus rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-emerald-600 hover:text-emerald-700"
             onClick={() => navigate("/recruiter/job-posts/create")}
           >
             Quay lại soạn tin

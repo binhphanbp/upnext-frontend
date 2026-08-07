@@ -294,7 +294,7 @@ export function AddressSelector({ value, onChange }: AddressSelectorProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Province Select */}
         <div className="flex flex-col gap-1.5">
-          <Label className="text-sm font-bold text-slate-700">
+          <Label className="text-sm font-semibold text-slate-700">
             Tỉnh / Thành phố <span className="text-red-500">*</span>
           </Label>
           <SearchableSelect
@@ -307,7 +307,7 @@ export function AddressSelector({ value, onChange }: AddressSelectorProps) {
 
         {/* Ward Select */}
         <div className="flex flex-col gap-1.5">
-          <Label className="text-sm font-bold text-slate-700">
+          <Label className="text-sm font-semibold text-slate-700">
             Phường / Xã <span className="text-red-500">*</span>
           </Label>
           <SearchableSelect
@@ -322,7 +322,7 @@ export function AddressSelector({ value, onChange }: AddressSelectorProps) {
 
       {/* Street Address Input */}
       <div className="flex flex-col gap-1.5">
-        <Label className="text-sm font-bold text-slate-700">
+        <Label className="text-sm font-semibold text-slate-700">
           Số nhà, tên đường <span className="text-red-500">*</span>
         </Label>
         <Input

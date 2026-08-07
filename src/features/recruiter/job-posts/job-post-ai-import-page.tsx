@@ -1,0 +1,91 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+
+import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
+import { useRouter } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
+
+import { extractJobPostDraft, extractJobPostDraftFile } from "./api";
+import { saveJobPostAiDraft } from "./job-post-ai-draft-storage";
+import { JobPostAiImport } from "./job-post-ai-import";
+
+export function JobPostAiImportPage() {
+  const router = useRouter();
+  const t = useTranslations("Recruiter");
+  const [token, setToken] = useState("");
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    const session = getRecruiterSession();
+    if (!session) {
+      router.replace("/recruiter/login");
+      return;
+    }
+    setToken(session.accessToken);
+  }, [router]);
+
+  const getAiErrorMessage = (error: unknown) => {
+    if (!(error instanceof ApiError)) {
+      return t("jobPostsPage.aiErrors.connectionFailed");
+    }
+    if (error.status === 401 || error.status === 403) {
+      clearRecruiterSession();
+      router.replace("/recruiter/login");
+      return t("jobPostsPage.errors.sessionExpired");
+    }
+    if (error.status === 429) return t("jobPostsPage.aiErrors.rateLimited");
+    if (error.status >= 500) return t("jobPostsPage.aiErrors.busy");
+    return error.message || t("jobPostsPage.aiGenerator.genericError");
+  };
+
+  const handleExtracted = (response: Parameters<typeof saveJobPostAiDraft>[0]) => {
+    saveJobPostAiDraft(response);
+    router.push("/recruiter/job-posts/create?aiDraft=1");
+  };
+
+  const handleExtractText = async (text: string) => {
+    if (!token) return false;
+    setErrorMessage("");
+    setIsExtracting(true);
+    try {
+      const response = await extractJobPostDraft(text, token);
+      handleExtracted(response);
+      return true;
+    } catch (error) {
+      setErrorMessage(getAiErrorMessage(error));
+      return false;
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleExtractFile = async (file: File) => {
+    if (!token) return false;
+    setErrorMessage("");
+    setIsExtracting(true);
+    try {
+      const response = await extractJobPostDraftFile(file, token);
+      handleExtracted(response);
+      return true;
+    } catch (error) {
+      setErrorMessage(getAiErrorMessage(error));
+      return false;
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  return (
+    <JobPostAiImport
+      isSubmitting={isExtracting}
+      onExtractFile={handleExtractFile}
+      onExtractText={handleExtractText}
+      onStartFromScratch={() => router.push("/recruiter/job-posts/create")}
+      onOpenGenerator={() => router.push("/recruiter/job-posts/create/ai")}
+      externalError={errorMessage}
+    />
+  );
+}

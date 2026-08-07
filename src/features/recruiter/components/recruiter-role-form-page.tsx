@@ -42,6 +42,7 @@ interface PermissionGroup {
 type RecruiterRoleFormPageProps = Readonly<{
   mode: "create" | "edit";
   roleId?: string;
+  returnTo?: "members";
 }>;
 
 function isOwnerRole(role: { code?: string | null; name?: string | null } | null | undefined) {
@@ -94,7 +95,7 @@ const getGroupedPermissions = (perms: RecruiterPermission[]): PermissionGroup[] 
     }));
 };
 
-export function RecruiterRoleFormPage({ mode, roleId }: RecruiterRoleFormPageProps) {
+export function RecruiterRoleFormPage({ mode, roleId, returnTo }: RecruiterRoleFormPageProps) {
   const router = useRouter();
   const t = useTranslations("Recruiter");
 
@@ -263,7 +264,18 @@ export function RecruiterRoleFormPage({ mode, roleId }: RecruiterRoleFormPagePro
         await updateRecruiterRole(roleId, { name, description }, token);
         await assignRecruiterRolePermissions(roleId, rolePermissionIds, token);
       } else {
-        await createRecruiterRoleWithPermissions({ name, description }, rolePermissionIds, token);
+        const role = await createRecruiterRoleWithPermissions(
+          { name, description },
+          rolePermissionIds,
+          token,
+        );
+        void toast.fire({ icon: "success", title: t("team.messages.roleSaveSuccess") });
+        router.replace(
+          returnTo === "members"
+            ? `/recruiter/team/members?newRoleId=${role.id}`
+            : "/recruiter/team/roles",
+        );
+        return;
       }
 
       void toast.fire({ icon: "success", title: t("team.messages.roleSaveSuccess") });
@@ -286,14 +298,6 @@ export function RecruiterRoleFormPage({ mode, roleId }: RecruiterRoleFormPagePro
 
   return (
     <div className="w-full min-w-0 space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-outfit text-xl font-bold tracking-wide text-slate-950 sm:text-2xl">
-            {mode === "edit" ? t("team.roleDialog.editTitle") : t("team.roleDialog.createTitle")}
-          </h1>
-        </div>
-      </header>
-
       <Card className="space-y-6 rounded-xl border-slate-200 bg-white p-5">
         <div className="grid gap-4 lg:grid-cols-2">
           <FormInput
@@ -303,12 +307,13 @@ export function RecruiterRoleFormPage({ mode, roleId }: RecruiterRoleFormPagePro
             onChange={(event) => setRoleName(event.target.value)}
             placeholder={t("team.roleDialog.namePlaceholder")}
             disabled={!isOwner || saving}
+            className="placeholder:font-normal"
           />
 
-          <div className="flex flex-col gap-1.5 lg:col-span-2">
+          <div className="flex flex-col gap-1.5">
             <Label
               htmlFor="recruiter-role-description"
-              className="text-sm font-bold text-slate-700"
+              className="text-sm font-semibold text-slate-700"
             >
               {t("team.roleDialog.descLabel")}
             </Label>
@@ -319,21 +324,21 @@ export function RecruiterRoleFormPage({ mode, roleId }: RecruiterRoleFormPagePro
               onChange={(event) => setRoleDescription(event.target.value)}
               placeholder={t("team.roleDialog.descPlaceholder")}
               disabled={!isOwner || saving}
-              className="upnext-focus min-h-24 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium shadow-none focus:border-emerald-600 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              className="upnext-focus h-12 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-[13px] text-sm leading-5 font-medium shadow-none placeholder:font-normal focus:border-emerald-600 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <span className="text-sm font-bold text-slate-700">
+            <span className="text-sm font-semibold text-slate-700">
               {t("team.roleDialog.permissionsLabel")}
             </span>
             <button
               type="button"
               disabled={!isOwner || saving}
               onClick={toggleAllGroups}
-              className="flex items-center gap-1 text-sm font-bold text-blue-600 transition-colors hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="text-primary hover:text-primary-700 flex items-center gap-1 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
               {allGroupsClosed ? "Mở tất cả" : "Đóng tất cả"}
               {allGroupsClosed ? <CaretDown size={14} /> : <CaretUp size={14} />}
@@ -350,30 +355,28 @@ export function RecruiterRoleFormPage({ mode, roleId }: RecruiterRoleFormPagePro
                   key={group.id}
                   className="overflow-hidden rounded-xl border border-slate-200/80"
                 >
-                  <div className="flex items-center justify-between bg-slate-50/70 p-3.5 transition-colors select-none hover:bg-slate-50">
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        id={`group-chk-${group.id}`}
-                        checked={allSelected}
-                        onCheckedChange={(checked) => handleGroupCheckboxChange(group, !!checked)}
-                        disabled={!isOwner || saving}
-                      />
-                      <label
-                        htmlFor={`group-chk-${group.id}`}
-                        className="cursor-pointer text-sm font-bold text-slate-800 uppercase select-none"
-                      >
-                        {group.name}
-                      </label>
-                    </div>
+                  <div className="flex items-center gap-3 bg-slate-50/70 p-3.5 transition-colors select-none hover:bg-slate-50">
+                    <Checkbox
+                      id={`group-chk-${group.id}`}
+                      aria-label={group.name}
+                      checked={allSelected}
+                      onCheckedChange={(checked) => handleGroupCheckboxChange(group, !!checked)}
+                      disabled={!isOwner || saving}
+                    />
                     <button
                       type="button"
                       onClick={() => toggleGroup(group.id)}
-                      className="flex size-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                      className="group flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
                       aria-expanded={isExpanded}
                       aria-controls={`permission-group-${group.id}`}
                       aria-label={isExpanded ? `Đóng ${group.name}` : `Mở ${group.name}`}
                     >
-                      {isExpanded ? <CaretUp size={16} /> : <CaretDown size={16} />}
+                      <span className="truncate text-sm font-semibold text-slate-700">
+                        {group.name}
+                      </span>
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors group-hover:bg-white group-hover:text-slate-600">
+                        {isExpanded ? <CaretUp size={16} /> : <CaretDown size={16} />}
+                      </span>
                     </button>
                   </div>
 
@@ -403,7 +406,7 @@ export function RecruiterRoleFormPage({ mode, roleId }: RecruiterRoleFormPagePro
                               disabled={!isOwner || saving}
                             />
                             <span className="flex-1">
-                              <span className="block text-sm font-bold text-slate-700">
+                              <span className="block text-sm font-medium text-slate-700">
                                 {getPermissionName(permission.code)}
                               </span>
                             </span>

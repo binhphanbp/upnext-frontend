@@ -4,8 +4,8 @@ export type RunStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "PAR
 
 export interface RunCvScreeningPayload {
   jobPostId: string;
-  limit: number;
-  minScore: number;
+  /** Optional cost cap. Omit to score every application on the job post. */
+  limit?: number;
 }
 
 export interface RunCvScreeningResponse {
@@ -16,11 +16,11 @@ export interface RunCvScreeningResponse {
 export interface CvScreeningRunResponse {
   id: string;
   status: RunStatus;
+  /** Number of applications this run will score -- the progress denominator. */
   totalApplications: number;
   processedCount: number;
   failedCount: number;
-  limit: number;
-  minScore: number;
+  limit: number | null;
   errorMessage?: string | null;
   startedAt?: string | null;
   finishedAt?: string | null;
@@ -31,9 +31,6 @@ export interface CvScreeningResultItem {
   candidateName: string;
   jobTitle: string;
   finalScore: number;
-  semanticScore: number;
-  skillMatchScore: number;
-  retrievalScore: number;
   aiScore: number;
   skillScore: number;
   experienceScore: number;
@@ -85,9 +82,6 @@ export interface ApplicationAiScoreResponse {
   candidateName: string;
   jobTitle: string;
   finalScore: number;
-  semanticScore: number;
-  skillMatchScore: number;
-  retrievalScore: number;
   aiScore: number;
   skillScore: number;
   experienceScore: number;

@@ -50,9 +50,12 @@ const SelectContent = forwardRef<
       {header}
       <SelectPrimitive.Viewport
         className={cn(
-          "p-1 flex-1",
+          "p-1 flex-1 scroll-my-1",
+          // min-h, not h: a fixed trigger-height would squash the list into a
+          // one-row scroll box. The trigger height is only a floor so a
+          // single-option menu still looks deliberate; max-h on Content caps it.
           position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+            "min-h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width)",
         )}
       >
         {children}
@@ -69,7 +72,7 @@ const SelectItem = forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default items-center rounded-md py-1.5 pr-2 pl-8 text-sm font-medium outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
+      "relative flex w-full cursor-pointer items-center rounded-md py-2 pr-2 pl-8 text-sm font-medium outline-none transition-colors select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-highlighted:bg-accent data-highlighted:text-accent-foreground data-[state=checked]:bg-accent/50 data-[state=checked]:font-semibold",
       className,
     )}
     {...props}

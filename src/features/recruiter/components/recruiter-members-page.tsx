@@ -10,10 +10,10 @@ import {
   LockOpen,
   Plus,
   Trash,
-  UsersThree,
 } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
@@ -29,7 +29,7 @@ import {
   type RecruiterRole,
 } from "@/features/recruiter/api/team";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
@@ -118,6 +118,7 @@ function exportToCsv(data: CompanyMember[], t: any) {
 
 export function RecruiterMembersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations("Recruiter");
 
   const [token, setToken] = useState("");
@@ -240,6 +241,15 @@ export function RecruiterMembersPage() {
     setAccountId(session.user.id);
     void loadTeamData(session.user.id, session.accessToken);
   }, [loadTeamData, router]);
+
+  useEffect(() => {
+    const newRoleId = searchParams.get("newRoleId");
+    if (!newRoleId) return;
+
+    setInviteRoleId(newRoleId);
+    setInviteDialogOpen(true);
+    router.replace("/recruiter/team/members");
+  }, [router, searchParams]);
 
   const reload = async () => {
     await loadTeamData(accountId, token);
@@ -504,7 +514,7 @@ export function RecruiterMembersPage() {
       return next;
     });
   };
-  const inviteDisabled = saving || !isOwner;
+  const inviteDisabled = saving || !isOwner || !inviteRoleId;
 
   if (loading) {
     return (
@@ -518,17 +528,36 @@ export function RecruiterMembersPage() {
   return (
     <div className="w-full min-w-0 space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        {/* <div>
           <h1 className="text-2xl font-bold text-slate-950">{t("team.title")}</h1>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-100 bg-teal-50/60 px-4 py-2 text-sm font-bold text-teal-800">
-            <UsersThree size={16} className="text-teal-600" />
-            {t("team.membersBadge", { count: members.length })}
-          </span>
+        </div> */}
+        <div className="ml-auto flex flex-wrap justify-end gap-2.5">
+          {isOwner ? (
+            <Button
+              asChild
+              type="button"
+              variant="outline"
+              className="h-10 rounded-full border-emerald-600 bg-white px-4 font-bold text-emerald-700 shadow-none hover:bg-emerald-50 hover:text-emerald-800"
+            >
+              <Link href="/recruiter/team/roles/new?returnTo=members">
+                <Plus size={18} weight="bold" />
+                <span>{t("team.actions.addRole")}</span>
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 rounded-full border-emerald-600 bg-white px-4 font-bold text-emerald-700 shadow-none"
+              disabled
+            >
+              <Plus size={18} weight="bold" />
+              <span>{t("team.actions.addRole")}</span>
+            </Button>
+          )}
           <Button
             type="button"
-            className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 font-bold text-white shadow-none transition-all hover:bg-emerald-700"
+            className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 font-medium text-white shadow-none transition-all hover:bg-emerald-700"
             disabled={!isOwner}
             onClick={() => {
               setInviteEmailError("");
@@ -563,7 +592,7 @@ export function RecruiterMembersPage() {
               <>
                 <Button
                   variant="outline"
-                  className="h-10 gap-1.5 rounded-full border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
+                  className="font-mediumd h-10 gap-1.5 rounded-full border-slate-200 text-slate-600 hover:bg-slate-50"
                   onClick={() => void handleBulkLock("SUSPENDED")}
                   disabled={selectedModifiableMemberIds.length === 0}
                 >
@@ -573,7 +602,7 @@ export function RecruiterMembersPage() {
 
                 <Button
                   variant="outline"
-                  className="h-10 gap-1.5 rounded-full border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
+                  className="h-10 gap-1.5 rounded-full border-slate-200 font-medium text-slate-600 hover:bg-slate-50"
                   onClick={() => void handleBulkLock("ACTIVE")}
                   disabled={selectedModifiableMemberIds.length === 0}
                 >
@@ -583,7 +612,7 @@ export function RecruiterMembersPage() {
 
                 <Button
                   variant="ghost"
-                  className="h-10 gap-1.5 rounded-full border border-red-200 bg-red-50 font-bold text-red-700 hover:border-red-300 hover:bg-red-100 hover:text-red-800"
+                  className="h-10 gap-1.5 rounded-full border border-red-200 bg-red-50 font-medium text-red-700 hover:border-red-300 hover:bg-red-100 hover:text-red-800"
                   onClick={() => void handleBulkDelete()}
                   disabled={selectedModifiableMemberIds.length === 0}
                 >
@@ -596,7 +625,7 @@ export function RecruiterMembersPage() {
             <Button
               variant="outline"
               onClick={handleExport}
-              className="h-10 gap-1.5 rounded-full border-slate-200 font-bold text-slate-700 hover:bg-slate-50"
+              className="h-10 gap-1.5 rounded-full border-slate-200 font-medium text-slate-700 hover:bg-slate-50"
             >
               <DownloadSimple size={16} />
               <span>{t("team.actions.export")}</span>
@@ -633,7 +662,7 @@ export function RecruiterMembersPage() {
         <tbody>
           {filteredMembers.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-4 !py-12 text-center text-sm text-slate-500">
+              <td colSpan={5} className="px-4 !py-12 text-center text-sm text-slate-700">
                 <div className="flex flex-col items-center justify-center gap-3">
                   <div className="relative h-28 w-28 shrink-0">
                     <Image
@@ -643,10 +672,10 @@ export function RecruiterMembersPage() {
                       className="object-contain opacity-75"
                     />
                   </div>
-                  <p className="mt-2 text-sm font-semibold text-slate-500">
+                  <p className="mt-2 text-sm font-semibold text-slate-700">
                     {searchQuery.trim()
                       ? t("team.table.emptyMembersSearch") ||
-                        "Không tìm thấy thành viên nào phù hợp."
+                        "Không tìm thấy thành viên nào phù hợp"
                       : t("team.table.emptyMembers")}
                   </p>
                 </div>
@@ -702,7 +731,7 @@ export function RecruiterMembersPage() {
                       ) : (
                         <span
                           className={cn(
-                            "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold uppercase",
+                            "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-medium uppercase",
                             getAvatarStyle(name.charAt(0)),
                           )}
                         >
@@ -710,7 +739,7 @@ export function RecruiterMembersPage() {
                         </span>
                       )}
                       <div>
-                        <p className="text-sm leading-none font-semibold text-slate-800">{name}</p>
+                        <p className="text-sm leading-none font-semibold text-slate-700">{name}</p>
                         <p className="mt-1 text-xs text-slate-500">{email}</p>
                       </div>
                     </div>
@@ -722,7 +751,7 @@ export function RecruiterMembersPage() {
                     {isOwnerRole(member.role) ? (
                       <div className="flex items-center justify-start">
                         <div
-                          className="flex items-center gap-1 rounded-full border border-amber-200/60 bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700"
+                          className="flex items-center gap-1 rounded-full border border-amber-200/60 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
                           title="Chủ sở hữu công ty"
                         >
                           <Crown size={12} weight="fill" className="text-amber-500" />
@@ -855,7 +884,7 @@ export function RecruiterMembersPage() {
             <Button
               type="button"
               variant="ghost"
-              className="font-bold"
+              className="font-medium"
               disabled={saving}
               onClick={() => setInviteDialogOpen(false)}
             >
@@ -863,7 +892,7 @@ export function RecruiterMembersPage() {
             </Button>
             <Button
               type="button"
-              className="gap-2 bg-[#11a77a] font-bold hover:bg-[#0d966d]"
+              className="gap-2 bg-[#11a77a] font-medium hover:bg-[#0d966d]"
               disabled={inviteDisabled}
               onClick={() => void inviteMember()}
             >
@@ -898,12 +927,8 @@ function RoleSelect({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      {hideLabel ? null : <Label className="text-sm font-bold text-slate-700">{label}</Label>}
-      <Select
-        value={value || "none"}
-        onValueChange={(next) => onValueChange(next === "none" ? "" : next)}
-        disabled={!!disabled}
-      >
+      {hideLabel ? null : <Label className="text-sm font-semibold text-slate-700">{label}</Label>}
+      <Select value={value} onValueChange={onValueChange} disabled={!!disabled}>
         <SelectTrigger
           aria-label={label}
           className={cn(
@@ -914,7 +939,6 @@ function RoleSelect({
           <SelectValue placeholder={t("team.table.role")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">{t("team.roleDialog.selectRoleFirst")}</SelectItem>
           {roles.map((role) => (
             <SelectItem key={role.id} value={role.id}>
               {role.name}

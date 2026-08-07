@@ -17,7 +17,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface RecruiterTableLayoutProps {
   loading?: boolean;
-  stickyFilterBar?: boolean;
   filterBar?: ReactNode;
   actionBar?: ReactNode;
   totalItems?: number;
@@ -30,7 +29,6 @@ interface RecruiterTableLayoutProps {
 
 export function RecruiterTableLayout({
   loading = false,
-  stickyFilterBar = true,
   filterBar,
   actionBar,
   totalItems,
@@ -133,12 +131,7 @@ export function RecruiterTableLayout({
     <Card className="w-full min-w-0 border border-slate-200 bg-white p-0">
       {/* Filters & Actions Section */}
       {(filterBar || actionBar) && (
-        <div
-          className={cn(
-            "rounded-t-xl border-b border-slate-200 bg-white p-4 shadow-sm",
-            stickyFilterBar ? "sticky top-0 z-20" : "relative z-10",
-          )}
-        >
+        <div className="relative z-10 rounded-t-xl border-b border-slate-200 bg-white p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             {filterBar && (
               <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">

@@ -51,6 +51,19 @@ type ScheduleInterviewDialogProps = Readonly<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialValues?: { applicationId: string; interviewRound: number } | null;
+  /** Called with the scheduled application id after the interview is created. */
+  onScheduled?: (applicationId: string) => void;
+  /**
+   * When provided, renders an escape hatch for recruiters who already agreed on
+   * a time outside the system. Omit to hide the button entirely.
+   */
+  onSkipSchedule?: () => void;
+  /**
+   * Locks the job and candidate pickers so the dialog can only schedule for the
+   * application it was opened from. Prevents scheduling for candidate B while
+   * the caller applies a side effect to candidate A.
+   */
+  lockApplication?: boolean;
 }>;
 
 export function ScheduleInterviewDialog({
@@ -59,6 +72,9 @@ export function ScheduleInterviewDialog({
   open,
   onOpenChange,
   initialValues,
+  onScheduled,
+  onSkipSchedule,
+  lockApplication = false,
 }: ScheduleInterviewDialogProps) {
   const t = useTranslations("Recruiter");
   const locale = useLocale();
@@ -218,9 +234,12 @@ export function ScheduleInterviewDialog({
   }, [open, token]);
 
   useEffect(() => {
+    // A locked dialog is seeded with one specific application; clearing it on a
+    // job-filter change would wipe the very selection the caller relies on.
+    if (lockApplication) return;
     setApplicationId("");
     setCandidateSearch("");
-  }, [jobId]);
+  }, [jobId, lockApplication]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -244,12 +263,19 @@ export function ScheduleInterviewDialog({
       void queryClient.invalidateQueries({ queryKey: ["recruiter", "interviews"] });
       void queryClient.invalidateQueries({ queryKey: ["recruiter", "company-applications"] });
       void toast.fire({ icon: "success", title: t("interviews.toasts.scheduleSuccess") });
+      onScheduled?.(applicationId);
       onOpenChange(false);
     },
     onError: () => {
       void toast.fire({ icon: "error", title: t("interviews.toasts.scheduleError") });
     },
   });
+
+  // In locked mode the job/candidate labels come from the selected application
+  // itself, so callers do not have to supply the `jobs` list just for a label.
+  const lockedApplication = lockApplication
+    ? candidateOptions.find((option) => option.id === applicationId)
+    : undefined;
 
   const canSubmit = Boolean(applicationId && startAt && endAt);
 
@@ -291,6 +317,7 @@ export function ScheduleInterviewDialog({
             <DropdownMenu
               open={jobDropdownOpen}
               onOpenChange={(open) => {
+                if (lockApplication) return;
                 setJobDropdownOpen(open);
                 if (!open) setJobSearch("");
               }}
@@ -301,13 +328,21 @@ export function ScheduleInterviewDialog({
                   type="button"
                   role="combobox"
                   aria-expanded={jobDropdownOpen}
-                  className="border-input bg-background text-foreground flex h-11 w-full cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium shadow-none transition-colors hover:bg-slate-50/50 focus:outline-none"
+                  disabled={lockApplication}
+                  className={cn(
+                    "border-input bg-background text-foreground flex h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium shadow-none transition-colors focus:outline-none",
+                    lockApplication
+                      ? "cursor-not-allowed opacity-60"
+                      : "cursor-pointer hover:bg-slate-50/50",
+                  )}
                 >
                   <span className="flex-1 truncate text-left">
-                    {jobId === "all"
-                      ? t("candidates.filters.allJobs")
-                      : (jobs.find((j) => j.id === jobId)?.title ??
-                        t("candidates.filters.allJobs"))}
+                    {lockedApplication
+                      ? lockedApplication.jobPost.title
+                      : jobId === "all"
+                        ? t("candidates.filters.allJobs")
+                        : (jobs.find((j) => j.id === jobId)?.title ??
+                          t("candidates.filters.allJobs"))}
                   </span>
                   <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
                 </button>
@@ -401,6 +436,7 @@ export function ScheduleInterviewDialog({
               <DropdownMenu
                 open={candidateDropdownOpen}
                 onOpenChange={(open) => {
+                  if (lockApplication) return;
                   setCandidateDropdownOpen(open);
                   if (!open) setCandidateSearch("");
                 }}
@@ -411,7 +447,13 @@ export function ScheduleInterviewDialog({
                     type="button"
                     role="combobox"
                     aria-expanded={candidateDropdownOpen}
-                    className="border-input bg-background text-foreground flex h-11 w-full cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium shadow-none transition-colors hover:bg-slate-50/50 focus:outline-none"
+                    disabled={lockApplication}
+                    className={cn(
+                      "border-input bg-background text-foreground flex h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium shadow-none transition-colors focus:outline-none",
+                      lockApplication
+                        ? "cursor-not-allowed opacity-60"
+                        : "cursor-pointer hover:bg-slate-50/50",
+                    )}
                   >
                     <span className="flex-1 truncate text-left">
                       {applicationId
@@ -638,6 +680,20 @@ export function ScheduleInterviewDialog({
           >
             {t("interviews.scheduleForm.cancel")}
           </Button>
+          {onSkipSchedule ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={mutation.isPending}
+              onClick={() => {
+                onSkipSchedule();
+                onOpenChange(false);
+              }}
+              className="h-10 rounded-lg border-slate-200 px-4 text-sm font-semibold text-slate-600 shadow-none hover:bg-slate-50"
+            >
+              {t("interviews.scheduleForm.skipSchedule")}
+            </Button>
+          ) : null}
           <Button
             type="button"
             onClick={() => mutation.mutate()}

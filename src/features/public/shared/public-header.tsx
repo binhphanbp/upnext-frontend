@@ -512,6 +512,7 @@ const publicCompactNavigationLinks: CompactNavigationLink[] = [
   { label: localized("Việc làm IT", "IT Jobs"), href: "/jobs" },
   { label: localized("Công ty", "Companies"), href: "/companies" },
   { label: localized("Bài viết", "Articles"), href: "/posts" },
+  { label: localized("Bảng giá", "Pricing"), href: "/pricing" },
   {
     label: localized("Nhà tuyển dụng", "Employers"),
     href: "/recruiter/login",
@@ -520,20 +521,20 @@ const publicCompactNavigationLinks: CompactNavigationLink[] = [
 ];
 
 const guestCompactNavigationLinks: CompactNavigationLink[] = [
-  ...publicCompactNavigationLinks.slice(0, 3),
+  ...publicCompactNavigationLinks.slice(0, -1),
   { label: localized("Tạo hồ sơ", "Create profile"), href: "/register" },
   { label: localized("Đăng nhập", "Log in"), href: "/login" },
-  publicCompactNavigationLinks[3]!,
+  publicCompactNavigationLinks.at(-1)!,
 ];
 
 // The compact menu replaces both the primary navigation and the desktop actions.
 // It must therefore reflect the same signed-in state as the account menu rather
 // than exposing guest-only entry points alongside a candidate's identity.
 const signedInCompactNavigationLinks: CompactNavigationLink[] = [
-  ...publicCompactNavigationLinks.slice(0, 3),
+  ...publicCompactNavigationLinks.slice(0, -1),
   { label: localized("Hồ sơ của tôi", "My profile"), href: "/candidate/profile" },
   { label: localized("CV của tôi", "My CV"), href: "/candidate/cv-builder" },
-  publicCompactNavigationLinks[3]!,
+  publicCompactNavigationLinks.at(-1)!,
 ];
 
 const demoAuthStorageKey = "upnext.demo.auth";

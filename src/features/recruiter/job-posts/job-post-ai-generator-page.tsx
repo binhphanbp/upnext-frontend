@@ -1,6 +1,7 @@
 "use client";
 
 import { Sparkle } from "@phosphor-icons/react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
@@ -50,23 +51,24 @@ const EMPTY_CATALOGS: JobPostCatalogs = {
   specializations: [],
 };
 
-function getAiErrorMessage(error: unknown) {
+function getAiErrorMessage(t: ReturnType<typeof useTranslations>, error: unknown) {
   if (!(error instanceof ApiError)) {
-    return "Không thể kết nối đến dịch vụ AI. Vui lòng thử lại.";
+    return t("jobPostsPage.aiErrors.connectionFailed");
   }
   if (error.status === 429) {
-    return "Bạn đang thao tác quá nhanh. Vui lòng chờ một phút rồi thử lại.";
+    return t("jobPostsPage.aiErrors.rateLimited");
   }
   if (error.status >= 500) {
-    return "Dịch vụ AI đang bận. Vui lòng thử lại sau ít phút.";
+    return t("jobPostsPage.aiErrors.busy");
   }
-  return error.message || "Không thể tạo bản nháp JD. Vui lòng kiểm tra lại dữ liệu.";
+  return error.message || t("jobPostsPage.aiGenerator.genericError");
 }
 
 /** Measured against the real extraction endpoint: ~6s. Rounded up so the clock rarely hits zero. */
 const ESTIMATED_AUTOFILL_SECONDS = 10;
 
 function AutofillOverlay() {
+  const t = useTranslations("Recruiter");
   const [remainingSeconds, setRemainingSeconds] = useState(ESTIMATED_AUTOFILL_SECONDS);
 
   useEffect(() => {
@@ -85,12 +87,14 @@ function AutofillOverlay() {
         </div>
         <div className="space-y-1">
           <p className="text-base font-semibold text-slate-800">
-            AI đang điền các trường còn thiếu...
+            {t("jobPostsPage.aiGenerator.autofillOverlayTitle")}
           </p>
           <p className="text-sm font-normal text-slate-500">
             {remainingSeconds > 0
-              ? `Dự kiến còn khoảng ${remainingSeconds} giây`
-              : "Sắp xong, AI đang đối chiếu danh mục..."}
+              ? t("jobPostsPage.aiGenerator.autofillOverlayCountdown", {
+                  seconds: remainingSeconds,
+                })
+              : t("jobPostsPage.aiGenerator.autofillOverlayFinishing")}
           </p>
         </div>
       </div>
@@ -108,10 +112,11 @@ function parseExperienceYears(value?: string) {
 
 export function JobPostAiGeneratorPage() {
   const router = useRouter();
+  const t = useTranslations("Recruiter");
   const [token, setToken] = useState("");
   const [recruiterId, setRecruiterId] = useState("");
   const [catalogs, setCatalogs] = useState<JobPostCatalogs>(EMPTY_CATALOGS);
-  const [companyName, setCompanyName] = useState("Doanh nghiệp của bạn");
+  const [companyName, setCompanyName] = useState(t("jobPostsPage.companyDefaultName"));
   const [companyDescription, setCompanyDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -162,7 +167,9 @@ export function JobPostAiGeneratorPage() {
         : null;
 
       setCatalogs(nextCatalogs);
-      setCompanyName(company?.name ?? account.company?.name ?? "Doanh nghiệp của bạn");
+      setCompanyName(
+        company?.name ?? account.company?.name ?? t("jobPostsPage.companyDefaultName"),
+      );
       setCompanyDescription(company?.description ?? "");
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
@@ -170,11 +177,11 @@ export function JobPostAiGeneratorPage() {
         router.replace("/recruiter/login");
         return;
       }
-      setErrorMessage("Không thể tải dữ liệu tạo JD. Vui lòng tải lại trang.");
+      setErrorMessage(t("jobPostsPage.aiGenerator.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, t]);
 
   useEffect(() => {
     void loadPageData();
@@ -239,7 +246,7 @@ export function JobPostAiGeneratorPage() {
       }
       return false;
     } catch (error) {
-      setErrorMessage(getAiErrorMessage(error));
+      setErrorMessage(getAiErrorMessage(t, error));
       return false;
     } finally {
       setIsSubmitting(false);
@@ -336,7 +343,7 @@ export function JobPostAiGeneratorPage() {
       );
       setSalaryInsight(insight);
     } catch (error) {
-      setSalaryInsightError(getAiErrorMessage(error));
+      setSalaryInsightError(getAiErrorMessage(t, error));
     } finally {
       setIsAnalyzingSalary(false);
     }
@@ -402,11 +409,13 @@ export function JobPostAiGeneratorPage() {
         // never ran, so the recruiter gets to decide whether to continue and fill the rest by hand.
         const proceed = await Swal.fire({
           icon: "warning",
-          title: "AI chưa điền được các trường còn thiếu",
-          text: `${getAiErrorMessage(error)} Bạn vẫn có thể sang form và điền tay.`,
+          title: t("jobPostsPage.aiGenerator.exitDialogTitle"),
+          text: t("jobPostsPage.aiGenerator.exitDialogText", {
+            message: getAiErrorMessage(t, error),
+          }),
           showCancelButton: true,
-          confirmButtonText: "Sang form, điền tay",
-          cancelButtonText: "Thử lại sau",
+          confirmButtonText: t("jobPostsPage.aiGenerator.exitDialogConfirm"),
+          cancelButtonText: t("jobPostsPage.aiGenerator.exitDialogCancel"),
           confirmButtonColor: "#059669",
         });
         if (!proceed.isConfirmed) return;

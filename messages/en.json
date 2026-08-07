@@ -1012,6 +1012,7 @@
       "budget": "Budget",
       "totalJobPosts": "Total Job Posts",
       "totalCandidates": "Total Candidates",
+      "totalApplications": "Total Applications",
       "revenueForecast": "Revenue Forecast",
       "overviewProfit": "Overview of Profit",
       "defaultName": "there",
@@ -1019,7 +1020,8 @@
       "miniCard": {
         "publishedCount": "{count} published",
         "draftCount": "{count} draft",
-        "totalViews": "{count} job post views"
+        "totalViews": "Total {count} job post views",
+        "applicationsHint": "Counted by submitted CVs"
       },
       "statusDistribution": {
         "title": "Job posts by status",
@@ -1034,6 +1036,40 @@
           "CLOSED": "Closed",
           "PENDING_REVIEW": "Pending review",
           "ARCHIVED": "Archived"
+        }
+      },
+      "candidates": {
+        "funnelTitle": "Candidate funnel",
+        "funnelSubtitle": "{count} applications company-wide",
+        "empty": "No applications yet",
+        "loadError": "Could not load candidate data. Check your connection, or your account may not be attached to a company yet.",
+        "stat": {
+          "unviewed": "Unviewed",
+          "new": "New in 7 days",
+          "stale": "Idle > {days} days",
+          "interviews": "Upcoming interviews"
+        },
+        "aiSummary": "AI score: {excellent} excellent · {good} good · {unscored} unscored",
+        "closed": "Closed: {rejected} rejected · {withdrawn} withdrawn",
+        "recentTitle": "Latest applications",
+        "notScored": "Not scored",
+        "status": {
+          "SUBMITTED": "Submitted",
+          "VIEWED": "Viewed",
+          "CONSIDERING": "Considering",
+          "SHORTLISTED": "Shortlisted",
+          "INTERVIEWING": "Interviewing",
+          "OFFERED": "Offered",
+          "HIRED": "Hired",
+          "REJECTED": "Rejected",
+          "WITHDRAWN": "Withdrawn"
+        },
+        "table": {
+          "candidate": "Candidate",
+          "job": "Applied role",
+          "aiScore": "AI score",
+          "submitted": "Submitted",
+          "status": "Status"
         }
       },
       "topJobs": {
@@ -1098,6 +1134,7 @@
         "dialog": {
           "title": "About the reputation score",
           "close": "Close",
+          "introTitle": "Reputation Score Guidelines",
           "intro": "Your reputation score changes based on your actions and on feedback from candidates.",
           "gainTitle": "How points are earned",
           "gainText": "Points are added when a recruiter fully verifies their information, and when a recruiter keeps job post statuses up to date.",
@@ -1269,6 +1306,7 @@
         "recruiterNote": "Internal note",
         "submit": "Schedule",
         "cancel": "Cancel",
+        "skipSchedule": "Change status only",
         "noCandidates": "No candidates available to schedule"
       },
       "toasts": {
@@ -1460,6 +1498,10 @@
           "descriptionPlaceholder": "Detailed company introduction...",
           "benefits": "Employee Benefits",
           "benefitsPlaceholder": "Enter employee benefits...",
+          "offerLetterTemplate": "Offer Letter Template",
+          "offerLetterTemplatePlaceholder": "Write the offer letter sent to candidates...",
+          "rejectionLetterTemplate": "Rejection Letter Template",
+          "rejectionLetterTemplatePlaceholder": "Write the rejection letter sent to candidates...",
           "license": "Business License",
           "city": "Province/City",
           "cityPlaceholder": "Select province/city",
@@ -1659,16 +1701,599 @@
     },
     "jobPostsPage": {
       "onboardingBlockedTitle": "Business Verification Required",
-      "onboardingBlockedText": "Your business profile must be fully completed and verified before you can publish job posts."
+      "onboardingBlockedText": "Your business profile must be fully completed and verified before you can publish job posts.",
+      "loading": "Loading job posts...",
+      "requiredMark": "Required",
+      "companyDefaultName": "Your business",
+      "notUpdated": "Not updated",
+      "posterAll": "All posters",
+      "categoryAll": "All industries",
+      "fallbackRecruiterName": "Recruiter",
+      "validation": {
+        "titleMin": "Please enter a title of at least 5 characters.",
+        "descriptionMin": "The job description must be at least 30 characters.",
+        "salaryMaxAmount": "The maximum salary is 99,999,999,999 VND.",
+        "vacanciesMin": "The number of vacancies must be at least 1.",
+        "vacanciesMax": "The maximum number of vacancies is 99,999.",
+        "expiredAtRequired": "Please select an application deadline.",
+        "salaryMaxVsMin": "The maximum salary must be greater than or equal to the minimum salary.",
+        "genericInvalid": "Please check your information again."
+      },
+      "errors": {
+        "networkLost": "Lost connection to the system while saving. Please try again.",
+        "businessLicenseMissing": "Your company does not have a business license on file yet. Please upload one in Company Profile and try again.",
+        "notAttachedToCompany": "Your account is not linked to any company yet. Please complete your company profile first.",
+        "invalidOrIncomplete": "The job post information is invalid, or your company profile is incomplete.",
+        "sessionExpired": "Your session has expired. Please log in again.",
+        "reputationInsufficient": "Your company's reputation score is not high enough to publish this job post{requiredSuffix}. {currentPrefix}You can raise your score by verifying your tax code, completing your company profile, and handling candidate CVs on time.",
+        "reputationRequiredSuffix": " (at least {required} required)",
+        "reputationCurrentPrefix": "Current: {current}. ",
+        "companyNotVerified": "Your company must be verified before you can publish job posts.",
+        "serverError": "The system is having trouble processing this job post.",
+        "unknown": "Could not process this job post. Please try again."
+      },
+      "aiErrors": {
+        "connectionFailed": "Could not connect to the AI service. Please try again.",
+        "rateLimited": "You're moving a bit fast. Please wait a minute and try again.",
+        "busy": "The AI service is busy. Please try again in a few minutes.",
+        "generic": "Could not process this JD. Please check your data."
+      },
+      "confirmDraftReplace": {
+        "title": "Replace the content you're editing?",
+        "text": "The AI draft will replace the current content in the form. This does not publish the job post.",
+        "confirm": "Continue",
+        "cancel": "Keep current content"
+      },
+      "aiDraftApplied": {
+        "withSuggestions": "Draft filled in. {count} item(s) the AI suggested aren't in the catalog yet — click to add them under Skills / Specializations.",
+        "withAutofilled": "AI draft filled in. The AI also inferred from the JD: {fields}.",
+        "plain": "AI draft filled in. Please review it before publishing."
+      },
+      "catalog": {
+        "skillNoun": "skill",
+        "specializationNoun": "specialization",
+        "alreadyExists": "{noun} \"{name}\" is already in the catalog.",
+        "added": "Added {noun} \"{name}\".",
+        "createConflict": "This {noun} is already in the catalog.",
+        "createFailed": "Could not add the new {noun}. Please try again."
+      },
+      "toasts": {
+        "updatedPendingReview": "Job post updated. It will be reviewed again before it appears publicly.",
+        "draftCreated": "Draft job post created successfully.",
+        "published": "Job post has been submitted for review.",
+        "reloadFailed": "The job post was saved, but the latest list could not be reloaded.",
+        "notFoundOrNoPermission": "Job post not found, or you don't have permission to edit it.",
+        "reopened": "Job post has been reopened and is awaiting admin review.",
+        "closed": "Job post has been closed.",
+        "deleted": "Job post deleted.",
+        "exportEmpty": "There are no matching job posts to export.",
+        "exported": "Exported {count} job post(s)."
+      },
+      "publishDialog": {
+        "reputationTitle": "Reputation score too low to publish",
+        "genericTitle": "Could not submit for review",
+        "savedNote": " The job post was saved — you can submit it for review again from the list.",
+        "confirm": "Got it"
+      },
+      "deleteDialog": {
+        "title": "Delete this job post?",
+        "text": "The job post \"{title}\" will be deleted and cannot be recovered. Are you sure you want to continue?",
+        "confirm": "Delete",
+        "cancel": "Cancel"
+      },
+      "jobStatus": {
+        "all": "All",
+        "active": "Active",
+        "expiringSoon": "Expiring soon",
+        "pendingReview": "Pending review",
+        "draft": "Draft",
+        "closed": "Closed",
+        "expired": "Expired",
+        "rejected": "Rejected"
+      },
+      "education": {
+        "any": "No requirement",
+        "highSchool": "High school",
+        "vocational": "Vocational",
+        "college": "College",
+        "bachelor": "Bachelor's degree",
+        "postgraduate": "Postgraduate"
+      },
+      "salaryPeriod": {
+        "hour": "Per hour",
+        "day": "Per day",
+        "month": "Per month",
+        "year": "Per year"
+      },
+      "csv": {
+        "stt": "No.",
+        "title": "Title",
+        "status": "Status",
+        "poster": "Posted by",
+        "category": "Industry",
+        "level": "Level",
+        "type": "Type",
+        "location": "Location",
+        "vacancies": "Vacancies",
+        "applicants": "Applicants",
+        "views": "Views",
+        "salary": "Salary",
+        "createdAt": "Created at",
+        "publishedAt": "Published at",
+        "expiredAt": "Deadline"
+      },
+      "emptyList": {
+        "noMatch": "No matching job posts found.",
+        "empty": "There are no job posts yet",
+        "ariaEmpty": "The job post list is empty",
+        "iconAlt": "No job posts"
+      },
+      "list": {
+        "ariaSection": "Job post list",
+        "exportButton": "Export Excel",
+        "createButton": "Create job post",
+        "table": {
+          "job": "Job post",
+          "status": "Status",
+          "applicants": "Applicants",
+          "actions": "Actions"
+        }
+      },
+      "row": {
+        "detailsAria": "Job post details",
+        "statusAria": "Job post status",
+        "performanceAria": "Job post performance",
+        "actionsAria": "Job post actions",
+        "actionsButtonAria": "Actions",
+        "postedBy": "Posted by",
+        "location": "Location:",
+        "locationCountSuffix": " (+{count} more)",
+        "publishedLabel": "Published:",
+        "notPublishedYet": "Not published yet",
+        "unlimited": "No limit",
+        "expiredLabel": "Deadline:",
+        "views": "{count} views",
+        "applicationsAria": "{applications} candidate(s) applied out of {vacancies} vacancies",
+        "menu": {
+          "viewDetails": "View job post details",
+          "manageAccess": "Manage access",
+          "edit": "Edit job post",
+          "reopen": "Reopen job post",
+          "publish": "Publish",
+          "close": "Close job post",
+          "delete": "Delete job post"
+        }
+      },
+      "form": {
+        "sectionCreateTitle": "Job description",
+        "sectionEditTitle": "Edit job description",
+        "title": {
+          "label": "Job title",
+          "placeholder": "Senior Frontend Engineer"
+        },
+        "category": {
+          "label": "Industry",
+          "placeholder": "Select an industry"
+        },
+        "experienceLevel": {
+          "label": "Level",
+          "placeholder": "Select a level"
+        },
+        "employmentType": {
+          "label": "Employment type",
+          "placeholder": "Select an employment type"
+        },
+        "educationLevel": {
+          "label": "Education level",
+          "placeholder": "Select an education level"
+        },
+        "skills": {
+          "label": "Skills",
+          "placeholder": "Type a keyword to search skills...",
+          "createHint": "Only add one when you're sure the catalog is missing it; an existing name will be rejected."
+        },
+        "specializations": {
+          "label": "Specializations",
+          "placeholder": "Type a keyword to search specializations...",
+          "createHint": "Only add one when you're sure the catalog is missing it; an existing name will be rejected."
+        },
+        "description": {
+          "label": "Description",
+          "placeholder": "Describe the scope of work, product, and main responsibilities..."
+        },
+        "requirements": {
+          "label": "Requirements",
+          "placeholder": "Experience, required skills, preferred qualifications..."
+        },
+        "benefits": {
+          "label": "Benefits",
+          "placeholder": "Salary, insurance, working conditions, career path..."
+        },
+        "salarySection": "Salary",
+        "salaryMin": {
+          "label": "From",
+          "placeholder": "20000000"
+        },
+        "salaryMax": {
+          "label": "To",
+          "placeholder": "40000000"
+        },
+        "salaryPeriodLabel": "Pay period",
+        "salaryPeriodPlaceholder": "Select a pay period",
+        "salaryNegotiable": "Negotiable salary",
+        "salaryVisible": "Show salary",
+        "vacancies": {
+          "label": "Number of vacancies",
+          "placeholder": "1"
+        },
+        "workingDays": {
+          "label": "Working days",
+          "placeholder": "Mon - Fri"
+        },
+        "expiredAt": {
+          "label": "Application deadline",
+          "placeholder": "Select a deadline"
+        },
+        "reputationBlockedTitle": "Reputation score too low to publish ({score}/{required})",
+        "reputationBlockedText": "You can still save a draft. To submit for review, your company needs {required} points — raise your score by verifying your tax code, completing your company profile, and handling candidate CVs on time.",
+        "publishDisabledTitle": "{required} reputation points required to submit for review; your company currently has {score}.",
+        "cancel": "Cancel",
+        "preview": "Preview",
+        "saveDraft": "Save draft",
+        "saveDraftSubmitting": "Creating...",
+        "saveChanges": "Save changes",
+        "saveChangesSubmitting": "Saving...",
+        "publish": "Publish (submit for review)",
+        "publishSubmitting": "Submitting..."
+      },
+      "detail": {
+        "descriptionTitle": "Job description",
+        "noDescription": "No description yet",
+        "requirementsTitle": "Requirements",
+        "noRequirements": "No requirements yet",
+        "benefitsTitle": "Benefits",
+        "noBenefits": "No benefits yet",
+        "performanceTitle": "Job post performance",
+        "views": "Views",
+        "applications": "Applications",
+        "viewApplicantsButton": "View candidate list ({count})",
+        "infoTitle": "Job information",
+        "moderationStatusLabel": "Review status",
+        "moderationApproved": "Approved",
+        "moderationRejected": "Rejected",
+        "moderationPending": "Pending review",
+        "rejectReasonLabel": "Rejection reason: ",
+        "pendingModerationNote": "The job post has been submitted and is awaiting admin review — it is not yet visible to candidates.",
+        "category": "Industry",
+        "experienceLevel": "Level",
+        "employmentType": "Type",
+        "salary": "Salary",
+        "vacancies": "Vacancies",
+        "vacanciesUnit": "{count} people",
+        "educationLevel": "Minimum education",
+        "publishedAt": "Published on",
+        "workingDays": "Working days",
+        "expiredAt": "Application deadline",
+        "locationTitle": "Work locations",
+        "noLocation": "No location yet",
+        "skillsTitle": "Required skills",
+        "noSkills": "No skills yet",
+        "specializationsTitle": "Related specializations",
+        "noSpecializations": "No specializations yet",
+        "backButton": "Back to list"
+      },
+      "select": {
+        "searchPlaceholder": "Search...",
+        "searchAriaPrefix": "Search ",
+        "noResults": "No results found"
+      },
+      "location": {
+        "title": "Work locations",
+        "selectedCount": "{count} selected",
+        "noLocationsInCatalog": "No locations in the catalog yet"
+      },
+      "tagPicker": {
+        "alreadyExists": "This item is already in the catalog.",
+        "noResults": "No matching results found.",
+        "createButton": "Add \"{query}\"",
+        "creating": "Adding \"{query}\"...",
+        "aiSuggestionsHint": "AI suggested these but the catalog doesn't have them yet — click to add:",
+        "dismissSuggestionAria": "Dismiss suggestion {name}",
+        "removeChipAria": "Remove {label}"
+      },
+      "createOptionsModal": {
+        "titlePrefix": "Create a job post with",
+        "description": "Choose the option that best fits how you want to draft your job description.",
+        "useExistingJd": "Use an existing JD",
+        "generateJd": "Generate a JD automatically",
+        "or": "Or",
+        "startFromScratch": "Post a job from scratch"
+      },
+      "filters": {
+        "sectionAria": "Job post filters",
+        "label": "Filters",
+        "searchPlaceholder": "Search job posts...",
+        "statusAria": "Filter by job post status",
+        "statusPlaceholder": "Status",
+        "posterAria": "Filter by poster",
+        "posterPlaceholder": "Posted by",
+        "categoryAria": "Filter by industry",
+        "categoryPlaceholder": "Industry",
+        "reset": "Reset",
+        "showAria": "Show job post filters",
+        "hideAria": "Hide job post filters"
+      },
+      "accessDialog": {
+        "loadError": "Could not load the access list.",
+        "grantedAnnouncement": "Access restored for {name}.",
+        "revokedAnnouncement": "Access revoked for {name}.",
+        "updateError": "Could not update access.",
+        "title": "Manage members with access to this job post",
+        "infoText": "All members of the company have access to this job post by default. Their ability to act on it, such as editing it or managing candidates, still depends on their role.",
+        "retry": "Try again",
+        "loadingMembers": "Loading member list...",
+        "tableUser": "User",
+        "tableRole": "Role",
+        "tableStatus": "Status",
+        "tableActions": "Action",
+        "memberAria": "Member {name}",
+        "avatarAlt": "Avatar of {name}",
+        "youTag": "(You)",
+        "noRole": "No role assigned",
+        "jobCreatorTag": "Job creator",
+        "statusRevoked": "Revoked",
+        "statusActive": "Active",
+        "statusSuspended": "Suspended",
+        "defaultAccessLabel": "Default access",
+        "yourAccountLabel": "Your account",
+        "revokeButton": "Revoke access",
+        "grantButton": "Restore access",
+        "emptyMembers": "There are no members in this company yet."
+      },
+      "aiImport": {
+        "fileTooLarge": "The file exceeds the 8 MB limit.",
+        "unsupportedFileType": "Only PDF, DOCX, TXT, or JPG/PNG/WEBP images are supported.",
+        "fileRequired": "Please select a JD file to scan.",
+        "textTooShort": "The JD content must be at least 60 characters.",
+        "titlePrefix": "Create a job post from an existing JD with",
+        "subtitle": "The AI only extracts what's in the source. You'll review and edit all the data before publishing.",
+        "sourceHeading": "Provide the JD your way",
+        "sourceTablistAria": "JD source",
+        "fileTab": "Upload JD file",
+        "pasteTab": "Paste content",
+        "selectFileLabel": "Select a JD file to scan",
+        "fileInputAria": "JD file to scan",
+        "dropHint": "Drag and drop a file here, or choose one from your device",
+        "dropFormats": "PDF, DOCX, TXT, JPG, PNG, or WEBP; up to 8 MB",
+        "chooseFileButton": "Choose JD file",
+        "removeFileAria": "Remove file {name}",
+        "pasteTextLabel": "JD content",
+        "pastePlaceholder": "Paste the full title, job description, requirements, and benefits...",
+        "charCount": "{count} characters",
+        "submitting": "AI is scanning the JD...",
+        "submit": "Scan and autofill",
+        "howHeading": "What will the AI do?",
+        "step1": "Read the content and identify the parts of the JD.",
+        "step2": "Map experience level, skills, and categories to what's in the system.",
+        "step3": "Fill in a draft for you to review — it will not publish automatically.",
+        "note": "Anything missing from the original JD is left blank instead of being guessed.",
+        "or": "Or",
+        "startFromScratchLink": "start a job post from scratch",
+        "openGeneratorLink": "generate a JD automatically with AI"
+      },
+      "aiGenerator": {
+        "genericError": "Could not create the JD draft. Please check your data.",
+        "loadFailed": "Could not load the JD generator data. Please reload the page.",
+        "autofillOverlayTitle": "AI is filling in the missing fields...",
+        "autofillOverlayCountdown": "About {seconds} second(s) left",
+        "autofillOverlayFinishing": "Almost done — the AI is matching against the catalog...",
+        "exitDialogTitle": "The AI couldn't fill in the missing fields",
+        "exitDialogText": "{message} You can still go to the form and fill it in by hand.",
+        "exitDialogConfirm": "Go to the form and fill it in",
+        "exitDialogCancel": "Try again later"
+      },
+      "aiGeneratorForm": {
+        "generatingTitle": "AI is drafting the JD for you...",
+        "generatingCountdown": "About {seconds} second(s) left",
+        "generatingFinishing": "Almost done — the AI is finishing up the content...",
+        "headerTitlePrefix": "Generate a JD automatically with",
+        "titleLabel": "Job title",
+        "titlePlaceholder": "e.g., Senior React Developer",
+        "requiredSkillsLabel": "Required skills",
+        "requiredSkillsPlaceholder": "Search React, TypeScript, Node.js...",
+        "keywordsLabel": "Add related skills or keywords",
+        "keywordsPlaceholder": "Fintech, Microservices, Agile — separate with commas",
+        "keywordsHint": "Use this for technologies not yet in the catalog, or project-specific context.",
+        "companyDescriptionLabel": "About the company",
+        "companyDescriptionPlaceholder": "Product, industry, size, and work environment...",
+        "outputLanguageLabel": "JD language",
+        "experienceLevelLabel": "Level",
+        "experienceLevelPlaceholder": "Select a level",
+        "yearsExperienceLabel": "Years of experience",
+        "yearsExperiencePlaceholder": "e.g., 1",
+        "advancedToggle": "Advanced options",
+        "categoryLabel": "Industry",
+        "aiSuggestPlaceholder": "Let the AI suggest",
+        "employmentTypeLabel": "Employment type",
+        "workModeLabel": "Work mode",
+        "workModeOnsite": "On-site",
+        "workModeUndetermined": "Not decided",
+        "preferredSkillsLabel": "Preferred skills",
+        "preferredSkillsPlaceholder": "Search bonus skills...",
+        "productDomainLabel": "Product or project domain",
+        "productDomainPlaceholder": "e.g., B2B payments platform, SaaS, E-commerce...",
+        "roleObjectiveLabel": "Main objective of the role",
+        "roleObjectivePlaceholder": "What outcome or impact will the candidate deliver?",
+        "teamContextLabel": "Team and working process",
+        "teamContextPlaceholder": "Team size, Agile/Scrum, working with Product, QA...",
+        "languageRequirementLabel": "Language requirement",
+        "languageRequirementPlaceholder": "e.g., Read documentation and communicate in English",
+        "recruiterNotesLabel": "Additional notes for the AI",
+        "recruiterNotesPlaceholder": "Only enter facts about responsibilities, requirements, or benefits...",
+        "noSkillsFound": "No matching skills found.",
+        "suggestionsAria": "Suggestions for {label}",
+        "selectedAria": "{label} selected",
+        "removeSkillAria": "Remove skill {name}",
+        "back": "Back",
+        "generating": "AI is generating the JD...",
+        "submit": "Generate JD with AI",
+        "validationTitleRequired": "Please enter a job title.",
+        "validationSkillOrKeywordRequired": "Please add at least one related skill or keyword.",
+        "validationYearsRange": "Please enter years of experience between 0 and 50.",
+        "defaultSelectPlaceholder": "Select a value"
+      },
+      "salaryInsight": {
+        "confidenceLow": "For reference",
+        "confidenceMedium": "Fairly reliable",
+        "confidenceHigh": "Highly reliable",
+        "researchingTitle": "AI is researching web sources...",
+        "researchingCountdown": "About {seconds} second(s) left",
+        "researchingFinishing": "Almost done — the AI is cross-checking sources...",
+        "comparisonNotProvided": "No salary entered to compare yet",
+        "comparisonBelow": "The entered range is below the market group",
+        "comparisonAligned": "The entered range is within the market range",
+        "comparisonAbove": "The entered range is above the market group",
+        "heading": "AI market salary reference",
+        "description": "Required skills define the core stack; related skills and keywords help widen the pool of comparable posts by role, level, and experience on UpNext.",
+        "analyzing": "Analyzing...",
+        "reanalyze": "Re-analyze",
+        "analyze": "Analyze salary",
+        "needMoreInput": "Enter a title, job description, and valid years of experience to start the analysis.",
+        "insufficientDataTitle": "Not enough reference data",
+        "insufficientDataText": "{message} Found {sampleSize} matching sample(s) so far.",
+        "marketRangeAria": "Market salary range per month",
+        "medianLabel": "Median",
+        "webSourcesCount": "{count} web source(s) cited",
+        "similarPostsCount": "{count} similar post(s) · last {months} month(s)",
+        "googleSearchSource": "Google Search + Gemini AI",
+        "upnextDataSource": "UpNext data",
+        "differencePercentSuffix": " ({sign}{percent}% vs. median)",
+        "matchedFactorsAria": "Matched factors",
+        "webSourcesToggle": "Web sources referenced ({count})",
+        "viewSources": "View sources",
+        "collapseSources": "Collapse",
+        "openInNewTab": "(opens in a new tab)",
+        "researchedAtPrefix": "Researched at ",
+        "webGroundedDisclaimer": "AI-synthesized from public web sources; open the citations and verify before applying.",
+        "upnextDataDisclaimer": "Aggregated data — not a salary guarantee for any candidate.",
+        "applyRangeButton": "Apply range {min} – {max}",
+        "perMonth": "/ month"
+      },
+      "preview": {
+        "bannerBold": "Preview for candidates.",
+        "bannerText": " Interactive buttons are disabled until the job post is published.",
+        "categoryUnset": "Industry not selected yet",
+        "verifiedBadge": "Verified",
+        "titleFallback": "Job title",
+        "leadFallback": "A short summary of the job post will appear here.",
+        "salaryNegotiableNote": "Negotiable based on experience",
+        "salaryEstimatedNote": "Estimated salary",
+        "locationLabel": "Location",
+        "employmentTypeLabel": "Type",
+        "employmentTypeFallback": "Type not selected",
+        "experienceLevelLabel": "Level",
+        "experienceLevelFallback": "Level not selected",
+        "postedLabel": "Posted",
+        "postedValue": "After approval",
+        "skillsAria": "Related skills",
+        "noSkillsSelected": "No skills selected",
+        "actionsAria": "Illustrative actions",
+        "applyNow": "Apply now",
+        "saveJob": "Save job",
+        "share": "Share",
+        "jobInfoTitle": "Job information",
+        "requirementsTitle": "Candidate requirements",
+        "benefitsTitle": "Benefits",
+        "skillsSectionTitle": "Skills & technologies",
+        "noSkillsOrSpecializations": "No skills or specializations selected yet.",
+        "readyTitle": "Ready to apply?",
+        "readySubtitle": "Boost your chances with a standout profile",
+        "viewSalaryMatch": "See matching salary",
+        "deadlineLabel": "Application deadline: ",
+        "overviewTitle": "Job overview",
+        "vacanciesLabel": "Vacancies",
+        "vacanciesUnit": "{count} position(s)",
+        "educationLabel": "Education",
+        "workingDaysLabel": "Schedule",
+        "companyInfoFallback": "Company information",
+        "companyVerifiedTag": "Verified company",
+        "richTextEmpty": "This content hasn't been entered yet.",
+        "previewActionSuffix": " (illustrative only)",
+        "logoAlt": "{name} logo",
+        "locationUnset": "No location selected",
+        "locationFallback": "Work location",
+        "locationCountSuffix": " +{count} more",
+        "salaryNegotiable": "Negotiable",
+        "salaryHidden": "Not disclosed",
+        "salaryFrom": "From {amount}",
+        "salaryTo": "Up to {amount}",
+        "dateUnset": "Not selected"
+      },
+      "aiResult": {
+        "ariaLabel": "AI-generated JD result",
+        "toolbarHint": "Hover over a block to edit its content, or drag to reorder it.",
+        "exit": "Exit",
+        "doneEditing": "Done",
+        "editJd": "Edit JD",
+        "exporting": "Exporting...",
+        "exportPdf": "Export PDF",
+        "creatingJobPost": "AI is filling in the form...",
+        "createJobPostFromJd": "Create job post from this JD",
+        "exitDialogTitle": "Exit this JD?",
+        "exitDialogDescription": "You can keep editing this JD, or exit without saving — the next JD you generate will start from a blank form.",
+        "exitDialogContinue": "Keep editing",
+        "exitDialogConfirm": "Exit without saving",
+        "notSet": "Not set",
+        "done": "Done",
+        "editControl": "Edit",
+        "editControlWithLabel": "Edit: {label}",
+        "doneControlWithLabel": "Done: {label}",
+        "dragToReorder": "Drag to reorder",
+        "dragToReorderWithLabel": "Drag to reorder: {label}",
+        "moveUp": "Move up",
+        "moveUpWithLabel": "Move up: {label}",
+        "moveDown": "Move down",
+        "moveDownWithLabel": "Move down: {label}",
+        "deleteSection": "Delete section",
+        "deleteSectionWithLabel": "Delete section: {label}",
+        "removeChipAria": "Remove {name} from {label}",
+        "addPlaceholder": "+ Add",
+        "addKeywordPlaceholder": "+ Add keyword"
+      },
+      "salary": {
+        "negotiable": "Negotiable salary",
+        "notVisible": "Salary not shown",
+        "notEntered": "Salary not entered",
+        "from": "From {amount} {currency}",
+        "to": "Up to {amount} {currency}"
+      }
     },
     "candidates": {
       "title": "Candidate Management",
       "subtitle": "Manage all candidates who have applied to your company's job postings.",
       "filters": {
-        "searchPlaceholder": "Search by name, email...",
+        "label": "Filter by",
+        "sectionAria": "Candidate list filters",
+        "searchPlaceholder": "Search by name, email, phone...",
         "allJobs": "All Job Posts",
+        "jobAria": "Filter by job post",
         "allStatuses": "All Statuses",
-        "clear": "Clear Filters"
+        "statusAria": "Filter by CV status",
+        "viewedAll": "All",
+        "viewedUnviewed": "Unviewed CVs",
+        "viewedAria": "Filter by CV viewed status",
+        "aiLabelAll": "All AI labels",
+        "aiLabelAria": "Filter by AI CV label",
+        "aiLabel": {
+          "excellent": "Excellent",
+          "good": "Good",
+          "average": "Average",
+          "low": "Needs Review",
+          "unscored": "Not Scored"
+        },
+        "clear": "Clear Filters",
+        "showAria": "Show filters",
+        "hideAria": "Hide filters"
       },
       "table": {
         "candidate": "Candidate",
@@ -1680,18 +2305,63 @@
         "empty": "No candidates found."
       },
       "status": {
-        "SUBMITTED": "Submitted",
-        "VIEWED": "Viewed",
+        "SUBMITTED": "Received",
+        "VIEWED": "Screened",
+        "CONSIDERING": "Considering",
         "SHORTLISTED": "Shortlisted",
         "INTERVIEWING": "Interviewing",
-        "OFFERED": "Offered",
+        "OFFERED": "Offer Sent",
         "HIRED": "Hired",
-        "REJECTED": "Rejected",
-        "WITHDRAWN": "Withdrawn"
+        "WITHDRAWN": "Discontinued",
+        "REJECTED": "Not a Fit"
       },
       "messages": {
         "statusUpdateSuccess": "Application status updated successfully!"
       }
+    }
+  },
+  "Pricing": {
+    "meta": {
+      "title": "Pricing",
+      "description": "IT recruitment plans on UpNext."
+    },
+    "eyebrow": "Pricing",
+    "headline": "Pick the plan that helps you hire the right people faster",
+    "subheadline": "Recruiters use AI to screen CVs, source candidates and manage the hiring pipeline.",
+    "tabs": {
+      "recruiter": "Employers",
+      "candidate": "Candidates"
+    },
+    "candidateComingSoon": "Candidate plans are still in the works. Job search and applying stay free.",
+    "perCycle": "/ {days} days",
+    "perMonth": "/ month",
+    "free": "Free",
+    "cta": {
+      "free": "Start for free",
+      "upgrade": "Upgrade now",
+      "contact": "Talk to sales"
+    },
+    "comparison": {
+      "title": "Compare plans in detail",
+      "feature": "Feature"
+    },
+    "unlimited": "Unlimited",
+    "notIncluded": "Not included",
+    "perCycleSuffix": "/ cycle",
+    "states": {
+      "loading": "Loading pricing...",
+      "error": "Could not load pricing. Please try again later.",
+      "empty": "No plans are currently on sale."
+    },
+    "features": {
+      "JOB_POST": "Job postings",
+      "FEATURED_JOB": "Featured postings",
+      "URGENT_LABEL": "Urgent label",
+      "CV_POOL_VIEW": "CV pool profile views",
+      "TALENT_CONTACT": "Direct candidate outreach",
+      "AI_CV_MATCHING": "AI CV-to-JD scoring",
+      "AI_JD_GENERATE": "AI job description writing",
+      "HR_SEAT": "HR accounts"
     }
   },
   "PublicJobs": {
@@ -1806,6 +2476,9 @@
         "VIEWED": {
           "label": "Viewed"
         },
+        "CONSIDERING": {
+          "label": "Under consideration"
+        },
         "SHORTLISTED": {
           "label": "Shortlisted"
         },
@@ -1907,6 +2580,10 @@
         "VIEWED": {
           "description": "The employer opened your application and is reviewing fit.",
           "nextStep": "Keep your contact details available and watch for the next update."
+        },
+        "CONSIDERING": {
+          "description": "The employer is weighing your application against other candidates.",
+          "nextStep": "Keep tracking this application; no further action is required yet."
         },
         "SHORTLISTED": {
           "description": "Your application passed the employer's initial screening.",
