@@ -92,7 +92,10 @@ function LoginPage() {
         description: t("login.successDescription"),
         id: "candidate-login-success",
       });
-      router.replace(redirectTarget || "/candidate/profile");
+      const cleanRedirect = redirectTarget
+        ? redirectTarget.replace(/^\/(?:vi|en)(?=\/|$)/, "")
+        : "";
+      router.replace(cleanRedirect || "/candidate/profile");
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         form.setError("password", { message: t("errors.invalidCredentials") });

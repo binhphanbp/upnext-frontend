@@ -1,7 +1,7 @@
 import type { PublicCompany, PublicJob } from "./api";
 
 export const EXPIRING_JOB_WINDOW_DAYS = 14;
-export const EXPIRING_JOB_LIMIT = 8;
+export const EXPIRING_JOB_LIMIT = 36;
 export const LATEST_JOB_LIMIT = 12;
 export const INTERESTED_JOB_LIMIT = 12;
 export const MIN_INTERESTED_JOB_COUNT = 3;

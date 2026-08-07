@@ -12,6 +12,8 @@ export type FacetableJob = {
   mode: string;
   salary: string;
   categories: string[];
+  employmentType?: string;
+  type?: string;
   skills?: string[];
   experienceYears?: number[];
 };
@@ -21,6 +23,7 @@ export const FACET_GROUP_KEYS = [
   "category",
   "level",
   "mode",
+  "employmentType",
   "salary",
   "experience",
   "technology",
@@ -70,6 +73,38 @@ export function matchesModeFilter(job: Pick<FacetableJob, "mode">, filter: strin
   if (filter === "hybrid") return mode.includes("hybrid");
   if (filter === "remote") return mode.includes("remote");
   if (filter === "onsite") return mode.includes("onsite") || mode.includes("office");
+  return false;
+}
+
+export function matchesEmploymentTypeFilter(
+  job: Pick<FacetableJob, "employmentType" | "type">,
+  filter: string,
+) {
+  const typeText = `${job.employmentType ?? ""} ${job.type ?? ""}`.toLowerCase();
+  if (filter === "full-time") {
+    return (
+      typeText.includes("full-time") ||
+      typeText.includes("fulltime") ||
+      typeText.includes("toàn thời gian")
+    );
+  }
+  if (filter === "part-time") {
+    return (
+      typeText.includes("part-time") ||
+      typeText.includes("parttime") ||
+      typeText.includes("bán thời gian")
+    );
+  }
+  if (filter === "contract") {
+    return (
+      typeText.includes("contract") ||
+      typeText.includes("freelance") ||
+      typeText.includes("hợp đồng")
+    );
+  }
+  if (filter === "internship") {
+    return typeText.includes("intern") || typeText.includes("thực tập");
+  }
   return false;
 }
 

@@ -28,6 +28,7 @@ import {
   type FacetGroupKey,
   type FacetGroupMatchersFor,
   matchesAllFacetGroups,
+  matchesEmploymentTypeFilter,
   matchesExperienceRange,
   matchesLevelFilter,
   matchesModeFilter,
@@ -118,6 +119,10 @@ export type Job = {
   id: string;
   title: string;
   company: string;
+  companyId?: string;
+  companySlug?: string;
+  companySize?: string;
+  companyAddress?: string;
   logo: string;
   logoColor: string;
   verified: boolean;
@@ -126,10 +131,12 @@ export type Job = {
   mode: string;
   level: string;
   type: string;
+  employmentType?: string;
   posted: string;
   /** Raw instant behind `posted`; null when the API never published a date. */
   publishedAt?: string | null;
   applicants?: number;
+  vacanciesCount?: number;
   tags: string[];
   description: string;
   categories: string[];
@@ -433,6 +440,15 @@ const filterGroups: FilterGroup[] = [
     ],
   },
   {
+    title: "Loại hình công việc",
+    items: [
+      { label: "Full-time", value: "full-time", count: 8 },
+      { label: "Part-time", value: "part-time", count: 2 },
+      { label: "Contract / Freelance", value: "contract", count: 2 },
+      { label: "Thực tập", value: "internship", count: 1 },
+    ],
+  },
+  {
     title: "Cấp bậc",
     items: [
       { label: "Fresher / Junior", value: "fresher", count: 2 },
@@ -476,6 +492,7 @@ const COMMON_SEARCH_LOCATIONS = [
 
 const MODE_FILTERS = new Set(["hybrid", "remote", "onsite"]);
 const LEVEL_FILTERS = new Set(["fresher", "middle", "senior"]);
+const EMPLOYMENT_TYPE_FILTERS = new Set(["full-time", "part-time", "contract", "internship"]);
 const SALARY_FILTERS = new Set(salaryRanges.map((item) => item.value));
 const EXPERIENCE_FILTERS = new Set(experienceOptions.map((item) => item.value));
 
@@ -526,6 +543,7 @@ function buildJobsSearchPath(state: JobsSearchUrlState) {
   state.activeFilters.forEach((filter) => {
     if (MODE_FILTERS.has(filter)) query.append("mode", filter);
     if (LEVEL_FILTERS.has(filter)) query.append("level", filter);
+    if (EMPLOYMENT_TYPE_FILTERS.has(filter)) query.append("employmentType", filter);
   });
   state.salaryFilters.forEach((filter) => query.append("salaryRange", filter));
   state.experienceFilters.forEach((filter) => query.append("experienceRange", filter));
@@ -609,6 +627,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const queryActiveFilters = [
     ...params.getAll("mode").filter((filter) => MODE_FILTERS.has(filter)),
     ...params.getAll("level").filter((filter) => LEVEL_FILTERS.has(filter)),
+    ...params.getAll("employmentType").filter((filter) => EMPLOYMENT_TYPE_FILTERS.has(filter)),
   ];
   const querySalaryFilters = params
     .getAll("salaryRange")
@@ -891,7 +910,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         location: jobLocations[0]?.jobLocation?.city || "Việt Nam",
         mode:
           primaryWorkingModel === "onsite"
-            ? "On-site"
+            ? "Onsite"
             : primaryWorkingModel === "hybrid"
               ? "Hybrid"
               : primaryWorkingModel === "remote"
@@ -1022,6 +1041,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const facetGroupMatchers = useMemo(() => {
     const levelFilters = activeFilters.filter((filter) => LEVEL_FILTERS.has(filter));
     const modeFilters = activeFilters.filter((filter) => MODE_FILTERS.has(filter));
+    const employmentTypeFilters = activeFilters.filter((filter) =>
+      EMPLOYMENT_TYPE_FILTERS.has(filter),
+    );
 
     return {
       category: (job: Job) => activeCategory === "all" || job.categories.includes(activeCategory),
@@ -1029,6 +1051,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         levelFilters.length === 0 || levelFilters.some((filter) => matchesLevelFilter(job, filter)),
       mode: (job: Job) =>
         modeFilters.length === 0 || modeFilters.some((filter) => matchesModeFilter(job, filter)),
+      employmentType: (job: Job) =>
+        employmentTypeFilters.length === 0 ||
+        employmentTypeFilters.some((filter) => matchesEmploymentTypeFilter(job, filter)),
       salary: (job: Job) =>
         salaryFilters.length === 0 ||
         salaryFilters.some((filter) => matchesSalaryFilter(job, filter)),
@@ -1058,6 +1083,20 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         ].map((item) => ({
           ...item,
           count: countOptionForGroup("mode", (job) => matchesModeFilter(job, item.value)),
+        })),
+      },
+      {
+        title: "Loại hình công việc",
+        items: [
+          { label: "Full-time", value: "full-time" },
+          { label: "Part-time", value: "part-time" },
+          { label: "Contract / Freelance", value: "contract" },
+          { label: "Thực tập", value: "internship" },
+        ].map((item) => ({
+          ...item,
+          count: countOptionForGroup("employmentType", (job) =>
+            matchesEmploymentTypeFilter(job, item.value),
+          ),
         })),
       },
       {
@@ -1250,16 +1289,24 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
 
   function toggleFilter(value: string) {
     setPage(1);
-    setActiveFilters((current) =>
-      current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
-    );
+    setActiveFilters((current) => {
+      let groupSet: Set<string> | undefined;
+      if (MODE_FILTERS.has(value)) groupSet = MODE_FILTERS;
+      else if (LEVEL_FILTERS.has(value)) groupSet = LEVEL_FILTERS;
+      else if (EMPLOYMENT_TYPE_FILTERS.has(value)) groupSet = EMPLOYMENT_TYPE_FILTERS;
+
+      if (current.includes(value)) {
+        return current.filter((item) => item !== value);
+      }
+
+      const cleaned = groupSet ? current.filter((item) => !groupSet.has(item)) : current;
+      return [...cleaned, value];
+    });
   }
 
   function toggleIn(setter: React.Dispatch<React.SetStateAction<string[]>>, value: string) {
     setPage(1);
-    setter((current) =>
-      current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
-    );
+    setter((current) => (current.includes(value) ? [] : [value]));
   }
 
   function navigateToSearch(nextKeyword = keyword, nextLocation = location) {
@@ -2071,6 +2118,49 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                   <div className="flex flex-col gap-1">
                     {filterGroupsList
                       .find((g) => g.title === "Hình thức làm việc")
+                      ?.items.map((item) => {
+                        const isChecked = activeFilters.includes(item.value);
+                        // A picked option keeps working at zero so it can always be cleared.
+                        const isDisabled = item.count === 0 && !isChecked;
+
+                        return (
+                          <label
+                            key={item.value}
+                            aria-label={`${item.label}, ${item.count} việc làm`}
+                            className={`jobs-filter-option group flex min-h-8 items-center gap-2.5 rounded-lg px-1.5 py-0.5 ${
+                              isDisabled
+                                ? "cursor-not-allowed opacity-50"
+                                : "jobs-filter-option-enabled cursor-pointer"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              aria-label={item.label}
+                              disabled={isDisabled}
+                              checked={isChecked}
+                              onChange={() => toggleFilter(item.value)}
+                              className="jobs-filter-checkbox h-5 w-5 shrink-0"
+                            />
+                            <span className="jobs-filter-option-copy flex min-w-0 flex-1 justify-between text-sm">
+                              <span>{item.label}</span>
+                              <span className="text-xs font-medium text-slate-400">
+                                ({item.count})
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </fieldset>
+
+                {/* Employment Type Filter */}
+                <fieldset>
+                  <legend className="mb-3 block text-sm font-semibold text-slate-800">
+                    Loại hình công việc
+                  </legend>
+                  <div className="flex flex-col gap-1">
+                    {filterGroupsList
+                      .find((g) => g.title === "Loại hình công việc")
                       ?.items.map((item) => {
                         const isChecked = activeFilters.includes(item.value);
                         // A picked option keeps working at zero so it can always be cleared.
