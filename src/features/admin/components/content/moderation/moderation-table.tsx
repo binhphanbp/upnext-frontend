@@ -15,6 +15,7 @@ const toast = Swal.mixin({
 });
 
 import {
+  type AdminReportResponse,
   type AdminReportStatus,
   getAdminReports,
   updateAdminReportStatus,
@@ -43,6 +44,8 @@ export function ModerationTable() {
   const router = useRouter();
 
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [reporterFilter, setReporterFilter] = React.useState<string>("all");
+  const [targetTypeFilter, setTargetTypeFilter] = React.useState<string>("all");
   const [searchTerm, setSearchTerm] = React.useState<string>("");
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
 
@@ -61,10 +64,19 @@ export function ModerationTable() {
   // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, debouncedQuery, pageSize]);
+  }, [statusFilter, reporterFilter, targetTypeFilter, debouncedQuery, pageSize]);
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["adminReports", currentPage, pageSize, statusFilter, debouncedQuery],
+    // Every filter is applied server-side, so all of them belong in the key.
+    queryKey: [
+      "adminReports",
+      currentPage,
+      pageSize,
+      statusFilter,
+      reporterFilter,
+      targetTypeFilter,
+      debouncedQuery,
+    ],
     queryFn: async () => {
       const session = getAdminSession();
       if (!session) throw new Error("No session");
@@ -73,6 +85,8 @@ export function ModerationTable() {
         limit: pageSize,
         q: debouncedQuery || undefined,
         status: statusFilter !== "all" ? statusFilter : undefined,
+        reporterRole: reporterFilter !== "all" ? reporterFilter : undefined,
+        targetType: targetTypeFilter !== "all" ? targetTypeFilter : undefined,
       });
     },
   });
@@ -96,10 +110,17 @@ export function ModerationTable() {
     },
   });
 
-  const handleStatusChange = (id: string, status: AdminReportStatus) => {
+  const handleStatusChange = (
+    id: string,
+    status: AdminReportStatus,
+    targetType?: AdminReportResponse["targetType"],
+  ) => {
+    const hidesReview = targetType === "COMPANY_REVIEW" && status === "RESOLVED";
     Swal.fire({
       title: "Xác nhận cập nhật",
-      text: `Bạn có chắc muốn ${status === "RESOLVED" ? "Đánh dấu giải quyết" : "Từ chối"} báo cáo này?`,
+      text: hidesReview
+        ? "Đánh giá này sẽ bị ẩn khỏi trang công ty. Bạn có chắc không?"
+        : `Bạn có chắc muốn ${status === "RESOLVED" ? "Đánh dấu giải quyết" : "Từ chối"} báo cáo này?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
@@ -119,7 +140,7 @@ export function ModerationTable() {
   };
 
   const items = data?.items || [];
-  const totalItems = data?.meta?.totalItems || 0;
+  const totalItems = data?.meta?.total || 0;
 
   const isAllPageSelected =
     items.length > 0 && items.every((report) => selectedIds.includes(report.id));
@@ -142,18 +163,46 @@ export function ModerationTable() {
     }
   };
 
+  // Keyed off the values the backend actually writes. `COMPANY` used to be labelled
+  // "Review công ty" and `POST` fell through to "Tin tuyển dụng" — both were wrong, and
+  // COMPANY_REVIEW now needs that label for itself.
+  const TARGET_TYPE_KEYS: Record<string, string> = {
+    JOB_POST: "job",
+    COMPANY: "company",
+    COMPANY_REVIEW: "companyReview",
+    CANDIDATE: "profile",
+    POST: "post",
+  };
+
   const getTypeLabel = (type: string) => {
-    const typeKey =
-      type === "JOB_POST"
-        ? "job"
-        : type === "COMMENT"
-          ? "comment"
-          : type === "COMPANY"
-            ? "review"
-            : type === "CANDIDATE" || type === "USER"
-              ? "profile"
-              : "job";
-    return t(`contentTypeOptions.${typeKey}`);
+    const typeKey = TARGET_TYPE_KEYS[type.toUpperCase()];
+    return typeKey ? t(`contentTypeOptions.${typeKey}`) : type;
+  };
+
+  /** Bug fix: the old code read a `reporter` field the API never returns. */
+  const getReporterLabel = (report: AdminReportResponse) => {
+    if (report.reporterType === "RECRUITER") {
+      return report.reporterRecruiterAccount?.email ?? t("anonymous");
+    }
+    return (
+      report.reporterCandidate?.account?.fullName ??
+      report.reporterCandidate?.account?.email ??
+      t("anonymous")
+    );
+  };
+
+  /** Bug fix: the old code read `targetName`, so every row showed a raw UUID. */
+  const getTargetLabel = (report: AdminReportResponse) => {
+    const details = report.targetDetails;
+    if (!details) return report.targetId;
+
+    if (report.targetType === "COMPANY_REVIEW") {
+      const rating = details.overallRating ? `${details.overallRating}★` : "";
+      const company = details.company?.name ?? "";
+      return [company, rating, details.summary].filter(Boolean).join(" — ") || report.targetId;
+    }
+
+    return details.name ?? details.title ?? details.account?.fullName ?? report.targetId;
   };
 
   const getReasonLabel = (reason?: string) => {
@@ -230,6 +279,31 @@ export function ModerationTable() {
                 <SelectItem value="REJECTED">{t("statusOptions.dismissed")}</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={reporterFilter} onValueChange={setReporterFilter}>
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+                <SelectValue placeholder={t("allReporters")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("allReporters")}</SelectItem>
+                <SelectItem value="CANDIDATE">{t("reporterOptions.candidate")}</SelectItem>
+                <SelectItem value="RECRUITER">{t("reporterOptions.recruiter")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={targetTypeFilter} onValueChange={setTargetTypeFilter}>
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+                <SelectValue placeholder={t("allContentTypes")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("allContentTypes")}</SelectItem>
+                <SelectItem value="JOB_POST">{t("contentTypeOptions.job")}</SelectItem>
+                <SelectItem value="COMPANY">{t("contentTypeOptions.company")}</SelectItem>
+                <SelectItem value="COMPANY_REVIEW">
+                  {t("contentTypeOptions.companyReview")}
+                </SelectItem>
+                <SelectItem value="CANDIDATE">{t("contentTypeOptions.profile")}</SelectItem>
+                <SelectItem value="POST">{t("contentTypeOptions.post")}</SelectItem>
+              </SelectContent>
+            </Select>
           </>
         }
         actionBar={
@@ -295,9 +369,9 @@ export function ModerationTable() {
           ) : (
             items.map((report) => {
               const isSelected = selectedIds.includes(report.id);
-              const targetName = report.targetName || report.targetId;
-              const reporter =
-                report.reporter?.profile?.fullName || report.reporter?.email || t("anonymous");
+              const targetName = getTargetLabel(report);
+              const reporter = getReporterLabel(report);
+              const isReviewReport = report.targetType === "COMPANY_REVIEW";
 
               const tone =
                 report.status === "RESOLVED"
@@ -376,10 +450,19 @@ export function ModerationTable() {
                         {report.status === "PENDING" && (
                           <>
                             <DropdownMenuItem
-                              className="text-success cursor-pointer"
-                              onClick={() => handleStatusChange(report.id, "RESOLVED")}
+                              className={
+                                isReviewReport
+                                  ? "text-error cursor-pointer"
+                                  : "text-success cursor-pointer"
+                              }
+                              onClick={() =>
+                                handleStatusChange(report.id, "RESOLVED", report.targetType)
+                              }
                             >
-                              {t("actionOptions.resolve")}
+                              {/* Resolving a review report hides the review, so say that. */}
+                              {isReviewReport
+                                ? t("actionOptions.hideReview")
+                                : t("actionOptions.resolve")}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-error cursor-pointer"
