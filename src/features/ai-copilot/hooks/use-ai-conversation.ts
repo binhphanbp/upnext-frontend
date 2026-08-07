@@ -90,13 +90,6 @@ export function useAiConversation(context: AiPageContext) {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      let conversation = conversationRef.current;
-      if (!conversation) {
-        conversation = await createConversation(context.type);
-        conversationRef.current = conversation;
-        setConversationId(conversation.id);
-      }
-
       const now = Date.now();
       const userMessage: AiMessage = {
         id: `u-${now.toString(36)}`,
@@ -116,6 +109,17 @@ export function useAiConversation(context: AiPageContext) {
       let finished = false;
 
       try {
+        // Bên trong `try`: `createConversation` ném khi phiên đăng nhập không còn
+        // hợp lệ, và trước đây lời ném đó thoát ra ngoài `run()` thành một promise
+        // rejection không ai bắt — người dùng gõ câu hỏi, bấm Enter, và giao diện
+        // không đổi gì cả. Một lỗi im lặng còn tệ hơn một lỗi hiện rõ.
+        let conversation = conversationRef.current;
+        if (!conversation) {
+          conversation = await createConversation(context.type);
+          conversationRef.current = conversation;
+          setConversationId(conversation.id);
+        }
+
         for await (const frame of copilotTransport({
           conversationId: conversation.id,
           prompt: trimmed,

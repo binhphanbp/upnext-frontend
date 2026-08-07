@@ -3657,6 +3657,13 @@
       "close": "Close AI Copilot",
       "launcher": "AI Copilot",
       "expand": "Open full screen"
+    },
+    "signedOut": {
+      "title": "Sign in to use AI Copilot",
+      "description": "Copilot answers from the CV, profile, and applications in your account — so it needs to know who you are first.",
+      "signIn": "Sign in",
+      "register": "Create account",
+      "privacy": "Copilot only reads data in your own account and never changes your profile on its own. Every change needs your confirmation."
     }
   }
 }
