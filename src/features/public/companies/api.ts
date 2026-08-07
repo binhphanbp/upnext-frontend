@@ -64,3 +64,41 @@ export type PublicCompanyProfile = {
 export function getPublicCompanyProfile(slug: string) {
   return apiRequest<PublicCompanyProfile>(`/companies/${encodeURIComponent(slug)}`);
 }
+
+export type PublicCompanyReview = Readonly<{
+  id: string;
+  overallRating: number;
+  summary: string | null;
+  overtimeSatisfaction: number | null;
+  overtimeReason: string | null;
+  whatILove: string | null;
+  improvementSuggestion: string | null;
+  salaryBenefitsRating: number | null;
+  trainingLearningRating: number | null;
+  managementCareRating: number | null;
+  cultureFunRating: number | null;
+  officeWorkspaceRating: number | null;
+  createdAt: string;
+}>;
+
+export type CompanyReviewSummary = Readonly<{
+  totalReviews: number;
+  averageOverallRating: number | null;
+  averageBySection: Readonly<{
+    salaryBenefits: number | null;
+    trainingLearning: number | null;
+    managementCare: number | null;
+    cultureFun: number | null;
+    officeWorkspace: number | null;
+    overtimeSatisfaction: number | null;
+  }>;
+}>;
+
+export type CompanyReviewsResponse = Readonly<{
+  items: PublicCompanyReview[];
+  summary: CompanyReviewSummary;
+}>;
+
+export function getPublicCompanyReviews(companyId: string) {
+  return apiRequest<CompanyReviewsResponse>(`/companies/${encodeURIComponent(companyId)}/reviews`);
+}

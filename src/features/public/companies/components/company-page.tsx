@@ -26,6 +26,7 @@ import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
 import { getPublicCompanyProfile, type PublicCompanyProfile } from "../api";
 import { CompanyGalleryDialog } from "./company-gallery-dialog";
+import { CompanyReviewsSection } from "./company-reviews-section";
 
 import "../company-page.css";
 
@@ -436,7 +437,7 @@ function CompanyProfile({
               ) : null}
 
               {locations.length > 0 ? (
-                <CompanySection title="Văn phòng / địa điểm làm việc" isLast>
+                <CompanySection title="Văn phòng / địa điểm làm việc">
                   <div className="company-offices">
                     {locations.map((location) => (
                       <span key={location}>
@@ -446,6 +447,12 @@ function CompanyProfile({
                   </div>
                 </CompanySection>
               ) : null}
+
+              <CompanyReviewsSection
+                companyId={company.id}
+                companyName={company.name}
+                navigate={navigate}
+              />
             </section>
           </div>
 
