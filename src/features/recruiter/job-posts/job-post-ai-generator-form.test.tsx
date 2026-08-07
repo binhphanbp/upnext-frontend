@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
+import messages from "../../../../messages/vi.json";
 import type { GenerateJobPostDraftPayload, JobPostCatalogs } from "./api";
 import { JobPostAiGeneratorForm } from "./job-post-ai-generator-form";
 
@@ -13,6 +15,14 @@ const catalogs: JobPostCatalogs = {
   specializations: [],
 };
 
+function renderWithIntl(ui: React.ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="vi" messages={messages}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+}
+
 describe("JobPostAiGeneratorForm", () => {
   it("requires a title and at least one skill or keyword", async () => {
     const user = userEvent.setup();
@@ -20,7 +30,7 @@ describe("JobPostAiGeneratorForm", () => {
       .fn<(payload: GenerateJobPostDraftPayload) => Promise<boolean>>()
       .mockResolvedValue(false);
 
-    render(
+    renderWithIntl(
       <JobPostAiGeneratorForm
         catalogs={catalogs}
         companyDescription=""
@@ -42,7 +52,7 @@ describe("JobPostAiGeneratorForm", () => {
       .fn<(payload: GenerateJobPostDraftPayload) => Promise<boolean>>()
       .mockResolvedValue(true);
 
-    render(
+    renderWithIntl(
       <JobPostAiGeneratorForm
         catalogs={catalogs}
         companyDescription="Nền tảng tuyển dụng IT"

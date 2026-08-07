@@ -60,6 +60,8 @@ export type CreateCompanyPayload = Readonly<{
   description?: string;
   companySize?: string;
   benefits?: string;
+  offerLetterTemplate?: string;
+  rejectionLetterTemplate?: string;
 }>;
 
 export type CompanyResponse = Readonly<{
@@ -78,6 +80,8 @@ export type CompanyDetail = Readonly<{
   description: string | null;
   companySize: string | null;
   benefits: string | null;
+  offerLetterTemplate: string | null;
+  rejectionLetterTemplate: string | null;
   status: string;
   verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
   businessLicenseFileId: string | null;

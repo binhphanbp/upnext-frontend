@@ -22,6 +22,7 @@ import {
   type ScoreCriterionKey,
 } from "@/features/recruiter/api/cv-screening-api";
 import { updateApplicationStatus } from "@/features/recruiter/api/team";
+import { ScheduleInterviewDialog } from "@/features/recruiter/components/interviews/schedule-interview-dialog";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
@@ -65,6 +66,8 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCriterion, setSelectedCriterion] = useState<ScoreCriterionKey>("skills");
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     const session = getRecruiterSession();
@@ -73,6 +76,7 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
       return;
     }
 
+    setToken(session.accessToken);
     let active = true;
     void getApplicationAiScore(applicationId, session.accessToken)
       .then((data) => {
@@ -151,6 +155,17 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
   }
 
   async function handleStatusChange(nextStatus: "REJECTED" | "INTERVIEWING") {
+    // Same rule as the candidates list: booking a slot comes first, so an
+    // application never sits in "Hẹn phỏng vấn" with no interview attached.
+    if (nextStatus === "INTERVIEWING") {
+      setScheduleOpen(true);
+      return;
+    }
+
+    await applyStatusChange(nextStatus);
+  }
+
+  async function applyStatusChange(nextStatus: "REJECTED" | "INTERVIEWING") {
     const session = getRecruiterSession();
     if (!session) {
       router.replace("/recruiter/login");
@@ -186,9 +201,12 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
 
   async function handleViewCv() {
     if (!detail) return;
-    if (detail.cvFileUrl && !detail.cvFileUrl.includes("/applications/")) {
-      window.open(detail.cvFileUrl, "_blank", "noopener,noreferrer");
-      return;
+    if (detail.cvFileUrl) {
+      const isApiUrl = detail.cvFileUrl.startsWith("/") || detail.cvFileUrl.includes("/api/");
+      if (!isApiUrl) {
+        window.open(detail.cvFileUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
     }
 
     const session = getRecruiterSession();
@@ -198,7 +216,8 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
     }
 
     try {
-      const response = await fetch(getApplicationCvUrl(applicationId), {
+      const url = detail.cvFileUrl || getApplicationCvUrl(applicationId);
+      const response = await fetch(url, {
         headers: authHeaders(session.accessToken),
       });
       if (!response.ok) throw new Error("Không thể tải file CV.");
@@ -426,6 +445,21 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
           </Card>
         </aside>
       </div>
+
+      <ScheduleInterviewDialog
+        token={token}
+        jobs={[]}
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        initialValues={{ applicationId, interviewRound: 1 }}
+        lockApplication
+        onScheduled={() => {
+          void applyStatusChange("INTERVIEWING");
+        }}
+        onSkipSchedule={() => {
+          void applyStatusChange("INTERVIEWING");
+        }}
+      />
     </div>
   );
 }

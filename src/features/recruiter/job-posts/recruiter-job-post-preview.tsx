@@ -1,3 +1,6 @@
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import type { ReactNode } from "react";
 
@@ -60,10 +63,12 @@ export function RecruiterJobPostPreview({
   catalogs,
   locations,
 }: RecruiterJobPostPreviewProps) {
+  const t = useTranslations("Recruiter");
+  const locale = useLocale();
   const category = findOption(catalogs.categories, values.jobCategoryId);
   const employmentType = findOption(catalogs.employmentTypes, values.employmentTypeId);
   const experienceLevel = findOption(catalogs.experienceLevels, values.experienceLevelId);
-  const educationLevel = EDUCATION_LABELS[values.educationLevel ?? "ANY"] ?? "Không yêu cầu";
+  const educationLevel = getEducationLabel(t, values.educationLevel);
   const selectedLocations = locations.filter((location) =>
     values.jobLocationIds?.includes(location.id),
   );
@@ -72,17 +77,17 @@ export function RecruiterJobPostPreview({
     values.specializationIds?.includes(specialization.id),
   );
   const tags = [...selectedSkills, ...selectedSpecializations].map((option) => option.name);
-  const locationLabel = formatLocationSummary(selectedLocations);
-  const title = values.title?.trim() || "Chức danh tuyển dụng";
+  const locationLabel = formatLocationSummary(t, selectedLocations);
+  const title = values.title?.trim() || t("jobPostsPage.preview.titleFallback");
   const lead =
     getCleanText(removeDuplicateSectionHeadings(values.description ?? "")) ||
-    "Mô tả ngắn của tin tuyển dụng sẽ hiển thị tại đây.";
+    t("jobPostsPage.preview.leadFallback");
 
   return (
     <section className="jobs-page job-detail-page overflow-hidden rounded-2xl border border-slate-200">
       <div className="border-b border-emerald-100 bg-emerald-50 px-5 py-3 text-sm text-emerald-800">
-        <strong>Bản xem trước dành cho ứng viên.</strong> Các nút tương tác được tắt cho đến khi tin
-        được đăng.
+        <strong>{t("jobPostsPage.preview.bannerBold")}</strong>
+        {t("jobPostsPage.preview.bannerText")}
       </div>
 
       <div className="job-detail-shell" style={{ width: "100%", padding: "24px" }}>
@@ -93,11 +98,12 @@ export function RecruiterJobPostPreview({
                 <CompanyLogo companyName={companyName} logoUrl={companyLogoUrl} />
                 <div>
                   <span className="job-detail-company-name">{companyName}</span>
-                  <p>{category?.name || "Ngành nghề chưa được chọn"}</p>
+                  <p>{category?.name || t("jobPostsPage.preview.categoryUnset")}</p>
                 </div>
                 {companyVerified ? (
                   <span className="job-detail-verified">
-                    <ShieldCheck size={15} weight="fill" /> Đã xác thực
+                    <ShieldCheck size={15} weight="fill" />{" "}
+                    {t("jobPostsPage.preview.verifiedBadge")}
                   </span>
                 ) : null}
               </div>
@@ -109,44 +115,62 @@ export function RecruiterJobPostPreview({
 
               <div className="job-detail-salary-row">
                 <Coins size={24} weight="fill" />
-                <strong>{formatSalary(values)}</strong>
+                <strong>{formatSalary(t, values, locale)}</strong>
                 <i aria-hidden="true" />
                 <span>
-                  {values.salaryIsNegotiable ? "Thỏa thuận theo năng lực" : "Mức lương dự kiến"}
+                  {values.salaryIsNegotiable
+                    ? t("jobPostsPage.preview.salaryNegotiableNote")
+                    : t("jobPostsPage.preview.salaryEstimatedNote")}
                 </span>
               </div>
 
               <div className="job-detail-meta-grid">
-                <InfoTile icon={<MapPin size={20} />} label="Địa điểm" value={locationLabel} />
+                <InfoTile
+                  icon={<MapPin size={20} />}
+                  label={t("jobPostsPage.preview.locationLabel")}
+                  value={locationLabel}
+                />
                 <InfoTile
                   icon={<Monitor size={20} />}
-                  label="Hình thức"
-                  value={employmentType?.name || "Chưa chọn hình thức"}
+                  label={t("jobPostsPage.preview.employmentTypeLabel")}
+                  value={employmentType?.name || t("jobPostsPage.preview.employmentTypeFallback")}
                 />
                 <InfoTile
                   icon={<BriefcaseBusiness size={20} />}
-                  label="Cấp bậc"
-                  value={experienceLevel?.name || "Chưa chọn cấp bậc"}
+                  label={t("jobPostsPage.preview.experienceLevelLabel")}
+                  value={experienceLevel?.name || t("jobPostsPage.preview.experienceLevelFallback")}
                 />
                 <InfoTile
                   icon={<Calendar size={20} />}
-                  label="Đăng tuyển"
-                  value="Sau khi được duyệt"
+                  label={t("jobPostsPage.preview.postedLabel")}
+                  value={t("jobPostsPage.preview.postedValue")}
                 />
               </div>
 
-              <div className="job-detail-tags" aria-label="Kỹ năng liên quan">
+              <div className="job-detail-tags" aria-label={t("jobPostsPage.preview.skillsAria")}>
                 {tags.length ? (
                   tags.map((tag) => <span key={tag}>{tag}</span>)
                 ) : (
-                  <span>Chưa chọn kỹ năng</span>
+                  <span>{t("jobPostsPage.preview.noSkillsSelected")}</span>
                 )}
               </div>
 
-              <div className="job-detail-action-row" aria-label="Thao tác minh họa">
-                <PreviewAction icon={<PaperPlaneTilt size={18} />} label="Ứng tuyển ngay" />
-                <PreviewAction icon={<Bookmark size={18} />} label="Lưu tin" />
-                <PreviewAction icon={<ShareNetwork size={18} />} label="Chia sẻ" />
+              <div
+                className="job-detail-action-row"
+                aria-label={t("jobPostsPage.preview.actionsAria")}
+              >
+                <PreviewAction
+                  icon={<PaperPlaneTilt size={18} />}
+                  label={t("jobPostsPage.preview.applyNow")}
+                />
+                <PreviewAction
+                  icon={<Bookmark size={18} />}
+                  label={t("jobPostsPage.preview.saveJob")}
+                />
+                <PreviewAction
+                  icon={<ShareNetwork size={18} />}
+                  label={t("jobPostsPage.preview.share")}
+                />
               </div>
             </section>
 
@@ -155,22 +179,35 @@ export function RecruiterJobPostPreview({
                 <span>
                   <FileText size={18} />
                 </span>
-                <h2>Thông tin tuyển dụng</h2>
+                <h2>{t("jobPostsPage.preview.jobInfoTitle")}</h2>
               </div>
-              <PreviewRichText title="Mô tả công việc" html={values.description} />
-              <PreviewRichText title="Yêu cầu ứng viên" html={values.requirements} separated />
-              <PreviewRichText title="Quyền lợi" html={values.benefits} separated />
+              <PreviewRichText
+                title={t("jobPostsPage.detail.descriptionTitle")}
+                html={values.description}
+              />
+              <PreviewRichText
+                title={t("jobPostsPage.preview.requirementsTitle")}
+                html={values.requirements}
+                separated
+              />
+              <PreviewRichText
+                title={t("jobPostsPage.preview.benefitsTitle")}
+                html={values.benefits}
+                separated
+              />
             </section>
 
             <section className="job-detail-card job-detail-section">
               <div className="job-detail-card-head">
-                <h2>Kỹ năng & công nghệ</h2>
+                <h2>{t("jobPostsPage.preview.skillsSectionTitle")}</h2>
               </div>
               <div className="job-detail-skill-cloud">
                 {tags.length ? (
                   tags.map((tag) => <span key={tag}>{tag}</span>)
                 ) : (
-                  <p className="text-sm text-slate-500">Chưa chọn kỹ năng hoặc chuyên ngành.</p>
+                  <p className="text-sm text-slate-500">
+                    {t("jobPostsPage.preview.noSkillsOrSpecializations")}
+                  </p>
                 )}
               </div>
             </section>
@@ -178,35 +215,59 @@ export function RecruiterJobPostPreview({
 
           <aside className="job-detail-aside">
             <section className="job-detail-card job-detail-ready-card">
-              <h2>Sẵn sàng ứng tuyển?</h2>
-              <p>Gia tăng cơ hội với hồ sơ nổi bật</p>
-              <PreviewAction icon={<PaperPlaneTilt size={18} />} label="Ứng tuyển ngay" />
-              <PreviewAction icon={<Coins size={18} />} label="Xem lương phù hợp" />
-              <PreviewAction icon={<Bookmark size={18} />} label="Lưu tin" />
+              <h2>{t("jobPostsPage.preview.readyTitle")}</h2>
+              <p>{t("jobPostsPage.preview.readySubtitle")}</p>
+              <PreviewAction
+                icon={<PaperPlaneTilt size={18} />}
+                label={t("jobPostsPage.preview.applyNow")}
+              />
+              <PreviewAction
+                icon={<Coins size={18} />}
+                label={t("jobPostsPage.preview.viewSalaryMatch")}
+              />
+              <PreviewAction
+                icon={<Bookmark size={18} />}
+                label={t("jobPostsPage.preview.saveJob")}
+              />
               <div className="job-detail-deadline">
-                Hạn nộp hồ sơ: <b>{formatDate(values.expiredAt)}</b>
+                {t("jobPostsPage.preview.deadlineLabel")}
+                <b>{formatDate(t, values.expiredAt, locale)}</b>
               </div>
             </section>
 
             <section className="job-detail-card job-detail-overview-card">
-              <h2>Tổng quan công việc</h2>
-              <InfoLine icon={<Coins size={17} />} label="Mức lương" value={formatSalary(values)} />
-              <InfoLine icon={<MapPin size={17} />} label="Địa điểm" value={locationLabel} />
+              <h2>{t("jobPostsPage.preview.overviewTitle")}</h2>
+              <InfoLine
+                icon={<Coins size={17} />}
+                label={t("jobPostsPage.detail.salary")}
+                value={formatSalary(t, values, locale)}
+              />
+              <InfoLine
+                icon={<MapPin size={17} />}
+                label={t("jobPostsPage.preview.locationLabel")}
+                value={locationLabel}
+              />
               <InfoLine
                 icon={<BriefcaseBusiness size={17} />}
-                label="Hình thức"
-                value={employmentType?.name || "Chưa chọn"}
+                label={t("jobPostsPage.preview.employmentTypeLabel")}
+                value={employmentType?.name || t("jobPostsPage.notUpdated")}
               />
               <InfoLine
                 icon={<UsersRound size={17} />}
-                label="Số lượng"
-                value={`${toNumber(values.vacanciesCount) || 1} vị trí`}
+                label={t("jobPostsPage.preview.vacanciesLabel")}
+                value={t("jobPostsPage.preview.vacanciesUnit", {
+                  count: toNumber(values.vacanciesCount) || 1,
+                })}
               />
-              <InfoLine icon={<Calendar size={17} />} label="Học vấn" value={educationLevel} />
               <InfoLine
                 icon={<Calendar size={17} />}
-                label="Thời gian"
-                value={values.workingDays?.trim() || "Chưa cập nhật"}
+                label={t("jobPostsPage.preview.educationLabel")}
+                value={educationLevel}
+              />
+              <InfoLine
+                icon={<Calendar size={17} />}
+                label={t("jobPostsPage.preview.workingDaysLabel")}
+                value={values.workingDays?.trim() || t("jobPostsPage.notUpdated")}
               />
             </section>
 
@@ -214,8 +275,8 @@ export function RecruiterJobPostPreview({
               <CompanyLogo companyName={companyName} logoUrl={companyLogoUrl} size="normal" />
               <div>
                 <h2>{companyName}</h2>
-                <p>{category?.name || "Thông tin doanh nghiệp"}</p>
-                {companyVerified ? <em>Công ty đã xác thực</em> : null}
+                <p>{category?.name || t("jobPostsPage.preview.companyInfoFallback")}</p>
+                {companyVerified ? <em>{t("jobPostsPage.preview.companyVerifiedTag")}</em> : null}
               </div>
             </section>
           </aside>
@@ -234,6 +295,7 @@ function PreviewRichText({
   html?: string | undefined;
   separated?: boolean | undefined;
 }>) {
+  const t = useTranslations("Recruiter");
   const hasContent = Boolean(getCleanText(html ?? ""));
   return (
     <section className={separated ? "border-t border-slate-100 py-5" : "pb-5"}>
@@ -244,15 +306,20 @@ function PreviewRichText({
           dangerouslySetInnerHTML={{ __html: getCleanHtml(html ?? "") }}
         />
       ) : (
-        <p className="text-sm text-slate-500">Nội dung này chưa được nhập.</p>
+        <p className="text-sm text-slate-500">{t("jobPostsPage.preview.richTextEmpty")}</p>
       )}
     </section>
   );
 }
 
 function PreviewAction({ icon, label }: Readonly<{ icon: ReactNode; label: string }>) {
+  const t = useTranslations("Recruiter");
   return (
-    <button type="button" disabled aria-label={`${label} (chỉ minh họa)`}>
+    <button
+      type="button"
+      disabled
+      aria-label={`${label}${t("jobPostsPage.preview.previewActionSuffix")}`}
+    >
       {icon}
       {label}
     </button>
@@ -264,6 +331,8 @@ function CompanyLogo({
   logoUrl,
   size = "large",
 }: Readonly<{ companyName: string; logoUrl: string; size?: "normal" | "large" }>) {
+  const t = useTranslations("Recruiter");
+  const locale = useLocale();
   const className = `jobs-logo-mark${size === "large" ? " is-large" : ""}`;
 
   if (logoUrl) {
@@ -271,7 +340,7 @@ function CompanyLogo({
       <span className={className}>
         <Image
           src={logoUrl}
-          alt={`Logo ${companyName}`}
+          alt={t("jobPostsPage.preview.logoAlt", { name: companyName })}
           width={size === "large" ? 72 : 48}
           height={size === "large" ? 72 : 48}
           unoptimized
@@ -283,7 +352,7 @@ function CompanyLogo({
 
   return (
     <span className={`${className} jobs-logo-fallback`} style={{ color: "#059669" }}>
-      {(companyName.trim()[0] || "U").toLocaleUpperCase("vi")}
+      {(companyName.trim()[0] || "U").toLocaleUpperCase(locale)}
     </span>
   );
 }
@@ -322,26 +391,38 @@ function findOption(options: ReadonlyArray<JobOption>, id?: string) {
   return options.find((option) => option.id === id);
 }
 
-function formatLocationSummary(locations: ReadonlyArray<JobLocationOption>) {
+function formatLocationSummary(
+  t: ReturnType<typeof useTranslations>,
+  locations: ReadonlyArray<JobLocationOption>,
+) {
   const firstLocation = locations[0];
-  if (!firstLocation) return "Chưa chọn địa điểm";
-  const primary = firstLocation.city || firstLocation.district || "Địa điểm làm việc";
-  return locations.length > 1 ? `${primary} +${locations.length - 1} địa điểm` : primary;
+  if (!firstLocation) return t("jobPostsPage.preview.locationUnset");
+  const primary =
+    firstLocation.city || firstLocation.district || t("jobPostsPage.preview.locationFallback");
+  return locations.length > 1
+    ? `${primary}${t("jobPostsPage.preview.locationCountSuffix", { count: locations.length - 1 })}`
+    : primary;
 }
 
-function formatSalary(values: JobPostPreviewValues) {
-  if (values.salaryIsNegotiable) return "Thỏa thuận";
-  if (values.salaryIsVisible === false) return "Không công khai";
+function formatSalary(
+  t: ReturnType<typeof useTranslations>,
+  values: JobPostPreviewValues,
+  locale: string,
+) {
+  if (values.salaryIsNegotiable) return t("jobPostsPage.preview.salaryNegotiable");
+  if (values.salaryIsVisible === false) return t("jobPostsPage.preview.salaryHidden");
   const minimum = toNumber(values.salaryMin);
   const maximum = toNumber(values.salaryMax);
-  if (minimum && maximum) return `${formatMoney(minimum)} - ${formatMoney(maximum)}`;
-  if (minimum) return `Từ ${formatMoney(minimum)}`;
-  if (maximum) return `Đến ${formatMoney(maximum)}`;
-  return "Chưa cập nhật";
+  if (minimum && maximum)
+    return `${formatMoney(minimum, locale)} - ${formatMoney(maximum, locale)}`;
+  if (minimum)
+    return t("jobPostsPage.preview.salaryFrom", { amount: formatMoney(minimum, locale) });
+  if (maximum) return t("jobPostsPage.preview.salaryTo", { amount: formatMoney(maximum, locale) });
+  return t("jobPostsPage.notUpdated");
 }
 
-function formatMoney(value: number) {
-  return `${new Intl.NumberFormat("vi-VN").format(value)} VND`;
+function formatMoney(value: number, locale: string) {
+  return `${new Intl.NumberFormat(locale).format(value)} VND`;
 }
 
 function toNumber(value: unknown) {
@@ -349,10 +430,16 @@ function toNumber(value: unknown) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
-function formatDate(value?: string) {
-  if (!value) return "Chưa chọn";
+function formatDate(
+  t: ReturnType<typeof useTranslations>,
+  value: string | undefined,
+  locale: string,
+) {
+  if (!value) return t("jobPostsPage.preview.dateUnset");
   const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? "Chưa chọn" : date.toLocaleDateString("vi-VN");
+  return Number.isNaN(date.getTime())
+    ? t("jobPostsPage.preview.dateUnset")
+    : date.toLocaleDateString(locale);
 }
 
 function getCleanText(html: string) {
@@ -439,11 +526,19 @@ function removeDuplicateSectionHeadings(html: string) {
     .replace(new RegExp(`<li[^>]*>\\s*${heading}\\s*<\\/li>`, "gi"), "");
 }
 
-const EDUCATION_LABELS: Readonly<Record<string, string>> = {
-  ANY: "Không yêu cầu",
-  HIGH_SCHOOL: "Trung học phổ thông",
-  VOCATIONAL: "Trung cấp",
-  COLLEGE: "Cao đẳng",
-  BACHELOR: "Đại học",
-  POSTGRADUATE: "Sau đại học",
-};
+function getEducationLabel(t: ReturnType<typeof useTranslations>, level?: string) {
+  switch (level) {
+    case "HIGH_SCHOOL":
+      return t("jobPostsPage.education.highSchool");
+    case "VOCATIONAL":
+      return t("jobPostsPage.education.vocational");
+    case "COLLEGE":
+      return t("jobPostsPage.education.college");
+    case "BACHELOR":
+      return t("jobPostsPage.education.bachelor");
+    case "POSTGRADUATE":
+      return t("jobPostsPage.education.postgraduate");
+    default:
+      return t("jobPostsPage.education.any");
+  }
+}

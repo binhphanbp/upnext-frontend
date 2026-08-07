@@ -1010,8 +1010,9 @@
       "subtitle": "Theo dõi trạng thái xác thực hồ sơ và công ty của bạn.",
       "welcomeBack": "Chào mừng trở lại",
       "budget": "Ngân sách",
-      "totalJobPosts": "Tổng bài đăng",
+      "totalJobPosts": "Tổng tin tuyển dụng",
       "totalCandidates": "Tổng ứng viên",
+      "totalApplications": "Tổng hồ sơ ứng tuyển",
       "revenueForecast": "Dự báo doanh thu",
       "overviewProfit": "Tổng quan lợi nhuận",
       "defaultName": "bạn",
@@ -1019,7 +1020,8 @@
       "miniCard": {
         "publishedCount": "{count} đang đăng",
         "draftCount": "{count} nháp",
-        "totalViews": "{count} lượt xem tin"
+        "totalViews": "Tổng {count} lượt xem tin",
+        "applicationsHint": "Đếm theo số CV đã nộp"
       },
       "statusDistribution": {
         "title": "Tin theo trạng thái",
@@ -1034,6 +1036,40 @@
           "CLOSED": "Đã đóng",
           "PENDING_REVIEW": "Chờ duyệt",
           "ARCHIVED": "Lưu trữ"
+        }
+      },
+      "candidates": {
+        "funnelTitle": "Phễu ứng viên",
+        "funnelSubtitle": "Tổng {count} hồ sơ của công ty",
+        "empty": "Chưa có hồ sơ ứng tuyển nào",
+        "loadError": "Chưa tải được số liệu ứng viên. Kiểm tra kết nối, hoặc tài khoản của bạn chưa được gắn với công ty nào.",
+        "stat": {
+          "unviewed": "Chưa xem",
+          "new": "Mới trong 7 ngày",
+          "stale": "Tồn đọng > {days} ngày",
+          "interviews": "PV sắp tới"
+        },
+        "aiSummary": "Điểm AI: {excellent} xuất sắc · {good} khá · {unscored} chưa chấm",
+        "closed": "Đã kết thúc: {rejected} bị từ chối · {withdrawn} rút hồ sơ",
+        "recentTitle": "Hồ sơ mới nhất",
+        "notScored": "Chưa chấm",
+        "status": {
+          "SUBMITTED": "Mới nộp",
+          "VIEWED": "Đã xem",
+          "CONSIDERING": "Đang cân nhắc",
+          "SHORTLISTED": "Vào vòng trong",
+          "INTERVIEWING": "Phỏng vấn",
+          "OFFERED": "Đã gửi offer",
+          "HIRED": "Đã tuyển",
+          "REJECTED": "Từ chối",
+          "WITHDRAWN": "Đã rút"
+        },
+        "table": {
+          "candidate": "Ứng viên",
+          "job": "Vị trí ứng tuyển",
+          "aiScore": "Điểm AI",
+          "submitted": "Ngày nộp",
+          "status": "Trạng thái"
         }
       },
       "topJobs": {
@@ -1062,7 +1098,7 @@
       },
       "notifications": {
         "title": "Cập nhật mới nhất",
-        "empty": "Chưa có cập nhật mới nào.",
+        "empty": "Chưa có cập nhật mới nào",
         "badge": "Thông báo"
       },
       "reputation": {
@@ -1098,6 +1134,7 @@
         "dialog": {
           "title": "Về điểm uy tín",
           "close": "Đóng",
+          "introTitle": "Hướng dẫn tính điểm uy tín",
           "intro": "Điểm uy tín của nhà tuyển dụng sẽ biến đổi theo hành động và theo đánh giá từ ứng viên.",
           "gainTitle": "Cách tính điểm cộng",
           "gainText": "Điểm cộng được tính khi nhà tuyển dụng xác thực đầy đủ thông tin, hoặc khi nhà tuyển dụng cập nhật trạng thái các bài tuyển dụng.",
@@ -1269,6 +1306,7 @@
         "recruiterNote": "Ghi chú nội bộ",
         "submit": "Lên lịch",
         "cancel": "Hủy bỏ",
+        "skipSchedule": "Chỉ đổi trạng thái",
         "noCandidates": "Không có ứng viên phù hợp để lên lịch"
       },
       "toasts": {
@@ -1460,6 +1498,10 @@
           "descriptionPlaceholder": "Giới thiệu chi tiết về công ty...",
           "benefits": "Phúc lợi nhân viên",
           "benefitsPlaceholder": "Nhập các phúc lợi dành cho nhân viên...",
+          "offerLetterTemplate": "Mẫu thư nhận việc",
+          "offerLetterTemplatePlaceholder": "Soạn nội dung thư nhận việc gửi ứng viên...",
+          "rejectionLetterTemplate": "Mẫu thư từ chối",
+          "rejectionLetterTemplatePlaceholder": "Soạn nội dung thư từ chối gửi ứng viên...",
           "license": "Minh chứng doanh nghiệp",
           "city": "Tỉnh/Thành phố",
           "cityPlaceholder": "Chọn tỉnh/thành phố",
@@ -1659,16 +1701,599 @@
     },
     "jobPostsPage": {
       "onboardingBlockedTitle": "Yêu cầu xác thực doanh nghiệp",
-      "onboardingBlockedText": "Doanh nghiệp của bạn cần hoàn tất thông tin và được xác minh trước khi thực hiện đăng tin tuyển dụng."
+      "onboardingBlockedText": "Doanh nghiệp của bạn cần hoàn tất thông tin và được xác minh trước khi thực hiện đăng tin tuyển dụng.",
+      "loading": "Đang tải tin tuyển dụng...",
+      "requiredMark": "Bắt buộc",
+      "companyDefaultName": "Doanh nghiệp của bạn",
+      "notUpdated": "Chưa cập nhật",
+      "posterAll": "Tất cả người đăng",
+      "categoryAll": "Tất cả ngành nghề",
+      "fallbackRecruiterName": "Recruiter",
+      "validation": {
+        "titleMin": "Vui lòng nhập tiêu đề tối thiểu 5 ký tự.",
+        "descriptionMin": "Mô tả công việc cần tối thiểu 30 ký tự.",
+        "salaryMaxAmount": "Mức lương tối đa là 99.999.999.999 VND.",
+        "vacanciesMin": "Số lượng tuyển phải từ 1.",
+        "vacanciesMax": "Số lượng tuyển tối đa là 99.999.",
+        "expiredAtRequired": "Vui lòng chọn hạn nộp hồ sơ.",
+        "salaryMaxVsMin": "Lương tối đa phải lớn hơn hoặc bằng lương tối thiểu.",
+        "genericInvalid": "Vui lòng kiểm tra lại thông tin."
+      },
+      "errors": {
+        "networkLost": "Mất kết nối đến hệ thống khi đang lưu. Vui lòng bấm lại để thử tiếp.",
+        "businessLicenseMissing": "Công ty chưa có giấy phép kinh doanh trong hồ sơ. Vui lòng tải lên ở Hồ sơ công ty rồi thử lại.",
+        "notAttachedToCompany": "Tài khoản của bạn chưa được gắn với công ty nào. Vui lòng hoàn tất hồ sơ công ty trước.",
+        "invalidOrIncomplete": "Thông tin tin tuyển dụng chưa hợp lệ hoặc công ty chưa hoàn tất hồ sơ.",
+        "sessionExpired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+        "reputationInsufficient": "Điểm uy tín của công ty chưa đủ để đăng tin{requiredSuffix}. {currentPrefix}Bạn có thể tăng điểm bằng cách xác thực mã số thuế, hoàn thiện thông tin công ty và xử lý CV ứng viên đúng hạn.",
+        "reputationRequiredSuffix": " (cần tối thiểu {required})",
+        "reputationCurrentPrefix": "Hiện tại: {current}. ",
+        "companyNotVerified": "Công ty cần được xác thực trước khi xuất bản tin tuyển dụng.",
+        "serverError": "Hệ thống đang gặp sự cố khi xử lý tin tuyển dụng.",
+        "unknown": "Không thể xử lý tin tuyển dụng. Vui lòng thử lại."
+      },
+      "aiErrors": {
+        "connectionFailed": "Không thể kết nối đến dịch vụ AI. Vui lòng thử lại.",
+        "rateLimited": "Bạn đang thao tác quá nhanh. Vui lòng chờ một phút rồi thử lại.",
+        "busy": "Dịch vụ AI đang bận. Vui lòng thử lại sau ít phút.",
+        "generic": "Không thể xử lý JD. Vui lòng kiểm tra lại dữ liệu."
+      },
+      "confirmDraftReplace": {
+        "title": "Thay thế nội dung đang soạn?",
+        "text": "Bản nháp AI sẽ thay thế nội dung hiện có trong form. Thao tác này chưa đăng tin.",
+        "confirm": "Tiếp tục",
+        "cancel": "Giữ nội dung hiện tại"
+      },
+      "aiDraftApplied": {
+        "withSuggestions": "Đã điền bản nháp. Có {count} mục AI đề xuất chưa có trong danh mục — bấm để thêm ở Kỹ năng / Chuyên ngành.",
+        "withAutofilled": "Đã điền bản nháp AI. AI tự suy luận thêm từ JD: {fields}.",
+        "plain": "Đã điền bản nháp AI. Vui lòng kiểm tra trước khi đăng."
+      },
+      "catalog": {
+        "skillNoun": "Kỹ năng",
+        "specializationNoun": "Chuyên ngành",
+        "alreadyExists": "{noun} \"{name}\" đã có trong danh mục.",
+        "added": "Đã thêm {noun} \"{name}\".",
+        "createConflict": "{noun} này đã có trong danh mục.",
+        "createFailed": "Không thêm được {noun} mới. Vui lòng thử lại."
+      },
+      "toasts": {
+        "updatedPendingReview": "Đã cập nhật tin tuyển dụng, tin sẽ được duyệt lại trước khi hiển thị công khai.",
+        "draftCreated": "Đã tạo bản nháp tin tuyển dụng thành công.",
+        "published": "Tin tuyển dụng đã được gửi duyệt.",
+        "reloadFailed": "Tin tuyển dụng đã lưu nhưng chưa tải lại được danh sách mới nhất.",
+        "notFoundOrNoPermission": "Không tìm thấy tin tuyển dụng hoặc bạn không có quyền chỉnh sửa.",
+        "reopened": "Tin tuyển dụng đã được mở lại, đang chờ admin duyệt.",
+        "closed": "Tin tuyển dụng đã được đóng.",
+        "deleted": "Đã xóa tin tuyển dụng.",
+        "exportEmpty": "Không có tin tuyển dụng phù hợp để xuất.",
+        "exported": "Đã xuất {count} tin tuyển dụng."
+      },
+      "publishDialog": {
+        "reputationTitle": "Chưa đủ điểm uy tín để đăng tin",
+        "genericTitle": "Chưa gửi duyệt được",
+        "savedNote": " Tin đã được lưu, bạn có thể gửi duyệt lại từ danh sách tin.",
+        "confirm": "Đã hiểu"
+      },
+      "deleteDialog": {
+        "title": "Xóa tin tuyển dụng?",
+        "text": "Tin \"{title}\" sẽ bị xóa và không thể khôi phục. Bạn có chắc chắn muốn tiếp tục?",
+        "confirm": "Xóa tin",
+        "cancel": "Hủy"
+      },
+      "jobStatus": {
+        "all": "Tất cả",
+        "active": "Đang đăng",
+        "expiringSoon": "Sắp hết hạn",
+        "pendingReview": "Chờ duyệt",
+        "draft": "Bản nháp",
+        "closed": "Đã đóng",
+        "expired": "Đã hết hạn",
+        "rejected": "Bị từ chối"
+      },
+      "education": {
+        "any": "Không yêu cầu",
+        "highSchool": "Trung học phổ thông",
+        "vocational": "Trung cấp",
+        "college": "Cao đẳng",
+        "bachelor": "Đại học",
+        "postgraduate": "Sau đại học"
+      },
+      "salaryPeriod": {
+        "hour": "Theo giờ",
+        "day": "Theo ngày",
+        "month": "Theo tháng",
+        "year": "Theo năm"
+      },
+      "csv": {
+        "stt": "STT",
+        "title": "Tiêu đề",
+        "status": "Trạng thái",
+        "poster": "Người đăng",
+        "category": "Ngành nghề",
+        "level": "Cấp bậc",
+        "type": "Loại hình",
+        "location": "Địa điểm làm việc",
+        "vacancies": "Số lượng tuyển",
+        "applicants": "Ứng viên",
+        "views": "Lượt xem",
+        "salary": "Mức lương",
+        "createdAt": "Ngày tạo",
+        "publishedAt": "Ngày đăng",
+        "expiredAt": "Hạn nộp"
+      },
+      "emptyList": {
+        "noMatch": "Không tìm thấy tin tuyển dụng phù hợp.",
+        "empty": "Hiện tại chưa có tin tuyển dụng",
+        "ariaEmpty": "Danh sách tin tuyển dụng trống",
+        "iconAlt": "Không có tin tuyển dụng"
+      },
+      "list": {
+        "ariaSection": "Danh sách tin tuyển dụng",
+        "exportButton": "Xuất Excel",
+        "createButton": "Tạo tin tuyển dụng",
+        "table": {
+          "job": "Tin tuyển dụng",
+          "status": "Trạng thái",
+          "applicants": "Ứng viên",
+          "actions": "Thao tác"
+        }
+      },
+      "row": {
+        "detailsAria": "Chi tiết tin tuyển dụng",
+        "statusAria": "Trạng thái tin tuyển dụng",
+        "performanceAria": "Hiệu quả tin tuyển dụng",
+        "actionsAria": "Thao tác tin tuyển dụng",
+        "actionsButtonAria": "Thao tác",
+        "postedBy": "Đăng bởi",
+        "location": "Địa điểm:",
+        "locationCountSuffix": " (+{count} địa điểm)",
+        "publishedLabel": "Ngày đăng:",
+        "notPublishedYet": "Chưa đăng",
+        "unlimited": "Không giới hạn",
+        "expiredLabel": "Hết hạn:",
+        "views": "{count} lượt xem",
+        "applicationsAria": "{applications} ứng viên đã ứng tuyển trên {vacancies} chỉ tiêu tuyển",
+        "menu": {
+          "viewDetails": "Xem chi tiết tin",
+          "manageAccess": "Quản lý quyền truy cập",
+          "edit": "Chỉnh sửa tin",
+          "reopen": "Mở lại tin",
+          "publish": "Xuất bản",
+          "close": "Đóng tin tuyển dụng",
+          "delete": "Xóa tin tuyển dụng"
+        }
+      },
+      "form": {
+        "sectionCreateTitle": "Mô tả công việc",
+        "sectionEditTitle": "Chỉnh sửa mô tả công việc",
+        "title": {
+          "label": "Chức danh",
+          "placeholder": "Senior Frontend Engineer"
+        },
+        "category": {
+          "label": "Ngành nghề",
+          "placeholder": "Chọn ngành nghề"
+        },
+        "experienceLevel": {
+          "label": "Cấp bậc",
+          "placeholder": "Chọn cấp bậc"
+        },
+        "employmentType": {
+          "label": "Loại việc làm",
+          "placeholder": "Chọn loại việc làm"
+        },
+        "educationLevel": {
+          "label": "Trình độ học vấn",
+          "placeholder": "Chọn trình độ học vấn"
+        },
+        "skills": {
+          "label": "Kỹ năng",
+          "placeholder": "Nhập từ khóa để tìm kiếm kỹ năng...",
+          "createHint": "Chỉ thêm khi chắc chắn danh mục còn thiếu; tên đã tồn tại sẽ bị từ chối."
+        },
+        "specializations": {
+          "label": "Chuyên ngành",
+          "placeholder": "Nhập từ khóa để tìm kiếm chuyên ngành...",
+          "createHint": "Chỉ thêm khi chắc chắn danh mục còn thiếu; tên đã tồn tại sẽ bị từ chối."
+        },
+        "description": {
+          "label": "Mô tả",
+          "placeholder": "Mô tả phạm vi công việc, sản phẩm và trách nhiệm chính..."
+        },
+        "requirements": {
+          "label": "Yêu cầu công việc",
+          "placeholder": "Kinh nghiệm, kỹ năng bắt buộc, năng lực ưu tiên..."
+        },
+        "benefits": {
+          "label": "Quyền lợi / Phúc lợi",
+          "placeholder": "Lương thưởng, bảo hiểm, chế độ làm việc, lộ trình phát triển..."
+        },
+        "salarySection": "Mức lương",
+        "salaryMin": {
+          "label": "Từ",
+          "placeholder": "20000000"
+        },
+        "salaryMax": {
+          "label": "Đến",
+          "placeholder": "40000000"
+        },
+        "salaryPeriodLabel": "Chu kỳ trả lương",
+        "salaryPeriodPlaceholder": "Chọn chu kỳ trả lương",
+        "salaryNegotiable": "Lương thỏa thuận",
+        "salaryVisible": "Hiển thị lương",
+        "vacancies": {
+          "label": "Số lượng tuyển dụng",
+          "placeholder": "1"
+        },
+        "workingDays": {
+          "label": "Thời gian làm việc",
+          "placeholder": "Thứ 2 - Thứ 6"
+        },
+        "expiredAt": {
+          "label": "Hạn nộp hồ sơ",
+          "placeholder": "Chọn hạn nộp hồ sơ"
+        },
+        "reputationBlockedTitle": "Chưa đủ điểm uy tín để đăng tin ({score}/{required})",
+        "reputationBlockedText": "Bạn vẫn lưu được bản nháp. Để gửi duyệt, công ty cần đạt {required} điểm — tăng điểm bằng cách xác thực mã số thuế, hoàn thiện thông tin công ty và xử lý CV ứng viên đúng hạn.",
+        "publishDisabledTitle": "Cần {required} điểm uy tín để gửi duyệt, công ty đang có {score}.",
+        "cancel": "Hủy",
+        "preview": "Xem trước",
+        "saveDraft": "Lưu bản nháp",
+        "saveDraftSubmitting": "Đang tạo...",
+        "saveChanges": "Lưu thay đổi",
+        "saveChangesSubmitting": "Đang lưu...",
+        "publish": "Đăng tin (gửi duyệt)",
+        "publishSubmitting": "Đang gửi..."
+      },
+      "detail": {
+        "descriptionTitle": "Mô tả công việc",
+        "noDescription": "Chưa có mô tả",
+        "requirementsTitle": "Yêu cầu công việc",
+        "noRequirements": "Chưa có yêu cầu",
+        "benefitsTitle": "Quyền lợi & Phúc lợi",
+        "noBenefits": "Chưa có quyền lợi",
+        "performanceTitle": "Hiệu quả tin đăng",
+        "views": "Lượt xem",
+        "applications": "Ứng tuyển",
+        "viewApplicantsButton": "Xem danh sách ứng viên ({count})",
+        "infoTitle": "Thông tin công việc",
+        "moderationStatusLabel": "Trạng thái duyệt",
+        "moderationApproved": "Đã duyệt",
+        "moderationRejected": "Từ chối",
+        "moderationPending": "Chờ duyệt",
+        "rejectReasonLabel": "Lý do từ chối: ",
+        "pendingModerationNote": "Tin đã được gửi và đang chờ admin duyệt — chưa hiển thị công khai cho ứng viên.",
+        "category": "Ngành nghề",
+        "experienceLevel": "Cấp bậc",
+        "employmentType": "Hình thức",
+        "salary": "Mức lương",
+        "vacancies": "Số lượng tuyển",
+        "vacanciesUnit": "{count} người",
+        "educationLevel": "Học vấn tối thiểu",
+        "publishedAt": "Ngày xuất bản",
+        "workingDays": "Thời gian làm việc",
+        "expiredAt": "Hạn nộp hồ sơ",
+        "locationTitle": "Địa điểm làm việc",
+        "noLocation": "Chưa có địa điểm",
+        "skillsTitle": "Kỹ năng yêu cầu",
+        "noSkills": "Chưa có kỹ năng",
+        "specializationsTitle": "Chuyên ngành liên quan",
+        "noSpecializations": "Chưa có chuyên ngành",
+        "backButton": "Quay lại danh sách"
+      },
+      "select": {
+        "searchPlaceholder": "Tìm kiếm...",
+        "searchAriaPrefix": "Tìm kiếm ",
+        "noResults": "Không tìm thấy kết quả"
+      },
+      "location": {
+        "title": "Địa điểm làm việc",
+        "selectedCount": "{count} đã chọn",
+        "noLocationsInCatalog": "Chưa có địa điểm trong danh mục"
+      },
+      "tagPicker": {
+        "alreadyExists": "Mục này đã có trong danh mục.",
+        "noResults": "Không tìm thấy kết quả phù hợp.",
+        "createButton": "Thêm mới \"{query}\"",
+        "creating": "Đang thêm \"{query}\"...",
+        "aiSuggestionsHint": "AI đề xuất nhưng danh mục chưa có — bấm để thêm:",
+        "dismissSuggestionAria": "Bỏ qua đề xuất {name}",
+        "removeChipAria": "Bỏ chọn {label}"
+      },
+      "createOptionsModal": {
+        "titlePrefix": "Tạo tin tuyển dụng với",
+        "description": "Lựa chọn phương thức phù hợp nhất để khởi tạo mô tả công việc của bạn nhanh chóng.",
+        "useExistingJd": "Sử dụng JD sẵn có",
+        "generateJd": "Tạo JD tự động",
+        "or": "Hoặc",
+        "startFromScratch": "Đăng tin tuyển dụng từ đầu"
+      },
+      "filters": {
+        "sectionAria": "Bộ lọc tin tuyển dụng",
+        "label": "Bộ lọc",
+        "searchPlaceholder": "Tìm kiếm tin tuyển dụng...",
+        "statusAria": "Lọc theo trạng thái tin tuyển dụng",
+        "statusPlaceholder": "Trạng thái",
+        "posterAria": "Lọc theo người đăng bài",
+        "posterPlaceholder": "Người đăng",
+        "categoryAria": "Lọc theo ngành nghề",
+        "categoryPlaceholder": "Ngành nghề",
+        "reset": "Đặt lại",
+        "showAria": "Hiện bộ lọc tin tuyển dụng",
+        "hideAria": "Ẩn bộ lọc tin tuyển dụng"
+      },
+      "accessDialog": {
+        "loadError": "Không thể tải danh sách quyền truy cập.",
+        "grantedAnnouncement": "Đã cấp lại quyền truy cập cho {name}.",
+        "revokedAnnouncement": "Đã thu hồi quyền truy cập của {name}.",
+        "updateError": "Không thể cập nhật quyền truy cập.",
+        "title": "Quản lý thành viên được quyền truy cập tin tuyển dụng",
+        "infoText": "Mọi thành viên trong công ty mặc định có quyền truy cập tin này. Quyền thao tác như chỉnh sửa tin hoặc quản lý ứng viên vẫn phụ thuộc vào vai trò của từng thành viên.",
+        "retry": "Thử lại",
+        "loadingMembers": "Đang tải danh sách thành viên...",
+        "tableUser": "Người dùng",
+        "tableRole": "Vai trò",
+        "tableStatus": "Tình trạng",
+        "tableActions": "Hành động",
+        "memberAria": "Thành viên {name}",
+        "avatarAlt": "Ảnh đại diện của {name}",
+        "youTag": "(Bạn)",
+        "noRole": "Chưa có vai trò",
+        "jobCreatorTag": "Người tạo tin",
+        "statusRevoked": "Đã thu hồi",
+        "statusActive": "Đang hoạt động",
+        "statusSuspended": "Tạm khóa",
+        "defaultAccessLabel": "Quyền mặc định",
+        "yourAccountLabel": "Tài khoản của bạn",
+        "revokeButton": "Thu hồi quyền",
+        "grantButton": "Cấp lại quyền",
+        "emptyMembers": "Chưa có thành viên nào trong công ty."
+      },
+      "aiImport": {
+        "fileTooLarge": "File vượt quá giới hạn 8 MB.",
+        "unsupportedFileType": "Chỉ hỗ trợ PDF, DOCX, TXT hoặc ảnh JPG, PNG, WEBP.",
+        "fileRequired": "Vui lòng chọn file JD cần quét.",
+        "textTooShort": "Nội dung JD cần tối thiểu 60 ký tự.",
+        "titlePrefix": "Tạo tin từ JD có sẵn với",
+        "subtitle": "AI chỉ trích xuất nội dung có trong nguồn. Bạn sẽ được kiểm tra và chỉnh sửa toàn bộ dữ liệu trước khi đăng.",
+        "sourceHeading": "Cung cấp JD theo cách của bạn",
+        "sourceTablistAria": "Nguồn JD",
+        "fileTab": "Tải file JD",
+        "pasteTab": "Dán nội dung",
+        "selectFileLabel": "Chọn file JD cần quét",
+        "fileInputAria": "File JD cần quét",
+        "dropHint": "Kéo thả file vào đây hoặc chọn từ máy",
+        "dropFormats": "PDF, DOCX, TXT, JPG, PNG hoặc WEBP; tối đa 8 MB",
+        "chooseFileButton": "Chọn file JD",
+        "removeFileAria": "Bỏ file {name}",
+        "pasteTextLabel": "Nội dung JD",
+        "pastePlaceholder": "Dán toàn bộ chức danh, mô tả công việc, yêu cầu và quyền lợi...",
+        "charCount": "{count} ký tự",
+        "submitting": "AI đang quét JD...",
+        "submit": "Quét và tự động điền",
+        "howHeading": "AI sẽ làm gì?",
+        "step1": "Đọc nội dung và nhận diện các phần của JD.",
+        "step2": "Ánh xạ cấp bậc, kỹ năng và danh mục có trong hệ thống.",
+        "step3": "Điền bản nháp để bạn kiểm tra, không tự động đăng.",
+        "note": "Những thông tin không có trong JD gốc sẽ được để trống thay vì tự suy diễn.",
+        "or": "Hoặc",
+        "startFromScratchLink": "nhập tin từ đầu",
+        "openGeneratorLink": "tạo JD tự động bằng AI"
+      },
+      "aiGenerator": {
+        "genericError": "Không thể tạo bản nháp JD. Vui lòng kiểm tra lại dữ liệu.",
+        "loadFailed": "Không thể tải dữ liệu tạo JD. Vui lòng tải lại trang.",
+        "autofillOverlayTitle": "AI đang điền các trường còn thiếu...",
+        "autofillOverlayCountdown": "Dự kiến còn khoảng {seconds} giây",
+        "autofillOverlayFinishing": "Sắp xong, AI đang đối chiếu danh mục...",
+        "exitDialogTitle": "AI chưa điền được các trường còn thiếu",
+        "exitDialogText": "{message} Bạn vẫn có thể sang form và điền tay.",
+        "exitDialogConfirm": "Sang form, điền tay",
+        "exitDialogCancel": "Thử lại sau"
+      },
+      "aiGeneratorForm": {
+        "generatingTitle": "AI đang soạn JD cho bạn...",
+        "generatingCountdown": "Dự kiến còn khoảng {seconds} giây",
+        "generatingFinishing": "Sắp xong, AI đang hoàn thiện nội dung...",
+        "headerTitlePrefix": "Tạo JD tự động với",
+        "titleLabel": "Chức danh công việc",
+        "titlePlaceholder": "Ví dụ: Senior React Developer",
+        "requiredSkillsLabel": "Kỹ năng bắt buộc",
+        "requiredSkillsPlaceholder": "Tìm React, TypeScript, Node.js...",
+        "keywordsLabel": "Thêm kỹ năng hoặc từ khóa liên quan",
+        "keywordsPlaceholder": "Fintech, Microservices, Agile — phân cách bằng dấu phẩy",
+        "keywordsHint": "Dùng cho công nghệ chưa có trong danh mục hoặc bối cảnh đặc thù của dự án.",
+        "companyDescriptionLabel": "Mô tả về công ty",
+        "companyDescriptionPlaceholder": "Sản phẩm, lĩnh vực, quy mô và môi trường làm việc...",
+        "outputLanguageLabel": "Ngôn ngữ JD",
+        "experienceLevelLabel": "Cấp bậc",
+        "experienceLevelPlaceholder": "Chọn cấp bậc",
+        "yearsExperienceLabel": "Số năm kinh nghiệm",
+        "yearsExperiencePlaceholder": "Ví dụ: 1",
+        "advancedToggle": "Tùy chỉnh nâng cao",
+        "categoryLabel": "Ngành nghề",
+        "aiSuggestPlaceholder": "Để AI đề xuất",
+        "employmentTypeLabel": "Loại hình việc làm",
+        "workModeLabel": "Hình thức làm việc",
+        "workModeOnsite": "Tại văn phòng",
+        "workModeUndetermined": "Chưa xác định",
+        "preferredSkillsLabel": "Kỹ năng ưu tiên",
+        "preferredSkillsPlaceholder": "Tìm kỹ năng cộng điểm...",
+        "productDomainLabel": "Lĩnh vực sản phẩm hoặc dự án",
+        "productDomainPlaceholder": "Ví dụ: Nền tảng thanh toán B2B, SaaS, E-commerce...",
+        "roleObjectiveLabel": "Mục tiêu chính của vị trí",
+        "roleObjectivePlaceholder": "Ứng viên sẽ tạo ra kết quả hoặc tác động gì?",
+        "teamContextLabel": "Đội nhóm và quy trình làm việc",
+        "teamContextPlaceholder": "Quy mô team, Agile/Scrum, phối hợp với Product, QA...",
+        "languageRequirementLabel": "Yêu cầu ngoại ngữ",
+        "languageRequirementPlaceholder": "Ví dụ: Đọc tài liệu và giao tiếp tiếng Anh",
+        "recruiterNotesLabel": "Ghi chú bổ sung cho AI",
+        "recruiterNotesPlaceholder": "Chỉ nhập dữ kiện có thật về trách nhiệm, yêu cầu hoặc quyền lợi...",
+        "noSkillsFound": "Không tìm thấy kỹ năng phù hợp.",
+        "suggestionsAria": "Gợi ý {label}",
+        "selectedAria": "{label} đã chọn",
+        "removeSkillAria": "Bỏ kỹ năng {name}",
+        "back": "Quay lại",
+        "generating": "AI đang tạo JD...",
+        "submit": "Tạo JD với AI",
+        "validationTitleRequired": "Vui lòng nhập chức danh công việc.",
+        "validationSkillOrKeywordRequired": "Hãy thêm ít nhất một kỹ năng hoặc từ khóa liên quan.",
+        "validationYearsRange": "Vui lòng nhập số năm kinh nghiệm từ 0 đến 50.",
+        "defaultSelectPlaceholder": "Chọn một giá trị"
+      },
+      "salaryInsight": {
+        "confidenceLow": "Tham khảo",
+        "confidenceMedium": "Khá tin cậy",
+        "confidenceHigh": "Tin cậy cao",
+        "researchingTitle": "AI đang tra cứu nguồn web...",
+        "researchingCountdown": "Dự kiến còn khoảng {seconds} giây",
+        "researchingFinishing": "Sắp xong, AI đang đối chiếu các nguồn...",
+        "comparisonNotProvided": "Chưa có mức lương để so sánh",
+        "comparisonBelow": "Mức đang nhập thấp hơn nhóm thị trường",
+        "comparisonAligned": "Mức đang nhập nằm trong khoảng thị trường",
+        "comparisonAbove": "Mức đang nhập cao hơn nhóm thị trường",
+        "heading": "AI tham chiếu lương thị trường",
+        "description": "Kỹ năng bắt buộc xác định stack chính; kỹ năng và từ khóa liên quan giúp mở rộng nhóm tin cùng vai trò, cấp bậc và kinh nghiệm trên UpNext.",
+        "analyzing": "Đang phân tích...",
+        "reanalyze": "Phân tích lại",
+        "analyze": "Phân tích mức lương",
+        "needMoreInput": "Nhập chức danh, mô tả công việc và số năm kinh nghiệm hợp lệ để bắt đầu phân tích.",
+        "insufficientDataTitle": "Chưa đủ dữ liệu tham chiếu",
+        "insufficientDataText": "{message} Hiện tìm thấy {sampleSize} mẫu phù hợp.",
+        "marketRangeAria": "Khoảng lương thị trường theo tháng",
+        "medianLabel": "Trung vị",
+        "webSourcesCount": "{count} nguồn web được trích dẫn",
+        "similarPostsCount": "{count} tin tương đồng · {months} tháng gần nhất",
+        "googleSearchSource": "Google Search + Gemini AI",
+        "upnextDataSource": "Dữ liệu UpNext",
+        "differencePercentSuffix": " ({sign}{percent}% so với trung vị)",
+        "matchedFactorsAria": "Yếu tố so khớp",
+        "webSourcesToggle": "Nguồn web tham khảo ({count})",
+        "viewSources": "Xem nguồn",
+        "collapseSources": "Thu gọn",
+        "openInNewTab": "(mở trong tab mới)",
+        "researchedAtPrefix": "Nghiên cứu lúc ",
+        "webGroundedDisclaimer": "AI tổng hợp từ nguồn web công khai; hãy mở citation và kiểm tra trước khi áp dụng.",
+        "upnextDataDisclaimer": "Dữ liệu tổng hợp, không phải cam kết mức lương cho ứng viên.",
+        "applyRangeButton": "Áp dụng khoảng {min} – {max}",
+        "perMonth": "/ tháng"
+      },
+      "preview": {
+        "bannerBold": "Bản xem trước dành cho ứng viên.",
+        "bannerText": " Các nút tương tác được tắt cho đến khi tin được đăng.",
+        "categoryUnset": "Ngành nghề chưa được chọn",
+        "verifiedBadge": "Đã xác thực",
+        "titleFallback": "Chức danh tuyển dụng",
+        "leadFallback": "Mô tả ngắn của tin tuyển dụng sẽ hiển thị tại đây.",
+        "salaryNegotiableNote": "Thỏa thuận theo năng lực",
+        "salaryEstimatedNote": "Mức lương dự kiến",
+        "locationLabel": "Địa điểm",
+        "employmentTypeLabel": "Hình thức",
+        "employmentTypeFallback": "Chưa chọn hình thức",
+        "experienceLevelLabel": "Cấp bậc",
+        "experienceLevelFallback": "Chưa chọn cấp bậc",
+        "postedLabel": "Đăng tuyển",
+        "postedValue": "Sau khi được duyệt",
+        "skillsAria": "Kỹ năng liên quan",
+        "noSkillsSelected": "Chưa chọn kỹ năng",
+        "actionsAria": "Thao tác minh họa",
+        "applyNow": "Ứng tuyển ngay",
+        "saveJob": "Lưu tin",
+        "share": "Chia sẻ",
+        "jobInfoTitle": "Thông tin tuyển dụng",
+        "requirementsTitle": "Yêu cầu ứng viên",
+        "benefitsTitle": "Quyền lợi",
+        "skillsSectionTitle": "Kỹ năng & công nghệ",
+        "noSkillsOrSpecializations": "Chưa chọn kỹ năng hoặc chuyên ngành.",
+        "readyTitle": "Sẵn sàng ứng tuyển?",
+        "readySubtitle": "Gia tăng cơ hội với hồ sơ nổi bật",
+        "viewSalaryMatch": "Xem lương phù hợp",
+        "deadlineLabel": "Hạn nộp hồ sơ: ",
+        "overviewTitle": "Tổng quan công việc",
+        "vacanciesLabel": "Số lượng",
+        "vacanciesUnit": "{count} vị trí",
+        "educationLabel": "Học vấn",
+        "workingDaysLabel": "Thời gian",
+        "companyInfoFallback": "Thông tin doanh nghiệp",
+        "companyVerifiedTag": "Công ty đã xác thực",
+        "richTextEmpty": "Nội dung này chưa được nhập.",
+        "previewActionSuffix": " (chỉ minh họa)",
+        "logoAlt": "Logo {name}",
+        "locationUnset": "Chưa chọn địa điểm",
+        "locationFallback": "Địa điểm làm việc",
+        "locationCountSuffix": " +{count} địa điểm",
+        "salaryNegotiable": "Thỏa thuận",
+        "salaryHidden": "Không công khai",
+        "salaryFrom": "Từ {amount}",
+        "salaryTo": "Đến {amount}",
+        "dateUnset": "Chưa chọn"
+      },
+      "aiResult": {
+        "ariaLabel": "Kết quả tạo JD từ AI",
+        "toolbarHint": "Đưa chuột vào từng khối để chỉnh sửa nội dung hoặc kéo sắp xếp lại thứ tự.",
+        "exit": "Thoát",
+        "doneEditing": "Xong",
+        "editJd": "Chỉnh sửa JD",
+        "exporting": "Đang xuất...",
+        "exportPdf": "Xuất PDF",
+        "creatingJobPost": "AI đang điền form...",
+        "createJobPostFromJd": "Tạo tin tuyển dụng từ JD này",
+        "exitDialogTitle": "Thoát khỏi JD này?",
+        "exitDialogDescription": "Bạn có thể tiếp tục chỉnh sửa JD này, hoặc thoát ra và không lưu lại — lần tạo JD tiếp theo sẽ bắt đầu từ một biểu mẫu trống.",
+        "exitDialogContinue": "Tiếp tục chỉnh sửa",
+        "exitDialogConfirm": "Thoát, không lưu",
+        "notSet": "Chưa xác định",
+        "done": "Xong",
+        "editControl": "Chỉnh sửa",
+        "editControlWithLabel": "Chỉnh sửa: {label}",
+        "doneControlWithLabel": "Xong: {label}",
+        "dragToReorder": "Kéo để sắp xếp lại",
+        "dragToReorderWithLabel": "Kéo để sắp xếp lại: {label}",
+        "moveUp": "Di chuyển lên",
+        "moveUpWithLabel": "Di chuyển lên: {label}",
+        "moveDown": "Di chuyển xuống",
+        "moveDownWithLabel": "Di chuyển xuống: {label}",
+        "deleteSection": "Xóa mục",
+        "deleteSectionWithLabel": "Xóa mục: {label}",
+        "removeChipAria": "Xóa {name} khỏi {label}",
+        "addPlaceholder": "+ Thêm",
+        "addKeywordPlaceholder": "+ Thêm từ khóa"
+      },
+      "salary": {
+        "negotiable": "Lương thỏa thuận",
+        "notVisible": "Không hiển thị lương",
+        "notEntered": "Chưa nhập lương",
+        "from": "Từ {amount} {currency}",
+        "to": "Đến {amount} {currency}"
+      }
     },
     "candidates": {
       "title": "Quản lý ứng viên",
       "subtitle": "Quản lý tất cả hồ sơ ứng viên đã nộp vào các tin tuyển dụng của công ty.",
       "filters": {
-        "searchPlaceholder": "Tìm kiếm theo tên, email...",
+        "label": "Lọc theo",
+        "sectionAria": "Bộ lọc danh sách ứng viên",
+        "searchPlaceholder": "Tìm theo tên, email, số điện thoại...",
         "allJobs": "Tất cả tin tuyển dụng",
+        "jobAria": "Lọc theo tin tuyển dụng",
         "allStatuses": "Tất cả trạng thái",
-        "clear": "Xóa bộ lọc"
+        "statusAria": "Lọc theo trạng thái CV",
+        "viewedAll": "Tất cả",
+        "viewedUnviewed": "CV chưa xem",
+        "viewedAria": "Lọc theo trạng thái xem CV",
+        "aiLabelAll": "Tất cả nhãn AI",
+        "aiLabelAria": "Lọc theo nhãn CV từ AI",
+        "aiLabel": {
+          "excellent": "Xuất sắc",
+          "good": "Tốt",
+          "average": "Trung bình",
+          "low": "Cần xem xét",
+          "unscored": "Chưa đánh giá"
+        },
+        "clear": "Xóa bộ lọc",
+        "showAria": "Hiện bộ lọc",
+        "hideAria": "Ẩn bộ lọc"
       },
       "table": {
         "candidate": "Ứng viên",
@@ -1680,18 +2305,63 @@
         "empty": "Không tìm thấy ứng viên nào."
       },
       "status": {
-        "SUBMITTED": "Mới nộp",
-        "VIEWED": "Đã xem",
+        "SUBMITTED": "Tiếp nhận",
+        "VIEWED": "Duyệt hồ sơ",
+        "CONSIDERING": "Cân nhắc",
         "SHORTLISTED": "Phù hợp",
-        "INTERVIEWING": "Đang phỏng vấn",
-        "OFFERED": "Đã gửi offer",
-        "HIRED": "Đã tuyển dụng",
-        "REJECTED": "Từ chối",
-        "WITHDRAWN": "Đã rút hồ sơ"
+        "INTERVIEWING": "Hẹn phỏng vấn",
+        "OFFERED": "Gửi đề nghị",
+        "HIRED": "Nhận việc",
+        "WITHDRAWN": "Ngừng xử lý",
+        "REJECTED": "Chưa phù hợp"
       },
       "messages": {
         "statusUpdateSuccess": "Cập nhật trạng thái ứng tuyển thành công!"
       }
+    }
+  },
+  "Pricing": {
+    "meta": {
+      "title": "Bảng giá",
+      "description": "Các gói dịch vụ tuyển dụng IT trên UpNext."
+    },
+    "eyebrow": "Bảng giá",
+    "headline": "Chọn gói phù hợp để tuyển đúng người nhanh hơn với UpNext",
+    "subheadline": "Nhà tuyển dụng dùng AI để lọc CV, tìm ứng viên và quản lý pipeline tuyển dụng.",
+    "tabs": {
+      "recruiter": "Nhà tuyển dụng",
+      "candidate": "Ứng viên"
+    },
+    "candidateComingSoon": "Gói dành cho ứng viên đang được hoàn thiện. Mọi tính năng tìm việc và ứng tuyển hiện vẫn miễn phí.",
+    "perCycle": "/ {days} ngày",
+    "perMonth": "/ tháng",
+    "free": "Miễn phí",
+    "cta": {
+      "free": "Bắt đầu miễn phí",
+      "upgrade": "Nâng cấp ngay",
+      "contact": "Liên hệ tư vấn"
+    },
+    "comparison": {
+      "title": "So sánh chi tiết các gói",
+      "feature": "Tính năng"
+    },
+    "unlimited": "Không giới hạn",
+    "notIncluded": "Không có",
+    "perCycleSuffix": "/ chu kỳ",
+    "states": {
+      "loading": "Đang tải bảng giá...",
+      "error": "Không thể tải bảng giá. Vui lòng thử lại sau.",
+      "empty": "Hiện chưa có gói nào được mở bán."
+    },
+    "features": {
+      "JOB_POST": "Tin tuyển dụng",
+      "FEATURED_JOB": "Tin nổi bật",
+      "URGENT_LABEL": "Nhãn Tuyển gấp",
+      "CV_POOL_VIEW": "Lượt xem hồ sơ trong kho CV",
+      "TALENT_CONTACT": "Liên hệ ứng viên chủ động",
+      "AI_CV_MATCHING": "AI chấm điểm CV theo JD",
+      "AI_JD_GENERATE": "AI viết và tối ưu JD",
+      "HR_SEAT": "Tài khoản HR"
     }
   },
   "PublicJobs": {
@@ -1806,6 +2476,9 @@
         "VIEWED": {
           "label": "Đã xem"
         },
+        "CONSIDERING": {
+          "label": "Đang cân nhắc"
+        },
         "SHORTLISTED": {
           "label": "Qua vòng hồ sơ"
         },
@@ -1907,6 +2580,10 @@
         "VIEWED": {
           "description": "Nhà tuyển dụng đã mở hồ sơ và đang đánh giá mức độ phù hợp.",
           "nextStep": "Giữ thông tin liên hệ sẵn sàng và theo dõi cập nhật tiếp theo."
+        },
+        "CONSIDERING": {
+          "description": "Nhà tuyển dụng đang cân nhắc hồ sơ của bạn so với các ứng viên khác.",
+          "nextStep": "Tiếp tục theo dõi; bạn chưa cần thực hiện thêm thao tác."
         },
         "SHORTLISTED": {
           "description": "Hồ sơ đã qua bước sàng lọc ban đầu của nhà tuyển dụng.",

@@ -6,6 +6,7 @@ import {
   ChartLineUp,
   ChatCircleDots,
   CreditCard,
+  Tag,
   Database,
   Gauge,
   Headset,
@@ -60,7 +61,8 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
         ],
       },
       { label: "Phân tích", href: "/recruiter/analytics", icon: ChartLineUp },
-      { label: "Thanh toán", href: "/recruiter/billing", icon: CreditCard },
+      { label: "Bảng giá gói", href: "/recruiter/pricing", icon: Tag },
+      { label: "Gói dịch vụ & Thanh toán", href: "/recruiter/billing", icon: CreditCard },
     ],
   },
   {

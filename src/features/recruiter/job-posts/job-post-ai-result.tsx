@@ -32,6 +32,7 @@ import {
   Trash,
   X,
 } from "@phosphor-icons/react";
+import { useTranslations } from "next-intl";
 import { useState, type ReactNode } from "react";
 
 import type {
@@ -328,6 +329,7 @@ function MetaSelectField({
   options: ReadonlyArray<JobOption>;
   onChange: (value: string) => void;
 }>) {
+  const t = useTranslations("Recruiter");
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <span className={EDIT_FIELD_LABEL_CLASS}>{label}</span>
@@ -336,7 +338,7 @@ function MetaSelectField({
           aria-label={label}
           className="upnext-focus h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-700 shadow-none"
         >
-          <SelectValue placeholder="Chưa xác định" />
+          <SelectValue placeholder={t("jobPostsPage.aiResult.notSet")} />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
@@ -415,11 +417,16 @@ function EditToggleButton({
   label,
   onToggle,
 }: Readonly<{ isEditing: boolean; label: string; onToggle: () => void }>) {
+  const t = useTranslations("Recruiter");
   return (
     <button
       type="button"
-      aria-label={isEditing ? `Xong: ${label}` : `Chỉnh sửa: ${label}`}
-      title={isEditing ? "Xong" : "Chỉnh sửa"}
+      aria-label={
+        isEditing
+          ? t("jobPostsPage.aiResult.doneControlWithLabel", { label })
+          : t("jobPostsPage.aiResult.editControlWithLabel", { label })
+      }
+      title={isEditing ? t("jobPostsPage.aiResult.done") : t("jobPostsPage.aiResult.editControl")}
       onClick={onToggle}
       className={cn(
         BLOCK_CONTROL_BUTTON_CLASS,
@@ -461,6 +468,7 @@ function SortableSection({
   onDelete?: () => void;
   children: ReactNode;
 }>) {
+  const t = useTranslations("Recruiter");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
   });
@@ -482,8 +490,8 @@ function SortableSection({
       >
         <button
           type="button"
-          aria-label={`Kéo để sắp xếp lại: ${label}`}
-          title="Kéo để sắp xếp lại"
+          aria-label={t("jobPostsPage.aiResult.dragToReorderWithLabel", { label })}
+          title={t("jobPostsPage.aiResult.dragToReorder")}
           className={cn(BLOCK_CONTROL_BUTTON_CLASS, "cursor-grab active:cursor-grabbing")}
           {...attributes}
           {...listeners}
@@ -492,8 +500,8 @@ function SortableSection({
         </button>
         <button
           type="button"
-          aria-label={`Di chuyển lên: ${label}`}
-          title="Di chuyển lên"
+          aria-label={t("jobPostsPage.aiResult.moveUpWithLabel", { label })}
+          title={t("jobPostsPage.aiResult.moveUp")}
           disabled={!canMoveUp}
           onClick={onMoveUp}
           className={cn(
@@ -505,8 +513,8 @@ function SortableSection({
         </button>
         <button
           type="button"
-          aria-label={`Di chuyển xuống: ${label}`}
-          title="Di chuyển xuống"
+          aria-label={t("jobPostsPage.aiResult.moveDownWithLabel", { label })}
+          title={t("jobPostsPage.aiResult.moveDown")}
           disabled={!canMoveDown}
           onClick={onMoveDown}
           className={cn(
@@ -520,8 +528,8 @@ function SortableSection({
         {onDelete ? (
           <button
             type="button"
-            aria-label={`Xóa mục: ${label}`}
-            title="Xóa mục"
+            aria-label={t("jobPostsPage.aiResult.deleteSectionWithLabel", { label })}
+            title={t("jobPostsPage.aiResult.deleteSection")}
             onClick={onDelete}
             className={cn(BLOCK_CONTROL_BUTTON_CLASS, "hover:bg-rose-50 hover:text-rose-600")}
           >
@@ -548,6 +556,7 @@ function EditableChipGroup({
   onRemove: (id: string) => void;
   addControl: ReactNode;
 }>) {
+  const t = useTranslations("Recruiter");
   return (
     <div className="flex flex-col gap-1.5">
       <p className={EDIT_FIELD_LABEL_CLASS}>{label}</p>
@@ -563,7 +572,7 @@ function EditableChipGroup({
             {item.name}
             <button
               type="button"
-              aria-label={`Xóa ${item.name} khỏi ${label}`}
+              aria-label={t("jobPostsPage.aiResult.removeChipAria", { name: item.name, label })}
               onClick={() => onRemove(item.id)}
               className="-mr-1 rounded-full p-0.5 opacity-60 transition-opacity hover:opacity-100"
             >
@@ -587,6 +596,7 @@ function AddSkillSelect({
   options: ReadonlyArray<JobOption>;
   onAdd: (id: string) => void;
 }>) {
+  const t = useTranslations("Recruiter");
   if (options.length === 0) return null;
 
   return (
@@ -595,7 +605,7 @@ function AddSkillSelect({
         aria-label={label}
         className="upnext-focus h-7 w-auto gap-1 rounded-full border border-dashed border-slate-300 bg-white px-3 text-xs font-medium text-slate-500 shadow-none"
       >
-        <SelectValue placeholder="+ Thêm" />
+        <SelectValue placeholder={t("jobPostsPage.aiResult.addPlaceholder")} />
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => (
@@ -613,6 +623,7 @@ function AddKeywordInput({
   label,
   onAdd,
 }: Readonly<{ label: string; onAdd: (name: string) => void }>) {
+  const t = useTranslations("Recruiter");
   const [draft, setDraft] = useState("");
 
   const commit = () => {
@@ -626,7 +637,7 @@ function AddKeywordInput({
     <input
       aria-label={label}
       value={draft}
-      placeholder="+ Thêm từ khóa"
+      placeholder={t("jobPostsPage.aiResult.addKeywordPlaceholder")}
       onChange={(event) => setDraft(event.target.value)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === ",") {
@@ -659,6 +670,7 @@ export function JobPostAiResult({
   onCustomSectionsChange,
   aside,
 }: JobPostAiResultProps) {
+  const t = useTranslations("Recruiter");
   const style = payload.presentationStyle;
   const isEnglish = payload.outputLanguage === "en";
   const language = payload.outputLanguage;
@@ -1233,12 +1245,12 @@ export function JobPostAiResult({
   };
 
   return (
-    <section className="space-y-5" aria-label="Kết quả tạo JD từ AI">
+    <section className="space-y-5" aria-label={t("jobPostsPage.aiResult.ariaLabel")}>
       <style>{PRINT_STYLES}</style>
 
       <div className="ai-jd-no-print sticky -top-4 z-30 -mx-4 -mt-4 flex flex-col gap-3 border-y border-slate-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:-top-8 md:-mx-8 md:-mt-8 md:px-8">
         <p className="text-sm leading-5 font-normal text-slate-600">
-          Đưa chuột vào từng khối để chỉnh sửa nội dung hoặc kéo sắp xếp lại thứ tự.
+          {t("jobPostsPage.aiResult.toolbarHint")}
         </p>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button
@@ -1248,7 +1260,7 @@ export function JobPostAiResult({
             className="font-medium"
           >
             <ArrowLeft size={17} aria-hidden="true" />
-            Thoát
+            {t("jobPostsPage.aiResult.exit")}
           </Button>
           <Button
             type="button"
@@ -1262,7 +1274,9 @@ export function JobPostAiResult({
             ) : (
               <NotePencil size={17} aria-hidden="true" />
             )}
-            {showAllControls ? "Xong" : "Chỉnh sửa JD"}
+            {showAllControls
+              ? t("jobPostsPage.aiResult.doneEditing")
+              : t("jobPostsPage.aiResult.editJd")}
           </Button>
           <Button
             type="button"
@@ -1272,7 +1286,9 @@ export function JobPostAiResult({
             className="font-medium"
           >
             <DownloadSimple size={18} aria-hidden="true" />
-            {isExporting ? "Đang xuất..." : "Xuất PDF"}
+            {isExporting
+              ? t("jobPostsPage.aiResult.exporting")
+              : t("jobPostsPage.aiResult.exportPdf")}
           </Button>
           <Button
             type="button"
@@ -1280,7 +1296,9 @@ export function JobPostAiResult({
             disabled={isCreatingJobPost}
             className="bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
           >
-            {isCreatingJobPost ? "AI đang điền form..." : "Tạo tin tuyển dụng từ JD này"}
+            {isCreatingJobPost
+              ? t("jobPostsPage.aiResult.creatingJobPost")
+              : t("jobPostsPage.aiResult.createJobPostFromJd")}
             <ArrowRight size={18} aria-hidden="true" />
           </Button>
         </div>
@@ -1459,7 +1477,9 @@ export function JobPostAiResult({
               className="w-full bg-emerald-600 font-semibold text-white hover:bg-emerald-700 sm:w-auto"
             >
               <Briefcase size={18} aria-hidden="true" />
-              {isCreatingJobPost ? "AI đang điền form..." : "Tạo tin tuyển dụng từ JD này"}
+              {isCreatingJobPost
+                ? t("jobPostsPage.aiResult.creatingJobPost")
+                : t("jobPostsPage.aiResult.createJobPostFromJd")}
             </Button>
           </div>
         </div>
@@ -1470,22 +1490,21 @@ export function JobPostAiResult({
       <Dialog open={isExitDialogOpen} onOpenChange={onExitDialogOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Thoát khỏi JD này?</DialogTitle>
+            <DialogTitle>{t("jobPostsPage.aiResult.exitDialogTitle")}</DialogTitle>
             <DialogDescription>
-              Bạn có thể tiếp tục chỉnh sửa JD này, hoặc thoát ra và không lưu lại — lần tạo JD tiếp
-              theo sẽ bắt đầu từ một biểu mẫu trống.
+              {t("jobPostsPage.aiResult.exitDialogDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onExitDialogOpenChange(false)}>
-              Tiếp tục chỉnh sửa
+              {t("jobPostsPage.aiResult.exitDialogContinue")}
             </Button>
             <Button
               type="button"
               onClick={onExit}
               className="bg-rose-600 font-semibold text-white hover:bg-rose-700"
             >
-              Thoát, không lưu
+              {t("jobPostsPage.aiResult.exitDialogConfirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

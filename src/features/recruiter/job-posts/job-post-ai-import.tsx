@@ -1,6 +1,7 @@
 "use client";
 
 import { FileArrowUp, FileText, Sparkle, X } from "@phosphor-icons/react";
+import { useLocale, useTranslations } from "next-intl";
 import { useRef, useState, type DragEvent } from "react";
 
 import { Button } from "@/shared/ui/button";
@@ -12,6 +13,8 @@ type JobPostAiImportProps = Readonly<{
   onExtractText: (text: string) => Promise<boolean>;
   onStartFromScratch: () => void;
   onOpenGenerator: () => void;
+  /** Surfaces a failure from the extraction request itself, distinct from local form validation. */
+  externalError?: string;
 }>;
 
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
@@ -23,7 +26,10 @@ export function JobPostAiImport({
   onExtractText,
   onStartFromScratch,
   onOpenGenerator,
+  externalError,
 }: JobPostAiImportProps) {
+  const t = useTranslations("Recruiter");
+  const locale = useLocale();
   const inputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<"file" | "paste">("file");
   const [file, setFile] = useState<File | null>(null);
@@ -34,14 +40,14 @@ export function JobPostAiImport({
   const selectFile = (nextFile?: File) => {
     if (!nextFile) return;
     if (nextFile.size > MAX_FILE_SIZE) {
-      setError("File vượt quá giới hạn 8 MB.");
+      setError(t("jobPostsPage.aiImport.fileTooLarge"));
       setFile(null);
       return;
     }
 
     const extension = nextFile.name.split(".").pop()?.toLocaleLowerCase();
     if (!extension || !["pdf", "docx", "txt", "jpg", "jpeg", "png", "webp"].includes(extension)) {
-      setError("Chỉ hỗ trợ PDF, DOCX, TXT hoặc ảnh JPG, PNG, WEBP.");
+      setError(t("jobPostsPage.aiImport.unsupportedFileType"));
       setFile(null);
       return;
     }
@@ -59,7 +65,7 @@ export function JobPostAiImport({
   const submit = async () => {
     if (mode === "file") {
       if (!file) {
-        setError("Vui lòng chọn file JD cần quét.");
+        setError(t("jobPostsPage.aiImport.fileRequired"));
         return;
       }
       setError("");
@@ -68,7 +74,7 @@ export function JobPostAiImport({
     }
 
     if (text.trim().length < 60) {
-      setError("Nội dung JD cần tối thiểu 60 ký tự.");
+      setError(t("jobPostsPage.aiImport.textTooShort"));
       return;
     }
     setError("");
@@ -81,27 +87,26 @@ export function JobPostAiImport({
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
             <h1 className="font-outfit flex flex-wrap items-center justify-center gap-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-              Tạo tin từ JD có sẵn với
+              {t("jobPostsPage.aiImport.titlePrefix")}
               <span className="inline-flex items-center gap-1.5 text-emerald-700">
                 <Sparkle size={24} weight="fill" aria-hidden="true" />
                 UpNext AI
               </span>
             </h1>
             <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 font-normal text-slate-600">
-              AI chỉ trích xuất nội dung có trong nguồn. Bạn sẽ được kiểm tra và chỉnh sửa toàn bộ
-              dữ liệu trước khi đăng.
+              {t("jobPostsPage.aiImport.subtitle")}
             </p>
           </div>
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
             <section aria-labelledby="jd-source-heading">
               <h2 id="jd-source-heading" className="text-sm font-semibold text-slate-900">
-                Cung cấp JD theo cách của bạn
+                {t("jobPostsPage.aiImport.sourceHeading")}
               </h2>
 
               <div
                 role="tablist"
-                aria-label="Nguồn JD"
+                aria-label={t("jobPostsPage.aiImport.sourceTablistAria")}
                 className="mt-3 inline-flex rounded-xl bg-slate-100 p-1"
               >
                 <button
@@ -116,7 +121,7 @@ export function JobPostAiImport({
                   }}
                   className="upnext-focus rounded-lg px-4 py-2 text-sm font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm"
                 >
-                  Tải file JD
+                  {t("jobPostsPage.aiImport.fileTab")}
                 </button>
                 <button
                   id="jd-paste-tab"
@@ -130,7 +135,7 @@ export function JobPostAiImport({
                   }}
                   className="upnext-focus rounded-lg px-4 py-2 text-sm font-medium text-slate-600 aria-selected:bg-white aria-selected:text-slate-900 aria-selected:shadow-sm"
                 >
-                  Dán nội dung
+                  {t("jobPostsPage.aiImport.pasteTab")}
                 </button>
               </div>
 
@@ -142,12 +147,12 @@ export function JobPostAiImport({
                   className="mt-5"
                 >
                   <label htmlFor="jd-file-input" className="sr-only">
-                    Chọn file JD cần quét
+                    {t("jobPostsPage.aiImport.selectFileLabel")}
                   </label>
                   <input
                     ref={inputRef}
                     id="jd-file-input"
-                    aria-label="File JD cần quét"
+                    aria-label={t("jobPostsPage.aiImport.fileInputAria")}
                     type="file"
                     accept={ACCEPTED_FILE_TYPES}
                     disabled={isSubmitting}
@@ -175,10 +180,10 @@ export function JobPostAiImport({
                       aria-hidden="true"
                     />
                     <p className="mt-3 text-sm font-semibold text-slate-800">
-                      Kéo thả file vào đây hoặc chọn từ máy
+                      {t("jobPostsPage.aiImport.dropHint")}
                     </p>
                     <p className="mt-1 text-xs leading-5 font-normal text-slate-500">
-                      PDF, DOCX, TXT, JPG, PNG hoặc WEBP; tối đa 8 MB
+                      {t("jobPostsPage.aiImport.dropFormats")}
                     </p>
                     <Button
                       type="button"
@@ -187,7 +192,7 @@ export function JobPostAiImport({
                       onClick={() => inputRef.current?.click()}
                       className="mt-4"
                     >
-                      Chọn file JD
+                      {t("jobPostsPage.aiImport.chooseFileButton")}
                     </Button>
                   </div>
 
@@ -206,7 +211,7 @@ export function JobPostAiImport({
                       </div>
                       <button
                         type="button"
-                        aria-label={`Bỏ file ${file.name}`}
+                        aria-label={t("jobPostsPage.aiImport.removeFileAria", { name: file.name })}
                         disabled={isSubmitting}
                         onClick={() => {
                           setFile(null);
@@ -227,7 +232,7 @@ export function JobPostAiImport({
                   className="mt-5"
                 >
                   <label htmlFor="jd-source-text" className="sr-only">
-                    Nội dung JD
+                    {t("jobPostsPage.aiImport.pasteTextLabel")}
                   </label>
                   <Textarea
                     id="jd-source-text"
@@ -235,21 +240,23 @@ export function JobPostAiImport({
                     value={text}
                     disabled={isSubmitting}
                     onChange={(event) => setText(event.target.value)}
-                    placeholder="Dán toàn bộ chức danh, mô tả công việc, yêu cầu và quyền lợi..."
+                    placeholder={t("jobPostsPage.aiImport.pastePlaceholder")}
                     className="min-h-72 resize-y font-normal"
                   />
                   <p className="mt-1.5 text-right text-xs font-normal text-slate-500">
-                    {text.trim().length.toLocaleString("vi-VN")} ký tự
+                    {t("jobPostsPage.aiImport.charCount", {
+                      count: text.trim().length.toLocaleString(locale),
+                    })}
                   </p>
                 </div>
               )}
 
-              {error ? (
+              {error || externalError ? (
                 <p
                   role="alert"
                   className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700"
                 >
-                  {error}
+                  {error || externalError}
                 </p>
               ) : null}
 
@@ -261,7 +268,9 @@ export function JobPostAiImport({
                   className="bg-emerald-600 text-white hover:bg-emerald-700"
                 >
                   <Sparkle size={17} weight="fill" aria-hidden="true" />
-                  {isSubmitting ? "AI đang quét JD..." : "Quét và tự động điền"}
+                  {isSubmitting
+                    ? t("jobPostsPage.aiImport.submitting")
+                    : t("jobPostsPage.aiImport.submit")}
                 </Button>
               </div>
             </section>
@@ -270,35 +279,37 @@ export function JobPostAiImport({
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600 text-white">
                 <Sparkle size={28} weight="fill" aria-hidden="true" />
               </div>
-              <h2 className="mt-4 text-base font-semibold text-slate-900">AI sẽ làm gì?</h2>
+              <h2 className="mt-4 text-base font-semibold text-slate-900">
+                {t("jobPostsPage.aiImport.howHeading")}
+              </h2>
               <ol className="mt-3 space-y-3 text-sm leading-6 font-normal text-slate-600">
                 <li>
-                  <strong className="font-semibold text-slate-800">1.</strong> Đọc nội dung và nhận
-                  diện các phần của JD.
+                  <strong className="font-semibold text-slate-800">1.</strong>{" "}
+                  {t("jobPostsPage.aiImport.step1")}
                 </li>
                 <li>
-                  <strong className="font-semibold text-slate-800">2.</strong> Ánh xạ cấp bậc, kỹ
-                  năng và danh mục có trong hệ thống.
+                  <strong className="font-semibold text-slate-800">2.</strong>{" "}
+                  {t("jobPostsPage.aiImport.step2")}
                 </li>
                 <li>
-                  <strong className="font-semibold text-slate-800">3.</strong> Điền bản nháp để bạn
-                  kiểm tra, không tự động đăng.
+                  <strong className="font-semibold text-slate-800">3.</strong>{" "}
+                  {t("jobPostsPage.aiImport.step3")}
                 </li>
               </ol>
               <p className="mt-4 rounded-xl bg-amber-50 p-3 text-xs leading-5 font-normal text-amber-900">
-                Những thông tin không có trong JD gốc sẽ được để trống thay vì tự suy diễn.
+                {t("jobPostsPage.aiImport.note")}
               </p>
             </aside>
           </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-5 text-sm font-normal text-slate-500">
-            <span>Hoặc</span>
+            <span>{t("jobPostsPage.aiImport.or")}</span>
             <button
               type="button"
               onClick={onStartFromScratch}
               className="upnext-focus rounded text-sm font-medium text-emerald-700 hover:underline"
             >
-              nhập tin từ đầu
+              {t("jobPostsPage.aiImport.startFromScratchLink")}
             </button>
             <span aria-hidden="true">·</span>
             <button
@@ -306,7 +317,7 @@ export function JobPostAiImport({
               onClick={onOpenGenerator}
               className="upnext-focus rounded text-sm font-medium text-emerald-700 hover:underline"
             >
-              tạo JD tự động bằng AI
+              {t("jobPostsPage.aiImport.openGeneratorLink")}
             </button>
           </div>
         </div>

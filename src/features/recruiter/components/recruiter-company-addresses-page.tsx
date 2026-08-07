@@ -310,7 +310,7 @@ export function RecruiterCompanyAddressesPage() {
 
   return (
     <div className="w-full min-w-0 space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-outfit text-xl font-bold text-slate-950 sm:text-2xl">
             {t("companyAddresses.title")}
@@ -324,7 +324,7 @@ export function RecruiterCompanyAddressesPage() {
             {t("companyAddresses.locationsCount", { count: locations.length })}
           </span>
         </div>
-      </header>
+      </header> */}
 
       <RecruiterTableLayout
         loading={loading}
@@ -333,8 +333,7 @@ export function RecruiterCompanyAddressesPage() {
           <div className="flex gap-2">
             {selectedIds.length > 0 && (
               <Button
-                variant="outline"
-                className="h-10 gap-1.5 border-red-200 bg-red-50 font-bold text-red-700 hover:bg-red-100"
+                className="h-10 gap-1.5 border-red-200 bg-red-50 font-medium text-red-700 hover:bg-red-100"
                 onClick={() => void handleBulkDelete()}
               >
                 <Trash size={15} />
@@ -343,7 +342,7 @@ export function RecruiterCompanyAddressesPage() {
             )}
             <Button
               onClick={handleOpenAddForm}
-              className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 font-bold text-white shadow-none transition-all hover:bg-emerald-700"
+              className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 font-medium text-white shadow-none transition-all hover:bg-emerald-700"
             >
               <Plus size={18} weight="bold" />
               <span>{t("companyAddresses.addBtn")}</span>
@@ -479,7 +478,7 @@ export function RecruiterCompanyAddressesPage() {
         <DialogContent className="overflow-hidden rounded-2xl border-none p-0 sm:max-w-[560px]">
           <form onSubmit={handleSaveLocation}>
             <div className="border-b border-slate-100 p-6 pb-4">
-              <DialogTitle className="font-outfit text-xl font-bold tracking-wide text-slate-800">
+              <DialogTitle className="font-outfit text-xl font-semibold text-slate-700">
                 {editingId
                   ? t("companyAddresses.dialogTitleEdit")
                   : t("companyAddresses.dialogTitleAdd")}
@@ -489,14 +488,14 @@ export function RecruiterCompanyAddressesPage() {
             <div className="space-y-6 p-6 py-8">
               {/* Row 1: Office Name */}
               <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[140px_1fr] sm:gap-4">
-                <Label className="text-[15px] font-bold text-slate-600 sm:pt-3">
+                <Label className="text-[15px] font-semibold text-slate-700 sm:pt-3">
                   {t("companyAddresses.officeName")}
                 </Label>
                 <div className="space-y-1">
                   <Input
                     type="text"
                     maxLength={50}
-                    className="h-11 w-full rounded-xl border-slate-200 bg-white text-sm shadow-none focus-visible:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500"
+                    className="h-11 rounded-xl border-slate-200 bg-white text-sm text-slate-700 shadow-none placeholder:text-slate-400 focus:border-emerald-600 focus:outline-none focus-visible:outline-none"
                     placeholder={t("companyAddresses.officeNamePlaceholder")}
                     value={officeName}
                     onChange={(e) => setOfficeName(e.target.value.slice(0, 50))}
@@ -510,13 +509,13 @@ export function RecruiterCompanyAddressesPage() {
 
               {/* Row 2: Province / City */}
               <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[140px_1fr] sm:gap-4">
-                <Label className="text-[15px] font-bold text-slate-600 sm:pt-3">
+                <Label className="text-[15px] font-semibold text-slate-700 sm:pt-3">
                   {t("companyAddresses.city")}
                 </Label>
                 <select
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
-                  className="upnext-focus h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus-visible:border-blue-500"
+                  className="upnext-focus h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:border-emerald-600 focus:outline-none focus-visible:outline-none"
                   required
                 >
                   <option value="" disabled>
@@ -532,14 +531,14 @@ export function RecruiterCompanyAddressesPage() {
 
               {/* Row 3: Address */}
               <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[140px_1fr] sm:gap-4">
-                <Label className="text-[15px] font-bold text-slate-600 sm:pt-3">
+                <Label className="text-[15px] font-semibold text-slate-700 sm:pt-3">
                   {t("companyAddresses.address")}
                 </Label>
                 <div className="space-y-1">
                   <Input
                     type="text"
                     maxLength={120}
-                    className="h-11 w-full rounded-xl border-slate-200 bg-white text-sm shadow-none focus-visible:border-blue-500 focus-visible:ring-1 focus-visible:ring-blue-500"
+                    className="h-11 rounded-xl border-slate-200 bg-white text-sm text-slate-700 shadow-none placeholder:text-slate-400 focus:border-emerald-600 focus:outline-none focus-visible:outline-none"
                     placeholder={t("companyAddresses.addressPlaceholder")}
                     value={fullAddress}
                     onChange={(e) => setFullAddress(e.target.value.slice(0, 120))}
@@ -558,14 +557,14 @@ export function RecruiterCompanyAddressesPage() {
                 variant="ghost"
                 onClick={handleCloseForm}
                 disabled={submitting}
-                className="h-10 rounded-xl bg-slate-100 px-6 text-sm font-bold text-slate-600 hover:bg-slate-200"
+                className="h-10 rounded-xl bg-slate-100 px-6 text-sm font-semibold text-slate-700 hover:bg-slate-200"
               >
                 {t("companyAddresses.cancelBtn")}
               </Button>
               <Button
                 type="submit"
                 variant="primary"
-                className="h-10 rounded-xl px-8 text-sm font-bold"
+                className="h-10 rounded-xl px-8 text-sm font-semibold"
                 disabled={submitting}
               >
                 {submitting ? (

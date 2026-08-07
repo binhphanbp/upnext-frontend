@@ -12,7 +12,6 @@ import {
 
 export function useCvScreening(token: string, onUnauthorized?: () => void) {
   const [selectedJobId, setSelectedJobId] = useState("");
-  const [limit, setLimit] = useState("10");
   const [runId, setRunId] = useState<string | null>(null);
   const [runStatus, setRunStatus] = useState<RunStatus | null>(null);
   const [progress, setProgress] = useState<{
@@ -28,15 +27,16 @@ export function useCvScreening(token: string, onUnauthorized?: () => void) {
   // Load from sessionStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
+      // Left over from when screening only scored a "Top N" subset.
+      sessionStorage.removeItem("upnext_rankingTempLimit");
+
       const savedJobId = sessionStorage.getItem("upnext_rankingTempJobId");
-      const savedLimit = sessionStorage.getItem("upnext_rankingTempLimit");
       const savedResults = sessionStorage.getItem("upnext_rankingResults");
       const savedHasFiltered = sessionStorage.getItem("upnext_rankingHasFiltered");
       const savedRunId = sessionStorage.getItem("upnext_rankingRunId");
       const savedRunStatus = sessionStorage.getItem("upnext_rankingRunStatus");
 
       if (savedJobId) setSelectedJobId(savedJobId);
-      if (savedLimit) setLimit(savedLimit);
       if (savedHasFiltered === "true") setHasFiltered(true);
       if (savedRunId) setRunId(savedRunId);
       if (savedRunStatus) setRunStatus(savedRunStatus as RunStatus);
@@ -54,7 +54,6 @@ export function useCvScreening(token: string, onUnauthorized?: () => void) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (selectedJobId) sessionStorage.setItem("upnext_rankingTempJobId", selectedJobId);
-      sessionStorage.setItem("upnext_rankingTempLimit", limit);
       sessionStorage.setItem("upnext_rankingHasFiltered", String(hasFiltered));
       if (runId) {
         sessionStorage.setItem("upnext_rankingRunId", runId);
@@ -72,7 +71,7 @@ export function useCvScreening(token: string, onUnauthorized?: () => void) {
         sessionStorage.removeItem("upnext_rankingResults");
       }
     }
-  }, [selectedJobId, limit, hasFiltered, runId, runStatus, results]);
+  }, [selectedJobId, hasFiltered, runId, runStatus, results]);
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -149,15 +148,9 @@ export function useCvScreening(token: string, onUnauthorized?: () => void) {
     setHasFiltered(true);
 
     try {
-      const parsedLimit = limit === "VACANCIES" ? 100 : parseInt(limit, 10) || 10;
-      const res = await runCvScreening(
-        {
-          jobPostId: selectedJobId,
-          limit: parsedLimit,
-          minScore: 0,
-        },
-        token,
-      );
+      // No limit: every application on the job post gets scored. The backend
+      // applies its own safety cap.
+      const res = await runCvScreening({ jobPostId: selectedJobId }, token);
 
       setRunId(res.runId);
       setRunStatus(res.status);
@@ -180,7 +173,7 @@ export function useCvScreening(token: string, onUnauthorized?: () => void) {
       setRunStatus("FAILED");
       setError(err.message || "Không thể chạy xếp hạng CV. Vui lòng thử lại.");
     }
-  }, [selectedJobId, limit, token, pollRun, onUnauthorized]);
+  }, [selectedJobId, token, pollRun, onUnauthorized]);
 
   // Resume polling on mount if a run is running
   useEffect(() => {
@@ -215,8 +208,6 @@ export function useCvScreening(token: string, onUnauthorized?: () => void) {
   return {
     selectedJobId,
     setSelectedJobId,
-    limit,
-    setLimit,
     runId,
     runStatus,
     progress,

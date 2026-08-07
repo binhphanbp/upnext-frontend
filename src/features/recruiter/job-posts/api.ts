@@ -1,7 +1,8 @@
 import { authHeaders, jsonAuthHeaders, removeEmptyFields } from "@/features/recruiter/api/client";
 import { apiRequest } from "@/shared/api/http";
 
-export type JobStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "ARCHIVED";
+/** Khớp enum JobStatus của backend; "ARCHIVED" là giá trị cũ vẫn còn dùng ở màn admin. */
+export type JobStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "EXPIRED" | "HIDDEN" | "ARCHIVED";
 export type ModerationStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type SalaryPeriod = "HOUR" | "DAY" | "MONTH" | "YEAR";
 export type JobPostOutputLanguage = "vi" | "en";

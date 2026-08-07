@@ -256,6 +256,7 @@ export type CandidateCvApi = Readonly<{
 export type CandidateApplicationStatus =
   | "SUBMITTED"
   | "VIEWED"
+  | "CONSIDERING"
   | "SHORTLISTED"
   | "INTERVIEWING"
   | "OFFERED"

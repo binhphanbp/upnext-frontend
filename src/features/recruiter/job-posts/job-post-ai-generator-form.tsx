@@ -1,6 +1,7 @@
 "use client";
 
 import { CaretDown, MagnifyingGlass, Sparkle, X } from "@phosphor-icons/react";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useState } from "react";
 
 import type {
@@ -30,6 +31,7 @@ type GeneratorFormProps = Readonly<{
 const ESTIMATED_GENERATE_SECONDS = 15;
 
 function GeneratingOverlay() {
+  const t = useTranslations("Recruiter");
   const [remainingSeconds, setRemainingSeconds] = useState(ESTIMATED_GENERATE_SECONDS);
 
   useEffect(() => {
@@ -48,11 +50,13 @@ function GeneratingOverlay() {
           <Sparkle size={30} weight="fill" className="relative animate-pulse text-emerald-600" />
         </div>
         <div className="space-y-1">
-          <p className="text-base font-semibold text-slate-800">AI đang soạn JD cho bạn...</p>
+          <p className="text-base font-semibold text-slate-800">
+            {t("jobPostsPage.aiGeneratorForm.generatingTitle")}
+          </p>
           <p className="text-sm font-normal text-slate-500">
             {remainingSeconds > 0
-              ? `Dự kiến còn khoảng ${remainingSeconds} giây`
-              : "Sắp xong, AI đang hoàn thiện nội dung..."}
+              ? t("jobPostsPage.aiGeneratorForm.generatingCountdown", { seconds: remainingSeconds })
+              : t("jobPostsPage.aiGeneratorForm.generatingFinishing")}
           </p>
         </div>
       </div>
@@ -73,6 +77,7 @@ export function JobPostAiGeneratorForm({
   onCancel,
   onSubmit,
 }: GeneratorFormProps) {
+  const t = useTranslations("Recruiter");
   const [title, setTitle] = useState("");
   const [jobCategoryId, setJobCategoryId] = useState("");
   const [experienceLevelId, setExperienceLevelId] = useState("");
@@ -98,11 +103,11 @@ export function JobPostAiGeneratorForm({
       .filter(Boolean);
 
     if (title.trim().length < 3) {
-      setValidationMessage("Vui lòng nhập chức danh công việc.");
+      setValidationMessage(t("jobPostsPage.aiGeneratorForm.validationTitleRequired"));
       return;
     }
     if (requiredSkillIds.length === 0 && normalizedKeywords.length === 0) {
-      setValidationMessage("Hãy thêm ít nhất một kỹ năng hoặc từ khóa liên quan.");
+      setValidationMessage(t("jobPostsPage.aiGeneratorForm.validationSkillOrKeywordRequired"));
       return;
     }
     const normalizedYearsOfExperience = Number(yearsOfExperience);
@@ -112,7 +117,7 @@ export function JobPostAiGeneratorForm({
       normalizedYearsOfExperience < 0 ||
       normalizedYearsOfExperience > 50
     ) {
-      setValidationMessage("Vui lòng nhập số năm kinh nghiệm từ 0 đến 50.");
+      setValidationMessage(t("jobPostsPage.aiGeneratorForm.validationYearsRange"));
       return;
     }
 
@@ -170,7 +175,8 @@ export function JobPostAiGeneratorForm({
         <h1 className="text-md sm:text-md flex items-start gap-2 font-bold text-slate-800">
           <Sparkle size={22} className="text-emerald-600" weight="fill" />
           <span>
-            Tạo JD tự động với <span className="whitespace-nowrap text-emerald-700">UpNext AI</span>
+            {t("jobPostsPage.aiGeneratorForm.headerTitlePrefix")}{" "}
+            <span className="whitespace-nowrap text-emerald-700">UpNext AI</span>
           </span>
         </h1>
       </header>
@@ -186,39 +192,40 @@ export function JobPostAiGeneratorForm({
           <section className="space-y-4" aria-labelledby="ai-job-basics-heading">
             <div>
               <Label htmlFor="ai-job-title" className="text-sm font-medium text-slate-800">
-                Chức danh công việc <span className="text-rose-600">*</span>
+                {t("jobPostsPage.aiGeneratorForm.titleLabel")}{" "}
+                <span className="text-rose-600">*</span>
               </Label>
               <FormInput
                 id="ai-job-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Ví dụ: Senior React Developer"
+                placeholder={t("jobPostsPage.aiGeneratorForm.titlePlaceholder")}
                 className="mt-1.5 font-normal"
               />
             </div>
 
             <AiSkillPicker
               id="ai-required-skills"
-              label="Kỹ năng bắt buộc"
+              label={t("jobPostsPage.aiGeneratorForm.requiredSkillsLabel")}
               options={catalogs.skills}
               selectedIds={requiredSkillIds}
               onChange={setRequiredSkillIds}
-              placeholder="Tìm React, TypeScript, Node.js..."
+              placeholder={t("jobPostsPage.aiGeneratorForm.requiredSkillsPlaceholder")}
             />
 
             <div>
               <Label htmlFor="ai-job-keywords" className="text-sm font-medium text-slate-700">
-                Thêm kỹ năng hoặc từ khóa liên quan
+                {t("jobPostsPage.aiGeneratorForm.keywordsLabel")}
               </Label>
               <FormInput
                 id="ai-job-keywords"
                 value={keywords}
                 onChange={(event) => setKeywords(event.target.value)}
-                placeholder="Fintech, Microservices, Agile — phân cách bằng dấu phẩy"
+                placeholder={t("jobPostsPage.aiGeneratorForm.keywordsPlaceholder")}
                 className="mt-1.5 font-normal"
               />
               <p className="mt-1.5 text-xs font-normal text-slate-500">
-                Dùng cho công nghệ chưa có trong danh mục hoặc bối cảnh đặc thù của dự án.
+                {t("jobPostsPage.aiGeneratorForm.keywordsHint")}
               </p>
             </div>
 
@@ -227,14 +234,14 @@ export function JobPostAiGeneratorForm({
                 htmlFor="ai-company-description"
                 className="text-sm font-medium text-slate-700"
               >
-                Mô tả về công ty
+                {t("jobPostsPage.aiGeneratorForm.companyDescriptionLabel")}
               </Label>
               <Textarea
                 id="ai-company-description"
                 rows={3}
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="Sản phẩm, lĩnh vực, quy mô và môi trường làm việc..."
+                placeholder={t("jobPostsPage.aiGeneratorForm.companyDescriptionPlaceholder")}
                 className="mt-1.5 font-normal"
               />
             </div>
@@ -242,7 +249,7 @@ export function JobPostAiGeneratorForm({
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <SelectField
                 id="ai-output-language"
-                label="Ngôn ngữ JD"
+                label={t("jobPostsPage.aiGeneratorForm.outputLanguageLabel")}
                 value={outputLanguage}
                 onChange={(value) => setOutputLanguage(value as JobPostOutputLanguage)}
                 options={[
@@ -252,15 +259,16 @@ export function JobPostAiGeneratorForm({
               />
               <SelectField
                 id="ai-experience-level"
-                label="Cấp bậc"
+                label={t("jobPostsPage.aiGeneratorForm.experienceLevelLabel")}
                 value={experienceLevelId}
                 onChange={setExperienceLevelId}
                 options={catalogs.experienceLevels}
-                placeholder="Chọn cấp bậc"
+                placeholder={t("jobPostsPage.aiGeneratorForm.experienceLevelPlaceholder")}
               />
               <div>
                 <Label htmlFor="ai-years-experience" className="text-sm font-medium text-slate-700">
-                  Số năm kinh nghiệm <span className="text-rose-600">*</span>
+                  {t("jobPostsPage.aiGeneratorForm.yearsExperienceLabel")}{" "}
+                  <span className="text-rose-600">*</span>
                 </Label>
                 <FormInput
                   id="ai-years-experience"
@@ -272,7 +280,7 @@ export function JobPostAiGeneratorForm({
                   aria-required="true"
                   value={yearsOfExperience}
                   onChange={(event) => setYearsOfExperience(event.target.value)}
-                  placeholder="Ví dụ: 1"
+                  placeholder={t("jobPostsPage.aiGeneratorForm.yearsExperiencePlaceholder")}
                   className="mt-1.5 font-normal"
                 />
               </div>
@@ -281,7 +289,7 @@ export function JobPostAiGeneratorForm({
 
           <details className="group rounded-xl border border-slate-200 bg-slate-50/60">
             <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-800 marker:hidden">
-              Tùy chỉnh nâng cao
+              {t("jobPostsPage.aiGeneratorForm.advancedToggle")}
               <CaretDown
                 size={15}
                 className="float-right mt-1 text-slate-400 transition-transform group-open:rotate-180"
@@ -291,77 +299,77 @@ export function JobPostAiGeneratorForm({
               <div className="grid gap-4 sm:grid-cols-2">
                 <SelectField
                   id="ai-job-category"
-                  label="Ngành nghề"
+                  label={t("jobPostsPage.aiGeneratorForm.categoryLabel")}
                   value={jobCategoryId}
                   onChange={setJobCategoryId}
                   options={catalogs.categories}
-                  placeholder="Để AI đề xuất"
+                  placeholder={t("jobPostsPage.aiGeneratorForm.aiSuggestPlaceholder")}
                 />
                 <SelectField
                   id="ai-employment-type"
-                  label="Loại hình việc làm"
+                  label={t("jobPostsPage.aiGeneratorForm.employmentTypeLabel")}
                   value={employmentTypeId}
                   onChange={setEmploymentTypeId}
                   options={catalogs.employmentTypes}
-                  placeholder="Để AI đề xuất"
+                  placeholder={t("jobPostsPage.aiGeneratorForm.aiSuggestPlaceholder")}
                 />
                 <SelectField
                   id="ai-work-mode"
-                  label="Hình thức làm việc"
+                  label={t("jobPostsPage.aiGeneratorForm.workModeLabel")}
                   value={workMode}
                   onChange={(value) => setWorkMode(value as JobPostWorkMode)}
                   options={[
-                    { id: "onsite", name: "Tại văn phòng" },
+                    { id: "onsite", name: t("jobPostsPage.aiGeneratorForm.workModeOnsite") },
                     { id: "hybrid", name: "Hybrid" },
                     { id: "remote", name: "Remote" },
                   ]}
-                  placeholder="Chưa xác định"
+                  placeholder={t("jobPostsPage.aiGeneratorForm.workModeUndetermined")}
                 />
               </div>
 
               <AiSkillPicker
                 id="ai-preferred-skills"
-                label="Kỹ năng ưu tiên"
+                label={t("jobPostsPage.aiGeneratorForm.preferredSkillsLabel")}
                 options={catalogs.skills}
                 selectedIds={preferredSkillIds}
                 onChange={setPreferredSkillIds}
-                placeholder="Tìm kỹ năng cộng điểm..."
+                placeholder={t("jobPostsPage.aiGeneratorForm.preferredSkillsPlaceholder")}
               />
 
               <TextField
                 id="ai-product-domain"
-                label="Lĩnh vực sản phẩm hoặc dự án"
+                label={t("jobPostsPage.aiGeneratorForm.productDomainLabel")}
                 value={productOrDomain}
                 onChange={setProductOrDomain}
-                placeholder="Ví dụ: Nền tảng thanh toán B2B, SaaS, E-commerce..."
+                placeholder={t("jobPostsPage.aiGeneratorForm.productDomainPlaceholder")}
               />
               <TextAreaField
                 id="ai-role-objective"
-                label="Mục tiêu chính của vị trí"
+                label={t("jobPostsPage.aiGeneratorForm.roleObjectiveLabel")}
                 value={roleObjective}
                 onChange={setRoleObjective}
-                placeholder="Ứng viên sẽ tạo ra kết quả hoặc tác động gì?"
+                placeholder={t("jobPostsPage.aiGeneratorForm.roleObjectivePlaceholder")}
               />
               <TextAreaField
                 id="ai-team-context"
-                label="Đội nhóm và quy trình làm việc"
+                label={t("jobPostsPage.aiGeneratorForm.teamContextLabel")}
                 value={teamContext}
                 onChange={setTeamContext}
-                placeholder="Quy mô team, Agile/Scrum, phối hợp với Product, QA..."
+                placeholder={t("jobPostsPage.aiGeneratorForm.teamContextPlaceholder")}
               />
               <TextField
                 id="ai-language-requirement"
-                label="Yêu cầu ngoại ngữ"
+                label={t("jobPostsPage.aiGeneratorForm.languageRequirementLabel")}
                 value={languageRequirement}
                 onChange={setLanguageRequirement}
-                placeholder="Ví dụ: Đọc tài liệu và giao tiếp tiếng Anh"
+                placeholder={t("jobPostsPage.aiGeneratorForm.languageRequirementPlaceholder")}
               />
               <TextAreaField
                 id="ai-recruiter-notes"
-                label="Ghi chú bổ sung cho AI"
+                label={t("jobPostsPage.aiGeneratorForm.recruiterNotesLabel")}
                 value={hints}
                 onChange={setHints}
-                placeholder="Chỉ nhập dữ kiện có thật về trách nhiệm, yêu cầu hoặc quyền lợi..."
+                placeholder={t("jobPostsPage.aiGeneratorForm.recruiterNotesPlaceholder")}
               />
             </div>
           </details>
@@ -376,7 +384,7 @@ export function JobPostAiGeneratorForm({
 
       <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:justify-end sm:px-8">
         <Button type="button" variant="outline" disabled={isSubmitting} onClick={onCancel}>
-          Quay lại
+          {t("jobPostsPage.aiGeneratorForm.back")}
         </Button>
         <Button
           type="submit"
@@ -384,7 +392,9 @@ export function JobPostAiGeneratorForm({
           className="bg-emerald-600 text-white hover:bg-emerald-700"
         >
           <Sparkle size={17} weight="fill" />
-          {isSubmitting ? "AI đang tạo JD..." : "Tạo JD với AI"}
+          {isSubmitting
+            ? t("jobPostsPage.aiGeneratorForm.generating")
+            : t("jobPostsPage.aiGeneratorForm.submit")}
         </Button>
       </div>
     </form>
@@ -397,7 +407,7 @@ function SelectField({
   value,
   onChange,
   options,
-  placeholder = "Chọn một giá trị",
+  placeholder,
 }: {
   id: string;
   label: string;
@@ -406,6 +416,7 @@ function SelectField({
   options: ReadonlyArray<JobOption>;
   placeholder?: string;
 }) {
+  const t = useTranslations("Recruiter");
   return (
     <div>
       <Label htmlFor={id} className="text-sm font-medium text-slate-800">
@@ -416,7 +427,9 @@ function SelectField({
           id={id}
           className="text-foreground placeholder:text-muted-foreground upnext-focus mt-1.5 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal shadow-none transition-colors focus:border-emerald-600 focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <SelectValue placeholder={placeholder} />
+          <SelectValue
+            placeholder={placeholder ?? t("jobPostsPage.aiGeneratorForm.defaultSelectPlaceholder")}
+          />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
@@ -445,6 +458,8 @@ function AiSkillPicker({
   onChange: (ids: string[]) => void;
   placeholder: string;
 }) {
+  const t = useTranslations("Recruiter");
+  const locale = useLocale();
   const listboxId = useId();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -497,7 +512,9 @@ function AiSkillPicker({
         {open && query.trim() ? (
           <ul
             id={listboxId}
-            aria-label={`Gợi ý ${label.toLocaleLowerCase()}`}
+            aria-label={t("jobPostsPage.aiGeneratorForm.suggestionsAria", {
+              label: label.toLocaleLowerCase(locale),
+            })}
             aria-live="polite"
             className="absolute z-60 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
           >
@@ -520,7 +537,7 @@ function AiSkillPicker({
               ))
             ) : (
               <li className="px-3 py-2 text-sm font-normal text-slate-500">
-                Không tìm thấy kỹ năng phù hợp.
+                {t("jobPostsPage.aiGeneratorForm.noSkillsFound")}
               </li>
             )}
           </ul>
@@ -528,7 +545,10 @@ function AiSkillPicker({
       </div>
 
       {selected.length ? (
-        <ul className="mt-2 flex flex-wrap gap-2" aria-label={`${label} đã chọn`}>
+        <ul
+          className="mt-2 flex flex-wrap gap-2"
+          aria-label={t("jobPostsPage.aiGeneratorForm.selectedAria", { label })}
+        >
           {selected.map((option) => (
             <li
               key={option.id}
@@ -537,7 +557,9 @@ function AiSkillPicker({
               {option.name}
               <button
                 type="button"
-                aria-label={`Bỏ kỹ năng ${option.name}`}
+                aria-label={t("jobPostsPage.aiGeneratorForm.removeSkillAria", {
+                  name: option.name,
+                })}
                 onClick={() => onChange(selectedIds.filter((item) => item !== option.id))}
                 className="rounded-full p-0.5 hover:bg-emerald-100"
               >

@@ -180,12 +180,15 @@ export function deleteRecruiterPermission(permissionId: string, token: string) {
 export type Application = Readonly<{
   id: string;
   submittedAt: string;
+  viewedAt: string | null;
   status:
     | "SUBMITTED"
-    | "REVIEWING"
+    | "VIEWED"
+    | "CONSIDERING"
+    | "SHORTLISTED"
     | "INTERVIEWING"
     | "OFFERED"
-    | "ACCEPTED"
+    | "HIRED"
     | "REJECTED"
     | "WITHDRAWN";
   coverLetter: string | null;
@@ -206,7 +209,12 @@ export type Application = Readonly<{
     fileName: string;
     fileUrl: string;
   };
+  aiScore: {
+    finalScore: number;
+  } | null;
 }>;
+
+export type ApplicationAiLabel = "excellent" | "good" | "average" | "low" | "unscored";
 
 export function getCompanyApplications(
   token: string,
@@ -214,12 +222,16 @@ export function getCompanyApplications(
     jobPostId?: string;
     status?: string;
     search?: string;
+    viewed?: "unviewed";
+    aiLabel?: ApplicationAiLabel;
   },
 ) {
   const query = new URLSearchParams();
   if (params?.jobPostId) query.set("jobPostId", params.jobPostId);
   if (params?.status) query.set("status", params.status);
   if (params?.search) query.set("search", params.search);
+  if (params?.viewed) query.set("viewed", params.viewed);
+  if (params?.aiLabel) query.set("aiLabel", params.aiLabel);
 
   const queryString = query.toString();
   const url = `/recruiter/company-applications${queryString ? `?${queryString}` : ""}`;
@@ -254,6 +266,13 @@ export function updateApplicationStatus(
   return apiRequest<Application>(`/applications/${applicationId}/status`, {
     body: JSON.stringify({ status, note }),
     headers: jsonAuthHeaders(token),
+    method: "PATCH",
+  });
+}
+
+export function markApplicationViewed(applicationId: string, token: string) {
+  return apiRequest<Application>(`/applications/${applicationId}/mark-viewed`, {
+    headers: authHeaders(token),
     method: "PATCH",
   });
 }

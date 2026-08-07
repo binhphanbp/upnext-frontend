@@ -72,6 +72,8 @@ type CompanyForm = {
   companySize: string;
   description: string;
   benefits: string;
+  offerLetterTemplate: string;
+  rejectionLetterTemplate: string;
 };
 
 const emptyForm: CompanyForm = {
@@ -85,6 +87,8 @@ const emptyForm: CompanyForm = {
   companySize: "",
   description: "",
   benefits: "",
+  offerLetterTemplate: "",
+  rejectionLetterTemplate: "",
 };
 
 type TempPhoto = {
@@ -183,6 +187,8 @@ export function RecruiterCompanyProfilePage() {
           companySize: parseDbCompanySize(nextCompany.companySize),
           description: nextCompany.description || "",
           benefits: nextCompany.benefits || "",
+          offerLetterTemplate: nextCompany.offerLetterTemplate || "",
+          rejectionLetterTemplate: nextCompany.rejectionLetterTemplate || "",
         });
         setTempPhotos((current) => {
           current.forEach((p) => {
@@ -544,7 +550,7 @@ export function RecruiterCompanyProfilePage() {
         <div className="border-b border-slate-100 p-5">
           <div className="flex items-center gap-2">
             <Buildings size={20} className="text-emerald-700" />
-            <h2 className="text-lg font-bold">{t("cardTitle")}</h2>
+            <h2 className="text-lg font-semibold">{t("cardTitle")}</h2>
             <Badge tone={company?.verificationStatus === "VERIFIED" ? "success" : "warning"}>
               {formatVerificationStatus(company?.verificationStatus, t)}
             </Badge>
@@ -643,7 +649,7 @@ export function RecruiterCompanyProfilePage() {
             ]}
           />
           <div className="flex flex-col gap-1.5 lg:col-span-2">
-            <Label className="text-sm font-bold text-slate-700">
+            <Label className="text-sm font-semibold text-slate-700">
               {t("fields.description")} <span className="ml-1 text-red-500">*</span>
             </Label>
             <RichTextEditor
@@ -653,11 +659,35 @@ export function RecruiterCompanyProfilePage() {
             />
           </div>
           <div className="flex flex-col gap-1.5 lg:col-span-2">
-            <Label className="text-sm font-bold text-slate-700">{t("fields.benefits")}</Label>
+            <Label className="text-sm font-semibold text-slate-700">{t("fields.benefits")}</Label>
             <RichTextEditor
               value={form.benefits}
               onChange={(value) => setForm((current) => ({ ...current, benefits: value }))}
               placeholder={t("fields.benefitsPlaceholder")}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 lg:col-span-2">
+            <Label className="text-sm font-semibold text-slate-700">
+              {t("fields.offerLetterTemplate")}
+            </Label>
+            <RichTextEditor
+              value={form.offerLetterTemplate}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, offerLetterTemplate: value }))
+              }
+              placeholder={t("fields.offerLetterTemplatePlaceholder")}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 lg:col-span-2">
+            <Label className="text-sm font-semibold text-slate-700">
+              {t("fields.rejectionLetterTemplate")}
+            </Label>
+            <RichTextEditor
+              value={form.rejectionLetterTemplate}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, rejectionLetterTemplate: value }))
+              }
+              placeholder={t("fields.rejectionLetterTemplatePlaceholder")}
             />
           </div>
           <CompanyLicenseSection
@@ -672,12 +702,19 @@ export function RecruiterCompanyProfilePage() {
           />
         </div>
 
+        <CompanyAlbumSection
+          t={t}
+          tempPhotos={tempPhotos}
+          onAddPhotos={handlePhotoSelect}
+          onDeletePhoto={handlePhotoDelete}
+        />
+
         <div className="flex justify-end gap-3 border-t border-slate-100 p-5">
           <Button variant="outline" onClick={() => void loadCompany(accountId, token)}>
             {t("actions.cancel")}
           </Button>
           <Button
-            className="bg-[#11a77a] font-bold hover:bg-[#0d966d]"
+            className="bg-[#11a77a] font-semibold hover:bg-[#0d966d]"
             disabled={saving}
             onClick={() => void saveCompany()}
           >
@@ -685,13 +722,6 @@ export function RecruiterCompanyProfilePage() {
           </Button>
         </div>
       </Card>
-
-      <CompanyAlbumSection
-        t={t}
-        tempPhotos={tempPhotos}
-        onAddPhotos={handlePhotoSelect}
-        onDeletePhoto={handlePhotoDelete}
-      />
 
       <input
         ref={licenseInputRef}
@@ -787,7 +817,7 @@ function CompanySelectField({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id} className="text-sm font-bold text-slate-700">
+      <Label htmlFor={id} className="text-sm font-semibold text-slate-700">
         {label}
         {required && <span className="ml-1 text-red-500">*</span>}
       </Label>
@@ -796,7 +826,7 @@ function CompanySelectField({
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="upnext-focus text-foreground placeholder:text-muted-foreground flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium shadow-none transition-colors focus:border-emerald-600 focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="upnext-focus text-foreground placeholder:text-muted-foreground flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal shadow-none transition-colors focus:border-emerald-600 focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -833,7 +863,8 @@ function CompanyField({
       type={type}
       required={required || false}
       placeholder={placeholder}
-      className="h-12 rounded-xl border-slate-200 bg-white text-sm shadow-none focus:border-emerald-600 focus:outline-none focus-visible:outline-none"
+      labelClassName="font-semibold"
+      className="h-12 rounded-xl border-slate-200 bg-white text-sm font-normal shadow-none placeholder:font-normal focus:border-emerald-600 focus:outline-none focus-visible:outline-none"
       value={value}
       onChange={(event) => onChange(event.target.value)}
     />
@@ -912,16 +943,23 @@ function CompanyBrandSection({
       <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
         <button
           type="button"
-          className="group relative flex size-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition-all duration-300 hover:border-emerald-500 hover:bg-emerald-50/20 focus:border-emerald-500 focus:outline-none sm:size-24"
+          className={cn(
+            "group relative flex shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition-all duration-300 hover:border-emerald-500 hover:bg-emerald-50/20 focus:border-emerald-500 focus:outline-none",
+            displayLogoUrl ? "w-fit max-w-full p-2" : "size-20 sm:size-24",
+          )}
           onClick={() => logoInputRef.current?.click()}
           aria-label={t("ariaLabels.logoInput")}
         >
           {displayLogoUrl ? (
-            <img src={displayLogoUrl} alt={t("logo.title")} className="size-full object-cover" />
+            <img
+              src={displayLogoUrl}
+              alt={t("logo.title")}
+              className="h-auto max-h-24 w-auto max-w-40 object-contain"
+            />
           ) : (
             <div className="flex flex-col items-center text-slate-400 transition-colors group-hover:text-emerald-600">
               <ImageSquare size={28} />
-              <span className="mt-1 text-xs font-bold">{t("logo.uploadBtn")}</span>
+              <span className="mt-1 text-xs font-semibold">{t("logo.uploadBtn")}</span>
             </div>
           )}
 
@@ -939,7 +977,7 @@ function CompanyBrandSection({
         </button>
 
         <div>
-          <Label className="text-xs font-bold text-slate-700 sm:text-base sm:font-extrabold sm:text-slate-800">
+          <Label className="text-xs font-medium text-slate-700 sm:text-base sm:font-semibold sm:text-slate-800">
             {t("logo.title")}
           </Label>
           <p className="mt-1 hidden text-xs leading-relaxed font-medium whitespace-pre-line text-slate-500 sm:block">
@@ -963,7 +1001,7 @@ function CompanyBrandSection({
           ) : (
             <div className="flex flex-col items-center text-slate-400 transition-colors group-hover:text-emerald-600">
               <ImageSquare size={28} />
-              <span className="mt-1 text-xs font-bold">{t("cover.uploadBtn")}</span>
+              <span className="mt-1 text-xs font-semibold">{t("cover.uploadBtn")}</span>
             </div>
           )}
 
@@ -981,7 +1019,7 @@ function CompanyBrandSection({
         </button>
 
         <div>
-          <Label className="text-xs font-bold text-slate-700 sm:text-base sm:font-extrabold sm:text-slate-800">
+          <Label className="text-xs font-medium text-slate-700 sm:text-base sm:font-semibold sm:text-slate-800">
             {t("cover.title")}
           </Label>
           <p className="mt-1 hidden text-xs leading-relaxed font-medium whitespace-pre-line text-slate-500 sm:block">
@@ -1035,7 +1073,7 @@ function CompanyScannerBanner({
             <Sparkle size={18} weight="fill" className="animate-pulse" />
           </div>
           <div className="space-y-0.5">
-            <h4 className="flex items-center gap-1.5 text-xs font-bold text-slate-800 sm:text-sm">
+            <h4 className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 sm:text-sm">
               {t("aiScan.title")}
               <span className="py-0.2 rounded-full bg-emerald-100 px-1.5 text-[8px] font-black text-emerald-800 uppercase">
                 {t("aiScan.badgeNew")}
@@ -1121,12 +1159,12 @@ function CompanyLicenseSection({
 }: CompanyLicenseSectionProps) {
   return (
     <div className="flex flex-col gap-1.5 lg:col-span-2">
-      <Label className="text-sm font-bold text-slate-700">
+      <Label className="text-sm font-semibold text-slate-700">
         {t("fields.license")} <span className="ml-1 text-red-500">*</span>
       </Label>
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1 text-left">
-          <span className="text-sm font-semibold text-slate-700">
+          <span className="text-sm font-medium text-slate-700">
             {licenseFile
               ? t("licenseSection.selected", { filename: licenseFile.name })
               : company?.businessLicenseFileId
@@ -1139,7 +1177,7 @@ function CompanyLicenseSection({
           <Button
             type="button"
             variant="outline"
-            className="h-9 cursor-pointer border-slate-200 text-xs font-bold shadow-none hover:bg-slate-100/50"
+            className="h-9 cursor-pointer border-slate-200 text-xs font-semibold shadow-none hover:bg-slate-100/50"
             onClick={triggerSelect}
             disabled={saving || scanning}
           >
@@ -1198,18 +1236,15 @@ function CompanyAlbumSection({
   const photosInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <Card className="rounded-lg bg-white p-5">
+    <section className="border-t border-slate-100 p-5">
       <div className="flex flex-col gap-4">
-        <div className="flex items-start gap-4">
+        <div className="flex items-center gap-4">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white text-blue-500 transition-all duration-300">
             <ImageSquare size={22} />
           </div>
 
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-bold text-slate-800">{t("album.title")}</h3>
-            <p className="mt-1 text-sm leading-relaxed font-medium text-slate-500">
-              {t("album.description")}
-            </p>
+            <h3 className="text-base font-semibold text-slate-800">{t("album.title")}</h3>
           </div>
         </div>
 
@@ -1263,6 +1298,6 @@ function CompanyAlbumSection({
         aria-label={t("ariaLabels.photosInput")}
         onChange={(event) => onAddPhotos(event.target.files)}
       />
-    </Card>
+    </section>
   );
 }

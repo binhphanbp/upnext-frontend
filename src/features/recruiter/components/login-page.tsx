@@ -244,7 +244,7 @@ export function RecruiterLoginPage() {
           action={
             <button
               type="button"
-              className="upnext-focus rounded text-xs font-bold text-emerald-700 hover:text-emerald-800"
+              className="upnext-focus rounded text-sm font-semibold text-emerald-700 hover:text-emerald-800"
               onClick={() => router.push("/recruiter/forgot-password")}
             >
               {t("login.forgotPassword")}
@@ -275,7 +275,7 @@ export function RecruiterLoginPage() {
         {t("login.signupPrompt")}{" "}
         <button
           type="button"
-          className="upnext-focus ml-1 rounded font-extrabold text-emerald-700 hover:text-emerald-800"
+          className="upnext-focus ml-1 rounded font-semibold text-emerald-700 hover:text-emerald-800"
           onClick={() => router.push("/recruiter/register")}
         >
           {t("login.signupLink")}
@@ -366,7 +366,7 @@ export function RecruiterRegisterPage() {
         {tAuth("register.loginPrompt")}{" "}
         <button
           type="button"
-          className="upnext-focus ml-1 rounded font-extrabold text-emerald-700 hover:text-emerald-800"
+          className="upnext-focus ml-1 rounded font-semibold text-emerald-700 hover:text-emerald-800"
           onClick={() => router.push("/recruiter/login")}
         >
           {tAuth("register.loginLink")}
@@ -428,7 +428,7 @@ export function RecruiterForgotPasswordPage() {
         {tAuth("register.loginPrompt")}{" "}
         <button
           type="button"
-          className="upnext-focus ml-1 rounded font-extrabold text-emerald-700 hover:text-emerald-800"
+          className="upnext-focus ml-1 rounded font-semibold text-emerald-700 hover:text-emerald-800"
           onClick={() => router.push("/recruiter/login")}
         >
           {tAuth("register.loginLink")}
@@ -525,7 +525,7 @@ export function RecruiterResetPasswordPage() {
         {tAuth("register.loginPrompt")}{" "}
         <button
           type="button"
-          className="upnext-focus ml-1 rounded font-extrabold text-emerald-700 hover:text-emerald-800"
+          className="upnext-focus ml-1 rounded font-semibold text-emerald-700 hover:text-emerald-800"
           onClick={() => router.push("/recruiter/login")}
         >
           {tAuth("register.loginLink")}
@@ -650,7 +650,7 @@ export function AuthHeader({ title }: { title: string }) {
         </button>
       </div>
 
-      <h1 className="mt-6 text-xl font-bold tracking-tight sm:mt-8 sm:text-2xl">{title}</h1>
+      <h1 className="mt-6 text-xl font-semibold tracking-tight sm:mt-8 sm:text-2xl">{title}</h1>
     </>
   );
 }
@@ -845,7 +845,7 @@ function ShowcasePanel() {
           >
             {slides.map((slide, index) => (
               <div key={index} className="w-full flex-shrink-0 px-2">
-                <h2 className="text-xl font-bold text-slate-950">{slide.title}</h2>
+                <h2 className="text-xl font-semibold text-slate-800">{slide.title}</h2>
                 <p className="mt-4 text-sm leading-6 text-slate-500">{slide.description}</p>
               </div>
             ))}

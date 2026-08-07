@@ -7,11 +7,17 @@ import type { PublicJob } from "@/features/public/home/api";
 
 export type ApplicationStatusGroup = "active" | "all" | "closed" | "interview" | "offer";
 
-const activeStatuses = new Set<CandidateApplicationStatus>(["SUBMITTED", "VIEWED", "SHORTLISTED"]);
+const activeStatuses = new Set<CandidateApplicationStatus>([
+  "SUBMITTED",
+  "VIEWED",
+  "CONSIDERING",
+  "SHORTLISTED",
+]);
 const offerStatuses = new Set<CandidateApplicationStatus>(["OFFERED", "HIRED"]);
 const withdrawableStatuses = new Set<CandidateApplicationStatus>([
   "SUBMITTED",
   "VIEWED",
+  "CONSIDERING",
   "SHORTLISTED",
   "INTERVIEWING",
   "OFFERED",

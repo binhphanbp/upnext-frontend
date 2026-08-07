@@ -8,6 +8,7 @@ import {
   Eye,
   FileArrowUp,
   FileXls,
+  FloppyDisk,
   MagnifyingGlass,
   MapPin,
   PaperPlaneTilt,
@@ -40,8 +41,6 @@ import {
   createSkillOption,
   createSpecializationOption,
   deleteRecruiterJobPost,
-  extractJobPostDraft,
-  extractJobPostDraftFile,
   getJobPostCatalogs,
   getRecruiterJobPosts,
   type JobLocationOption,
@@ -89,7 +88,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RecruiterTableLayout } from "../components/recruiter-table-layout";
 import { JobPostAccessDialog } from "./job-post-access-dialog";
 import { consumeJobPostAiAutofillNotice, consumeJobPostAiDraft } from "./job-post-ai-draft-storage";
-import { JobPostAiImport } from "./job-post-ai-import";
 import { JobPostFilters } from "./job-post-filters";
 import {
   clearJobPostFormDraft,
@@ -107,81 +105,100 @@ const Toast = Swal.mixin({
   timerProgressBar: true,
 });
 
-const optionalNumber = z.preprocess(
-  (value) => (value === "" || value === null ? undefined : value),
-  z.coerce.number().min(0).max(99999999999, "Mức lương tối đa là 99.999.999.999 VND.").optional(),
-);
+type JobPostTranslator = ReturnType<typeof useTranslations>;
 
-const EDUCATION_LEVEL_OPTIONS: JobOption[] = [
-  { id: "ANY", name: "Không yêu cầu" },
-  { id: "HIGH_SCHOOL", name: "Trung học phổ thông" },
-  { id: "VOCATIONAL", name: "Trung cấp" },
-  { id: "COLLEGE", name: "Cao đẳng" },
-  { id: "BACHELOR", name: "Đại học" },
-  { id: "POSTGRADUATE", name: "Sau đại học" },
-];
-
-const SALARY_PERIOD_OPTIONS: ReadonlyArray<{ id: string; name: string }> = [
-  { id: "HOUR", name: "Theo giờ" },
-  { id: "DAY", name: "Theo ngày" },
-  { id: "MONTH", name: "Theo tháng" },
-  { id: "YEAR", name: "Theo năm" },
-];
-
-const JOB_STATUS_FILTER_OPTIONS = [
-  { label: "Tất cả", value: "ALL" },
-  { label: "Đang đăng", value: "ACTIVE" },
-  { label: "Sắp hết hạn", value: "EXPIRING_SOON" },
-  { label: "Chờ duyệt", value: "PENDING_REVIEW" },
-  { label: "Bản nháp", value: "DRAFT" },
-  { label: "Đã đóng", value: "CLOSED" },
-];
-const EXPIRING_SOON_DAYS = 7;
-
-const jobPostSchema = z
-  .object({
-    title: z.string().trim().min(5, "Vui lòng nhập tiêu đề tối thiểu 5 ký tự."),
-    description: z.string().trim().min(30, "Mô tả công việc cần tối thiểu 30 ký tự."),
-    requirements: z.string().trim().optional(),
-    benefits: z.string().trim().optional(),
-    salaryMin: optionalNumber,
-    salaryMax: optionalNumber,
-    salaryPeriod: z.enum(["HOUR", "DAY", "MONTH", "YEAR"]).default("MONTH"),
-    salaryIsNegotiable: z.boolean(),
-    salaryIsVisible: z.boolean(),
-    vacanciesCount: z.coerce
+function createJobPostSchema(t: JobPostTranslator) {
+  const optionalNumber = z.preprocess(
+    (value) => (value === "" || value === null ? undefined : value),
+    z.coerce
       .number()
-      .int()
-      .min(1, "Số lượng tuyển phải từ 1.")
-      .max(99999, "Số lượng tuyển tối đa là 99.999."),
-    jobCategoryId: z.string().optional(),
-    employmentTypeId: z.string().optional(),
-    experienceLevelId: z.string().optional(),
-    educationLevel: z.string().default("ANY"),
-    jobLocationIds: z.array(z.string()).default([]),
-    skillIds: z.array(z.string()).default([]),
-    specializationIds: z.array(z.string()).default([]),
-    workingDays: z.string().trim().optional(),
-    expiredAt: z.string().trim().min(1, "Vui lòng chọn hạn nộp hồ sơ."),
-  })
-  .refine(
-    (values) =>
-      values.salaryMin === undefined ||
-      values.salaryMax === undefined ||
-      values.salaryMax >= values.salaryMin,
-    {
-      message: "Lương tối đa phải lớn hơn hoặc bằng lương tối thiểu.",
-      path: ["salaryMax"],
-    },
+      .min(0)
+      .max(99999999999, t("jobPostsPage.validation.salaryMaxAmount"))
+      .optional(),
   );
 
-type JobPostFormInput = z.input<typeof jobPostSchema>;
-type JobPostFormValues = z.output<typeof jobPostSchema>;
+  return z
+    .object({
+      title: z.string().trim().min(5, t("jobPostsPage.validation.titleMin")),
+      description: z.string().trim().min(30, t("jobPostsPage.validation.descriptionMin")),
+      requirements: z.string().trim().optional(),
+      benefits: z.string().trim().optional(),
+      salaryMin: optionalNumber,
+      salaryMax: optionalNumber,
+      salaryPeriod: z.enum(["HOUR", "DAY", "MONTH", "YEAR"]).default("MONTH"),
+      salaryIsNegotiable: z.boolean(),
+      salaryIsVisible: z.boolean(),
+      vacanciesCount: z.coerce
+        .number()
+        .int()
+        .min(1, t("jobPostsPage.validation.vacanciesMin"))
+        .max(99999, t("jobPostsPage.validation.vacanciesMax")),
+      jobCategoryId: z.string().optional(),
+      employmentTypeId: z.string().optional(),
+      experienceLevelId: z.string().optional(),
+      educationLevel: z.string().default("ANY"),
+      jobLocationIds: z.array(z.string()).default([]),
+      skillIds: z.array(z.string()).default([]),
+      specializationIds: z.array(z.string()).default([]),
+      workingDays: z.string().trim().optional(),
+      expiredAt: z.string().trim().min(1, t("jobPostsPage.validation.expiredAtRequired")),
+    })
+    .refine(
+      (values) =>
+        values.salaryMin === undefined ||
+        values.salaryMax === undefined ||
+        values.salaryMax >= values.salaryMin,
+      {
+        message: t("jobPostsPage.validation.salaryMaxVsMin"),
+        path: ["salaryMax"],
+      },
+    );
+}
+
+type JobPostSchema = ReturnType<typeof createJobPostSchema>;
+type JobPostFormInput = z.input<JobPostSchema>;
+type JobPostFormValues = z.output<JobPostSchema>;
+
+function createEducationLevelOptions(t: JobPostTranslator): JobOption[] {
+  return [
+    { id: "ANY", name: t("jobPostsPage.education.any") },
+    { id: "HIGH_SCHOOL", name: t("jobPostsPage.education.highSchool") },
+    { id: "VOCATIONAL", name: t("jobPostsPage.education.vocational") },
+    { id: "COLLEGE", name: t("jobPostsPage.education.college") },
+    { id: "BACHELOR", name: t("jobPostsPage.education.bachelor") },
+    { id: "POSTGRADUATE", name: t("jobPostsPage.education.postgraduate") },
+  ];
+}
+
+function createSalaryPeriodOptions(
+  t: JobPostTranslator,
+): ReadonlyArray<{ id: string; name: string }> {
+  return [
+    { id: "HOUR", name: t("jobPostsPage.salaryPeriod.hour") },
+    { id: "DAY", name: t("jobPostsPage.salaryPeriod.day") },
+    { id: "MONTH", name: t("jobPostsPage.salaryPeriod.month") },
+    { id: "YEAR", name: t("jobPostsPage.salaryPeriod.year") },
+  ];
+}
+
+function createJobStatusFilterOptions(t: JobPostTranslator) {
+  return [
+    { label: t("jobPostsPage.jobStatus.all"), value: "ALL" },
+    { label: t("jobPostsPage.jobStatus.active"), value: "ACTIVE" },
+    { label: t("jobPostsPage.jobStatus.expiringSoon"), value: "EXPIRING_SOON" },
+    { label: t("jobPostsPage.jobStatus.pendingReview"), value: "PENDING_REVIEW" },
+    { label: t("jobPostsPage.jobStatus.draft"), value: "DRAFT" },
+    { label: t("jobPostsPage.jobStatus.closed"), value: "CLOSED" },
+  ];
+}
+
+const EXPIRING_SOON_DAYS = 7;
 
 /** Marks the fields the API (or the form schema) will refuse to submit without. */
 function RequiredMark() {
+  const t = useTranslations("Recruiter");
   return (
-    <span className="text-rose-600" title="Bắt buộc">
+    <span className="text-rose-600" title={t("jobPostsPage.requiredMark")}>
       {" *"}
     </span>
   );
@@ -203,7 +220,7 @@ function showToast(icon: SweetAlertIcon, title: string) {
   void Toast.fire({ icon, title });
 }
 
-function getFirstErrorMessage(errors: FieldErrors): string {
+function getFirstErrorMessage(t: JobPostTranslator, errors: FieldErrors): string {
   for (const error of Object.values(errors)) {
     if (!error) continue;
 
@@ -212,20 +229,20 @@ function getFirstErrorMessage(errors: FieldErrors): string {
     }
 
     if (typeof error === "object") {
-      const nested = getFirstErrorMessage(error as FieldErrors);
+      const nested = getFirstErrorMessage(t, error as FieldErrors);
 
       if (nested) return nested;
     }
   }
 
-  return "Vui lòng kiểm tra lại thông tin.";
+  return t("jobPostsPage.validation.genericInvalid");
 }
 
-function getJobPostErrorMessage(error: unknown, reputationScore?: string) {
+function getJobPostErrorMessage(t: JobPostTranslator, error: unknown, reputationScore?: string) {
   if (!(error instanceof ApiError)) {
     // The request never reached a response: the API restarted, the network dropped, or the tab went
     // offline. Retrying is safe — a draft already created is reused rather than duplicated.
-    return "Mất kết nối đến hệ thống khi đang lưu. Vui lòng bấm lại để thử tiếp.";
+    return t("jobPostsPage.errors.networkLost");
   }
 
   if (error.status === 400) {
@@ -233,16 +250,16 @@ function getJobPostErrorMessage(error: unknown, reputationScore?: string) {
     // The API states exactly what is missing; repeating a vague "hồ sơ chưa hoàn tất" left the
     // recruiter with nothing to act on.
     if (reason.includes("business license")) {
-      return "Công ty chưa có giấy phép kinh doanh trong hồ sơ. Vui lòng tải lên ở Hồ sơ công ty rồi thử lại.";
+      return t("jobPostsPage.errors.businessLicenseMissing");
     }
     if (reason.includes("not been attached to a company")) {
-      return "Tài khoản của bạn chưa được gắn với công ty nào. Vui lòng hoàn tất hồ sơ công ty trước.";
+      return t("jobPostsPage.errors.notAttachedToCompany");
     }
-    return "Thông tin tin tuyển dụng chưa hợp lệ hoặc công ty chưa hoàn tất hồ sơ.";
+    return t("jobPostsPage.errors.invalidOrIncomplete");
   }
 
   if (error.status === 401) {
-    return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+    return t("jobPostsPage.errors.sessionExpired");
   }
 
   if (error.status === 403) {
@@ -250,17 +267,24 @@ function getJobPostErrorMessage(error: unknown, reputationScore?: string) {
       // The threshold is server-side config, so read it back out of the message rather than
       // hardcoding a second copy of it here.
       const required = error.message.match(/at least (\d+(?:\.\d+)?)/)?.[1];
-      const current = reputationScore?.trim() ? `Hiện tại: ${reputationScore}. ` : "";
-      return `Điểm uy tín của công ty chưa đủ để đăng tin${required ? ` (cần tối thiểu ${required})` : ""}. ${current}Bạn có thể tăng điểm bằng cách xác thực mã số thuế, hoàn thiện thông tin công ty và xử lý CV ứng viên đúng hạn.`;
+      const current = reputationScore?.trim()
+        ? t("jobPostsPage.errors.reputationCurrentPrefix", { current: reputationScore })
+        : "";
+      return t("jobPostsPage.errors.reputationInsufficient", {
+        requiredSuffix: required
+          ? t("jobPostsPage.errors.reputationRequiredSuffix", { required })
+          : "",
+        currentPrefix: current,
+      });
     }
-    return "Công ty cần được xác thực trước khi xuất bản tin tuyển dụng.";
+    return t("jobPostsPage.errors.companyNotVerified");
   }
 
   if (error.status >= 500) {
-    return "Hệ thống đang gặp sự cố khi xử lý tin tuyển dụng.";
+    return t("jobPostsPage.errors.serverError");
   }
 
-  return "Không thể xử lý tin tuyển dụng. Vui lòng thử lại.";
+  return t("jobPostsPage.errors.unknown");
 }
 
 type RecruiterJobPostsPageProps = Readonly<{
@@ -290,9 +314,7 @@ export function RecruiterJobPostsPage({
   const [actionJobId, setActionJobId] = useState<string | null>(null);
 
   const [editorResetKey, setEditorResetKey] = useState(0);
-  const [view, setView] = useState<"list" | "create" | "import_jd" | "details" | "edit">(
-    initialView,
-  );
+  const [view, setView] = useState<"list" | "create" | "details" | "edit">(initialView);
   const [editorTab, setEditorTab] = useState<"compose" | "preview">("compose");
   const [activeJob, setActiveJob] = useState<RecruiterJobPost | null>(null);
   const [accessManagementJob, setAccessManagementJob] = useState<RecruiterJobPost | null>(null);
@@ -300,7 +322,6 @@ export function RecruiterJobPostsPage({
   const editTargetResolvedRef = useRef(false);
 
   const [showCreateOptionsModal, setShowCreateOptionsModal] = useState(openCreateOptions);
-  const [isExtractingJd, setIsExtractingJd] = useState(false);
   /**
    * Names the AI proposed that the catalog is missing. They used to be counted in a toast and then
    * thrown away, which is why an autofilled JD arrived with empty Kỹ năng / Chuyên ngành.
@@ -320,6 +341,11 @@ export function RecruiterJobPostsPage({
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const jobPostSchema = useMemo(() => createJobPostSchema(t), [t]);
+  const educationLevelOptions = useMemo(() => createEducationLevelOptions(t), [t]);
+  const salaryPeriodOptions = useMemo(() => createSalaryPeriodOptions(t), [t]);
+  const jobStatusFilterOptions = useMemo(() => createJobStatusFilterOptions(t), [t]);
 
   const form = useForm<JobPostFormInput, unknown, JobPostFormValues>({
     resolver: zodResolver(jobPostSchema),
@@ -490,38 +516,6 @@ export function RecruiterJobPostsPage({
 
   */
 
-  const getAiErrorMessage = (error: unknown) => {
-    if (!(error instanceof ApiError)) {
-      return "Không thể kết nối đến dịch vụ AI. Vui lòng thử lại.";
-    }
-    if (error.status === 429)
-      return "Bạn đang thao tác quá nhanh. Vui lòng chờ một phút rồi thử lại.";
-    if (error.status >= 500) return "Dịch vụ AI đang bận. Vui lòng thử lại sau ít phút.";
-    return error.message || "Không thể xử lý JD. Vui lòng kiểm tra lại dữ liệu.";
-  };
-
-  const confirmDraftReplacement = async () => {
-    const current = form.getValues();
-    const hasContent = Boolean(
-      current.title?.trim() ||
-      current.description?.trim() ||
-      current.requirements?.trim() ||
-      current.benefits?.trim(),
-    );
-    if (!hasContent) return true;
-
-    const result = await Swal.fire({
-      icon: "warning",
-      title: "Thay thế nội dung đang soạn?",
-      text: "Bản nháp AI sẽ thay thế nội dung hiện có trong form. Thao tác này chưa đăng tin.",
-      showCancelButton: true,
-      confirmButtonText: "Tiếp tục",
-      cancelButtonText: "Giữ nội dung hiện tại",
-      confirmButtonColor: "#059669",
-    });
-    return result.isConfirmed;
-  };
-
   const applyAiDraft = useCallback(
     (response: JobPostAiDraftResponse) => {
       const current = form.getValues();
@@ -568,13 +562,15 @@ export function RecruiterJobPostsPage({
       showToast(
         "success",
         unmatchedCount > 0
-          ? `Đã điền bản nháp. Có ${unmatchedCount} mục AI đề xuất chưa có trong danh mục — bấm để thêm ở Kỹ năng / Chuyên ngành.`
+          ? t("jobPostsPage.aiDraftApplied.withSuggestions", { count: unmatchedCount })
           : autofilledFields.length > 0
-            ? `Đã điền bản nháp AI. AI tự suy luận thêm từ JD: ${autofilledFields.join(", ")}.`
-            : "Đã điền bản nháp AI. Vui lòng kiểm tra trước khi đăng.",
+            ? t("jobPostsPage.aiDraftApplied.withAutofilled", {
+                fields: autofilledFields.join(", "),
+              })
+            : t("jobPostsPage.aiDraftApplied.plain"),
       );
     },
-    [companyLocations, form],
+    [companyLocations, form, t],
   );
 
   useEffect(() => {
@@ -604,36 +600,6 @@ export function RecruiterJobPostsPage({
     setEditorResetKey((key) => key + 1);
   }, [accountId, applyAiDraft, form, loading, view]);
 
-  const handleExtractImportedText = async (text: string) => {
-    if (!token || !(await confirmDraftReplacement())) return false;
-    setIsExtractingJd(true);
-    try {
-      const response = await extractJobPostDraft(text, token);
-      applyAiDraft(response);
-      return true;
-    } catch (error) {
-      showToast("error", getAiErrorMessage(error));
-      return false;
-    } finally {
-      setIsExtractingJd(false);
-    }
-  };
-
-  const handleExtractImportedFile = async (file: File) => {
-    if (!token || !(await confirmDraftReplacement())) return false;
-    setIsExtractingJd(true);
-    try {
-      const response = await extractJobPostDraftFile(file, token);
-      applyAiDraft(response);
-      return true;
-    } catch (error) {
-      showToast("error", getAiErrorMessage(error));
-      return false;
-    } finally {
-      setIsExtractingJd(false);
-    }
-  };
-
   /**
    * Adds a catalog entry the seed data is missing, refusing anything already in the list. The local
    * check keeps an obvious duplicate from ever reaching the API; the 409 covers spellings this
@@ -644,14 +610,18 @@ export function RecruiterJobPostsPage({
     rawName: string,
   ): Promise<JobOption | null> => {
     const name = rawName.trim().replace(/\s+/g, " ");
-    const noun = kind === "skill" ? "Kỹ năng" : "Chuyên ngành";
+    const noun =
+      kind === "skill"
+        ? t("jobPostsPage.catalog.skillNoun")
+        : t("jobPostsPage.catalog.specializationNoun");
+    const nounLower = noun.toLocaleLowerCase(locale);
     const existingOptions = kind === "skill" ? catalogs.skills : catalogs.specializations;
     const comparable = toComparableName(name);
     const duplicate = existingOptions.find(
       (option) => toComparableName(option.name) === comparable,
     );
     if (duplicate) {
-      showToast("warning", `${noun} "${duplicate.name}" đã có trong danh mục.`);
+      showToast("warning", t("jobPostsPage.catalog.alreadyExists", { noun, name: duplicate.name }));
       return duplicate;
     }
     if (!token) return null;
@@ -666,14 +636,17 @@ export function RecruiterJobPostsPage({
           ? { ...current, skills: [...current.skills, created].sort(byName) }
           : { ...current, specializations: [...current.specializations, created].sort(byName) },
       );
-      showToast("success", `Đã thêm ${noun.toLocaleLowerCase("vi")} "${created.name}".`);
+      showToast(
+        "success",
+        t("jobPostsPage.catalog.added", { noun: nounLower, name: created.name }),
+      );
       return created;
     } catch (error) {
       showToast(
         "error",
         error instanceof ApiError && error.status === 409
-          ? error.message || `${noun} này đã có trong danh mục.`
-          : `Không thêm được ${noun.toLocaleLowerCase("vi")} mới. Vui lòng thử lại.`,
+          ? error.message || t("jobPostsPage.catalog.createConflict", { noun: nounLower })
+          : t("jobPostsPage.catalog.createFailed", { noun: nounLower }),
       );
       return null;
     }
@@ -712,7 +685,7 @@ export function RecruiterJobPostsPage({
 
   function openPublicPreview() {
     saveRecruiterJobPostPreview({
-      companyName: account?.company?.name || "Doanh nghiệp của bạn",
+      companyName: account?.company?.name || t("jobPostsPage.companyDefaultName"),
       companyLogoUrl,
       companyVerified,
       values: previewValues,
@@ -779,7 +752,7 @@ export function RecruiterJobPostsPage({
           return;
         }
 
-        showToast("error", getJobPostErrorMessage(error));
+        showToast("error", getJobPostErrorMessage(t, error));
       } finally {
         setLoading(false);
       }
@@ -851,10 +824,7 @@ export function RecruiterJobPostsPage({
         await setJobPostSpecializations(activeJob.id, values.specializationIds, token);
 
         if (intent === "draft") {
-          showToast(
-            "success",
-            "Đã cập nhật tin tuyển dụng, tin sẽ được duyệt lại trước khi hiển thị công khai.",
-          );
+          showToast("success", t("jobPostsPage.toasts.updatedPendingReview"));
         }
       } else {
         // Create flow
@@ -895,11 +865,11 @@ export function RecruiterJobPostsPage({
 
         publishTargetId = jobId;
         if (intent === "draft") {
-          showToast("success", "Đã tạo bản nháp tin tuyển dụng thành công.");
+          showToast("success", t("jobPostsPage.toasts.draftCreated"));
         }
       }
     } catch (error) {
-      showToast("error", getJobPostErrorMessage(error));
+      showToast("error", getJobPostErrorMessage(t, error));
       return;
     }
 
@@ -915,7 +885,7 @@ export function RecruiterJobPostsPage({
       // filled form, or they would submit again and create a duplicate.
       try {
         await publishRecruiterJobPost(publishTargetId, token);
-        showToast("success", "Tin tuyển dụng đã được gửi duyệt.");
+        showToast("success", t("jobPostsPage.toasts.published"));
       } catch (error) {
         // A refused publish is a blocking condition with a reason worth reading, not a toast that
         // slides away after three seconds.
@@ -923,9 +893,11 @@ export function RecruiterJobPostsPage({
           error instanceof ApiError && error.message.toLowerCase().includes("reputation score");
         await Swal.fire({
           icon: "warning",
-          title: isReputation ? "Chưa đủ điểm uy tín để đăng tin" : "Chưa gửi duyệt được",
-          text: `${getJobPostErrorMessage(error, account?.company?.reputationScore)} Tin đã được lưu, bạn có thể gửi duyệt lại từ danh sách tin.`,
-          confirmButtonText: "Đã hiểu",
+          title: isReputation
+            ? t("jobPostsPage.publishDialog.reputationTitle")
+            : t("jobPostsPage.publishDialog.genericTitle"),
+          text: `${getJobPostErrorMessage(t, error, account?.company?.reputationScore)}${t("jobPostsPage.publishDialog.savedNote")}`,
+          confirmButtonText: t("jobPostsPage.publishDialog.confirm"),
           confirmButtonColor: "#059669",
         });
       }
@@ -939,7 +911,7 @@ export function RecruiterJobPostsPage({
     try {
       await reloadJobs();
     } catch {
-      showToast("warning", "Tin tuyển dụng đã lưu nhưng chưa tải lại được danh sách mới nhất.");
+      showToast("warning", t("jobPostsPage.toasts.reloadFailed"));
     }
   }
 
@@ -988,20 +960,20 @@ export function RecruiterJobPostsPage({
     if (target && canManageTarget) {
       startEdit(target);
     } else {
-      showToast("error", "Không tìm thấy tin tuyển dụng hoặc bạn không có quyền chỉnh sửa.");
+      showToast("error", t("jobPostsPage.toasts.notFoundOrNoPermission"));
       router.replace("/recruiter/job-posts");
     }
     setResolvingEditTarget(false);
-  }, [accountId, editJobId, jobs, loading, router, startEdit]);
+  }, [accountId, editJobId, jobs, loading, router, startEdit, t]);
 
   async function publish(jobPostId: string) {
     try {
       setActionJobId(jobPostId);
       await publishRecruiterJobPost(jobPostId, token);
       await reloadJobs();
-      showToast("success", "Tin tuyển dụng đã được gửi duyệt.");
+      showToast("success", t("jobPostsPage.toasts.published"));
     } catch (error) {
-      showToast("error", getJobPostErrorMessage(error));
+      showToast("error", getJobPostErrorMessage(t, error));
     } finally {
       setActionJobId(null);
     }
@@ -1012,9 +984,9 @@ export function RecruiterJobPostsPage({
       setActionJobId(jobPostId);
       await reopenRecruiterJobPost(jobPostId, token);
       await reloadJobs();
-      showToast("success", "Tin tuyển dụng đã được mở lại, đang chờ admin duyệt.");
+      showToast("success", t("jobPostsPage.toasts.reopened"));
     } catch (error) {
-      showToast("error", getJobPostErrorMessage(error));
+      showToast("error", getJobPostErrorMessage(t, error));
     } finally {
       setActionJobId(null);
     }
@@ -1025,9 +997,9 @@ export function RecruiterJobPostsPage({
       setActionJobId(jobPostId);
       await closeRecruiterJobPost(jobPostId, token);
       await reloadJobs();
-      showToast("success", "Tin tuyển dụng đã được đóng.");
+      showToast("success", t("jobPostsPage.toasts.closed"));
     } catch (error) {
-      showToast("error", getJobPostErrorMessage(error));
+      showToast("error", getJobPostErrorMessage(t, error));
     } finally {
       setActionJobId(null);
     }
@@ -1036,11 +1008,11 @@ export function RecruiterJobPostsPage({
   async function deleteJobPost(job: RecruiterJobPost) {
     const result = await Swal.fire({
       icon: "warning",
-      title: "Xóa tin tuyển dụng?",
-      text: `Tin "${job.title}" sẽ bị xóa và không thể khôi phục. Bạn có chắc chắn muốn tiếp tục?`,
+      title: t("jobPostsPage.deleteDialog.title"),
+      text: t("jobPostsPage.deleteDialog.text", { title: job.title }),
       showCancelButton: true,
-      confirmButtonText: "Xóa tin",
-      cancelButtonText: "Hủy",
+      confirmButtonText: t("jobPostsPage.deleteDialog.confirm"),
+      cancelButtonText: t("jobPostsPage.deleteDialog.cancel"),
       confirmButtonColor: "#dc2626",
     });
     if (!result.isConfirmed) return;
@@ -1049,9 +1021,9 @@ export function RecruiterJobPostsPage({
       setActionJobId(job.id);
       await deleteRecruiterJobPost(job.id, token);
       await reloadJobs();
-      showToast("success", "Đã xóa tin tuyển dụng.");
+      showToast("success", t("jobPostsPage.toasts.deleted"));
     } catch (error) {
-      showToast("error", getJobPostErrorMessage(error));
+      showToast("error", getJobPostErrorMessage(t, error));
     } finally {
       setActionJobId(null);
     }
@@ -1064,26 +1036,28 @@ export function RecruiterJobPostsPage({
       if (!posterId) continue;
       posters.set(
         posterId,
-        job.createdByRecruiter?.profile?.fullName || job.createdByRecruiter?.email || "Recruiter",
+        job.createdByRecruiter?.profile?.fullName ||
+          job.createdByRecruiter?.email ||
+          t("jobPostsPage.fallbackRecruiterName"),
       );
     }
     return [
-      { label: "Tất cả người đăng", value: "ALL" },
+      { label: t("jobPostsPage.posterAll"), value: "ALL" },
       ...Array.from(posters, ([value, label]) => ({ label, value })).sort((left, right) =>
         left.label.localeCompare(right.label, "vi"),
       ),
     ];
-  }, [jobs]);
+  }, [jobs, t]);
 
   const categoryOptions = useMemo(
     () => [
-      { label: "Tất cả ngành nghề", value: "ALL" },
+      { label: t("jobPostsPage.categoryAll"), value: "ALL" },
       ...catalogs.categories.map((category) => ({
         label: category.name,
         value: category.id,
       })),
     ],
-    [catalogs.categories],
+    [catalogs.categories, t],
   );
   const canManageJobAccessByRole =
     account?.recruiterRole?.rolePermissions?.some(
@@ -1140,40 +1114,43 @@ export function RecruiterJobPostsPage({
 
   const handleExportExcel = () => {
     if (filteredJobs.length === 0) {
-      showToast("warning", "Không có tin tuyển dụng phù hợp để xuất.");
+      showToast("warning", t("jobPostsPage.toasts.exportEmpty"));
       return;
     }
 
+    const notUpdated = t("jobPostsPage.notUpdated");
     const headers = [
-      "STT",
-      "Tiêu đề",
-      "Trạng thái",
-      "Người đăng",
-      "Ngành nghề",
-      "Cấp bậc",
-      "Loại hình",
-      "Địa điểm làm việc",
-      "Số lượng tuyển",
-      "Ứng viên",
-      "Lượt xem",
-      "Mức lương",
-      "Ngày tạo",
-      "Ngày đăng",
-      "Hạn nộp",
+      t("jobPostsPage.csv.stt"),
+      t("jobPostsPage.csv.title"),
+      t("jobPostsPage.csv.status"),
+      t("jobPostsPage.csv.poster"),
+      t("jobPostsPage.csv.category"),
+      t("jobPostsPage.csv.level"),
+      t("jobPostsPage.csv.type"),
+      t("jobPostsPage.csv.location"),
+      t("jobPostsPage.csv.vacancies"),
+      t("jobPostsPage.csv.applicants"),
+      t("jobPostsPage.csv.views"),
+      t("jobPostsPage.csv.salary"),
+      t("jobPostsPage.csv.createdAt"),
+      t("jobPostsPage.csv.publishedAt"),
+      t("jobPostsPage.csv.expiredAt"),
     ];
     const rows = filteredJobs.map((job, index) => [
       index + 1,
       job.title,
-      getJobStatusBadge(job).text,
-      job.createdByRecruiter?.profile?.fullName || job.createdByRecruiter?.email || "Recruiter",
-      job.jobCategory?.name || "Chưa cập nhật",
-      job.experienceLevel?.name || "Chưa cập nhật",
-      job.employmentType?.name || "Chưa cập nhật",
-      getJobPostLocationLabels(job).join("; ") || "Chưa cập nhật",
+      getJobStatusBadge(t, job).text,
+      job.createdByRecruiter?.profile?.fullName ||
+        job.createdByRecruiter?.email ||
+        t("jobPostsPage.fallbackRecruiterName"),
+      job.jobCategory?.name || notUpdated,
+      job.experienceLevel?.name || notUpdated,
+      job.employmentType?.name || notUpdated,
+      getJobPostLocationLabels(job).join("; ") || notUpdated,
       job.vacanciesCount,
       job._count?.applications ?? 0,
       job._count?.views ?? 0,
-      formatSalary(job),
+      formatSalary(t, job),
       formatAppDate(job.createdAt),
       job.publishedAt ? formatAppDate(job.publishedAt) : "",
       job.expiredAt ? formatAppDate(job.expiredAt) : "",
@@ -1192,7 +1169,7 @@ export function RecruiterJobPostsPage({
     link.remove();
     URL.revokeObjectURL(url);
 
-    showToast("success", `Đã xuất ${filteredJobs.length} tin tuyển dụng.`);
+    showToast("success", t("jobPostsPage.toasts.exported", { count: filteredJobs.length }));
   };
 
   const totalPages = Math.ceil(filteredJobs.length / pageSize) || 1;
@@ -1201,7 +1178,7 @@ export function RecruiterJobPostsPage({
   const paginatedJobs = filteredJobs.slice(startIndex, startIndex + pageSize);
 
   if (loading || redirecting || resolvingEditTarget) {
-    return <div className="text-sm font-semibold text-slate-600">Đang tải tin tuyển dụng...</div>;
+    return <div className="text-sm font-semibold text-slate-600">{t("jobPostsPage.loading")}</div>;
   }
 
   return (
@@ -1240,21 +1217,6 @@ export function RecruiterJobPostsPage({
           ) : null}
         </div>
       </header> */}
-
-      {view === "import_jd" && (
-        <JobPostAiImport
-          isSubmitting={isExtractingJd}
-          onExtractFile={handleExtractImportedFile}
-          onExtractText={handleExtractImportedText}
-          onStartFromScratch={() => {
-            form.reset();
-            setEditorTab("compose");
-            setActiveJob(null);
-            setView("create");
-          }}
-          onOpenGenerator={() => router.push("/recruiter/job-posts/create/ai")}
-        />
-      )}
 
       {/*
       {view === "import_jd" && (
@@ -1470,32 +1432,34 @@ export function RecruiterJobPostsPage({
                   <PencilSimple size={18} className="text-emerald-700" />
                 )}
                 <h2 className="text-base font-bold text-slate-950">
-                  {view === "create" ? "Mô tả công việc" : "Chỉnh sửa mô tả công việc"}
+                  {view === "create"
+                    ? t("jobPostsPage.form.sectionCreateTitle")
+                    : t("jobPostsPage.form.sectionEditTitle")}
                 </h2>
               </div>
             </div>
 
             <form
               onSubmit={form.handleSubmit(submit, (errors) =>
-                showToast("error", getFirstErrorMessage(errors)),
+                showToast("error", getFirstErrorMessage(t, errors)),
               )}
               noValidate
               className="space-y-5 p-5"
             >
               <JobInput
                 id="job-title"
-                label="Chức danh"
+                label={t("jobPostsPage.form.title.label")}
                 required
-                placeholder="Senior Frontend Engineer"
+                placeholder={t("jobPostsPage.form.title.placeholder")}
                 register={form.register("title")}
                 error={form.formState.errors.title?.message}
               />
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <JobSelect
-                  label="Ngành nghề"
+                  label={t("jobPostsPage.form.category.label")}
                   options={catalogs.categories}
-                  placeholder="Chọn ngành nghề"
+                  placeholder={t("jobPostsPage.form.category.placeholder")}
                   showSearch={true}
                   value={form.watch("jobCategoryId") ?? ""}
                   onValueChange={(value) =>
@@ -1504,9 +1468,9 @@ export function RecruiterJobPostsPage({
                   error={form.formState.errors.jobCategoryId?.message}
                 />
                 <JobSelect
-                  label="Cấp bậc"
+                  label={t("jobPostsPage.form.experienceLevel.label")}
                   options={catalogs.experienceLevels}
-                  placeholder="Chọn cấp bậc"
+                  placeholder={t("jobPostsPage.form.experienceLevel.placeholder")}
                   value={form.watch("experienceLevelId") ?? ""}
                   onValueChange={(value) =>
                     form.setValue("experienceLevelId", value, { shouldDirty: true })
@@ -1514,9 +1478,9 @@ export function RecruiterJobPostsPage({
                   error={form.formState.errors.experienceLevelId?.message}
                 />
                 <JobSelect
-                  label="Loại việc làm"
+                  label={t("jobPostsPage.form.employmentType.label")}
                   options={catalogs.employmentTypes}
-                  placeholder="Chọn loại việc làm"
+                  placeholder={t("jobPostsPage.form.employmentType.placeholder")}
                   value={form.watch("employmentTypeId") ?? ""}
                   onValueChange={(value) =>
                     form.setValue("employmentTypeId", value, { shouldDirty: true })
@@ -1524,9 +1488,9 @@ export function RecruiterJobPostsPage({
                   error={form.formState.errors.employmentTypeId?.message}
                 />
                 <JobSelect
-                  label="Trình độ học vấn"
-                  options={EDUCATION_LEVEL_OPTIONS}
-                  placeholder="Chọn trình độ học vấn"
+                  label={t("jobPostsPage.form.educationLevel.label")}
+                  options={educationLevelOptions}
+                  placeholder={t("jobPostsPage.form.educationLevel.placeholder")}
                   value={form.watch("educationLevel") ?? "ANY"}
                   onValueChange={(value) =>
                     form.setValue("educationLevel", value, { shouldDirty: true })
@@ -1543,13 +1507,13 @@ export function RecruiterJobPostsPage({
 
               <SearchTagPicker
                 id="job-skills"
-                label="Kỹ năng"
-                placeholder="Nhập từ khóa để tìm kiếm kỹ năng..."
+                label={t("jobPostsPage.form.skills.label")}
+                placeholder={t("jobPostsPage.form.skills.placeholder")}
                 options={catalogs.skills}
                 selectedIds={form.watch("skillIds") ?? []}
                 onChange={(ids) => form.setValue("skillIds", ids, { shouldDirty: true })}
                 onCreate={createSkillFromQuery}
-                createHint="Chỉ thêm khi chắc chắn danh mục còn thiếu; tên đã tồn tại sẽ bị từ chối."
+                createHint={t("jobPostsPage.form.skills.createHint")}
                 suggestions={aiSuggestedSkills}
                 onDismissSuggestion={(name) =>
                   setAiSuggestedSkills((current) => current.filter((item) => item !== name))
@@ -1558,13 +1522,13 @@ export function RecruiterJobPostsPage({
 
               <SearchTagPicker
                 id="job-specializations"
-                label="Chuyên ngành"
-                placeholder="Nhập từ khóa để tìm kiếm chuyên ngành..."
+                label={t("jobPostsPage.form.specializations.label")}
+                placeholder={t("jobPostsPage.form.specializations.placeholder")}
                 options={catalogs.specializations}
                 selectedIds={form.watch("specializationIds") ?? []}
                 onChange={(ids) => form.setValue("specializationIds", ids, { shouldDirty: true })}
                 onCreate={createSpecializationFromQuery}
-                createHint="Chỉ thêm khi chắc chắn danh mục còn thiếu; tên đã tồn tại sẽ bị từ chối."
+                createHint={t("jobPostsPage.form.specializations.createHint")}
                 suggestions={aiSuggestedSpecializations}
                 onDismissSuggestion={(name) =>
                   setAiSuggestedSpecializations((current) =>
@@ -1576,9 +1540,9 @@ export function RecruiterJobPostsPage({
               <RichTextField
                 key={`job-description-${editorResetKey}`}
                 expandable
-                label="Mô tả"
+                label={t("jobPostsPage.form.description.label")}
                 required
-                placeholder="Mô tả phạm vi công việc, sản phẩm và trách nhiệm chính..."
+                placeholder={t("jobPostsPage.form.description.placeholder")}
                 value={form.watch("description") ?? ""}
                 onChange={(value) =>
                   form.setValue("description", value, { shouldDirty: true, shouldValidate: true })
@@ -1589,8 +1553,8 @@ export function RecruiterJobPostsPage({
               <RichTextField
                 key={`job-requirements-${editorResetKey}`}
                 expandable
-                label="Yêu cầu công việc"
-                placeholder="Kinh nghiệm, kỹ năng bắt buộc, năng lực ưu tiên..."
+                label={t("jobPostsPage.form.requirements.label")}
+                placeholder={t("jobPostsPage.form.requirements.placeholder")}
                 value={form.watch("requirements") ?? ""}
                 onChange={(value) => form.setValue("requirements", value, { shouldDirty: true })}
                 error={form.formState.errors.requirements?.message}
@@ -1599,8 +1563,8 @@ export function RecruiterJobPostsPage({
               <RichTextField
                 key={`job-benefits-${editorResetKey}`}
                 expandable
-                label="Quyền lợi / Phúc lợi"
-                placeholder="Lương thưởng, bảo hiểm, chế độ làm việc, lộ trình phát triển..."
+                label={t("jobPostsPage.form.benefits.label")}
+                placeholder={t("jobPostsPage.form.benefits.placeholder")}
                 value={form.watch("benefits") ?? ""}
                 onChange={(value) => form.setValue("benefits", value, { shouldDirty: true })}
                 error={form.formState.errors.benefits?.message}
@@ -1612,12 +1576,14 @@ export function RecruiterJobPostsPage({
                 already given.
               */}
               <section className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
-                <Label className="text-sm font-bold text-slate-700">Mức lương</Label>
+                <Label className="text-sm font-semibold text-slate-700">
+                  {t("jobPostsPage.form.salarySection")}
+                </Label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <JobInput
                     id="job-salary-min"
-                    label="Từ"
-                    placeholder="20000000"
+                    label={t("jobPostsPage.form.salaryMin.label")}
+                    placeholder={t("jobPostsPage.form.salaryMin.placeholder")}
                     register={form.register("salaryMin")}
                     type="number"
                     error={form.formState.errors.salaryMin?.message}
@@ -1625,8 +1591,8 @@ export function RecruiterJobPostsPage({
                   />
                   <JobInput
                     id="job-salary-max"
-                    label="Đến"
-                    placeholder="40000000"
+                    label={t("jobPostsPage.form.salaryMax.label")}
+                    placeholder={t("jobPostsPage.form.salaryMax.placeholder")}
                     register={form.register("salaryMax")}
                     type="number"
                     error={form.formState.errors.salaryMax?.message}
@@ -1634,9 +1600,9 @@ export function RecruiterJobPostsPage({
                   />
                 </div>
                 <JobSelect
-                  label="Chu kỳ trả lương"
-                  options={SALARY_PERIOD_OPTIONS}
-                  placeholder="Chọn chu kỳ trả lương"
+                  label={t("jobPostsPage.form.salaryPeriodLabel")}
+                  options={salaryPeriodOptions}
+                  placeholder={t("jobPostsPage.form.salaryPeriodPlaceholder")}
                   value={form.watch("salaryPeriod") ?? "MONTH"}
                   onValueChange={(value) =>
                     form.setValue("salaryPeriod", value as SalaryPeriod, { shouldDirty: true })
@@ -1647,7 +1613,7 @@ export function RecruiterJobPostsPage({
                   <CheckboxRow
                     checked={form.watch("salaryIsNegotiable")}
                     id="job-salary-negotiable"
-                    label="Lương thỏa thuận"
+                    label={t("jobPostsPage.form.salaryNegotiable")}
                     onCheckedChange={(checked) => {
                       form.setValue("salaryIsNegotiable", checked, { shouldDirty: true });
                       if (checked) {
@@ -1660,7 +1626,7 @@ export function RecruiterJobPostsPage({
                   <CheckboxRow
                     checked={form.watch("salaryIsVisible")}
                     id="job-salary-visible"
-                    label="Hiển thị lương"
+                    label={t("jobPostsPage.form.salaryVisible")}
                     disabled={form.watch("salaryIsNegotiable")}
                     onCheckedChange={(checked) =>
                       form.setValue("salaryIsVisible", checked, { shouldDirty: true })
@@ -1671,9 +1637,9 @@ export function RecruiterJobPostsPage({
 
               <JobInput
                 id="job-vacancies"
-                label="Số lượng tuyển dụng"
+                label={t("jobPostsPage.form.vacancies.label")}
                 required
-                placeholder="1"
+                placeholder={t("jobPostsPage.form.vacancies.placeholder")}
                 register={form.register("vacanciesCount")}
                 type="number"
                 error={form.formState.errors.vacanciesCount?.message}
@@ -1682,8 +1648,8 @@ export function RecruiterJobPostsPage({
               <div className="grid gap-4 sm:grid-cols-2">
                 <JobInput
                   id="job-working-days"
-                  label="Thời gian làm việc"
-                  placeholder="Thứ 2 - Thứ 6"
+                  label={t("jobPostsPage.form.workingDays.label")}
+                  placeholder={t("jobPostsPage.form.workingDays.placeholder")}
                   register={form.register("workingDays")}
                   error={form.formState.errors.workingDays?.message}
                 />
@@ -1693,9 +1659,9 @@ export function RecruiterJobPostsPage({
                   render={({ field }) => (
                     <DatePicker
                       id="job-expired-at"
-                      label="Hạn nộp hồ sơ"
+                      label={t("jobPostsPage.form.expiredAt.label")}
                       required
-                      placeholder="Chọn hạn nộp hồ sơ"
+                      placeholder={t("jobPostsPage.form.expiredAt.placeholder")}
                       value={field.value}
                       onChange={field.onChange}
                       minDate={new Date().toLocaleDateString("sv-SE")}
@@ -1710,29 +1676,21 @@ export function RecruiterJobPostsPage({
                   <Prohibit size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
                   <div className="space-y-1">
                     <p className="font-semibold">
-                      Chưa đủ điểm uy tín để đăng tin ({reputationScore}/{reputationRequired})
+                      {t("jobPostsPage.form.reputationBlockedTitle", {
+                        score: reputationScore,
+                        required: reputationRequired,
+                      })}
                     </p>
                     <p className="font-normal">
-                      Bạn vẫn lưu được bản nháp. Để gửi duyệt, công ty cần đạt {reputationRequired}{" "}
-                      điểm — tăng điểm bằng cách xác thực mã số thuế, hoàn thiện thông tin công ty
-                      và xử lý CV ứng viên đúng hạn.
+                      {t("jobPostsPage.form.reputationBlockedText", {
+                        required: reputationRequired,
+                      })}
                     </p>
                   </div>
                 </output>
               ) : null}
 
-              <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-5">
-                <Button
-                  id="job-post-preview"
-                  type="button"
-                  variant="outline"
-                  disabled={form.formState.isSubmitting}
-                  onClick={openPublicPreview}
-                  className="h-11 border-slate-300 px-6 font-bold text-slate-700 hover:border-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                >
-                  <Eye size={18} aria-hidden="true" />
-                  Xem trước
-                </Button>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
                 <Button
                   type="button"
                   variant="ghost"
@@ -1752,43 +1710,62 @@ export function RecruiterJobPostsPage({
                   }}
                   className="h-11 px-6 font-bold text-slate-500 hover:bg-slate-50"
                 >
-                  Hủy
+                  {t("jobPostsPage.form.cancel")}
                 </Button>
-                <Button
-                  id="job-post-save-draft"
-                  type="submit"
-                  variant="outline"
-                  disabled={form.formState.isSubmitting}
-                  onClick={() => {
-                    submitIntentRef.current = "draft";
-                  }}
-                  className="h-11 border-emerald-600 px-6 font-bold text-emerald-700 hover:bg-emerald-50"
-                >
-                  {form.formState.isSubmitting
-                    ? view === "edit"
-                      ? "Đang lưu..."
-                      : "Đang tạo..."
-                    : view === "edit"
-                      ? "Lưu thay đổi"
-                      : "Lưu bản nháp"}
-                </Button>
-                <Button
-                  id="job-post-publish"
-                  type="submit"
-                  disabled={form.formState.isSubmitting || reputationBlocksPublish}
-                  title={
-                    reputationBlocksPublish
-                      ? `Cần ${reputationRequired} điểm uy tín để gửi duyệt, công ty đang có ${reputationScore}.`
-                      : undefined
-                  }
-                  onClick={() => {
-                    submitIntentRef.current = "publish";
-                  }}
-                  className="h-11 bg-[#11a77a] px-6 font-bold text-white shadow-none hover:bg-[#0d966d]"
-                >
-                  <PaperPlaneTilt size={18} aria-hidden="true" />
-                  {form.formState.isSubmitting ? "Đang gửi..." : "Đăng tin (gửi duyệt)"}
-                </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    id="job-post-preview"
+                    type="button"
+                    variant="outline"
+                    disabled={form.formState.isSubmitting}
+                    onClick={openPublicPreview}
+                    className="h-11 border-slate-300 px-6 font-bold text-slate-700 hover:border-slate-400 hover:bg-slate-50"
+                  >
+                    <Eye size={18} aria-hidden="true" />
+                    {t("jobPostsPage.form.preview")}
+                  </Button>
+                  <Button
+                    id="job-post-save-draft"
+                    type="submit"
+                    variant="outline"
+                    disabled={form.formState.isSubmitting}
+                    onClick={() => {
+                      submitIntentRef.current = "draft";
+                    }}
+                    className="h-11 border-emerald-600 px-6 font-bold text-emerald-700 hover:bg-emerald-50"
+                  >
+                    <FloppyDisk size={18} aria-hidden="true" />
+                    {form.formState.isSubmitting
+                      ? view === "edit"
+                        ? t("jobPostsPage.form.saveChangesSubmitting")
+                        : t("jobPostsPage.form.saveDraftSubmitting")
+                      : view === "edit"
+                        ? t("jobPostsPage.form.saveChanges")
+                        : t("jobPostsPage.form.saveDraft")}
+                  </Button>
+                  <Button
+                    id="job-post-publish"
+                    type="submit"
+                    disabled={form.formState.isSubmitting || reputationBlocksPublish}
+                    title={
+                      reputationBlocksPublish
+                        ? t("jobPostsPage.form.publishDisabledTitle", {
+                            required: reputationRequired ?? 0,
+                            score: reputationScore,
+                          })
+                        : undefined
+                    }
+                    onClick={() => {
+                      submitIntentRef.current = "publish";
+                    }}
+                    className="h-11 bg-[#11a77a] px-6 font-semibold text-white shadow-none hover:bg-[#0d966d]"
+                  >
+                    <PaperPlaneTilt size={18} aria-hidden="true" />
+                    {form.formState.isSubmitting
+                      ? t("jobPostsPage.form.publishSubmitting")
+                      : t("jobPostsPage.form.publish")}
+                  </Button>
+                </div>
               </div>
             </form>
           </Card>
@@ -1796,7 +1773,7 @@ export function RecruiterJobPostsPage({
           {editorTab === "preview" ? (
             <div id="job-post-preview-panel" role="tabpanel" aria-labelledby="job-post-preview-tab">
               <RecruiterJobPostPreview
-                companyName={account?.company?.name || "Doanh nghiệp của bạn"}
+                companyName={account?.company?.name || t("jobPostsPage.companyDefaultName")}
                 companyLogoUrl={companyLogoUrl}
                 companyVerified={companyVerified}
                 values={previewValues}
@@ -1815,7 +1792,7 @@ export function RecruiterJobPostsPage({
             status={statusFilter}
             poster={posterFilter}
             category={categoryFilter}
-            statusOptions={JOB_STATUS_FILTER_OPTIONS}
+            statusOptions={jobStatusFilterOptions}
             posterOptions={posterOptions}
             categoryOptions={categoryOptions}
             onSearchChange={(value) => {
@@ -1836,7 +1813,7 @@ export function RecruiterJobPostsPage({
             }}
             onClear={clearListFilters}
           />
-          <section aria-label="Danh sách tin tuyển dụng" className="w-full min-w-0">
+          <section aria-label={t("jobPostsPage.list.ariaSection")} className="w-full min-w-0">
             <RecruiterTableLayout
               loading={tableRefreshing}
               totalItems={filteredJobs.length}
@@ -1854,25 +1831,25 @@ export function RecruiterJobPostsPage({
                     className="border-emerald-200 font-semibold text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
                   >
                     <FileXls size={17} className="mr-1" aria-hidden="true" />
-                    Xuất Excel
+                    {t("jobPostsPage.list.exportButton")}
                   </Button>
                   <Button
                     onClick={() => setShowCreateOptionsModal(true)}
                     className="bg-[#11a77a] font-medium text-white hover:bg-[#0d966d]"
                   >
                     <Plus size={16} className="mr-1" />
-                    Tạo tin tuyển dụng
+                    {t("jobPostsPage.list.createButton")}
                   </Button>
                 </div>
               }
             >
               <thead>
                 <tr>
-                  <th scope="col">Tin tuyển dụng</th>
-                  <th scope="col">Trạng thái</th>
-                  <th scope="col">Ứng viên</th>
+                  <th scope="col">{t("jobPostsPage.list.table.job")}</th>
+                  <th scope="col">{t("jobPostsPage.list.table.status")}</th>
+                  <th scope="col">{t("jobPostsPage.list.table.applicants")}</th>
                   <th scope="col" className="text-center">
-                    Thao tác
+                    {t("jobPostsPage.list.table.actions")}
                   </th>
                 </tr>
               </thead>
@@ -1906,25 +1883,25 @@ export function RecruiterJobPostsPage({
                 {paginatedJobs.length === 0 ? (
                   <tr>
                     <td
-                      aria-label="Danh sách tin tuyển dụng trống"
+                      aria-label={t("jobPostsPage.emptyList.ariaEmpty")}
                       colSpan={4}
                       className="pt-12 pb-20 text-center"
                     >
                       <div className="flex flex-col items-center justify-center gap-1">
                         <Image
                           src="/assets/recruiter/icon/cv-find.png"
-                          alt="CV Find Icon"
+                          alt={t("jobPostsPage.emptyList.iconAlt")}
                           height={192}
                           width={192}
                           className="h-48 w-48 object-contain"
                         />
-                        <span className="-mt-6 text-sm font-medium text-slate-700">
+                        <span className="-mt-6 pb-4 text-sm font-medium text-slate-700">
                           {searchTerm ||
                           statusFilter !== "ALL" ||
                           posterFilter !== "ALL" ||
                           categoryFilter !== "ALL"
-                            ? "Không tìm thấy tin tuyển dụng phù hợp."
-                            : "Chưa có tin tuyển dụng."}
+                            ? t("jobPostsPage.emptyList.noMatch")
+                            : t("jobPostsPage.emptyList.empty")}
                         </span>
                       </div>
                     </td>
@@ -1960,14 +1937,14 @@ export function RecruiterJobPostsPage({
         <DialogContent className="max-w-2xl rounded-2xl p-6 sm:p-8">
           <DialogHeader className="pb-2 text-center sm:text-center">
             <DialogTitle className="font-outfit flex flex-wrap items-center justify-center gap-x-1.5 text-xl font-bold tracking-tight text-balance text-slate-800 sm:text-2xl">
-              <span>Tạo tin tuyển dụng với</span>
+              <span>{t("jobPostsPage.createOptionsModal.titlePrefix")}</span>
               <span className="inline-flex items-center gap-1.5 text-[#11a77a]">
                 <Sparkle size={22} className="shrink-0 text-[#11a77a]" weight="fill" />
                 <span>UpNext AI</span>
               </span>
             </DialogTitle>
             <DialogDescription className="mt-1 max-w-none text-center text-xs text-slate-500 sm:text-sm">
-              Lựa chọn phương thức phù hợp nhất để khởi tạo mô tả công việc của bạn nhanh chóng.
+              {t("jobPostsPage.createOptionsModal.description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -1978,7 +1955,7 @@ export function RecruiterJobPostsPage({
                 type="button"
                 onClick={() => {
                   setShowCreateOptionsModal(false);
-                  setView("import_jd");
+                  router.push("/recruiter/job-posts/create/import");
                 }}
                 className="group relative flex h-[90px] w-full cursor-pointer items-center justify-between overflow-hidden rounded-2xl border-0 bg-gradient-to-r from-[#ff6b4a] via-[#ff7854] to-[#ff8f6e] p-4 text-left text-white shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl active:translate-y-0 sm:w-[260px]"
               >
@@ -1987,7 +1964,7 @@ export function RecruiterJobPostsPage({
                     <FileArrowUp size={24} weight="bold" />
                   </div>
                   <span className="text-md leading-snug font-semibold tracking-tight text-white">
-                    Sử dụng JD sẵn có
+                    {t("jobPostsPage.createOptionsModal.useExistingJd")}
                   </span>
                 </div>
 
@@ -2010,7 +1987,7 @@ export function RecruiterJobPostsPage({
                     <Sparkle size={24} weight="fill" />
                   </div>
                   <span className="text-md leading-snug font-semibold tracking-tight text-white">
-                    Tạo JD tự động
+                    {t("jobPostsPage.createOptionsModal.generateJd")}
                   </span>
                 </div>
 
@@ -2021,7 +1998,7 @@ export function RecruiterJobPostsPage({
             </div>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs font-medium text-slate-500 sm:text-sm">
-              <span>Hoặc</span>
+              <span>{t("jobPostsPage.createOptionsModal.or")}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -2033,7 +2010,7 @@ export function RecruiterJobPostsPage({
                 }}
                 className="cursor-pointer font-bold text-[#2563eb] transition-colors hover:text-[#1d4ed8] hover:underline"
               >
-                Đăng tin tuyển dụng từ đầu
+                {t("jobPostsPage.createOptionsModal.startFromScratch")}
               </button>
             </div>
           </div>
@@ -2043,7 +2020,8 @@ export function RecruiterJobPostsPage({
   );
 }
 
-function getJobExpiryWarning(expiredAt: string | null) {
+/** A stable code, not display text — translate it at the point where it's shown. */
+function getJobExpiryWarning(expiredAt: string | null): "EXPIRED" | "EXPIRING_SOON" | null {
   if (!expiredAt) {
     return null;
   }
@@ -2053,25 +2031,25 @@ function getJobExpiryWarning(expiredAt: string | null) {
     return null;
   }
   if (remainingTime < 0) {
-    return "Đã hết hạn";
+    return "EXPIRED";
   }
   if (remainingTime <= EXPIRING_SOON_DAYS * 24 * 60 * 60 * 1000) {
-    return "Sắp hết hạn";
+    return "EXPIRING_SOON";
   }
   return null;
 }
 
-function getJobStatusBadge(job: RecruiterJobPost) {
+function getJobStatusBadge(t: JobPostTranslator, job: RecruiterJobPost) {
   if (job.status === "DRAFT") {
     return {
-      text: "Bản nháp",
+      text: t("jobPostsPage.jobStatus.draft"),
       tone: "info" as const,
       className: "bg-blue-100 text-blue-700",
     };
   }
   if (job.status === "CLOSED") {
     return {
-      text: "Đã đóng",
+      text: t("jobPostsPage.jobStatus.closed"),
       tone: "neutral" as const,
       className: "bg-slate-100 text-slate-700",
     };
@@ -2079,35 +2057,35 @@ function getJobStatusBadge(job: RecruiterJobPost) {
   if (job.status === "PUBLISHED") {
     if (job.moderationStatus === "APPROVED") {
       const expiryWarning = getJobExpiryWarning(job.expiredAt);
-      if (expiryWarning === "Đã hết hạn") {
+      if (expiryWarning === "EXPIRED") {
         return {
-          text: expiryWarning,
+          text: t("jobPostsPage.jobStatus.expired"),
           tone: "error" as const,
           className: "bg-red-100 text-red-700",
         };
       }
-      if (expiryWarning === "Sắp hết hạn") {
+      if (expiryWarning === "EXPIRING_SOON") {
         return {
-          text: expiryWarning,
+          text: t("jobPostsPage.jobStatus.expiringSoon"),
           tone: "warning" as const,
           className: "bg-orange-100 text-orange-700",
         };
       }
       return {
-        text: "Đang đăng",
+        text: t("jobPostsPage.jobStatus.active"),
         tone: "success" as const,
         className: "bg-emerald-100 text-emerald-700",
       };
     }
     if (job.moderationStatus === "REJECTED") {
       return {
-        text: "Bị từ chối",
+        text: t("jobPostsPage.jobStatus.rejected"),
         tone: "error" as const,
         className: "bg-rose-100 text-rose-700",
       };
     }
     return {
-      text: "Chờ duyệt",
+      text: t("jobPostsPage.jobStatus.pendingReview"),
       tone: "warning" as const,
       className: "bg-amber-100 text-amber-800",
     };
@@ -2160,56 +2138,72 @@ function JobRow({
   onViewDetails: (job: RecruiterJobPost) => void;
   onEdit: (job: RecruiterJobPost) => void;
 }) {
+  const t = useTranslations("Recruiter");
   const pending = actionJobId === job.id;
-  const { text: statusText, tone: statusTone, className: statusClassName } = getJobStatusBadge(job);
-  const publishedDate = job.publishedAt ? formatAppDate(job.publishedAt) : "Chưa đăng";
-  const expirationDate = job.expiredAt ? formatAppDate(job.expiredAt) : "Không giới hạn";
-  const expiryWarning = getJobExpiryWarning(job.expiredAt);
+  const {
+    text: statusText,
+    tone: statusTone,
+    className: statusClassName,
+  } = getJobStatusBadge(t, job);
+  const notUpdated = t("jobPostsPage.notUpdated");
+  const publishedDate = job.publishedAt
+    ? formatAppDate(job.publishedAt)
+    : t("jobPostsPage.row.notPublishedYet");
+  const expirationDate = job.expiredAt
+    ? formatAppDate(job.expiredAt)
+    : t("jobPostsPage.row.unlimited");
+  const expiryWarningCode = getJobExpiryWarning(job.expiredAt);
+  const expiryWarning =
+    expiryWarningCode === "EXPIRED"
+      ? t("jobPostsPage.jobStatus.expired")
+      : expiryWarningCode === "EXPIRING_SOON"
+        ? t("jobPostsPage.jobStatus.expiringSoon")
+        : null;
   const applicationCount = job._count?.applications ?? 0;
   const locationLabels = getJobPostLocationLabels(job);
   const locationSummary =
     locationLabels.length > 1
-      ? `${locationLabels[0]} (+${locationLabels.length - 1} địa điểm)`
-      : (locationLabels[0] ?? "Chưa cập nhật");
+      ? `${locationLabels[0]}${t("jobPostsPage.row.locationCountSuffix", { count: locationLabels.length - 1 })}`
+      : (locationLabels[0] ?? notUpdated);
 
   return (
     <tr aria-label={job.title}>
-      <td aria-label="Job post details">
+      <td aria-label={t("jobPostsPage.row.detailsAria")}>
         <div className="max-w-md">
           <button
             type="button"
             onClick={() => onViewDetails(job)}
-            className="cursor-pointer text-left text-sm font-bold text-slate-700 transition-colors hover:text-emerald-700"
+            className="cursor-pointer text-left text-sm font-semibold text-slate-700 transition-colors hover:text-emerald-700"
           >
             {job.title}
           </button>
           <p className="mt-1 text-xs font-normal text-slate-400">
-            Đăng bởi{" "}
+            {t("jobPostsPage.row.postedBy")}{" "}
             <span className="font-medium text-emerald-700">
               {job.createdByRecruiter?.profile?.fullName ||
                 job.createdByRecruiter?.email ||
-                "Recruiter"}
+                t("jobPostsPage.fallbackRecruiterName")}
             </span>
           </p>
           <dl className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
             <div className="flex min-w-0 basis-full items-center gap-1">
               <dt className="flex shrink-0 items-center gap-1 font-medium text-slate-400">
                 <MapPin size={13} aria-hidden="true" />
-                Địa điểm:
+                {t("jobPostsPage.row.location")}
               </dt>
               <dd
                 className="max-w-[340px] truncate"
-                title={locationLabels.join("; ") || "Chưa cập nhật"}
+                title={locationLabels.join("; ") || notUpdated}
               >
                 {locationSummary}
               </dd>
             </div>
             <div className="flex items-center gap-1">
-              <dt className="font-medium text-slate-400">Ngày đăng:</dt>
+              <dt className="font-medium text-slate-400">{t("jobPostsPage.row.publishedLabel")}</dt>
               <dd>{publishedDate}</dd>
             </div>
             <div className="flex items-center gap-1">
-              <dt className="font-medium text-slate-400">Hết hạn:</dt>
+              <dt className="font-medium text-slate-400">{t("jobPostsPage.row.expiredLabel")}</dt>
               <dd className={expiryWarning ? "font-semibold text-rose-600" : undefined}>
                 {expirationDate}
                 {expiryWarning ? ` · ${expiryWarning}` : null}
@@ -2218,30 +2212,34 @@ function JobRow({
           </dl>
         </div>
       </td>
-      <td aria-label="Job post status">
+      <td aria-label={t("jobPostsPage.row.statusAria")}>
         <Badge tone={statusTone} className={statusClassName}>
           {statusText}
         </Badge>
       </td>
-      <td aria-label="Hiệu quả tin tuyển dụng">
+      <td aria-label={t("jobPostsPage.row.performanceAria")}>
         <div
           className="text-sm font-bold text-slate-800"
-          aria-label={`${applicationCount} ứng viên đã ứng tuyển trên ${job.vacanciesCount} chỉ tiêu tuyển`}
+          aria-label={t("jobPostsPage.row.applicationsAria", {
+            applications: applicationCount,
+            vacancies: job.vacanciesCount,
+          })}
         >
           {applicationCount}
           <span className="text-primary font-medium"> / {job.vacanciesCount}</span>
         </div>
-        {/* <p className="text-xs text-slate-500">đã ứng tuyển / cần tuyển</p> */}
-        <p className="text-xs text-slate-600">{job._count?.views ?? 0} lượt xem</p>
+        <p className="text-xs text-slate-600">
+          {t("jobPostsPage.row.views", { count: job._count?.views ?? 0 })}
+        </p>
       </td>
-      <td aria-label="Thao tác tin tuyển dụng" className="text-center">
+      <td aria-label={t("jobPostsPage.row.actionsAria")} className="text-center">
         <div className="flex items-center justify-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 className="flex h-8 w-8 items-center justify-center rounded-lg p-0 font-normal text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus:ring-0 focus:ring-offset-0"
-                aria-label="Thao tác"
+                aria-label={t("jobPostsPage.row.actionsButtonAria")}
               >
                 <DotsThreeVertical size={20} weight="bold" />
               </Button>
@@ -2255,7 +2253,7 @@ function JobRow({
                 className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-indigo-50 hover:text-emerald-700 focus:outline-hidden"
               >
                 <Eye size={18} className="shrink-0 text-slate-400" />
-                Xem chi tiết tin
+                {t("jobPostsPage.row.menu.viewDetails")}
               </DropdownMenuItem>
 
               {canManageAccess ? (
@@ -2264,7 +2262,7 @@ function JobRow({
                   className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-indigo-50 hover:text-emerald-700 focus:outline-hidden"
                 >
                   <UsersThree size={18} className="shrink-0 text-slate-400" />
-                  Quản lý quyền truy cập
+                  {t("jobPostsPage.row.menu.manageAccess")}
                 </DropdownMenuItem>
               ) : null}
 
@@ -2274,7 +2272,7 @@ function JobRow({
                   className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-indigo-50 hover:text-emerald-700 focus:outline-hidden"
                 >
                   <PencilSimple size={18} className="shrink-0 text-slate-400" />
-                  Chỉnh sửa tin
+                  {t("jobPostsPage.row.menu.edit")}
                 </DropdownMenuItem>
               ) : null}
 
@@ -2285,7 +2283,7 @@ function JobRow({
                   className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm font-medium text-emerald-600 transition hover:bg-emerald-50 focus:outline-hidden disabled:opacity-50"
                 >
                   <CheckCircle size={18} className="shrink-0" />
-                  Mở lại tin
+                  {t("jobPostsPage.row.menu.reopen")}
                 </DropdownMenuItem>
               ) : canManage && job.status !== "PUBLISHED" ? (
                 <DropdownMenuItem
@@ -2294,7 +2292,7 @@ function JobRow({
                   className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm font-medium text-emerald-600 transition hover:bg-emerald-50 focus:outline-hidden disabled:opacity-50"
                 >
                   <CheckCircle size={18} className="shrink-0" />
-                  Xuất bản
+                  {t("jobPostsPage.row.menu.publish")}
                 </DropdownMenuItem>
               ) : canManage ? (
                 <DropdownMenuItem
@@ -2303,7 +2301,7 @@ function JobRow({
                   className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 focus:outline-hidden disabled:opacity-50"
                 >
                   <Prohibit size={18} className="shrink-0" />
-                  Đóng tin tuyển dụng
+                  {t("jobPostsPage.row.menu.close")}
                 </DropdownMenuItem>
               ) : null}
 
@@ -2314,7 +2312,7 @@ function JobRow({
                   className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 focus:outline-hidden disabled:opacity-50"
                 >
                   <Trash size={18} className="shrink-0" />
-                  Xóa tin tuyển dụng
+                  {t("jobPostsPage.row.menu.delete")}
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>
@@ -2325,22 +2323,22 @@ function JobRow({
   );
 }
 
-function getEducationLevelLabel(level?: string) {
+function getEducationLevelLabel(t: JobPostTranslator, level?: string) {
   switch (level) {
     case "ANY":
-      return "Không yêu cầu";
+      return t("jobPostsPage.education.any");
     case "HIGH_SCHOOL":
-      return "Trung học phổ thông";
+      return t("jobPostsPage.education.highSchool");
     case "VOCATIONAL":
-      return "Trung cấp";
+      return t("jobPostsPage.education.vocational");
     case "COLLEGE":
-      return "Cao đẳng";
+      return t("jobPostsPage.education.college");
     case "BACHELOR":
-      return "Đại học";
+      return t("jobPostsPage.education.bachelor");
     case "POSTGRADUATE":
-      return "Sau đại học";
+      return t("jobPostsPage.education.postgraduate");
     default:
-      return "Không yêu cầu";
+      return t("jobPostsPage.education.any");
   }
 }
 
@@ -2359,11 +2357,14 @@ function getCleanHtml(html: string | null | undefined) {
 
 function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack: () => void }) {
   const router = useRouter();
-  const salary = formatSalary(job);
+  const t = useTranslations("Recruiter");
+  const salary = formatSalary(t, job);
+  const notUpdated = t("jobPostsPage.notUpdated");
 
-  const cleanDescription = getCleanHtml(job.description) || "Chưa có mô tả";
-  const cleanRequirements = getCleanHtml(job.requirements) || "Chưa có yêu cầu";
-  const cleanBenefits = getCleanHtml(job.benefits) || "Chưa có quyền lợi";
+  const cleanDescription = getCleanHtml(job.description) || t("jobPostsPage.detail.noDescription");
+  const cleanRequirements =
+    getCleanHtml(job.requirements) || t("jobPostsPage.detail.noRequirements");
+  const cleanBenefits = getCleanHtml(job.benefits) || t("jobPostsPage.detail.noBenefits");
 
   // Calculate moderation status badge tone & text
   const modTone =
@@ -2374,10 +2375,10 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
         : "warning";
   const modText =
     job.moderationStatus === "APPROVED"
-      ? "Đã duyệt"
+      ? t("jobPostsPage.detail.moderationApproved")
       : job.moderationStatus === "REJECTED"
-        ? "Từ chối"
-        : "Chờ duyệt";
+        ? t("jobPostsPage.detail.moderationRejected")
+        : t("jobPostsPage.detail.moderationPending");
 
   return (
     <div className="space-y-6">
@@ -2386,7 +2387,7 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
           <Card className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h3 className="flex items-center gap-2 border-b border-slate-100 pb-2 text-base font-bold text-slate-900">
               <Briefcase size={18} className="text-emerald-600" />
-              Mô tả công việc
+              {t("jobPostsPage.detail.descriptionTitle")}
             </h3>
             <div
               className="prose prose-sm max-w-none text-sm leading-relaxed break-words text-slate-600 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
@@ -2397,7 +2398,7 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
           {job.requirements && (
             <Card className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-slate-900">
-                Yêu cầu công việc
+                {t("jobPostsPage.detail.requirementsTitle")}
               </h3>
               <div
                 className="prose prose-sm max-w-none text-sm leading-relaxed break-words text-slate-600 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
@@ -2409,7 +2410,7 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
           {job.benefits && (
             <Card className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="border-b border-slate-100 pb-2 text-base font-bold text-slate-900">
-                Quyền lợi & Phúc lợi
+                {t("jobPostsPage.detail.benefitsTitle")}
               </h3>
               <div
                 className="prose prose-sm max-w-none text-sm leading-relaxed break-words text-slate-600 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5"
@@ -2422,18 +2423,18 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
         <div className="space-y-6">
           <Card className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h3 className="border-b border-slate-100 pb-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
-              Hiệu quả tin đăng
+              {t("jobPostsPage.detail.performanceTitle")}
             </h3>
             <div className="grid grid-cols-2 gap-4 text-center">
               <div className="rounded-lg bg-slate-50 p-2.5">
                 <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
-                  Lượt xem
+                  {t("jobPostsPage.detail.views")}
                 </span>
                 <span className="text-base font-bold text-slate-800">{job._count?.views ?? 0}</span>
               </div>
               <div className="rounded-lg bg-slate-50 p-2.5">
                 <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
-                  Ứng tuyển
+                  {t("jobPostsPage.detail.applications")}
                 </span>
                 <span className="text-base font-bold text-slate-800">
                   {job._count?.applications ?? 0}
@@ -2446,101 +2447,103 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
                 className="flex h-10 w-full items-center justify-center gap-2 bg-[#11a77a] text-xs font-medium text-white hover:bg-[#0d966d]"
               >
                 <Users size={16} />
-                Xem danh sách ứng viên ({job._count?.applications ?? 0})
+                {t("jobPostsPage.detail.viewApplicantsButton", {
+                  count: job._count?.applications ?? 0,
+                })}
               </Button>
             </div>
           </Card>
 
           <Card className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 text-sm shadow-sm">
             <h3 className="border-b border-slate-100 pb-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
-              Thông tin công việc
+              {t("jobPostsPage.detail.infoTitle")}
             </h3>
 
-            {/* Section: Trạng thái duyệt */}
+            {/* Section: moderation status */}
             <div className="flex flex-col gap-1 border-b border-slate-100 pb-3">
               <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                Trạng thái duyệt
+                {t("jobPostsPage.detail.moderationStatusLabel")}
               </span>
               <div className="mt-1">
                 <Badge tone={modTone}>{modText}</Badge>
               </div>
               {job.moderationStatus === "REJECTED" && job.reason ? (
                 <p className="mt-2 rounded-lg bg-rose-50 p-2.5 text-xs leading-relaxed text-rose-700">
-                  <span className="font-bold">Lý do từ chối: </span>
+                  <span className="font-bold">{t("jobPostsPage.detail.rejectReasonLabel")}</span>
                   {job.reason}
                 </p>
               ) : null}
               {job.status === "PUBLISHED" && job.moderationStatus === "PENDING" ? (
                 <p className="mt-2 text-xs text-amber-600">
-                  Tin đã được gửi và đang chờ admin duyệt — chưa hiển thị công khai cho ứng viên.
+                  {t("jobPostsPage.detail.pendingModerationNote")}
                 </p>
               ) : null}
             </div>
 
-            {/* Section: Thông tin chung */}
+            {/* Section: general info */}
             <div className="space-y-3.5 border-b border-slate-100 pb-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                  Ngành nghề
+                  {t("jobPostsPage.detail.category")}
                 </span>
                 <span
                   className="max-w-[160px] truncate text-right font-semibold text-slate-700"
                   title={job.jobCategory?.name || ""}
                 >
-                  {job.jobCategory?.name || "Chưa cập nhật"}
+                  {job.jobCategory?.name || notUpdated}
                 </span>
               </div>
 
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                  Cấp bậc
+                  {t("jobPostsPage.detail.experienceLevel")}
                 </span>
                 <span className="text-right font-semibold text-slate-700">
-                  {job.experienceLevel?.name || "Chưa cập nhật"}
+                  {job.experienceLevel?.name || notUpdated}
                 </span>
               </div>
 
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                  Hình thức
+                  {t("jobPostsPage.detail.employmentType")}
                 </span>
                 <span className="text-right font-semibold text-slate-700">
-                  {job.employmentType?.name || "Chưa cập nhật"}
+                  {job.employmentType?.name || notUpdated}
                 </span>
               </div>
 
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                  Mức lương
+                  {t("jobPostsPage.detail.salary")}
                 </span>
                 <span className="text-right font-bold text-emerald-700">{salary}</span>
               </div>
 
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                  Số lượng tuyển
+                  {t("jobPostsPage.detail.vacancies")}
                 </span>
                 <span className="text-right font-semibold text-slate-700">
-                  {job.vacanciesCount} người
+                  {t("jobPostsPage.detail.vacanciesUnit", { count: job.vacanciesCount })}
                 </span>
               </div>
 
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                  Học vấn tối thiểu
+                  {t("jobPostsPage.detail.educationLevel")}
                 </span>
                 <span className="text-right font-semibold text-slate-700">
-                  {getEducationLevelLabel(job.educationLevel)}
+                  {getEducationLevelLabel(t, job.educationLevel)}
                 </span>
               </div>
 
               {job.publishedAt && (
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                    Ngày xuất bản
+                    {t("jobPostsPage.detail.publishedAt")}
                   </span>
                   <span className="text-right font-semibold text-slate-700">
-                    {new Date(job.publishedAt).toLocaleDateString("vi-VN")}
+                    {formatAppDate(job.publishedAt)}
                   </span>
                 </div>
               )}
@@ -2548,7 +2551,7 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
               {job.workingDays && (
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                    Thời gian làm việc
+                    {t("jobPostsPage.detail.workingDays")}
                   </span>
                   <span className="text-right font-semibold text-slate-700">{job.workingDays}</span>
                 </div>
@@ -2557,19 +2560,19 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
               {job.expiredAt && (
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                    Hạn nộp hồ sơ
+                    {t("jobPostsPage.detail.expiredAt")}
                   </span>
                   <span className="text-right font-semibold text-rose-600">
-                    {new Date(job.expiredAt).toLocaleDateString("vi-VN")}
+                    {formatAppDate(job.expiredAt)}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Section: Địa điểm làm việc */}
+            {/* Section: work locations */}
             <div className="space-y-2 border-b border-slate-100 pb-4">
               <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
-                Địa điểm làm việc
+                {t("jobPostsPage.detail.locationTitle")}
               </span>
               <div className="space-y-1.5">
                 {job.jobPostLocations.map(({ jobLocation }) => (
@@ -2581,16 +2584,18 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
                   </div>
                 ))}
                 {job.jobPostLocations.length === 0 && (
-                  <span className="text-xs font-medium text-slate-500">Chưa có địa điểm</span>
+                  <span className="text-xs font-medium text-slate-500">
+                    {t("jobPostsPage.detail.noLocation")}
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Section: Kỹ năng & Chuyên ngành */}
+            {/* Section: skills & specializations */}
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
-                  Kỹ năng yêu cầu
+                  {t("jobPostsPage.detail.skillsTitle")}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {job.jobPostSkills.map(({ skill }) => (
@@ -2599,14 +2604,16 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
                     </Badge>
                   ))}
                   {job.jobPostSkills.length === 0 && (
-                    <span className="text-xs font-medium text-slate-500">Chưa có kỹ năng</span>
+                    <span className="text-xs font-medium text-slate-500">
+                      {t("jobPostsPage.detail.noSkills")}
+                    </span>
                   )}
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
-                  Chuyên ngành liên quan
+                  {t("jobPostsPage.detail.specializationsTitle")}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {job.jobPostSpecializations.map(({ specialization }) => (
@@ -2615,7 +2622,9 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
                     </Badge>
                   ))}
                   {job.jobPostSpecializations.length === 0 && (
-                    <span className="text-xs font-medium text-slate-500">Chưa có chuyên ngành</span>
+                    <span className="text-xs font-medium text-slate-500">
+                      {t("jobPostsPage.detail.noSpecializations")}
+                    </span>
                   )}
                 </div>
               </div>
@@ -2630,7 +2639,7 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
           onClick={onBack}
           className="h-10 border-slate-200 px-6 font-bold text-slate-700 hover:bg-slate-50"
         >
-          Quay lại danh sách
+          {t("jobPostsPage.detail.backButton")}
         </Button>
       </div>
     </div>
@@ -2739,6 +2748,8 @@ function JobSelect({
   value: string;
   showSearch?: boolean;
 }) {
+  const t = useTranslations("Recruiter");
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -2780,8 +2791,8 @@ function JobSelect({
                 <MagnifyingGlass size={16} className="shrink-0 text-slate-400" />
                 <input
                   type="text"
-                  aria-label={`Tìm kiếm ${label.toLocaleLowerCase("vi")}`}
-                  placeholder="Tìm kiếm..."
+                  aria-label={`${t("jobPostsPage.select.searchAriaPrefix")}${label.toLocaleLowerCase(locale)}`}
+                  placeholder={t("jobPostsPage.select.searchPlaceholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.stopPropagation()}
@@ -2803,7 +2814,7 @@ function JobSelect({
             ))
           ) : (
             <div className="px-2 py-3 text-center text-xs text-slate-400">
-              Không tìm thấy kết quả
+              {t("jobPostsPage.select.noResults")}
             </div>
           )}
         </SelectContent>
@@ -2857,11 +2868,14 @@ function LocationRelationPicker({
   onChange: (ids: string[]) => void;
   selectedIds: string[];
 }) {
+  const t = useTranslations("Recruiter");
   return (
     <section className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-bold text-slate-700">Địa điểm làm việc</h3>
-        <span className="text-xs font-medium text-slate-500">{selectedIds.length} đã chọn</span>
+        <h3 className="text-sm font-semibold text-slate-700">{t("jobPostsPage.location.title")}</h3>
+        <span className="text-xs font-medium text-slate-500">
+          {t("jobPostsPage.location.selectedCount", { count: selectedIds.length })}
+        </span>
       </div>
       {locations.length > 0 ? (
         <div className="grid max-h-40 gap-2 overflow-y-auto pr-1">
@@ -2882,7 +2896,9 @@ function LocationRelationPicker({
           ))}
         </div>
       ) : (
-        <p className="text-sm font-medium text-slate-500">Chưa có địa điểm trong danh mục</p>
+        <p className="text-sm font-medium text-slate-500">
+          {t("jobPostsPage.location.noLocationsInCatalog")}
+        </p>
       )}
       <SelectedChips
         labels={selectedIds
@@ -2920,6 +2936,7 @@ function SearchTagPicker({
   suggestions?: string[];
   onDismissSuggestion?: (name: string) => void;
 }) {
+  const t = useTranslations("Recruiter");
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -3026,8 +3043,8 @@ function SearchTagPicker({
             ) : trimmedQuery !== "" && !canCreate ? (
               <p className="px-3 py-2 text-xs font-medium text-slate-500">
                 {alreadyExists
-                  ? "Mục này đã có trong danh mục."
-                  : "Không tìm thấy kết quả phù hợp."}
+                  ? t("jobPostsPage.tagPicker.alreadyExists")
+                  : t("jobPostsPage.tagPicker.noResults")}
               </p>
             ) : null}
 
@@ -3043,7 +3060,9 @@ function SearchTagPicker({
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-60"
                 >
                   <Plus size={15} aria-hidden="true" />
-                  {isCreating ? `Đang thêm "${trimmedQuery}"...` : `Thêm mới "${trimmedQuery}"`}
+                  {isCreating
+                    ? t("jobPostsPage.tagPicker.creating", { query: trimmedQuery })
+                    : t("jobPostsPage.tagPicker.createButton", { query: trimmedQuery })}
                 </button>
                 {createHint ? (
                   <p className="px-3 pb-2 text-[11px] font-normal text-slate-400">{createHint}</p>
@@ -3065,7 +3084,7 @@ function SearchTagPicker({
           className="mt-1 rounded-lg border border-dashed border-amber-300 bg-amber-50/60 p-2.5"
         >
           <p className="text-xs font-medium text-amber-900">
-            AI đề xuất nhưng danh mục chưa có — bấm để thêm:
+            {t("jobPostsPage.tagPicker.aiSuggestionsHint")}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {pendingSuggestions.map((name) => (
@@ -3084,7 +3103,7 @@ function SearchTagPicker({
                 </button>
                 <button
                   type="button"
-                  aria-label={`Bỏ qua đề xuất ${name}`}
+                  aria-label={t("jobPostsPage.tagPicker.dismissSuggestionAria", { name })}
                   onClick={() => onDismissSuggestion?.(name)}
                   className="px-1.5 py-1 text-amber-500 hover:text-amber-800"
                 >
@@ -3135,6 +3154,7 @@ function SelectedChips({
   labels: { id: string; label: string }[];
   onRemove: (id: string) => void;
 }) {
+  const t = useTranslations("Recruiter");
   if (labels.length === 0) return null;
 
   return (
@@ -3146,7 +3166,7 @@ function SelectedChips({
         >
           {item.label}
           <button
-            aria-label={`Bỏ chọn ${item.label}`}
+            aria-label={t("jobPostsPage.tagPicker.removeChipAria", { label: item.label })}
             className="rounded-full text-emerald-700 hover:text-emerald-950"
             onClick={() => onRemove(item.id)}
             type="button"
@@ -3159,18 +3179,18 @@ function SelectedChips({
   );
 }
 
-function formatSalary(job: RecruiterJobPost) {
-  if (job.salaryIsNegotiable) return "Lương thỏa thuận";
-  if (!job.salaryIsVisible) return "Không hiển thị lương";
+function formatSalary(t: JobPostTranslator, job: RecruiterJobPost) {
+  if (job.salaryIsNegotiable) return t("jobPostsPage.salary.negotiable");
+  if (!job.salaryIsVisible) return t("jobPostsPage.salary.notVisible");
 
   const min = job.salaryMin ? Number(job.salaryMin).toLocaleString("vi-VN") : null;
   const max = job.salaryMax ? Number(job.salaryMax).toLocaleString("vi-VN") : null;
 
   if (min && max) return `${min} - ${max} ${job.salaryCurrency}`;
-  if (min) return `Từ ${min} ${job.salaryCurrency}`;
-  if (max) return `Đến ${max} ${job.salaryCurrency}`;
+  if (min) return t("jobPostsPage.salary.from", { amount: min, currency: job.salaryCurrency });
+  if (max) return t("jobPostsPage.salary.to", { amount: max, currency: job.salaryCurrency });
 
-  return "Chưa nhập lương";
+  return t("jobPostsPage.salary.notEntered");
 }
 
 function formatLocation(location: CompanyLocation | JobLocationOption) {

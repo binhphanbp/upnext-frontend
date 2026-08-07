@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleNotch, Info, ShieldCheck, UserCircle } from "@phosphor-icons/react";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
@@ -31,6 +32,7 @@ export function JobPostAccessDialog({
   open,
   token,
 }: JobPostAccessDialogProps) {
+  const t = useTranslations("Recruiter");
   const [members, setMembers] = useState<JobPostAccessMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,12 +49,12 @@ export function JobPostAccessDialog({
       setMembers(response.members);
     } catch (loadError) {
       setError(
-        loadError instanceof Error ? loadError.message : "Không thể tải danh sách quyền truy cập.",
+        loadError instanceof Error ? loadError.message : t("jobPostsPage.accessDialog.loadError"),
       );
     } finally {
       setLoading(false);
     }
-  }, [jobPost, token]);
+  }, [jobPost, t, token]);
 
   useEffect(() => {
     if (!open) {
@@ -84,12 +86,14 @@ export function JobPostAccessDialog({
       );
       setAnnouncement(
         nextHasAccess
-          ? `Đã cấp lại quyền truy cập cho ${member.fullName}.`
-          : `Đã thu hồi quyền truy cập của ${member.fullName}.`,
+          ? t("jobPostsPage.accessDialog.grantedAnnouncement", { name: member.fullName })
+          : t("jobPostsPage.accessDialog.revokedAnnouncement", { name: member.fullName }),
       );
     } catch (updateError) {
       setError(
-        updateError instanceof Error ? updateError.message : "Không thể cập nhật quyền truy cập.",
+        updateError instanceof Error
+          ? updateError.message
+          : t("jobPostsPage.accessDialog.updateError"),
       );
     } finally {
       setUpdatingRecruiterId(null);
@@ -101,7 +105,7 @@ export function JobPostAccessDialog({
       <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-2xl">
         <DialogHeader className="border-b border-slate-200 px-5 py-5 text-left sm:px-6 sm:text-left">
           <DialogTitle className="text-lg font-semibold text-slate-900">
-            Quản lý thành viên được quyền truy cập tin tuyển dụng
+            {t("jobPostsPage.accessDialog.title")}
           </DialogTitle>
           {/* <DialogDescription className="line-clamp-1 pr-8 text-sm text-slate-500">
             {jobPost?.title}
@@ -115,10 +119,7 @@ export function JobPostAccessDialog({
               weight="fill"
               aria-hidden="true"
             />
-            <p>
-              Mọi thành viên trong công ty mặc định có quyền truy cập tin này. Quyền thao tác như
-              chỉnh sửa tin hoặc quản lý ứng viên vẫn phụ thuộc vào vai trò của từng thành viên.
-            </p>
+            <p>{t("jobPostsPage.accessDialog.infoText")}</p>
           </div>
 
           <p className="sr-only" aria-live="polite">
@@ -137,7 +138,7 @@ export function JobPostAccessDialog({
                 onClick={() => void loadMembers()}
                 className="shrink-0 border-rose-200 bg-white text-rose-700 hover:bg-rose-100"
               >
-                Thử lại
+                {t("jobPostsPage.accessDialog.retry")}
               </Button>
             </div>
           ) : null}
@@ -145,7 +146,7 @@ export function JobPostAccessDialog({
           {loading ? (
             <div className="flex min-h-52 items-center justify-center gap-2 text-sm text-slate-500">
               <CircleNotch className="size-5 animate-spin text-emerald-600" aria-hidden="true" />
-              Đang tải danh sách thành viên...
+              {t("jobPostsPage.accessDialog.loadingMembers")}
             </div>
           ) : (
             <div className="overflow-hidden rounded-xl border border-slate-200">
@@ -154,16 +155,16 @@ export function JobPostAccessDialog({
                   <thead className="bg-slate-100 text-xs font-semibold text-slate-600">
                     <tr>
                       <th scope="col" className="px-4 py-3">
-                        Người dùng
+                        {t("jobPostsPage.accessDialog.tableUser")}
                       </th>
                       <th scope="col" className="px-4 py-3">
-                        Vai trò
+                        {t("jobPostsPage.accessDialog.tableRole")}
                       </th>
                       <th scope="col" className="px-4 py-3">
-                        Tình trạng
+                        {t("jobPostsPage.accessDialog.tableStatus")}
                       </th>
                       <th scope="col" className="px-4 py-3 text-right">
-                        Hành động
+                        {t("jobPostsPage.accessDialog.tableActions")}
                       </th>
                     </tr>
                   </thead>
@@ -176,13 +177,20 @@ export function JobPostAccessDialog({
 
                       return (
                         <tr key={member.companyMemberId} className="bg-white">
-                          <td aria-label={`Thành viên ${member.fullName}`} className="px-4 py-3.5">
+                          <td
+                            aria-label={t("jobPostsPage.accessDialog.memberAria", {
+                              name: member.fullName,
+                            })}
+                            className="px-4 py-3.5"
+                          >
                             <div className="flex min-w-0 items-center gap-3">
                               <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-500">
                                 {member.avatarUrl ? (
                                   <Image
                                     src={member.avatarUrl}
-                                    alt={`Ảnh đại diện của ${member.fullName}`}
+                                    alt={t("jobPostsPage.accessDialog.avatarAlt", {
+                                      name: member.fullName,
+                                    })}
                                     height={36}
                                     width={36}
                                     unoptimized
@@ -197,7 +205,7 @@ export function JobPostAccessDialog({
                                   {member.fullName}
                                   {isCurrentRecruiter ? (
                                     <span className="ml-1 text-xs font-normal text-slate-400">
-                                      (Bạn)
+                                      {t("jobPostsPage.accessDialog.youTag")}
                                     </span>
                                   ) : null}
                                 </p>
@@ -211,12 +219,12 @@ export function JobPostAccessDialog({
                                 className="size-2 rounded-full bg-blue-500"
                                 aria-hidden="true"
                               />
-                              {member.role?.name ?? "Chưa có vai trò"}
+                              {member.role?.name ?? t("jobPostsPage.accessDialog.noRole")}
                             </span>
                             {member.isJobCreator ? (
                               <span className="ml-2 inline-flex items-center gap-1 text-xs text-emerald-700">
                                 <ShieldCheck size={14} aria-hidden="true" />
-                                Người tạo tin
+                                {t("jobPostsPage.accessDialog.jobCreatorTag")}
                               </span>
                             ) : null}
                           </td>
@@ -232,16 +240,18 @@ export function JobPostAccessDialog({
                               )}
                             >
                               {!member.hasAccess
-                                ? "Đã thu hồi"
+                                ? t("jobPostsPage.accessDialog.statusRevoked")
                                 : isAccountActive
-                                  ? "Đang hoạt động"
-                                  : "Tạm khóa"}
+                                  ? t("jobPostsPage.accessDialog.statusActive")
+                                  : t("jobPostsPage.accessDialog.statusSuspended")}
                             </span>
                           </td>
                           <td className="px-4 py-3.5 text-right">
                             {member.isJobCreator || isCurrentRecruiter ? (
                               <span className="text-xs text-slate-400">
-                                {member.isJobCreator ? "Quyền mặc định" : "Tài khoản của bạn"}
+                                {member.isJobCreator
+                                  ? t("jobPostsPage.accessDialog.defaultAccessLabel")
+                                  : t("jobPostsPage.accessDialog.yourAccountLabel")}
                               </span>
                             ) : (
                               <Button
@@ -252,7 +262,7 @@ export function JobPostAccessDialog({
                                 className={cn(
                                   "min-w-28 font-medium shadow-none",
                                   member.hasAccess
-                                    ? "border-rose-300 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                                    ? "border-rose-300 text-rose-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300"
                                     : "border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800",
                                 )}
                               >
@@ -263,7 +273,9 @@ export function JobPostAccessDialog({
                                     aria-hidden="true"
                                   />
                                 ) : null}
-                                {member.hasAccess ? "Thu hồi quyền" : "Cấp lại quyền"}
+                                {member.hasAccess
+                                  ? t("jobPostsPage.accessDialog.revokeButton")
+                                  : t("jobPostsPage.accessDialog.grantButton")}
                               </Button>
                             )}
                           </td>
@@ -276,7 +288,7 @@ export function JobPostAccessDialog({
 
               {members.length === 0 ? (
                 <p className="px-4 py-10 text-center text-sm text-slate-500">
-                  Chưa có thành viên nào trong công ty.
+                  {t("jobPostsPage.accessDialog.emptyMembers")}
                 </p>
               ) : null}
             </div>

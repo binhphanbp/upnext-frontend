@@ -1,9 +1,19 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
+import messages from "../../../../messages/vi.json";
 import type { JobPostSalaryInsightResponse } from "./api";
 import { JobPostSalaryInsight } from "./job-post-salary-insight";
+
+function renderWithIntl(ui: React.ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="vi" messages={messages}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+}
 
 const insight: JobPostSalaryInsightResponse = {
   available: true,
@@ -35,7 +45,7 @@ describe("JobPostSalaryInsight", () => {
     const user = userEvent.setup();
     const onApply = vi.fn<() => void>();
 
-    render(
+    renderWithIntl(
       <JobPostSalaryInsight
         insight={insight}
         isLoading={false}
@@ -59,7 +69,7 @@ describe("JobPostSalaryInsight", () => {
     const user = userEvent.setup();
     const onExperienceYearsChange = vi.fn<(value: string) => void>();
 
-    render(
+    renderWithIntl(
       <JobPostSalaryInsight
         insight={null}
         isLoading={false}
@@ -93,7 +103,7 @@ describe("JobPostSalaryInsight", () => {
       searchedAt: "2026-07-25T10:00:00.000Z",
     };
 
-    render(
+    renderWithIntl(
       <JobPostSalaryInsight
         insight={webInsight}
         isLoading={false}
@@ -116,7 +126,7 @@ describe("JobPostSalaryInsight", () => {
   it("counts down the estimated research time while the AI is working", () => {
     vi.useFakeTimers();
     try {
-      render(
+      renderWithIntl(
         <JobPostSalaryInsight
           insight={null}
           isLoading

@@ -192,14 +192,6 @@ export function RecruiterRolesPage() {
 
   return (
     <div className="w-full min-w-0 space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-outfit text-xl font-bold tracking-wide text-slate-950 sm:text-2xl">
-            Vai trò tuyển dụng
-          </h1>
-        </div>
-      </header>
-
       <RecruiterTableLayout
         loading={loading}
         actionBar={
@@ -208,7 +200,7 @@ export function RecruiterRolesPage() {
               {selectedRoleIds.length > 0 && (
                 <Button
                   variant="outline"
-                  className="h-10 gap-1.5 border-red-200 bg-red-50 font-bold text-red-700 hover:bg-red-100"
+                  className="h-10 gap-1.5 border-red-200 bg-red-50 font-semibold text-red-700 hover:bg-red-100"
                   onClick={() => void handleBulkDeleteRoles()}
                 >
                   <Trash size={15} />
@@ -312,7 +304,7 @@ export function RecruiterRolesPage() {
                   >
                     {role.name}
                   </td>
-                  <td className="border-r border-slate-100/50 px-4 py-2.5 font-bold text-slate-700 last:border-r-0">
+                  <td className="border-r border-slate-100/50 px-4 py-2.5 font-semibold text-slate-700 last:border-r-0">
                     {members.filter((m) => m.role?.id === role.id).length}
                   </td>
                   <td className="px-4 py-2.5">
@@ -363,7 +355,7 @@ export function RecruiterRolesPage() {
       </RecruiterTableLayout>
 
       {!isOwner && (
-        <p className="text-xs font-semibold text-amber-700">{t("team.alerts.roleOwnerOnly")}</p>
+        <p className="text-sm font-semibold text-amber-700">{t("team.alerts.roleOwnerOnly")}</p>
       )}
     </div>
   );

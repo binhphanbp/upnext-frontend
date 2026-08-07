@@ -5,10 +5,10 @@ import {
   CaretDown,
   Check,
   CircleNotch,
-  DotsThree,
   DownloadSimple,
   Eye,
   FileArrowDown,
+  Funnel,
   MagnifyingGlass,
   Sparkle,
   CheckCircle,
@@ -36,9 +36,17 @@ import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
   getCompanyApplications,
   isRecruiterMissingCompanyError,
+  markApplicationViewed,
   updateApplicationStatus,
   type Application,
+  type ApplicationAiLabel,
 } from "@/features/recruiter/api/team";
+import { ScheduleInterviewDialog } from "@/features/recruiter/components/interviews/schedule-interview-dialog";
+import { SearchInput } from "@/features/recruiter/components/interviews/search-input";
+import {
+  SelectFilter,
+  type SelectFilterOption,
+} from "@/features/recruiter/components/interviews/select-filter";
 import { useCvScreening } from "@/features/recruiter/hooks/use-cv-screening";
 import { getRecruiterJobPosts, type RecruiterJobPost } from "@/features/recruiter/job-posts/api";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
@@ -58,13 +66,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/shared/ui/dropdown-menu";
-import { FormInput } from "@/shared/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/shared/ui/dropdown-menu";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/shared/ui/select";
 import { Separator } from "@/shared/ui/separator";
@@ -83,13 +85,16 @@ const toast = Swal.mixin({
 const STATUS_OPTIONS = [
   "SUBMITTED",
   "VIEWED",
+  "CONSIDERING",
   "SHORTLISTED",
   "INTERVIEWING",
   "OFFERED",
   "HIRED",
-  "REJECTED",
   "WITHDRAWN",
+  "REJECTED",
 ] as const;
+
+const AI_LABEL_OPTIONS = ["excellent", "good", "average", "low", "unscored"] as const;
 
 function getStatusBadgeClass(status: string) {
   switch (status) {
@@ -97,6 +102,8 @@ function getStatusBadgeClass(status: string) {
       return "bg-sky-50 text-sky-700 hover:bg-sky-100/70 border border-sky-200/50";
     case "VIEWED":
       return "bg-blue-50 text-blue-700 hover:bg-blue-100/70 border border-blue-200/50";
+    case "CONSIDERING":
+      return "bg-orange-50 text-orange-700 hover:bg-orange-100/70 border border-orange-200/50";
     case "SHORTLISTED":
       return "bg-indigo-50 text-indigo-700 hover:bg-indigo-100/70 border border-indigo-200/50";
     case "INTERVIEWING":
@@ -120,6 +127,8 @@ function getStatusDotClass(status: string) {
       return "bg-sky-500";
     case "VIEWED":
       return "bg-blue-500";
+    case "CONSIDERING":
+      return "bg-orange-500";
     case "SHORTLISTED":
       return "bg-indigo-500";
     case "INTERVIEWING":
@@ -144,6 +153,12 @@ export function RecruiterCandidatesPage() {
 
   const searchParams = useSearchParams();
   const presetJobPostId = searchParams?.get("jobPostId") ?? "";
+  // Dashboard trỏ sang đây kèm sẵn bộ lọc, ví dụ ?viewed=unviewed cho thẻ "Chưa xem".
+  const presetViewed = searchParams?.get("viewed") === "unviewed" ? "unviewed" : "ALL";
+  const presetStatusParam = searchParams?.get("status") ?? "";
+  const presetStatus = (STATUS_OPTIONS as readonly string[]).includes(presetStatusParam)
+    ? presetStatusParam
+    : "ALL";
 
   const [token, setToken] = useState("");
   const [candidates, setCandidates] = useState<Application[]>([]);
@@ -156,8 +171,17 @@ export function RecruiterCandidatesPage() {
 
   // Filter States
   const [search, setSearch] = useState("");
-  const [jobPostId, setJobPostId] = useState(presetJobPostId);
-  const [status, setStatus] = useState("");
+  const [jobPostId, setJobPostId] = useState(presetJobPostId || "ALL");
+  const [status, setStatus] = useState(presetStatus);
+  const [viewed, setViewed] = useState(presetViewed);
+  const [aiLabel, setAiLabel] = useState("ALL");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // Set when the recruiter picks "Hẹn phỏng vấn"; drives the schedule dialog.
+  const [interviewSeed, setInterviewSeed] = useState<{
+    applicationId: string;
+    interviewRound: number;
+  } | null>(null);
 
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
@@ -235,7 +259,11 @@ export function RecruiterCandidatesPage() {
       setQuickViewLoading(true);
       setQuickViewError(null);
       try {
-        const res = await fetch(quickViewUrl);
+        const headers: Record<string, string> = {};
+        if (token && (quickViewUrl.startsWith("/") || quickViewUrl.includes("/api/"))) {
+          Object.assign(headers, authHeaders(token));
+        }
+        const res = await fetch(quickViewUrl, { headers });
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
@@ -261,30 +289,78 @@ export function RecruiterCandidatesPage() {
     return () => {
       active = false;
     };
-  }, [quickViewUrl]);
+  }, [quickViewUrl, token]);
 
-  const handleDownloadCv = useCallback(async (fileUrl: string, fileName: string) => {
-    try {
-      const response = await fetch(fileUrl);
-      if (!response.ok) throw new Error("Network response was not ok");
-      const blob = await response.blob();
-      const localUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = localUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(localUrl);
-    } catch (error) {
-      console.error("Failed to download CV:", error);
-      window.open(fileUrl, "_blank");
-    }
-  }, []);
+  const handleDownloadCv = useCallback(
+    async (fileUrl: string, fileName: string) => {
+      try {
+        const headers: Record<string, string> = {};
+        if (token && (fileUrl.startsWith("/") || fileUrl.includes("/api/"))) {
+          Object.assign(headers, authHeaders(token));
+        }
+        const response = await fetch(fileUrl, { headers });
+        if (!response.ok) throw new Error("Network response was not ok");
+        const blob = await response.blob();
+        const localUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = localUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(localUrl);
+      } catch (error) {
+        console.error("Failed to download CV:", error);
+        window.open(fileUrl, "_blank");
+      }
+    },
+    [token],
+  );
 
-  // Searchable Job Dropdown States
-  const [jobSearch, setJobSearch] = useState("");
-  const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
+  /**
+   * `cvVersion.fileUrl` is empty whenever the stored file has no public URL
+   * (private storage, or a CV that was parsed without keeping the original).
+   * Fall back to the authenticated stream endpoint instead of handing an empty
+   * string to fetch -- an empty quick-view URL silently keeps the dialog shut.
+   */
+  const resolveCvUrl = useCallback(
+    (app: Application) =>
+      app.cvVersion?.fileUrl?.trim() ? app.cvVersion.fileUrl : getApplicationCvUrl(app.id),
+    [],
+  );
+
+  const handleQuickView = useCallback(
+    (app: Application, title: string) => {
+      setQuickViewUrl(resolveCvUrl(app));
+      setQuickViewTitle(title);
+
+      if (!app.viewedAt && token) {
+        setCandidates((prev) =>
+          prev.map((c) => (c.id === app.id ? { ...c, viewedAt: new Date().toISOString() } : c)),
+        );
+        void markApplicationViewed(app.id, token).catch((error) => {
+          console.error("Failed to mark application as viewed:", error);
+        });
+      }
+    },
+    [token, resolveCvUrl],
+  );
+
+  const buildQueryParams = useCallback(() => {
+    const queryParams: {
+      jobPostId?: string;
+      status?: string;
+      search?: string;
+      viewed?: "unviewed";
+      aiLabel?: ApplicationAiLabel;
+    } = {};
+    if (jobPostId !== "ALL") queryParams.jobPostId = jobPostId;
+    if (status !== "ALL") queryParams.status = status;
+    if (search.trim()) queryParams.search = search.trim();
+    if (viewed === "unviewed") queryParams.viewed = "unviewed";
+    if (aiLabel !== "ALL") queryParams.aiLabel = aiLabel as ApplicationAiLabel;
+    return queryParams;
+  }, [jobPostId, status, search, viewed, aiLabel]);
 
   const loadCandidates = useCallback(
     async (nextAccountId: string, accessToken: string, isInitial = false) => {
@@ -296,10 +372,7 @@ export function RecruiterCandidatesPage() {
         }
         await getRecruiterAccount(nextAccountId, accessToken);
 
-        const queryParams: { jobPostId?: string; status?: string; search?: string } = {};
-        if (jobPostId) queryParams.jobPostId = jobPostId;
-        if (status) queryParams.status = status;
-        if (search.trim()) queryParams.search = search.trim();
+        const queryParams = buildQueryParams();
 
         const jobPostsPromise = getRecruiterJobPosts(accessToken, nextAccountId);
         const applicationsPromise = getCompanyApplications(accessToken, queryParams);
@@ -339,7 +412,7 @@ export function RecruiterCandidatesPage() {
         setLoading(false);
       }
     },
-    [jobPostId, status, search, router, locale],
+    [buildQueryParams, router, locale],
   );
 
   const handleRefresh = useCallback(async () => {
@@ -372,7 +445,7 @@ export function RecruiterCandidatesPage() {
   // Reset to page 1 if the candidates list changes (due to filtering)
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, jobPostId, status]);
+  }, [search, jobPostId, status, viewed, aiLabel]);
 
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedCandidates = candidates.slice(startIndex, startIndex + pageSize);
@@ -415,18 +488,13 @@ export function RecruiterCandidatesPage() {
     }
   };
 
-  async function handleStatusChange(applicationId: string, nextStatus: string) {
+  async function applyStatusChange(applicationId: string, nextStatus: string) {
     try {
       setSaving(true);
       await updateApplicationStatus(applicationId, nextStatus, token);
       void toast.fire({ icon: "success", title: t("candidates.messages.statusUpdateSuccess") });
       // Reload candidates list
-      const queryParams: { jobPostId?: string; status?: string; search?: string } = {};
-      if (jobPostId) queryParams.jobPostId = jobPostId;
-      if (status) queryParams.status = status;
-      if (search.trim()) queryParams.search = search.trim();
-
-      const applicantsData = await getCompanyApplications(token, queryParams);
+      const applicantsData = await getCompanyApplications(token, buildQueryParams());
       setMissingCompany(false);
       setCandidates(applicantsData);
     } catch (error) {
@@ -439,6 +507,18 @@ export function RecruiterCandidatesPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleStatusChange(applicationId: string, nextStatus: string) {
+    // Moving to "Hẹn phỏng vấn" should come with an actual interview slot, so
+    // the schedule dialog opens first and the status only changes once the
+    // recruiter either books a slot or explicitly skips scheduling.
+    if (nextStatus === "INTERVIEWING") {
+      setInterviewSeed({ applicationId, interviewRound: 1 });
+      return;
+    }
+
+    await applyStatusChange(applicationId, nextStatus);
   }
 
   const handleExportExcel = () => {
@@ -495,8 +575,10 @@ export function RecruiterCandidatesPage() {
 
   function handleClearFilters() {
     setSearch("");
-    setJobPostId("");
-    setStatus("");
+    setJobPostId("ALL");
+    setStatus("ALL");
+    setViewed("ALL");
+    setAiLabel("ALL");
   }
 
   if (initialLoading) {
@@ -507,6 +589,97 @@ export function RecruiterCandidatesPage() {
       </div>
     );
   }
+
+  const jobFilterOptions: SelectFilterOption[] = [
+    { value: "ALL", label: t("candidates.filters.allJobs") },
+    ...jobs.map((job) => ({ value: job.id, label: job.title })),
+  ];
+  const statusFilterOptions: SelectFilterOption[] = [
+    { value: "ALL", label: t("candidates.filters.allStatuses") },
+    ...STATUS_OPTIONS.map((st) => ({ value: st, label: t(`candidates.status.${st}` as any) })),
+  ];
+  const viewedFilterOptions: SelectFilterOption[] = [
+    { value: "ALL", label: t("candidates.filters.viewedAll") },
+    { value: "unviewed", label: t("candidates.filters.viewedUnviewed") },
+  ];
+  const aiLabelFilterOptions: SelectFilterOption[] = [
+    { value: "ALL", label: t("candidates.filters.aiLabelAll") },
+    ...AI_LABEL_OPTIONS.map((label) => ({
+      value: label,
+      label: t(`candidates.filters.aiLabel.${label}` as any),
+    })),
+  ];
+  const activeFiltersCount = [
+    jobPostId !== "ALL",
+    status !== "ALL",
+    viewed !== "ALL",
+    aiLabel !== "ALL",
+  ].filter(Boolean).length;
+  const hasActiveFilters = search.trim().length > 0 || activeFiltersCount > 0;
+
+  const renderFilterControls = () => (
+    <div className="contents">
+      <SelectFilter
+        ariaLabel={t("candidates.filters.jobAria")}
+        value={jobPostId}
+        onChange={setJobPostId}
+        options={jobFilterOptions}
+        placeholder={t("candidates.filters.allJobs")}
+        className="w-full lg:w-56"
+        showSearch
+        triggerClassName={cn(
+          "rounded-full",
+          jobPostId !== "ALL" && "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
+        )}
+      />
+      <SelectFilter
+        ariaLabel={t("candidates.filters.statusAria")}
+        value={status}
+        onChange={setStatus}
+        options={statusFilterOptions}
+        placeholder={t("candidates.filters.allStatuses")}
+        className="w-full lg:w-48"
+        triggerClassName={cn(
+          "rounded-full",
+          status !== "ALL" && "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
+        )}
+      />
+      <SelectFilter
+        ariaLabel={t("candidates.filters.viewedAria")}
+        value={viewed}
+        onChange={setViewed}
+        options={viewedFilterOptions}
+        placeholder={t("candidates.filters.viewedAll")}
+        className="w-full lg:w-44"
+        triggerClassName={cn(
+          "rounded-full",
+          viewed !== "ALL" && "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
+        )}
+      />
+      <SelectFilter
+        ariaLabel={t("candidates.filters.aiLabelAria")}
+        value={aiLabel}
+        onChange={setAiLabel}
+        options={aiLabelFilterOptions}
+        placeholder={t("candidates.filters.aiLabelAll")}
+        className="w-full lg:w-44"
+        triggerClassName={cn(
+          "rounded-full",
+          aiLabel !== "ALL" && "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
+        )}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleClearFilters}
+        disabled={!hasActiveFilters}
+        className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
+      >
+        <X size={14} aria-hidden="true" />
+        {t("candidates.filters.clear")}
+      </Button>
+    </div>
+  );
 
   return (
     <div className="w-full min-w-0 space-y-6">
@@ -523,21 +696,109 @@ export function RecruiterCandidatesPage() {
         </div>
       </header> */}
 
+      {activeTab === "candidates" ? (
+        <section
+          aria-label={t("candidates.filters.sectionAria")}
+          className="sticky top-[-16px] z-30 -mx-4 -mt-4 border-y border-slate-200 bg-white px-4 py-4 md:top-[-32px] md:-mx-8 md:-mt-8 md:px-8"
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <span className="hidden shrink-0 text-xs font-semibold text-slate-500 md:inline">
+                {t("candidates.filters.label")}
+              </span>
+              <div className="min-w-0 flex-1">
+                <SearchInput
+                  value={search}
+                  onChange={setSearch}
+                  placeholder={t("candidates.filters.searchPlaceholder")}
+                  inputClassName="rounded-full"
+                />
+              </div>
+
+              <button
+                type="button"
+                aria-expanded={showMobileFilters}
+                aria-controls="candidate-mobile-filters"
+                aria-label={
+                  showMobileFilters
+                    ? t("candidates.filters.hideAria")
+                    : t("candidates.filters.showAria")
+                }
+                onClick={() => setShowMobileFilters((visible) => !visible)}
+                className={cn(
+                  "relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 lg:hidden",
+                  (showMobileFilters || activeFiltersCount > 0) &&
+                    "border-emerald-500 bg-emerald-50/10 text-emerald-600",
+                )}
+              >
+                <Funnel
+                  size={18}
+                  weight={showMobileFilters || activeFiltersCount > 0 ? "bold" : "regular"}
+                  aria-hidden="true"
+                />
+                {activeFiltersCount > 0 ? (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white shadow-xs">
+                    {activeFiltersCount}
+                  </span>
+                ) : null}
+              </button>
+
+              <div className="hidden items-center gap-2 lg:flex">{renderFilterControls()}</div>
+            </div>
+
+            {showMobileFilters ? (
+              <div
+                id="candidate-mobile-filters"
+                className="animate-in fade-in slide-in-from-top-2 flex flex-col gap-3 border-t border-slate-100 pt-3 duration-200 lg:hidden"
+              >
+                {renderFilterControls()}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 flex h-auto w-full justify-start gap-3 rounded-none border-none bg-transparent p-0">
-          <TabsTrigger
-            value="candidates"
-            className="cursor-pointer rounded-full bg-slate-100 px-5 py-2 text-xs font-bold text-slate-700 shadow-none transition-all hover:bg-slate-200/80 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
-          >
-            {locale === "vi" ? "Danh sách ứng tuyển" : "Applications"}
-          </TabsTrigger>
-          <TabsTrigger
-            value="cv-ranking"
-            className="cursor-pointer rounded-full bg-slate-100 px-5 py-2 text-xs font-bold text-slate-700 shadow-none transition-all hover:bg-slate-200/80 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
-          >
-            {locale === "vi" ? "AI lọc CV" : "AI CV Screening"}
-          </TabsTrigger>
-        </TabsList>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <TabsList className="flex h-12 items-center gap-1 rounded-full border border-slate-200 bg-slate-100 p-1">
+            <TabsTrigger
+              value="candidates"
+              className="h-full cursor-pointer rounded-full px-5 text-sm font-semibold text-slate-600 shadow-none transition-all hover:text-slate-800 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
+            >
+              {locale === "vi" ? "Danh sách ứng tuyển" : "Applications"}
+            </TabsTrigger>
+            <TabsTrigger
+              value="cv-ranking"
+              className="h-full cursor-pointer rounded-full px-5 text-sm font-semibold text-slate-600 shadow-none transition-all hover:text-slate-800 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
+            >
+              {locale === "vi" ? "AI lọc CV" : "AI CV Screening"}
+            </TabsTrigger>
+          </TabsList>
+
+          {activeTab === "candidates" ? (
+            <div className="flex shrink-0 items-center gap-2">
+              {/* Refresh */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex h-10 w-10 items-center justify-center rounded-full border-slate-200 p-0 text-slate-600 shadow-none transition-all hover:bg-slate-50 hover:text-slate-800"
+                onClick={handleRefresh}
+                aria-label="Refresh list"
+              >
+                <ArrowsCounterClockwise size={18} />
+              </Button>
+              {/* Export Excel Button */}
+              <Button
+                variant="outline"
+                className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border-emerald-600 px-4 font-bold text-emerald-600 shadow-none transition-all hover:bg-emerald-50/50"
+                onClick={handleExportExcel}
+              >
+                <DownloadSimple size={18} />
+                <span>{locale === "vi" ? "Xuất Excel" : "Export Excel"}</span>
+              </Button>
+            </div>
+          ) : null}
+        </div>
 
         <TabsContent value="candidates" className="mt-0">
           <RecruiterTableLayout
@@ -547,205 +808,6 @@ export function RecruiterCandidatesPage() {
             pageSize={pageSize}
             onPageChange={setCurrentPage}
             onPageSizeChange={setPageSize}
-            filterBar={
-              <>
-                {/* Search Input */}
-                <div className="w-full min-w-[280px] sm:max-w-sm sm:flex-1">
-                  <FormInput
-                    id="candidate-search"
-                    placeholder={t("candidates.filters.searchPlaceholder")}
-                    suffix={<MagnifyingGlass className="text-slate-400" size={18} />}
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-                {/* Job Post Select */}
-                <div className="w-full min-w-[280px] sm:max-w-sm sm:flex-1">
-                  <DropdownMenu open={jobDropdownOpen} onOpenChange={setJobDropdownOpen}>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        role="combobox"
-                        aria-expanded={jobDropdownOpen}
-                        className="upnext-focus border-input flex h-11 w-full cursor-pointer items-center justify-between rounded-lg border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors hover:bg-slate-50/50 focus:outline-none"
-                      >
-                        <span className="truncate">
-                          {jobs.find((j) => j.id === jobPostId)?.title ??
-                            t("candidates.filters.allJobs")}
-                        </span>
-                        <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      className="z-50 flex max-h-80 flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
-                      style={{ width: "var(--radix-dropdown-menu-trigger-width)" }}
-                    >
-                      {/* Search Input Box */}
-                      <div className="relative flex items-center px-1 py-1">
-                        <MagnifyingGlass size={16} className="absolute left-3 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
-                          aria-label={locale === "vi" ? "Tìm tin tuyển dụng" : "Search jobs"}
-                          value={jobSearch}
-                          onChange={(e) => setJobSearch(e.target.value)}
-                          className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-3 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:outline-none"
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => {
-                            if (e.key === " ") e.stopPropagation();
-                          }}
-                        />
-                        {jobSearch && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setJobSearch("");
-                            }}
-                            className="absolute right-3 rounded-full p-0.5 text-slate-400 hover:text-slate-600"
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Scrollable list of jobs */}
-                      <div className="flex max-h-60 flex-col gap-0.5 overflow-y-auto pr-0.5">
-                        <button
-                          onClick={() => {
-                            setJobPostId("");
-                            setJobSearch("");
-                            setJobDropdownOpen(false);
-                          }}
-                          className={cn(
-                            "w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors hover:bg-slate-50 flex items-center justify-between cursor-pointer",
-                            jobPostId === ""
-                              ? "text-primary bg-primary/10 font-bold"
-                              : "text-slate-700",
-                          )}
-                        >
-                          <span>{t("candidates.filters.allJobs")}</span>
-                          {jobPostId === "" && (
-                            <Check size={14} className="text-primary font-bold" />
-                          )}
-                        </button>
-                        {jobs
-                          .filter((job) =>
-                            job.title.toLowerCase().includes(jobSearch.toLowerCase()),
-                          )
-                          .map((job) => (
-                            <button
-                              key={job.id}
-                              onClick={() => {
-                                setJobPostId(job.id);
-                                setJobSearch("");
-                                setJobDropdownOpen(false);
-                              }}
-                              className={cn(
-                                "w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors hover:bg-slate-50 flex items-center justify-between cursor-pointer",
-                                jobPostId === job.id
-                                  ? "text-primary bg-primary/10 font-bold"
-                                  : "text-slate-700",
-                              )}
-                            >
-                              <span className="truncate pr-2">{job.title}</span>
-                              {jobPostId === job.id && (
-                                <Check size={14} className="text-primary font-bold" />
-                              )}
-                            </button>
-                          ))}
-                        {jobs.filter((job) =>
-                          job.title.toLowerCase().includes(jobSearch.toLowerCase()),
-                        ).length === 0 && (
-                          <div className="py-6 text-center text-xs font-medium text-slate-400">
-                            {locale === "vi"
-                              ? "Không tìm thấy tin tuyển dụng nào."
-                              : "No jobs found."}
-                          </div>
-                        )}
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                {/* Clear Filters Button */}
-                {(search || jobPostId || status) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-11 gap-1.5 text-slate-500 hover:text-slate-900"
-                    onClick={handleClearFilters}
-                  >
-                    <X size={16} />
-                    {t("candidates.filters.clear")}
-                  </Button>
-                )}
-              </>
-            }
-            actionBar={
-              <>
-                {/* Refresh */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border-slate-200 p-0 text-slate-600 shadow-none transition-all hover:bg-slate-50 hover:text-slate-800"
-                  onClick={handleRefresh}
-                  aria-label="Refresh list"
-                >
-                  <ArrowsCounterClockwise size={18} />
-                </Button>
-                {/* Status Dropdown Triggered by ... Button */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-slate-200 p-0 text-slate-600 shadow-none transition-all hover:bg-slate-50 hover:text-slate-800 focus:ring-0 focus:ring-offset-0"
-                      aria-label="Filter status dropdown"
-                    >
-                      <DotsThree size={24} weight="bold" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="z-50 w-[200px] rounded-2xl border border-slate-100 bg-white p-1.5 shadow-xl"
-                  >
-                    <DropdownMenuItem
-                      onClick={() => setStatus("")}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer transition-colors hover:bg-slate-50",
-                        status === "" ? "text-primary bg-slate-50/80 font-bold" : "text-slate-700",
-                      )}
-                    >
-                      <span className="size-2 shrink-0 rounded-full bg-slate-400" />
-                      <span>{t("candidates.filters.allStatuses")}</span>
-                    </DropdownMenuItem>
-                    {STATUS_OPTIONS.map((st) => (
-                      <DropdownMenuItem
-                        key={st}
-                        onClick={() => setStatus(st)}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-xl cursor-pointer transition-colors hover:bg-slate-50",
-                          status === st ? "text-primary bg-primary/10 font-bold" : "text-slate-700",
-                        )}
-                      >
-                        <span
-                          className={cn("size-2 rounded-full shrink-0", getStatusDotClass(st))}
-                        />
-                        <span>{t(`candidates.status.${st}` as any)}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {/* Export Excel Button */}
-                <Button
-                  variant="outline"
-                  className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border-emerald-600 px-4 font-bold text-emerald-600 shadow-none transition-all hover:bg-emerald-50/50"
-                  onClick={handleExportExcel}
-                >
-                  <DownloadSimple size={18} />
-                  <span>{locale === "vi" ? "Xuất Excel" : "Export Excel"}</span>
-                </Button>
-              </>
-            }
           >
             <thead>
               <tr className="border-b border-slate-300 bg-slate-200">
@@ -845,7 +907,7 @@ export function RecruiterCandidatesPage() {
                           <div className="flex items-center justify-center gap-3">
                             <button
                               onClick={() =>
-                                handleDownloadCv(app.cvVersion!.fileUrl, app.cvVersion!.fileName)
+                                handleDownloadCv(resolveCvUrl(app), app.cvVersion!.fileName)
                               }
                               className="inline-flex cursor-pointer items-center justify-center text-emerald-600 transition-colors hover:text-emerald-700"
                               title={locale === "vi" ? "Tải xuống CV" : "Download CV"}
@@ -854,10 +916,7 @@ export function RecruiterCandidatesPage() {
                             </button>
                             <span className="h-4 w-px bg-slate-200" />
                             <button
-                              onClick={() => {
-                                setQuickViewUrl(app.cvVersion!.fileUrl);
-                                setQuickViewTitle(name);
-                              }}
+                              onClick={() => handleQuickView(app, name)}
                               className="text-primary inline-flex cursor-pointer items-center justify-center transition-colors hover:text-emerald-700"
                               title={locale === "vi" ? "Xem nhanh CV" : "Quick View CV"}
                             >
@@ -879,7 +938,7 @@ export function RecruiterCandidatesPage() {
                           <SelectTrigger
                             aria-label="Application Status Update"
                             className={cn(
-                              "h-7 text-xs font-semibold px-2.5 border shadow-none focus:ring-0 w-fit rounded-full flex items-center justify-start gap-1 cursor-pointer transition-colors",
+                              "h-7 text-xs font-medium px-2.5 border shadow-none focus:ring-0 w-fit rounded-full flex items-center justify-start gap-1 cursor-pointer transition-colors",
                               getStatusBadgeClass(app.status),
                             )}
                           >
@@ -931,6 +990,26 @@ export function RecruiterCandidatesPage() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Schedule interview dialog, opened by moving a candidate to "Hẹn phỏng vấn" */}
+      <ScheduleInterviewDialog
+        token={token}
+        jobs={jobs}
+        open={interviewSeed !== null}
+        onOpenChange={(open) => {
+          if (!open) setInterviewSeed(null);
+        }}
+        initialValues={interviewSeed}
+        lockApplication
+        onScheduled={(applicationId) => {
+          void applyStatusChange(applicationId, "INTERVIEWING");
+        }}
+        onSkipSchedule={() => {
+          if (interviewSeed) {
+            void applyStatusChange(interviewSeed.applicationId, "INTERVIEWING");
+          }
+        }}
+      />
 
       {/* CV Quick View Dialog Popup */}
       <Dialog open={!!quickViewUrl} onOpenChange={(open) => !open && setQuickViewUrl(null)}>
@@ -1073,14 +1152,11 @@ function CvRankingTable({
 
   // Dropdown states
   const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
-  const [limitDropdownOpen, setLimitDropdownOpen] = useState(false);
   const [jobSearch, setJobSearch] = useState("");
 
   const {
     selectedJobId,
     setSelectedJobId,
-    limit,
-    setLimit,
     progress,
     results,
     isRunning,
@@ -1176,12 +1252,15 @@ function CvRankingTable({
   }, [activeApplicationId, token, locale, onUnauthorized]);
 
   const handleViewCv = async (applicationId: string, customCvUrl?: string | null) => {
-    if (customCvUrl && !customCvUrl.includes("/applications/")) {
-      window.open(customCvUrl, "_blank");
-      return;
+    if (customCvUrl) {
+      const isApiUrl = customCvUrl.startsWith("/") || customCvUrl.includes("/api/");
+      if (!isApiUrl) {
+        window.open(customCvUrl, "_blank");
+        return;
+      }
     }
 
-    const url = getApplicationCvUrl(applicationId);
+    const url = customCvUrl || getApplicationCvUrl(applicationId);
     try {
       const init: RequestInit = {};
       if (token) {
@@ -1302,7 +1381,6 @@ function CvRankingTable({
     <div className="space-y-4">
       <RecruiterTableLayout
         loading={false}
-        stickyFilterBar={false}
         filterBar={
           <>
             <div className="w-full sm:w-[280px]">
@@ -1362,69 +1440,6 @@ function CvRankingTable({
                         </button>
                       ))}
                   </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="w-full sm:w-[225px]">
-              <DropdownMenu open={limitDropdownOpen} onOpenChange={setLimitDropdownOpen}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    role="combobox"
-                    aria-expanded={limitDropdownOpen}
-                    disabled={isRunning}
-                    className="upnext-focus border-input flex h-11 w-full cursor-pointer items-center justify-between rounded-lg border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors hover:bg-slate-50/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <span className="truncate">
-                      {limit === "ALL"
-                        ? locale === "vi"
-                          ? "Tất cả"
-                          : "All"
-                        : limit === "VACANCIES"
-                          ? locale === "vi"
-                            ? `Số lượng tuyển (${jobs.find((j) => j.id === selectedJobId)?.vacanciesCount || 0})`
-                            : `Vacancies (${jobs.find((j) => j.id === selectedJobId)?.vacanciesCount || 0})`
-                          : `Top ${limit}`}
-                    </span>
-                    <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="z-50 flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-lg"
-                  style={{ width: "var(--radix-dropdown-menu-trigger-width)" }}
-                >
-                  {[
-                    { value: "ALL", label: locale === "vi" ? "Tất cả" : "All" },
-                    { value: "10", label: "Top 10" },
-                    { value: "20", label: "Top 20" },
-                    {
-                      value: "VACANCIES",
-                      label:
-                        locale === "vi"
-                          ? `Số lượng tuyển (${jobs.find((j) => j.id === selectedJobId)?.vacanciesCount || 0})`
-                          : `Vacancies (${jobs.find((j) => j.id === selectedJobId)?.vacanciesCount || 0})`,
-                    },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => {
-                        setLimit(opt.value);
-                        setLimitDropdownOpen(false);
-                      }}
-                      className={cn(
-                        "w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors hover:bg-slate-50 flex items-center justify-between cursor-pointer",
-                        limit === opt.value
-                          ? "text-primary bg-primary/10 font-bold"
-                          : "text-slate-700",
-                      )}
-                    >
-                      <span>{opt.label}</span>
-                      {limit === opt.value && (
-                        <Check size={14} className="text-primary font-bold" />
-                      )}
-                    </button>
-                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

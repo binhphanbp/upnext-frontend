@@ -169,7 +169,7 @@ export function WorkspaceSidebar({
                   : "w-[80px]",
             )}
           >
-            <ScrollArea className="flex-1 space-y-1 px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4">
               <nav className="space-y-1" aria-label={`Điều hướng ${workspaceRole}`}>
                 {navGroups
                   .filter((group) => group.items && group.items.length > 0)
@@ -237,15 +237,11 @@ export function WorkspaceSidebar({
                                             key={child.href}
                                             type="button"
                                             onClick={() => handleLockedClick(child.lockedReason)}
-                                            className="flex w-full cursor-not-allowed items-center gap-1.5 rounded-lg px-4 py-[8px] text-left text-[13px] font-medium text-slate-400 opacity-70"
+                                            className="flex w-full cursor-not-allowed items-center gap-1.5 rounded-lg px-4 py-[8px] text-left text-[13px] font-medium text-slate-800 opacity-70"
                                           >
                                             <span className="min-w-0 flex-1 truncate">
                                               {child.label}
                                             </span>
-                                            <LockSimple
-                                              size={12}
-                                              className="shrink-0 text-slate-300"
-                                            />
                                           </button>
                                         );
                                       }
@@ -288,9 +284,9 @@ export function WorkspaceSidebar({
                                 type="button"
                                 onClick={() => handleLockedClick(item.lockedReason)}
                                 className={cn(
-                                  "cursor-not-allowed items-center font-medium text-slate-400 opacity-70 transition-all duration-150",
+                                  "rounded-lg cursor-not-allowed items-center font-medium text-slate-800 opacity-70 transition-all duration-150",
                                   !activeCollapsed
-                                    ? "flex w-full gap-3 px-4 py-[10px] text-left text-[14px] rounded-lg"
+                                    ? "flex w-full gap-3 px-4 py-[10px] text-left text-[14px]"
                                     : "flex h-10 w-10 mx-auto justify-center p-0",
                                 )}
                                 title={activeCollapsed ? item.label : undefined}
@@ -299,7 +295,6 @@ export function WorkspaceSidebar({
                                 {!activeCollapsed && (
                                   <>
                                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                                    <LockSimple size={14} className="shrink-0 text-slate-300" />
                                   </>
                                 )}
                               </button>
@@ -311,9 +306,9 @@ export function WorkspaceSidebar({
                               key={item.href}
                               href={item.href}
                               className={cn(
-                                "items-center font-medium text-[14px] transition-all duration-150",
+                                "rounded-lg items-center font-medium text-[14px] transition-all duration-150",
                                 !activeCollapsed
-                                  ? "flex w-full gap-3 px-4 py-[10px] rounded-lg"
+                                  ? "flex w-full gap-3 px-4 py-[10px]"
                                   : "flex h-10 w-10 mx-auto justify-center p-0",
                                 active
                                   ? "bg-primary text-white"
@@ -338,7 +333,7 @@ export function WorkspaceSidebar({
                     </section>
                   ))}
               </nav>
-            </ScrollArea>
+            </div>
 
             <div className="border-t border-slate-100 p-4">
               {workspaceRole === "admin" ? (
@@ -356,14 +351,14 @@ export function WorkspaceSidebar({
                   {!activeCollapsed && <span>{tShell("account.logout")}</span>}
                 </button>
               ) : (
-                <div>
+                <div className="w-full min-w-0">
                   <div
                     className={cn(
-                      "flex items-center",
+                      "flex items-center min-w-0 w-full",
                       !activeCollapsed ? "gap-3 justify-between" : "justify-center",
                     )}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       {identity.avatarUrl ? (
                         <Image
                           src={identity.avatarUrl}
@@ -516,7 +511,7 @@ export function WorkspaceSidebar({
             <X size={20} />
           </button>
         </div>
-        <ScrollArea className="flex-1 space-y-1 px-4 py-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4">
           <nav className="space-y-1">
             {(workspaceRole === "admin" && navGroups[activeGroupIndex]
               ? [navGroups[activeGroupIndex]]
@@ -602,12 +597,11 @@ export function WorkspaceSidebar({
                                         key={child.href}
                                         type="button"
                                         onClick={() => handleLockedClick(child.lockedReason)}
-                                        className="flex w-full cursor-not-allowed items-center gap-1.5 rounded-lg px-4 py-[8px] text-left text-[13px] font-medium text-slate-400 opacity-70"
+                                        className="flex w-full cursor-not-allowed items-center gap-1.5 rounded-lg px-4 py-[8px] text-left text-[13px] font-medium text-slate-800 opacity-70"
                                       >
                                         <span className="min-w-0 flex-1 truncate">
                                           {child.label}
                                         </span>
-                                        <LockSimple size={12} className="shrink-0 text-slate-300" />
                                       </button>
                                     );
                                   }
@@ -647,7 +641,6 @@ export function WorkspaceSidebar({
                           >
                             <Icon size={18} className="flex-shrink-0 text-slate-400" />
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                            <LockSimple size={14} className="shrink-0 text-slate-300" />
                           </button>
                         );
                       }
@@ -683,7 +676,7 @@ export function WorkspaceSidebar({
               );
             })}
           </nav>
-        </ScrollArea>
+        </div>
         <div className="border-t border-slate-100 p-4">
           <Button
             className="w-full justify-start gap-2 border-0 bg-slate-100 font-bold text-slate-700 hover:bg-slate-200"
