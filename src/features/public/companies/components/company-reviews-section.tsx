@@ -9,7 +9,6 @@ import { CompanyReviewFormDialog } from "@/features/candidate/company-reviews/re
 import { useCandidateCompanyReview } from "@/features/candidate/company-reviews/use-candidate-company-review";
 import { getPublicCompanyReviews, type PublicCompanyReview } from "@/features/public/companies/api";
 import { useRecruiterReviewReporter } from "@/features/recruiter/company-reviews/use-recruiter-review-reporter";
-import { Button } from "@/shared/ui/button";
 import { toast } from "@/shared/ui/toast";
 
 const toastMixin = Swal.mixin({
@@ -116,15 +115,16 @@ export function CompanyReviewsSection({
 
   return (
     <section className="company-profile-section" aria-label="Đánh giá từ ứng viên">
-      <div className="company-section-head flex items-center justify-between">
+      <div className="company-section-head">
         <h2>Đánh giá từ ứng viên</h2>
-        <Button
-          size="sm"
+        <button
+          type="button"
+          className="company-review-cta"
           onClick={handleWriteReviewClick}
           disabled={!candidateReview.isSessionResolved}
         >
           {candidateReview.myReview ? "Sửa đánh giá của bạn" : "Viết đánh giá"}
-        </Button>
+        </button>
       </div>
 
       {summary && summary.totalReviews > 0 ? (
@@ -175,7 +175,7 @@ export function CompanyReviewsSection({
                 {recruiterReporter.canReport ? (
                   <button
                     type="button"
-                    className="hover:text-error flex items-center gap-1 text-xs font-semibold text-slate-500"
+                    className="company-review-report"
                     onClick={() => void handleReportReview(review)}
                     disabled={recruiterReporter.isReporting}
                   >
