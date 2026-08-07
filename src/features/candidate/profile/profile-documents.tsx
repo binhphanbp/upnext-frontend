@@ -396,7 +396,7 @@ export function ProfileDocuments({
               </div>
             </div>
           ) : (
-            <ul className="divide-y divide-slate-200 border-y border-slate-200">
+            <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
               {[...cvs]
                 .sort(
                   (left, right) =>
@@ -406,7 +406,7 @@ export function ProfileDocuments({
                 .map((cv) => (
                   <li
                     key={cv.id}
-                    className="flex flex-col gap-4 py-5 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4"
                   >
                     <div className="flex min-w-0 items-center gap-4">
                       <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
@@ -442,6 +442,20 @@ export function ProfileDocuments({
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={downloadingId === cv.id}
+                        onClick={() => download(cv)}
+                      >
+                        {downloadingId === cv.id ? (
+                          <SpinnerGap aria-hidden="true" className="animate-spin" />
+                        ) : (
+                          <DownloadSimple aria-hidden="true" />
+                        )}
+                        {t("actions.download")}
+                      </Button>
                       {!cv.isDefault && (
                         <Button
                           type="button"
@@ -458,20 +472,6 @@ export function ProfileDocuments({
                           {t("actions.setDefault")}
                         </Button>
                       )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={downloadingId === cv.id}
-                        onClick={() => download(cv)}
-                      >
-                        {downloadingId === cv.id ? (
-                          <SpinnerGap aria-hidden="true" className="animate-spin" />
-                        ) : (
-                          <DownloadSimple aria-hidden="true" />
-                        )}
-                        {t("actions.download")}
-                      </Button>
                       <button
                         type="button"
                         disabled={cv.isDefault}

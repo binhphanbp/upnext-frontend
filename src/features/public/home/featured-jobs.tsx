@@ -24,7 +24,6 @@ import {
   Coins,
   Eye,
   MapPin,
-  Monitor,
   ShieldCheck,
   Sparkles,
 } from "./marketing-icons";
@@ -672,10 +671,6 @@ export function FeaturedJobs({
                         <span>
                           <MapPin size={15} />
                           {job.location}
-                        </span>
-                        <span>
-                          <Monitor size={15} />
-                          {job.mode}
                         </span>
                         <span>
                           <Briefcase size={15} />

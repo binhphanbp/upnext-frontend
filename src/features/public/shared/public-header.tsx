@@ -406,11 +406,6 @@ const navMenus: NavMenu[] = [
 
 const jobsMenuCategories: JobsMenuCategory[] = [
   {
-    key: "all",
-    label: { vi: "Tất cả danh mục", en: "All categories" },
-    icon: <SquaresFour size={27} weight="regular" />,
-  },
-  {
     key: "skills",
     label: { vi: "Theo kỹ năng", en: "By skills" },
     icon: <Code size={29} weight="regular" />,
@@ -887,9 +882,9 @@ export function PublicHeader({
   }
 
   return (
-    <header className="marketing-home-header">
-      <div className="marketing-home-utility-bar">
-        <div className="marketing-home-utility-content">
+    <header className="marketing-home-header" suppressHydrationWarning>
+      <div className="marketing-home-utility-bar" suppressHydrationWarning>
+        <div className="marketing-home-utility-content" suppressHydrationWarning>
           <nav aria-label={copy.utilityNavigationLabel}>
             <span className="marketing-home-utility-label">{candidateUtilityLabel}</span>
             {candidateUtilityItems.map((item) => (
@@ -913,7 +908,7 @@ export function PublicHeader({
         </div>
       </div>
 
-      <div className="marketing-home-header-main">
+      <div className="marketing-home-header-main" suppressHydrationWarning>
         <button
           className="marketing-home-logo"
           onClick={() => navigate("/")}
@@ -1351,7 +1346,7 @@ function JobsMegaMenu({
   isOpen: boolean;
   onNavigate: () => void;
 }>) {
-  const [activeTab, setActiveTab] = useState<JobsMenuTab>("expertise");
+  const [activeTab, setActiveTab] = useState<JobsMenuTab>("skills");
   const {
     data: jobs = [],
     isError,
