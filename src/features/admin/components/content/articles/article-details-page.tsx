@@ -76,22 +76,19 @@ export function ArticleDetailsPage({ id }: { id: string }) {
   }
 
   let mappedStatus = "Bản nháp";
-  let tone: "success" | "warning" | "neutral" | "error" = "neutral";
-  if (article.status === "PUBLISHED" || article.status === "ACTIVE") {
+  let tone: "success" | "warning" | "neutral" | "error" = "warning";
+  if (article.status === "PUBLISHED") {
     mappedStatus = "Đã xuất bản";
     tone = "success";
-  } else if (article.status === "PENDING") {
-    mappedStatus = "Đang chờ duyệt";
-    tone = "warning";
+  } else if (article.status === "ARCHIVED") {
+    mappedStatus = "Lưu trữ";
+    tone = "neutral";
   }
 
-  const authorName = article.author?.profile?.fullName || article.author?.email || "Chưa cập nhật";
-  const categoryName = article.categories?.[0]?.postCategory?.name || "Khác";
-  const publishedDate = article.publishedAt
-    ? formatAppDate(article.publishedAt)
-    : article.createdAt
-      ? formatAppDate(article.createdAt)
-      : "—";
+  // The API returns the authoring `admin` and a single `category`.
+  const authorName = article.admin?.fullName || article.admin?.email || "Chưa cập nhật";
+  const categoryName = article.category?.name || "Khác";
+  const publishedDate = article.createdAt ? formatAppDate(article.createdAt) : "—";
 
   return (
     <div className="space-y-6">

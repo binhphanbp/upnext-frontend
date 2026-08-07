@@ -2894,6 +2894,12 @@
         "details": {
           "title": "Article Details",
           "subtitle": "Preview content and moderate the article before publishing."
+        },
+        "form": {
+          "createTitle": "Write New Article",
+          "createSubtitle": "Draft the content, categorise it and tune SEO before publishing.",
+          "editTitle": "Edit Article",
+          "editSubtitle": "Update the article's content, categories and SEO details."
         }
       },
       "moderation": {

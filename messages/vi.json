@@ -2915,6 +2915,12 @@
         "details": {
           "title": "Chi tiết bài viết",
           "subtitle": "Xem trước nội dung và kiểm duyệt bài viết trước khi xuất bản."
+        },
+        "form": {
+          "createTitle": "Viết bài mới",
+          "createSubtitle": "Soạn nội dung, phân loại và tối ưu SEO trước khi xuất bản.",
+          "editTitle": "Chỉnh sửa bài viết",
+          "editSubtitle": "Cập nhật nội dung, phân loại và thông tin SEO của bài viết."
         }
       },
       "moderation": {
