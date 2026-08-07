@@ -19,14 +19,15 @@ const SheetOverlay = forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-[90] bg-slate-950/55 backdrop-blur-sm", className)}
+    className={cn("fixed inset-0 z-[1020] bg-slate-950/55 backdrop-blur-sm", className)}
     {...props}
   />
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed z-[100] gap-4 bg-background p-6 shadow-2xl transition ease-in-out",
+  // Kept in step with dialog.tsx — see the stacking-order note there.
+  "fixed z-[1030] gap-4 bg-background p-6 shadow-2xl transition ease-in-out",
   {
     variants: {
       side: {

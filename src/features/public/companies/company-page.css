@@ -2239,6 +2239,46 @@
   background: #ffffff;
 }
 
+/* Reviews.
+   The shell-wide button reset above strips `background` from every button on this
+   page, and it out-specifies utility classes — so buttons here need their own rule,
+   scoped under `.company-page` to win against it. */
+.company-page .company-review-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 16px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: var(--company-brand);
+}
+
+.company-page .company-review-cta:hover {
+  background: var(--company-brand-hover);
+}
+
+.company-page .company-review-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.company-page .company-review-report {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.company-page .company-review-report:hover {
+  color: #dc2626;
+}
+
 .company-banner-info h1 {
   margin: 0 0 8px;
   color: #ffffff;

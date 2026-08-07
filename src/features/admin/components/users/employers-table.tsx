@@ -12,6 +12,7 @@ import * as React from "react";
 import Swal from "sweetalert2";
 
 import {
+  getAdminSubscriptionPlans,
   getAdminEmployers,
   getAdminCompanyDetails,
   verifyCompany,
@@ -42,7 +43,7 @@ export type Employer = {
   companyName: string;
   representative: string;
   email: string;
-  plan: "Free" | "Pro" | "Premium";
+  plan: string;
   status: "Chờ duyệt" | "Đã xác thực" | "Bị khóa";
   activeJobs: number;
   joinDate: string;
@@ -77,7 +78,8 @@ function mapToEmployer(apiCompany: AdminCompanyResponse): Employer {
     companyName: apiCompany.name,
     representative,
     email: apiCompany.email || "Chưa cập nhật",
-    plan: "Free", // API doesn't provide plan info yet
+    // Companies with no active subscription are shown as the free tier.
+    plan: apiCompany.activePlan?.name ?? "Free",
     status: mappedStatus,
     activeJobs: apiCompany._count?.jobPosts || 0,
     joinDate: formatAppDate(apiCompany.createdAt),
@@ -219,6 +221,7 @@ function EmployerRow({
 
 export function EmployersTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [planFilter, setPlanFilter] = React.useState<string>("all");
   const [searchTerm, setSearchTerm] = React.useState<string>("");
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
@@ -260,15 +263,29 @@ export function EmployersTable() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["adminEmployers"],
+    // Plan is filtered by the API, so it is part of the cache key.
+    queryKey: ["adminEmployers", planFilter],
     queryFn: async () => {
       const session = getAdminSession();
       if (!session) {
         throw new Error("No session");
       }
-      return getAdminEmployers(session.accessToken);
+      return getAdminEmployers(session.accessToken, 100, {
+        plan: planFilter === "all" ? undefined : planFilter,
+      });
     },
     retry: false,
+  });
+
+  const { data: subscriptionPlans = [] } = useQuery({
+    queryKey: ["adminSubscriptionPlans"],
+    queryFn: async () => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return getAdminSubscriptionPlans(session.accessToken);
+    },
+    retry: false,
+    staleTime: 30 * 60 * 1000,
   });
 
   const handleRefresh = React.useCallback(() => {
@@ -305,6 +322,10 @@ export function EmployersTable() {
     }
     return result;
   }, [statusFilter, searchTerm, data]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchTerm, planFilter]);
 
   const paginatedData = React.useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -378,6 +399,20 @@ export function EmployersTable() {
                 <SelectItem value="Bị khóa">{t("statusOptions.locked")}</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={planFilter} onValueChange={setPlanFilter}>
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+                <SelectValue placeholder={t("allPlans")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("allPlans")}</SelectItem>
+                <SelectItem value="none">{t("planOptions.free")}</SelectItem>
+                {subscriptionPlans.map((plan) => (
+                  <SelectItem key={plan.id} value={plan.id}>
+                    {plan.subscriptionName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </>
         }
         actionBar={
@@ -427,7 +462,7 @@ export function EmployersTable() {
               Đại diện liên hệ
             </th>
             <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
-              Gói dịch vụ
+              {t("plan")}
             </th>
             <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               Ngày tạo

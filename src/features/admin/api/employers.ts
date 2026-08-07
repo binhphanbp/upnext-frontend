@@ -12,6 +12,8 @@ export type AdminCompanyResponse = {
   lockedAt?: string;
   members?: any[];
   recruiterAccounts?: any[];
+  /** The company's current subscription, or null when it is on no paid plan. */
+  activePlan?: { id: string; name: string; expiredAt: string } | null;
   _count?: {
     jobPosts: number;
   };
@@ -27,9 +29,37 @@ export type AdminCompaniesPaginatedResponse = {
   };
 };
 
-export async function getAdminEmployers(token: string, limit: number = 100) {
+export type AdminEmployerFilters = {
+  /** A plan UUID, or "none" for companies without an active plan. */
+  plan?: string | undefined;
+};
+
+export type AdminSubscriptionPlanOption = Readonly<{
+  id: string;
+  subscriptionName: string;
+  status: string;
+}>;
+
+export function getAdminSubscriptionPlans(token: string) {
+  return apiRequest<AdminSubscriptionPlanOption[]>("/subscription-plans", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getAdminEmployers(
+  token: string,
+  limit: number = 100,
+  filters: AdminEmployerFilters = {},
+) {
+  const searchParams = new URLSearchParams({ limit: String(limit) });
+  if (filters.plan === "none") {
+    searchParams.set("plan", "none");
+  } else if (filters.plan) {
+    searchParams.set("planId", filters.plan);
+  }
+
   const response = await apiRequest<AdminCompaniesPaginatedResponse | AdminCompanyResponse[]>(
-    `/companies?limit=${limit}`,
+    `/companies?${searchParams.toString()}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,

@@ -13,6 +13,8 @@ import Swal from "sweetalert2";
 
 import {
   getAdminJobPosts,
+  getEmploymentTypes,
+  getJobLocations,
   rejectJobPost,
   approveJobPost,
   updateJobPostVisibility,
@@ -54,6 +56,8 @@ export type AdminJobPost = {
   employer: string;
   companyId: string | null;
   location: string;
+  /** Full list of offices, shown as a tooltip when a post spans several cities. */
+  locationTitle: string;
   type: string;
   status: "Đang hiển thị" | "Chờ duyệt" | "Hết hạn" | "Đã từ chối" | "Đã ẩn";
   postedDate: string;
@@ -83,13 +87,34 @@ function mapToAdminJobPost(apiPost: AdminJobPostResponse): AdminJobPost {
   else if (rawType.includes("Thực tập") || rawType.toLowerCase().includes("intern"))
     mappedType = "Thực tập";
 
+  // A post can be attached to several offices; show the first and count the rest so a
+  // multi-city post is not silently rendered as a single-location one.
+  const locations = (apiPost.jobPostLocations ?? [])
+    .map((relation) => {
+      const rawCity = relation.jobLocation?.city?.trim();
+      const city = rawCity
+        ? rawCity.replace(/^Thành phố\s+/iu, "TP. ").replace(/^Tỉnh\s+/iu, "")
+        : "";
+      return (
+        [city, relation.jobLocation?.district?.trim()].filter(Boolean).join(", ") ||
+        relation.jobLocation?.address?.trim() ||
+        ""
+      );
+    })
+    .filter(Boolean);
+  const uniqueLocations = [...new Set(locations)];
+  const mappedLocation =
+    uniqueLocations.length > 1
+      ? `${uniqueLocations[0]} +${uniqueLocations.length - 1}`
+      : (uniqueLocations[0] ?? apiPost.location ?? "Chưa cập nhật");
+
   return {
     id: apiPost.id,
     title: apiPost.title,
     employer: apiPost.company?.name || "Chưa cập nhật",
     companyId: apiPost.company?.id || null,
-    location:
-      apiPost.jobPostLocations?.[0]?.jobLocation?.city || apiPost.location || "Chưa cập nhật",
+    location: mappedLocation,
+    locationTitle: uniqueLocations.join(" • "),
     type: mappedType,
     status: mappedStatus,
     postedDate: apiPost.publishedAt
@@ -107,6 +132,8 @@ function mapToAdminJobPost(apiPost: AdminJobPostResponse): AdminJobPost {
 
 export function JobPostsTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [employmentTypeFilter, setEmploymentTypeFilter] = React.useState<string>("all");
+  const [cityFilter, setCityFilter] = React.useState<string>("all");
   const [searchTerm, setSearchTerm] = React.useState<string>("");
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
@@ -118,21 +145,45 @@ export function JobPostsTable() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  // Area and employment type are filtered by the API, so they belong in the query key.
   const {
     data: apiJobs = [],
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["adminJobPosts"],
+    queryKey: ["adminJobPosts", employmentTypeFilter, cityFilter],
     queryFn: async () => {
       const session = getAdminSession();
       if (!session) {
         throw new Error("No session");
       }
-      return getAdminJobPosts(session.accessToken);
+      return getAdminJobPosts(session.accessToken, 100, {
+        employmentTypeId: employmentTypeFilter === "all" ? undefined : employmentTypeFilter,
+        city: cityFilter === "all" ? undefined : cityFilter,
+      });
     },
     retry: false,
   });
+
+  const { data: employmentTypes = [] } = useQuery({
+    queryKey: ["employmentTypes"],
+    queryFn: getEmploymentTypes,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const { data: jobLocations = [] } = useQuery({
+    queryKey: ["jobLocations"],
+    queryFn: getJobLocations,
+    staleTime: 30 * 60 * 1000,
+  });
+
+  // Offices are stored per company, so collapse them into a distinct, sorted city list.
+  const cityOptions = React.useMemo(() => {
+    const cities = jobLocations
+      .map((location) => location.city?.trim())
+      .filter((city): city is string => Boolean(city));
+    return [...new Set(cities)].sort((a, b) => a.localeCompare(b, "vi"));
+  }, [jobLocations]);
 
   const handleRefresh = React.useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["adminJobPosts"] });
@@ -232,7 +283,7 @@ export function JobPostsTable() {
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, searchTerm]);
+  }, [statusFilter, searchTerm, employmentTypeFilter, cityFilter]);
 
   const data = React.useMemo(() => {
     return apiJobs.map(mapToAdminJobPost);
@@ -325,6 +376,32 @@ export function JobPostsTable() {
                 <SelectItem value="Hết hạn">{t("statusOptions.expired")}</SelectItem>
                 <SelectItem value="Đã từ chối">{t("statusOptions.rejected")}</SelectItem>
                 <SelectItem value="Đã ẩn">{t("statusOptions.hidden")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={cityFilter} onValueChange={setCityFilter}>
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+                <SelectValue placeholder={t("allAreas")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("allAreas")}</SelectItem>
+                {cityOptions.map((city) => (
+                  <SelectItem key={city} value={city}>
+                    {city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={employmentTypeFilter} onValueChange={setEmploymentTypeFilter}>
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+                <SelectValue placeholder={t("allTypes")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("allTypes")}</SelectItem>
+                {employmentTypes.map((employmentType) => (
+                  <SelectItem key={employmentType.id} value={employmentType.id}>
+                    {employmentType.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </>
@@ -456,7 +533,9 @@ export function JobPostsTable() {
                   </td>
                   <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
                     <div>
-                      <p className="font-medium">{job.location}</p>
+                      <p className="font-medium" title={job.locationTitle || undefined}>
+                        {job.location}
+                      </p>
                       <p className="text-muted-foreground text-xs">{t(`typeOptions.${typeKey}`)}</p>
                     </div>
                   </td>

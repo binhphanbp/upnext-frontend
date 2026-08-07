@@ -5,6 +5,7 @@ import {
   DotsThree,
   DownloadSimple,
   MagnifyingGlass,
+  PlusCircle,
 } from "@phosphor-icons/react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
@@ -37,31 +38,29 @@ export type AdminArticle = {
   title: string;
   author: string;
   category: string;
-  status: "Đã xuất bản" | "Bản nháp" | "Đang chờ duyệt";
+  status: "Đã xuất bản" | "Bản nháp" | "Lưu trữ";
   views: number;
   publishedDate: string | null;
 };
 
 function mapToAdminArticle(apiPost: AdminPostResponse): AdminArticle {
   let mappedStatus: AdminArticle["status"] = "Bản nháp";
-  if (apiPost.status === "PUBLISHED" || apiPost.status === "ACTIVE") {
+  if (apiPost.status === "PUBLISHED") {
     mappedStatus = "Đã xuất bản";
-  } else if (apiPost.status === "PENDING") {
-    mappedStatus = "Đang chờ duyệt";
+  } else if (apiPost.status === "ARCHIVED") {
+    mappedStatus = "Lưu trữ";
   }
 
   return {
     id: apiPost.id,
     title: apiPost.title,
-    author: apiPost.author?.profile?.fullName || apiPost.author?.email || "Chưa cập nhật",
-    category: apiPost.categories?.[0]?.postCategory?.name || "Khác",
+    // The API returns a single `category` and the authoring `admin`; earlier code read
+    // `categories[]`/`author`, which do not exist and always fell through to defaults.
+    author: apiPost.admin?.fullName || apiPost.admin?.email || "Chưa cập nhật",
+    category: apiPost.category?.name || "Khác",
     status: mappedStatus,
-    views: apiPost.views || 0,
-    publishedDate: apiPost.publishedAt
-      ? formatAppDate(apiPost.publishedAt)
-      : apiPost.createdAt
-        ? formatAppDate(apiPost.createdAt)
-        : null,
+    views: apiPost.viewCount || 0,
+    publishedDate: apiPost.createdAt ? formatAppDate(apiPost.createdAt) : null,
   };
 }
 
@@ -81,6 +80,7 @@ export function ArticlesTable() {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
   const t = useTranslations("Admin.content.articles.table");
+  const tPage = useTranslations("Admin.content.articles");
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -253,8 +253,8 @@ export function ArticlesTable() {
               <SelectContent>
                 <SelectItem value="all">{t("allStatuses")}</SelectItem>
                 <SelectItem value="Đã xuất bản">{t("statusOptions.published")}</SelectItem>
-                <SelectItem value="Đang chờ duyệt">{t("statusOptions.pending")}</SelectItem>
                 <SelectItem value="Bản nháp">{t("statusOptions.draft")}</SelectItem>
+                <SelectItem value="Lưu trữ">{t("statusOptions.archived")}</SelectItem>
               </SelectContent>
             </Select>
           </>
@@ -284,6 +284,13 @@ export function ArticlesTable() {
             >
               <DownloadSimple size={18} />
               <span>Xuất Excel</span>
+            </Button>
+            <Button
+              className="flex h-10 items-center gap-2 rounded-full px-4 font-semibold"
+              onClick={() => router.push("/admin/content/articles/new")}
+            >
+              <PlusCircle size={18} />
+              <span>{tPage("addArticle")}</span>
             </Button>
           </>
         }
@@ -332,15 +339,15 @@ export function ArticlesTable() {
               const tone =
                 article.status === "Đã xuất bản"
                   ? "success"
-                  : article.status === "Đang chờ duyệt"
+                  : article.status === "Bản nháp"
                     ? "warning"
                     : "neutral";
 
               const statusKey =
                 article.status === "Đã xuất bản"
                   ? "published"
-                  : article.status === "Đang chờ duyệt"
-                    ? "pending"
+                  : article.status === "Lưu trữ"
+                    ? "archived"
                     : "draft";
 
               const categoryKey =
@@ -421,17 +428,7 @@ export function ArticlesTable() {
                           {t("actionOptions.viewPreview")}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {article.status === "Đang chờ duyệt" && (
-                          <DropdownMenuItem
-                            className="text-success cursor-pointer"
-                            onClick={() =>
-                              updatePost({ id: article.id, data: { status: "PUBLISHED" } })
-                            }
-                          >
-                            {t("actionOptions.approveAndPublish")}
-                          </DropdownMenuItem>
-                        )}
-                        {article.status === "Bản nháp" && (
+                        {(article.status === "Bản nháp" || article.status === "Lưu trữ") && (
                           <DropdownMenuItem
                             className="text-success cursor-pointer"
                             onClick={() =>

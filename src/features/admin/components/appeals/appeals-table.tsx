@@ -1,16 +1,23 @@
 "use client";
 
-import { Buildings, CalendarBlank, Check, EnvelopeSimple, X } from "@phosphor-icons/react";
+import {
+  ArrowsCounterClockwise,
+  CalendarBlank,
+  EnvelopeSimple,
+  MagnifyingGlass,
+} from "@phosphor-icons/react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
 import { getAdminAppeals, resolveAdminAppeal } from "@/features/admin/api/appeals";
+import { AdminHeaderFilterPortal } from "@/features/admin/components/admin-header-filter-portal";
 import { getAdminSession } from "@/features/admin/session";
 import { cn } from "@/shared/lib/cn";
 import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 const STATUS_TABS = [
@@ -22,8 +29,13 @@ const STATUS_TABS = [
 export function AppealsTable() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: appeals, isLoading } = useQuery({
+  const {
+    data: appeals,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["adminAppeals", statusFilter],
     queryFn: async () => {
       const session = getAdminSession();
@@ -31,6 +43,17 @@ export function AppealsTable() {
       return getAdminAppeals(session.accessToken, statusFilter);
     },
   });
+
+  const visibleAppeals = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return appeals ?? [];
+
+    return (appeals ?? []).filter((appeal) =>
+      [appeal.recruiterAccount?.company?.name, appeal.recruiterAccount?.email, appeal.content].some(
+        (field) => field?.toLowerCase().includes(keyword),
+      ),
+    );
+  }, [appeals, searchTerm]);
 
   const resolveMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "APPROVED" | "REJECTED" }) => {
@@ -66,6 +89,36 @@ export function AppealsTable() {
 
   return (
     <div className="space-y-4">
+      {/* This screen renders cards instead of a table, so it portals its own filter
+          row into the shell header the way AdminTableLayout does for the others. */}
+      <AdminHeaderFilterPortal
+        filterBar={
+          <div className="relative w-full sm:w-[350px]">
+            <MagnifyingGlass
+              className="absolute top-1/2 left-3 z-10 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
+            <Input
+              className="border-input focus:border-primary h-10 w-full rounded-xl border bg-white pl-10 text-sm shadow-none focus:outline-none"
+              placeholder="Tìm theo công ty, email, nội dung..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </div>
+        }
+        actionBar={
+          <Button
+            variant="outline"
+            size="icon"
+            className="flex h-10 w-10 items-center justify-center rounded-full border-slate-200 p-0 text-slate-600 shadow-none hover:bg-slate-50"
+            onClick={() => void refetch()}
+            aria-label="Làm mới danh sách kháng cáo"
+          >
+            <ArrowsCounterClockwise size={18} />
+          </Button>
+        }
+      />
+
       <div className="border-b border-slate-200">
         <nav className="-mb-px flex space-x-6">
           {STATUS_TABS.map((tab) => (
@@ -74,7 +127,7 @@ export function AppealsTable() {
               type="button"
               onClick={() => setStatusFilter(tab.value)}
               className={cn(
-                "whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors",
+                "border-b-2 px-1 py-4 text-sm font-medium whitespace-nowrap transition-colors",
                 statusFilter === tab.value
                   ? "border-primary text-primary"
                   : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700",
@@ -88,14 +141,14 @@ export function AppealsTable() {
 
       {isLoading ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
-      ) : !appeals || appeals.length === 0 ? (
+      ) : visibleAppeals.length === 0 ? (
         <div className="flex h-40 items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm text-slate-400">
-          Không có kháng cáo nào.
+          {searchTerm.trim() ? "Không tìm thấy kháng cáo phù hợp." : "Không có kháng cáo nào."}
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="divide-y divide-slate-100">
-            {appeals.map((appeal) => (
+            {visibleAppeals.map((appeal) => (
               <div key={appeal.id} className="p-6 transition-colors hover:bg-slate-50/50">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="flex-1 space-y-4">

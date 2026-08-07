@@ -97,9 +97,14 @@ export function CandidateApplicationDetailPage({
             }
           : current,
       );
-      await queryClient.invalidateQueries({
-        queryKey: ["candidate-applications", session?.user.id],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["candidate-applications", session?.user.id],
+        }),
+        // The public job page caches whether this job was applied to. Without this the
+        // job still reads "Đã ứng tuyển" after withdrawing until that cache expires.
+        queryClient.invalidateQueries({ queryKey: ["check-applied-job"] }),
+      ]);
     },
   });
 

@@ -1,25 +1,46 @@
 import { apiRequest } from "@/shared/api/http";
 
+export type PostStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+export type PostType = "BLOG" | "NEWS" | "FAQ";
+
+export type AdminPostFile = Readonly<{
+  id: string;
+  publicUrl: string | null;
+}>;
+
+export type AdminPostCategory = Readonly<{
+  id: string;
+  name: string;
+  slug: string;
+}>;
+
+export type AdminPostTag = Readonly<{
+  id: string;
+  name: string;
+  slug: string;
+}>;
+
 export type AdminPostResponse = Readonly<{
   id: string;
   title: string;
-  status: string;
-  author?: {
-    id: string;
-    profile?: {
-      fullName: string;
-    };
-    email?: string;
-  };
-  categories?: ReadonlyArray<{
-    postCategory?: {
-      name: string;
-    };
-  }>;
-  views?: number;
-  content?: string;
-  publishedAt?: string | null;
-  createdAt?: string;
+  slug: string;
+  content: string;
+  status: PostStatus;
+  type: PostType;
+  categoryId: string | null;
+  thumbnailFileId: string | null;
+  coverImageFileId: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  metaKeywords: string | null;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+  category?: AdminPostCategory | null;
+  admin?: { id: string; fullName: string; email: string; avatarUrl?: string | null } | null;
+  thumbnailFile?: AdminPostFile | null;
+  coverImageFile?: AdminPostFile | null;
+  postTags?: ReadonlyArray<{ tagId: string; tag: AdminPostTag }>;
   [key: string]: any;
 }>;
 
@@ -35,14 +56,39 @@ export type AdminPostsPaginatedResponse = Readonly<{
   };
 }>;
 
+/**
+ * `slug` is generated server-side from the title and is never accepted as input.
+ * Passing `null` for a file id clears it; omitting `tagIds` leaves tags untouched,
+ * while sending it replaces the whole set.
+ */
+export type CreateAdminPostPayload = {
+  title: string;
+  content: string;
+  status?: PostStatus | undefined;
+  type?: PostType | undefined;
+  categoryId?: string | null | undefined;
+  thumbnailFileId?: string | null | undefined;
+  coverImageFileId?: string | null | undefined;
+  metaTitle?: string | undefined;
+  metaDescription?: string | undefined;
+  metaKeywords?: string | undefined;
+  tagIds?: string[] | undefined;
+};
+
+export type UpdateAdminPostPayload = Partial<CreateAdminPostPayload>;
+
+function authHeaders(token: string) {
+  return { Authorization: `Bearer ${token}` };
+}
+
+function jsonAuthHeaders(token: string) {
+  return { ...authHeaders(token), "Content-Type": "application/json" };
+}
+
 export async function getAdminPosts(token: string, limit: number = 100) {
   const response = await apiRequest<AdminPostsPaginatedResponse | AdminPostResponse[]>(
     `/admin/posts?limit=${limit}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    },
+    { headers: authHeaders(token) },
   );
 
   if (Array.isArray(response)) {
@@ -56,30 +102,69 @@ export async function getAdminPosts(token: string, limit: number = 100) {
   return [];
 }
 
-export async function updateAdminPost(token: string, id: string, data: any) {
+export function getAdminPostDetails(token: string, id: string) {
+  return apiRequest<AdminPostResponse>(`/admin/posts/${id}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function createAdminPost(token: string, payload: CreateAdminPostPayload) {
+  return apiRequest<AdminPostResponse>("/admin/posts", {
+    method: "POST",
+    headers: jsonAuthHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAdminPost(token: string, id: string, payload: UpdateAdminPostPayload) {
   return apiRequest<AdminPostResponse>(`/admin/posts/${id}`, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
+    headers: jsonAuthHeaders(token),
+    body: JSON.stringify(payload),
   });
 }
 
-export async function deleteAdminPost(token: string, id: string) {
+export function deleteAdminPost(token: string, id: string) {
   return apiRequest<void>(`/admin/posts/${id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: authHeaders(token),
   });
 }
 
-export async function getAdminPostDetails(token: string, id: string) {
-  return apiRequest<AdminPostResponse>(`/admin/posts/${id}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+export function getAdminPostCategories(token: string) {
+  return apiRequest<AdminPostCategory[]>("/admin/posts/categories", {
+    headers: authHeaders(token),
+  });
+}
+
+export function getAdminPostTags(token: string) {
+  return apiRequest<AdminPostTag[]>("/admin/posts/tags", {
+    headers: authHeaders(token),
+  });
+}
+
+export type UploadedPostImage = Readonly<{
+  message: string;
+  file: { id: string; publicUrl: string; originalName: string; mimeType: string };
+}>;
+
+/**
+ * Post images must be PUBLIC so anonymous blog readers can load them.
+ * Content-Type is intentionally omitted so the browser sets the multipart boundary.
+ */
+export function uploadPostImage(
+  token: string,
+  file: File,
+  purpose: "POST_THUMBNAIL" | "POST_COVER",
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("purpose", purpose);
+  formData.append("visibility", "PUBLIC");
+
+  return apiRequest<UploadedPostImage>("/files/upload", {
+    method: "POST",
+    headers: authHeaders(token),
+    body: formData,
   });
 }

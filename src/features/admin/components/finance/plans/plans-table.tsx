@@ -342,14 +342,28 @@ export const getColumns = (
 
 export function PlansTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [audienceFilter, setAudienceFilter] = React.useState<string>("all");
+  const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedPlan, setSelectedPlan] = React.useState<AdminSubscriptionPlan | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const t = useTranslations("Admin.finance.plans.table");
 
   const filteredData = React.useMemo(() => {
-    if (statusFilter === "all") return data;
-    return data.filter((item) => item.status === statusFilter);
-  }, [statusFilter]);
+    const keyword = searchTerm.trim().toLowerCase();
+
+    return data.filter((item) => {
+      if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      if (audienceFilter !== "all" && item.targetAudience !== audienceFilter) return false;
+      if (
+        keyword &&
+        !item.planName.toLowerCase().includes(keyword) &&
+        !item.id.toLowerCase().includes(keyword)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [statusFilter, audienceFilter, searchTerm]);
 
   const handleViewDetails = React.useCallback((plan: AdminSubscriptionPlan) => {
     setSelectedPlan(plan);
@@ -370,8 +384,20 @@ export function PlansTable() {
             <Input
               className="bg-muted h-10 rounded-xl pl-10"
               placeholder={t("searchPlaceholder")}
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
+          <Select value={audienceFilter} onValueChange={setAudienceFilter}>
+            <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+              <SelectValue placeholder={t("allAudiences")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("allAudiences")}</SelectItem>
+              <SelectItem value="Nhà tuyển dụng">{t("targetAudienceOptions.employer")}</SelectItem>
+              <SelectItem value="Ứng viên">{t("targetAudienceOptions.candidate")}</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
               <SelectValue placeholder={t("allStatuses")} />
