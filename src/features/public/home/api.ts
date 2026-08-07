@@ -25,6 +25,9 @@ export interface PublicJob {
   company: {
     id: string;
     name: string;
+    slug?: string | null;
+    address?: string | null;
+    companySize?: string | null;
     verificationStatus?: string | null;
     logoUrl?: string | null;
     logoFile?: {

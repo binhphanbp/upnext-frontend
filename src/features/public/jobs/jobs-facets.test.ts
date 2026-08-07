@@ -5,6 +5,7 @@ import {
   type FacetableJob,
   type FacetGroupMatchers,
   matchesAllFacetGroups,
+  matchesEmploymentTypeFilter,
   matchesExperienceRange,
   matchesLevelFilter,
   matchesModeFilter,
@@ -30,6 +31,7 @@ function noSelection(): FacetGroupMatchers {
     category: () => true,
     level: () => true,
     mode: () => true,
+    employmentType: () => true,
     salary: () => true,
     experience: () => true,
     technology: () => true,
@@ -51,6 +53,13 @@ describe("parseSalaryRange", () => {
 });
 
 describe("option predicates", () => {
+  it("matches employment type filters correctly", () => {
+    expect(matchesEmploymentTypeFilter({ employmentType: "Full-time" }, "full-time")).toBe(true);
+    expect(matchesEmploymentTypeFilter({ employmentType: "Part-time" }, "part-time")).toBe(true);
+    expect(matchesEmploymentTypeFilter({ employmentType: "Contract" }, "contract")).toBe(true);
+    expect(matchesEmploymentTypeFilter({ employmentType: "Internship" }, "internship")).toBe(true);
+    expect(matchesEmploymentTypeFilter({ employmentType: "Full-time" }, "part-time")).toBe(false);
+  });
   it("groups junior, fresher and intern under the same level option", () => {
     expect(matchesLevelFilter({ level: "Intern" }, "fresher")).toBe(true);
     expect(matchesLevelFilter({ level: "Junior" }, "fresher")).toBe(true);

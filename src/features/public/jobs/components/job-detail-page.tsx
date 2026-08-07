@@ -6,13 +6,19 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import type { ReactNode } from "react";
 
 import { checkAppliedJob } from "@/features/candidate/api/profile";
+import { useCandidateCompanyFollows } from "@/features/candidate/company-follows";
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { toast } from "@/shared/ui/toast";
 
-import { getPublicJobs, recordPublicJobView } from "../../home/api";
+import {
+  getPublicJobs,
+  getPublicJobDetail,
+  recordPublicJobView,
+  type PublicJob,
+} from "../../home/api";
 import { getJobPreviewDescription } from "../../home/job-preview-description";
 import {
   ArrowRight,
@@ -24,7 +30,6 @@ import {
   Coins,
   Copy,
   FileText,
-  Globe,
   Facebook,
   Linkedin,
   Mail,
@@ -34,9 +39,7 @@ import {
   ShareNetwork,
   ShieldCheck,
   Star,
-  TrendingUp,
   UsersRound,
-  WalletCards,
 } from "../../home/marketing-icons";
 import { useAnchoredJobPreview } from "../../home/use-anchored-job-preview";
 import { useJobPreviewDetail } from "../../home/use-job-preview-detail";
@@ -52,55 +55,6 @@ type PublicJobDetailPageProps = {
   path: string;
   navigate: (path: string) => void;
 };
-
-const responsibilities = [
-  "Tham gia phát triển, bảo trì và tối ưu các ứng dụng Web/Mobile theo roadmap sản phẩm.",
-  "Viết code sạch, có khả năng mở rộng và tuân thủ coding convention của dự án.",
-  "Phối hợp với Product, Design, QA và Backend để hoàn thiện tính năng từ discovery đến release.",
-  "Tham gia review code, viết unit test và xử lý lỗi phát sinh trong quá trình vận hành.",
-  "Đề xuất cải tiến kỹ thuật để nâng chất lượng sản phẩm và hiệu suất hệ thống.",
-];
-
-const requirements = [
-  "Nắm vững nền tảng lập trình, cấu trúc dữ liệu, OOP và quy trình phát triển phần mềm.",
-  "Có kinh nghiệm thực tế với các công nghệ liên quan trong phần kỹ năng của tin tuyển dụng.",
-  "Biết đọc hiểu tài liệu tiếng Anh chuyên ngành và chủ động trao đổi khi yêu cầu chưa rõ.",
-  "Có tư duy sản phẩm, trách nhiệm với chất lượng đầu ra và khả năng làm việc nhóm tốt.",
-  "Ưu tiên ứng viên từng làm việc với hệ thống có người dùng thật hoặc quy mô enterprise.",
-];
-
-const benefits = [
-  {
-    icon: <WalletCards size={20} />,
-    desc: "Thu nhập cạnh tranh, thưởng hiệu quả 2 lần/năm",
-  },
-  {
-    icon: <Monitor size={20} />,
-    desc: "Làm việc linh hoạt: Hybrid, Remote hoặc tại văn phòng hiện đại",
-  },
-  {
-    icon: <ShieldCheck size={20} />,
-    desc: "Bảo hiểm sức khỏe cao cấp cho bản thân và gia đình",
-  },
-  {
-    icon: <Globe size={20} />,
-    desc: "Đào tạo & chứng chỉ quốc tế qua học viện nội bộ",
-  },
-  {
-    icon: <TrendingUp size={20} />,
-    desc: "Cơ hội thăng tiến và lộ trình phát triển rõ ràng",
-  },
-  {
-    icon: <UsersRound size={20} />,
-    desc: "Teambuilding, du lịch, thể thao và nhiều hoạt động nội bộ",
-  },
-];
-
-const companyStats = [
-  { value: "256", label: "Việc làm" },
-  { value: "30.000+", label: "Nhân sự" },
-  { value: "27+", label: "Quốc gia" },
-];
 
 const visitorKeyStorageName = "upnext:visitor-key:v1";
 const recordedJobViews = new Set<string>();
@@ -265,86 +219,114 @@ function LogoMark({ job, size = "normal" }: { job: Job; size?: "normal" | "large
   );
 }
 
+function mapPublicJobToJob(job: PublicJob): Job {
+  const isRemote =
+    job.employmentType?.name.toLowerCase().includes("remote") ||
+    job.title.toLowerCase().includes("remote");
+  const isHighSalary =
+    (job.salaryMin && job.salaryMin >= 30000000) || (job.salaryMax && job.salaryMax >= 30000000);
+
+  const categories: string[] = [];
+  if (isRemote) categories.push("remote");
+  if (isHighSalary) categories.push("high-salary");
+  const categoryCode = job.jobCategory?.name.toLowerCase() || "";
+  if (categoryCode.includes("frontend")) categories.push("frontend");
+  if (categoryCode.includes("backend")) categories.push("backend");
+  if (categoryCode.includes("mobile")) categories.push("mobile");
+  if (categoryCode.includes("data") || categoryCode.includes("ai")) {
+    categories.push("data-ai");
+  }
+  if (categoryCode.includes("devops")) categories.push("devops");
+  if (categoryCode.includes("qa") || categoryCode.includes("test")) {
+    categories.push("qa");
+  }
+
+  const realLocation =
+    job.jobPostLocations?.[0]?.jobLocation?.city ||
+    job.jobPostLocations?.[0]?.jobLocation?.address ||
+    "Việt Nam";
+
+  return {
+    id: job.id,
+    title: job.title,
+    company: job.company?.name || "UpNext Partner",
+    ...(job.company?.id ? { companyId: job.company.id } : {}),
+    companySlug: job.company?.slug || job.company?.id || "",
+    companySize: job.company?.companySize || "",
+    companyAddress: job.company?.address || "",
+    logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
+    logoColor: "#10b981",
+    verified: job.company?.verificationStatus === "VERIFIED",
+    salary: formatJobSalaryDisplay(job),
+    location: realLocation,
+    mode:
+      job.jobPostLocations?.[0]?.jobLocation?.workingModel ||
+      job.employmentType?.name ||
+      "Full-time",
+    level: job.experienceLevel?.name || "Kinh nghiệm",
+    type: job.employmentType?.name || "Full-time",
+    posted:
+      job.publishedAt || job.createdAt
+        ? formatRelativeTime(job.publishedAt || job.createdAt, "vi")
+        : "Mới đăng",
+    applicants: job.vacanciesCount ?? (job as any).numberOfRecruits ?? 1,
+    vacanciesCount: job.vacanciesCount ?? (job as any).numberOfRecruits ?? 1,
+    tags:
+      job.jobPostSkills && job.jobPostSkills.length > 0
+        ? job.jobPostSkills.map((s) => s.skill.name)
+        : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
+            Boolean,
+          ) as string[]),
+    description: job.description || "",
+    categories,
+    categoryName: job.jobCategory?.name,
+    urgent: false,
+    featured: false,
+    requirements: job.requirements,
+    benefits: job.benefits,
+    expiredAt: job.expiredAt,
+  };
+}
+
 export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps) {
   const locale = useLocale();
   const t = useTranslations("PublicJobs.share");
   const jobId = getJobId(path);
-  const fallbackJob = jobs[0];
-  if (!fallbackJob) {
-    throw new Error("No jobs available for job detail page.");
-  }
 
-  const { data: apiJobsData } = useQuery({
+  const { data: singleJobDetail, isPending: isSingleJobPending } = useQuery({
+    queryKey: ["public-job-detail", jobId],
+    queryFn: () => getPublicJobDetail(jobId),
+    enabled: Boolean(jobId),
+  });
+
+  const { data: apiJobsData, isPending: isJobsListPending } = useQuery({
     queryKey: ["public-jobs"],
     queryFn: getPublicJobs,
   });
 
   const jobsList = useMemo(() => {
-    if (!apiJobsData) return jobs;
-
-    const mapped: Job[] = apiJobsData.map((job) => {
-      const isRemote =
-        job.employmentType?.name.toLowerCase().includes("remote") ||
-        job.title.toLowerCase().includes("remote");
-      const isHighSalary =
-        (job.salaryMin && job.salaryMin >= 30000000) ||
-        (job.salaryMax && job.salaryMax >= 30000000);
-
-      const categories: string[] = [];
-      if (isRemote) categories.push("remote");
-      if (isHighSalary) categories.push("high-salary");
-      const categoryCode = job.jobCategory?.name.toLowerCase() || "";
-      if (categoryCode.includes("frontend")) categories.push("frontend");
-      if (categoryCode.includes("backend")) categories.push("backend");
-      if (categoryCode.includes("mobile")) categories.push("mobile");
-      if (categoryCode.includes("data") || categoryCode.includes("ai")) {
-        categories.push("data-ai");
-      }
-      if (categoryCode.includes("devops")) categories.push("devops");
-      if (categoryCode.includes("qa") || categoryCode.includes("test")) {
-        categories.push("qa");
-      }
-
-      return {
-        id: job.id,
-        title: job.title,
-        company: job.company?.name || "UpNext Partner",
-        logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
-        logoColor: "#10b981",
-        verified: true,
-        salary: formatJobSalaryDisplay(job),
-        location: job.jobPostLocations?.[0]?.jobLocation?.city || "Việt Nam",
-        mode: job.employmentType?.name || "Full-time",
-        level: job.experienceLevel?.name || "Middle",
-        type: job.employmentType?.name || "Full-time",
-        posted:
-          job.publishedAt || (job as any).createdAt
-            ? formatRelativeTime(job.publishedAt || (job as any).createdAt, "vi")
-            : "Mới đăng",
-        applicants: (job as any).numberOfRecruits ?? 5,
-        tags:
-          job.jobPostSkills && job.jobPostSkills.length > 0
-            ? job.jobPostSkills.map((s) => s.skill.name)
-            : ([job.jobCategory?.name, job.employmentType?.name, job.experienceLevel?.name].filter(
-                Boolean,
-              ) as string[]),
-        description: job.description || "",
-        categories,
-        categoryName: job.jobCategory?.name,
-        urgent: false,
-        featured: false,
-        requirements: job.requirements,
-        benefits: job.benefits,
-        expiredAt: job.expiredAt,
-      };
-    });
-
-    return mapped;
+    if (!apiJobsData) return [];
+    return apiJobsData.map(mapPublicJobToJob);
   }, [apiJobsData]);
 
-  const job = jobsList.find((item) => item.id === jobId) ?? fallbackJob;
-  const hasResolvedRequestedJob = Boolean(apiJobsData?.some((item) => item.id === jobId));
-  const deadlineInfo = formatJobDetailDeadline(job.expiredAt);
+  const job = useMemo(() => {
+    if (singleJobDetail) {
+      return mapPublicJobToJob(singleJobDetail);
+    }
+    if (apiJobsData) {
+      const found = jobsList.find((item) => item.id === jobId);
+      if (found) return found;
+    }
+    const staticMatch = jobs.find((j) => j.id === jobId);
+    if (staticMatch) return staticMatch;
+    return null;
+  }, [singleJobDetail, apiJobsData, jobsList, jobId]);
+
+  const isDataLoading = (isSingleJobPending || isJobsListPending) && !job;
+  const hasResolvedRequestedJob = Boolean(
+    singleJobDetail || apiJobsData?.some((item) => item.id === jobId),
+  );
+  const deadlineInfo = formatJobDetailDeadline(job?.expiredAt);
   const {
     isPending: isSavedJobPending,
     isSessionResolved: isSavedJobsSessionResolved,
@@ -352,11 +334,61 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
     toggleSaveJob,
   } = useCandidateSavedJobs();
   const { session } = useCandidateProfileWorkspace();
-  const saved = savedJobIds.includes(job.id);
+  const {
+    followedCompanyIds,
+    isPending: isCompanyFollowPending,
+    isSessionResolved: isCompanyFollowSessionResolved,
+    setCompanyFollowing,
+    toggleFollowCompany,
+  } = useCandidateCompanyFollows();
+
+  const companyId = singleJobDetail?.company?.id || job?.companyId;
+  const isCompanyFollowed = companyId ? followedCompanyIds.includes(companyId) : false;
+  const isFollowBusy = companyId ? isCompanyFollowPending(companyId) : false;
+
+  function handleToggleFollowCompany() {
+    if (!companyId) {
+      toast.error("Không tìm thấy thông tin công ty.");
+      return;
+    }
+    const companyName = job?.company || "công ty";
+    const didStart = toggleFollowCompany(companyId, {
+      onError: () => toast.error("Không thể cập nhật theo dõi. Vui lòng thử lại."),
+      onSuccess: (isFollowing) => {
+        const toastId = `follow-company-${companyId}`;
+        toast.success(
+          isFollowing ? `Đã theo dõi ${companyName}` : `Đã bỏ theo dõi ${companyName}`,
+          {
+            id: toastId,
+            action: {
+              label: "Hoàn tác",
+              onClick: () => {
+                toast.dismiss(toastId);
+                setCompanyFollowing(companyId, !isFollowing, {
+                  onError: () => toast.error("Không thể cập nhật theo dõi. Vui lòng thử lại."),
+                });
+              },
+            },
+          },
+        );
+      },
+    });
+
+    if (!didStart) {
+      const redirectPath = (path || (jobId ? `/jobs/${jobId}` : "/jobs")).replace(
+        /^\/(?:vi|en)(?=\/|$)/,
+        "",
+      );
+      const redirect = `${redirectPath}${window.location.search}`;
+      navigate(`/login?redirect=${encodeURIComponent(redirect)}`);
+    }
+  }
+
+  const saved = Boolean(job && savedJobIds.includes(job.id));
 
   const { data: appliedData } = useQuery({
-    queryKey: ["check-applied-job", job.id, session?.user.id],
-    queryFn: () => checkAppliedJob(session!.accessToken, job.id),
+    queryKey: ["check-applied-job", job?.id, session?.user.id],
+    queryFn: () => checkAppliedJob(session!.accessToken, job!.id),
     enabled: Boolean(session && session.accessToken && job?.id),
   });
 
@@ -368,7 +400,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
     setShareUrl(window.location.href);
   }, []);
 
-  const shareTitle = t("message", { jobTitle: job.title, company: job.company });
+  const shareTitle = job ? t("message", { jobTitle: job.title, company: job.company }) : "";
   const encodedShareUrl = encodeURIComponent(shareUrl);
   const encodedShareTitle = encodeURIComponent(shareTitle);
 
@@ -397,6 +429,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   }
 
   async function shareJob() {
+    if (!job) return;
     const currentShareUrl = shareUrl || window.location.href;
 
     if (!navigator.share) {
@@ -411,26 +444,22 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
         url: currentShareUrl,
       });
     } catch (error) {
-      // Closing the native share sheet is a normal, silent cancellation.
       if (error instanceof DOMException && error.name === "AbortError") return;
       toast.error(t("shareFailed"));
     }
   }
 
   useEffect(() => {
-    // The page initially renders a visual fallback while its public job list
-    // loads. Never attribute that fallback to a real job view.
-    if (!hasResolvedRequestedJob || !job.id || recordedJobViews.has(job.id)) return;
+    if (!hasResolvedRequestedJob || !job?.id || recordedJobViews.has(job.id)) return;
 
     recordedJobViews.add(job.id);
     void recordPublicJobView(job.id, getOrCreateVisitorKey()).catch(() => {
-      // View analytics are best-effort. A failed metric must not interrupt a
-      // candidate who is reading or applying for a job.
       recordedJobViews.delete(job.id);
     });
-  }, [hasResolvedRequestedJob, job.id]);
+  }, [hasResolvedRequestedJob, job?.id]);
 
   function handleApply() {
+    if (!job) return;
     startJobApplication({
       jobId: job.id,
       locale,
@@ -440,9 +469,9 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   }
 
   const similarJobs = useMemo(() => {
+    if (!job) return [];
     const others = jobsList.filter((item) => item.id !== job.id);
 
-    // 1. Same categoryName (chuyên ngành) — highest priority
     const sameCategoryName = job.categoryName
       ? others.filter(
           (item) =>
@@ -453,7 +482,6 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
 
     if (sameCategoryName.length >= 4) return sameCategoryName.slice(0, 4);
 
-    // 2. Fill with shared skills/tags
     const usedIds = new Set(sameCategoryName.map((j) => j.id));
     const bySkills = others.filter(
       (item) => !usedIds.has(item.id) && item.tags?.some((t) => job.tags?.includes(t)),
@@ -462,13 +490,47 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
     let result = [...sameCategoryName, ...bySkills];
     if (result.length >= 4) return result.slice(0, 4);
 
-    // 3. Fill remaining with any other jobs
     const resultIds = new Set(result.map((j) => j.id));
     const remaining = others.filter((item) => !resultIds.has(item.id));
     result = [...result, ...remaining];
 
     return result.slice(0, 4);
   }, [job, jobsList]);
+
+  if (isDataLoading) {
+    return (
+      <main className="jobs-page job-detail-page">
+        <PublicHeader navigate={navigate} />
+        <section className="job-detail-shell flex min-h-[400px] flex-col items-center justify-center py-20 text-center">
+          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+          <p className="font-medium text-slate-600">Đang tải thông tin tin tuyển dụng...</p>
+        </section>
+        <PublicFooter navigate={navigate} />
+      </main>
+    );
+  }
+
+  if (!job) {
+    return (
+      <main className="jobs-page job-detail-page">
+        <PublicHeader navigate={navigate} />
+        <section className="job-detail-shell flex min-h-[400px] flex-col items-center justify-center py-20 text-center">
+          <h1 className="mb-2 text-2xl font-bold text-slate-800">Không tìm thấy tin tuyển dụng</h1>
+          <p className="mb-6 text-slate-600">
+            Tin tuyển dụng này có thể đã hết hạn hoặc bị gỡ khỏi hệ thống.
+          </p>
+          <button
+            type="button"
+            className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+            onClick={() => navigate("/jobs")}
+          >
+            Quay lại danh sách việc làm
+          </button>
+        </section>
+        <PublicFooter navigate={navigate} />
+      </main>
+    );
+  }
 
   return (
     <main className="jobs-page job-detail-page">
@@ -493,7 +555,13 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   <button
                     type="button"
                     className="job-detail-company-name"
-                    onClick={() => navigate("/companies/fpt-software")}
+                    onClick={() => {
+                      if (job.companySlug) {
+                        navigate(`/companies/${encodeURIComponent(job.companySlug)}`);
+                      } else {
+                        navigate("/companies");
+                      }
+                    }}
                   >
                     {job.company}
                   </button>
@@ -520,7 +588,9 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 )}
               </div>
 
-              <p className="job-detail-lead">{getCleanLeadText(job.description)}</p>
+              {job.description && (
+                <p className="job-detail-lead">{getCleanLeadText(job.description)}</p>
+              )}
 
               <div className="job-detail-salary-row">
                 <Coins size={24} weight="fill" />
@@ -540,8 +610,8 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 <InfoTile icon={<Clock size={20} />} label="Đăng tuyển" value={job.posted} />
                 <InfoTile
                   icon={<UsersRound size={20} />}
-                  label="Ứng viên"
-                  value={`${job.applicants} lượt`}
+                  label="Số lượng tuyển"
+                  value={`Số lượng tuyển: ${job.vacanciesCount ?? job.applicants ?? 1}`}
                 />
                 <InfoTile
                   icon={<Calendar size={20} />}
@@ -550,11 +620,13 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                 />
               </div>
 
-              <div className="job-detail-tags" aria-label="Kỹ năng liên quan">
-                {job.tags.map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
-              </div>
+              {job.tags && job.tags.length > 0 && (
+                <div className="job-detail-tags" aria-label="Kỹ năng liên quan">
+                  {job.tags.map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
+                </div>
+              )}
 
               <div className="job-detail-action-row">
                 {hasApplied ? (
@@ -596,7 +668,7 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
             </section>
 
             <section className="job-detail-card job-detail-section">
-              <div className="job-detail-card-head mb-6">
+              <div className="job-detail-card-head mb-4">
                 <span>
                   <FileText size={18} />
                 </span>
@@ -604,80 +676,68 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               </div>
               <div>
                 {/* Mô tả công việc */}
-                <div className="pb-5">
-                  <h3 className="mb-3 text-base font-semibold text-slate-900">Mô tả công việc</h3>
+                <div className="pb-3.5">
+                  <h3 className="mb-2 text-base font-semibold text-slate-900">Mô tả công việc</h3>
                   {job.description && job.description.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
-                      className="job-detail-rich-text text-sm leading-relaxed text-slate-900"
+                      className="job-detail-rich-text text-sm leading-snug text-slate-900"
                       dangerouslySetInnerHTML={{ __html: getCleanHtml(job.description) }}
                     />
                   ) : (
-                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-900">
-                      <BulletList items={responsibilities} />
-                    </div>
+                    <p className="text-sm text-slate-500 italic">
+                      Chưa có thông tin mô tả công việc.
+                    </p>
                   )}
                 </div>
 
                 {/* Yêu cầu ứng viên */}
-                <div className="border-t border-slate-100 py-5">
-                  <h3 className="mb-3 text-base font-semibold text-slate-900">Yêu cầu ứng viên</h3>
+                <div className="border-t border-slate-100 py-3.5">
+                  <h3 className="mb-2 text-base font-semibold text-slate-900">Yêu cầu ứng viên</h3>
                   {job.requirements &&
                   job.requirements.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
-                      className="job-detail-rich-text text-sm leading-relaxed text-slate-900"
+                      className="job-detail-rich-text text-sm leading-snug text-slate-900"
                       dangerouslySetInnerHTML={{ __html: getCleanHtml(job.requirements) }}
                     />
                   ) : (
-                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-900">
-                      <BulletList items={requirements} />
-                    </div>
+                    <p className="text-sm text-slate-500 italic">
+                      Chưa có thông tin yêu cầu ứng viên.
+                    </p>
                   )}
                 </div>
 
                 {/* Quyền lợi */}
-                <div className="border-t border-slate-100 pt-5">
-                  <h3 className="mb-3 text-base font-semibold text-slate-900">Quyền lợi</h3>
+                <div className="border-t border-slate-100 pt-3.5">
+                  <h3 className="mb-2 text-base font-semibold text-slate-900">Quyền lợi</h3>
                   {job.benefits && job.benefits.replace(/<[^>]*>/g, "").trim().length > 0 ? (
                     <div
-                      className="job-detail-rich-text text-sm leading-relaxed text-slate-900"
+                      className="job-detail-rich-text text-sm leading-snug text-slate-900"
                       dangerouslySetInnerHTML={{ __html: getCleanHtml(job.benefits) }}
                     />
                   ) : (
-                    <div className="job-detail-rich-text text-sm leading-relaxed text-slate-900">
-                      <BulletList items={benefits.map((b) => b.desc)} />
-                    </div>
+                    <p className="text-sm text-slate-500 italic">Chưa có thông tin quyền lợi.</p>
                   )}
                 </div>
               </div>
             </section>
 
-            <DetailSection title="Kỹ năng & công nghệ">
-              <div className="job-detail-skill-cloud">
-                {Array.from(
-                  new Set([
-                    ...job.tags,
-                    "Next.js",
-                    "TypeScript",
-                    "JavaScript",
-                    "HTML5",
-                    "CSS3",
-                    "React Query",
-                    "Tailwind CSS",
-                    "Git",
-                    "RESTful API",
-                    "Docker",
-                  ]),
-                ).map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
-              </div>
-            </DetailSection>
+            {job.tags && job.tags.length > 0 && (
+              <DetailSection title="Kỹ năng & công nghệ">
+                <div className="job-detail-skill-cloud">
+                  {Array.from(new Set(job.tags)).map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
+                </div>
+              </DetailSection>
+            )}
 
-            <SimilarJobsSection
-              similarJobs={similarJobs}
-              navigate={navigate}
-              onApply={handleApply}
-            />
+            {similarJobs.length > 0 && (
+              <SimilarJobsSection
+                similarJobs={similarJobs}
+                navigate={navigate}
+                onApply={handleApply}
+              />
+            )}
           </article>
 
           <aside className="job-detail-aside">
@@ -685,21 +745,55 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
               <LogoMark job={job} />
               <div>
                 <h2>{job.company}</h2>
-                <p>Công nghệ thông tin & Dịch vụ phần mềm</p>
-                <em>Top công ty</em>
+                <p>{job.categoryName || "Công nghệ thông tin"}</p>
+                {job.companyAddress && (
+                  <small className="mt-1 block text-xs leading-snug text-slate-500">
+                    {job.companyAddress}
+                  </small>
+                )}
+                {job.verified && <em>Đã xác thực</em>}
               </div>
-              <button type="button">
-                <Bookmark size={15} /> Theo dõi công ty
+              <button
+                type="button"
+                disabled={isFollowBusy || !isCompanyFollowSessionResolved}
+                aria-pressed={isCompanyFollowed}
+                onClick={handleToggleFollowCompany}
+                className={isCompanyFollowed ? "is-followed" : ""}
+              >
+                {isCompanyFollowed ? (
+                  <>
+                    <CheckCircle size={15} weight="fill" /> Đã theo dõi
+                  </>
+                ) : (
+                  <>
+                    <Bookmark size={15} /> Theo dõi công ty
+                  </>
+                )}
               </button>
               <div className="job-detail-company-mini-stats">
-                {companyStats.map((stat) => (
-                  <span key={stat.label}>
-                    <b>{stat.value}</b>
-                    <small>{stat.label}</small>
-                  </span>
-                ))}
+                <span>
+                  <b>{jobsList.filter((item) => item.company === job.company).length || 1}</b>
+                  <small>Việc làm</small>
+                </span>
+                <span>
+                  <b>{job.companySize || "5000+"}</b>
+                  <small>Nhân sự</small>
+                </span>
+                <span>
+                  <b>1+</b>
+                  <small>Quốc gia</small>
+                </span>
               </div>
-              <button type="button" onClick={() => navigate("/companies/fpt-software")}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (job.companySlug) {
+                    navigate(`/companies/${encodeURIComponent(job.companySlug)}`);
+                  } else {
+                    navigate("/companies");
+                  }
+                }}
+              >
                 Xem công ty <ArrowRight size={15} />
               </button>
             </section>
@@ -790,19 +884,6 @@ function DetailSection({
   );
 }
 
-function BulletList({ items }: { items: string[] }) {
-  return (
-    <ul className="job-detail-bullet-list">
-      {items.map((item) => (
-        <li key={item}>
-          <span aria-hidden="true" />
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function InfoTile({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <span className="job-detail-info-tile">
@@ -813,22 +894,9 @@ function InfoTile({ icon, label, value }: { icon: ReactNode; label: string; valu
   );
 }
 
-function InfoLine({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return (
-    <div className="job-detail-info-line">
-      <div className="job-detail-info-icon">{icon}</div>
-      <div className="job-detail-info-content items-start text-left">
-        <span className="job-detail-info-label text-left">{label}</span>
-        <b className="job-detail-info-value text-left">{value}</b>
-      </div>
-    </div>
-  );
-}
-
 function SimilarJobsSection({
   similarJobs,
   navigate,
-  onApply,
 }: {
   similarJobs: Job[];
   navigate: (path: string) => void;

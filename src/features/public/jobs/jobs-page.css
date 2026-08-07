@@ -967,18 +967,60 @@
   line-height: 1.65;
 }
 
-.job-detail-section .job-detail-rich-text p,
-.job-detail-section .job-detail-rich-text li {
-  color: #475569;
+.job-detail-section .job-detail-rich-text ul,
+.job-detail-rich-text ul {
+  display: block !important;
+  gap: 0 !important;
+  margin-top: 6px !important;
+  margin-bottom: 10px !important;
+  padding-left: 1.25rem !important;
+  list-style-type: disc !important;
+}
+
+.job-detail-section .job-detail-rich-text ol,
+.job-detail-rich-text ol {
+  display: block !important;
+  gap: 0 !important;
+  margin-top: 6px !important;
+  margin-bottom: 10px !important;
+  padding-left: 1.25rem !important;
+  list-style-type: decimal !important;
+}
+
+.job-detail-section .job-detail-rich-text li,
+.job-detail-rich-text li {
+  display: list-item !important;
+  margin-top: 0 !important;
+  margin-bottom: 6px !important;
+  padding: 0 !important;
+  color: #334155;
+  font-size: 14px !important;
+  font-weight: 500;
+  line-height: 1.5 !important;
 }
 
 .job-detail-section .job-detail-rich-text p,
-.job-detail-section .job-detail-rich-text li,
+.job-detail-rich-text p {
+  margin-top: 0 !important;
+  margin-bottom: 8px !important;
+  color: #334155;
+  font-size: 14px !important;
+  font-weight: 500;
+  line-height: 1.5 !important;
+}
+
+.job-detail-rich-text li p {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline !important;
+  line-height: inherit !important;
+}
+
 .job-detail-section .job-detail-rich-text h2,
 .job-detail-section .job-detail-rich-text h3,
 .job-detail-section .job-detail-rich-text strong,
 .job-detail-section .job-detail-rich-text b {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .job-detail-section li svg {
@@ -2435,11 +2477,13 @@
   gap: 10px;
   margin-top: 20px;
   color: #0b7f5f;
+  white-space: nowrap;
 }
 
 .job-detail-salary-row strong {
   font-size: 24px;
   font-weight: 850;
+  white-space: nowrap;
 }
 
 .job-detail-meta-grid {
@@ -2459,6 +2503,7 @@
   border: 1px solid #eef2f6;
   border-radius: 14px;
   background: #f8fafc;
+  white-space: nowrap;
 }
 
 .job-detail-info-tile svg {
@@ -2470,10 +2515,15 @@
   color: #94a3b8;
   font-size: 12px;
   font-weight: 750;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .job-detail-info-tile b {
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: #0f172a;
   font-size: 13.5px;
   font-weight: 850;
@@ -3156,7 +3206,7 @@
 }
 
 .job-detail-meta-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px 18px;
   margin-top: 20px;
 }
@@ -3174,10 +3224,12 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  white-space: nowrap;
 }
 
 .job-detail-info-tile svg {
   color: #9ca3af;
+  flex-shrink: 0;
 }
 
 .job-detail-info-tile small {
@@ -3188,6 +3240,7 @@
   color: #374151;
   font-size: 14px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .job-detail-tags {
@@ -3652,31 +3705,61 @@
   gap: 10px;
 }
 
+.job-detail-company-mini > button.is-followed {
+  color: #047857;
+  background: #ecfdf5;
+  border-radius: 8px;
+}
+
+.job-detail-company-mini > button.is-followed:hover {
+  color: #065f46;
+  background: #d1fae5;
+  gap: 6px;
+}
+
+.job-detail-company-mini > button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .job-detail-company-mini-stats {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
-  padding-top: 16px;
-  margin-top: 4px;
+  padding: 16px 0 4px;
+  margin-top: 12px;
   text-align: center;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f1f5f9;
+}
+
+.job-detail-company-mini-stats span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 4px;
 }
 
 .job-detail-company-mini-stats span:not(:last-child) {
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid #f1f5f9;
 }
 
 .job-detail-company-mini-stats b {
   display: block;
-  color: #111827;
+  color: #0f172a;
   font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .job-detail-company-mini-stats small {
   display: block;
-  color: #6b7280;
-  font-size: 11px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .job-detail-reason-card ul {
