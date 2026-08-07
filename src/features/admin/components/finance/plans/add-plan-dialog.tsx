@@ -177,7 +177,7 @@ export function AddPlanDialog() {
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Chọn quyền hệ thống" />
                     </SelectTrigger>
-                    <SelectContent className="z-[110]">
+                    <SelectContent>
                       <SelectItem value="basic">Thống kê cơ bản</SelectItem>
                       <SelectItem value="pipeline">Pipeline & Thống kê</SelectItem>
                       <SelectItem value="advanced">Pipeline, Báo cáo & Branding</SelectItem>
@@ -228,7 +228,7 @@ export function AddPlanDialog() {
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Mức độ hỗ trợ" />
                     </SelectTrigger>
-                    <SelectContent className="z-[110]">
+                    <SelectContent>
                       <SelectItem value="demo">Chỉ phỏng vấn thử (Demo)</SelectItem>
                       <SelectItem value="feedback">Có Feedback tiêu chuẩn</SelectItem>
                       <SelectItem value="pro">Feedback nâng cao & Sửa lỗi</SelectItem>

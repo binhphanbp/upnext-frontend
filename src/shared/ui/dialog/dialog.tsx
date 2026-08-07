@@ -7,6 +7,20 @@ import { forwardRef } from "react";
 
 import { cn } from "@/shared/lib/cn";
 
+/**
+ * Stacking order this file has to live in, lowest first:
+ *
+ *   marketing page content   ..120   (features/public/**.css)
+ *   public site header       1000    (.marketing-home-header, sticky)
+ *   follow tooltip           1010
+ *   dialog overlay           1020    <- here
+ *   dialog content           1030    <- here
+ *   select / popover content 1040    (must open above an open dialog)
+ *   SweetAlert2              1060    (library default; confirms fired from a dialog)
+ *
+ * The public header sits at 1000, so anything below that is painted over by it —
+ * a modal on a public page would render behind the header and outside the scrim.
+ */
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
@@ -18,7 +32,7 @@ const DialogOverlay = forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-[90] bg-slate-950/55 animate-dialog-overlay", className)}
+    className={cn("fixed inset-0 z-[1020] bg-slate-950/55 animate-dialog-overlay", className)}
     {...props}
   />
 ));
@@ -34,7 +48,7 @@ const DialogContent = forwardRef<
   ) => (
     <DialogPortal>
       <DialogOverlay />
-      <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="pointer-events-none fixed inset-0 z-[1030] flex items-center justify-center p-4">
         <DialogPrimitive.Content
           ref={ref}
           className={cn(
