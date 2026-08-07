@@ -3678,6 +3678,13 @@
       "close": "Đóng AI Copilot",
       "launcher": "AI Copilot",
       "expand": "Mở toàn màn hình"
+    },
+    "signedOut": {
+      "title": "Đăng nhập để dùng AI Copilot",
+      "description": "Copilot trả lời dựa trên CV, hồ sơ năng lực và đơn ứng tuyển trong tài khoản của bạn — nên nó cần biết bạn là ai trước đã.",
+      "signIn": "Đăng nhập",
+      "register": "Tạo tài khoản",
+      "privacy": "Copilot chỉ đọc dữ liệu thuộc tài khoản bạn và không tự thay đổi hồ sơ. Mọi thay đổi đều cần bạn xác nhận trước."
     }
   }
 }

@@ -9,9 +9,11 @@ import { cn } from "@/shared/lib/cn";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/ui/sheet";
 
 import { useAiConversation, useAiConversationList } from "../hooks/use-ai-conversation";
+import { useCopilotSession } from "../hooks/use-copilot-session";
 import { resolvePageContext } from "../lib/page-context";
 import { AiConversationSidebar } from "./ai-conversation-sidebar";
 import { AiCopilotConversation } from "./ai-copilot-conversation";
+import { AiSignedOutState } from "./ai-signed-out-state";
 import { AiStatePreview } from "./ai-state-preview";
 
 /**
@@ -27,7 +29,12 @@ export function AiCopilotPage() {
   const context = resolvePageContext(pathname);
   const controller = useAiConversation(context);
   const conversationList = useAiConversationList();
+  const { isSessionResolved, isSignedIn } = useCopilotSession();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // Chỉ kết luận "chưa đăng nhập" sau khi đã đọc xong localStorage, nếu không
+  // người đã đăng nhập sẽ thấy màn hình mời đăng nhập nháy qua ở render đầu.
+  const isSignedOut = isSessionResolved && !isSignedIn;
 
   const sidebar = (
     <AiConversationSidebar
@@ -56,7 +63,7 @@ export function AiCopilotPage() {
       )}
       aria-label={t("page.title")}
     >
-      <div className="hidden w-[264px] shrink-0 lg:block">{sidebar}</div>
+      {isSignedOut ? null : <div className="hidden w-[264px] shrink-0 lg:block">{sidebar}</div>}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex shrink-0 items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-6">
@@ -73,24 +80,32 @@ export function AiCopilotPage() {
             </p>
           </div>
 
-          <AiStatePreview
-            onPreview={(scenario) =>
-              void controller.send(t("statePreview.prompt"), { forceScenario: scenario })
-            }
-            isDisabled={controller.isBusy}
-          />
+          {isSignedOut ? null : (
+            <>
+              <AiStatePreview
+                onPreview={(scenario) =>
+                  void controller.send(t("statePreview.prompt"), { forceScenario: scenario })
+                }
+                isDisabled={controller.isBusy}
+              />
 
-          <button
-            type="button"
-            onClick={() => setIsHistoryOpen(true)}
-            className="upnext-focus grid size-9 shrink-0 place-items-center rounded-xl text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 lg:hidden"
-            aria-label={t("page.openHistory")}
-          >
-            <ClockCounterClockwise className="size-4.5" />
-          </button>
+              <button
+                type="button"
+                onClick={() => setIsHistoryOpen(true)}
+                className="upnext-focus grid size-9 shrink-0 place-items-center rounded-xl text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 lg:hidden"
+                aria-label={t("page.openHistory")}
+              >
+                <ClockCounterClockwise className="size-4.5" />
+              </button>
+            </>
+          )}
         </header>
 
-        <AiCopilotConversation controller={controller} context={context} variant="page" />
+        {isSignedOut ? (
+          <AiSignedOutState />
+        ) : (
+          <AiCopilotConversation controller={controller} context={context} variant="page" />
+        )}
       </div>
 
       <Sheet open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>

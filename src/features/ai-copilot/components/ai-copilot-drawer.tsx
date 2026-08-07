@@ -7,6 +7,7 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/ui/sheet";
 
 import { useAiConversation } from "../hooks/use-ai-conversation";
+import { useCopilotSession } from "../hooks/use-copilot-session";
 import { resolvePageContext } from "../lib/page-context";
 import { useAiCopilotUiStore } from "../stores/ai-copilot-ui.store";
 import { AiCopilotConversation } from "./ai-copilot-conversation";
@@ -27,8 +28,13 @@ export function AiCopilotDrawer() {
 
   const context = resolvePageContext(pathname);
   const controller = useAiConversation(context);
+  const { isSignedIn, isSessionResolved } = useCopilotSession();
 
   if (pathname.startsWith("/candidate/ai")) return null;
+
+  // Nút nổi chỉ là lối vào; mở ra một khung chat không gửi được thì thà đừng mời.
+  // Người chưa đăng nhập vào được khu vực này khi phiên hết hạn giữa chừng.
+  if (!isSessionResolved || !isSignedIn) return null;
 
   return (
     <>
