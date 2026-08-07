@@ -47,6 +47,7 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
         children: [
           { label: "Thông tin chung", href: "/recruiter/company-profile" },
           { label: "Địa chỉ làm việc", href: "/recruiter/company-addresses" },
+          { label: "Quản lý đánh giá", href: "/recruiter/company-reviews" },
         ],
       },
       {
