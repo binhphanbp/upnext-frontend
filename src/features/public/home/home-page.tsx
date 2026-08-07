@@ -29,6 +29,7 @@ import {
 } from "./api";
 import { FeaturedCompanies } from "./featured-companies";
 import { FeaturedJobs } from "./featured-jobs";
+import { getMissingSignalsDescription } from "./home-action-copy";
 import { selectPrimaryHomeAction } from "./home-actions";
 import type { RecommendationReasonCode } from "./home-personalization";
 import {
@@ -189,6 +190,9 @@ const homeCopy = {
     recommendedJobsTitle: "Gợi ý phù hợp với bạn",
     recommendedJobsDescription:
       "Các vị trí được chọn dựa trên kỹ năng và ưu tiên việc làm của bạn.",
+    candidateFreshJobsTitle: "Việc làm mới để bạn khám phá",
+    candidateFreshJobsDescription:
+      "Hồ sơ của bạn đã sẵn sàng. Đây là các vị trí mới trong lúc UpNext tìm thêm cơ hội khớp rõ hơn.",
     guestPromptTitle: "Nhận gợi ý việc làm phù hợp hơn",
     guestPromptDescription:
       "Đăng nhập và cập nhật sở thích để UpNext ưu tiên những cơ hội sát với mục tiêu của bạn.",
@@ -209,6 +213,14 @@ const homeCopy = {
     savedJobActionTitle: "Việc làm bạn đã lưu sắp hết hạn",
     savedJobActionDescription: "Xem lại cơ hội này trước khi thời hạn ứng tuyển kết thúc.",
     savedJobActionCta: "Xem việc làm",
+    pausedSearchTitle: "Bạn đang tạm dừng nhận gợi ý việc làm",
+    pausedSearchDescription:
+      "Bật trạng thái tìm việc khi bạn muốn UpNext ưu tiên các cơ hội phù hợp trên trang chủ.",
+    pausedSearchCta: "Cập nhật trạng thái",
+    personalizationUnavailableTitle: "Chưa thể cá nhân hoá gợi ý lúc này",
+    personalizationUnavailableDescription:
+      "Bạn vẫn có thể khám phá việc làm mới; hãy cập nhật hồ sơ để UpNext gợi ý sát mục tiêu hơn.",
+    personalizationUnavailableCta: "Cập nhật hồ sơ",
     homeDataErrorTitle: "Chưa thể tải nội dung trang chủ",
     homeDataErrorDescription: "Vui lòng thử lại để xem các việc làm và xu hướng mới nhất.",
     homeDataRetry: "Thử lại",
@@ -253,6 +265,9 @@ const homeCopy = {
     latestJobsDescription: "New IT roles from employers currently hiring on UpNext.",
     recommendedJobsTitle: "Recommended for you",
     recommendedJobsDescription: "Roles selected from your skills and job preferences.",
+    candidateFreshJobsTitle: "New jobs to explore",
+    candidateFreshJobsDescription:
+      "Your profile is ready. Here are recent openings while UpNext finds more strongly matched roles.",
     guestPromptTitle: "Get more relevant job recommendations",
     guestPromptDescription:
       "Log in and update your preferences so UpNext can prioritize opportunities aligned with your goals.",
@@ -273,6 +288,14 @@ const homeCopy = {
     savedJobActionTitle: "A saved job is closing soon",
     savedJobActionDescription: "Review this opportunity before the application deadline.",
     savedJobActionCta: "View job",
+    pausedSearchTitle: "You have paused job recommendations",
+    pausedSearchDescription:
+      "Turn your job-search status back on when you want UpNext to prioritize relevant opportunities here.",
+    pausedSearchCta: "Update status",
+    personalizationUnavailableTitle: "Personalized recommendations are unavailable right now",
+    personalizationUnavailableDescription:
+      "You can still explore new jobs. Update your profile to help UpNext suggest roles closer to your goals.",
+    personalizationUnavailableCta: "Update profile",
     homeDataErrorTitle: "We could not load the homepage",
     homeDataErrorDescription: "Try again to see the latest jobs and hiring trends.",
     homeDataRetry: "Try again",
@@ -377,9 +400,10 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
     [homeData?.jobsSection.expiring.items, now],
   );
   const urgentJobIds = useMemo(() => new Set(urgentJobs.map((job) => job.id)), [urgentJobs]);
-  const personalizedRecommendations = useMemo(
+  const candidateRecommendationIsPersonalized = homeData?.recommendations?.title === "RECOMMENDED";
+  const candidateRecommendationJobs = useMemo(
     () =>
-      (homeData?.recommendations?.title === "RECOMMENDED" ? homeData.recommendations.items : [])
+      (homeData?.recommendations?.items ?? [])
         .map((item) => ({
           job: mapHomeJobCard(item.job),
           reasonCodes: item.reasonCodes.flatMap((reason) => {
@@ -390,18 +414,23 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
           (item) =>
             !urgentJobIds.has(item.job.id) &&
             isPublicJobAvailable(item.job, now) &&
-            item.reasonCodes.length > 0,
+            // A recommendation needs an API-backed reason. The API's LATEST response is deliberately
+            // still useful, but is labelled as fresh jobs rather than being presented as a match.
+            (!candidateRecommendationIsPersonalized || item.reasonCodes.length > 0),
         ),
-    [homeData?.recommendations, now, urgentJobIds],
+    [candidateRecommendationIsPersonalized, homeData?.recommendations?.items, now, urgentJobIds],
   );
-  // The API is the authority for whether a candidate has enough profile data
-  // and a meaningful recommendation set. Keep the UI policy-free so the
-  // backend threshold can evolve without the two clients drifting apart.
-  const showRecommendations = candidateState === "ready" && personalizedRecommendations.length > 0;
+  // The API owns the matching threshold. When it returns its honest LATEST fallback for an otherwise
+  // eligible candidate, keep a separate discovery section instead of silently making the signed-in
+  // homepage look identical to the guest experience.
+  const showCandidateRecommendations =
+    candidateState === "ready" && candidateRecommendationJobs.length > 0;
   const recommendationJobIds = useMemo(
     () =>
-      new Set(showRecommendations ? personalizedRecommendations.map((item) => item.job.id) : []),
-    [personalizedRecommendations, showRecommendations],
+      new Set(
+        showCandidateRecommendations ? candidateRecommendationJobs.map((item) => item.job.id) : [],
+      ),
+    [candidateRecommendationJobs, showCandidateRecommendations],
   );
   const interestedExcludedJobIds = useMemo(
     () => new Set([...urgentJobIds, ...recommendationJobIds]),
@@ -430,8 +459,8 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   );
   const recommendationReasons = useMemo(
     () =>
-      new Map(personalizedRecommendations.map((item) => [item.job.id, item.reasonCodes] as const)),
-    [personalizedRecommendations],
+      new Map(candidateRecommendationJobs.map((item) => [item.job.id, item.reasonCodes] as const)),
+    [candidateRecommendationJobs],
   );
   const apiCompaniesData = useMemo(
     () => (homeData ? mapHomeCompanies(homeData) : undefined),
@@ -771,25 +800,41 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             <HomeCandidateActionPanel
               navigate={navigate}
               copy={copy}
+              locale={locale}
               candidateState={candidateState}
               actions={homeData?.actions ?? []}
+              missingSignals={homeData?.personalization?.missingSignals ?? []}
             />
             <HomeGuestRecommendationPrompt
               navigate={navigate}
               copy={copy}
               candidateState={candidateState}
             />
-            {showRecommendations ? (
+            {showCandidateRecommendations ? (
               <FeaturedJobs
                 navigate={navigate}
                 onApply={handleApply}
-                jobs={personalizedRecommendations.map((item) => item.job)}
+                jobs={candidateRecommendationJobs.map((item) => item.job)}
                 excludedJobIds={urgentJobIds}
-                selectedJobs={personalizedRecommendations.map((item) => item.job)}
-                matchReasons={recommendationReasons}
-                sectionId="recommended-jobs"
-                sectionTitle={copy.recommendedJobsTitle}
-                sectionDescription={copy.recommendedJobsDescription}
+                selectedJobs={candidateRecommendationJobs.map((item) => item.job)}
+                matchReasons={
+                  candidateRecommendationIsPersonalized ? recommendationReasons : undefined
+                }
+                sectionId={
+                  candidateRecommendationIsPersonalized
+                    ? "recommended-jobs"
+                    : "candidate-fresh-jobs"
+                }
+                sectionTitle={
+                  candidateRecommendationIsPersonalized
+                    ? copy.recommendedJobsTitle
+                    : copy.candidateFreshJobsTitle
+                }
+                sectionDescription={
+                  candidateRecommendationIsPersonalized
+                    ? copy.recommendedJobsDescription
+                    : copy.candidateFreshJobsDescription
+                }
                 isLoading={false}
                 isError={false}
                 onRetry={() => void refetchHome()}
@@ -893,11 +938,14 @@ function HomeGuestRecommendationPrompt({
 function HomeCandidateActionPanel({
   navigate,
   copy,
+  locale,
   candidateState,
   actions,
+  missingSignals,
 }: {
   navigate: (path: string) => void;
   copy: (typeof homeCopy)["vi"] | (typeof homeCopy)["en"];
+  locale: string;
   candidateState:
     | "resolving"
     | "guest"
@@ -906,67 +954,87 @@ function HomeCandidateActionPanel({
     | "not-looking"
     | "unavailable";
   actions: readonly HomeAction[];
+  missingSignals: readonly string[];
 }) {
-  if (
-    candidateState === "guest" ||
-    candidateState === "resolving" ||
-    candidateState === "not-looking" ||
-    candidateState === "unavailable"
-  ) {
+  if (candidateState === "guest" || candidateState === "resolving") {
     return null;
   }
 
   const action =
     selectPrimaryHomeAction(actions) ??
     (candidateState === "profile-incomplete" ? ({ type: "MISSING_PREFERENCES" } as const) : null);
-  if (!action) return null;
-
-  const content = (() => {
-    switch (action.type) {
-      case "APPLICATION_UPDATED":
-        return {
-          title: copy.applicationActionTitle,
-          description: copy.applicationActionDescription,
-          cta: copy.applicationActionCta,
-          href: action.applicationId
-            ? `/candidate/applications/${action.applicationId}`
-            : "/candidate/applications",
-          icon: <BriefcaseBusiness size={18} />,
-        };
-      case "SAVED_JOB_EXPIRING":
-        return {
-          title: copy.savedJobActionTitle,
-          description: copy.savedJobActionDescription,
-          cta: copy.savedJobActionCta,
-          href: action.jobId ? `/jobs/${action.jobId}` : "/candidate/saved-jobs",
-          icon: <Clock size={18} />,
-        };
-      case "FOLLOWED_COMPANY_NEW_JOB":
-        return {
-          title: copy.followedJobsActionTitle,
-          description: copy.followedJobsActionDescription,
-          cta: copy.followedJobsActionCta,
-          href: action.jobId ? `/jobs/${action.jobId}` : "/jobs",
-          icon: <Sparkles size={18} />,
-        };
-      case "MISSING_CV":
-        return {
-          title: copy.cvActionTitle,
-          description: copy.cvActionDescription,
-          cta: copy.cvActionCta,
-          href: "/candidate/profile?section=documents",
-          icon: <BriefcaseBusiness size={18} />,
-        };
-      case "MISSING_PREFERENCES":
-        return {
-          title: copy.profileActionTitle,
-          description: copy.profileActionDescription,
-          cta: copy.profileActionCta,
+  const actionContent = action
+    ? (() => {
+        switch (action.type) {
+          case "APPLICATION_UPDATED":
+            return {
+              title: copy.applicationActionTitle,
+              description: copy.applicationActionDescription,
+              cta: copy.applicationActionCta,
+              href: action.applicationId
+                ? `/candidate/applications/${action.applicationId}`
+                : "/candidate/applications",
+              icon: <BriefcaseBusiness size={18} />,
+            };
+          case "SAVED_JOB_EXPIRING":
+            return {
+              title: copy.savedJobActionTitle,
+              description: copy.savedJobActionDescription,
+              cta: copy.savedJobActionCta,
+              href: action.jobId ? `/jobs/${action.jobId}` : "/candidate/saved-jobs",
+              icon: <Clock size={18} />,
+            };
+          case "FOLLOWED_COMPANY_NEW_JOB":
+            return {
+              title: copy.followedJobsActionTitle,
+              description: copy.followedJobsActionDescription,
+              cta: copy.followedJobsActionCta,
+              href: action.jobId ? `/jobs/${action.jobId}` : "/jobs",
+              icon: <Sparkles size={18} />,
+            };
+          case "MISSING_CV":
+            return {
+              title: copy.cvActionTitle,
+              description: copy.cvActionDescription,
+              cta: copy.cvActionCta,
+              href: "/candidate/profile?section=documents",
+              icon: <BriefcaseBusiness size={18} />,
+            };
+          case "MISSING_PREFERENCES":
+            return {
+              title: copy.profileActionTitle,
+              description: getMissingSignalsDescription(
+                missingSignals,
+                copy.profileActionDescription,
+                locale,
+              ),
+              cta: copy.profileActionCta,
+              href: "/candidate/profile",
+              icon: <Sparkles size={18} />,
+            };
+        }
+      })()
+    : null;
+  const content =
+    actionContent ??
+    (candidateState === "not-looking"
+      ? {
+          title: copy.pausedSearchTitle,
+          description: copy.pausedSearchDescription,
+          cta: copy.pausedSearchCta,
           href: "/candidate/profile",
           icon: <Sparkles size={18} />,
-        };
-    }
-  })();
+        }
+      : candidateState === "unavailable"
+        ? {
+            title: copy.personalizationUnavailableTitle,
+            description: copy.personalizationUnavailableDescription,
+            cta: copy.personalizationUnavailableCta,
+            href: "/candidate/profile",
+            icon: <Sparkles size={18} />,
+          }
+        : null);
+  if (!content) return null;
 
   return (
     <section className="marketing-home-candidate-action" aria-labelledby="home-action-title">

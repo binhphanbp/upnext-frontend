@@ -940,6 +940,71 @@
       "signOut": "Sign Out",
       "postJob": "Post a Job"
     },
+    "analytics": {
+      "title": "Recruiting Analytics",
+      "subtitle": "Track the performance of job posts you created.",
+      "loading": "Loading analytics data...",
+      "error": "Could not load analytics data.",
+      "retry": "Retry",
+      "emptyState": "You haven't created any job posts yet.",
+      "filters": {
+        "window7": "7 days",
+        "window30": "30 days",
+        "window90": "90 days",
+        "allJobs": "All jobs",
+        "backToAll": "← Back to all jobs"
+      },
+      "jobHeader": {
+        "vacancies": "{count} open vacancies",
+        "publishedAt": "Published on {date}"
+      },
+      "kpis": {
+        "sectionLabel": "Recruiting metrics",
+        "totalViews": "Views",
+        "totalApplications": "Applications",
+        "interviewsScheduled": "Interviews scheduled",
+        "hires": "Hires",
+        "avgTimeToHire": "Avg. time to hire",
+        "medianTimeToHire": "Median time to hire",
+        "days": "{count} days",
+        "sampleSize": "Across {count} hires",
+        "noData": "—"
+      },
+      "funnel": {
+        "title": "Hiring funnel",
+        "subtitle": "Viewed → Applied → Interviewing → Offered → Hired",
+        "count": "Count",
+        "fromPrevious": "vs previous stage",
+        "stages": {
+          "VIEWED": "Viewed",
+          "APPLIED": "Applied",
+          "INTERVIEWING": "Interviewing",
+          "OFFERED": "Offered",
+          "HIRED": "Hired"
+        }
+      },
+      "timeSeries": {
+        "title": "Daily activity",
+        "subtitle": "Views, applications, and hires per day",
+        "views": "Views",
+        "applications": "Applications",
+        "hires": "Hires"
+      },
+      "jobTable": {
+        "title": "Per-job performance",
+        "empty": "No job posts yet",
+        "columns": {
+          "job": "Job post",
+          "views": "Views",
+          "applications": "Applications",
+          "viewToApplyRate": "View→apply rate",
+          "interviewing": "Interviewing",
+          "offered": "Offered",
+          "hired": "Hired",
+          "applyToHireRate": "Apply→hire rate"
+        }
+      }
+    },
     "dashboard": {
       "title": "Recruitment Overview",
       "subtitle": "Track verification status of your profile and company.",
@@ -3680,6 +3745,13 @@
       "close": "Close AI Copilot",
       "launcher": "AI Copilot",
       "expand": "Open full screen"
+    },
+    "signedOut": {
+      "title": "Sign in to use AI Copilot",
+      "description": "Copilot answers from the CV, profile, and applications in your account — so it needs to know who you are first.",
+      "signIn": "Sign in",
+      "register": "Create account",
+      "privacy": "Copilot only reads data in your own account and never changes your profile on its own. Every change needs your confirmation."
     }
   }
 }
