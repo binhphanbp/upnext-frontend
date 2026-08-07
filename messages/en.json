@@ -2756,6 +2756,10 @@
           "actions": "Actions",
           "searchPlaceholder": "Search by company name, email...",
           "allStatuses": "All Statuses",
+          "allPlans": "All Service Plans",
+          "planOptions": {
+            "free": "No plan (Free)"
+          },
           "statusOptions": {
             "pending": "Pending",
             "verified": "Verified",
@@ -2825,6 +2829,8 @@
           "actions": "Actions",
           "searchPlaceholder": "Search by title, company...",
           "allStatuses": "All Statuses",
+          "allAreas": "All Areas",
+          "allTypes": "All Types",
           "statusOptions": {
             "active": "Active",
             "pending": "Pending",
@@ -3014,6 +3020,7 @@
           "actions": "Actions",
           "searchPlaceholder": "Search by plan name, ID...",
           "allStatuses": "All Statuses",
+          "allAudiences": "All Audiences",
           "targetAudienceOptions": {
             "employer": "Employer",
             "candidate": "Candidate"

@@ -2761,6 +2761,10 @@
           "actions": "Thao tác",
           "searchPlaceholder": "Tìm theo tên công ty, email...",
           "allStatuses": "Tất cả trạng thái",
+          "allPlans": "Tất cả gói dịch vụ",
+          "planOptions": {
+            "free": "Chưa có gói (Free)"
+          },
           "statusOptions": {
             "pending": "Chờ duyệt",
             "verified": "Đã xác thực",
@@ -2830,6 +2834,8 @@
           "actions": "Thao tác",
           "searchPlaceholder": "Tìm theo tiêu đề, công ty...",
           "allStatuses": "Tất cả trạng thái",
+          "allAreas": "Tất cả khu vực",
+          "allTypes": "Tất cả loại hình",
           "statusOptions": {
             "active": "Đang hiển thị",
             "pending": "Chờ duyệt",
@@ -3035,6 +3041,7 @@
           "actions": "Thao tác",
           "searchPlaceholder": "Tìm theo tên gói, mã ID...",
           "allStatuses": "Tất cả trạng thái",
+          "allAudiences": "Tất cả đối tượng",
           "targetAudienceOptions": {
             "employer": "Nhà tuyển dụng",
             "candidate": "Ứng viên"

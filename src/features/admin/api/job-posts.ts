@@ -25,12 +25,34 @@ export type AdminJobPostResponse = Readonly<{
     savedJobs: number;
   };
   createdAt: string;
-  // Fallback for fields not yet in this list API schema but used by UI
-  employmentType?: { name: string };
-  jobPostLocations?: ReadonlyArray<{ jobLocation: { city: string | null } }>;
+  employmentType?: { id: string; name: string } | null;
+  jobPostLocations?: ReadonlyArray<{
+    jobLocation: { city: string | null; district: string | null; address: string | null };
+  }>;
   publishedAt?: string | null;
   [key: string]: any;
 }>;
+
+export type AdminJobPostFilters = {
+  employmentTypeId?: string | undefined;
+  city?: string | undefined;
+};
+
+export type EmploymentTypeOption = Readonly<{ id: string; name: string }>;
+
+export type JobLocationOption = Readonly<{
+  id: string;
+  city: string | null;
+  district: string | null;
+}>;
+
+export function getEmploymentTypes() {
+  return apiRequest<EmploymentTypeOption[]>("/employment-types");
+}
+
+export function getJobLocations() {
+  return apiRequest<JobLocationOption[]>("/job-locations");
+}
 
 export type AdminJobPostsPaginatedResponse = Readonly<{
   items: AdminJobPostResponse[];
@@ -44,9 +66,17 @@ export type AdminJobPostsPaginatedResponse = Readonly<{
   };
 }>;
 
-export async function getAdminJobPosts(token: string, limit: number = 100) {
+export async function getAdminJobPosts(
+  token: string,
+  limit: number = 100,
+  filters: AdminJobPostFilters = {},
+) {
+  const searchParams = new URLSearchParams({ limit: String(limit) });
+  if (filters.employmentTypeId) searchParams.set("employmentTypeId", filters.employmentTypeId);
+  if (filters.city) searchParams.set("city", filters.city);
+
   const response = await apiRequest<AdminJobPostsPaginatedResponse | AdminJobPostResponse[]>(
-    `/admin/job-posts?limit=${limit}`,
+    `/admin/job-posts?${searchParams.toString()}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,

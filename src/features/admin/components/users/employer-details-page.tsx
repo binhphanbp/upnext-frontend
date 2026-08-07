@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretLeft } from "@phosphor-icons/react";
+import { CaretDown, CaretLeft, CaretUp, Prohibit } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import Swal from "sweetalert2";
@@ -12,6 +12,7 @@ import {
 } from "@/features/admin/api/employers";
 import { getAdminSession } from "@/features/admin/session";
 import { Link } from "@/i18n/navigation";
+import { cn } from "@/shared/lib/cn";
 import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -24,6 +25,11 @@ interface EmployerDetailsPageProps {
 export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
   const queryClient = useQueryClient();
   const [showReputationHistory, setShowReputationHistory] = useState(false);
+  // Cover images come from user uploads, so a stale or unreachable URL must fall
+  // back to the placeholder instead of rendering a broken-image icon.
+  const [isCoverBroken, setIsCoverBroken] = useState(false);
+  const [isLogoBroken, setIsLogoBroken] = useState(false);
+  const [areBenefitsExpanded, setAreBenefitsExpanded] = useState(false);
 
   const {
     data: company,
@@ -116,6 +122,14 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
     );
   }
 
+  // Measure the text without its markup so the toggle only appears when the copy is
+  // actually long enough to be clamped.
+  const benefitsTextLength = (company.benefits ?? "")
+    .replace(/<[^>]+>/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim().length;
+  const isBenefitsLong = benefitsTextLength > 180;
+
   return (
     <div className="space-y-6">
       {/* Header & Back Button */}
@@ -131,34 +145,37 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
       {/* Main Profile Card */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* Cover Image */}
-        {company.coverFile?.publicUrl ? (
-          <div className="h-48 w-full border-b border-slate-100 sm:h-72 lg:h-80">
+        {company.coverFile?.publicUrl && !isCoverBroken ? (
+          <div className="h-36 w-full border-b border-slate-100 sm:h-48 lg:h-56">
+            {/* Covers are served from whichever storage provider is configured. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={company.coverFile.publicUrl}
-              alt="Cover"
+              alt={`Ảnh bìa ${company.name}`}
               className="h-full w-full object-cover"
+              onError={() => setIsCoverBroken(true)}
             />
           </div>
         ) : (
-          <div className="h-48 w-full border-b border-slate-100 bg-gradient-to-r from-[#bfe9d6]/40 to-sky-100/50 sm:h-72 lg:h-80" />
+          <div className="h-36 w-full border-b border-slate-100 bg-gradient-to-r from-[#bfe9d6]/40 to-sky-100/50 sm:h-48 lg:h-56" />
         )}
 
         <div className="px-6 pb-6 sm:px-8 sm:pb-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-            <div className="z-10 -mt-12 flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200 sm:-mt-16 sm:h-32 sm:w-32">
-              <div className="flex h-full w-full items-center justify-center rounded-xl bg-slate-50">
-                {company.logoFile?.publicUrl ? (
-                  <img
-                    src={company.logoFile.publicUrl}
-                    alt={company.name}
-                    className="h-full w-full rounded-xl object-contain p-2"
-                  />
-                ) : (
-                  <span className="text-4xl font-bold text-slate-400 uppercase sm:text-5xl">
-                    {company.name.charAt(0)}
-                  </span>
-                )}
-              </div>
+            <div className="z-10 -mt-12 flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 sm:-mt-16 sm:h-32 sm:w-32">
+              {company.logoFile?.publicUrl && !isLogoBroken ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={company.logoFile.publicUrl}
+                  alt={`Logo ${company.name}`}
+                  className="h-full w-full object-cover"
+                  onError={() => setIsLogoBroken(true)}
+                />
+              ) : (
+                <span className="text-4xl font-bold text-slate-400 uppercase sm:text-5xl">
+                  {company.name.charAt(0)}
+                </span>
+              )}
             </div>
             <div className="flex-1 pt-2 sm:pt-4">
               <h1 className="text-2xl font-bold text-slate-900">{company.name}</h1>
@@ -193,14 +210,15 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
               </div>
             </div>
             {company.status !== "LOCKED" ? (
-              <div className="pt-2 sm:pt-4">
+              <div className="shrink-0 pt-2 sm:pt-4">
                 <Button
-                  variant="outline"
+                  variant="destructive"
+                  size="sm"
                   onClick={() => void handleBanForFraud()}
                   disabled={banMutation.isPending}
-                  className="border-red-200 text-red-600 hover:bg-red-50"
                 >
-                  Ban vì lừa đảo
+                  <Prohibit size={16} weight="bold" />
+                  {banMutation.isPending ? "Đang chặn…" : "Chặn vì lừa đảo"}
                 </Button>
               </div>
             ) : null}
@@ -259,10 +277,39 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
                 Phúc lợi
               </p>
               {company.benefits ? (
-                <div
-                  className="text-sm font-medium text-slate-900 [&>p]:mb-1 last:[&>p]:mb-0"
-                  dangerouslySetInnerHTML={{ __html: company.benefits }}
-                />
+                <div>
+                  {/* Benefits are authored in a rich-text editor, so the collapsed state caps
+                      the height rather than slicing the string and breaking the markup. */}
+                  <div className="relative">
+                    <div
+                      className={cn(
+                        "text-sm font-medium text-slate-900 [&>p]:mb-1 last:[&>p]:mb-0",
+                        !areBenefitsExpanded && isBenefitsLong && "max-h-24 overflow-hidden",
+                      )}
+                      dangerouslySetInnerHTML={{ __html: company.benefits }}
+                    />
+                    {!areBenefitsExpanded && isBenefitsLong ? (
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-slate-50 to-transparent" />
+                    ) : null}
+                  </div>
+                  {isBenefitsLong ? (
+                    <button
+                      type="button"
+                      onClick={() => setAreBenefitsExpanded((prev) => !prev)}
+                      className="text-primary mt-1 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
+                    >
+                      {areBenefitsExpanded ? (
+                        <>
+                          Thu gọn <CaretUp size={12} weight="bold" />
+                        </>
+                      ) : (
+                        <>
+                          Xem thêm <CaretDown size={12} weight="bold" />
+                        </>
+                      )}
+                    </button>
+                  ) : null}
+                </div>
               ) : (
                 <p className="font-medium text-slate-900">Chưa cập nhật</p>
               )}
