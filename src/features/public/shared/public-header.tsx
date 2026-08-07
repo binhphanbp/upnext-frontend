@@ -508,17 +508,32 @@ const signedInCandidateUtilityItems: CandidateUtilityItem[] = [
   { label: localized("AI Interview", "AI Interview"), comingSoon: true },
 ];
 
-const compactNavigationLinks: CompactNavigationLink[] = [
+const publicCompactNavigationLinks: CompactNavigationLink[] = [
   { label: localized("Việc làm IT", "IT Jobs"), href: "/jobs" },
   { label: localized("Công ty", "Companies"), href: "/companies" },
   { label: localized("Bài viết", "Articles"), href: "/posts" },
-  { label: localized("Tạo hồ sơ", "Create profile"), href: "/register" },
-  { label: localized("Đăng nhập", "Log in"), href: "/login" },
   {
     label: localized("Nhà tuyển dụng", "Employers"),
     href: "/recruiter/login",
     employer: true,
   },
+];
+
+const guestCompactNavigationLinks: CompactNavigationLink[] = [
+  ...publicCompactNavigationLinks.slice(0, 3),
+  { label: localized("Tạo hồ sơ", "Create profile"), href: "/register" },
+  { label: localized("Đăng nhập", "Log in"), href: "/login" },
+  publicCompactNavigationLinks[3]!,
+];
+
+// The compact menu replaces both the primary navigation and the desktop actions.
+// It must therefore reflect the same signed-in state as the account menu rather
+// than exposing guest-only entry points alongside a candidate's identity.
+const signedInCompactNavigationLinks: CompactNavigationLink[] = [
+  ...publicCompactNavigationLinks.slice(0, 3),
+  { label: localized("Hồ sơ của tôi", "My profile"), href: "/candidate/profile" },
+  { label: localized("CV của tôi", "My CV"), href: "/candidate/cv-builder" },
+  publicCompactNavigationLinks[3]!,
 ];
 
 const demoAuthStorageKey = "upnext.demo.auth";
@@ -664,6 +679,7 @@ export function PublicHeader({
   const [accountOpen, setAccountOpen] = useState(false);
   const [compactMenuOpen, setCompactMenuOpen] = useState(false);
   const [storedViewer, setStoredViewer] = useState<PublicHeaderViewer | null>(null);
+  const [hasResolvedStoredViewer, setHasResolvedStoredViewer] = useState(viewer !== undefined);
   const menuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
   const langRef = useRef<HTMLDivElement | null>(null);
@@ -673,6 +689,13 @@ export function PublicHeader({
   const lang: Language["code"] = currentLocale === "en" ? "EN" : "VI";
   const copy = copyByLocale[currentLocale];
   const effectiveViewer = viewer === undefined ? storedViewer : viewer;
+  // Do not briefly show guest-only CTAs while the client restores a valid
+  // candidate session. The public links remain usable during that short state.
+  const compactNavigationLinks = effectiveViewer
+    ? signedInCompactNavigationLinks
+    : hasResolvedStoredViewer
+      ? guestCompactNavigationLinks
+      : publicCompactNavigationLinks;
   const candidateUtilityItems = effectiveViewer
     ? signedInCandidateUtilityItems
     : guestCandidateUtilityItems;
@@ -823,7 +846,10 @@ export function PublicHeader({
   }, [accountOpen]);
 
   useEffect(() => {
-    if (viewer !== undefined) return undefined;
+    if (viewer !== undefined) {
+      setHasResolvedStoredViewer(true);
+      return undefined;
+    }
     let ignore = false;
 
     async function syncViewer() {
@@ -831,6 +857,7 @@ export function PublicHeader({
 
       if (!session) {
         setStoredViewer(null);
+        setHasResolvedStoredViewer(true);
         return;
       }
 
@@ -839,6 +866,7 @@ export function PublicHeader({
       });
 
       setStoredViewer(fallbackViewer);
+      setHasResolvedStoredViewer(true);
 
       try {
         const profile = await getMyCandidateProfile(session.accessToken);
