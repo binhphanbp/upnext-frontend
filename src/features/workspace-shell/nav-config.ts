@@ -1,6 +1,7 @@
 import {
   Article,
   Bell,
+  BookmarkSimple,
   Briefcase,
   Buildings,
   ChartLineUp,
@@ -34,6 +35,7 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
         icon: Briefcase,
       },
       { label: "Ứng viên", href: "/recruiter/candidates", icon: Users },
+      { label: "Ứng viên đã lưu", href: "/recruiter/saved-candidates", icon: BookmarkSimple },
       { label: "Phỏng vấn", href: "/recruiter/interviews", icon: Bell },
     ],
   },

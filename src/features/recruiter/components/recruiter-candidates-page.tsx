@@ -50,6 +50,7 @@ import {
 import { useCvScreening } from "@/features/recruiter/hooks/use-cv-screening";
 import { getRecruiterJobPosts, type RecruiterJobPost } from "@/features/recruiter/job-posts/api";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
+import { SaveCandidateButton } from "@/features/recruiter/shortlists/save-candidate-button";
 import { useRouter } from "@/i18n/navigation";
 import { type Locale } from "@/i18n/routing";
 import { ApiError } from "@/shared/api/http";
@@ -900,7 +901,17 @@ export function RecruiterCandidatesPage() {
                         />
                       </td>
                       <td className="w-[160px] min-w-[150px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
-                        <span className="text-sm font-semibold text-slate-800">{name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-slate-800">{name}</span>
+                          {token ? (
+                            <SaveCandidateButton
+                              token={token}
+                              candidateProfileId={app.candidateProfile.id}
+                              candidateName={name}
+                              jobPostId={app.jobPost.id}
+                            />
+                          ) : null}
+                        </div>
                       </td>
                       <td className="min-w-[200px] border-r border-slate-100/50 px-4 py-2.5 text-sm text-slate-800 last:border-r-0">
                         {app.jobPost.title}
