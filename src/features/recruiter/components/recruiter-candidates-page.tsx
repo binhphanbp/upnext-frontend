@@ -47,6 +47,7 @@ import {
   SelectFilter,
   type SelectFilterOption,
 } from "@/features/recruiter/components/interviews/select-filter";
+import { SendOfferDialog } from "@/features/recruiter/components/send-offer-dialog";
 import { useCvScreening } from "@/features/recruiter/hooks/use-cv-screening";
 import { getRecruiterJobPosts, type RecruiterJobPost } from "@/features/recruiter/job-posts/api";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
@@ -181,6 +182,13 @@ export function RecruiterCandidatesPage() {
   const [interviewSeed, setInterviewSeed] = useState<{
     applicationId: string;
     interviewRound: number;
+  } | null>(null);
+
+  // Set when the recruiter picks "Gửi đề nghị"; drives the offer dialog.
+  const [offerSeed, setOfferSeed] = useState<{
+    applicationId: string;
+    candidateName?: string;
+    jobTitle?: string;
   } | null>(null);
 
   // Pagination States
@@ -340,13 +348,31 @@ export function RecruiterCandidatesPage() {
       setQuickViewUrl(resolveCvUrl(app));
       setQuickViewTitle(title);
 
-      if (!app.viewedAt && token) {
-        setCandidates((prev) =>
-          prev.map((c) => (c.id === app.id ? { ...c, viewedAt: new Date().toISOString() } : c)),
-        );
-        void markApplicationViewed(app.id, token).catch((error) => {
-          console.error("Failed to mark application as viewed:", error);
-        });
+      if (token) {
+        const isSubmitted = app.status === "SUBMITTED";
+        if (!app.viewedAt || isSubmitted) {
+          setCandidates((prev) =>
+            prev.map((c) =>
+              c.id === app.id
+                ? {
+                    ...c,
+                    viewedAt: c.viewedAt ?? new Date().toISOString(),
+                    status: isSubmitted ? "VIEWED" : c.status,
+                  }
+                : c,
+            ),
+          );
+        }
+
+        if (isSubmitted) {
+          void updateApplicationStatus(app.id, "VIEWED", token).catch((error) => {
+            console.error("Failed to update status to VIEWED:", error);
+          });
+        } else if (!app.viewedAt) {
+          void markApplicationViewed(app.id, token).catch((error) => {
+            console.error("Failed to mark application as viewed:", error);
+          });
+        }
       }
     },
     [token, resolveCvUrl],
@@ -494,10 +520,10 @@ export function RecruiterCandidatesPage() {
     }
   };
 
-  async function applyStatusChange(applicationId: string, nextStatus: string) {
+  async function applyStatusChange(applicationId: string, nextStatus: string, note?: string) {
     try {
       setSaving(true);
-      await updateApplicationStatus(applicationId, nextStatus, token);
+      await updateApplicationStatus(applicationId, nextStatus, token, note);
       void toast.fire({ icon: "success", title: t("candidates.messages.statusUpdateSuccess") });
       // Reload candidates list
       const applicantsData = await getCompanyApplications(token, buildQueryParams());
@@ -521,6 +547,14 @@ export function RecruiterCandidatesPage() {
     // recruiter either books a slot or explicitly skips scheduling.
     if (nextStatus === "INTERVIEWING") {
       setInterviewSeed({ applicationId, interviewRound: 1 });
+      return;
+    }
+
+    if (nextStatus === "OFFERED") {
+      const app = candidates.find((c) => c.id === applicationId);
+      const name = app?.candidateProfile?.account?.fullName ?? "Ứng viên";
+      const title = app?.jobPost?.title ?? "";
+      setOfferSeed({ applicationId, candidateName: name, jobTitle: title });
       return;
     }
 
@@ -1017,6 +1051,21 @@ export function RecruiterCandidatesPage() {
         }}
       />
 
+      {/* Send Job Offer Dialog, opened by moving a candidate to "Gửi đề nghị" */}
+      <SendOfferDialog
+        open={offerSeed !== null}
+        onOpenChange={(open) => {
+          if (!open) setOfferSeed(null);
+        }}
+        applicationId={offerSeed?.applicationId ?? null}
+        candidateName={offerSeed?.candidateName}
+        jobTitle={offerSeed?.jobTitle}
+        onConfirmOffer={async (appId, offerDetails) => {
+          const payloadStr = JSON.stringify(offerDetails);
+          await applyStatusChange(appId, "OFFERED", payloadStr);
+        }}
+      />
+
       {/* CV Quick View Dialog Popup */}
       <Dialog open={!!quickViewUrl} onOpenChange={(open) => !open && setQuickViewUrl(null)}>
         <DialogContent className="flex h-[85vh] max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-2xl">
@@ -1263,6 +1312,10 @@ function CvRankingTable({
   }, [activeApplicationId, token, locale, onUnauthorized]);
 
   const handleViewCv = async (applicationId: string, customCvUrl?: string | null) => {
+    if (token) {
+      void onStatusChange(applicationId, "VIEWED");
+    }
+
     if (customCvUrl) {
       const isApiUrl = customCvUrl.startsWith("/") || customCvUrl.includes("/api/");
       if (!isApiUrl) {

@@ -6,6 +6,7 @@ import {
   Briefcase,
   CalendarBlank,
   Check,
+  CheckCircle,
   Clock,
   Eye,
   FileText,
@@ -14,15 +15,18 @@ import {
   ShieldCheck,
   SpinnerGap,
   WarningCircle,
+  XCircle,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
+import Swal from "sweetalert2";
 
 import {
   downloadCandidateCvVersion,
   getCandidateApplication,
+  respondCandidateOffer,
   type CandidateApplicationApi,
   withdrawCandidateApplication,
 } from "@/features/candidate/api/profile";
@@ -105,6 +109,43 @@ export function CandidateApplicationDetailPage({
         // job still reads "Đã ứng tuyển" after withdrawing until that cache expires.
         queryClient.invalidateQueries({ queryKey: ["check-applied-job"] }),
       ]);
+    },
+  });
+
+  const respondOfferMutation = useMutation({
+    mutationFn: (action: "ACCEPT" | "DECLINE") =>
+      respondCandidateOffer(session!.accessToken, applicationId, action),
+    onSuccess: async (updatedApplication, action) => {
+      queryClient.setQueryData<CandidateApplicationApi>(detailQueryKey, (current) =>
+        current
+          ? {
+              ...current,
+              status: updatedApplication.status,
+              updatedAt: updatedApplication.updatedAt,
+            }
+          : current,
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["candidate-applications", session?.user.id],
+        }),
+        queryClient.invalidateQueries({ queryKey: detailQueryKey }),
+      ]);
+      void Swal.fire({
+        icon: "success",
+        title:
+          action === "ACCEPT"
+            ? "🎉 Chúc mừng bạn đã chấp nhận lời đề nghị làm việc!"
+            : "Bạn đã phản hồi từ chối đề nghị tuyển dụng.",
+        confirmButtonColor: action === "ACCEPT" ? "#10b981" : "#64748b",
+      });
+    },
+    onError: () => {
+      void Swal.fire({
+        icon: "error",
+        title: "Không thể xử lý phản hồi. Vui lòng thử lại!",
+        confirmButtonColor: "#ef4444",
+      });
     },
   });
 
@@ -449,6 +490,47 @@ export function CandidateApplicationDetailPage({
               {t(`applicationDetail.current.${application.status}.nextStep`)}
             </p>
           </section>
+
+          {application.status === "OFFERED" && (
+            <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-500 text-sm font-bold text-white shadow-sm">
+                  🎉
+                </span>
+                <h2 className="text-sm font-extrabold text-emerald-950">
+                  {locale === "vi" ? "Xác nhận Lời mời nhận việc" : "Offer Decision"}
+                </h2>
+              </div>
+              <p className="mt-2 text-xs leading-5 font-medium text-emerald-900">
+                {locale === "vi"
+                  ? "Nhà tuyển dụng đã gửi lời đề nghị làm việc. Vui lòng xác nhận phản hồi của bạn:"
+                  : "The recruiter has sent you a job offer. Please confirm your decision:"}
+              </p>
+              <div className="mt-4 flex flex-col gap-2.5">
+                <Button
+                  className="w-full rounded-xl bg-emerald-600 font-extrabold text-white shadow-sm hover:bg-emerald-700"
+                  disabled={respondOfferMutation.isPending}
+                  onClick={() => respondOfferMutation.mutate("ACCEPT")}
+                >
+                  {respondOfferMutation.isPending ? (
+                    <SpinnerGap className="mr-2 animate-spin" size={16} />
+                  ) : (
+                    <CheckCircle size={18} className="mr-2" weight="bold" />
+                  )}
+                  {locale === "vi" ? "Đồng ý nhận việc (Accept Offer)" : "Accept Offer"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-xl border-rose-200 bg-white font-bold text-rose-700 hover:border-rose-300 hover:bg-rose-50"
+                  disabled={respondOfferMutation.isPending}
+                  onClick={() => respondOfferMutation.mutate("DECLINE")}
+                >
+                  <XCircle size={18} className="mr-2" weight="bold" />
+                  {locale === "vi" ? "Từ chối đề nghị (Decline Offer)" : "Decline Offer"}
+                </Button>
+              </div>
+            </section>
+          )}
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <h2 className="text-base font-bold text-slate-950">
