@@ -1,7 +1,17 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
-const apiProxyOrigin = process.env.API_PROXY_ORIGIN ?? "http://localhost:3001";
+// API_PROXY_ORIGIN is a server-only var that must point to the real backend
+// (e.g. https://api-staging.upnext.works). It is not wired up in Dockerfile
+// or the deploy pipeline, so it is never set at runtime — falling back
+// straight to localhost:3001 there means every proxied /api/v1/* call fails
+// (nothing listens on that port inside the frontend container). Fall back to
+// the already build-baked NEXT_PUBLIC_API_BASE_URL (stripped of its /api/v1
+// suffix) before giving up and using the dev-only localhost default.
+const apiProxyOrigin =
+  process.env.API_PROXY_ORIGIN ??
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/v1\/?$/u, "") ??
+  "http://localhost:3001";
 
 const nextConfig: NextConfig = {
   output: "standalone",
