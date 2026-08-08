@@ -347,7 +347,8 @@
       "margin": "Chọn lề “None” / “Không có” vì CV đã có lề A4.",
       "graphics": "Bật “Background graphics” để giữ màu nhấn của mẫu.",
       "headerFooter": "Tắt header và footer của trình duyệt để không in URL và ngày.",
-      "proceed": "Mở hộp thoại in"
+      "proceed": "Mở hộp thoại in",
+      "notSavedWarning": "In hoặc lưu PDF không tạo bản CV để ứng tuyển. Bạn cần \"Lưu CV\" để dùng CV này khi apply việc trên UpNext."
     },
     "assistant": {
       "completeness": "Độ hoàn thiện",
@@ -382,6 +383,7 @@
       "educationRecommended": "Cân nhắc thêm học vấn hoặc ẩn mục này.",
       "schoolRequired": "Vui lòng nhập trường hoặc đơn vị đào tạo.",
       "degreeRequired": "Vui lòng nhập bằng cấp.",
+      "gpaInvalid": "GPA nên là một con số, ví dụ 3.5/4.0 hoặc 8.5.",
       "skillsRecommended": "Nên bổ sung ít nhất 3 kỹ năng cốt lõi.",
       "skillNameRequired": "Vui lòng nhập tên kỹ năng hoặc xóa dòng trống.",
       "duplicateSkills": "Có kỹ năng bị lặp; nên giữ mỗi kỹ năng một lần.",

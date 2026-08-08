@@ -34,4 +34,33 @@ describe("CV Builder draft hydration", () => {
 
     expect(useCvBuilderStore.getState().cvData.personalInfo.fullName).toBe("Nguyễn Minh Anh");
   });
+
+  it("gộp các lần gõ liên tiếp trong cùng một đợt thành một bước undo duy nhất", () => {
+    useCvBuilderStore.getState().updateSummary("M");
+    useCvBuilderStore.getState().updateSummary("Mì");
+    useCvBuilderStore.getState().updateSummary("Mình");
+    useCvBuilderStore.getState().updateSummary("Mình là");
+
+    // Gõ 4 lần liên tiếp (giả lập gõ phím nhanh) chỉ tạo đúng một điểm undo —
+    // không phải 4, nếu không Ctrl+Z sẽ lùi từng ký tự một cách vô dụng.
+    expect(useCvBuilderStore.getState().past.length).toBe(1);
+
+    useCvBuilderStore.getState().undo();
+    expect(useCvBuilderStore.getState().cvData.summary).toBe("");
+  });
+
+  it("một đợt gõ mới (sau khi coi như tạm dừng) tạo thêm một bước undo riêng", () => {
+    useCvBuilderStore.getState().updateSummary("Đợt một");
+    // Giả lập một khoảng dừng đủ dài giữa hai đợt gõ bằng cách chỉnh thẳng
+    // `lastHistoryPushAt` về quá khứ — không cần chờ thời gian thật trong test.
+    useCvBuilderStore.setState({ lastHistoryPushAt: 0 });
+    useCvBuilderStore.getState().updateSummary("Đợt hai");
+
+    expect(useCvBuilderStore.getState().past.length).toBe(2);
+
+    useCvBuilderStore.getState().undo();
+    expect(useCvBuilderStore.getState().cvData.summary).toBe("Đợt một");
+    useCvBuilderStore.getState().undo();
+    expect(useCvBuilderStore.getState().cvData.summary).toBe("");
+  });
 });

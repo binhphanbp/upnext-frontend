@@ -346,6 +346,19 @@ export function toExternalHref(value: string) {
   return URL_PROTOCOL_PATTERN.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
+/**
+ * GPA được ghi theo nhiều thang điểm khác nhau tuỳ trường (4.0, 10, 100) —
+ * placeholder của ô nhập là "3.5/4.0" — nên không thể ép về khoảng 0-10 cố
+ * định như trường GPA có cấu trúc ở hồ sơ. Chỉ chặn thứ chắc chắn không phải
+ * điểm số (chữ, emoji, câu văn); để trống vẫn hợp lệ vì đây là trường tuỳ chọn.
+ */
+const GPA_PATTERN = /^\d{1,2}(?:[.,]\d{1,2})?(?:\s*\/\s*\d{1,3}(?:[.,]\d{1,2})?)?$/;
+
+export function isValidGpa(value: string) {
+  if (!value.trim()) return true;
+  return GPA_PATTERN.test(value.trim());
+}
+
 export function isValidExternalUrl(value: string) {
   if (!value.trim()) return true;
 
@@ -499,6 +512,9 @@ export function evaluateCv(cvData: CvData): CvEvaluation {
       if (!checks[1]) addIssue(issues, "education", `${prefix}.degree`, "degreeRequired");
       if (!validDateRange(education.startDate, education.endDate, education.isCurrent)) {
         addIssue(issues, "education", `${prefix}.endDate`, "endBeforeStart");
+      }
+      if (!isValidGpa(education.gpa ?? "")) {
+        addIssue(issues, "education", `${prefix}.gpa`, "gpaInvalid", "warning");
       }
       return checks.filter(Boolean).length / checks.length;
     });

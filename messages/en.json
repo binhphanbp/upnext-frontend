@@ -347,7 +347,8 @@
       "margin": "Choose “None” for margins because the CV already includes A4 spacing.",
       "graphics": "Enable “Background graphics” to preserve the template accent.",
       "headerFooter": "Disable browser headers and footers so the URL and date are not printed.",
-      "proceed": "Open print dialog"
+      "proceed": "Open print dialog",
+      "notSavedWarning": "Printing or saving a PDF does not create a CV you can apply with. Use \"Save CV\" first so this CV is available when applying on UpNext."
     },
     "assistant": {
       "completeness": "Completeness",
@@ -382,6 +383,7 @@
       "educationRecommended": "Consider adding education or hiding this section.",
       "schoolRequired": "Enter the school or institution.",
       "degreeRequired": "Enter the degree.",
+      "gpaInvalid": "GPA should be a number, e.g. 3.5/4.0 or 8.5.",
       "skillsRecommended": "Add at least 3 core skills.",
       "skillNameRequired": "Enter a skill name or remove the empty row.",
       "duplicateSkills": "A skill is duplicated; keep each skill once.",

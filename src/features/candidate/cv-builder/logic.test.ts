@@ -9,6 +9,7 @@ import {
   isCvEmpty,
   isValidEmail,
   isValidExternalUrl,
+  isValidGpa,
   isValidPhone,
   mapProfileToCvData,
   toExternalHref,
@@ -65,6 +66,39 @@ describe("CV Builder business rules", () => {
     expect(isValidPhone("123")).toBe(false);
     expect(isValidExternalUrl("github.com/upnext")).toBe(true);
     expect(toExternalHref("github.com/upnext")).toBe("https://github.com/upnext");
+  });
+
+  it("validates GPA as a number or fraction, not arbitrary text", () => {
+    expect(isValidGpa("")).toBe(true); // trường tuỳ chọn, để trống là hợp lệ
+    expect(isValidGpa("3.5/4.0")).toBe(true); // đúng placeholder gợi ý
+    expect(isValidGpa("8.5")).toBe(true); // thang điểm 10
+    expect(isValidGpa("90/100")).toBe(true); // thang điểm 100
+    expect(isValidGpa("A+")).toBe(false);
+    expect(isValidGpa("giỏi")).toBe(false);
+  });
+
+  it("flags an invalid GPA as a warning, not a blocking error", () => {
+    const cvData = createInitialCvData();
+    cvData.educations = [
+      {
+        id: "education-1",
+        schoolName: "Đại học Bách Khoa",
+        degree: "Kỹ sư",
+        major: "Công nghệ thông tin",
+        startDate: "2020-09",
+        endDate: "2024-06",
+        isCurrent: false,
+        gpa: "giỏi",
+        description: "",
+      },
+    ];
+
+    const result = evaluateCv(cvData);
+    const gpaIssue = result.issues.find((issue) => issue.code === "gpaInvalid");
+
+    expect(gpaIssue).toBeDefined();
+    expect(gpaIssue?.severity).toBe("warning");
+    expect(result.blockingIssues.map((issue) => issue.code)).not.toContain("gpaInvalid");
   });
 
   it("does not inflate the score when optional sections are hidden", () => {
