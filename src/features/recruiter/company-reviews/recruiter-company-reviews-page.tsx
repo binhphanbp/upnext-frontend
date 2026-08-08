@@ -8,17 +8,19 @@ import Swal from "sweetalert2";
 import {
   getMyCompanyReviews,
   reportCompanyReview,
+  uploadReviewReportEvidence,
   type MyCompanyReview,
   type MyCompanyReviewsSummary,
 } from "@/features/recruiter/company-reviews/api";
+import { promptReviewReport } from "@/features/recruiter/company-reviews/prompt-review-report";
 import { getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
-import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
+import { ReviewerByline } from "@/shared/ui/reviewer-byline";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Skeleton } from "@/shared/ui/skeleton";
 
@@ -131,8 +133,20 @@ export function RecruiterCompanyReviewsPage() {
   });
 
   const reportMutation = useMutation({
-    mutationFn: ({ reviewId, reason }: { reviewId: string; reason: string }) =>
-      reportCompanyReview(token!, reviewId, reason),
+    mutationFn: async ({
+      reviewId,
+      reason,
+      evidence,
+    }: {
+      reviewId: string;
+      reason: string;
+      evidence: File | null;
+    }) => {
+      const evidenceFileId = evidence
+        ? (await uploadReviewReportEvidence(evidence, token!)).file.id
+        : undefined;
+      return reportCompanyReview(token!, reviewId, reason, evidenceFileId);
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["recruiter-company-reviews"] });
       void toast.fire({ icon: "success", title: "Đã gửi báo cáo tới quản trị viên." });
@@ -147,20 +161,14 @@ export function RecruiterCompanyReviewsPage() {
   });
 
   async function handleReport(review: MyCompanyReview) {
-    const result = await Swal.fire({
-      title: "Báo cáo đánh giá này",
-      input: "textarea",
-      inputLabel: "Lý do báo cáo",
-      inputPlaceholder: "Vì sao bạn cho rằng đánh giá này không phù hợp?",
-      showCancelButton: true,
-      confirmButtonText: "Gửi báo cáo",
-      cancelButtonText: "Hủy",
-      inputValidator: (value) => (!value ? "Vui lòng nhập lý do." : undefined),
-    });
+    const input = await promptReviewReport();
+    if (!input) return;
 
-    if (result.isConfirmed && result.value) {
-      reportMutation.mutate({ reviewId: review.id, reason: result.value as string });
-    }
+    reportMutation.mutate({
+      reviewId: review.id,
+      reason: input.reason,
+      evidence: input.evidence,
+    });
   }
 
   // A recruiter with no company gets a 403 from the endpoint rather than an empty list.
@@ -304,12 +312,15 @@ export function RecruiterCompanyReviewsPage() {
           {items.map((review) => (
             <Card key={review.id} className="border border-slate-200 p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                  <ReviewerByline
+                    fullName={review.reviewer.fullName}
+                    createdAt={review.createdAt}
+                  />
                   <StarRow value={review.overallRating} />
                   <span className="text-sm font-semibold text-slate-900">
                     {review.overallRating}/5
                   </span>
-                  <span className="text-xs text-slate-400">{formatAppDate(review.createdAt)}</span>
                 </div>
                 <ReportState
                   review={review}

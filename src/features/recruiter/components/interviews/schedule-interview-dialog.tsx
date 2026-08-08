@@ -50,7 +50,11 @@ type ScheduleInterviewDialogProps = Readonly<{
   jobs: RecruiterJobPost[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialValues?: { applicationId: string; interviewRound: number } | null;
+  initialValues?: {
+    applicationId: string;
+    interviewRound: number;
+    jobId?: string | undefined;
+  } | null;
   /** Called with the scheduled application id after the interview is created. */
   onScheduled?: (applicationId: string) => void;
   /**
@@ -80,7 +84,7 @@ export function ScheduleInterviewDialog({
   const locale = useLocale();
   const queryClient = useQueryClient();
 
-  const [jobId, setJobId] = useState("all");
+  const [jobId, setJobId] = useState("");
   const [applicationId, setApplicationId] = useState("");
   const [jobSearch, setJobSearch] = useState("");
   const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
@@ -101,23 +105,50 @@ export function ScheduleInterviewDialog({
   const [companyLocations, setCompanyLocations] = useState<CompanyLocation[]>([]);
 
   const { data: applications } = useQuery({
-    queryKey: ["recruiter", "company-applications", { jobId }],
+    queryKey: [
+      "recruiter",
+      "company-applications",
+      { jobId, initialAppId: initialValues?.applicationId },
+    ],
     queryFn: () => {
       if (!token) return Promise.resolve([] as Application[]);
-      return getCompanyApplications(token, {
-        ...(jobId !== "all" ? { jobPostId: jobId } : {}),
-      }).catch((error) => {
-        if (isRecruiterMissingCompanyError(error)) {
-          return [] as Application[];
-        }
+      if (jobId) {
+        return getCompanyApplications(token, {
+          jobPostId: jobId,
+        }).catch((error) => {
+          if (isRecruiterMissingCompanyError(error)) {
+            return [] as Application[];
+          }
 
-        throw error;
-      });
+          throw error;
+        });
+      }
+      if (initialValues?.applicationId) {
+        return getCompanyApplications(token).catch((error) => {
+          if (isRecruiterMissingCompanyError(error)) {
+            return [] as Application[];
+          }
+
+          throw error;
+        });
+      }
+      return Promise.resolve([] as Application[]);
     },
-    enabled: open && !!token,
+    enabled: open && !!token && (!!jobId || !!initialValues?.applicationId),
   });
 
-  const candidateOptions = useMemo(() => applications ?? [], [applications]);
+  // Only show candidates eligible for interview scheduling (or the locked application)
+  const candidateOptions = useMemo(
+    () =>
+      (applications ?? []).filter(
+        (app) =>
+          app.id === initialValues?.applicationId ||
+          app.status === "SHORTLISTED" ||
+          app.status === "INTERVIEWING" ||
+          app.status === "CONSIDERING",
+      ),
+    [applications, initialValues?.applicationId],
+  );
 
   const { data: previousInterviews } = useQuery({
     queryKey: ["recruiter", "interviews", { applicationId }],
@@ -128,13 +159,36 @@ export function ScheduleInterviewDialog({
     enabled: !!token && !!applicationId,
   });
 
-  const hasPassedPreviousRound = useMemo(() => {
-    if (interviewRound <= 1) return true;
-    if (!previousInterviews) return true;
-    const prevRoundNum = interviewRound - 1;
-    const prevRoundInterview = previousInterviews.find((i) => i.interviewRound === prevRoundNum);
-    return prevRoundInterview?.result === "PASSED";
-  }, [interviewRound, previousInterviews]);
+  // Auto-calculate the next interview round for the selected application
+  const autoRound = useMemo(() => {
+    if (!previousInterviews || previousInterviews.length === 0) return 1;
+    const activeInterviews = previousInterviews.filter((i) => i.status !== "CANCELLED");
+    if (activeInterviews.length === 0) return 1;
+    const maxRound = Math.max(...activeInterviews.map((i) => i.interviewRound), 0);
+    // Only advance if the latest round is COMPLETED + PASSED
+    const latestRound = activeInterviews.find((i) => i.interviewRound === maxRound);
+    if (latestRound?.status === "COMPLETED" && latestRound?.result === "PASSED") {
+      return maxRound + 1;
+    }
+    // Otherwise stay at the current max round (will be rejected by backend if duplicate)
+    return maxRound;
+  }, [previousInterviews]);
+
+  // Sync auto-round to state when application changes
+  useEffect(() => {
+    if (!initialValues) {
+      setInterviewRound(applicationId ? autoRound : 1);
+    }
+  }, [autoRound, initialValues, applicationId]);
+
+  // Check if this round is blocked (already exists and can't advance)
+  const roundBlocked = useMemo(() => {
+    if (!applicationId || !previousInterviews) return false;
+    const activeInterviews = previousInterviews.filter((i) => i.status !== "CANCELLED");
+    if (activeInterviews.length === 0) return false;
+    // Check if a non-cancelled interview already exists for the auto-round
+    return activeInterviews.some((i) => i.interviewRound === autoRound);
+  }, [applicationId, previousInterviews, autoRound]);
 
   const filteredJobsForSelect = useMemo(() => {
     const q = jobSearch.toLowerCase().trim();
@@ -157,7 +211,7 @@ export function ScheduleInterviewDialog({
 
   useEffect(() => {
     if (!open) {
-      setJobId("all");
+      setJobId("");
       setApplicationId("");
       setJobSearch("");
       setJobDropdownOpen(false);
@@ -177,10 +231,23 @@ export function ScheduleInterviewDialog({
     }
 
     if (initialValues) {
+      if (initialValues.jobId) {
+        setJobId(initialValues.jobId);
+      }
       setApplicationId(initialValues.applicationId);
       setInterviewRound(initialValues.interviewRound);
     }
   }, [open, initialValues]);
+
+  // If jobId was omitted from initialValues, auto-detect jobId from application list once loaded
+  useEffect(() => {
+    if (open && initialValues?.applicationId && !jobId && applications && applications.length > 0) {
+      const match = applications.find((app) => app.id === initialValues.applicationId);
+      if (match) {
+        setJobId(match.jobPost.id);
+      }
+    }
+  }, [open, initialValues?.applicationId, jobId, applications]);
 
   useEffect(() => {
     if (!open || !token) return;
@@ -244,6 +311,8 @@ export function ScheduleInterviewDialog({
   const mutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error("No token available");
+      const isValidUUID = (v: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
       return createInterview(
         {
           applicationId,
@@ -251,7 +320,7 @@ export function ScheduleInterviewDialog({
           type,
           scheduledStartAt: new Date(startAt).toISOString(),
           scheduledEndAt: new Date(endAt).toISOString(),
-          ...(recruiterProfileId ? { recruiterProfileId } : {}),
+          ...(recruiterProfileId && isValidUUID(recruiterProfileId) ? { recruiterProfileId } : {}),
           ...(type === "ONLINE" && meetingUrl ? { meetingUrl } : {}),
           ...(type === "ONSITE" && location ? { location } : {}),
           ...(recruiterNote ? { recruiterNote } : {}),
@@ -315,6 +384,7 @@ export function ScheduleInterviewDialog({
               {t("interviews.scheduleForm.job")}
             </Label>
             <DropdownMenu
+              modal={false}
               open={jobDropdownOpen}
               onOpenChange={(open) => {
                 if (lockApplication) return;
@@ -336,20 +406,23 @@ export function ScheduleInterviewDialog({
                       : "cursor-pointer hover:bg-slate-50/50",
                   )}
                 >
-                  <span className="flex-1 truncate text-left">
+                  <span className={cn("flex-1 truncate text-left", !jobId && "text-slate-400")}>
                     {lockedApplication
                       ? lockedApplication.jobPost.title
-                      : jobId === "all"
-                        ? t("candidates.filters.allJobs")
-                        : (jobs.find((j) => j.id === jobId)?.title ??
-                          t("candidates.filters.allJobs"))}
+                      : jobId
+                        ? (jobs.find((j) => j.id === jobId)?.title ??
+                          (locale === "vi" ? "Chọn vị trí tuyển dụng" : "Select a job post"))
+                        : locale === "vi"
+                          ? "Chọn vị trí tuyển dụng"
+                          : "Select a job post"}
                   </span>
                   <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="z-50 flex max-h-80 w-[432px] flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+                className="z-[1040] flex max-h-80 w-[432px] flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+                onWheel={(e) => e.stopPropagation()}
               >
                 <div className="relative flex items-center px-1 py-1">
                   <MagnifyingGlass size={16} className="absolute left-3 text-slate-400" />
@@ -378,23 +451,12 @@ export function ScheduleInterviewDialog({
                   )}
                 </div>
                 <div className="min-h-0 flex-1 overflow-y-auto">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setJobId("all");
-                      setJobDropdownOpen(false);
-                    }}
-                    className={cn(
-                      "cursor-pointer flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium hover:bg-slate-50",
-                      jobId === "all" && "text-emerald-600 bg-emerald-50/30",
-                    )}
-                  >
-                    {t("candidates.filters.allJobs")}
-                  </DropdownMenuItem>
                   {filteredJobsForSelect.map((job) => (
                     <DropdownMenuItem
                       key={job.id}
                       onClick={() => {
                         setJobId(job.id);
+                        setApplicationId("");
                         setJobDropdownOpen(false);
                       }}
                       className={cn(
@@ -428,12 +490,17 @@ export function ScheduleInterviewDialog({
                 className="border-input bg-background flex h-11 w-full cursor-not-allowed items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium text-slate-400 opacity-50 shadow-none"
               >
                 <span className="flex-1 truncate text-left">
-                  {t("interviews.scheduleForm.noCandidates")}
+                  {!jobId
+                    ? locale === "vi"
+                      ? "Chọn vị trí tuyển dụng trước"
+                      : "Select a job first"
+                    : t("interviews.scheduleForm.noCandidates")}
                 </span>
                 <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
               </button>
             ) : (
               <DropdownMenu
+                modal={false}
                 open={candidateDropdownOpen}
                 onOpenChange={(open) => {
                   if (lockApplication) return;
@@ -470,7 +537,8 @@ export function ScheduleInterviewDialog({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="start"
-                  className="z-50 flex max-h-80 w-[432px] flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+                  className="z-[1040] flex max-h-80 w-[432px] flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+                  onWheel={(e) => e.stopPropagation()}
                 >
                   <div className="relative flex items-center px-1 py-1">
                     <MagnifyingGlass size={16} className="absolute left-3 text-slate-400" />
@@ -559,15 +627,23 @@ export function ScheduleInterviewDialog({
                 type="number"
                 min={1}
                 value={interviewRound}
-                onChange={(e) => setInterviewRound(Number(e.target.value) || 1)}
+                readOnly
+                className="cursor-not-allowed bg-slate-50"
               />
-              {interviewRound > 1 && !hasPassedPreviousRound && (
-                <p className="mt-1 text-xs font-semibold text-rose-600">
-                  {locale === "vi"
-                    ? "Ứng viên chưa đạt (Pass) ở vòng trước đó."
-                    : "The candidate has not passed the previous round."}
-                </p>
-              )}
+              <p
+                className={cn(
+                  "mt-1 text-xs",
+                  roundBlocked ? "font-semibold text-rose-600" : "text-slate-400",
+                )}
+              >
+                {roundBlocked
+                  ? locale === "vi"
+                    ? "Vòng hiện tại chưa hoàn thành hoặc chưa đạt."
+                    : "Current round not completed or not passed."
+                  : locale === "vi"
+                    ? "Tự động tính theo lịch sử."
+                    : "Auto-calculated from history."}
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="schedule-type" className="text-xs font-bold text-slate-600">
@@ -595,6 +671,7 @@ export function ScheduleInterviewDialog({
                 id="schedule-start"
                 type="datetime-local"
                 value={startAt}
+                min={new Date().toISOString().slice(0, 16)}
                 onChange={(e) => setStartAt(e.target.value)}
               />
             </div>
@@ -632,11 +709,15 @@ export function ScheduleInterviewDialog({
               </Label>
               {companyLocations.length > 0 ? (
                 <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger id="schedule-location" className="shadow-none">
+                  <SelectTrigger id="schedule-location" className="shadow-none [&>span]:truncate">
                     <SelectValue placeholder={t("interviews.scheduleForm.locationPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {companyLocations.map((companyLocation) => {
+                    {Array.from(
+                      new Map(
+                        companyLocations.map((loc) => [formatCompanyLocation(loc), loc] as const),
+                      ).values(),
+                    ).map((companyLocation) => {
                       const label = formatCompanyLocation(companyLocation);
                       return (
                         <SelectItem key={companyLocation.id} value={label}>
@@ -697,9 +778,7 @@ export function ScheduleInterviewDialog({
           <Button
             type="button"
             onClick={() => mutation.mutate()}
-            disabled={
-              !canSubmit || mutation.isPending || (interviewRound > 1 && !hasPassedPreviousRound)
-            }
+            disabled={!canSubmit || mutation.isPending || roundBlocked}
             className="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             {t("interviews.scheduleForm.submit")}

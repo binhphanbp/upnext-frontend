@@ -76,6 +76,7 @@ function review(id: string, overallRating: number, myReport: unknown) {
     cultureFunRating: null,
     officeWorkspaceRating: null,
     createdAt: new Date("2026-08-01").toISOString(),
+    reviewer: { id: `profile-${id}`, fullName: "Nguyễn Văn A" },
     myReport,
   };
 }
@@ -144,4 +145,15 @@ test("summarises the company rating above the list", async ({ page }) => {
 
   await expect(page.getByText("2.7")).toBeVisible();
   await expect(page.getByText("3 đánh giá").first()).toBeVisible();
+});
+
+test("names the reviewer instead of showing an anonymous row", async ({ page }) => {
+  await signInAsRecruiter(page);
+  await mockReviews(page);
+
+  await page.goto("/vi/recruiter/company-reviews");
+
+  // Reviews are attributed now — the name and its initials stand in for an avatar.
+  await expect(page.getByText("Nguyễn Văn A").first()).toBeVisible();
+  await expect(page.getByText("NA").first()).toBeVisible();
 });

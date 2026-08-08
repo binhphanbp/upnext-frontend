@@ -237,7 +237,7 @@ export function ModerationTable() {
       <div className="mt-6 space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Skeleton className="h-10 w-full rounded-xl sm:w-[350px]" />
-          <Skeleton className="h-10 w-full rounded-xl sm:w-[180px]" />
+          <Skeleton className="h-10 w-full rounded-xl sm:w-[210px]" />
         </div>
         <Skeleton className="h-[400px] w-full rounded-xl" />
       </div>
@@ -268,7 +268,7 @@ export function ModerationTable() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[210px]">
                 <SelectValue placeholder={t("allStatuses")} />
               </SelectTrigger>
               <SelectContent>
@@ -280,7 +280,7 @@ export function ModerationTable() {
               </SelectContent>
             </Select>
             <Select value={reporterFilter} onValueChange={setReporterFilter}>
-              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[210px]">
                 <SelectValue placeholder={t("allReporters")} />
               </SelectTrigger>
               <SelectContent>
@@ -290,18 +290,19 @@ export function ModerationTable() {
               </SelectContent>
             </Select>
             <Select value={targetTypeFilter} onValueChange={setTargetTypeFilter}>
-              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[180px]">
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[210px]">
                 <SelectValue placeholder={t("allContentTypes")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("allContentTypes")}</SelectItem>
-                <SelectItem value="JOB_POST">{t("contentTypeOptions.job")}</SelectItem>
+                {/* Only the three kinds of report the product actually accepts. CANDIDATE
+                    and POST have no report entry point, so filtering by them found nothing
+                    — TARGET_TYPE_KEYS still labels them in case a legacy row exists. */}
                 <SelectItem value="COMPANY">{t("contentTypeOptions.company")}</SelectItem>
+                <SelectItem value="JOB_POST">{t("contentTypeOptions.job")}</SelectItem>
                 <SelectItem value="COMPANY_REVIEW">
                   {t("contentTypeOptions.companyReview")}
                 </SelectItem>
-                <SelectItem value="CANDIDATE">{t("contentTypeOptions.profile")}</SelectItem>
-                <SelectItem value="POST">{t("contentTypeOptions.post")}</SelectItem>
               </SelectContent>
             </Select>
           </>

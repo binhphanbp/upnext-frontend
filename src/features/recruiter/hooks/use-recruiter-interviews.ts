@@ -2,7 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getInterview, getRecruiterInterviews } from "../api/interviews";
 
-export function useRecruiterInterviews(token: string | null, params?: { applicationId?: string }) {
+export function useRecruiterInterviews(
+  token: string | null,
+  params?: { applicationId?: string | undefined },
+) {
   return useQuery({
     queryKey: ["recruiter", "interviews", params],
     queryFn: () => {

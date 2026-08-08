@@ -17,6 +17,7 @@ import { RecruiterTableLayout } from "@/features/recruiter/components/recruiter-
 import { useRecruiterInterviews } from "@/features/recruiter/hooks/use-recruiter-interviews";
 import { getRecruiterJobPosts, type RecruiterJobPost } from "@/features/recruiter/job-posts/api";
 import { getRecruiterSession } from "@/features/recruiter/session";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import {
@@ -27,7 +28,6 @@ import {
 } from "@/shared/ui/dropdown-menu";
 
 import { InterviewResultBadge, InterviewStatusBadge, InterviewTypeBadge } from "./interview-badges";
-import { InterviewDetailDialog } from "./interview-detail-dialog";
 import { ScheduleInterviewDialog } from "./schedule-interview-dialog";
 import { SearchInput } from "./search-input";
 import { SelectFilter } from "./select-filter";
@@ -45,12 +45,14 @@ export function RecruiterInterviewsPage() {
   const [jobSearch, setJobSearch] = useState("");
   const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
-  const [selectedInterviewId, setSelectedInterviewId] = useState<string | null>(null);
+
   const [nextRoundSeed, setNextRoundSeed] = useState<{
     applicationId: string;
     interviewRound: number;
   } | null>(null);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -114,6 +116,17 @@ export function RecruiterInterviewsPage() {
       return true;
     });
   }, [interviews, search, statusFilter, typeFilter, jobFilter]);
+
+  // Reset to page 1 when filters change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, typeFilter, jobFilter]);
+
+  const paginatedInterviews = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredInterviews.slice(start, start + pageSize);
+  }, [filteredInterviews, currentPage, pageSize]);
 
   const metrics = useMemo(() => {
     const list = interviews ?? [];
@@ -643,6 +656,14 @@ export function RecruiterInterviewsPage() {
 
         <RecruiterTableLayout
           loading={false}
+          totalItems={filteredInterviews.length}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
           actionBar={
             <Button
               onClick={() => setScheduleDialogOpen(true)}
@@ -705,7 +726,7 @@ export function RecruiterInterviewsPage() {
                 </td>
               </tr>
             ) : (
-              filteredInterviews.map((interview) => (
+              paginatedInterviews.map((interview) => (
                 <tr key={interview.id} className="hover:bg-slate-50/50">
                   <td className="max-w-[180px] truncate px-4 py-3 font-bold text-slate-800">
                     {interview.application?.candidateProfile.account.fullName ?? "—"}
@@ -735,13 +756,12 @@ export function RecruiterInterviewsPage() {
                     {interview.recruiterProfile?.fullName ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedInterviewId(interview.id)}
+                    <Link
+                      href={`/recruiter/interviews/${interview.id}`}
                       className="cursor-pointer text-xs font-bold text-[#5d87ff] hover:underline"
                     >
                       {t("interviews.actions.viewDetail")}
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))
@@ -759,18 +779,13 @@ export function RecruiterInterviewsPage() {
           if (!open) setNextRoundSeed(null);
         }}
         initialValues={nextRoundSeed}
-      />
-
-      <InterviewDetailDialog
-        interviewId={selectedInterviewId}
-        token={token}
-        open={Boolean(selectedInterviewId)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedInterviewId(null);
-        }}
-        onScheduleNextRound={(applicationId, nextRound) => {
-          setNextRoundSeed({ applicationId, interviewRound: nextRound });
-          setScheduleDialogOpen(true);
+        onScheduled={() => {
+          setCurrentPage(1);
+          setSearch("");
+          setStatusFilter("all");
+          setTypeFilter("all");
+          setJobFilter("all");
+          void refetch();
         }}
       />
     </div>

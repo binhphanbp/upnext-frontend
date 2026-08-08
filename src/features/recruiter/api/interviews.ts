@@ -89,7 +89,10 @@ export type UpdateInterviewResultPayload = Readonly<{
   feedbackNote?: string;
 }>;
 
-export function getRecruiterInterviews(token: string, params?: { applicationId?: string }) {
+export function getRecruiterInterviews(
+  token: string,
+  params?: { applicationId?: string | undefined },
+) {
   const query = new URLSearchParams();
   if (params?.applicationId) {
     query.set("applicationId", params.applicationId);
@@ -133,6 +136,18 @@ export function cancelInterview(
   token: string,
 ) {
   return apiRequest<Interview>(`/interviews/${interviewId}/cancel`, {
+    body: JSON.stringify(payload),
+    headers: jsonAuthHeaders(token),
+    method: "PATCH",
+  });
+}
+
+export function markInterviewNoShow(
+  interviewId: string,
+  payload: CancelInterviewPayload,
+  token: string,
+) {
+  return apiRequest<Interview>(`/interviews/${interviewId}/no-show`, {
     body: JSON.stringify(payload),
     headers: jsonAuthHeaders(token),
     method: "PATCH",

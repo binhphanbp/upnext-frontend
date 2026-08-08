@@ -24,6 +24,8 @@ export type MyCompanyReview = Readonly<{
   cultureFunRating: number | null;
   officeWorkspaceRating: number | null;
   createdAt: string;
+  /** Reviews are attributed: the reviewer's name is shown, and nothing else from their profile. */
+  reviewer: { id: string; fullName: string };
   /** This recruiter's own report on the review, if they have filed one. */
   myReport: MyCompanyReviewReport | null;
 }>;
@@ -68,10 +70,29 @@ export function getMyCompanyReviews(token: string, params: MyCompanyReviewsParam
   );
 }
 
-export function reportCompanyReview(token: string, reviewId: string, reason: string) {
+export function reportCompanyReview(
+  token: string,
+  reviewId: string,
+  reason: string,
+  evidenceFileId?: string,
+) {
   return apiRequest<{ id: string }>(`/company-reviews/${reviewId}/report`, {
-    body: JSON.stringify({ reason }),
+    body: JSON.stringify(evidenceFileId ? { reason, evidenceFileId } : { reason }),
     headers: jsonAuthHeaders(token),
+    method: "POST",
+  });
+}
+
+/** `REPORT_EVIDENCE` keeps the screenshot private — only admins ever open it. */
+export function uploadReviewReportEvidence(file: File, token: string) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("purpose", "REPORT_EVIDENCE");
+  formData.append("visibility", "PRIVATE");
+
+  return apiRequest<{ file: { id: string } }>("/files/upload", {
+    body: formData,
+    headers: authHeaders(token),
     method: "POST",
   });
 }

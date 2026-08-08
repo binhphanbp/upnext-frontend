@@ -79,6 +79,8 @@ export type PublicCompanyReview = Readonly<{
   cultureFunRating: number | null;
   officeWorkspaceRating: number | null;
   createdAt: string;
+  /** Reviews are attributed: the reviewer's name is shown, and nothing else from their profile. */
+  reviewer: { id: string; fullName: string };
 }>;
 
 export type CompanyReviewSummary = Readonly<{

@@ -1,10 +1,13 @@
 "use client";
 
+import { Flag } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { ReportDialog } from "@/features/candidate/reports/report-dialog";
+import { useCandidateReportStatus } from "@/features/candidate/reports/use-candidate-report-status";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { toast } from "@/shared/ui/toast";
@@ -243,6 +246,8 @@ function CompanyProfile({
   navigate: (path: string) => void;
 }) {
   const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const reportStatus = useCandidateReportStatus("COMPANY", company.id || company.slug);
   const {
     isPending: isSavedJobPending,
     isSessionResolved: isSavedJobsSessionResolved,
@@ -355,8 +360,8 @@ function CompanyProfile({
                     </>
                   ) : null}
                 </div>
-                {company.website ? (
-                  <div className="company-banner-actions">
+                <div className="company-banner-actions">
+                  {company.website ? (
                     <a
                       className="company-website"
                       href={company.website}
@@ -365,8 +370,17 @@ function CompanyProfile({
                     >
                       Xem website <ArrowUpRight size={16} />
                     </a>
-                  </div>
-                ) : null}
+                  ) : null}
+                  {!reportStatus.hasActiveReport ? (
+                    <button
+                      type="button"
+                      className="company-report-cta"
+                      onClick={() => setIsReportOpen(true)}
+                    >
+                      <Flag size={16} /> Báo cáo công ty
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
@@ -543,6 +557,14 @@ function CompanyProfile({
         images={photos}
         label="Ảnh công ty"
         onActiveIndexChange={setActivePhotoIndex}
+      />
+
+      <ReportDialog
+        open={isReportOpen}
+        onOpenChange={setIsReportOpen}
+        targetType="COMPANY"
+        targetId={company.id || company.slug}
+        targetName={company.name}
       />
 
       <PublicFooter navigate={navigate} />
