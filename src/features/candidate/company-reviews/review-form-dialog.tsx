@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 
 import type {
   CandidateCompanyReview,
@@ -34,19 +34,45 @@ const SUB_RATINGS: Array<{ key: keyof CompanyReviewFormValues; label: string }> 
   { key: "overtimeSatisfaction", label: "Mức hài lòng về tăng ca" },
 ];
 
+export function calculateOverallRating(values: Partial<CompanyReviewFormValues>): number {
+  const ratings = [
+    values.salaryBenefitsRating,
+    values.trainingLearningRating,
+    values.managementCareRating,
+    values.cultureFunRating,
+    values.officeWorkspaceRating,
+    values.overtimeSatisfaction,
+  ].filter((v): v is number => typeof v === "number" && v > 0);
+
+  if (ratings.length === 0) return 0;
+  const sum = ratings.reduce((acc, r) => acc + r, 0);
+  return Math.max(1, Math.min(5, Math.round(sum / ratings.length)));
+}
+
 function toFormValues(review: CandidateCompanyReview | null): CompanyReviewFormValues {
-  return {
-    overallRating: review?.overallRating ?? 0,
-    summary: review?.summary ?? "",
-    overtimeSatisfaction: review?.overtimeSatisfaction ?? 0,
-    overtimeReason: review?.overtimeReason ?? "",
-    whatILove: review?.whatILove ?? "",
-    improvementSuggestion: review?.improvementSuggestion ?? "",
+  const initialSubRatings = {
     salaryBenefitsRating: review?.salaryBenefitsRating ?? 0,
     trainingLearningRating: review?.trainingLearningRating ?? 0,
     managementCareRating: review?.managementCareRating ?? 0,
     cultureFunRating: review?.cultureFunRating ?? 0,
     officeWorkspaceRating: review?.officeWorkspaceRating ?? 0,
+    overtimeSatisfaction: review?.overtimeSatisfaction ?? 0,
+  };
+
+  const calculatedOverall = calculateOverallRating(initialSubRatings);
+
+  return {
+    overallRating: calculatedOverall || (review?.overallRating ?? 0),
+    summary: review?.summary ?? "",
+    overtimeSatisfaction: initialSubRatings.overtimeSatisfaction,
+    overtimeReason: review?.overtimeReason ?? "",
+    whatILove: review?.whatILove ?? "",
+    improvementSuggestion: review?.improvementSuggestion ?? "",
+    salaryBenefitsRating: initialSubRatings.salaryBenefitsRating,
+    trainingLearningRating: initialSubRatings.trainingLearningRating,
+    managementCareRating: initialSubRatings.managementCareRating,
+    cultureFunRating: initialSubRatings.cultureFunRating,
+    officeWorkspaceRating: initialSubRatings.officeWorkspaceRating,
   };
 }
 
@@ -54,8 +80,10 @@ function toPayload(values: CompanyReviewFormValues): CompanyReviewPayload {
   const text = (value: string) => (value.trim() ? value.trim() : undefined);
   const rating = (value: number) => (value > 0 ? value : undefined);
 
+  const calculatedOverall = calculateOverallRating(values);
+
   return {
-    overallRating: values.overallRating,
+    overallRating: calculatedOverall,
     summary: text(values.summary),
     overtimeSatisfaction: rating(values.overtimeSatisfaction),
     overtimeReason: text(values.overtimeReason),
@@ -90,10 +118,31 @@ export function CompanyReviewFormDialog({
     handleSubmit,
     register,
     reset,
+    setValue,
   } = useForm<CompanyReviewFormValues>({
     defaultValues: toFormValues(existingReview),
     resolver: zodResolver(companyReviewFormSchema),
   });
+
+  const salaryBenefits = useWatch({ control, name: "salaryBenefitsRating" });
+  const trainingLearning = useWatch({ control, name: "trainingLearningRating" });
+  const managementCare = useWatch({ control, name: "managementCareRating" });
+  const cultureFun = useWatch({ control, name: "cultureFunRating" });
+  const officeWorkspace = useWatch({ control, name: "officeWorkspaceRating" });
+  const overtimeSatisfaction = useWatch({ control, name: "overtimeSatisfaction" });
+
+  const computedOverall = calculateOverallRating({
+    salaryBenefitsRating: salaryBenefits,
+    trainingLearningRating: trainingLearning,
+    managementCareRating: managementCare,
+    cultureFunRating: cultureFun,
+    officeWorkspaceRating: officeWorkspace,
+    overtimeSatisfaction,
+  });
+
+  useEffect(() => {
+    setValue("overallRating", computedOverall, { shouldValidate: true });
+  }, [computedOverall, setValue]);
 
   useEffect(() => {
     if (open) reset(toFormValues(existingReview));
@@ -117,21 +166,31 @@ export function CompanyReviewFormDialog({
             await onSubmit(toPayload(values));
           })}
         >
-          <div className="flex flex-col gap-2">
-            <Label>Đánh giá tổng thể *</Label>
-            <Controller
-              control={control}
-              name="overallRating"
-              render={({ field }) => (
+          {/* Read-Only Calculated Overall Rating Box */}
+          <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50/70 to-teal-50/70 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <Label className="text-sm font-bold text-slate-900">Đánh giá tổng thể</Label>
+                <p className="text-xs text-slate-500">
+                  Tự động tính từ trung bình cộng các tiêu chí đánh giá bên dưới
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
                 <StarRatingInput
-                  label="Đánh giá tổng thể"
-                  value={field.value}
-                  onChange={field.onChange}
+                  label="Đánh giá tổng thể (tự động tính)"
+                  value={computedOverall}
+                  size={24}
+                  readOnly
                 />
-              )}
-            />
+                <span className="text-lg font-extrabold text-slate-900">
+                  {computedOverall > 0 ? `${computedOverall}/5` : "--/5"}
+                </span>
+              </div>
+            </div>
             {errors.overallRating ? (
-              <p className="text-destructive text-sm">{errors.overallRating.message}</p>
+              <p className="text-destructive text-xs font-semibold">
+                {errors.overallRating.message}
+              </p>
             ) : null}
           </div>
 
@@ -150,7 +209,7 @@ export function CompanyReviewFormDialog({
                   render={({ field }) => (
                     <StarRatingInput
                       label={label}
-                      size={18}
+                      size={20}
                       value={(field.value as number) ?? 0}
                       onChange={field.onChange}
                     />

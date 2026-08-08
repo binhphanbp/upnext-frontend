@@ -4,9 +4,9 @@ const optionalRating = z.number().int().min(0).max(5);
 
 export const companyReviewFormSchema = z.object({
   overallRating: z
-    .number({ error: "Vui lòng chọn số sao." })
+    .number({ error: "Vui lòng đánh giá ít nhất 1 tiêu chí bên dưới." })
     .int()
-    .min(1, "Vui lòng chọn số sao.")
+    .min(1, "Vui lòng đánh giá ít nhất 1 tiêu chí bên dưới.")
     .max(5),
   summary: z.string().trim().max(2000, "Không được vượt quá 2000 ký tự."),
   overtimeSatisfaction: optionalRating,
