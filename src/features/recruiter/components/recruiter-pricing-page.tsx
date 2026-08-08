@@ -186,7 +186,7 @@ export function RecruiterPricingPage() {
             </div>
             <Button
               onClick={() => router.push("/recruiter/billing")}
-              className="bg-emerald-500 text-slate-950 font-bold hover:bg-emerald-400"
+              className="bg-emerald-500 font-bold text-slate-950 hover:bg-emerald-400"
             >
               Quản lý tài khoản & Quota <ArrowRight className="ml-1 size-4" />
             </Button>
@@ -198,21 +198,22 @@ export function RecruiterPricingPage() {
       <header className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-10 text-white shadow-xl sm:px-12 sm:py-14">
         {/* Decorative Glow Elements */}
         <div className="pointer-events-none absolute -top-24 -left-20 size-96 rounded-full bg-emerald-500/20 blur-[100px]" />
-        <div className="pointer-events-none absolute -bottom-24 -right-20 size-96 rounded-full bg-teal-500/20 blur-[100px]" />
+        <div className="pointer-events-none absolute -right-20 -bottom-24 size-96 rounded-full bg-teal-500/20 blur-[100px]" />
 
-        <div className="relative z-10 mx-auto max-w-3xl text-center space-y-4">
+        <div className="relative z-10 mx-auto max-w-3xl space-y-4 text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-4 py-1.5 text-xs font-bold tracking-wider text-emerald-400 uppercase ring-1 ring-emerald-500/30 backdrop-blur-md">
-            <Sparkle className="size-3.5 text-emerald-400" weight="fill" /> DỊCH VỤ TUYỂN DỤNG CAO CẤP
+            <Sparkle className="size-3.5 text-emerald-400" weight="fill" /> DỊCH VỤ TUYỂN DỤNG CAO
+            CẤP
           </span>
           <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
             Bảng Giá Gói Dịch Vụ Tuyển Dụng
           </h1>
-          <p className="text-base text-slate-300 leading-relaxed sm:text-lg">
-            Tối ưu chi phí, bứt phá tốc độ săn nhân tài IT với công nghệ AI sàng lọc thông minh
-            và quyền truy cập kho dữ liệu CV hàng đầu.
+          <p className="text-base leading-relaxed text-slate-300 sm:text-lg">
+            Tối ưu chi phí, bứt phá tốc độ săn nhân tài IT với công nghệ AI sàng lọc thông minh và
+            quyền truy cập kho dữ liệu CV hàng đầu.
           </p>
 
-          <div className="pt-4 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-300 font-medium">
+          <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs font-medium text-slate-300">
             <div className="flex items-center gap-1.5">
               <Clock className="size-4 text-emerald-400" /> Kích hoạt trong 60 giây
             </div>
@@ -246,7 +247,7 @@ export function RecruiterPricingPage() {
               >
                 {/* Popular / Highlight Badge */}
                 {plan.highlightLabel ? (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-1 text-[11px] font-black tracking-widest text-white uppercase shadow-md flex items-center gap-1">
+                  <div className="absolute -top-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-1 text-[11px] font-black tracking-widest text-white uppercase shadow-md">
                     <Star size={12} weight="fill" className="text-amber-300" />
                     {plan.highlightLabel}
                   </div>
@@ -255,7 +256,7 @@ export function RecruiterPricingPage() {
                 <div>
                   {/* Plan Icon Header */}
                   <div className="flex items-center justify-between">
-                    <div className="flex size-12 items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 group-hover:scale-110 transition-transform">
+                    <div className="flex size-12 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 transition-transform group-hover:scale-110">
                       {getPlanIcon(plan)}
                     </div>
                     {isFree ? (
@@ -273,7 +274,7 @@ export function RecruiterPricingPage() {
                     {plan.subscriptionName}
                   </h2>
                   {plan.description ? (
-                    <p className="mt-2 text-xs leading-relaxed text-slate-500 line-clamp-2">
+                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">
                       {plan.description}
                     </p>
                   ) : null}
@@ -302,17 +303,17 @@ export function RecruiterPricingPage() {
                           {isAiFeature ? (
                             <Sparkle
                               size={16}
-                              className="shrink-0 text-amber-500 mt-0.5"
+                              className="mt-0.5 shrink-0 text-amber-500"
                               weight="fill"
                             />
                           ) : (
                             <CheckCircle
                               size={16}
-                              className="shrink-0 text-emerald-500 mt-0.5"
+                              className="mt-0.5 shrink-0 text-emerald-500"
                               weight="fill"
                             />
                           )}
-                          <span className="text-slate-600 leading-snug">
+                          <span className="leading-snug text-slate-600">
                             {QUOTA_FEATURE_LABELS[feature]}:{" "}
                             <strong className="font-bold text-slate-900">
                               {limitLabel(featureEntry(plan, feature)?.limitValue ?? null)}
@@ -328,7 +329,7 @@ export function RecruiterPricingPage() {
                 <div className="mt-8 pt-4">
                   {isCurrent ? (
                     <Button
-                      className="w-full cursor-not-allowed bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold hover:bg-emerald-50"
+                      className="w-full cursor-not-allowed border border-emerald-200 bg-emerald-50 font-bold text-emerald-700 hover:bg-emerald-50"
                       disabled
                     >
                       <CheckCircle className="mr-1.5 size-4 text-emerald-600" weight="fill" />
@@ -380,7 +381,10 @@ export function RecruiterPricingPage() {
             <table className="w-full min-w-[700px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/80">
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-bold tracking-wider text-slate-800 uppercase"
+                  >
                     Tính năng & Hạn mức
                   </th>
                   {plans.map((plan) => (
@@ -399,10 +403,10 @@ export function RecruiterPricingPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {comparedFeatures.map((feature) => (
-                  <tr key={feature} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={feature} className="transition-colors hover:bg-slate-50/50">
                     <th
                       scope="row"
-                      className="px-6 py-4 text-left text-xs font-semibold text-slate-800 flex items-center gap-2"
+                      className="flex items-center gap-2 px-6 py-4 text-left text-xs font-semibold text-slate-800"
                     >
                       {feature.startsWith("AI_") ? (
                         <Sparkle className="size-4 text-amber-500" weight="fill" />
@@ -444,7 +448,7 @@ export function RecruiterPricingPage() {
             <Clock size={22} weight="bold" />
           </div>
           <h3 className="text-sm font-bold text-slate-900">Kích hoạt tự động 24/7</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <p className="text-xs leading-relaxed text-slate-500">
             Hệ thống quét chuyển khoản và cấp hạn mức dịch vụ ngay trong 60 giây.
           </p>
         </div>
@@ -454,7 +458,7 @@ export function RecruiterPricingPage() {
             <Receipt size={22} weight="bold" />
           </div>
           <h3 className="text-sm font-bold text-slate-900">Xuất hóa đơn GTGT đầy đủ</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <p className="text-xs leading-relaxed text-slate-500">
             Cung cấp hóa đơn điện tử hợp lệ theo quy định cho tài chính doanh nghiệp.
           </p>
         </div>
@@ -464,7 +468,7 @@ export function RecruiterPricingPage() {
             <Sparkle size={22} weight="bold" />
           </div>
           <h3 className="text-sm font-bold text-slate-900">Công nghệ AI đột phá</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <p className="text-xs leading-relaxed text-slate-500">
             Tự động gợi ý và chấm điểm matching CV chuẩn kỹ năng công nghệ.
           </p>
         </div>
@@ -474,7 +478,7 @@ export function RecruiterPricingPage() {
             <Headset size={22} weight="bold" />
           </div>
           <h3 className="text-sm font-bold text-slate-900">Chuyên viên hỗ trợ 1-1</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
+          <p className="text-xs leading-relaxed text-slate-500">
             Đội ngũ tư vấn đồng hành tối ưu hóa chiến dịch tuyển dụng cho doanh nghiệp.
           </p>
         </div>
@@ -482,7 +486,7 @@ export function RecruiterPricingPage() {
 
       {/* Frequently Asked Questions */}
       <section className="space-y-6">
-        <div className="text-center space-y-1">
+        <div className="space-y-1 text-center">
           <h2 className="text-xl font-extrabold text-slate-900">Câu hỏi thường gặp</h2>
           <p className="text-xs text-slate-500">
             Giải đáp các thắc mắc về quy trình đăng ký, kích hoạt và hóa đơn dịch vụ.
@@ -500,19 +504,17 @@ export function RecruiterPricingPage() {
                   className="flex w-full items-center justify-between text-left text-sm font-bold text-slate-900"
                 >
                   <span className="flex items-center gap-2">
-                    <Question size={18} className="text-emerald-600 shrink-0" />
+                    <Question size={18} className="shrink-0 text-emerald-600" />
                     {faq.q}
                   </span>
                   {isOpen ? (
-                    <CaretUp size={16} className="text-slate-400 shrink-0" />
+                    <CaretUp size={16} className="shrink-0 text-slate-400" />
                   ) : (
-                    <CaretDown size={16} className="text-slate-400 shrink-0" />
+                    <CaretDown size={16} className="shrink-0 text-slate-400" />
                   )}
                 </button>
                 {isOpen ? (
-                  <p className="mt-3 pl-6 text-xs text-slate-600 leading-relaxed">
-                    {faq.a}
-                  </p>
+                  <p className="mt-3 pl-6 text-xs leading-relaxed text-slate-600">{faq.a}</p>
                 ) : null}
               </div>
             );
@@ -521,13 +523,14 @@ export function RecruiterPricingPage() {
       </section>
 
       {/* Enterprise Contact CTA Banner */}
-      <section className="rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-8 text-white shadow-xl flex flex-wrap items-center justify-between gap-6">
-        <div className="space-y-1 max-w-xl">
+      <section className="flex flex-wrap items-center justify-between gap-6 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-8 text-white shadow-xl">
+        <div className="max-w-xl space-y-1">
           <h3 className="text-lg font-extrabold text-white">
             Doanh nghiệp của bạn cần giải pháp tuyển dụng Enterprise quy mô lớn?
           </h3>
           <p className="text-xs text-slate-300">
-            Liên hệ với đội ngũ chuyên gia của Upnext để xây dựng gói giải pháp tùy chỉnh hạn mức và tính năng dành riêng cho tập đoàn.
+            Liên hệ với đội ngũ chuyên gia của Upnext để xây dựng gói giải pháp tùy chỉnh hạn mức và
+            tính năng dành riêng cho tập đoàn.
           </p>
         </div>
         <Button
@@ -538,7 +541,7 @@ export function RecruiterPricingPage() {
               text: "Vui lòng gọi hotline 1900 xxxx hoặc email support@upnext.dev để nhận báo giá tư vấn riêng.",
             })
           }
-          className="bg-white text-slate-950 font-bold hover:bg-slate-100"
+          className="bg-white font-bold text-slate-950 hover:bg-slate-100"
         >
           Liên hệ tư vấn Enterprise <ArrowRight className="ml-1.5 size-4" />
         </Button>
