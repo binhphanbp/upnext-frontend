@@ -154,42 +154,89 @@ export function CompanyReviewsSection({
         <p className="company-empty-copy">Chưa có đánh giá nào cho công ty này.</p>
       ) : (
         <ul className="flex flex-col gap-4">
-          {items.map((review) => (
-            <li key={review.id} className="rounded-xl border border-slate-200 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                  <ReviewerByline
-                    fullName={review.reviewer.fullName}
-                    createdAt={review.createdAt}
-                  />
-                  <StarDisplay value={review.overallRating} />
+          {items.map((review) => {
+            const subRatingsList = [
+              { label: "Lương & phúc lợi", score: review.salaryBenefitsRating },
+              { label: "Đào tạo & học hỏi", score: review.trainingLearningRating },
+              { label: "Sự quan tâm của quản lý", score: review.managementCareRating },
+              { label: "Văn hóa & hoạt động", score: review.cultureFunRating },
+              { label: "Văn phòng làm việc", score: review.officeWorkspaceRating },
+              { label: "Mức hài lòng tăng ca", score: review.overtimeSatisfaction },
+            ].filter((item): item is { label: string; score: number } => Boolean(item.score));
+
+            return (
+              <li
+                key={review.id}
+                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                    <ReviewerByline
+                      fullName={review.reviewer.fullName}
+                      createdAt={review.createdAt}
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <StarDisplay value={review.overallRating} size={16} />
+                      <span className="text-xs font-bold text-slate-800">
+                        {review.overallRating}/5 sao
+                      </span>
+                    </div>
+                  </div>
+                  {recruiterReporter.canReport ? (
+                    <button
+                      type="button"
+                      className="company-review-report"
+                      onClick={() => void handleReportReview(review)}
+                      disabled={recruiterReporter.isReporting}
+                    >
+                      <Flag size={14} /> Báo cáo
+                    </button>
+                  ) : null}
                 </div>
-                {recruiterReporter.canReport ? (
-                  <button
-                    type="button"
-                    className="company-review-report"
-                    onClick={() => void handleReportReview(review)}
-                    disabled={recruiterReporter.isReporting}
-                  >
-                    <Flag size={14} /> Báo cáo
-                  </button>
+
+                {review.summary ? (
+                  <p className="text-sm leading-relaxed font-semibold text-slate-900">
+                    {review.summary}
+                  </p>
                 ) : null}
-              </div>
-              {review.summary ? (
-                <p className="mt-2 text-sm text-slate-700">{review.summary}</p>
-              ) : null}
-              {review.whatILove ? (
-                <p className="mt-1 text-sm text-slate-600">
-                  <strong>Điều yêu thích:</strong> {review.whatILove}
-                </p>
-              ) : null}
-              {review.improvementSuggestion ? (
-                <p className="mt-1 text-sm text-slate-600">
-                  <strong>Đề xuất cải thiện:</strong> {review.improvementSuggestion}
-                </p>
-              ) : null}
-            </li>
-          ))}
+
+                {subRatingsList.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs sm:grid-cols-3">
+                    {subRatingsList.map(({ label, score }) => (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between gap-1 text-slate-600"
+                      >
+                        <span className="truncate">{label}:</span>
+                        <strong className="shrink-0 text-slate-900">{score}/5 ★</strong>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {review.whatILove ? (
+                  <div className="space-y-0.5 text-xs text-slate-700">
+                    <span className="font-bold text-emerald-700">💚 Điều yêu thích:</span>
+                    <p className="pl-4 text-slate-600">{review.whatILove}</p>
+                  </div>
+                ) : null}
+
+                {review.improvementSuggestion ? (
+                  <div className="space-y-0.5 text-xs text-slate-700">
+                    <span className="font-bold text-amber-700">💡 Đề xuất cải thiện:</span>
+                    <p className="pl-4 text-slate-600">{review.improvementSuggestion}</p>
+                  </div>
+                ) : null}
+
+                {review.overtimeReason ? (
+                  <div className="space-y-0.5 text-xs text-slate-700">
+                    <span className="font-bold text-slate-700">⏰ Ý kiến tăng ca (OT):</span>
+                    <p className="pl-4 text-slate-600">{review.overtimeReason}</p>
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       )}
 
