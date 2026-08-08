@@ -895,6 +895,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         id: job.id,
         title: job.title,
         company: job.company?.name || "UpNext Partner",
+        ...(job.company?.id ? { companyId: job.company.id } : {}),
         logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
         logoColor: "#10b981",
         verified: job.company?.verificationStatus === "VERIFIED",
@@ -1000,8 +1001,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         const matchesTitle = !titleFilter || job.title.toLowerCase() === titleFilter.toLowerCase();
         const matchesSkill =
           !skillFilter || job.tags.some((tag) => tag.toLowerCase() === skillFilter.toLowerCase());
-        const matchesCompany =
-          !companyFilter || job.company.toLowerCase() === companyFilter.toLowerCase();
+        const matchesCompany = !companyFilter || job.companyId === companyFilter;
         const matchesJobCategory =
           !jobCategoryFilter || job.categoryName?.toLowerCase() === jobCategoryFilter.toLowerCase();
         const matchesExpertise =
@@ -1270,11 +1270,16 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     };
   }, [showFilters]);
 
+  // `companyFilter` từ URL là companyId (UUID) — tra lại tên thật để hiển thị,
+  // vì người dùng bấm "Xem tất cả" từ trang công ty không nên thấy chuỗi UUID.
+  const companyFilterLabel =
+    jobs.find((job) => job.companyId === companyFilter)?.company ?? companyFilter;
+
   const activeSummary = [
     keyword.trim() ? `Từ khóa: ${keyword.trim()}` : "",
     titleFilter ? `Chức danh: ${titleFilter}` : "",
     skillFilter ? `Kỹ năng: ${skillFilter}` : "",
-    companyFilter ? `Công ty: ${companyFilter}` : "",
+    companyFilter ? `Công ty: ${companyFilterLabel}` : "",
     jobCategoryFilter ? `Danh mục: ${jobCategoryFilter}` : "",
     expertiseFilter ? `Chuyên môn: ${expertiseFilter}` : "",
     location !== ALL_LOCATIONS ? location : "",
