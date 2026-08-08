@@ -127,8 +127,17 @@ export function getApplicationAiScore(applicationId: string, token: string) {
   );
 }
 
-export function getApplicationCvUrl(applicationId: string) {
+export function getCvVersionDownloadUrl(cvVersionId: string) {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api/v1";
   const slash = baseUrl.endsWith("/") ? "" : "/";
-  return `${baseUrl}${slash}recruiter/applications/${applicationId}/cv`;
+  return `${baseUrl}${slash}cv-versions/${cvVersionId}/download`;
+}
+
+export function getApplicationCvUrl(applicationId: string, cvVersionId?: string) {
+  if (cvVersionId) {
+    return getCvVersionDownloadUrl(cvVersionId);
+  }
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api/v1";
+  const slash = baseUrl.endsWith("/") ? "" : "/";
+  return `${baseUrl}${slash}cv-versions/${applicationId}/download`;
 }

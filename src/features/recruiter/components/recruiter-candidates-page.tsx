@@ -329,7 +329,9 @@ export function RecruiterCandidatesPage() {
    */
   const resolveCvUrl = useCallback(
     (app: Application) =>
-      app.cvVersion?.fileUrl?.trim() ? app.cvVersion.fileUrl : getApplicationCvUrl(app.id),
+      app.cvVersion?.fileUrl?.trim()
+        ? app.cvVersion.fileUrl
+        : getApplicationCvUrl(app.id, app.cvVersion?.id),
     [],
   );
 
