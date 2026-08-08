@@ -92,14 +92,7 @@ export function getProfileReadiness(
   };
 }
 
-export function getInitials(fullName: string) {
-  const parts = fullName.trim().split(/\s+/u).filter(Boolean);
-
-  if (parts.length === 0) return "UN";
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-
-  return `${parts[0]![0] ?? ""}${parts.at(-1)?.[0] ?? ""}`.toUpperCase();
-}
+export { getInitials } from "@/shared/lib/name";
 
 export function splitTechnologies(value: string | null | undefined) {
   if (!value) return [];

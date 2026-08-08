@@ -8,7 +8,9 @@ import Swal from "sweetalert2";
 import { CompanyReviewFormDialog } from "@/features/candidate/company-reviews/review-form-dialog";
 import { useCandidateCompanyReview } from "@/features/candidate/company-reviews/use-candidate-company-review";
 import { getPublicCompanyReviews, type PublicCompanyReview } from "@/features/public/companies/api";
+import { promptReviewReport } from "@/features/recruiter/company-reviews/prompt-review-report";
 import { useRecruiterReviewReporter } from "@/features/recruiter/company-reviews/use-recruiter-review-reporter";
+import { ReviewerByline } from "@/shared/ui/reviewer-byline";
 import { toast } from "@/shared/ui/toast";
 
 const toastMixin = Swal.mixin({
@@ -90,20 +92,11 @@ export function CompanyReviewsSection({
   }
 
   async function handleReportReview(review: PublicCompanyReview) {
-    const result = await Swal.fire({
-      title: "Báo cáo đánh giá này",
-      input: "textarea",
-      inputLabel: "Lý do báo cáo",
-      inputPlaceholder: "Vì sao bạn cho rằng đánh giá này không phù hợp?",
-      showCancelButton: true,
-      confirmButtonText: "Gửi báo cáo",
-      cancelButtonText: "Hủy",
-      inputValidator: (value) => (!value ? "Vui lòng nhập lý do." : undefined),
-    });
-    if (!result.isConfirmed || !result.value) return;
+    const input = await promptReviewReport();
+    if (!input) return;
 
     try {
-      await recruiterReporter.report(review.id, result.value);
+      await recruiterReporter.report(review.id, input.reason, input.evidence);
       void toastMixin.fire({ icon: "success", title: "Đã gửi báo cáo tới quản trị viên." });
     } catch {
       void toastMixin.fire({ icon: "error", title: "Không thể gửi báo cáo. Vui lòng thử lại." });
@@ -163,14 +156,13 @@ export function CompanyReviewsSection({
         <ul className="flex flex-col gap-4">
           {items.map((review) => (
             <li key={review.id} className="rounded-xl border border-slate-200 p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                  <ReviewerByline
+                    fullName={review.reviewer.fullName}
+                    createdAt={review.createdAt}
+                  />
                   <StarDisplay value={review.overallRating} />
-                  <span className="text-xs text-slate-400">
-                    {new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(
-                      new Date(review.createdAt),
-                    )}
-                  </span>
                 </div>
                 {recruiterReporter.canReport ? (
                   <button

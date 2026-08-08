@@ -4,7 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
-import { reportCompanyReview } from "@/features/recruiter/company-reviews/api";
+import {
+  reportCompanyReview,
+  uploadReviewReportEvidence,
+} from "@/features/recruiter/company-reviews/api";
 import { getRecruiterSession, type RecruiterSession } from "@/features/recruiter/session";
 
 export function useRecruiterReviewReporter(companyId: string) {
@@ -24,9 +27,20 @@ export function useRecruiterReviewReporter(companyId: string) {
   const canReport = accountQuery.data?.company?.id === companyId;
 
   const reportMutation = useMutation({
-    mutationFn: ({ reviewId, reason }: { reviewId: string; reason: string }) => {
+    mutationFn: async ({
+      reviewId,
+      reason,
+      evidence,
+    }: {
+      reviewId: string;
+      reason: string;
+      evidence: File | null;
+    }) => {
       if (!session) throw new Error("Recruiter session is unavailable");
-      return reportCompanyReview(session.accessToken, reviewId, reason);
+      const evidenceFileId = evidence
+        ? (await uploadReviewReportEvidence(evidence, session.accessToken)).file.id
+        : undefined;
+      return reportCompanyReview(session.accessToken, reviewId, reason, evidenceFileId);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["public-company-reviews", companyId] });
@@ -36,7 +50,8 @@ export function useRecruiterReviewReporter(companyId: string) {
   return {
     canReport,
     isSessionResolved: session !== undefined,
-    report: (reviewId: string, reason: string) => reportMutation.mutateAsync({ reviewId, reason }),
+    report: (reviewId: string, reason: string, evidence: File | null = null) =>
+      reportMutation.mutateAsync({ reviewId, reason, evidence }),
     isReporting: reportMutation.isPending,
   };
 }

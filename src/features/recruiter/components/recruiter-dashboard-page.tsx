@@ -529,6 +529,7 @@ export function RecruiterDashboardPage() {
   const [reputationHistoryOpen, setReputationHistoryOpen] = useState(false);
   const [appealDialogOpen, setAppealDialogOpen] = useState(false);
   const [appealContent, setAppealContent] = useState("");
+  const [appealEvidence, setAppealEvidence] = useState<File | null>(null);
   const [appealSubmitting, setAppealSubmitting] = useState(false);
   const [latestAppeal, setLatestAppeal] = useState<Appeal | null>(null);
 
@@ -585,10 +586,18 @@ export function RecruiterDashboardPage() {
 
     try {
       setAppealSubmitting(true);
-      const appeal = await createAppeal({ content: appealContent.trim() }, token);
+      // APPEAL_EVIDENCE keeps the screenshot private — only admins ever open it.
+      const evidenceFileId = appealEvidence
+        ? (await uploadFile(appealEvidence, "APPEAL_EVIDENCE", "PRIVATE", token)).file.id
+        : undefined;
+      const appeal = await createAppeal(
+        { content: appealContent.trim(), ...(evidenceFileId ? { evidenceFileId } : {}) },
+        token,
+      );
       setLatestAppeal(appeal);
       setAppealDialogOpen(false);
       setAppealContent("");
+      setAppealEvidence(null);
       showToast("success", t("dashboard.restricted.appeal.success"));
     } catch (error) {
       showToast("error", getOnboardingErrorMessage(error, t));
@@ -1996,6 +2005,19 @@ export function RecruiterDashboardPage() {
               maxLength={2000}
               placeholder={t("dashboard.restricted.appeal.placeholder")}
               className="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+            />
+            <label
+              htmlFor="appeal-evidence"
+              className="mt-3 block text-xs font-semibold text-slate-600"
+            >
+              Ảnh bằng chứng (không bắt buộc)
+            </label>
+            <input
+              id="appeal-evidence"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(event) => setAppealEvidence(event.target.files?.[0] ?? null)}
+              className="mt-1 w-full text-sm text-slate-500 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:text-slate-700"
             />
             <button
               type="button"
