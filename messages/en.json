@@ -2324,6 +2324,18 @@
       },
       "messages": {
         "statusUpdateSuccess": "Application status updated successfully!"
+      },
+      "bulk": {
+        "selectedCount": "{count} candidates selected",
+        "clear": "Clear selection",
+        "changeStatus": "Change status",
+        "exportSelected": "Export Excel",
+        "confirmTitle": "Change status for {count} candidates?",
+        "confirmText": "Each candidate will be notified about moving to \"{status}\". This can't be undone with one click.",
+        "confirmButton": "Change status",
+        "cancelButton": "Cancel",
+        "successAll": "Updated {count} applications.",
+        "successPartial": "Updated {success}/{total} applications successfully. Some could not be changed."
       }
     }
   },
