@@ -268,8 +268,12 @@ export function RecruiterCandidatesPage() {
           throw new Error(`HTTP ${res.status}`);
         }
         const blob = await res.blob();
+        if (blob.size === 0) {
+          throw new Error("CV file is empty (0 bytes)");
+        }
         if (active) {
-          const blobUrl = URL.createObjectURL(blob);
+          const pdfBlob = new Blob([blob], { type: "application/pdf" });
+          const blobUrl = URL.createObjectURL(pdfBlob);
           setQuickViewBlobUrl(blobUrl);
         }
       } catch (err: any) {
@@ -325,7 +329,9 @@ export function RecruiterCandidatesPage() {
    */
   const resolveCvUrl = useCallback(
     (app: Application) =>
-      app.cvVersion?.fileUrl?.trim() ? app.cvVersion.fileUrl : getApplicationCvUrl(app.id),
+      app.cvVersion?.fileUrl?.trim()
+        ? app.cvVersion.fileUrl
+        : getApplicationCvUrl(app.id, app.cvVersion?.id),
     [],
   );
 
