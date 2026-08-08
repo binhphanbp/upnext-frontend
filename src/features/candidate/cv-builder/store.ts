@@ -13,6 +13,9 @@ import type {
   CvTargetJob,
 } from "./types";
 
+/** Các lần sửa cách nhau dưới ngần này được gộp thành một bước undo. */
+const HISTORY_COALESCE_MS = 800;
+
 const DEFAULT_SECTIONS: CvSectionKey[] = [
   "personal",
   "summary",
@@ -179,6 +182,8 @@ export interface CvBuilderState {
   draftSavedAt: string | null;
   past: CvData[];
   future: CvData[];
+  /** Không persist — chỉ dùng để gộp các lần gõ liên tiếp thành một bước undo. */
+  lastHistoryPushAt: number;
   undo: () => void;
   redo: () => void;
   updateCvData: (fn: (cvData: CvData) => CvData) => void;
@@ -219,18 +224,31 @@ export const useCvBuilderStore = create<CvBuilderState>()(
       draftSavedAt: null,
       past: [],
       future: [],
+      lastHistoryPushAt: 0,
 
       updateCvData: (update) => {
-        const { cvData, past } = get();
+        const { cvData, past, lastHistoryPushAt } = get();
         const previous = cloneCvData(cvData);
         const next = update(cvData);
         if (JSON.stringify(previous) === JSON.stringify(next)) return;
 
+        /**
+         * Gõ liên tục trong một ô văn bản (tóm tắt, mô tả kinh nghiệm...) gọi
+         * `updateCvData` ở mỗi ký tự. Nếu mỗi lần gọi đều đẩy một bước lịch sử
+         * mới, Ctrl+Z lùi đúng một ký tự — vô dụng với một đoạn văn dài. Trong
+         * cùng một đợt gõ (cách nhau dưới `HISTORY_COALESCE_MS`), chỉ giữ lại
+         * `previous` của lần đầu tiên trong đợt đó làm điểm undo; các lần gõ
+         * tiếp theo chỉ cập nhật `cvData`, không đẩy thêm bước lịch sử nào.
+         */
+        const now = Date.now();
+        const isSameBurst = past.length > 0 && now - lastHistoryPushAt < HISTORY_COALESCE_MS;
+
         set({
           cvData: next,
           draftSavedAt: new Date().toISOString(),
-          past: [...past, previous].slice(-60),
+          past: isSameBurst ? past : [...past, previous].slice(-60),
           future: [],
+          lastHistoryPushAt: now,
         });
       },
 
@@ -418,6 +436,7 @@ export const useCvBuilderStore = create<CvBuilderState>()(
           draftSavedAt: new Date().toISOString(),
           past: [],
           future: [],
+          lastHistoryPushAt: 0,
         }),
       clearCv: () =>
         get().updateCvData((cvData) => ({

@@ -744,6 +744,7 @@ function ExperienceEditor({
                       aria-invalid={Boolean(positionIssue && revealValidation)}
                       autoComplete="organization-title"
                       id={`experience-position-${experience.id}`}
+                      maxLength={150}
                       name={`experiences[${index}].positionTitle`}
                       onChange={(event) =>
                         updateExperience(experience.id, { positionTitle: event.target.value })
@@ -763,6 +764,7 @@ function ExperienceEditor({
                       aria-invalid={Boolean(companyIssue && revealValidation)}
                       autoComplete="organization"
                       id={`experience-company-${experience.id}`}
+                      maxLength={200}
                       name={`experiences[${index}].companyName`}
                       onChange={(event) =>
                         updateExperience(experience.id, { companyName: event.target.value })
@@ -930,6 +932,7 @@ function ProjectsEditor({
                   >
                     <Input
                       id={`project-name-${project.id}`}
+                      maxLength={200}
                       name={`projects[${index}].name`}
                       onChange={(event) => updateProject(project.id, { name: event.target.value })}
                       placeholder={t("projects.namePlaceholder")}
@@ -945,6 +948,7 @@ function ProjectsEditor({
                   >
                     <Input
                       id={`project-role-${project.id}`}
+                      maxLength={150}
                       name={`projects[${index}].role`}
                       onChange={(event) => updateProject(project.id, { role: event.target.value })}
                       placeholder={t("projects.rolePlaceholder")}
@@ -1099,6 +1103,7 @@ function EducationEditor({
                     <Input
                       autoComplete="organization"
                       id={`education-school-${education.id}`}
+                      maxLength={200}
                       name={`educations[${index}].schoolName`}
                       onChange={(event) =>
                         updateEducation(education.id, { schoolName: event.target.value })
@@ -1116,6 +1121,7 @@ function EducationEditor({
                   >
                     <Input
                       id={`education-degree-${education.id}`}
+                      maxLength={150}
                       name={`educations[${index}].degree`}
                       onChange={(event) =>
                         updateEducation(education.id, { degree: event.target.value })
@@ -1131,6 +1137,7 @@ function EducationEditor({
                   >
                     <Input
                       id={`education-major-${education.id}`}
+                      maxLength={150}
                       name={`educations[${index}].major`}
                       onChange={(event) =>
                         updateEducation(education.id, { major: event.target.value })
@@ -1140,11 +1147,13 @@ function EducationEditor({
                     />
                   </FormField>
                   <FormField
+                    error={getIssue(evaluation, `${prefix}.gpa`)}
                     id={`education-gpa-${education.id}`}
                     label={t("education.gpa")}
-                    showError={false}
+                    showError={Boolean(education.gpa)}
                   >
                     <Input
+                      aria-invalid={Boolean(getIssue(evaluation, `${prefix}.gpa`))}
                       id={`education-gpa-${education.id}`}
                       name={`educations[${index}].gpa`}
                       onChange={(event) =>
@@ -1761,6 +1770,10 @@ export function CandidateCvBuilder() {
   const [saveCvTitle, setSaveCvTitle] = useState("");
   const [saveCvError, setSaveCvError] = useState<string | null>(null);
   const [savingCv, setSavingCv] = useState(false);
+  // Đúng thời điểm ứng viên nghĩ mình "đã xong" (dialog hướng dẫn in) là chỗ
+  // duy nhất đáng tin cậy để nhắc: in/xuất PDF không tạo ra bản ghi CV nào cả —
+  // chỉ "Lưu CV" mới làm việc đó, và đó là thứ hệ thống ứng tuyển cần.
+  const [hasSavedCvThisSession, setHasSavedCvThisSession] = useState(false);
   const [exportDialog, setExportDialog] = useState<"closed" | "blocked" | "guide">("closed");
   const [revealValidation, setRevealValidation] = useState(false);
   const editorScrollRef = useRef<HTMLDivElement>(null);
@@ -1881,6 +1894,24 @@ export function CandidateCvBuilder() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  /**
+   * Bản nháp tự lưu vào localStorage đồng bộ nên không sao — cái duy nhất có
+   * thể mất là lượt "Lưu CV" đang gửi lên server (`saveSnapshotToUpNext`), một
+   * request bất đồng bộ không có gì cảnh báo trước đây nếu người dùng đóng tab
+   * giữa chừng. Theo đúng pattern đã dùng ở `profile-editor.tsx`.
+   */
+  useEffect(() => {
+    if (!savingCv) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [savingCv]);
+
   const requestProfileSync = async () => {
     setProfileNotice(null);
     if (profile) {
@@ -1950,6 +1981,7 @@ export function CandidateCvBuilder() {
         title,
       });
       setSaveCvDialogOpen(false);
+      setHasSavedCvThisSession(true);
       setProfileNotice(
         t(evaluation.exportReady ? "serverSave.success" : "serverSave.draftSuccess", { title }),
       );
@@ -2133,16 +2165,28 @@ export function CandidateCvBuilder() {
             <Trash /> <span>{t("resetShort")}</span>
           </Button>
           <Button
+            aria-label={t("export")}
+            className="cv-toolbar-secondary"
+            onClick={requestExport}
+            size="sm"
+            variant="outline"
+          >
+            <DownloadSimple /> <span>{t("export")}</span>
+          </Button>
+          {/*
+            Đây là nút DUY NHẤT tạo ra bản ghi CV mà hệ thống ứng tuyển dùng
+            được (xem `saveSnapshotToUpNext`) — "Export" chỉ gọi `window.print()`.
+            Trước đây "Export" là nút nổi bật nhất (variant mặc định) còn nút
+            này là outline, khiến ứng viên hoàn thành CV, bấm Export, in/lưu PDF
+            rồi tưởng đã xong — trong khi chưa có gì để đính kèm khi ứng tuyển.
+          */}
+          <Button
             aria-label={t("serverSave.button")}
             className="cv-toolbar-save"
             onClick={requestSaveToUpNext}
             size="sm"
-            variant="outline"
           >
             <CheckCircle /> <span>{t("serverSave.buttonShort")}</span>
-          </Button>
-          <Button onClick={requestExport} size="sm">
-            <DownloadSimple /> <span>{t("export")}</span>
           </Button>
         </div>
       </header>
@@ -2551,6 +2595,22 @@ export function CandidateCvBuilder() {
               <p>{t("pdfGuide.headerFooter")}</p>
             </li>
           </ol>
+          {hasSavedCvThisSession ? null : (
+            <div className="cv-print-guide-save-warning">
+              <WarningCircle aria-hidden="true" />
+              <p>{t("pdfGuide.notSavedWarning")}</p>
+              <Button
+                onClick={() => {
+                  setExportDialog("closed");
+                  requestSaveToUpNext();
+                }}
+                size="sm"
+                variant="outline"
+              >
+                <CheckCircle /> {t("serverSave.buttonShort")}
+              </Button>
+            </div>
+          )}
           <DialogFooter>
             <Button onClick={() => setExportDialog("closed")} variant="outline">
               {t("actions.cancel")}
