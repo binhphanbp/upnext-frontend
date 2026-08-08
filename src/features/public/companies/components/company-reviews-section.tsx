@@ -1,6 +1,6 @@
 "use client";
 
-import { Flag, Star } from "@phosphor-icons/react";
+import { CaretDown, Flag, Star } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import Swal from "sweetalert2";
@@ -10,6 +10,8 @@ import { useCandidateCompanyReview } from "@/features/candidate/company-reviews/
 import { getPublicCompanyReviews, type PublicCompanyReview } from "@/features/public/companies/api";
 import { promptReviewReport } from "@/features/recruiter/company-reviews/prompt-review-report";
 import { useRecruiterReviewReporter } from "@/features/recruiter/company-reviews/use-recruiter-review-reporter";
+import { cn } from "@/shared/lib/cn";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 import { ReviewerByline } from "@/shared/ui/reviewer-byline";
 import { toast } from "@/shared/ui/toast";
 
@@ -22,13 +24,37 @@ const toastMixin = Swal.mixin({
 });
 
 const SUB_RATING_LABELS: Record<string, string> = {
-  salaryBenefits: "Lương & phúc lợi",
+  salaryBenefits: "Lương thưởng & phúc lợi",
   trainingLearning: "Đào tạo & học hỏi",
-  managementCare: "Sự quan tâm của quản lý",
-  cultureFun: "Văn hóa & hoạt động",
-  officeWorkspace: "Văn phòng, không gian làm việc",
+  managementCare: "Sự quan tâm đến nhân viên",
+  cultureFun: "Văn hoá công ty",
+  officeWorkspace: "Văn phòng làm việc",
   overtimeSatisfaction: "Mức hài lòng về tăng ca",
 };
+
+function formatReviewDate(dateStr: string) {
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const months = [
+      "Tháng Một",
+      "Tháng Hai",
+      "Tháng Ba",
+      "Tháng Tư",
+      "Tháng Năm",
+      "Tháng Sáu",
+      "Tháng Bảy",
+      "Tháng Tám",
+      "Tháng Chín",
+      "Tháng Mười",
+      "Tháng Mười Một",
+      "Tháng Mười Hai",
+    ];
+    return `${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch {
+    return dateStr;
+  }
+}
 
 function StarDisplay({ value, size = 16 }: { value: number; size?: number }) {
   return (
@@ -40,6 +66,63 @@ function StarDisplay({ value, size = 16 }: { value: number; size?: number }) {
         <Star key={star} size={size} weight={star <= Math.round(value) ? "fill" : "regular"} />
       ))}
     </span>
+  );
+}
+
+function ReviewRatingPopover({
+  overallRating,
+  subRatings,
+}: {
+  overallRating: number;
+  subRatings: Array<{ label: string; score: number }>;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+          className="group inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-slate-100"
+          aria-label="Xem chi tiết điểm số"
+        >
+          <StarDisplay value={overallRating} size={18} />
+          <span className="text-sm font-bold text-slate-800">{overallRating}</span>
+          <CaretDown
+            size={14}
+            className="text-slate-500 transition-transform group-hover:text-slate-800"
+          />
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        className="w-80 rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 shadow-xl"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
+        <div className="flex flex-col">
+          {subRatings.map(({ label, score }, index) => (
+            <div
+              key={label}
+              className={cn(
+                "flex items-center justify-between py-2.5 text-xs text-slate-700",
+                index < subRatings.length - 1 && "border-b border-dashed border-slate-200",
+              )}
+            >
+              <span className="font-medium text-slate-800">{label}</span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <StarDisplay value={score} size={14} />
+                <span className="text-xs font-bold text-slate-900">{score}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -153,85 +236,91 @@ export function CompanyReviewsSection({
       ) : items.length === 0 ? (
         <p className="company-empty-copy">Chưa có đánh giá nào cho công ty này.</p>
       ) : (
-        <ul className="flex flex-col gap-4">
+        <ul className="flex flex-col gap-6">
           {items.map((review) => {
             const subRatingsList = [
-              { label: "Lương & phúc lợi", score: review.salaryBenefitsRating },
+              { label: "Lương thưởng & phúc lợi", score: review.salaryBenefitsRating },
               { label: "Đào tạo & học hỏi", score: review.trainingLearningRating },
-              { label: "Sự quan tâm của quản lý", score: review.managementCareRating },
-              { label: "Văn hóa & hoạt động", score: review.cultureFunRating },
+              { label: "Sự quan tâm đến nhân viên", score: review.managementCareRating },
+              { label: "Văn hoá công ty", score: review.cultureFunRating },
               { label: "Văn phòng làm việc", score: review.officeWorkspaceRating },
-              { label: "Mức hài lòng tăng ca", score: review.overtimeSatisfaction },
+              { label: "Mức hài lòng về tăng ca", score: review.overtimeSatisfaction },
             ].filter((item): item is { label: string; score: number } => Boolean(item.score));
+
+            const dateFormatted = formatReviewDate(review.createdAt);
 
             return (
               <li
                 key={review.id}
-                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs"
+                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                    <ReviewerByline
-                      fullName={review.reviewer.fullName}
-                      createdAt={review.createdAt}
-                    />
-                    <div className="flex items-center gap-1.5">
-                      <StarDisplay value={review.overallRating} size={16} />
-                      <span className="text-xs font-bold text-slate-800">
-                        {review.overallRating}/5 sao
-                      </span>
-                    </div>
+                {/* Date Header */}
+                <div className="flex items-center justify-between gap-3 text-xs font-medium text-slate-400">
+                  <span>{dateFormatted}</span>
+                  <div className="flex items-center gap-3">
+                    <ReviewerByline fullName={review.reviewer.fullName} createdAt="" />
+                    {recruiterReporter.canReport ? (
+                      <button
+                        type="button"
+                        className="company-review-report text-slate-400 transition-colors hover:text-rose-600"
+                        onClick={() => void handleReportReview(review)}
+                        disabled={recruiterReporter.isReporting}
+                      >
+                        <Flag size={14} /> Báo cáo
+                      </button>
+                    ) : null}
                   </div>
-                  {recruiterReporter.canReport ? (
-                    <button
-                      type="button"
-                      className="company-review-report"
-                      onClick={() => void handleReportReview(review)}
-                      disabled={recruiterReporter.isReporting}
-                    >
-                      <Flag size={14} /> Báo cáo
-                    </button>
-                  ) : null}
                 </div>
 
-                {review.summary ? (
-                  <p className="text-sm leading-relaxed font-semibold text-slate-900">
-                    {review.summary}
-                  </p>
-                ) : null}
+                {/* Title / Summary */}
+                <h3 className="text-base leading-snug font-bold text-slate-900 sm:text-lg">
+                  {review.summary || "Đánh giá về công ty"}
+                </h3>
 
-                {subRatingsList.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs sm:grid-cols-3">
-                    {subRatingsList.map(({ label, score }) => (
-                      <div
-                        key={label}
-                        className="flex items-center justify-between gap-1 text-slate-600"
-                      >
-                        <span className="truncate">{label}:</span>
-                        <strong className="shrink-0 text-slate-900">{score}/5 ★</strong>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
+                {/* Rating Line: Stars + 3 ∨ -> Hover Popover for sub-ratings */}
+                <div className="flex items-center gap-2">
+                  {subRatingsList.length > 0 ? (
+                    <ReviewRatingPopover
+                      overallRating={review.overallRating}
+                      subRatings={subRatingsList}
+                    />
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <StarDisplay value={review.overallRating} size={18} />
+                      <span className="text-sm font-bold text-slate-800">
+                        {review.overallRating}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
+                {/* What I Love */}
                 {review.whatILove ? (
-                  <div className="space-y-0.5 text-xs text-slate-700">
-                    <span className="font-bold text-emerald-700">💚 Điều yêu thích:</span>
-                    <p className="pl-4 text-slate-600">{review.whatILove}</p>
+                  <div className="space-y-1 pt-1 text-sm text-slate-800">
+                    <h4 className="font-bold text-slate-900">Điều tôi thích:</h4>
+                    <p className="leading-relaxed whitespace-pre-line text-slate-700">
+                      {review.whatILove}
+                    </p>
                   </div>
                 ) : null}
 
+                {/* Improvement Suggestion */}
                 {review.improvementSuggestion ? (
-                  <div className="space-y-0.5 text-xs text-slate-700">
-                    <span className="font-bold text-amber-700">💡 Đề xuất cải thiện:</span>
-                    <p className="pl-4 text-slate-600">{review.improvementSuggestion}</p>
+                  <div className="space-y-1 pt-1 text-sm text-slate-800">
+                    <h4 className="font-bold text-slate-900">Đề nghị cải thiện:</h4>
+                    <p className="leading-relaxed whitespace-pre-line text-slate-700">
+                      {review.improvementSuggestion}
+                    </p>
                   </div>
                 ) : null}
 
+                {/* Overtime Reason */}
                 {review.overtimeReason ? (
-                  <div className="space-y-0.5 text-xs text-slate-700">
-                    <span className="font-bold text-slate-700">⏰ Ý kiến tăng ca (OT):</span>
-                    <p className="pl-4 text-slate-600">{review.overtimeReason}</p>
+                  <div className="space-y-1 pt-1 text-sm text-slate-800">
+                    <h4 className="font-bold text-slate-900">Ý kiến về tăng ca (OT):</h4>
+                    <p className="leading-relaxed whitespace-pre-line text-slate-700">
+                      {review.overtimeReason}
+                    </p>
                   </div>
                 ) : null}
               </li>
