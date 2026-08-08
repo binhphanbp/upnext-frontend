@@ -258,7 +258,10 @@ export function CompanyReviewsSection({
                 <div className="flex items-center justify-between gap-3 text-xs font-medium text-slate-400">
                   <span>{dateFormatted}</span>
                   <div className="flex items-center gap-3">
-                    <ReviewerByline fullName={review.reviewer.fullName} createdAt="" />
+                    <ReviewerByline
+                      fullName={review.reviewer.fullName}
+                      createdAt={review.createdAt}
+                    />
                     {recruiterReporter.canReport ? (
                       <button
                         type="button"

@@ -4,7 +4,7 @@ import { getInitials } from "@/shared/lib/name";
 type ReviewerBylineProps = {
   fullName: string;
   /** ISO date the review was written. */
-  createdAt: string;
+  createdAt?: string;
   className?: string;
 };
 
@@ -14,6 +14,17 @@ type ReviewerBylineProps = {
  * initials stand in for one.
  */
 export function ReviewerByline({ fullName, createdAt, className }: ReviewerBylineProps) {
+  const formattedDate = (() => {
+    if (!createdAt) return null;
+    const d = new Date(createdAt);
+    if (isNaN(d.getTime())) return createdAt;
+    try {
+      return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(d);
+    } catch {
+      return createdAt;
+    }
+  })();
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <span
@@ -24,9 +35,9 @@ export function ReviewerByline({ fullName, createdAt, className }: ReviewerBylin
       </span>
       <span className="min-w-0">
         <span className="block truncate text-sm font-semibold text-slate-800">{fullName}</span>
-        <span className="block text-xs text-slate-400">
-          {new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(new Date(createdAt))}
-        </span>
+        {formattedDate ? (
+          <span className="block text-xs text-slate-400">{formattedDate}</span>
+        ) : null}
       </span>
     </div>
   );
