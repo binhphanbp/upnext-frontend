@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretDown, Flag, Star } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, Flag, Star } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import Swal from "sweetalert2";
@@ -126,6 +126,115 @@ function ReviewRatingPopover({
   );
 }
 
+function ReviewCardItem({
+  review,
+  recruiterReporter,
+  onReportReview,
+}: {
+  review: PublicCompanyReview;
+  recruiterReporter: ReturnType<typeof useRecruiterReviewReporter>;
+  onReportReview: (review: PublicCompanyReview) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const subRatingsList = [
+    { label: "Lương thưởng & phúc lợi", score: review.salaryBenefitsRating },
+    { label: "Đào tạo & học hỏi", score: review.trainingLearningRating },
+    { label: "Sự quan tâm đến nhân viên", score: review.managementCareRating },
+    { label: "Văn hoá công ty", score: review.cultureFunRating },
+    { label: "Văn phòng làm việc", score: review.officeWorkspaceRating },
+    { label: "Mức hài lòng về tăng ca", score: review.overtimeSatisfaction },
+  ].filter((item): item is { label: string; score: number } => Boolean(item.score));
+
+  const hasExtraContent = Boolean(
+    review.whatILove || review.improvementSuggestion || review.overtimeReason,
+  );
+
+  const dateFormatted = formatReviewDate(review.createdAt);
+
+  return (
+    <li className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs transition-all">
+      {/* Date Header */}
+      <div className="flex items-center justify-between gap-3 text-xs font-medium text-slate-400">
+        <span>{dateFormatted}</span>
+        <div className="flex items-center gap-3">
+          <ReviewerByline fullName={review.reviewer.fullName} createdAt={review.createdAt} />
+        </div>
+      </div>
+
+      {/* Title / Summary */}
+      <h3 className="text-base leading-snug font-bold text-slate-900 sm:text-lg">
+        {review.summary || "Đánh giá về công ty"}
+      </h3>
+
+      {/* Rating Line: Stars + 3 ∨ -> Hover Popover for sub-ratings */}
+      <div className="flex items-center gap-2">
+        {subRatingsList.length > 0 ? (
+          <ReviewRatingPopover overallRating={review.overallRating} subRatings={subRatingsList} />
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <StarDisplay value={review.overallRating} size={18} />
+            <span className="text-sm font-bold text-slate-800">{review.overallRating}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Collapsible Detailed Text Sections */}
+      {expanded && hasExtraContent ? (
+        <div className="space-y-3 border-t border-slate-100 pt-2">
+          {review.whatILove ? (
+            <div className="space-y-1 text-sm text-slate-800">
+              <h4 className="font-bold text-slate-900">Điều tôi thích:</h4>
+              <p className="leading-relaxed whitespace-pre-line text-slate-700">
+                {review.whatILove}
+              </p>
+            </div>
+          ) : null}
+
+          {review.improvementSuggestion ? (
+            <div className="space-y-1 text-sm text-slate-800">
+              <h4 className="font-bold text-slate-900">Đề nghị cải thiện:</h4>
+              <p className="leading-relaxed whitespace-pre-line text-slate-700">
+                {review.improvementSuggestion}
+              </p>
+            </div>
+          ) : null}
+
+          {review.overtimeReason ? (
+            <div className="space-y-1 text-sm text-slate-800">
+              <h4 className="font-bold text-slate-900">Ý kiến về tăng ca (OT):</h4>
+              <p className="leading-relaxed whitespace-pre-line text-slate-700">
+                {review.overtimeReason}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* "Xem thêm" / "Thu gọn" Toggle Button */}
+      {hasExtraContent ? (
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            className="inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-emerald-600 transition-colors hover:text-emerald-700"
+          >
+            {expanded ? (
+              <>
+                Thu gọn <CaretUp size={13} weight="bold" />
+              </>
+            ) : (
+              <>
+                Xem thêm <CaretDown size={13} weight="bold" />
+              </>
+            )}
+          </button>
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
 export function CompanyReviewsSection({
   companyId,
   companyName,
@@ -237,98 +346,14 @@ export function CompanyReviewsSection({
         <p className="company-empty-copy">Chưa có đánh giá nào cho công ty này.</p>
       ) : (
         <ul className="flex flex-col gap-6">
-          {items.map((review) => {
-            const subRatingsList = [
-              { label: "Lương thưởng & phúc lợi", score: review.salaryBenefitsRating },
-              { label: "Đào tạo & học hỏi", score: review.trainingLearningRating },
-              { label: "Sự quan tâm đến nhân viên", score: review.managementCareRating },
-              { label: "Văn hoá công ty", score: review.cultureFunRating },
-              { label: "Văn phòng làm việc", score: review.officeWorkspaceRating },
-              { label: "Mức hài lòng về tăng ca", score: review.overtimeSatisfaction },
-            ].filter((item): item is { label: string; score: number } => Boolean(item.score));
-
-            const dateFormatted = formatReviewDate(review.createdAt);
-
-            return (
-              <li
-                key={review.id}
-                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs"
-              >
-                {/* Date Header */}
-                <div className="flex items-center justify-between gap-3 text-xs font-medium text-slate-400">
-                  <span>{dateFormatted}</span>
-                  <div className="flex items-center gap-3">
-                    <ReviewerByline
-                      fullName={review.reviewer.fullName}
-                      createdAt={review.createdAt}
-                    />
-                    {recruiterReporter.canReport ? (
-                      <button
-                        type="button"
-                        className="company-review-report text-slate-400 transition-colors hover:text-rose-600"
-                        onClick={() => void handleReportReview(review)}
-                        disabled={recruiterReporter.isReporting}
-                      >
-                        <Flag size={14} /> Báo cáo
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-
-                {/* Title / Summary */}
-                <h3 className="text-base leading-snug font-bold text-slate-900 sm:text-lg">
-                  {review.summary || "Đánh giá về công ty"}
-                </h3>
-
-                {/* Rating Line: Stars + 3 ∨ -> Hover Popover for sub-ratings */}
-                <div className="flex items-center gap-2">
-                  {subRatingsList.length > 0 ? (
-                    <ReviewRatingPopover
-                      overallRating={review.overallRating}
-                      subRatings={subRatingsList}
-                    />
-                  ) : (
-                    <div className="flex items-center gap-1.5">
-                      <StarDisplay value={review.overallRating} size={18} />
-                      <span className="text-sm font-bold text-slate-800">
-                        {review.overallRating}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* What I Love */}
-                {review.whatILove ? (
-                  <div className="space-y-1 pt-1 text-sm text-slate-800">
-                    <h4 className="font-bold text-slate-900">Điều tôi thích:</h4>
-                    <p className="leading-relaxed whitespace-pre-line text-slate-700">
-                      {review.whatILove}
-                    </p>
-                  </div>
-                ) : null}
-
-                {/* Improvement Suggestion */}
-                {review.improvementSuggestion ? (
-                  <div className="space-y-1 pt-1 text-sm text-slate-800">
-                    <h4 className="font-bold text-slate-900">Đề nghị cải thiện:</h4>
-                    <p className="leading-relaxed whitespace-pre-line text-slate-700">
-                      {review.improvementSuggestion}
-                    </p>
-                  </div>
-                ) : null}
-
-                {/* Overtime Reason */}
-                {review.overtimeReason ? (
-                  <div className="space-y-1 pt-1 text-sm text-slate-800">
-                    <h4 className="font-bold text-slate-900">Ý kiến về tăng ca (OT):</h4>
-                    <p className="leading-relaxed whitespace-pre-line text-slate-700">
-                      {review.overtimeReason}
-                    </p>
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
+          {items.map((review) => (
+            <ReviewCardItem
+              key={review.id}
+              review={review}
+              recruiterReporter={recruiterReporter}
+              onReportReview={handleReportReview}
+            />
+          ))}
         </ul>
       )}
 
