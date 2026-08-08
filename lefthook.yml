@@ -11,8 +11,7 @@ pre-commit:
       run: pnpm test
 
 pre-push:
-  base: origin/develop
-  files: git ls-files
+  files: git diff --name-only HEAD origin/develop
   jobs:
     - name: verify
       run: pnpm verify
