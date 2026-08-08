@@ -31,6 +31,7 @@ import {
   Wrench,
 } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import {
   cloneElement,
   isValidElement,
@@ -44,7 +45,9 @@ import {
 } from "react";
 
 import {
+  createCandidateBuilderVersion,
   createCandidateCv,
+  getCandidateCv,
   getMyCandidateProfile,
   type CandidateProfileApi,
 } from "@/features/candidate/api/profile";
@@ -65,7 +68,12 @@ import { Label } from "@/shared/ui/label";
 
 import { CvPreview } from "./cv-preview";
 import { evaluateCv, isCvEmpty, mapProfileToCvData, toPlainText } from "./logic";
-import { createInitialCvData, getCvBuilderStorageKey, useCvBuilderStore } from "./store";
+import {
+  createInitialCvData,
+  getCvBuilderStorageKey,
+  parseCvSnapshot,
+  useCvBuilderStore,
+} from "./store";
 import type {
   CvData,
   CvEditorSectionKey,
@@ -130,6 +138,8 @@ function createCvSnapshotText(cvData: CvData) {
     ].join("\n"),
   );
 }
+
+type SavedBuilderCv = Readonly<{ id: string; title: string; version: number }>;
 
 const EDITOR_SEQUENCE: CvEditorSectionKey[] = [
   "targeting",
@@ -1753,6 +1763,8 @@ export function CandidateCvBuilder() {
   const t = useTranslations("CvBuilder");
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedCvId = searchParams.get("cvId");
   const { cvData, draftSavedAt, past, future, clearCv, redo, setCvData, undo } =
     useCvBuilderStore();
   const [activeSection, setActiveSection] = useState<CvEditorSectionKey>("targeting");
@@ -1770,6 +1782,8 @@ export function CandidateCvBuilder() {
   const [saveCvTitle, setSaveCvTitle] = useState("");
   const [saveCvError, setSaveCvError] = useState<string | null>(null);
   const [savingCv, setSavingCv] = useState(false);
+  const [savedBuilderCv, setSavedBuilderCv] = useState<SavedBuilderCv | null>(null);
+  const [savedSnapshotSignature, setSavedSnapshotSignature] = useState<string | null>(null);
   // Đúng thời điểm ứng viên nghĩ mình "đã xong" (dialog hướng dẫn in) là chỗ
   // duy nhất đáng tin cậy để nhắc: in/xuất PDF không tạo ra bản ghi CV nào cả —
   // chỉ "Lưu CV" mới làm việc đó, và đó là thứ hệ thống ứng tuyển cần.
@@ -1780,6 +1794,10 @@ export function CandidateCvBuilder() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewViewportRef = useRef<HTMLDivElement>(null);
   const evaluation = useMemo(() => evaluateCv(cvData), [cvData]);
+  const snapshotSignature = useMemo(() => JSON.stringify(cvData), [cvData]);
+  const hasUnsyncedServerChanges = Boolean(
+    savedBuilderCv && savedSnapshotSignature !== snapshotSignature,
+  );
 
   const measurePreview = useCallback(() => {
     const element = previewRef.current;
@@ -1847,14 +1865,42 @@ export function CandidateCvBuilder() {
       setAuthReady(true);
 
       try {
-        const candidateProfile = await getMyCandidateProfile(session.accessToken);
+        const [candidateProfile, requestedCv] = await Promise.all([
+          getMyCandidateProfile(session.accessToken),
+          requestedCvId
+            ? getCandidateCv(session.accessToken, requestedCvId)
+            : Promise.resolve(null),
+        ]);
         if (cancelled) return;
         setProfile(candidateProfile);
-        const currentDraft = useCvBuilderStore.getState().cvData;
-        if (isCvEmpty(currentDraft)) {
+        if (requestedCv) {
+          if (requestedCv.source !== "BUILDER") {
+            setProfileNotice(t("serverSave.uploadedCvNotEditable"));
+          } else {
+            const latestVersion = [...requestedCv.versions].sort(
+              (left, right) =>
+                right.versionNo - left.versionNo ||
+                new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+            )[0];
+            const snapshot = latestVersion ? parseCvSnapshot(latestVersion.contentJson) : null;
+            if (snapshot) {
+              useCvBuilderStore.getState().setCvData(snapshot);
+              setSavedBuilderCv({
+                id: requestedCv.id,
+                title: requestedCv.title,
+                version: requestedCv.version,
+              });
+              setSavedSnapshotSignature(JSON.stringify(snapshot));
+            } else {
+              setProfileNotice(t("serverSave.builderSnapshotMissing"));
+            }
+          }
+        } else if (isCvEmpty(useCvBuilderStore.getState().cvData)) {
           useCvBuilderStore
             .getState()
-            .hydrateCvData(mapProfileToCvData(candidateProfile, currentDraft));
+            .hydrateCvData(
+              mapProfileToCvData(candidateProfile, useCvBuilderStore.getState().cvData),
+            );
         }
       } catch {
         // A local draft remains fully usable when the optional profile request is unavailable.
@@ -1865,7 +1911,7 @@ export function CandidateCvBuilder() {
     return () => {
       cancelled = true;
     };
-  }, [locale, router]);
+  }, [locale, requestedCvId, router, t]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1901,7 +1947,7 @@ export function CandidateCvBuilder() {
    * giữa chừng. Theo đúng pattern đã dùng ở `profile-editor.tsx`.
    */
   useEffect(() => {
-    if (!savingCv) return;
+    if (!savingCv && !hasUnsyncedServerChanges) return;
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
@@ -1910,7 +1956,7 @@ export function CandidateCvBuilder() {
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [savingCv]);
+  }, [hasUnsyncedServerChanges, savingCv]);
 
   const requestProfileSync = async () => {
     setProfileNotice(null);
@@ -1952,6 +1998,10 @@ export function CandidateCvBuilder() {
   };
 
   const requestSaveToUpNext = () => {
+    if (savedBuilderCv) {
+      void saveSnapshotToUpNext();
+      return;
+    }
     const role = cvData.targetJob.role.trim() || cvData.personalInfo.title.trim();
     const company = cvData.targetJob.company.trim();
     setSaveCvTitle([role || t("serverSave.defaultTitle"), company].filter(Boolean).join(" · "));
@@ -1961,7 +2011,7 @@ export function CandidateCvBuilder() {
 
   const saveSnapshotToUpNext = async () => {
     const session = getCandidateSession();
-    const title = saveCvTitle.trim();
+    const title = (savedBuilderCv?.title ?? saveCvTitle).trim();
     if (!session) {
       router.replace("/login");
       return;
@@ -1972,16 +2022,30 @@ export function CandidateCvBuilder() {
     setSaveCvError(null);
     setProfileNotice(null);
     try {
-      await createCandidateCv(session.accessToken, {
-        contentJson: cvData as unknown as Record<string, unknown>,
-        isDefault: false,
-        parsedText: createCvSnapshotText(cvData),
-        source: "BUILDER",
-        status: evaluation.exportReady ? "ACTIVE" : "DRAFT",
-        title,
-      });
+      const status = evaluation.exportReady ? "ACTIVE" : "DRAFT";
+      if (savedBuilderCv) {
+        const saved = await createCandidateBuilderVersion(session.accessToken, savedBuilderCv.id, {
+          contentJson: cvData as unknown as Record<string, unknown>,
+          parsedText: createCvSnapshotText(cvData),
+          status,
+          title,
+          expectedVersion: savedBuilderCv.version,
+        });
+        setSavedBuilderCv({ id: saved.cv.id, title: saved.cv.title, version: saved.cv.version });
+      } else {
+        const saved = await createCandidateCv(session.accessToken, {
+          contentJson: cvData as unknown as Record<string, unknown>,
+          isDefault: status === "ACTIVE",
+          parsedText: createCvSnapshotText(cvData),
+          source: "BUILDER",
+          status,
+          title,
+        });
+        setSavedBuilderCv({ id: saved.id, title: saved.title, version: saved.version });
+      }
       setSaveCvDialogOpen(false);
       setHasSavedCvThisSession(true);
+      setSavedSnapshotSignature(snapshotSignature);
       setProfileNotice(
         t(evaluation.exportReady ? "serverSave.success" : "serverSave.draftSuccess", { title }),
       );
@@ -2595,7 +2659,7 @@ export function CandidateCvBuilder() {
               <p>{t("pdfGuide.headerFooter")}</p>
             </li>
           </ol>
-          {hasSavedCvThisSession ? null : (
+          {hasSavedCvThisSession && !hasUnsyncedServerChanges ? null : (
             <div className="cv-print-guide-save-warning">
               <WarningCircle aria-hidden="true" />
               <p>{t("pdfGuide.notSavedWarning")}</p>

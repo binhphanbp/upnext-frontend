@@ -111,9 +111,12 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
     await route.fulfill({
       body: JSON.stringify({
         id: "cv-builder-e2e",
+        isDefault: true,
         source: "BUILDER",
         status: "ACTIVE",
         title: "Frontend Developer · UpNext",
+        updatedAt: "2026-08-08T00:00:00.000Z",
+        version: 1,
       }),
       contentType: "application/json",
       status: 201,
@@ -144,7 +147,7 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
   if (!snapshot) throw new Error("Expected one CV snapshot request");
 
   expect(snapshot).toMatchObject({
-    isDefault: false,
+    isDefault: true,
     source: "BUILDER",
     status: "ACTIVE",
     title: "Frontend Developer · UpNext",
@@ -174,9 +177,12 @@ test("keeps unfinished work available across devices as a server-side draft", as
     await route.fulfill({
       body: JSON.stringify({
         id: "cv-builder-draft-e2e",
+        isDefault: false,
         source: "BUILDER",
         status: "DRAFT",
         title: "Frontend draft",
+        updatedAt: "2026-08-08T00:00:00.000Z",
+        version: 1,
       }),
       contentType: "application/json",
       status: 201,
@@ -194,6 +200,78 @@ test("keeps unfinished work available across devices as a server-side draft", as
   ).toBeVisible();
   await expect.poll(() => snapshots).toHaveLength(1);
   expect(snapshots[0]).toMatchObject({ source: "BUILDER", status: "DRAFT" });
+});
+
+test("opens a saved Builder CV and creates a new immutable version when saving edits", async ({
+  page,
+}) => {
+  const savedVersions: Record<string, unknown>[] = [];
+  await page.route("**/cvs/existing-builder", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        id: "existing-builder",
+        isDefault: true,
+        source: "BUILDER",
+        status: "ACTIVE",
+        title: "Frontend CV",
+        updatedAt: "2026-08-08T00:00:00.000Z",
+        version: 4,
+        versions: [
+          {
+            contentJson: {
+              personalInfo: {
+                address: "Hà Nội",
+                email: "minhanh@example.com",
+                fullName: "Nguyễn Minh Anh",
+                phoneNumber: "0901234567",
+                title: "Frontend Developer",
+                website: "",
+              },
+            },
+            createdAt: "2026-08-08T00:00:00.000Z",
+            id: "existing-version-4",
+            sourceFile: null,
+            sourceFileId: null,
+            versionNo: 4,
+          },
+        ],
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+  await page.route("**/cvs/existing-builder/builder-versions", async (route) => {
+    savedVersions.push(route.request().postDataJSON() as Record<string, unknown>);
+    await route.fulfill({
+      body: JSON.stringify({
+        cv: {
+          id: "existing-builder",
+          isDefault: true,
+          status: "ACTIVE",
+          title: "Frontend CV",
+          updatedAt: "2026-08-08T00:00:00.000Z",
+          version: 5,
+        },
+        version: {
+          createdAt: "2026-08-08T00:00:00.000Z",
+          id: "existing-version-5",
+          sourceFile: null,
+          sourceFileId: null,
+          versionNo: 5,
+        },
+      }),
+      contentType: "application/json",
+      status: 201,
+    });
+  });
+
+  await page.goto("/vi/candidate/cv-builder?cvId=existing-builder");
+  await page.getByRole("button", { name: /^Thông tin/ }).click();
+  await page.getByLabel("Họ và tên").fill("Nguyễn Minh Anh Updated");
+  await page.getByRole("button", { name: "Lưu bản CV vào UpNext" }).click();
+
+  await expect.poll(() => savedVersions).toHaveLength(1);
+  expect(savedVersions[0]).toMatchObject({ expectedVersion: 4 });
 });
 
 test("takes a reviewer directly to the first field that needs attention", async ({ page }) => {

@@ -236,11 +236,14 @@ export type CandidateCvApi = Readonly<{
   source: string;
   status: string;
   isDefault: boolean;
+  /** Optimistic-concurrency version of the logical CV. */
+  version: number;
   createdAt: string;
   updatedAt: string;
   versions: Array<{
     id: string;
     sourceFileId: string | null;
+    versionNo: number;
     contentJson?: unknown | null;
     parsedText?: string | null;
     createdAt: string;
@@ -660,6 +663,10 @@ export function getMyCandidateCvs(token: string, page = 1, limit = 100) {
   });
 }
 
+export function getCandidateCv(token: string, cvId: string) {
+  return apiRequest<CandidateCvApi>(`/cvs/${cvId}`, { headers: authHeaders(token) });
+}
+
 /**
  * Fetches a protected CV file after the API authorizes the candidate.
  * `sourceFile.publicUrl` is intentionally not used because uploaded CVs are
@@ -916,6 +923,33 @@ export function createCandidateCv(
   },
 ) {
   return apiRequest<CandidateCvApi>("/cvs", {
+    body: JSON.stringify(payload),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+}
+
+export type CreateBuilderCvVersionResponse = Readonly<{
+  cv: Pick<CandidateCvApi, "id" | "title" | "status" | "isDefault" | "version" | "updatedAt">;
+  version: CandidateCvApi["versions"][number];
+}>;
+
+/** Saves the current Builder document as a new immutable CV version. */
+export function createCandidateBuilderVersion(
+  token: string,
+  cvId: string,
+  payload: {
+    contentJson: Record<string, unknown>;
+    parsedText: string;
+    title?: string;
+    status: "DRAFT" | "ACTIVE";
+    expectedVersion: number;
+  },
+) {
+  return apiRequest<CreateBuilderCvVersionResponse>(`/cvs/${cvId}/builder-versions`, {
     body: JSON.stringify(payload),
     headers: {
       ...authHeaders(token),
