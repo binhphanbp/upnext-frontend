@@ -732,6 +732,7 @@ export function InterviewDetailPage({ interviewId }: InterviewDetailPageProps) {
         initialValues={{
           applicationId: interview.applicationId,
           interviewRound: interview.interviewRound + 1,
+          jobId: interview.application?.jobPost.id,
         }}
         lockApplication
         onScheduled={() => {
