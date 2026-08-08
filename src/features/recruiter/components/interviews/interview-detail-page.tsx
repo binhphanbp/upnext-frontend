@@ -26,6 +26,8 @@ import {
   updateInterviewResult,
   type InterviewResult,
 } from "@/features/recruiter/api/interviews";
+import { updateApplicationStatus } from "@/features/recruiter/api/team";
+import { SendOfferDialog } from "@/features/recruiter/components/send-offer-dialog";
 import {
   useRecruiterInterviewDetail,
   useRecruiterInterviews,
@@ -74,6 +76,7 @@ export function InterviewDetailPage({ interviewId }: InterviewDetailPageProps) {
   const [actionMode, setActionMode] = useState<ActionMode>("none");
   const [jobs, setJobs] = useState<RecruiterJobPost[]>([]);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [offerOpen, setOfferOpen] = useState(false);
 
   // Form states
   const [startAt, setStartAt] = useState("");
@@ -671,7 +674,7 @@ export function InterviewDetailPage({ interviewId }: InterviewDetailPageProps) {
             </Card>
           )}
 
-          {/* Schedule Next Round */}
+          {/* Post-Interview Actions (Send Offer & Schedule Next Round) */}
           {isClosed &&
             interview.result === "PASSED" &&
             (() => {
@@ -679,44 +682,65 @@ export function InterviewDetailPage({ interviewId }: InterviewDetailPageProps) {
               const nextRoundInterview = siblingInterviews?.find(
                 (iv) => iv.interviewRound === nextRound && iv.status !== "CANCELLED",
               );
-              return !nextRoundInterview ? (
-                <Card className="border-emerald-200 bg-emerald-50/30 shadow-none">
-                  <CardContent className="p-5">
-                    <Button
-                      className="w-full justify-start bg-emerald-600 text-white hover:bg-emerald-700"
-                      onClick={() => setScheduleOpen(true)}
-                    >
-                      {t("interviews.actions.scheduleNextRound")}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border-blue-100 shadow-none">
-                  <CardContent className="space-y-3 p-5">
-                    <div className="flex items-start gap-3">
-                      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600">
-                        <CalendarCheck size={18} weight="fill" />
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-700">
-                          {locale === "vi"
-                            ? `Vòng ${nextRound} đã được lên lịch`
-                            : `Round ${nextRound} scheduled`}
-                        </p>
-                        <p className="mt-0.5 text-xs leading-5 text-slate-400">
-                          {new Date(nextRoundInterview.scheduledStartAt).toLocaleString(
-                            locale === "vi" ? "vi-VN" : "en-US",
-                            { dateStyle: "medium", timeStyle: "short" },
-                          )}
-                        </p>
+              return (
+                <Card className="border-slate-200 bg-white shadow-none">
+                  <CardContent className="space-y-2.5 p-4">
+                    {/* Offer Button States */}
+                    {interview.application?.status === "HIRED" ? (
+                      <div className="flex h-11 items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 text-xs font-extrabold text-emerald-700">
+                        <CheckCircle size={16} weight="bold" />
+                        {locale === "vi" ? "Ứng viên đã nhận việc" : "Candidate Hired"}
                       </div>
-                    </div>
-                    <Link
-                      href={`/recruiter/interviews/${nextRoundInterview.id}`}
-                      className="inline-flex h-9 w-full items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
-                    >
-                      {locale === "vi" ? `Đi đến vòng ${nextRound}` : `Go to round ${nextRound}`}
-                    </Link>
+                    ) : interview.application?.status === "OFFERED" ? (
+                      <div className="flex h-11 cursor-not-allowed items-center justify-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 text-xs font-bold text-amber-800 opacity-90">
+                        <CheckCircle size={16} className="text-amber-600" weight="bold" />
+                        {locale === "vi" ? "Đã gửi đề nghị tuyển dụng" : "Offer Already Sent"}
+                      </div>
+                    ) : (
+                      <Button
+                        className="h-11 w-full rounded-full bg-amber-600 px-4 text-sm font-bold text-white shadow-none transition-colors hover:bg-amber-700"
+                        onClick={() => setOfferOpen(true)}
+                      >
+                        {locale === "vi" ? "Gửi đề nghị việc làm" : "Send Job Offer"}
+                      </Button>
+                    )}
+                    {!nextRoundInterview ? (
+                      <Button
+                        className="h-11 w-full rounded-full bg-emerald-600 px-4 text-sm font-bold text-white shadow-none transition-colors hover:bg-emerald-700"
+                        onClick={() => setScheduleOpen(true)}
+                      >
+                        {t("interviews.actions.scheduleNextRound")}
+                      </Button>
+                    ) : (
+                      <div className="space-y-2 border-t border-slate-100 pt-2">
+                        <div className="flex items-start gap-2.5">
+                          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600">
+                            <CalendarCheck size={16} weight="fill" />
+                          </span>
+                          <div>
+                            <p className="text-xs font-semibold text-slate-700">
+                              {locale === "vi"
+                                ? `Vòng ${nextRound} đã được lên lịch`
+                                : `Round ${nextRound} scheduled`}
+                            </p>
+                            <p className="text-[11px] leading-4 text-slate-400">
+                              {new Date(nextRoundInterview.scheduledStartAt).toLocaleString(
+                                locale === "vi" ? "vi-VN" : "en-US",
+                                { dateStyle: "medium", timeStyle: "short" },
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <Link
+                          href={`/recruiter/interviews/${nextRoundInterview.id}`}
+                          className="inline-flex h-8 w-full items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                        >
+                          {locale === "vi"
+                            ? `Đi đến vòng ${nextRound}`
+                            : `Go to round ${nextRound}`}
+                        </Link>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -736,6 +760,20 @@ export function InterviewDetailPage({ interviewId }: InterviewDetailPageProps) {
         }}
         lockApplication
         onScheduled={() => {
+          invalidateAll();
+        }}
+      />
+
+      <SendOfferDialog
+        open={offerOpen}
+        onOpenChange={setOfferOpen}
+        applicationId={interview.applicationId}
+        candidateName={candidateName}
+        jobTitle={jobTitle}
+        onConfirmOffer={async (appId, offerDetails) => {
+          if (!token) return;
+          const payloadStr = JSON.stringify(offerDetails);
+          await updateApplicationStatus(appId, "OFFERED", token, payloadStr);
           invalidateAll();
         }}
       />
