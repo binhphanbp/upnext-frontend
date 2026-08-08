@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowClockwise } from "@phosphor-icons/react";
+import { ArrowClockwise, Flag } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useRef } from "react";
@@ -9,6 +9,8 @@ import type { ReactNode } from "react";
 import { checkAppliedJob } from "@/features/candidate/api/profile";
 import { useCandidateCompanyFollows } from "@/features/candidate/company-follows";
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
+import { ReportDialog } from "@/features/candidate/reports/report-dialog";
+import { useCandidateReportStatus } from "@/features/candidate/reports/use-candidate-report-status";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { formatRelativeTime } from "@/shared/lib/date";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
@@ -396,6 +398,8 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
   const isWithdrawn = appliedData?.status === "WITHDRAWN";
   const hasApplied = appliedData?.applied === true && !isWithdrawn;
   const [isOpenApply, setIsOpenApply] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const reportStatus = useCandidateReportStatus("JOB_POST", job?.id);
   const [shareUrl, setShareUrl] = useState("");
 
   useEffect(() => {
@@ -666,6 +670,12 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
                   <ShareNetwork size={18} />
                   Chia sẻ
                 </button>
+                {!reportStatus.hasActiveReport ? (
+                  <button type="button" onClick={() => setIsReportOpen(true)}>
+                    <Flag size={18} />
+                    Báo cáo
+                  </button>
+                ) : null}
               </div>
               <div className="job-detail-deadline job-detail-hero-deadline">
                 <Calendar size={17} aria-hidden="true" />
@@ -867,6 +877,14 @@ export function PublicJobDetailPage({ path, navigate }: PublicJobDetailPageProps
       {isOpenApply && (
         <ApplyModal isOpen={isOpenApply} onClose={() => setIsOpenApply(false)} job={job} />
       )}
+
+      <ReportDialog
+        open={isReportOpen}
+        onOpenChange={setIsReportOpen}
+        targetType="JOB_POST"
+        targetId={job.id}
+        targetName={job.title}
+      />
     </main>
   );
 }
