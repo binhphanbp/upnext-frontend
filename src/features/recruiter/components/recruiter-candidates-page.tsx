@@ -1046,15 +1046,20 @@ export function RecruiterCandidatesPage() {
                     Cấu hình bảo mật trình duyệt chặn xem nhanh hoặc tệp tin không tồn tại.
                   </p>
                 </div>
-                <a
-                  href={quickViewUrl || undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (quickViewBlobUrl) {
+                      window.open(quickViewBlobUrl, "_blank", "noopener,noreferrer");
+                    } else if (quickViewUrl) {
+                      void handleDownloadCv(quickViewUrl, `${quickViewTitle || "CV"}.pdf`);
+                    }
+                  }}
                   className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-none transition-colors hover:bg-emerald-700"
                 >
                   <ArrowSquareOut size={14} />
                   Mở trực tiếp trong tab mới
-                </a>
+                </button>
               </div>
             )}
 
