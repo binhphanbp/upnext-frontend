@@ -1765,12 +1765,12 @@
         "createFailed": "Could not add the new {noun}. Please try again."
       },
       "toasts": {
-        "updatedPendingReview": "Job post updated. It will be reviewed again before it appears publicly.",
+        "updatedPendingReview": "Job post updated successfully.",
         "draftCreated": "Draft job post created successfully.",
-        "published": "Job post has been submitted for review.",
+        "published": "Job post published successfully.",
         "reloadFailed": "The job post was saved, but the latest list could not be reloaded.",
         "notFoundOrNoPermission": "Job post not found, or you don't have permission to edit it.",
-        "reopened": "Job post has been reopened and is awaiting admin review.",
+        "reopened": "Job post has been reopened successfully.",
         "closed": "Job post has been closed.",
         "deleted": "Job post deleted.",
         "exportEmpty": "There are no matching job posts to export.",
@@ -1778,8 +1778,8 @@
       },
       "publishDialog": {
         "reputationTitle": "Reputation score too low to publish",
-        "genericTitle": "Could not submit for review",
-        "savedNote": " The job post was saved — you can submit it for review again from the list.",
+        "genericTitle": "Could not publish job post",
+        "savedNote": " The job post was saved — you can publish it again from the list.",
         "confirm": "Got it"
       },
       "deleteDialog": {
@@ -1942,16 +1942,16 @@
           "placeholder": "Select a deadline"
         },
         "reputationBlockedTitle": "Reputation score too low to publish ({score}/{required})",
-        "reputationBlockedText": "You can still save a draft. To submit for review, your company needs {required} points — raise your score by verifying your tax code, completing your company profile, and handling candidate CVs on time.",
-        "publishDisabledTitle": "{required} reputation points required to submit for review; your company currently has {score}.",
+        "reputationBlockedText": "You can still save a draft. To publish, your company needs {required} points — raise your score by verifying your tax code, completing your company profile, and handling candidate CVs on time.",
+        "publishDisabledTitle": "{required} reputation points required to publish; your company currently has {score}.",
         "cancel": "Cancel",
         "preview": "Preview",
         "saveDraft": "Save draft",
         "saveDraftSubmitting": "Creating...",
         "saveChanges": "Save changes",
         "saveChangesSubmitting": "Saving...",
-        "publish": "Publish (submit for review)",
-        "publishSubmitting": "Submitting..."
+        "publish": "Publish",
+        "publishSubmitting": "Publishing..."
       },
       "detail": {
         "descriptionTitle": "Job description",

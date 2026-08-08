@@ -1765,12 +1765,12 @@
         "createFailed": "Không thêm được {noun} mới. Vui lòng thử lại."
       },
       "toasts": {
-        "updatedPendingReview": "Đã cập nhật tin tuyển dụng, tin sẽ được duyệt lại trước khi hiển thị công khai.",
+        "updatedPendingReview": "Đã cập nhật tin tuyển dụng thành công.",
         "draftCreated": "Đã tạo bản nháp tin tuyển dụng thành công.",
-        "published": "Tin tuyển dụng đã được gửi duyệt.",
+        "published": "Đã xuất bản tin tuyển dụng thành công.",
         "reloadFailed": "Tin tuyển dụng đã lưu nhưng chưa tải lại được danh sách mới nhất.",
         "notFoundOrNoPermission": "Không tìm thấy tin tuyển dụng hoặc bạn không có quyền chỉnh sửa.",
-        "reopened": "Tin tuyển dụng đã được mở lại, đang chờ admin duyệt.",
+        "reopened": "Tin tuyển dụng đã được mở lại thành công.",
         "closed": "Tin tuyển dụng đã được đóng.",
         "deleted": "Đã xóa tin tuyển dụng.",
         "exportEmpty": "Không có tin tuyển dụng phù hợp để xuất.",
@@ -1778,8 +1778,8 @@
       },
       "publishDialog": {
         "reputationTitle": "Chưa đủ điểm uy tín để đăng tin",
-        "genericTitle": "Chưa gửi duyệt được",
-        "savedNote": " Tin đã được lưu, bạn có thể gửi duyệt lại từ danh sách tin.",
+        "genericTitle": "Chưa xuất bản được",
+        "savedNote": " Tin đã được lưu, bạn có thể xuất bản lại từ danh sách tin.",
         "confirm": "Đã hiểu"
       },
       "deleteDialog": {
@@ -1942,16 +1942,16 @@
           "placeholder": "Chọn hạn nộp hồ sơ"
         },
         "reputationBlockedTitle": "Chưa đủ điểm uy tín để đăng tin ({score}/{required})",
-        "reputationBlockedText": "Bạn vẫn lưu được bản nháp. Để gửi duyệt, công ty cần đạt {required} điểm — tăng điểm bằng cách xác thực mã số thuế, hoàn thiện thông tin công ty và xử lý CV ứng viên đúng hạn.",
-        "publishDisabledTitle": "Cần {required} điểm uy tín để gửi duyệt, công ty đang có {score}.",
+        "reputationBlockedText": "Bạn vẫn lưu được bản nháp. Để đăng tin, công ty cần đạt {required} điểm — tăng điểm bằng cách xác thực mã số thuế, hoàn thiện thông tin công ty và xử lý CV ứng viên đúng hạn.",
+        "publishDisabledTitle": "Cần {required} điểm uy tín để đăng tin, công ty đang có {score}.",
         "cancel": "Hủy",
         "preview": "Xem trước",
         "saveDraft": "Lưu bản nháp",
         "saveDraftSubmitting": "Đang tạo...",
         "saveChanges": "Lưu thay đổi",
         "saveChangesSubmitting": "Đang lưu...",
-        "publish": "Đăng tin (gửi duyệt)",
-        "publishSubmitting": "Đang gửi..."
+        "publish": "Đăng tin",
+        "publishSubmitting": "Đang đăng..."
       },
       "detail": {
         "descriptionTitle": "Mô tả công việc",
