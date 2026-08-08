@@ -56,6 +56,8 @@
       "success": "“{title}” has been saved to UpNext. You can select it when applying.",
       "draftSuccess": "“{title}” has been saved to UpNext as a draft. You can keep refining it in CV Studio.",
       "error": "UpNext could not save this CV. Check your connection and try again.",
+      "uploadedCvNotEditable": "An uploaded CV cannot be edited in CV Studio.",
+      "builderSnapshotMissing": "This CV does not contain CV Studio data to edit yet.",
       "defaultTitle": "Application CV"
     },
     "mobile": {

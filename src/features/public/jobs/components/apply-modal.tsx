@@ -169,16 +169,17 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     }
   }, [profileData]);
 
+  const applicableCvs = useMemo(
+    () => cvsData?.items.filter((cv) => cv.status === "ACTIVE" && cv.versions.length > 0) ?? [],
+    [cvsData],
+  );
+
   const selectedCvVersionId = useMemo(() => {
-    const selectedCv = cvsData?.items.find((cv) => cv.id === selectedCvId);
+    const selectedCv = applicableCvs.find((cv) => cv.id === selectedCvId);
     if (!selectedCv) return null;
 
-    return (
-      [...selectedCv.versions].sort(
-        (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
-      )[0]?.id ?? null
-    );
-  }, [cvsData, selectedCvId]);
+    return getLatestCandidateCvVersion(selectedCv)?.id ?? null;
+  }, [applicableCvs, selectedCvId]);
 
   const hasValidPhoneNumber = isValidPhoneNumber(phoneNumber);
   const phoneError = phoneTouched
@@ -356,13 +357,20 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center">
       {/* Backdrop */}
-      <div
+      <button
+        type="button"
+        aria-label="Đóng hộp thoại ứng tuyển"
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Dialog */}
-      <div className="relative z-50 flex max-h-[90vh] w-[min(540px,calc(100vw-32px))] flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl transition-all">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="apply-modal-title"
+        className="relative z-50 flex max-h-[90vh] w-[min(540px,calc(100vw-32px))] flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl transition-[opacity,transform]"
+      >
         {/* Close Button */}
         <button
           type="button"
@@ -450,7 +458,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
             {/* Header info */}
             <div className="mb-5 pr-8">
-              <h2 className="text-lg leading-snug font-bold text-slate-900">
+              <h2 id="apply-modal-title" className="text-lg leading-snug font-bold text-slate-900">
                 Ứng tuyển vị trí <span className="text-emerald-600">{job.title}</span>
               </h2>
               <p className="mt-1 text-xs font-semibold text-slate-500">Công ty: {job.company}</p>
@@ -561,9 +569,9 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {cvsData?.items && cvsData.items.length > 0 ? (
+                    {applicableCvs.length > 0 ? (
                       <div className="space-y-2">
-                        {cvsData.items.map((cv) => {
+                        {applicableCvs.map((cv) => {
                           const isSelected = selectedCvId === cv.id;
                           const isUnavailable = unavailableCvIds.has(cv.id);
                           return (
