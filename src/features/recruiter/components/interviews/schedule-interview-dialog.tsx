@@ -50,7 +50,11 @@ type ScheduleInterviewDialogProps = Readonly<{
   jobs: RecruiterJobPost[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialValues?: { applicationId: string; interviewRound: number } | null;
+  initialValues?: {
+    applicationId: string;
+    interviewRound: number;
+    jobId?: string | undefined;
+  } | null;
   /** Called with the scheduled application id after the interview is created. */
   onScheduled?: (applicationId: string) => void;
   /**
@@ -101,32 +105,49 @@ export function ScheduleInterviewDialog({
   const [companyLocations, setCompanyLocations] = useState<CompanyLocation[]>([]);
 
   const { data: applications } = useQuery({
-    queryKey: ["recruiter", "company-applications", { jobId }],
+    queryKey: [
+      "recruiter",
+      "company-applications",
+      { jobId, initialAppId: initialValues?.applicationId },
+    ],
     queryFn: () => {
-      if (!token || !jobId) return Promise.resolve([] as Application[]);
-      return getCompanyApplications(token, {
-        jobPostId: jobId,
-      }).catch((error) => {
-        if (isRecruiterMissingCompanyError(error)) {
-          return [] as Application[];
-        }
+      if (!token) return Promise.resolve([] as Application[]);
+      if (jobId) {
+        return getCompanyApplications(token, {
+          jobPostId: jobId,
+        }).catch((error) => {
+          if (isRecruiterMissingCompanyError(error)) {
+            return [] as Application[];
+          }
 
-        throw error;
-      });
+          throw error;
+        });
+      }
+      if (initialValues?.applicationId) {
+        return getCompanyApplications(token).catch((error) => {
+          if (isRecruiterMissingCompanyError(error)) {
+            return [] as Application[];
+          }
+
+          throw error;
+        });
+      }
+      return Promise.resolve([] as Application[]);
     },
-    enabled: open && !!token && !!jobId,
+    enabled: open && !!token && (!!jobId || !!initialValues?.applicationId),
   });
 
-  // Only show candidates eligible for interview scheduling
+  // Only show candidates eligible for interview scheduling (or the locked application)
   const candidateOptions = useMemo(
     () =>
       (applications ?? []).filter(
         (app) =>
+          app.id === initialValues?.applicationId ||
           app.status === "SHORTLISTED" ||
           app.status === "INTERVIEWING" ||
           app.status === "CONSIDERING",
       ),
-    [applications],
+    [applications, initialValues?.applicationId],
   );
 
   const { data: previousInterviews } = useQuery({
@@ -210,10 +231,23 @@ export function ScheduleInterviewDialog({
     }
 
     if (initialValues) {
+      if (initialValues.jobId) {
+        setJobId(initialValues.jobId);
+      }
       setApplicationId(initialValues.applicationId);
       setInterviewRound(initialValues.interviewRound);
     }
   }, [open, initialValues]);
+
+  // If jobId was omitted from initialValues, auto-detect jobId from application list once loaded
+  useEffect(() => {
+    if (open && initialValues?.applicationId && !jobId && applications && applications.length > 0) {
+      const match = applications.find((app) => app.id === initialValues.applicationId);
+      if (match) {
+        setJobId(match.jobPost.id);
+      }
+    }
+  }, [open, initialValues?.applicationId, jobId, applications]);
 
   useEffect(() => {
     if (!open || !token) return;
