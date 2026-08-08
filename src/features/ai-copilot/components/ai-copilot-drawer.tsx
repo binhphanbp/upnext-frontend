@@ -43,10 +43,18 @@ export function AiCopilotDrawer() {
         onClick={openDrawer}
         aria-label={t("drawer.open")}
         aria-expanded={isOpen}
-        className="upnext-focus group fixed right-5 bottom-5 z-40 flex items-center gap-2 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 py-3 pr-4 pl-3.5 text-white shadow-lg shadow-emerald-600/25 transition-all hover:shadow-xl hover:shadow-emerald-600/30 active:scale-95 motion-reduce:transition-none"
+        className="upnext-focus group fixed right-5 bottom-5 z-40 flex h-14 items-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 px-4 text-white shadow-lg shadow-emerald-600/25 transition-shadow hover:shadow-xl hover:shadow-emerald-600/30 active:scale-95 motion-reduce:transition-none"
       >
-        <Sparkle weight="fill" className="size-5" />
-        <span className="max-w-0 overflow-hidden text-sm font-bold whitespace-nowrap opacity-0 transition-all duration-300 group-hover:max-w-32 group-hover:opacity-100 motion-reduce:transition-none">
+        {/*
+          `h-14` (56px) và `px-4` (16px mỗi bên) cộng với icon `size-6` (24px)
+          cho đúng 56px bề ngang lúc nghỉ — một hình tròn thật, không phải hình
+          gần-tròn. Nhãn bên dưới dùng `margin-left` thay vì `gap` của flex:
+          `gap` cộng khoảng cách ngay cả khi span co về `max-w-0`, nên trước đây
+          nút luôn rộng hơn cao — không tròn mà cũng không rõ ràng là viên
+          thuốc (pill), lỡ cỡ ở giữa.
+        */}
+        <Sparkle weight="fill" className="size-6 shrink-0" />
+        <span className="ml-0 max-w-0 overflow-hidden text-sm font-bold whitespace-nowrap opacity-0 transition-all duration-300 group-hover:ml-2 group-hover:max-w-32 group-hover:opacity-100 motion-reduce:transition-none">
           {t("drawer.launcher")}
         </span>
       </button>

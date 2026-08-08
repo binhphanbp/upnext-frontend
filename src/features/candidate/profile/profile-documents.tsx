@@ -442,6 +442,13 @@ export function ProfileDocuments({
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      {cv.source === "BUILDER" && (
+                        <Button type="button" variant="ghost" size="sm" asChild>
+                          <Link href={`/candidate/cv-builder?cvId=${cv.id}`}>
+                            {t("actions.edit")}
+                          </Link>
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="ghost"
@@ -456,7 +463,7 @@ export function ProfileDocuments({
                         )}
                         {t("actions.download")}
                       </Button>
-                      {!cv.isDefault && (
+                      {!cv.isDefault && cv.status === "ACTIVE" && (
                         <Button
                           type="button"
                           variant="ghost"

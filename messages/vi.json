@@ -1,4 +1,7 @@
 {
+  "BackToTop": {
+    "label": "Lên đầu trang"
+  },
   "CvBuilder": {
     "title": "UpNext CV Studio",
     "subtitle": "Biến kinh nghiệm thật thành bằng chứng thuyết phục cho từng cơ hội",
@@ -53,6 +56,8 @@
       "success": "Đã lưu “{title}” vào UpNext. Bạn có thể chọn bản CV này khi ứng tuyển.",
       "draftSuccess": "Đã lưu “{title}” dưới dạng bản nháp vào UpNext. Bạn có thể tiếp tục hoàn thiện trong CV Studio.",
       "error": "Chưa thể lưu bản CV vào UpNext. Kiểm tra kết nối rồi thử lại.",
+      "uploadedCvNotEditable": "CV đã tải lên không thể chỉnh sửa trong CV Studio.",
+      "builderSnapshotMissing": "CV này chưa có dữ liệu từ CV Studio để chỉnh sửa.",
       "defaultTitle": "CV ứng tuyển"
     },
     "mobile": {

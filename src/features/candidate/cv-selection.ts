@@ -9,17 +9,20 @@ export function resolveCandidateCvSelection(
   cvs: CandidateCvApi[] | undefined,
   selectedCvId: string | null,
 ) {
-  if (!cvs?.length) return null;
+  const applicableCvs = cvs?.filter((cv) => cv.status === "ACTIVE" && cv.versions.length > 0);
+  if (!applicableCvs?.length) return null;
 
-  if (selectedCvId && cvs.some((cv) => cv.id === selectedCvId)) {
+  if (selectedCvId && applicableCvs.some((cv) => cv.id === selectedCvId)) {
     return selectedCvId;
   }
 
-  return cvs.find((cv) => cv.isDefault)?.id ?? cvs[0]?.id ?? null;
+  return applicableCvs.find((cv) => cv.isDefault)?.id ?? applicableCvs[0]?.id ?? null;
 }
 
 export function getLatestCandidateCvVersion(cv: CandidateCvApi) {
   return [...cv.versions].sort(
-    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+    (left, right) =>
+      right.versionNo - left.versionNo ||
+      new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
   )[0];
 }
