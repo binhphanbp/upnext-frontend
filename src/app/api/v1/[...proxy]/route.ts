@@ -1,6 +1,12 @@
 import type { NextRequest } from "next/server";
 
-const apiProxyOrigin = process.env.API_PROXY_ORIGIN ?? "http://localhost:3001";
+// Keep this fallback in sync with next.config.ts's rewrites() — see comment
+// there for why localhost:3001 alone breaks every proxied call in deployed
+// containers.
+const apiProxyOrigin =
+  process.env.API_PROXY_ORIGIN ??
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/v1\/?$/u, "") ??
+  "http://localhost:3001";
 
 type ProxyRouteContext = {
   params: Promise<{ proxy: string[] }>;

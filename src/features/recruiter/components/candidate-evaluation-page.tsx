@@ -220,8 +220,9 @@ export function CandidateEvaluationPage({ applicationId }: CandidateEvaluationPa
       const response = await fetch(url, {
         headers: authHeaders(session.accessToken),
       });
-      if (!response.ok) throw new Error("Không thể tải file CV.");
-      const localUrl = URL.createObjectURL(await response.blob());
+      const rawBlob = await response.blob();
+      const pdfBlob = new Blob([rawBlob], { type: "application/pdf" });
+      const localUrl = URL.createObjectURL(pdfBlob);
       window.open(localUrl, "_blank", "noopener,noreferrer");
     } catch (requestError) {
       void Swal.fire({

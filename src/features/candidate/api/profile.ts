@@ -988,3 +988,21 @@ export function checkAppliedJob(token: string, jobPostId: string) {
     headers: authHeaders(token),
   });
 }
+
+export function respondCandidateOffer(
+  token: string,
+  applicationId: string,
+  action: "ACCEPT" | "DECLINE",
+) {
+  return apiRequest<CandidateApplicationMutationApi>(
+    `/applications/${applicationId}/respond-offer`,
+    {
+      body: JSON.stringify({ action }),
+      headers: {
+        ...authHeaders(token),
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    },
+  );
+}
