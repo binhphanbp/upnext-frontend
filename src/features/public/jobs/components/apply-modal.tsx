@@ -59,6 +59,10 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewObjectUrlRef = useRef<string | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  // The preview opens as a nested dialog. Keep the explicit trigger rather than
+  // relying on Radix's generic last-active-element heuristic, which can point at
+  // the parent dialog after the nested portal mounts.
+  const previewReturnFocusRef = useRef<HTMLElement | null>(null);
 
   const [mounted, setMounted] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -72,6 +76,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const [isSuccess, setIsSuccess] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [appliedApplicationId, setAppliedApplicationId] = useState<string | null>(null);
+  const [errorTitle, setErrorTitle] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [previewingCvId, setPreviewingCvId] = useState<string | null>(null);
   const [unavailableCvIds, setUnavailableCvIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -89,6 +94,16 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const queryClient = useQueryClient();
   const session = useMemoSession();
 
+  const clearError = () => {
+    setErrorTitle(null);
+    setErrorMessage(null);
+  };
+
+  const showError = (title: string, message: string) => {
+    setErrorTitle(title);
+    setErrorMessage(message);
+  };
+
   useEffect(() => {
     setMounted(true);
 
@@ -105,6 +120,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     setIsSuccess(false);
     setAlreadyApplied(false);
     setAppliedApplicationId(null);
+    setErrorTitle(null);
     setErrorMessage(null);
     setCoverLetter("");
     setPhoneTouched(false);
@@ -193,24 +209,27 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     onClose();
   };
 
-  const handlePreviewCv = async (cv: CandidateCvApi) => {
+  const handlePreviewCv = async (cv: CandidateCvApi, returnFocusTarget: HTMLElement | null) => {
     if (!session) return;
+
+    previewReturnFocusRef.current = returnFocusTarget;
 
     const latestVersion = getLatestCandidateCvVersion(cv);
 
     if (!latestVersion) {
-      setErrorMessage("CV này chưa có phiên bản để xem.");
+      showError("Không thể xem trước CV", "CV này chưa có phiên bản để xem.");
       return;
     }
 
     if (cv.source === "BUILDER") {
       const cvData = parseCvSnapshot(latestVersion.contentJson);
       if (cvData) {
-        setErrorMessage(null);
+        clearError();
         setBuilderPreview({ title: cv.title, cvData });
       } else {
         setUnavailableCvIds((current) => new Set(current).add(cv.id));
-        setErrorMessage(
+        showError(
+          "Không thể xem trước CV",
           "CV tạo trên UpNext này chưa có dữ liệu xem trước. Bạn có thể chọn một CV khác hoặc mở CV Builder để cập nhật lại.",
         );
       }
@@ -218,7 +237,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     }
 
     setPreviewingCvId(cv.id);
-    setErrorMessage(null);
+    clearError();
 
     try {
       const { blob, mimeType } = await downloadCandidateCvVersion(
@@ -243,11 +262,12 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         setUnavailableCvIds((current) => new Set(current).add(cv.id));
-        setErrorMessage(
+        showError(
+          "Không thể xem trước CV",
           "Chưa thể mở CV này. Bạn có thể chọn một CV khác hoặc tải lại tệp bên dưới để tiếp tục ứng tuyển.",
         );
       } else {
-        setErrorMessage("Không thể mở bản xem trước CV. Vui lòng thử lại.");
+        showError("Không thể xem trước CV", "Không thể mở bản xem trước CV. Vui lòng thử lại.");
       }
     } finally {
       setPreviewingCvId(null);
@@ -260,7 +280,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     if (!file || !session) return;
 
     setUploading(true);
-    setErrorMessage(null);
+    clearError();
 
     try {
       // 1. Upload file
@@ -282,7 +302,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       });
     } catch (err: any) {
       console.error("Failed to upload CV", err);
-      setErrorMessage("Không thể tải lên file CV. Vui lòng thử lại.");
+      showError("Không thể tải CV lên", "Không thể tải lên file CV. Vui lòng thử lại.");
     } finally {
       setUploading(false);
       // Allow candidates to select the same file again after a failed upload.
@@ -298,14 +318,15 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
     if (!hasValidPhoneNumber) return;
 
     if (!looseUuidPattern.test(job.id)) {
-      setErrorMessage(
+      showError(
+        "Không thể tiếp tục ứng tuyển",
         "Tin tuyển dụng này không còn khả dụng. Vui lòng chọn một tin tuyển dụng khác.",
       );
       return;
     }
 
     setSubmitting(true);
-    setErrorMessage(null);
+    clearError();
 
     try {
       const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
@@ -333,7 +354,10 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
         setAppliedApplicationId(aId);
         setAlreadyApplied(true);
       } else {
-        setErrorMessage("Không thể nộp hồ sơ. Vui lòng kiểm tra lại thông tin và thử lại.");
+        showError(
+          "Không thể nộp hồ sơ",
+          "Không thể nộp hồ sơ. Vui lòng kiểm tra lại thông tin và thử lại.",
+        );
       }
     } finally {
       setSubmitting(false);
@@ -477,7 +501,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                 >
                   <Warning size={17} weight="fill" className="mt-0.5 shrink-0 text-amber-600" />
                   <div>
-                    <p className="font-semibold">CV chưa thể xem trước</p>
+                    <p className="font-semibold">{errorTitle ?? "Có lỗi xảy ra"}</p>
                     <p className="mt-0.5 leading-relaxed text-amber-800">{errorMessage}</p>
                   </div>
                 </div>
@@ -605,7 +629,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                                   aria-label={`Chọn CV ${cv.title}`}
                                   onClick={() => {
                                     setSelectedCvId(cv.id);
-                                    setErrorMessage(null);
+                                    clearError();
                                   }}
                                   className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                                 >
@@ -637,7 +661,9 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                                   <button
                                     type="button"
                                     disabled={previewingCvId === cv.id}
-                                    onClick={() => void handlePreviewCv(cv)}
+                                    onClick={(event) =>
+                                      void handlePreviewCv(cv, event.currentTarget)
+                                    }
                                     className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none disabled:cursor-wait disabled:opacity-70"
                                     aria-label={`Xem trước CV ${cv.title}`}
                                   >
@@ -774,6 +800,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
           title={previewCv.title}
           url={previewCv.url}
           mimeType={previewCv.mimeType}
+          restoreFocusTo={previewReturnFocusRef.current}
           onClose={closePreview}
         />
       )}
@@ -784,6 +811,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
         }}
         title={builderPreview?.title ?? "Bản xem trước CV"}
         cvData={builderPreview?.cvData ?? null}
+        restoreFocusTo={previewReturnFocusRef.current}
       />
     </>
   );
@@ -797,10 +825,11 @@ type CvPreviewModalProps = Readonly<{
   title: string;
   url: string;
   mimeType: string;
+  restoreFocusTo: HTMLElement | null;
   onClose: () => void;
 }>;
 
-function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) {
+function CvPreviewModal({ title, url, mimeType, restoreFocusTo, onClose }: CvPreviewModalProps) {
   const isPdf = mimeType === "application/pdf" || url.toLowerCase().endsWith(".pdf");
   const isWordDocument =
     mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -834,7 +863,8 @@ function CvPreviewModal({ title, url, mimeType, onClose }: CvPreviewModalProps) 
         closeLabel="Đóng xem CV"
         onOpenAutoFocus={() => {
           returnFocusRef.current =
-            document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            restoreFocusTo ??
+            (document.activeElement instanceof HTMLElement ? document.activeElement : null);
         }}
         onCloseAutoFocus={(event) => {
           event.preventDefault();

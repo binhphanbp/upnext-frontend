@@ -355,8 +355,22 @@ export function toExternalHref(value: string) {
 const GPA_PATTERN = /^\d{1,2}(?:[.,]\d{1,2})?(?:\s*\/\s*\d{1,3}(?:[.,]\d{1,2})?)?$/;
 
 export function isValidGpa(value: string) {
-  if (!value.trim()) return true;
-  return GPA_PATTERN.test(value.trim());
+  const normalized = value.trim().replaceAll(",", ".");
+  if (!normalized) return true;
+  if (!GPA_PATTERN.test(normalized)) return false;
+
+  const [numeratorText, denominatorText] = normalized.split("/").map((part) => part.trim());
+  if (!denominatorText) return true;
+
+  const numerator = Number(numeratorText);
+  const denominator = Number(denominatorText);
+  return (
+    Number.isFinite(numerator) &&
+    Number.isFinite(denominator) &&
+    denominator > 0 &&
+    numerator >= 0 &&
+    numerator <= denominator
+  );
 }
 
 export function isValidExternalUrl(value: string) {
@@ -550,6 +564,10 @@ export function evaluateCv(cvData: CvData): CvEvaluation {
     (total, section) => total + completionBySection[section] * SECTION_WEIGHTS[section],
     0,
   );
+  const visibleWeight = weightedSections.reduce(
+    (total, section) => total + SECTION_WEIGHTS[section],
+    0,
+  );
   const visibleIssues = issues.filter(
     (issue) => issue.section === "personal" || !hidden.has(issue.section),
   );
@@ -568,7 +586,11 @@ export function evaluateCv(cvData: CvData): CvEvaluation {
     exportReady: blockingIssues.length === 0,
     issues: visibleIssues,
     jobMatch: evaluateJobMatch(cvData),
-    score: Math.round(weightedScore),
+    // Điểm phản ánh mức độ hoàn thiện của những phần đang hiển thị. Các điều
+    // kiện nghiệp vụ bắt buộc (ví dụ cần có bằng chứng kinh nghiệm) được thể
+    // hiện riêng qua `exportReady`, thay vì làm méo điểm khi người dùng chủ
+    // động ẩn một phần tùy chọn.
+    score: visibleWeight > 0 ? Math.round((weightedScore / visibleWeight) * 100) : 0,
     sections: {
       personal: sectionEvaluation(completionBySection.personal, visibleIssues, "personal"),
       summary: sectionEvaluation(completionBySection.summary, visibleIssues, "summary"),

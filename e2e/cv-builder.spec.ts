@@ -101,6 +101,7 @@ test("maps target-job keywords to evidence already present in the CV", async ({ 
 
 test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page }) => {
   const snapshots: Record<string, unknown>[] = [];
+  let defaultCvId: string | null = null;
   await page.route("**/cvs", async (route) => {
     if (route.request().method() !== "POST") {
       await route.continue();
@@ -111,7 +112,7 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
     await route.fulfill({
       body: JSON.stringify({
         id: "cv-builder-e2e",
-        isDefault: true,
+        isDefault: false,
         source: "BUILDER",
         status: "ACTIVE",
         title: "Frontend Developer · UpNext",
@@ -121,6 +122,19 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
       contentType: "application/json",
       status: 201,
     });
+  });
+  await page.route("**/cvs/**", async (route) => {
+    if (route.request().method() === "PATCH" && route.request().url().endsWith("/default")) {
+      defaultCvId = route.request().url().split("/").at(-2) ?? null;
+      await route.fulfill({
+        body: JSON.stringify({ id: "cv-builder-e2e", isDefault: true }),
+        contentType: "application/json",
+        status: 200,
+      });
+      return;
+    }
+
+    await route.continue();
   });
 
   await page.goto("/vi/candidate/cv-builder");
@@ -138,6 +152,7 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
   await page.getByRole("button", { name: "Lưu bản CV vào UpNext" }).click();
   await expect(page.getByRole("dialog")).toContainText("Lưu một bản CV vào UpNext");
   await page.getByLabel("Tên bản CV").fill("Frontend Developer · UpNext");
+  await page.getByRole("checkbox", { name: "Đặt làm CV mặc định" }).click();
   await page.getByRole("button", { name: "Lưu bản CV", exact: true }).click();
 
   await expect(page.getByText("Đã lưu “Frontend Developer · UpNext” vào UpNext.")).toBeVisible();
@@ -163,6 +178,7 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
   expect(snapshot.parsedText).toContain("minhanh@example.com");
   expect(snapshot.parsedText).toContain("0901234567");
   expect(snapshot.parsedText).toContain("TP. Hồ Chí Minh");
+  await expect.poll(() => defaultCvId).toBe("cv-builder-e2e");
 });
 
 test("keeps unfinished work available across devices as a server-side draft", async ({ page }) => {
@@ -269,9 +285,65 @@ test("opens a saved Builder CV and creates a new immutable version when saving e
   await page.getByRole("button", { name: /^Thông tin/ }).click();
   await page.getByLabel("Họ và tên").fill("Nguyễn Minh Anh Updated");
   await page.getByRole("button", { name: "Lưu bản CV vào UpNext" }).click();
+  await page.getByRole("button", { name: "Lưu bản CV", exact: true }).click();
 
   await expect.poll(() => savedVersions).toHaveLength(1);
   expect(savedVersions[0]).toMatchObject({ expectedVersion: 4 });
+});
+
+test("keeps local edits safe when a saved CV version conflicts", async ({ page }) => {
+  await page.route("**/cvs/conflicting-builder", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        id: "conflicting-builder",
+        isDefault: true,
+        source: "BUILDER",
+        status: "ACTIVE",
+        title: "Frontend CV",
+        updatedAt: "2026-08-08T00:00:00.000Z",
+        version: 4,
+        versions: [
+          {
+            contentJson: {
+              personalInfo: {
+                address: "Hà Nội",
+                email: "minhanh@example.com",
+                fullName: "Nguyễn Minh Anh",
+                phoneNumber: "0901234567",
+                title: "Frontend Developer",
+                website: "",
+              },
+            },
+            createdAt: "2026-08-08T00:00:00.000Z",
+            id: "conflicting-version-4",
+            sourceFile: null,
+            sourceFileId: null,
+            versionNo: 4,
+          },
+        ],
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+  await page.route("**/cvs/conflicting-builder/builder-versions", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ code: "CV_VERSION_CONFLICT", message: "Version conflict" }),
+      contentType: "application/json",
+      status: 409,
+    });
+  });
+
+  await page.goto("/vi/candidate/cv-builder?cvId=conflicting-builder");
+  await page.getByRole("button", { name: /^Thông tin/ }).click();
+  await page.getByLabel("Họ và tên").fill("Nguyễn Minh Anh Updated locally");
+  await page.getByRole("button", { name: "Lưu bản CV vào UpNext" }).click();
+  await page.getByRole("button", { name: "Lưu bản CV", exact: true }).click();
+
+  await expect(page.getByText("CV này vừa được cập nhật ở nơi khác.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tải bản mới nhất" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Lưu thành CV mới" })).toBeVisible();
+  await expect(page.getByLabel("Họ và tên")).toHaveValue("Nguyễn Minh Anh Updated locally");
 });
 
 test("takes a reviewer directly to the first field that needs attention", async ({ page }) => {

@@ -35,6 +35,24 @@ describe("CV Builder draft hydration", () => {
     expect(useCvBuilderStore.getState().cvData.personalInfo.fullName).toBe("Nguyễn Minh Anh");
   });
 
+  it("replaces stale local undo history when an explicit saved CV is opened", () => {
+    useCvBuilderStore.getState().updateSummary("Bản nháp chỉ có trên thiết bị");
+
+    const savedCvSnapshot = createInitialCvData();
+    savedCvSnapshot.summary = "Bản CV đã lưu trên UpNext";
+    savedCvSnapshot.personalInfo.fullName = "Nguyễn Minh Anh";
+    useCvBuilderStore.getState().hydrateCvData(savedCvSnapshot);
+
+    expect(useCvBuilderStore.getState().past).toEqual([]);
+    expect(useCvBuilderStore.getState().future).toEqual([]);
+    expect(useCvBuilderStore.getState().cvData.summary).toBe("Bản CV đã lưu trên UpNext");
+
+    useCvBuilderStore.getState().updateSummary("Bản CV đã chỉnh sửa");
+    useCvBuilderStore.getState().undo();
+
+    expect(useCvBuilderStore.getState().cvData.summary).toBe("Bản CV đã lưu trên UpNext");
+  });
+
   it("gộp các lần gõ liên tiếp trong cùng một đợt thành một bước undo duy nhất", () => {
     useCvBuilderStore.getState().updateSummary("M");
     useCvBuilderStore.getState().updateSummary("Mì");

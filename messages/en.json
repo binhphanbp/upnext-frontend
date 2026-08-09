@@ -39,6 +39,9 @@
       "autosaveReady": "Autosave is ready",
       "savedAt": "Saved at {time}",
       "localOnly": "On this device",
+      "syncedToUpNext": "Saved to UpNext",
+      "serverCopy": "Saved copy on UpNext",
+      "serverChangesPending": "Unsaved changes",
       "privateTitle": "Private draft",
       "privateDescription": "Content is saved in this browser for this account and has not been sent to the server."
     },
@@ -51,14 +54,52 @@
       "namePlaceholder": "Example: Frontend Developer · UpNext",
       "activeNote": "This is the application-ready CV at the time of saving. Later Studio edits will not overwrite it automatically.",
       "draftNote": "This CV will be saved as a draft because some details still need attention. Return to Studio, finish it, then save an application-ready version.",
+      "newVersionNote": "Each save creates a new version. Applications you have already submitted keep the earlier version.",
+      "defaultLabel": "Make this my default CV",
+      "defaultHint": "Your default CV is preselected when you apply. You can change it anytime in Candidate Profile.",
       "confirm": "Save CV",
       "saving": "Saving…",
       "success": "“{title}” has been saved to UpNext. You can select it when applying.",
       "draftSuccess": "“{title}” has been saved to UpNext as a draft. You can keep refining it in CV Studio.",
+      "defaultError": "“{title}” was saved, but could not be made your default CV. You can try again from Candidate Profile.",
       "error": "UpNext could not save this CV. Check your connection and try again.",
+      "reload": "Load latest version",
+      "saveAsNew": "Save as new CV",
+      "reloadSuccess": "The latest version of “{title}” has been loaded. Unsaved edits on this device were replaced.",
+      "errors": {
+        "authentication": "Your session has expired. Your on-device draft is safe; sign in again and retry saving.",
+        "conflict": "This CV was updated somewhere else. Your edits on this device are still safe. Load the latest version or save your edits as a new CV.",
+        "generic": "UpNext could not save this CV. Check your connection and try again.",
+        "limit": "You have reached the allowed number of saved CVs or versions. Manage older CVs, then try again.",
+        "reload": "The latest CV version could not be loaded. Your edits on this device are still safe; try again."
+      },
       "uploadedCvNotEditable": "An uploaded CV cannot be edited in CV Studio.",
       "builderSnapshotMissing": "This CV does not contain CV Studio data to edit yet.",
       "defaultTitle": "Application CV"
+    },
+    "serverLoad": {
+      "retry": "Try again",
+      "backToCvs": "Back to my CVs",
+      "notFound": {
+        "title": "This CV could not be found",
+        "description": "It may have been deleted or the link is no longer valid. Your on-device draft has not changed."
+      },
+      "accessDenied": {
+        "title": "You do not have access to this CV",
+        "description": "Check the account you are signed in with, or choose another CV from Candidate Profile."
+      },
+      "notEditable": {
+        "title": "An uploaded CV cannot be opened in CV Studio",
+        "description": "CV Studio can edit only CVs created in Studio. You can still use an uploaded CV when applying."
+      },
+      "missingSnapshot": {
+        "title": "This CV has no editable content",
+        "description": "This saved CV no longer has CV Studio data. Create a new CV or choose another Studio CV."
+      },
+      "unavailable": {
+        "title": "This CV cannot be opened right now",
+        "description": "The connection or service is temporarily unavailable. Your on-device draft remains safe."
+      }
     },
     "mobile": {
       "viewMode": "Workspace view",

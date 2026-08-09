@@ -89,7 +89,7 @@ test("explains an unavailable legacy CV and prevents using it for an application
       "Chưa thể mở CV này. Bạn có thể chọn một CV khác hoặc tải lại tệp bên dưới để tiếp tục ứng tuyển.",
     ),
   ).toBeVisible();
-  await expect(page.getByText("CV chưa thể xem trước")).toBeVisible();
+  await expect(page.getByText("Không thể xem trước CV")).toBeVisible();
   await expect(page.getByText("Chưa thể xem trước — chọn CV khác hoặc tải lại tệp")).toBeVisible();
   await expect(page.getByRole("button", { name: "Nộp hồ sơ ứng tuyển" })).toBeDisabled();
 });
@@ -103,11 +103,16 @@ test("previews a Builder CV from its saved snapshot without requesting a file do
   await page.goto(`/vi/jobs/${jobId}`);
   await waitForCandidateSession(page);
   await page.getByRole("button", { name: "Ứng tuyển ngay" }).click();
-  await page.getByRole("button", { name: "Xem trước CV CV tạo trên UpNext" }).click();
+  const previewTrigger = page.getByRole("button", { name: "Xem trước CV CV tạo trên UpNext" });
+  await previewTrigger.click();
 
   await expect(page.getByRole("dialog", { name: "CV tạo trên UpNext" })).toBeVisible();
   await expect(page.getByText("Nguyễn Minh Anh", { exact: true })).toBeVisible();
   expect(state.previewedVersionIds).toEqual([]);
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "CV tạo trên UpNext" })).toBeHidden();
+  await expect(previewTrigger).toBeFocused();
 });
 
 test("requires a reachable phone number before an application can be submitted", async ({
