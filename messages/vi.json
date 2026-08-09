@@ -2753,6 +2753,24 @@
         "loadError": "Không thể tải danh sách CV. Vui lòng thử lại."
       }
     },
+    "notifications": {
+      "page": {
+        "title": "Thông báo",
+        "description": "Cập nhật về đơn ứng tuyển, lịch phỏng vấn và tin nhắn từ nhà tuyển dụng."
+      },
+      "markAllRead": "Đánh dấu tất cả đã đọc",
+      "unread": "Chưa đọc",
+      "delete": "Xoá thông báo: {title}",
+      "states": {
+        "errorTitle": "Không thể tải thông báo",
+        "errorDescription": "Kết nối đến UpNext chưa thành công. Hãy thử tải lại để xem thông báo mới nhất.",
+        "emptyTitle": "Chưa có thông báo nào",
+        "emptyDescription": "Thông báo về đơn ứng tuyển, lịch phỏng vấn và tin nhắn sẽ xuất hiện tại đây."
+      },
+      "feedback": {
+        "error": "Không thể cập nhật thông báo. Vui lòng thử lại."
+      }
+    },
     "savedJobs": {
       "page": {
         "title": "Việc đã lưu",

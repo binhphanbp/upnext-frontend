@@ -26,6 +26,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 
 import { getMyCandidateProfile } from "@/features/candidate/api/profile";
 import { clearCandidateSession, getCandidateSession } from "@/features/candidate/session";
+import { getNotifications } from "@/features/notifications/api/notifications";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
 import { getPublicJobs } from "../home/api";
@@ -170,7 +171,7 @@ export type PublicHeaderViewer = {
   roleLabel: string;
   workspaceHref: string;
   unreadMessages?: number;
-  unreadNotifications?: number;
+  unreadNotifications?: number | undefined;
 };
 
 const navMenus: NavMenu[] = [
@@ -640,6 +641,7 @@ function FlagIcon({ code, label }: { code: Language["code"]; label?: string }) {
 type CandidateViewerSource = Readonly<{
   email?: string | undefined;
   fullName?: string | undefined;
+  unreadNotifications?: number | undefined;
 }>;
 
 function getCandidateInitials(source: CandidateViewerSource) {
@@ -661,8 +663,14 @@ function createCandidateViewer(
     name,
     roleLabel: locale === "en" ? "Candidate" : "Ứng viên",
     workspaceHref: "/candidate/profile",
+    unreadNotifications: source.unreadNotifications,
   };
 }
+
+// Fired by the notifications page after mark-as-read/mark-all-as-read so the
+// header's bell badge (a separate fetch, not shared React Query cache) drops
+// its count immediately instead of only on the next full sync.
+const notificationsReadEvent = "upnext-notifications-read";
 
 export function PublicHeader({
   navigate,
@@ -870,13 +878,20 @@ export function PublicHeader({
       setHasResolvedStoredViewer(true);
 
       try {
-        const profile = await getMyCandidateProfile(session.accessToken);
+        // In parallel: the profile call was already here, and the unread
+        // count is a cheap `limit=1` list fetch that only reads `meta.
+        // unreadCount` -- no reason to wait on it after the profile.
+        const [profile, notifications] = await Promise.all([
+          getMyCandidateProfile(session.accessToken),
+          getNotifications(session.accessToken, 1, 1).catch(() => null),
+        ]);
         if (ignore) return;
 
         setStoredViewer(
           createCandidateViewer(currentLocale, {
             email: profile.account.email,
             fullName: profile.account.fullName,
+            unreadNotifications: notifications?.meta.unreadCount ?? 0,
           }),
         );
       } catch {
@@ -887,10 +902,12 @@ export function PublicHeader({
     void syncViewer();
     window.addEventListener("storage", syncViewer);
     window.addEventListener(demoAuthChangeEvent, syncViewer);
+    window.addEventListener(notificationsReadEvent, syncViewer);
     return () => {
       ignore = true;
       window.removeEventListener("storage", syncViewer);
       window.removeEventListener(demoAuthChangeEvent, syncViewer);
+      window.removeEventListener(notificationsReadEvent, syncViewer);
     };
   }, [currentLocale, viewer]);
 
