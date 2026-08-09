@@ -24,6 +24,7 @@ type CvSnapshotPreviewDialogProps = Readonly<{
   cvData: CvData | null;
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  restoreFocusTo?: HTMLElement | null;
   title: string;
 }>;
 
@@ -32,11 +33,13 @@ export function CvSnapshotPreviewDialog({
   cvData,
   onOpenChange,
   open,
+  restoreFocusTo,
   title,
 }: CvSnapshotPreviewDialogProps) {
   const t = useTranslations("CandidateWorkspace.applicationDetail.cvPreview");
   const viewportRef = useRef<HTMLDivElement>(null);
   const documentRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const [scale, setScale] = useState(1);
   const [documentHeight, setDocumentHeight] = useState(INITIAL_CV_PAGE_HEIGHT);
 
@@ -61,6 +64,15 @@ export function CvSnapshotPreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         closeLabel={t("close")}
+        onOpenAutoFocus={() => {
+          returnFocusRef.current =
+            restoreFocusTo ??
+            (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          returnFocusRef.current?.focus();
+        }}
         className="max-h-[calc(100dvh-2rem)] max-w-[min(58rem,calc(100vw-1rem))] gap-0 overflow-hidden p-0"
       >
         <DialogHeader className="border-b border-slate-200 px-5 py-4 pr-12 sm:px-6">

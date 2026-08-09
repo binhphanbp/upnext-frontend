@@ -73,6 +73,9 @@ describe("CV Builder business rules", () => {
     expect(isValidGpa("3.5/4.0")).toBe(true); // đúng placeholder gợi ý
     expect(isValidGpa("8.5")).toBe(true); // thang điểm 10
     expect(isValidGpa("90/100")).toBe(true); // thang điểm 100
+    expect(isValidGpa("3,5 / 4,0")).toBe(true); // chấp nhận dấu phẩy thập phân
+    expect(isValidGpa("5/4")).toBe(false); // tử số không thể lớn hơn mẫu số
+    expect(isValidGpa("2/0")).toBe(false); // không có thang điểm bằng 0
     expect(isValidGpa("A+")).toBe(false);
     expect(isValidGpa("giỏi")).toBe(false);
   });
@@ -101,7 +104,7 @@ describe("CV Builder business rules", () => {
     expect(result.blockingIssues.map((issue) => issue.code)).not.toContain("gpaInvalid");
   });
 
-  it("does not inflate the score when optional sections are hidden", () => {
+  it("normalizes the score to the sections the candidate chooses to show", () => {
     const cvData = createInitialCvData();
     cvData.personalInfo = {
       ...cvData.personalInfo,
@@ -126,7 +129,10 @@ describe("CV Builder business rules", () => {
 
     const result = evaluateCv(cvData);
 
-    expect(result.score).toBe(25);
+    // Khi ứng viên chủ động ẩn các phần tùy chọn, 100% nghĩa là phần đang
+    // hiển thị đã hoàn thiện. `exportReady` vẫn chặn xuất CV vì chưa có bằng
+    // chứng nghề nghiệp — hai khái niệm không nên bị trộn lẫn.
+    expect(result.score).toBe(100);
     expect(result.exportReady).toBe(false);
     expect(result.issues.map((issue) => issue.code)).toEqual(["careerEvidenceRequired"]);
     expect(result.blockingIssues.map((issue) => issue.code)).toEqual(["careerEvidenceRequired"]);

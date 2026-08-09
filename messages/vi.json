@@ -39,6 +39,9 @@
       "autosaveReady": "Tự động lưu đã sẵn sàng",
       "savedAt": "Đã lưu lúc {time}",
       "localOnly": "Trên thiết bị này",
+      "syncedToUpNext": "Đã lưu vào UpNext",
+      "serverCopy": "Bản đã lưu trên UpNext",
+      "serverChangesPending": "Có thay đổi chưa lưu",
       "privateTitle": "Bản nháp riêng tư",
       "privateDescription": "Nội dung được tự lưu trong trình duyệt của tài khoản này, chưa gửi lên máy chủ."
     },
@@ -51,14 +54,52 @@
       "namePlaceholder": "Ví dụ: Frontend Developer · UpNext",
       "activeNote": "Đây là bản CV sẵn sàng ứng tuyển tại thời điểm lưu. Các thay đổi tiếp theo trong Studio không tự ghi đè lên bản này.",
       "draftNote": "Bản CV này sẽ được lưu dưới dạng nháp vì còn thông tin cần hoàn thiện. Bạn có thể quay lại Studio, cập nhật rồi lưu bản sẵn sàng ứng tuyển.",
+      "newVersionNote": "Mỗi lần lưu sẽ tạo một phiên bản mới. Những đơn ứng tuyển đã gửi vẫn giữ nguyên phiên bản trước đó.",
+      "defaultLabel": "Đặt làm CV mặc định",
+      "defaultHint": "CV mặc định được chọn trước khi bạn ứng tuyển. Bạn luôn có thể đổi lại trong Hồ sơ ứng viên.",
       "confirm": "Lưu bản CV",
       "saving": "Đang lưu…",
       "success": "Đã lưu “{title}” vào UpNext. Bạn có thể chọn bản CV này khi ứng tuyển.",
       "draftSuccess": "Đã lưu “{title}” dưới dạng bản nháp vào UpNext. Bạn có thể tiếp tục hoàn thiện trong CV Studio.",
+      "defaultError": "Đã lưu “{title}”, nhưng chưa thể đặt làm CV mặc định. Bạn có thể thử lại trong Hồ sơ ứng viên.",
       "error": "Chưa thể lưu bản CV vào UpNext. Kiểm tra kết nối rồi thử lại.",
+      "reload": "Tải bản mới nhất",
+      "saveAsNew": "Lưu thành CV mới",
+      "reloadSuccess": "Đã tải bản mới nhất của “{title}”. Các chỉnh sửa chưa lưu trên thiết bị này đã được thay thế.",
+      "errors": {
+        "authentication": "Phiên đăng nhập đã hết hạn. Bản nháp trên thiết bị vẫn an toàn; hãy đăng nhập lại rồi thử lưu.",
+        "conflict": "CV này vừa được cập nhật ở nơi khác. Các chỉnh sửa trên thiết bị vẫn được giữ nguyên. Hãy tải bản mới nhất hoặc lưu các chỉnh sửa này thành CV mới.",
+        "generic": "Chưa thể lưu bản CV vào UpNext. Kiểm tra kết nối rồi thử lại.",
+        "limit": "Bạn đã đạt giới hạn lưu CV hoặc phiên bản. Hãy quản lý bớt CV cũ rồi thử lại.",
+        "reload": "Chưa thể tải bản CV mới nhất. Các chỉnh sửa trên thiết bị vẫn được giữ nguyên; hãy thử lại."
+      },
       "uploadedCvNotEditable": "CV đã tải lên không thể chỉnh sửa trong CV Studio.",
       "builderSnapshotMissing": "CV này chưa có dữ liệu từ CV Studio để chỉnh sửa.",
       "defaultTitle": "CV ứng tuyển"
+    },
+    "serverLoad": {
+      "retry": "Thử tải lại",
+      "backToCvs": "Quay lại CV của tôi",
+      "notFound": {
+        "title": "Không tìm thấy CV này",
+        "description": "CV có thể đã bị xóa hoặc đường dẫn không còn hợp lệ. Bản nháp trên thiết bị của bạn không bị thay đổi."
+      },
+      "accessDenied": {
+        "title": "Bạn không có quyền mở CV này",
+        "description": "Hãy kiểm tra lại tài khoản đang đăng nhập hoặc chọn một CV khác trong Hồ sơ ứng viên."
+      },
+      "notEditable": {
+        "title": "CV đã tải lên không thể mở trong CV Studio",
+        "description": "CV Studio chỉ chỉnh sửa các CV được tạo trong Studio. Bạn vẫn có thể dùng CV đã tải lên khi ứng tuyển."
+      },
+      "missingSnapshot": {
+        "title": "CV này chưa có nội dung để chỉnh sửa",
+        "description": "Bản CV này không còn dữ liệu từ CV Studio. Bạn có thể tạo một CV mới hoặc chọn một CV Studio khác."
+      },
+      "unavailable": {
+        "title": "Chưa thể mở CV lúc này",
+        "description": "Kết nối hoặc máy chủ đang gặp sự cố tạm thời. Bản nháp trên thiết bị của bạn vẫn an toàn."
+      }
     },
     "mobile": {
       "viewMode": "Chế độ làm việc",

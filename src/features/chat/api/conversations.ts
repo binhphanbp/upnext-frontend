@@ -3,6 +3,7 @@ import { apiRequest } from "@/shared/api/http";
 import type {
   ConversationDetailResponse,
   ConversationListResponse,
+  CursorMeta,
   ConversationStatus,
   ConversationType,
   CurrentIdentity,
@@ -13,6 +14,52 @@ import type {
   ConversationRecruiterOption,
   JobHiringTeamMember,
 } from "../types/contracts";
+
+type CursorPage<T> = Readonly<{
+  data: T[];
+  meta: CursorMeta;
+}>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+/**
+ * Earlier clients and test adapters may still return a plain array. Accept that
+ * known legacy shape at the API boundary, then give React Query one stable
+ * cursor contract.
+ *
+ * We intentionally do not catch request failures here: non-2xx responses and
+ * malformed payloads must still reach the query error state instead of making a
+ * broken service look like an empty inbox.
+ */
+function normalizeCursorPage<T>(response: unknown, resource: string): CursorPage<T> {
+  if (Array.isArray(response)) {
+    return { data: response as T[], meta: { nextCursor: null } };
+  }
+
+  if (!isRecord(response) || !Array.isArray(response.data)) {
+    throw new Error(`Phản hồi ${resource} không đúng định dạng.`);
+  }
+
+  if (response.meta === undefined || response.meta === null) {
+    return { data: response.data as T[], meta: { nextCursor: null } };
+  }
+
+  if (!isRecord(response.meta)) {
+    throw new Error(`Phản hồi ${resource} không đúng định dạng.`);
+  }
+
+  const nextCursor = response.meta.nextCursor;
+  if (nextCursor !== undefined && nextCursor !== null && typeof nextCursor !== "string") {
+    throw new Error(`Phản hồi ${resource} không đúng định dạng.`);
+  }
+
+  return {
+    data: response.data as T[],
+    meta: { nextCursor: typeof nextCursor === "string" ? nextCursor : null },
+  };
+}
 
 function authHeaders(token: string, json = false): HeadersInit {
   return {
@@ -34,16 +81,18 @@ export function getConversations(
     tag?: string;
     limit?: number;
   },
-) {
+): Promise<ConversationListResponse> {
   const params = new URLSearchParams();
   if (options.type) params.set("type", options.type);
   if (options.status) params.set("status", options.status);
   if (options.cursor) params.set("cursor", options.cursor);
   if (options.tag) params.set("tag", options.tag);
   params.set("limit", String(options.limit ?? 20));
-  return apiRequest<ConversationListResponse>(`/conversations?${params.toString()}`, {
+  return apiRequest<unknown>(`/conversations?${params.toString()}`, {
     headers: authHeaders(token),
-  });
+  }).then((response) =>
+    normalizeCursorPage<ConversationListResponse["data"][number]>(response, "hội thoại"),
+  );
 }
 
 export function getConversationTags(token: string, type?: ConversationType) {
@@ -114,12 +163,13 @@ export function getMessages(
   token: string,
   conversationId: string,
   options: { before?: string; limit?: number } = {},
-) {
+): Promise<MessageListResponse> {
   const params = new URLSearchParams({ limit: String(options.limit ?? 30) });
   if (options.before) params.set("before", options.before);
-  return apiRequest<MessageListResponse>(
-    `/conversations/${conversationId}/messages?${params.toString()}`,
-    { headers: authHeaders(token) },
+  return apiRequest<unknown>(`/conversations/${conversationId}/messages?${params.toString()}`, {
+    headers: authHeaders(token),
+  }).then((response) =>
+    normalizeCursorPage<MessageListResponse["data"][number]>(response, "tin nhắn"),
   );
 }
 

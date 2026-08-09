@@ -34,14 +34,17 @@ export function useConversations(
         ...(pageParam ? { cursor: pageParam } : {}),
         limit: 20,
       }),
-    getNextPageParam: (page) => page.meta.nextCursor ?? undefined,
+    // The API adapter normalizes legacy plain-array responses. Keep this guard
+    // as a final cache-boundary safeguard so one malformed cached page cannot
+    // crash every candidate workspace route.
+    getNextPageParam: (page) => page?.meta?.nextCursor ?? undefined,
     staleTime: 15_000,
   });
 
   const conversations = useMemo(() => {
     const seen = new Set<string>();
     return (query.data?.pages ?? [])
-      .flatMap((page) => page.data)
+      .flatMap((page) => (Array.isArray(page?.data) ? page.data : []))
       .filter((conversation) => {
         if (seen.has(conversation.id)) return false;
         seen.add(conversation.id);
