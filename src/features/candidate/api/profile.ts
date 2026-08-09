@@ -267,6 +267,15 @@ export type CandidateApplicationStatus =
   | "REJECTED"
   | "WITHDRAWN";
 
+export type CandidateOfferResponse = "PENDING" | "ACCEPTED" | "DECLINED";
+
+export type CandidateApplicationActivityGroup =
+  | "all"
+  | "active"
+  | "interview"
+  | "action_required"
+  | "closed";
+
 export type CandidateActivityJobPostApi = Readonly<{
   id: string;
   slug: string;
@@ -290,6 +299,33 @@ export type CandidateActivityJobPostApi = Readonly<{
   experienceLevel?: Readonly<{ id: string; name: string }> | null;
   employmentType?: Readonly<{ id: string; name: string }> | null;
   jobCategory?: Readonly<{ id: string; name: string }> | null;
+  jobPostLocations?: ReadonlyArray<{
+    jobLocation: Readonly<{
+      address?: string | null;
+      city?: string | null;
+      country?: string | null;
+      district?: string | null;
+    }>;
+  }>;
+}>;
+
+export type CandidateApplicationInterviewApi = Readonly<{
+  id: string;
+  interviewRound: number;
+  type: "ONLINE" | "ONSITE";
+  scheduledStartAt: string;
+  scheduledEndAt: string;
+  meetingUrl?: string | null;
+  location?: string | null;
+  recruiterNote?: string | null;
+  status: "SCHEDULED" | "RESCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  recruiterProfile?: Readonly<{ fullName: string }> | null;
+}>;
+
+export type CandidateApplicationOfferDetails = Readonly<{
+  salaryOffer: string;
+  startDate: string;
+  note?: string;
 }>;
 
 export type CandidateApplicationApi = Readonly<{
@@ -306,6 +342,17 @@ export type CandidateApplicationApi = Readonly<{
   createdAt: string;
   updatedAt: string;
   jobPost: CandidateActivityJobPostApi;
+  activityGroup?: Exclude<CandidateApplicationActivityGroup, "all">;
+  availableActions?: Readonly<{
+    canChangeCv: boolean;
+    canRespondToOffer: boolean;
+    canWithdraw: boolean;
+  }>;
+  offerDetails?: CandidateApplicationOfferDetails | null;
+  offerDeadlineAt?: string | null;
+  offerRespondedAt?: string | null;
+  offerResponse?: CandidateOfferResponse | null;
+  interviews?: ReadonlyArray<CandidateApplicationInterviewApi>;
   cvVersion: Readonly<{
     id: string;
     cvId: string;
@@ -331,10 +378,26 @@ export type CandidateApplicationApi = Readonly<{
   }>;
 }>;
 
-export type CandidateApplicationMutationApi = Pick<
-  CandidateApplicationApi,
-  "id" | "status" | "updatedAt"
->;
+export type CandidateApplicationMutationApi = Readonly<{
+  id: string;
+  status: CandidateApplicationStatus;
+  updatedAt: string;
+  offerRespondedAt?: string | null;
+  offerResponse?: CandidateOfferResponse | null;
+}>;
+
+export type CandidateApplicationActivityApi = Readonly<{
+  items: CandidateApplicationApi[];
+  meta: PaginatedResponse<CandidateApplicationApi>["meta"];
+  summary: Readonly<{
+    total: number;
+    active: number;
+    interviewing: number;
+    actionRequired: number;
+    nextInterviewAt: string | null;
+    nextInterviewApplicationId: string | null;
+  }>;
+}>;
 
 export type SavedJobApi = Readonly<{
   id: string;
@@ -781,13 +844,46 @@ function normalizeCandidateApplication(
   application: CandidateApplicationWireApi,
 ): CandidateApplicationApi {
   const cvVersion = application.cvVersion;
+  const isPendingOffer =
+    application.status === "OFFERED" &&
+    (application.offerResponse === undefined ||
+      application.offerResponse === null ||
+      application.offerResponse === "PENDING");
+  const isOfferExpired =
+    Boolean(application.offerDeadlineAt) &&
+    new Date(application.offerDeadlineAt as string).getTime() <= Date.now();
 
   return {
     ...application,
+    activityGroup:
+      application.activityGroup ??
+      (application.status === "INTERVIEWING"
+        ? "interview"
+        : application.status === "OFFERED"
+          ? isPendingOffer && !isOfferExpired
+            ? "action_required"
+            : application.offerResponse === "ACCEPTED"
+              ? "active"
+              : "closed"
+          : ["SUBMITTED", "VIEWED", "CONSIDERING", "SHORTLISTED"].includes(application.status)
+            ? "active"
+            : "closed"),
+    availableActions: application.availableActions ?? {
+      canChangeCv: application.status === "SUBMITTED",
+      canRespondToOffer: isPendingOffer && !isOfferExpired,
+      canWithdraw: ["SUBMITTED", "VIEWED", "CONSIDERING", "SHORTLISTED", "INTERVIEWING"].includes(
+        application.status,
+      ),
+    },
     cvVersion: {
       ...cvVersion,
       versionNo: cvVersion.versionNo ?? cvVersion.versionNumber ?? 1,
       fileName: cvVersion.fileName ?? cvVersion.cv?.title ?? "CV đã chọn",
+    },
+    interviews: application.interviews ?? [],
+    jobPost: {
+      ...application.jobPost,
+      jobPostLocations: application.jobPost.jobPostLocations ?? [],
     },
   };
 }
@@ -797,6 +893,36 @@ export async function getMyCandidateApplications(token: string) {
     headers: authHeaders(token),
   });
   return applications.map(normalizeCandidateApplication);
+}
+
+export async function getMyCandidateApplicationActivity(
+  token: string,
+  params: Readonly<{
+    group?: CandidateApplicationActivityGroup;
+    limit?: number;
+    page?: number;
+    q?: string;
+    sort?: "recent_activity" | "newest" | "oldest";
+  }> = {},
+) {
+  const searchParams = new URLSearchParams();
+  if (params.group && params.group !== "all") searchParams.set("group", params.group);
+  if (params.limit) searchParams.set("limit", String(params.limit));
+  if (params.page) searchParams.set("page", String(params.page));
+  if (params.q?.trim()) searchParams.set("q", params.q.trim());
+  if (params.sort && params.sort !== "recent_activity") searchParams.set("sort", params.sort);
+  const suffix = searchParams.size ? `?${searchParams.toString()}` : "";
+
+  const response = await apiRequest<
+    Omit<CandidateApplicationActivityApi, "items"> & { items: CandidateApplicationWireApi[] }
+  >(`/applications/me/activity${suffix}`, {
+    headers: authHeaders(token),
+  });
+
+  return {
+    ...response,
+    items: response.items.map(normalizeCandidateApplication),
+  } satisfies CandidateApplicationActivityApi;
 }
 
 export async function getCandidateApplication(token: string, applicationId: string) {

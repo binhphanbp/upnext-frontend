@@ -261,10 +261,22 @@ export function updateApplicationStatus(
   applicationId: string,
   status: string,
   token: string,
-  note?: string,
+  noteOrOptions?:
+    | string
+    | Readonly<{
+        note?: string;
+        offer?: Readonly<{
+          salaryOffer: string;
+          startDate: string;
+          expiresAt: string;
+          note?: string;
+        }>;
+      }>,
 ) {
+  const options =
+    typeof noteOrOptions === "string" ? { note: noteOrOptions } : (noteOrOptions ?? {});
   return apiRequest<Application>(`/applications/${applicationId}/status`, {
-    body: JSON.stringify({ status, note }),
+    body: JSON.stringify({ status, ...options }),
     headers: jsonAuthHeaders(token),
     method: "PATCH",
   });

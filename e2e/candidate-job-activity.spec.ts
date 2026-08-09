@@ -188,9 +188,92 @@ test("withdraws an active application without losing its detail data", async ({ 
   await expect(page.getByRole("button", { name: "Rút hồ sơ" })).toHaveCount(0);
 });
 
+test("shows a pending offer as an explicit candidate decision, then records acceptance", async ({
+  page,
+}) => {
+  const offeredApplication = {
+    ...application,
+    availableActions: {
+      canChangeCv: false,
+      canRespondToOffer: true,
+      canWithdraw: false,
+    },
+    offerDeadlineAt: "2027-08-01T02:00:00.000Z",
+    offerDetails: {
+      salaryOffer: "45.000.000 VNĐ/tháng",
+      startDate: "01/09/2027",
+      note: "Chúng tôi mong được chào đón bạn vào đội ngũ.",
+    },
+    offerResponse: "PENDING",
+    status: "OFFERED",
+    statusLogs: [
+      {
+        id: "offer-status-log",
+        oldStatus: "INTERVIEWING",
+        newStatus: "OFFERED",
+        note: "Offer sent",
+        changedAt: "2027-07-20T02:00:00.000Z",
+      },
+    ],
+  };
+  let offerAccepted = false;
+  const acceptedApplication = {
+    ...offeredApplication,
+    availableActions: { ...offeredApplication.availableActions, canRespondToOffer: false },
+    offerResponse: "ACCEPTED",
+  };
+  await page.route(new RegExp(`/api/v1/applications/${applicationId}(?:\\?|$)`), async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(offerAccepted ? acceptedApplication : offeredApplication),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+  await page.route(
+    new RegExp(`/api/v1/applications/${applicationId}/respond-offer$`),
+    async (route) => {
+      offerAccepted = true;
+      await route.fulfill({
+        body: JSON.stringify(acceptedApplication),
+        contentType: "application/json",
+        status: 200,
+      });
+    },
+  );
+
+  await page.goto(`/vi/candidate/applications/${applicationId}`);
+  await expect(
+    page.getByRole("heading", { name: "Bạn có một đề nghị cần phản hồi" }),
+  ).toBeVisible();
+  await expect(page.getByText("45.000.000 VNĐ/tháng", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Đồng ý đề nghị" }).click();
+  const dialog = page.getByRole("dialog", { name: "Đồng ý với đề nghị này?" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Gửi phản hồi đồng ý" }).click();
+
+  await expect(page.getByRole("heading", { name: "Bạn đã đồng ý đề nghị" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Từ chối đề nghị" })).toHaveCount(0);
+});
+
 test("shows an actionable empty state when there are no applications", async ({ page }) => {
-  await page.route(/\/applications\/me(?:\?|$)/, async (route) => {
-    await route.fulfill({ body: "[]", contentType: "application/json", status: 200 });
+  await page.route(/\/applications\/me\/activity(?:\?|$)/, async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        items: [],
+        meta: { page: 1, limit: 10, total: 0, totalPages: 1 },
+        summary: {
+          total: 0,
+          active: 0,
+          interviewing: 0,
+          actionRequired: 0,
+          nextInterviewAt: null,
+          nextInterviewApplicationId: null,
+        },
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
   });
 
   await page.goto("/vi/candidate/applications");
@@ -202,6 +285,19 @@ test("shows an actionable empty state when there are no applications", async ({ 
     "href",
     "/vi/jobs",
   );
+});
+
+test("keeps application filters usable without mobile horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/vi/candidate/applications");
+
+  await page.getByRole("button", { name: /Đang xử lý/ }).click();
+  await expect(page.getByRole("heading", { name: "Việc đã ứng tuyển" })).toBeVisible();
+
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(hasHorizontalOverflow).toBe(false);
 });
 
 test("shows a recoverable saved-jobs error state", async ({ page }) => {
@@ -302,6 +398,24 @@ async function mockCandidateActivity(page: Page) {
   await page.route(/\/applications\/me(?:\?|$)/, async (route) => {
     await route.fulfill({
       body: JSON.stringify([application]),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+  await page.route(/\/applications\/me\/activity(?:\?|$)/, async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        items: [application],
+        meta: { page: 1, limit: 10, total: 1, totalPages: 1 },
+        summary: {
+          total: 1,
+          active: 1,
+          interviewing: 0,
+          actionRequired: 0,
+          nextInterviewAt: null,
+          nextInterviewApplicationId: null,
+        },
+      }),
       contentType: "application/json",
       status: 200,
     });

@@ -520,10 +520,14 @@ export function RecruiterCandidatesPage() {
     }
   };
 
-  async function applyStatusChange(applicationId: string, nextStatus: string, note?: string) {
+  async function applyStatusChange(
+    applicationId: string,
+    nextStatus: string,
+    noteOrOptions?: Parameters<typeof updateApplicationStatus>[3],
+  ) {
     try {
       setSaving(true);
-      await updateApplicationStatus(applicationId, nextStatus, token, note);
+      await updateApplicationStatus(applicationId, nextStatus, token, noteOrOptions);
       void toast.fire({ icon: "success", title: t("candidates.messages.statusUpdateSuccess") });
       // Reload candidates list
       const applicantsData = await getCompanyApplications(token, buildQueryParams());
@@ -1178,8 +1182,7 @@ export function RecruiterCandidatesPage() {
         candidateName={offerSeed?.candidateName}
         jobTitle={offerSeed?.jobTitle}
         onConfirmOffer={async (appId, offerDetails) => {
-          const payloadStr = JSON.stringify(offerDetails);
-          await applyStatusChange(appId, "OFFERED", payloadStr);
+          await applyStatusChange(appId, "OFFERED", { offer: offerDetails });
         }}
       />
 
