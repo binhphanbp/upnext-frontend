@@ -41,6 +41,38 @@ test("keeps a newly uploaded CV selected and previews its own version", async ({
   expect(state.previewedVersionIds).toEqual([uploadedVersionId]);
 });
 
+test("supports Escape for nested CV preview and restores focus when the application dialog closes", async ({
+  page,
+}) => {
+  await installCandidateSession(page);
+  await mockApplyCvFlow(page);
+
+  await page.goto(`/vi/jobs/${jobId}`);
+  await waitForCandidateSession(page);
+
+  const applyTrigger = page.getByRole("button", { name: "Ứng tuyển ngay" });
+  await applyTrigger.focus();
+  await applyTrigger.click();
+
+  const applyDialog = page.getByRole("dialog", {
+    name: "Ứng tuyển vị trí Frontend Engineer",
+  });
+  await expect(applyDialog).toBeVisible();
+
+  const previewTrigger = page.getByRole("button", { name: "Xem trước CV CV cũ.pdf" });
+  await previewTrigger.click();
+  await expect(page.getByRole("dialog", { name: "CV cũ.pdf" })).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "CV cũ.pdf" })).toBeHidden();
+  await expect(applyDialog).toBeVisible();
+  await expect(previewTrigger).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(applyDialog).toBeHidden();
+  await expect(applyTrigger).toBeFocused();
+});
+
 test("explains an unavailable legacy CV and prevents using it for an application", async ({
   page,
 }) => {
