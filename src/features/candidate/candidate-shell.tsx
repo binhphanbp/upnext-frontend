@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AiCopilotDrawer } from "@/features/ai-copilot";
@@ -10,6 +11,8 @@ import {
   useChatSocket,
   useConversations,
 } from "@/features/chat";
+import { InstallPromptBanner } from "@/features/pwa/install-prompt-banner";
+import { OfflineBanner } from "@/features/pwa/offline-banner";
 import { usePathname, useRouter } from "@/i18n/navigation";
 
 import { PublicHeader } from "../public/shared/public-header";
@@ -49,6 +52,7 @@ function CandidateWorkspace({
   onNavigate: (path: string) => void;
 }>) {
   const pathname = usePathname();
+  const locale = useLocale();
   const { identity } = useChatSocket();
   const conversations = useConversations();
   const [candidateId, setCandidateId] = useState<string | null>(null);
@@ -97,6 +101,9 @@ function CandidateWorkspace({
         hasNewRecruiterMessages={hasNewRecruiterMessages}
         onRecruiterChatViewed={markRecruiterChatViewed}
       />
+
+      <OfflineBanner locale={locale} />
+      <InstallPromptBanner locale={locale} />
 
       <main className="mx-auto w-[min(1400px,calc(100vw-32px))] pt-6 pb-10 md:w-[min(1400px,calc(100vw-60px))] md:pt-8 md:pb-14 xl:w-[min(1400px,calc(100vw-96px))]">
         {children}
