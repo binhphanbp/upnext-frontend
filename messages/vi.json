@@ -2507,7 +2507,10 @@
       "summary": {
         "label": "Tổng quan hồ sơ ứng tuyển",
         "total": "Tổng hồ sơ",
-        "inProgress": "Đang tiến hành",
+        "inProgress": "Đang xử lý",
+        "interview": "Đang phỏng vấn",
+        "actionRequired": "Cần phản hồi",
+        "nextInterview": "Xem lịch phỏng vấn",
         "positive": "Offer & trúng tuyển"
       },
       "list": {
@@ -2519,13 +2522,14 @@
         "searchLabel": "Tìm hồ sơ ứng tuyển",
         "searchPlaceholder": "Tên vị trí hoặc công ty…",
         "sortLabel": "Sắp xếp hồ sơ ứng tuyển",
+        "recentActivity": "Hoạt động gần đây",
         "newest": "Ứng tuyển mới nhất",
         "oldest": "Ứng tuyển lâu nhất",
         "groups": {
           "all": "Tất cả",
           "active": "Đang xử lý",
           "interview": "Phỏng vấn",
-          "offer": "Kết quả tốt",
+          "action_required": "Cần phản hồi",
           "closed": "Đã kết thúc"
         }
       },
@@ -2546,7 +2550,10 @@
           "label": "Đang phỏng vấn"
         },
         "OFFERED": {
-          "label": "Đã nhận offer"
+          "label": "Cần phản hồi đề nghị",
+          "accepted": "Đã đồng ý đề nghị",
+          "declined": "Đã từ chối đề nghị",
+          "expired": "Đề nghị đã hết hạn"
         },
         "HIRED": {
           "label": "Đã tuyển"
@@ -2560,7 +2567,8 @@
       },
       "card": {
         "appliedAt": "Nộp {date}",
-        "viewDetail": "Xem tiến trình"
+        "viewDetail": "Xem tiến trình",
+        "reviewOffer": "Xem đề nghị"
       },
       "resume": {
         "title": "CV mặc định",
@@ -2613,8 +2621,14 @@
         "description": "Các mốc bên dưới được ghi nhận từ hoạt động thực tế của hồ sơ.",
         "submitted": "Đã nộp hồ sơ",
         "submittedDescription": "UpNext đã tiếp nhận và chuyển hồ sơ đến nhà tuyển dụng.",
+        "resubmitted": "Đã ứng tuyển lại",
+        "resubmittedDescription": "Bạn đã chủ động nộp lại hồ sơ ứng tuyển vào vị trí này.",
         "viewed": "Nhà tuyển dụng đã xem",
-        "viewedDescription": "Nhà tuyển dụng đã mở hồ sơ ứng tuyển của bạn."
+        "viewedDescription": "Nhà tuyển dụng đã mở hồ sơ ứng tuyển của bạn.",
+        "offerAccepted": "Bạn đã đồng ý đề nghị",
+        "offerAcceptedDescription": "Nhà tuyển dụng đã nhận phản hồi của bạn và sẽ liên hệ để thống nhất bước tiếp theo.",
+        "offerDeclined": "Bạn đã từ chối đề nghị",
+        "offerDeclinedDescription": "Nhà tuyển dụng đã nhận phản hồi của bạn. Hồ sơ này được chuyển sang trạng thái đã kết thúc."
       },
       "submission": {
         "title": "Thông tin đã gửi",
@@ -2669,6 +2683,40 @@
           "description": "Bạn đã chủ động rút hồ sơ khỏi quy trình tuyển dụng.",
           "nextStep": "Hồ sơ này không còn được nhà tuyển dụng tiếp tục xử lý."
         }
+      },
+      "interviews": {
+        "title": "Lịch phỏng vấn",
+        "description": "Các lịch hẹn còn hiệu lực được nhà tuyển dụng cập nhật cho hồ sơ này.",
+        "round": "Vòng phỏng vấn {round}",
+        "online": "Trực tuyến",
+        "onsite": "Tại địa điểm",
+        "joinMeeting": "Mở phòng họp"
+      },
+      "offer": {
+        "pendingTitle": "Bạn có một đề nghị cần phản hồi",
+        "pendingDescription": "Đọc kỹ các thông tin bên dưới trước khi quyết định. Phản hồi của bạn sẽ được gửi đến nhà tuyển dụng.",
+        "acceptedTitle": "Bạn đã đồng ý đề nghị",
+        "acceptedDescription": "Nhà tuyển dụng đã nhận phản hồi. Hãy chờ hướng dẫn tiếp theo về thủ tục nhận việc.",
+        "declinedTitle": "Bạn đã từ chối đề nghị",
+        "declinedDescription": "Nhà tuyển dụng đã nhận phản hồi. Hồ sơ này sẽ không tiếp tục ở bước đề nghị.",
+        "expiredTitle": "Đề nghị này đã hết thời hạn phản hồi",
+        "expiredDescription": "Bạn không thể phản hồi thêm trên UpNext. Nếu cần trao đổi, hãy liên hệ trực tiếp với nhà tuyển dụng.",
+        "salary": "Thu nhập đề nghị",
+        "startDate": "Ngày dự kiến bắt đầu",
+        "note": "Ghi chú từ nhà tuyển dụng",
+        "respondBy": "Phản hồi trước {date}",
+        "accept": "Đồng ý đề nghị",
+        "decline": "Từ chối đề nghị",
+        "cancel": "Quay lại",
+        "confirmAcceptTitle": "Đồng ý với đề nghị này?",
+        "confirmAcceptDescription": "Phản hồi đồng ý sẽ được gửi ngay đến nhà tuyển dụng. Việc này xác nhận bạn muốn tiếp tục bước nhận việc, không thay thế hợp đồng lao động.",
+        "confirmDeclineTitle": "Từ chối đề nghị này?",
+        "confirmDeclineDescription": "Phản hồi từ chối sẽ được gửi đến nhà tuyển dụng và không thể hoàn tác trên UpNext.",
+        "confirmAcceptAction": "Gửi phản hồi đồng ý",
+        "confirmDeclineAction": "Gửi phản hồi từ chối",
+        "acceptedToast": "Đã gửi phản hồi đồng ý đến nhà tuyển dụng.",
+        "declinedToast": "Đã gửi phản hồi từ chối đến nhà tuyển dụng.",
+        "responseError": "Chưa thể gửi phản hồi. Đề nghị có thể vừa thay đổi; hãy tải lại và thử lại."
       },
       "job": {
         "title": "Thông tin công việc",

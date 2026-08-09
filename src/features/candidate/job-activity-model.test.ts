@@ -67,14 +67,17 @@ describe("candidate job activity model", () => {
   it("maps backend application statuses into candidate-facing groups", () => {
     expect(getApplicationStatusGroup("SUBMITTED")).toBe("active");
     expect(getApplicationStatusGroup("INTERVIEWING")).toBe("interview");
-    expect(getApplicationStatusGroup("HIRED")).toBe("offer");
+    // An offer's response state is supplied by the activity API. A terminal hire is closed,
+    // rather than a candidate action still waiting to be taken.
+    expect(getApplicationStatusGroup("HIRED")).toBe("closed");
     expect(getApplicationStatusGroup("WITHDRAWN")).toBe("closed");
   });
 
   it("allows withdrawal while a hiring process is active and blocks terminal states", () => {
     expect(canWithdrawApplication("SHORTLISTED")).toBe(true);
     expect(canWithdrawApplication("INTERVIEWING")).toBe(true);
-    expect(canWithdrawApplication("OFFERED")).toBe(true);
+    // An offer has its own explicit accept/decline decision, so it cannot be withdrawn.
+    expect(canWithdrawApplication("OFFERED")).toBe(false);
     expect(canWithdrawApplication("HIRED")).toBe(false);
     expect(canWithdrawApplication("REJECTED")).toBe(false);
     expect(canWithdrawApplication("WITHDRAWN")).toBe(false);

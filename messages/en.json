@@ -2508,6 +2508,9 @@
         "label": "Application overview",
         "total": "Total applications",
         "inProgress": "In progress",
+        "interview": "Interviewing",
+        "actionRequired": "Action needed",
+        "nextInterview": "View interview",
         "positive": "Offers & hires"
       },
       "list": {
@@ -2519,13 +2522,14 @@
         "searchLabel": "Search applications",
         "searchPlaceholder": "Role or company…",
         "sortLabel": "Sort applications",
+        "recentActivity": "Recent activity",
         "newest": "Newest applications",
         "oldest": "Oldest applications",
         "groups": {
           "all": "All",
           "active": "In review",
           "interview": "Interview",
-          "offer": "Positive outcome",
+          "action_required": "Action needed",
           "closed": "Closed"
         }
       },
@@ -2546,7 +2550,10 @@
           "label": "Interviewing"
         },
         "OFFERED": {
-          "label": "Offer received"
+          "label": "Offer response needed",
+          "accepted": "Offer accepted",
+          "declined": "Offer declined",
+          "expired": "Offer expired"
         },
         "HIRED": {
           "label": "Hired"
@@ -2560,7 +2567,8 @@
       },
       "card": {
         "appliedAt": "Applied {date}",
-        "viewDetail": "View progress"
+        "viewDetail": "View progress",
+        "reviewOffer": "Review offer"
       },
       "resume": {
         "title": "Default resume",
@@ -2613,8 +2621,14 @@
         "description": "These milestones come from recorded application activity.",
         "submitted": "Application submitted",
         "submittedDescription": "UpNext received your application and sent it to the employer.",
+        "resubmitted": "Application resubmitted",
+        "resubmittedDescription": "You submitted a new application for this role.",
         "viewed": "Viewed by employer",
-        "viewedDescription": "The employer opened your application."
+        "viewedDescription": "The employer opened your application.",
+        "offerAccepted": "You accepted the offer",
+        "offerAcceptedDescription": "The employer received your response and will contact you about the next steps.",
+        "offerDeclined": "You declined the offer",
+        "offerDeclinedDescription": "The employer received your response. This application is now closed."
       },
       "submission": {
         "title": "Submitted information",
@@ -2669,6 +2683,40 @@
           "description": "You withdrew this application from the hiring process.",
           "nextStep": "The employer will no longer process this application."
         }
+      },
+      "interviews": {
+        "title": "Interview schedule",
+        "description": "Upcoming appointments currently recorded by the employer for this application.",
+        "round": "Interview round {round}",
+        "online": "Online",
+        "onsite": "On-site",
+        "joinMeeting": "Open meeting"
+      },
+      "offer": {
+        "pendingTitle": "You have an offer to review",
+        "pendingDescription": "Review the information below before deciding. Your response will be sent to the employer.",
+        "acceptedTitle": "You accepted this offer",
+        "acceptedDescription": "The employer has received your response. Wait for their next steps for onboarding.",
+        "declinedTitle": "You declined this offer",
+        "declinedDescription": "The employer has received your response. This application will not continue at the offer stage.",
+        "expiredTitle": "This offer has expired",
+        "expiredDescription": "You cannot respond on UpNext anymore. Contact the employer directly if you need to discuss it.",
+        "salary": "Offered compensation",
+        "startDate": "Proposed start date",
+        "note": "Note from employer",
+        "respondBy": "Respond by {date}",
+        "accept": "Accept offer",
+        "decline": "Decline offer",
+        "cancel": "Go back",
+        "confirmAcceptTitle": "Accept this offer?",
+        "confirmAcceptDescription": "Your acceptance will be sent to the employer now. It confirms you want to proceed with onboarding; it is not an employment contract.",
+        "confirmDeclineTitle": "Decline this offer?",
+        "confirmDeclineDescription": "Your decision will be sent to the employer and cannot be undone on UpNext.",
+        "confirmAcceptAction": "Send acceptance",
+        "confirmDeclineAction": "Send decline",
+        "acceptedToast": "Your acceptance was sent to the employer.",
+        "declinedToast": "Your decline was sent to the employer.",
+        "responseError": "Your response could not be sent. The offer may have changed; reload and try again."
       },
       "job": {
         "title": "Job information",

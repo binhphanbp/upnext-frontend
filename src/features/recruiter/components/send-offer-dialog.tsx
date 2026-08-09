@@ -3,7 +3,6 @@
 import { PaperPlaneRight, SpinnerGap } from "@phosphor-icons/react";
 import { useLocale } from "next-intl";
 import { useEffect, useState } from "react";
-import Swal from "sweetalert2";
 
 import { Button } from "@/shared/ui/button";
 import {
@@ -16,13 +15,13 @@ import {
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import { toast } from "@/shared/ui/toast";
 
 export type OfferDetails = {
   salaryOffer: string;
   startDate: string;
-  expiryDays: number;
-  expiryDateText: string;
-  note: string;
+  expiresAt: string;
+  note?: string;
 };
 
 type SendOfferDialogProps = Readonly<{
@@ -43,26 +42,27 @@ export function SendOfferDialog({
   onConfirmOffer,
 }: SendOfferDialogProps) {
   const locale = useLocale();
-  const [salaryOffer, setSalaryOffer] = useState("25000000");
-  const [startDate, setStartDate] = useState("Theo trao đổi trực tiếp");
+  const [salaryOffer, setSalaryOffer] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [expiryDays, setExpiryDays] = useState(7);
   const [note, setNote] = useState("");
   const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
     if (!open) {
-      setSalaryOffer("25000000");
-      setStartDate("Theo trao đổi trực tiếp");
+      setSalaryOffer("");
+      setStartDate("");
       setExpiryDays(7);
       setNote("");
       setIsPending(false);
     }
   }, [open]);
 
-  // Calculate deadline date text (e.g. "15 thg 8, 2026")
   const deadlineDate = new Date();
   deadlineDate.setDate(deadlineDate.getDate() + expiryDays);
-  const expiryDateText = `${expiryDays} ngày (Hạn chót: ${deadlineDate.getDate()} thg ${deadlineDate.getMonth() + 1}, ${deadlineDate.getFullYear()})`;
+  const expiryDateText = new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
+    deadlineDate,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,30 +73,21 @@ export function SendOfferDialog({
       await onConfirmOffer(applicationId, {
         salaryOffer,
         startDate,
-        expiryDays,
-        expiryDateText,
-        note,
+        expiresAt: deadlineDate.toISOString(),
+        ...(note.trim() ? { note: note.trim() } : {}),
       });
       onOpenChange(false);
-      void Swal.fire({
-        icon: "success",
-        title: locale === "vi" ? "🎉 Đã gửi đề nghị việc làm!" : "🎉 Offer Sent Successfully!",
-        text:
-          locale === "vi"
-            ? `Lời mời nhận việc cho vị trí ${jobTitle || "công việc"} đã được gửi tới ${candidateName}.`
-            : `Job offer for ${jobTitle || "the position"} has been sent to ${candidateName}.`,
-        confirmButtonColor: "#10b981",
-      });
+      toast.success(
+        locale === "vi"
+          ? `Đã gửi đề nghị đến ${candidateName}.`
+          : `Offer sent to ${candidateName}.`,
+      );
     } catch {
-      void Swal.fire({
-        icon: "error",
-        title: locale === "vi" ? "Không thể gửi Offer" : "Failed to Send Offer",
-        text:
-          locale === "vi"
-            ? "Đã có lỗi xảy ra. Vui lòng thử lại!"
-            : "An error occurred. Please try again!",
-        confirmButtonColor: "#ef4444",
-      });
+      toast.error(
+        locale === "vi"
+          ? "Chưa thể gửi đề nghị. Vui lòng kiểm tra thông tin và thử lại."
+          : "The offer could not be sent. Check the details and try again.",
+      );
     } finally {
       setIsPending(false);
     }
@@ -111,13 +102,13 @@ export function SendOfferDialog({
               <PaperPlaneRight size={20} weight="bold" />
             </span>
             <DialogTitle className="text-lg font-bold text-slate-900">
-              {locale === "vi" ? "Gửi đề nghị tuyển dụng (Send Offer)" : "Send Job Offer"}
+              {locale === "vi" ? "Gửi đề nghị tuyển dụng" : "Send job offer"}
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs leading-5 font-medium text-slate-500">
             {locale === "vi"
-              ? `Xác nhận gửi thư mời nhận việc chính thức cho ứng viên ${candidateName} vị trí ${jobTitle}.`
-              : `Confirm sending an official job offer to candidate ${candidateName} for ${jobTitle}.`}
+              ? `Điền đúng các điều khoản đã được phê duyệt trước khi gửi đến ${candidateName}.`
+              : `Enter the approved terms before sending this offer to ${candidateName}.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -141,9 +132,10 @@ export function SendOfferDialog({
               </Label>
               <Input
                 id="offer-salary"
-                placeholder="25000000"
+                placeholder={locale === "vi" ? "VD: 25.000.000 VNĐ/tháng" : "e.g. 2,000 USD/month"}
                 value={salaryOffer}
                 onChange={(e) => setSalaryOffer(e.target.value)}
+                required
                 className="rounded-xl border-slate-200 font-semibold text-emerald-600"
               />
             </div>
@@ -154,8 +146,10 @@ export function SendOfferDialog({
               </Label>
               <Input
                 id="offer-start-date"
+                placeholder={locale === "vi" ? "VD: 01/09/2026" : "e.g. September 1, 2026"}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                required
                 className="rounded-xl border-slate-200 text-xs font-semibold text-slate-800"
               />
             </div>
@@ -175,18 +169,27 @@ export function SendOfferDialog({
                 onChange={(e) => setExpiryDays(Number(e.target.value) || 7)}
                 className="w-24 rounded-xl border-slate-200 font-semibold text-rose-600"
               />
-              <span className="text-xs font-semibold text-slate-500">({expiryDateText})</span>
+              <span className="text-xs font-semibold text-slate-500">
+                {locale === "vi"
+                  ? `Hạn phản hồi: ${expiryDateText}`
+                  : `Response deadline: ${expiryDateText}`}
+              </span>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="offer-note" className="text-xs font-bold text-slate-700">
+            <Label
+              id="offer-note-label"
+              htmlFor="offer-note"
+              className="text-xs font-bold text-slate-700"
+            >
               {locale === "vi"
                 ? "Thư ngỏ / Lời nhắn từ Nhà tuyển dụng"
                 : "Message / Note from Recruiter"}
             </Label>
             <textarea
               id="offer-note"
+              aria-labelledby="offer-note-label"
               rows={3}
               placeholder={
                 locale === "vi"
