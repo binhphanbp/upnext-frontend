@@ -9,7 +9,9 @@ const uploadedVersionId = "66666666-6666-4666-8666-666666666666";
 const builderCvId = "77777777-7777-4777-8777-777777777777";
 const builderVersionId = "88888888-8888-4888-8888-888888888888";
 
-test("keeps a newly uploaded CV selected and previews its own version", async ({ page }) => {
+test("keeps a newly uploaded CV selected and opens it in the browser-native reader", async ({
+  page,
+}) => {
   await installCandidateSession(page);
   const state = await mockApplyCvFlow(page);
 
@@ -37,7 +39,13 @@ test("keeps a newly uploaded CV selected and previews its own version", async ({
 
   await page.getByRole("button", { name: "Xem trước CV CV mới.pdf" }).click();
   await expect(page.getByRole("button", { name: "Đóng xem CV" })).toBeVisible();
-  await expect(page.locator('iframe[title="CV mới.pdf"]')).toBeVisible();
+  const previewFrame = page.locator('iframe[title="CV mới.pdf"]');
+  await expect(previewFrame).toBeVisible();
+  await expect(previewFrame).not.toHaveClass(/pointer-events-none/);
+  await expect(previewFrame).toHaveCSS("pointer-events", "auto");
+  const openInNewTab = page.getByRole("link", { name: "Mở CV mới.pdf trong tab mới" });
+  await expect(openInNewTab).toHaveAttribute("target", "_blank");
+  await expect(openInNewTab).toHaveAttribute("rel", "noopener noreferrer");
   expect(state.previewedVersionIds).toEqual([uploadedVersionId]);
 });
 
@@ -141,6 +149,23 @@ test("requires a reachable phone number before an application can be submitted",
 
   await expect.poll(() => state.updatedPhoneNumbers).toEqual(["+12025550123"]);
   await expect.poll(() => state.submittedApplicationCount).toBe(1);
+});
+
+test("keeps account identity read-only while allowing contact details to be updated", async ({
+  page,
+}) => {
+  await installCandidateSession(page);
+  await mockApplyCvFlow(page);
+
+  await page.goto(`/vi/jobs/${jobId}`);
+  await waitForCandidateSession(page);
+  await page.getByRole("button", { name: "Ứng tuyển ngay" }).click();
+
+  const nameInput = page.getByLabel("Họ và tên");
+  await expect(nameInput).toHaveValue("Minh Anh");
+  await expect(nameInput).toHaveAttribute("readonly", "");
+  await expect(nameInput).toHaveAttribute("aria-readonly", "true");
+  await expect(page.getByText("Thông tin này được lấy từ tài khoản của bạn.")).toBeVisible();
 });
 
 async function installCandidateSession(page: Page) {

@@ -6,8 +6,6 @@ import {
   Eye,
   FileDoc,
   FilePdf,
-  Minus,
-  Plus,
   SpinnerGap,
   UploadSimple,
   Warning,
@@ -525,10 +523,14 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                       autoComplete="name"
                       required
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Nhập họ và tên của bạn"
-                      className="h-10 rounded-lg border-slate-200 text-xs focus:border-emerald-500 focus:ring-emerald-500"
+                      readOnly
+                      aria-readonly="true"
+                      aria-describedby="apply-name-hint"
+                      className="h-10 cursor-default rounded-lg border-slate-200 bg-slate-50/60 text-xs text-slate-600"
                     />
+                    <p id="apply-name-hint" className="mt-1.5 text-[11px] text-slate-500">
+                      Thông tin này được lấy từ tài khoản của bạn.
+                    </p>
                   </div>
                   <div>
                     <label
@@ -833,24 +835,7 @@ function CvPreviewModal({ title, url, mimeType, restoreFocusTo, onClose }: CvPre
   const isPdf = mimeType === "application/pdf" || url.toLowerCase().endsWith(".pdf");
   const isWordDocument =
     mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  const [zoom, setZoom] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const dragStartRef = useRef({ pointerX: 0, pointerY: 0, x: 0, y: 0 });
-
-  const updateZoom = (nextZoom: number) => {
-    const clampedZoom = Math.min(3, Math.max(0.75, nextZoom));
-    setZoom(clampedZoom);
-    if (clampedZoom === 1) {
-      setPosition({ x: 0, y: 0 });
-    }
-  };
-
-  const resetView = () => {
-    setZoom(1);
-    setPosition({ x: 0, y: 0 });
-  };
 
   return (
     <Dialog
@@ -878,45 +863,17 @@ function CvPreviewModal({ title, url, mimeType, restoreFocusTo, onClose }: CvPre
             <FilePdf size={18} weight="fill" className="flex-shrink-0 text-red-500" />
             <DialogTitle className="truncate text-sm font-bold text-slate-800">{title}</DialogTitle>
             <DialogDescription className="sr-only">
-              Bản xem trước CV. Dùng các nút trên thanh công cụ để thay đổi mức thu phóng.
+              Bản xem trước CV dùng trình đọc PDF của trình duyệt. Bạn có thể cuộn, phóng to hoặc
+              tải tài liệu trong trình đọc; mở tab mới nếu cần xem toàn màn hình.
             </DialogDescription>
           </div>
           <div className="flex items-center gap-2">
-            {isPdf && (
-              <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-                <button
-                  type="button"
-                  onClick={() => updateZoom(zoom - 0.15)}
-                  disabled={zoom <= 0.75}
-                  aria-label="Thu nhỏ CV"
-                  className="flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-600 transition hover:bg-white hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Minus size={13} />
-                </button>
-                <button
-                  type="button"
-                  onClick={resetView}
-                  title="Đặt lại kích thước và vị trí"
-                  className="min-w-12 cursor-pointer rounded-md px-1.5 py-1 text-[10px] font-bold text-slate-600 transition hover:bg-white hover:text-emerald-700"
-                >
-                  {Math.round(zoom * 100)}%
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateZoom(zoom + 0.15)}
-                  disabled={zoom >= 3}
-                  aria-label="Phóng to CV"
-                  className="flex size-7 cursor-pointer items-center justify-center rounded-md text-slate-600 transition hover:bg-white hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Plus size={13} />
-                </button>
-              </div>
-            )}
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
               title="Mở trong tab mới"
+              aria-label={`Mở ${title} trong tab mới`}
               className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700"
             >
               <ArrowSquareOut size={13} />
@@ -928,60 +885,15 @@ function CvPreviewModal({ title, url, mimeType, restoreFocusTo, onClose }: CvPre
         {/* Content */}
         <div className="flex min-h-0 flex-1 bg-slate-100">
           {isPdf ? (
-            <div
-              className={cn(
-                "relative h-full w-full touch-none overflow-hidden select-none",
-                isDragging ? "cursor-grabbing" : "cursor-grab",
-              )}
-              onWheel={(event) => {
-                event.preventDefault();
-                updateZoom(zoom + (event.deltaY < 0 ? 0.1 : -0.1));
-              }}
-              onPointerDown={(event) => {
-                event.currentTarget.setPointerCapture(event.pointerId);
-                dragStartRef.current = {
-                  pointerX: event.clientX,
-                  pointerY: event.clientY,
-                  x: position.x,
-                  y: position.y,
-                };
-                setIsDragging(true);
-              }}
-              onPointerMove={(event) => {
-                if (!isDragging) return;
-                setPosition({
-                  x: dragStartRef.current.x + event.clientX - dragStartRef.current.pointerX,
-                  y: dragStartRef.current.y + event.clientY - dragStartRef.current.pointerY,
-                });
-              }}
-              onPointerUp={(event) => {
-                if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                  event.currentTarget.releasePointerCapture(event.pointerId);
-                }
-                setIsDragging(false);
-              }}
-              onPointerCancel={() => setIsDragging(false)}
-              onDoubleClick={resetView}
-            >
+            <div className="h-full w-full bg-slate-100">
               <iframe
-                src={url.includes("#") ? url : `${url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                src={url}
                 title={title}
-                className={cn(
-                  "absolute inset-0 h-full w-full border-0",
-                  isDragging ? "pointer-events-none" : "pointer-events-auto",
-                )}
-                style={{
-                  transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
-                  transformOrigin: "center",
-                }}
+                // Keep pointer events on the native reader so its own scroll, zoom and download controls work.
+                className="h-full w-full border-0 bg-white"
                 allow="fullscreen"
+                tabIndex={-1}
               />
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-900/75 px-3 py-1.5 text-[10px] font-medium whitespace-nowrap text-white shadow-lg backdrop-blur-sm"
-              >
-                Giữ chuột để kéo · Lăn chuột để thu phóng · Nhấp đúp để đặt lại
-              </div>
             </div>
           ) : (
             /* Fallback for non-PDF files */
