@@ -2365,6 +2365,18 @@
       },
       "messages": {
         "statusUpdateSuccess": "Cập nhật trạng thái ứng tuyển thành công!"
+      },
+      "bulk": {
+        "selectedCount": "Đã chọn {count} ứng viên",
+        "clear": "Bỏ chọn",
+        "changeStatus": "Đổi trạng thái",
+        "exportSelected": "Xuất Excel",
+        "confirmTitle": "Đổi trạng thái cho {count} ứng viên?",
+        "confirmText": "Mỗi ứng viên sẽ nhận thông báo về việc chuyển sang trạng thái \"{status}\". Không thể hoàn tác bằng một lần bấm.",
+        "confirmButton": "Đổi trạng thái",
+        "cancelButton": "Huỷ",
+        "successAll": "Đã cập nhật {count} hồ sơ.",
+        "successPartial": "Cập nhật thành công {success}/{total} hồ sơ. Một số hồ sơ không đổi được trạng thái."
       }
     }
   },

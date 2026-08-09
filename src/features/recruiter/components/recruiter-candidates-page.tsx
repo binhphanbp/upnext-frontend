@@ -561,6 +561,65 @@ export function RecruiterCandidatesPage() {
     await applyStatusChange(applicationId, nextStatus);
   }
 
+  // Mỗi lượt đổi trạng thái tạo một thông báo gửi tới ứng viên (xem
+  // ApplicationsService.updateStatus ở backend) — đổi hàng loạt vẫn đi qua
+  // đúng endpoint đơn lẻ đã kiểm quyền/kiểm nghiệp vụ, chỉ gọi song song, để
+  // không phải viết lại logic phân quyền đã có sẵn cho một endpoint bulk mới.
+  async function handleBulkStatusChange(nextStatus: string) {
+    if (selectedIds.length === 0) return;
+
+    const statusLabel = t(`candidates.status.${nextStatus}` as any);
+    const result = await Swal.fire({
+      icon: "warning",
+      title: t("candidates.bulk.confirmTitle", { count: selectedIds.length }),
+      text: t("candidates.bulk.confirmText", { status: statusLabel }),
+      showCancelButton: true,
+      confirmButtonText: t("candidates.bulk.confirmButton"),
+      cancelButtonText: t("candidates.bulk.cancelButton"),
+      confirmButtonColor: "#059669",
+    });
+    if (!result.isConfirmed) return;
+
+    setSaving(true);
+    try {
+      const targetIds = [...selectedIds];
+      const results = await Promise.allSettled(
+        targetIds.map((id) => updateApplicationStatus(id, nextStatus, token)),
+      );
+      const failedCount = results.filter((item) => item.status === "rejected").length;
+      const successCount = targetIds.length - failedCount;
+
+      const applicantsData = await getCompanyApplications(token, buildQueryParams());
+      setMissingCompany(false);
+      setCandidates(applicantsData);
+      setSelectedIds([]);
+
+      if (failedCount === 0) {
+        void toast.fire({
+          icon: "success",
+          title: t("candidates.bulk.successAll", { count: successCount }),
+        });
+      } else {
+        void Swal.fire({
+          icon: successCount > 0 ? "warning" : "error",
+          title: t("candidates.bulk.successPartial", {
+            success: successCount,
+            total: targetIds.length,
+          }),
+        });
+      }
+    } catch (error) {
+      if (isRecruiterMissingCompanyError(error)) {
+        setMissingCompany(true);
+        setCandidates([]);
+        return;
+      }
+      showActionError(error, t);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const handleExportExcel = () => {
     const candidatesToExport =
       selectedIds.length > 0 ? candidates.filter((c) => selectedIds.includes(c.id)) : candidates;
@@ -841,6 +900,64 @@ export function RecruiterCandidatesPage() {
         </div>
 
         <TabsContent value="candidates" className="mt-0">
+          {selectedIds.length > 0 ? (
+            <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-2.5">
+              <span className="text-sm font-semibold text-emerald-800">
+                {t("candidates.bulk.selectedCount", { count: selectedIds.length })}
+              </span>
+
+              <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+                <Select
+                  disabled={saving}
+                  value=""
+                  onValueChange={(nextStatus) => void handleBulkStatusChange(nextStatus)}
+                >
+                  <SelectTrigger
+                    aria-label={t("candidates.bulk.changeStatus")}
+                    className="h-9 w-fit rounded-full border-emerald-300 bg-white px-3 text-xs font-semibold text-emerald-700 shadow-none focus:ring-0"
+                  >
+                    <span>{t("candidates.bulk.changeStatus")}</span>
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {STATUS_OPTIONS.filter((st) => st !== "WITHDRAWN" && st !== "INTERVIEWING").map(
+                      (st) => (
+                        <SelectItem key={st} value={st}>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                "size-1.5 rounded-full shrink-0",
+                                getStatusDotClass(st),
+                              )}
+                            />
+                            <span>{t(`candidates.status.${st}` as any)}</span>
+                          </div>
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 rounded-full border-emerald-300 bg-white px-3 text-xs font-semibold text-emerald-700 shadow-none hover:bg-emerald-50"
+                  onClick={handleExportExcel}
+                >
+                  <DownloadSimple size={14} />
+                  {t("candidates.bulk.exportSelected")}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="h-9 cursor-pointer rounded-full px-3 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                >
+                  {t("candidates.bulk.clear")}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <RecruiterTableLayout
             loading={loading}
             totalItems={totalItems}
