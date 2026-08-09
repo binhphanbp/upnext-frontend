@@ -13,6 +13,7 @@ import {
 import { usePathname, useRouter } from "@/i18n/navigation";
 
 import { PublicHeader } from "../public/shared/public-header";
+import { CandidateTabBar } from "./candidate-tab-bar";
 import { getCandidateSession } from "./session";
 
 type CandidateShellProps = Readonly<{
@@ -47,6 +48,7 @@ function CandidateWorkspace({
   children: React.ReactNode;
   onNavigate: (path: string) => void;
 }>) {
+  const pathname = usePathname();
   const { identity } = useChatSocket();
   const conversations = useConversations();
   const [candidateId, setCandidateId] = useState<string | null>(null);
@@ -100,10 +102,26 @@ function CandidateWorkspace({
         {children}
       </main>
 
+      {/* Reserves the tab bar's own height so it doesn't cover the last bit of
+          page content — a sibling spacer rather than tweaking `main`'s
+          existing responsive padding chain above, which already has a
+          separate desktop/tablet progression. */}
+      <div
+        aria-hidden="true"
+        className="hidden max-[820px]:block"
+        style={{ height: "calc(56px + env(safe-area-inset-bottom))" }}
+      />
+
+      <CandidateTabBar
+        activePath={pathname}
+        hasNewMessages={hasNewRecruiterMessages}
+        onMessagesTabClick={markRecruiterChatViewed}
+      />
+
       {/* Follows the candidate across the workspace and reads the current route
           as context (§8.3). Left off the CV builder branch above on purpose: that
           screen is a full-bleed editor with its own bottom action bar. */}
-      <AiCopilotDrawer />
+      <AiCopilotDrawer raised />
     </div>
   );
 }

@@ -2478,6 +2478,15 @@
     "candidateMobileNavLabel": "Điều hướng mobile của ứng viên"
   },
   "CandidateWorkspace": {
+    "tabBar": {
+      "navigationLabel": "Điều hướng chính",
+      "profile": "Hồ sơ",
+      "applications": "Ứng tuyển",
+      "savedJobs": "Đã lưu",
+      "messages": "Tin nhắn",
+      "cv": "CV",
+      "hasUnread": "Có tin nhắn mới"
+    },
     "common": {
       "home": "Trang chủ",
       "exploreJobs": "Khám phá việc làm",
