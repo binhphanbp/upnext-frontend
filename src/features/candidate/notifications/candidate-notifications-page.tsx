@@ -14,7 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { CandidatePageHeader } from "@/features/candidate/candidate-page-header";
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
@@ -75,6 +75,16 @@ export function CandidateNotificationsPage() {
   });
   const isUnauthorized =
     notificationsQuery.error instanceof ApiError && notificationsQuery.error.status === 401;
+
+  // Deleting the last row on a trailing page shrinks totalPages out from
+  // under `page`, which would otherwise strand the candidate on an empty
+  // page showing the "no notifications yet" state while earlier pages are
+  // still full. Step back to the last page that still exists.
+  useEffect(() => {
+    const meta = notificationsQuery.data?.meta;
+    if (!meta) return;
+    if (page > 1 && page > meta.totalPages) setPage(Math.max(1, meta.totalPages));
+  }, [notificationsQuery.data?.meta, page]);
 
   const invalidateAndNotifyHeader = async () => {
     await queryClient.invalidateQueries({
@@ -241,7 +251,9 @@ export function CandidateNotificationsPage() {
                   <button
                     type="button"
                     aria-label={t("notifications.delete", { title: notification.title })}
-                    disabled={deleteMutation.isPending}
+                    disabled={
+                      deleteMutation.isPending && deleteMutation.variables === notification.id
+                    }
                     onClick={() => deleteMutation.mutate(notification.id)}
                     className="upnext-focus grid size-8 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-700 disabled:cursor-wait disabled:opacity-60"
                   >
