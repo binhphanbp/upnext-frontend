@@ -21,6 +21,7 @@ type LocaleLayoutProps = Readonly<{
 export const viewport: Viewport = {
   colorScheme: "light",
   themeColor: "#0aa56f",
+  viewportFit: "cover",
 };
 
 export function generateStaticParams() {
