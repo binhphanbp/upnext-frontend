@@ -2762,6 +2762,24 @@
         "loadError": "Could not load your CVs. Please try again."
       }
     },
+    "notifications": {
+      "page": {
+        "title": "Notifications",
+        "description": "Updates about your applications, interviews, and messages from recruiters."
+      },
+      "markAllRead": "Mark all as read",
+      "unread": "Unread",
+      "delete": "Delete notification: {title}",
+      "states": {
+        "errorTitle": "Couldn't load notifications",
+        "errorDescription": "The connection to UpNext didn't succeed. Try reloading to see the latest notifications.",
+        "emptyTitle": "No notifications yet",
+        "emptyDescription": "Updates about your applications, interviews, and recruiter messages will show up here."
+      },
+      "feedback": {
+        "error": "Couldn't update this notification. Please try again."
+      }
+    },
     "savedJobs": {
       "page": {
         "title": "Saved jobs",
