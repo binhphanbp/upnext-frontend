@@ -1,5 +1,10 @@
 const CACHE_PREFIX = "upnext-pwa";
-const CACHE_NAME = `${CACHE_PREFIX}-v1`;
+// Stamped with the Next.js build ID by scripts/stamp-sw-version.mjs during
+// `pnpm build` (see Dockerfile). Left as the placeholder outside of that
+// pipeline (e.g. plain `next build` on a dev machine), which is harmless —
+// it just means that one build shares a cache name with the last stamped one.
+const CACHE_VERSION = "__CACHE_VERSION__";
+const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
 function isCacheableAsset(url) {

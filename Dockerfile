@@ -26,7 +26,8 @@ COPY . .
 RUN echo "Build NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" && \
     echo "Build NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL" && \
     echo "Build NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL" && \
-    pnpm build
+    pnpm build && \
+    node scripts/stamp-sw-version.mjs
 
 FROM node:24.11.1-alpine AS runner
 
