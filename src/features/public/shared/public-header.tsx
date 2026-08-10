@@ -1151,7 +1151,7 @@ export function PublicHeader({
               {recruiterChatAvailable ? (
                 <button
                   type="button"
-                  className="marketing-home-auth-icon"
+                  className="marketing-home-auth-icon marketing-home-auth-messages"
                   aria-label={copy.messagesLabel}
                   onClick={openRecruiterChat}
                 >
