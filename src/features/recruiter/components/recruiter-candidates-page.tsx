@@ -474,9 +474,18 @@ export function RecruiterCandidatesPage() {
 
   const totalItems = candidates.length;
 
-  // Reset to page 1 if the candidates list changes (due to filtering)
+  // Reset to page 1 if the candidates list changes (due to filtering).
+  //
+  // Clearing the selection matters as much as the page reset: a filter change
+  // can drop selected rows out of the visible list entirely, and the bulk bar
+  // would still report them as selected. Changing status from there would move
+  // -- and notify -- candidates the recruiter can no longer see, which is the
+  // one outcome a bulk action must never have. Selection that spans *pages*
+  // inside the same filter is kept on purpose (see handleSelectAll); only
+  // switching filters resets it.
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedIds([]);
   }, [search, jobPostId, status, viewed, aiLabel]);
 
   const startIndex = (currentPage - 1) * pageSize;
