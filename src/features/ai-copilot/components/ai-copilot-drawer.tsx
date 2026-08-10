@@ -4,6 +4,7 @@ import { ArrowsOut, NotePencil, Sparkle } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 
 import { Link, usePathname } from "@/i18n/navigation";
+import { cn } from "@/shared/lib/cn";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/ui/sheet";
 
 import { useAiConversation } from "../hooks/use-ai-conversation";
@@ -12,6 +13,13 @@ import { resolvePageContext } from "../lib/page-context";
 import { useAiCopilotUiStore } from "../stores/ai-copilot-ui.store";
 import { AiCopilotConversation } from "./ai-copilot-conversation";
 
+type AiCopilotDrawerProps = Readonly<{
+  // Set by the candidate workspace shell, which has its own bottom tab bar
+  // on narrow viewports (<=820px, matching the header's own compact
+  // breakpoint) that would otherwise sit directly under this launcher.
+  raised?: boolean;
+}>;
+
 /**
  * The Copilot follows the candidate around the workspace: it opens beside
  * whatever page they are on and inherits that page's context (§8.3), so "so
@@ -19,7 +27,7 @@ import { AiCopilotConversation } from "./ai-copilot-conversation";
  *
  * Suppressed on `/candidate/ai`, where the full page already owns the thread.
  */
-export function AiCopilotDrawer() {
+export function AiCopilotDrawer({ raised = false }: AiCopilotDrawerProps = {}) {
   const t = useTranslations("AiCopilot");
   const pathname = usePathname();
   const isOpen = useAiCopilotUiStore((state) => state.isDrawerOpen);
@@ -43,7 +51,10 @@ export function AiCopilotDrawer() {
         onClick={openDrawer}
         aria-label={t("drawer.open")}
         aria-expanded={isOpen}
-        className="upnext-focus group fixed right-5 bottom-5 z-40 flex h-14 items-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 px-4 text-white shadow-lg shadow-emerald-600/25 transition-shadow hover:shadow-xl hover:shadow-emerald-600/30 active:scale-95 motion-reduce:transition-none"
+        className={cn(
+          "upnext-focus group fixed right-5 bottom-5 z-40 flex h-14 items-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 px-4 text-white shadow-lg shadow-emerald-600/25 transition-shadow hover:shadow-xl hover:shadow-emerald-600/30 active:scale-95 motion-reduce:transition-none",
+          raised && "max-[820px]:bottom-[calc(80px+env(safe-area-inset-bottom))]",
+        )}
       >
         {/*
           `h-14` (56px) và `px-4` (16px mỗi bên) cộng với icon `size-6` (24px)

@@ -2478,6 +2478,15 @@
     "candidateMobileNavLabel": "Candidate mobile navigation"
   },
   "CandidateWorkspace": {
+    "tabBar": {
+      "navigationLabel": "Main navigation",
+      "profile": "Profile",
+      "applications": "Applications",
+      "savedJobs": "Saved",
+      "messages": "Messages",
+      "cv": "CV",
+      "hasUnread": "New messages"
+    },
     "common": {
       "home": "Home",
       "exploreJobs": "Explore jobs",

@@ -5790,6 +5790,20 @@ button.marketing-home-control {
     gap: 6px;
   }
 
+  /* The candidate workspace grows a bottom tab bar at this exact breakpoint
+     and that bar already carries a Messages tab, so the header copy is a
+     duplicate control here — and worse, a divergent one: the header button
+     opens the full-screen /conversations/chat portal while the tab goes to
+     the in-shell /candidate/messages, so the same icon led to two different
+     screens depending on which one the candidate happened to tap. Dropping
+     it also returns ~50px to the logo, which the notification bell and the
+     larger 44px tap targets had squeezed down to an unreadable size on
+     360px-and-under phones. Scoped to .candidate-workspace so public,
+     recruiter and admin headers (which have no tab bar) keep the button. */
+  .candidate-workspace .marketing-home-auth-messages {
+    display: none;
+  }
+
   .marketing-home-auth-icon {
     width: 44px;
     height: 44px;
