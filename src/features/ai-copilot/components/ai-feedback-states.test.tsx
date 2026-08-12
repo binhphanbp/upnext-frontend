@@ -22,6 +22,7 @@ describe("AI Copilot feedback states", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Không tạo được câu trả lời");
     expect(screen.getByRole("alert")).toHaveTextContent("Mình chưa thể hoàn thiện câu trả lời này");
+    expect(screen.queryByText("AI_INVALID_OUTPUT: provider diagnostic")).not.toBeInTheDocument();
     expect(screen.queryByText(/AI_[A-Z_]+/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Thử lại" }));
