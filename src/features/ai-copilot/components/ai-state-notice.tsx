@@ -14,7 +14,7 @@ import type { ComponentType } from "react";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 
-import type { AiErrorCode, AiRunStatus } from "../types";
+import type { AiRunStatus } from "../types";
 
 type NoticeTone = "error" | "warning" | "neutral";
 
@@ -50,12 +50,10 @@ const STATE_PRESENTATION: Partial<
  */
 export function AiStateNotice({
   status,
-  errorCode,
   detail,
   onRetry,
 }: {
   status: AiRunStatus;
-  errorCode?: AiErrorCode;
   detail?: string;
   onRetry?: () => void;
 }) {
@@ -73,15 +71,10 @@ export function AiStateNotice({
       <div className="flex items-start gap-2.5">
         <Icon className={cn("mt-px size-4.5 shrink-0", ICON_CLASS[presentation.tone])} />
         <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] font-bold text-slate-900">{t(`stateNotice.${status}`)}</p>
-          {detail ? (
-            <p className="mt-0.5 text-[13px] leading-relaxed text-slate-600">{detail}</p>
-          ) : null}
-          {errorCode ? (
-            <code className="mt-1.5 inline-block rounded bg-white/70 px-1.5 py-0.5 font-mono text-[11px] text-slate-500 ring-1 ring-slate-200 ring-inset">
-              {errorCode}
-            </code>
-          ) : null}
+          <p className="text-[13.5px] font-semibold text-slate-900">{t(`stateNotice.${status}`)}</p>
+          <p className="mt-0.5 text-[13px] leading-relaxed text-slate-600">
+            {detail ?? t(`stateNoticeDescription.${status}`)}
+          </p>
         </div>
         {presentation.retry && onRetry ? (
           <Button size="sm" variant="outline" onClick={onRetry} className="shrink-0">
