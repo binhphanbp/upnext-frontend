@@ -4413,7 +4413,7 @@
       "partial": "Partial result"
     },
     "runTimeline": {
-      "summary": "Used {count}/{total} data tools"
+      "summary": "Checked {count}/{total} data sources"
     },
     "intent": {
       "GENERAL_GUIDANCE": "General guidance",
@@ -4522,6 +4522,13 @@
       "model_unavailable": "The AI service is temporarily unavailable",
       "partial": "This is a partial result",
       "retry": "Try again"
+    },
+    "stateNoticeDescription": {
+      "failed": "I could not finish this answer. Try again or make your question more specific.",
+      "rate_limited": "Your allowance will reset with your plan cycle. Please come back later.",
+      "permission_denied": "This capability is not available for your account or the current data.",
+      "model_unavailable": "Other UpNext features are still working normally. Please try again in a few minutes.",
+      "partial": "I kept the completed part. Try again to receive a more complete answer."
     },
     "statePreview": {
       "badge": "Demo",

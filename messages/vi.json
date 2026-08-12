@@ -4434,7 +4434,7 @@
       "partial": "Kết quả một phần"
     },
     "runTimeline": {
-      "summary": "Đã dùng {count}/{total} công cụ dữ liệu"
+      "summary": "Đã kiểm tra {count}/{total} nguồn dữ liệu"
     },
     "intent": {
       "GENERAL_GUIDANCE": "Hướng dẫn chung",
@@ -4543,6 +4543,13 @@
       "model_unavailable": "Dịch vụ AI tạm thời không khả dụng",
       "partial": "Đây là kết quả một phần",
       "retry": "Thử lại"
+    },
+    "stateNoticeDescription": {
+      "failed": "Mình chưa thể hoàn thiện câu trả lời này. Bạn hãy thử lại hoặc hỏi cụ thể hơn nhé.",
+      "rate_limited": "Hạn mức sẽ được khôi phục theo chu kỳ của gói. Bạn có thể quay lại sau.",
+      "permission_denied": "Tính năng này không khả dụng với tài khoản hoặc dữ liệu hiện tại của bạn.",
+      "model_unavailable": "Các chức năng khác của UpNext vẫn hoạt động bình thường. Bạn có thể thử lại sau ít phút.",
+      "partial": "Mình giữ lại phần đã hoàn thành; bạn có thể thử lại để nhận câu trả lời đầy đủ hơn."
     },
     "statePreview": {
       "badge": "Demo",

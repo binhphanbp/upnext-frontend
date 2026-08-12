@@ -225,7 +225,6 @@ export function useAiConversation(context: AiPageContext) {
           ...message,
           status: "failed",
           errorCode: "AI_SERVICE_UNAVAILABLE",
-          errorDetail: "Không nhận được phản hồi từ dịch vụ AI.",
         }));
       }
 

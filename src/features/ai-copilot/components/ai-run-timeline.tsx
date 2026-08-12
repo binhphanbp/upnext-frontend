@@ -2,15 +2,15 @@
 
 import { CaretDown, CheckCircle, Prohibit, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { cn } from "@/shared/lib/cn";
 
 import type { AiRunStatus, AiToolCall } from "../types";
 
 /**
- * The audit surface for a single run: which tools were selected, whether they
- * succeeded, and how long each took. §1.3 requires every AI call to be
+ * The user-facing progress surface for a single run: which data sources were
+ * checked, whether they succeeded, and how long each took. §1.3 requires every AI call to be
  * inspectable, and this is the user-facing half of that promise — the run log in
  * §19 is the operator-facing half.
  */
@@ -34,6 +34,7 @@ export function AiRunTimeline({
   );
   const [userOverride, setUserOverride] = useState<boolean | null>(null);
   const isExpanded = userOverride ?? (isRunning || hasProblem);
+  const detailsId = useId();
 
   if (toolCalls.length === 0) {
     return isRunning ? (
@@ -52,6 +53,7 @@ export function AiRunTimeline({
         type="button"
         onClick={() => setUserOverride(!isExpanded)}
         aria-expanded={isExpanded}
+        aria-controls={detailsId}
         className="upnext-focus flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left"
       >
         {isRunning ? (
@@ -74,19 +76,18 @@ export function AiRunTimeline({
       </button>
 
       {isExpanded ? (
-        <ol className="space-y-0.5 border-t border-slate-200/80 px-3 py-2">
+        <ol id={detailsId} className="space-y-0.5 border-t border-slate-200/80 px-3 py-2">
           {toolCalls.map((tool) => (
             <li key={tool.id} className="flex items-start gap-2.5 py-1">
               <ToolStatusIcon status={tool.status} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-slate-700">{tool.label}</p>
+                <p className="text-[13px] font-medium break-words text-slate-700">{tool.label}</p>
                 {tool.detail ? (
-                  <p className="truncate text-xs text-slate-500">{tool.detail}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed break-words text-slate-500">
+                    {tool.detail}
+                  </p>
                 ) : null}
               </div>
-              <code className="mt-0.5 shrink-0 font-mono text-[11px] text-slate-400">
-                {tool.name}
-              </code>
               {tool.durationMs === undefined ? null : (
                 <span className="mt-0.5 shrink-0 text-[11px] text-slate-400 tabular-nums">
                   {(tool.durationMs / 1000).toFixed(1)}s

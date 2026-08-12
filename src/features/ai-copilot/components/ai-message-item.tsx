@@ -120,7 +120,6 @@ export function AiMessageItem({
 
         <AiStateNotice
           status={message.status}
-          {...(message.errorCode === undefined ? {} : { errorCode: message.errorCode })}
           {...(message.errorDetail === undefined ? {} : { detail: message.errorDetail })}
           onRetry={onRetry}
         />

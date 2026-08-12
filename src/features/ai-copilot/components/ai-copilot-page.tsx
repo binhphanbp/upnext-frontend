@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { usePathname } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
+import { env } from "@/shared/lib/env";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/ui/sheet";
 
 import { useAiConversation, useAiConversationList } from "../hooks/use-ai-conversation";
@@ -82,12 +83,14 @@ export function AiCopilotPage() {
 
           {isSignedOut ? null : (
             <>
-              <AiStatePreview
-                onPreview={(scenario) =>
-                  void controller.send(t("statePreview.prompt"), { forceScenario: scenario })
-                }
-                isDisabled={controller.isBusy}
-              />
+              {env.NEXT_PUBLIC_AI_COPILOT_STATE_PREVIEW === "enabled" ? (
+                <AiStatePreview
+                  onPreview={(scenario) =>
+                    void controller.send(t("statePreview.prompt"), { forceScenario: scenario })
+                  }
+                  isDisabled={controller.isBusy}
+                />
+              ) : null}
 
               <button
                 type="button"
