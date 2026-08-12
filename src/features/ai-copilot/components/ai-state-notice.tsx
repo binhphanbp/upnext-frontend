@@ -48,15 +48,7 @@ const STATE_PRESENTATION: Partial<
  * wording and its own affordance: a rate limit is not retryable, a blocked tool
  * is not a bug, and a partial result still shows whatever did arrive.
  */
-export function AiStateNotice({
-  status,
-  detail,
-  onRetry,
-}: {
-  status: AiRunStatus;
-  detail?: string;
-  onRetry?: () => void;
-}) {
+export function AiStateNotice({ status, onRetry }: { status: AiRunStatus; onRetry?: () => void }) {
   const t = useTranslations("AiCopilot");
   const presentation = STATE_PRESENTATION[status];
   if (!presentation) return null;
@@ -73,7 +65,7 @@ export function AiStateNotice({
         <div className="min-w-0 flex-1">
           <p className="text-[13.5px] font-semibold text-slate-900">{t(`stateNotice.${status}`)}</p>
           <p className="mt-0.5 text-[13px] leading-relaxed text-slate-600">
-            {detail ?? t(`stateNoticeDescription.${status}`)}
+            {t(`stateNoticeDescription.${status}`)}
           </p>
         </div>
         {presentation.retry && onRetry ? (
