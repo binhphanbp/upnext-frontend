@@ -8,7 +8,12 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
-import { loginCandidate, registerCandidate } from "@/features/candidate/api/auth";
+import {
+  confirmCandidatePasswordReset,
+  loginCandidate,
+  registerCandidate,
+  requestCandidatePasswordReset,
+} from "@/features/candidate/api/auth";
 import { saveCandidateSession } from "@/features/candidate/session";
 import { upnextLogo } from "@/features/public/home/brand";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -17,14 +22,18 @@ import { toast } from "@/shared/ui/toast";
 
 import "./auth-page.css";
 import {
+  createForgotPasswordSchema,
   createLoginSchema,
   createRegisterSchema,
+  createResetPasswordSchema,
+  type ForgotPasswordValues,
   type LoginValues,
   type RegisterValues,
+  type ResetPasswordValues,
 } from "./schemas/auth-schema";
 
 type AuthPageProps = Readonly<{
-  mode: "login" | "register";
+  mode: "login" | "register" | "forgot-password" | "reset-password";
 }>;
 
 const demoAuthStorageKey = "upnext.demo.auth";
@@ -36,7 +45,19 @@ function rememberCandidateSession() {
 }
 
 export function AuthPage({ mode }: AuthPageProps) {
-  return <Suspense fallback={null}>{mode === "login" ? <LoginPage /> : <RegisterPage />}</Suspense>;
+  return (
+    <Suspense fallback={null}>
+      {mode === "login" ? (
+        <LoginPage />
+      ) : mode === "register" ? (
+        <RegisterPage />
+      ) : mode === "forgot-password" ? (
+        <ForgotPasswordPage />
+      ) : (
+        <ResetPasswordPage />
+      )}
+    </Suspense>
+  );
 }
 
 function useAuthValidationMessages() {
@@ -183,6 +204,10 @@ function LoginPage() {
               </button>
             </div>
             <FieldError id="login-password-error" message={passwordError} />
+          </div>
+
+          <div className="login-password-action">
+            <Link href="/candidate/forgot-password">{t("login.forgotPassword")}</Link>
           </div>
 
           <button type="submit" className="login-submit" disabled={isSubmitting}>
@@ -389,6 +414,232 @@ function RegisterPage() {
 
         <p className="login-switch">
           {t("register.loginPrompt")} <Link href="/login">{t("register.loginLink")}</Link>
+        </p>
+      </div>
+    </AuthShell>
+  );
+}
+
+function ForgotPasswordPage() {
+  const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("Auth");
+  const validationMessages = useAuthValidationMessages();
+  const form = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(createForgotPasswordSchema(validationMessages)),
+    defaultValues: { email: "" },
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
+  const emailError = form.formState.errors.email?.message;
+  const isSubmitting = form.formState.isSubmitting;
+
+  async function submit(values: ForgotPasswordValues) {
+    try {
+      await requestCandidatePasswordReset(values.email, locale);
+      toast.success(t("forgotPassword.successTitle"), {
+        description: t("forgotPassword.successDescription"),
+        id: "candidate-password-reset-request-success",
+      });
+      router.replace("/login");
+    } catch (error) {
+      form.setError("root", {
+        message:
+          error instanceof ApiError ? t("errors.requestFailed") : t("errors.connectionFailed"),
+      });
+    }
+  }
+
+  return (
+    <AuthShell label={t("forgotPassword.ariaLabel")}>
+      <div className="login-auth-inner">
+        <h1 className="login-title">{t("forgotPassword.title")}</h1>
+        <p className="login-subtitle">{t("forgotPassword.subtitle")}</p>
+
+        <form
+          className="login-form"
+          method="post"
+          noValidate
+          aria-busy={isSubmitting}
+          onSubmit={form.handleSubmit(submit)}
+        >
+          <FormAlert message={form.formState.errors.root?.message} />
+
+          <div className="login-field">
+            <label className="login-field-label" htmlFor="forgot-password-email">
+              {t("fields.email")}
+            </label>
+            <div className="login-input">
+              <EnvelopeSimple size={18} aria-hidden="true" />
+              <input
+                id="forgot-password-email"
+                {...form.register("email")}
+                type="email"
+                placeholder={t("fields.emailPlaceholder")}
+                autoComplete="email"
+                maxLength={255}
+                spellCheck={false}
+                aria-invalid={Boolean(emailError) || undefined}
+                aria-describedby={emailError ? "forgot-password-email-error" : undefined}
+              />
+            </div>
+            <FieldError id="forgot-password-email-error" message={emailError} />
+          </div>
+
+          <button type="submit" className="login-submit" disabled={isSubmitting}>
+            {isSubmitting ? t("forgotPassword.submitting") : t("forgotPassword.submit")}
+          </button>
+        </form>
+
+        <p className="login-switch">
+          {t("forgotPassword.loginPrompt")} <Link href="/login">{t("register.loginLink")}</Link>
+        </p>
+      </div>
+    </AuthShell>
+  );
+}
+
+function ResetPasswordPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token") ?? "";
+  const t = useTranslations("Auth");
+  const validationMessages = useAuthValidationMessages();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const form = useForm<ResetPasswordValues>({
+    resolver: zodResolver(createResetPasswordSchema(validationMessages)),
+    defaultValues: { password: "", confirm: "" },
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
+  const passwordError = form.formState.errors.password?.message;
+  const confirmError = form.formState.errors.confirm?.message;
+  const isSubmitting = form.formState.isSubmitting;
+  const passwordField = form.register("password");
+  const resetError = token ? form.formState.errors.root?.message : t("errors.resetTokenInvalid");
+
+  async function submit(values: ResetPasswordValues) {
+    if (!token) return;
+
+    try {
+      await confirmCandidatePasswordReset({ token, password: values.password });
+      toast.success(t("resetPassword.successTitle"), {
+        description: t("resetPassword.successDescription"),
+        id: "candidate-password-reset-success",
+      });
+      router.replace("/login");
+    } catch (error) {
+      const isInvalidToken =
+        error instanceof ApiError && (error.status === 400 || error.status === 401);
+
+      form.setError("root", {
+        message: isInvalidToken
+          ? t("errors.resetTokenInvalid")
+          : error instanceof ApiError
+            ? t("errors.requestFailed")
+            : t("errors.connectionFailed"),
+      });
+    }
+  }
+
+  return (
+    <AuthShell label={t("resetPassword.ariaLabel")}>
+      <div className="login-auth-inner">
+        <h1 className="login-title">{t("resetPassword.title")}</h1>
+        <p className="login-subtitle">{t("resetPassword.subtitle")}</p>
+
+        <form
+          className="login-form"
+          method="post"
+          noValidate
+          aria-busy={isSubmitting}
+          onSubmit={form.handleSubmit(submit)}
+        >
+          <FormAlert message={resetError} />
+
+          <div className="login-password-grid">
+            <div className="login-field">
+              <label className="login-field-label" htmlFor="reset-password-password">
+                {t("resetPassword.passwordLabel")}
+              </label>
+              <div className="login-input">
+                <LockKey size={18} aria-hidden="true" />
+                <input
+                  id="reset-password-password"
+                  {...passwordField}
+                  type={showPassword ? "text" : "password"}
+                  placeholder={t("fields.createPasswordPlaceholder")}
+                  autoComplete="new-password"
+                  maxLength={72}
+                  aria-invalid={Boolean(passwordError) || undefined}
+                  aria-describedby={passwordError ? "reset-password-password-error" : undefined}
+                  onChange={(event) => {
+                    passwordField.onChange(event);
+
+                    if (form.getFieldState("confirm").isTouched) {
+                      void form.trigger("confirm");
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="login-eye"
+                  aria-label={showPassword ? t("common.hidePassword") : t("common.showPassword")}
+                  aria-pressed={showPassword}
+                  onClick={() => setShowPassword((value) => !value)}
+                >
+                  {showPassword ? (
+                    <Eye size={18} aria-hidden="true" />
+                  ) : (
+                    <EyeSlash size={18} aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+              <FieldError id="reset-password-password-error" message={passwordError} />
+            </div>
+
+            <div className="login-field">
+              <label className="login-field-label" htmlFor="reset-password-confirm">
+                {t("fields.confirmPassword")}
+              </label>
+              <div className="login-input">
+                <LockKey size={18} aria-hidden="true" />
+                <input
+                  id="reset-password-confirm"
+                  {...form.register("confirm")}
+                  type={showConfirm ? "text" : "password"}
+                  placeholder={t("fields.confirmPasswordPlaceholder")}
+                  autoComplete="new-password"
+                  maxLength={72}
+                  aria-invalid={Boolean(confirmError) || undefined}
+                  aria-describedby={confirmError ? "reset-password-confirm-error" : undefined}
+                />
+                <button
+                  type="button"
+                  className="login-eye"
+                  aria-label={showConfirm ? t("common.hidePassword") : t("common.showPassword")}
+                  aria-pressed={showConfirm}
+                  onClick={() => setShowConfirm((value) => !value)}
+                >
+                  {showConfirm ? (
+                    <Eye size={18} aria-hidden="true" />
+                  ) : (
+                    <EyeSlash size={18} aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+              <FieldError id="reset-password-confirm-error" message={confirmError} />
+            </div>
+          </div>
+
+          <button type="submit" className="login-submit" disabled={!token || isSubmitting}>
+            {isSubmitting ? t("resetPassword.submitting") : t("resetPassword.submit")}
+          </button>
+        </form>
+
+        <p className="login-switch">
+          {t("resetPassword.loginPrompt")} <Link href="/login">{t("register.loginLink")}</Link>
         </p>
       </div>
     </AuthShell>

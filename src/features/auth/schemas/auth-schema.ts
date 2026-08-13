@@ -25,6 +25,15 @@ export type RegisterValues = {
   confirm: string;
 };
 
+export type ForgotPasswordValues = {
+  email: string;
+};
+
+export type ResetPasswordValues = {
+  password: string;
+  confirm: string;
+};
+
 const emailMaxLength = 255;
 const fullNameMaxLength = 150;
 const passwordMaxLength = 72;
@@ -63,6 +72,24 @@ export function createRegisterSchema(messages: AuthValidationMessages) {
         .min(2, messages.fullNameMin)
         .max(fullNameMaxLength, messages.fullNameMax),
       email: createEmailSchema(messages),
+      password: createPasswordSchema(messages),
+      confirm: z.string().min(1, messages.confirmRequired),
+    })
+    .refine((values) => values.password === values.confirm, {
+      message: messages.passwordMismatch,
+      path: ["confirm"],
+    });
+}
+
+export function createForgotPasswordSchema(messages: AuthValidationMessages) {
+  return z.object({
+    email: createEmailSchema(messages),
+  });
+}
+
+export function createResetPasswordSchema(messages: AuthValidationMessages) {
+  return z
+    .object({
       password: createPasswordSchema(messages),
       confirm: z.string().min(1, messages.confirmRequired),
     })

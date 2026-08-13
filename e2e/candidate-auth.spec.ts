@@ -63,6 +63,71 @@ test("starts the supported Google OAuth flow from the candidate login", async ({
   await expect(page).toHaveURL(/\/candidate\/auth\/google\?locale=vi$/);
 });
 
+test("lets a candidate request a password reset from the login page", async ({ page }) => {
+  let resetRequestPayload: unknown;
+  let resetRequestLocale: string | undefined;
+
+  await page.route("**/candidate-accounts/password-reset/request", async (route) => {
+    resetRequestPayload = route.request().postDataJSON();
+    resetRequestLocale = route.request().headers()["x-locale"];
+    await route.fulfill({
+      body: JSON.stringify({ message: "Password reset email sent" }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+
+  await page.goto("/en/login");
+  await page.getByRole("link", { name: "Forgot password?" }).click();
+
+  await expect(page).toHaveURL(/\/en\/candidate\/forgot-password$/);
+  await page.getByLabel("Email").fill("candidate@example.com");
+  await page.getByRole("button", { name: "Send reset link" }).click();
+
+  await expect(page).toHaveURL(/\/en\/login$/);
+  expect(resetRequestPayload).toEqual({ email: "candidate@example.com" });
+  expect(resetRequestLocale).toBe("en");
+});
+
+test("validates and confirms a candidate password reset", async ({ page }) => {
+  let confirmCalls = 0;
+  let confirmPayload: unknown;
+
+  await page.route("**/candidate-accounts/password-reset/confirm", async (route) => {
+    confirmCalls += 1;
+    confirmPayload = route.request().postDataJSON();
+    await route.fulfill({
+      body: JSON.stringify({ message: "Password reset" }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+
+  await page.goto("/en/candidate/reset-password?token=reset-token");
+  await page.getByRole("textbox", { name: "New password" }).fill("new-password");
+  await page.getByRole("textbox", { name: "Confirm password" }).fill("different-password");
+  await page.getByRole("button", { name: "Reset password" }).click();
+
+  await expect(page.getByText("Passwords do not match")).toBeVisible();
+  expect(confirmCalls).toBe(0);
+
+  await page.getByRole("textbox", { name: "Confirm password" }).fill("new-password");
+  await page.getByRole("button", { name: "Reset password" }).click();
+
+  await expect(page).toHaveURL(/\/en\/login$/);
+  expect(confirmCalls).toBe(1);
+  expect(confirmPayload).toEqual({ token: "reset-token", password: "new-password" });
+});
+
+test("shows a clear state when a candidate reset link is missing its token", async ({ page }) => {
+  await page.goto("/en/candidate/reset-password");
+
+  await expect(
+    page.getByText("This password reset link is invalid or has expired. Please request a new one."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reset password" })).toBeDisabled();
+});
+
 test("stores the candidate session after the Google OAuth callback", async ({ page }) => {
   const callbackToken = [
     "header",

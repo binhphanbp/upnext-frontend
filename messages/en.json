@@ -512,9 +512,31 @@
       "loginPrompt": "Already have an account?",
       "loginLink": "Log in"
     },
+    "forgotPassword": {
+      "ariaLabel": "Request a password reset",
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email and we'll send you a link to reset your password.",
+      "submit": "Send reset link",
+      "submitting": "Sending…",
+      "successTitle": "Check your inbox",
+      "successDescription": "If an account matches that email, we've sent a password reset link.",
+      "loginPrompt": "Remember your password?"
+    },
+    "resetPassword": {
+      "ariaLabel": "Set a new password",
+      "title": "Set a new password",
+      "subtitle": "Choose a new password for your UpNext candidate account.",
+      "passwordLabel": "New password",
+      "submit": "Reset password",
+      "submitting": "Resetting…",
+      "successTitle": "Password updated",
+      "successDescription": "Your password has been reset. You can now log in with your new password.",
+      "loginPrompt": "Ready to sign in?"
+    },
     "errors": {
       "invalidCredentials": "The email or password is incorrect.",
       "emailInUse": "This email is already in use.",
+      "resetTokenInvalid": "This password reset link is invalid or has expired. Please request a new one.",
       "requestFailed": "We could not complete your request. Please try again.",
       "connectionFailed": "We could not reach the server. Please try again."
     },
