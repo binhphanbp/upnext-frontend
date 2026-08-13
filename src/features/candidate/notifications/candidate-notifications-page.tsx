@@ -25,12 +25,12 @@ import {
   markNotificationAsRead,
   type Notification,
 } from "@/features/notifications/api/notifications";
+import { requestAndRegisterFcmToken } from "@/features/notifications/lib/firebase-fcm";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { requestAndRegisterFcmToken } from "@/features/notifications/lib/firebase-fcm";
 import { toast } from "@/shared/ui/toast";
 
 // Mirrors the fallback viewer/`syncViewer` re-sync in public-header.tsx --
@@ -209,7 +209,9 @@ export function CandidateNotificationsPage() {
                   if (token) {
                     toast.success("Đã kích hoạt và đăng ký Web Push Notification thành công!");
                   } else {
-                    toast.error("Vui lòng kiểm tra quyền thông báo trên thanh địa chỉ trình duyệt.");
+                    toast.error(
+                      "Vui lòng kiểm tra quyền thông báo trên thanh địa chỉ trình duyệt.",
+                    );
                   }
                 }
               }}

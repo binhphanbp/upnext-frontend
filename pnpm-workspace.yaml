@@ -1,5 +1,5 @@
 allowBuilds:
-  '@firebase/util': true
+  "@firebase/util": true
   "@parcel/watcher": true
   "@swc/core": true
   core-js: true

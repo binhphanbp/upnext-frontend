@@ -5,9 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
 import { ChatSocketProvider } from "@/features/chat";
+import {
+  requestAndRegisterFcmToken,
+  listenForegroundMessages,
+} from "@/features/notifications/lib/firebase-fcm";
 import { recruiterApiRequest } from "@/features/recruiter/api/client";
 import type { RecruiterAccountDetail } from "@/features/recruiter/api/onboarding";
-import { requestAndRegisterFcmToken, listenForegroundMessages } from "@/features/notifications/lib/firebase-fcm";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import {
   recruiterNavGroups,
@@ -119,7 +122,11 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
             if (result.isConfirmed) {
               const token = await requestAndRegisterFcmToken(session.accessToken);
               if (token) {
-                void Swal.fire("Thành công!", "Bạn sẽ nhận được thông báo khi có ứng viên mới.", "success");
+                void Swal.fire(
+                  "Thành công!",
+                  "Bạn sẽ nhận được thông báo khi có ứng viên mới.",
+                  "success",
+                );
               }
             }
           });
@@ -132,10 +139,15 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
     let unsubscribe: (() => void) | null = null;
     void listenForegroundMessages((payload) => {
       console.log("[FCM] Recruiter foreground push message received:", payload);
-      const title = payload?.notification?.title || payload?.data?.title || "Có hồ sơ ứng tuyển mới";
+      const title =
+        payload?.notification?.title || payload?.data?.title || "Có hồ sơ ứng tuyển mới";
       const body = payload?.notification?.body || payload?.data?.body || "";
       const notificationId = payload?.data?.notificationId || payload?.data?.targetId || title;
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
         new Notification(title, {
           body,
           icon: "/upnext-logo/icon-cropped.png",

@@ -349,12 +349,17 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       console.log("[DEBUG] session?.accessToken exists:", !!session?.accessToken);
 
       if (session?.accessToken) {
-        console.log("[DEBUG] Calling requestAndRegisterFcmToken with token:", session.accessToken.substring(0, 10) + "...");
-        void requestAndRegisterFcmToken(session.accessToken).then(() => {
-          console.log("[DEBUG] FCM registration promise settled");
-        }).catch((err) => {
-          console.error("[DEBUG] FCM registration error:", err);
-        });
+        console.log(
+          "[DEBUG] Calling requestAndRegisterFcmToken with token:",
+          session.accessToken.substring(0, 10) + "...",
+        );
+        void requestAndRegisterFcmToken(session.accessToken)
+          .then(() => {
+            console.log("[DEBUG] FCM registration promise settled");
+          })
+          .catch((err) => {
+            console.error("[DEBUG] FCM registration error:", err);
+          });
       } else {
         console.warn("[DEBUG] No session or accessToken available for FCM registration");
       }

@@ -61,4 +61,3 @@ export function clearCandidateSession() {
   localStorage.removeItem(tokenTypeKey);
   localStorage.removeItem(userKey);
 }
-

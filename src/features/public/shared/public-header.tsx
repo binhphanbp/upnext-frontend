@@ -23,12 +23,15 @@ import Image from "next/image";
 import { useRouter as useNativeRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+import Swal from "sweetalert2";
 
 import { getMyCandidateProfile } from "@/features/candidate/api/profile";
 import { clearCandidateSession, getCandidateSession } from "@/features/candidate/session";
 import { getNotifications } from "@/features/notifications/api/notifications";
-import { requestAndRegisterFcmToken, listenForegroundMessages } from "@/features/notifications/lib/firebase-fcm";
-import Swal from "sweetalert2";
+import {
+  requestAndRegisterFcmToken,
+  listenForegroundMessages,
+} from "@/features/notifications/lib/firebase-fcm";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
 import { getPublicJobs } from "../home/api";
@@ -696,7 +699,11 @@ export function PublicHeader({
   useEffect(() => {
     const session = getCandidateSession();
     if (session?.accessToken) {
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
         void requestAndRegisterFcmToken(session.accessToken);
       }
     }
@@ -704,10 +711,15 @@ export function PublicHeader({
     let unsubscribe: (() => void) | null = null;
     void listenForegroundMessages((payload) => {
       console.log("[FCM] Candidate foreground push message received:", payload);
-      const title = payload?.notification?.title || payload?.data?.title || "Cập nhật ứng tuyển mới";
+      const title =
+        payload?.notification?.title || payload?.data?.title || "Cập nhật ứng tuyển mới";
       const body = payload?.notification?.body || payload?.data?.body || "";
       const notificationId = payload?.data?.notificationId || payload?.data?.targetId || title;
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
         new Notification(title, {
           body,
           icon: "/upnext-logo/icon-cropped.png",

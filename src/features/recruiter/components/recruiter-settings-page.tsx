@@ -16,6 +16,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 
+import { requestAndRegisterFcmToken } from "@/features/notifications/lib/firebase-fcm";
 import {
   changePassword,
   getRecruiterAccount,
@@ -25,7 +26,6 @@ import {
   type UpdateRecruiterProfilePayload,
   type CreateRecruiterProfilePayload,
 } from "@/features/recruiter/api/onboarding";
-import { requestAndRegisterFcmToken } from "@/features/notifications/lib/firebase-fcm";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
@@ -811,7 +811,9 @@ export function RecruiterSettingsPage() {
                       <BellRinging size={22} weight="fill" />
                     </div>
                     <div>
-                      <h5 className="text-sm font-bold text-slate-900">Thông báo đẩy Web Push (FCM)</h5>
+                      <h5 className="text-sm font-bold text-slate-900">
+                        Thông báo đẩy Web Push (FCM)
+                      </h5>
                       <p className="mt-0.5 text-xs text-slate-600">
                         Trạng thái trình duyệt:{" "}
                         <span className="font-bold text-emerald-700">
@@ -834,13 +836,21 @@ export function RecruiterSettingsPage() {
                         if (session?.accessToken) {
                           const token = await requestAndRegisterFcmToken(session.accessToken);
                           if (token) {
-                            Swal.fire("Thành công!", "Đã đăng ký nhận thông báo đẩy FCM thành công!", "success");
+                            Swal.fire(
+                              "Thành công!",
+                              "Đã đăng ký nhận thông báo đẩy FCM thành công!",
+                              "success",
+                            );
                           } else {
-                            Swal.fire("Chú ý!", "Vui lòng cho phép quyền thông báo trên trình duyệt.", "warning");
+                            Swal.fire(
+                              "Chú ý!",
+                              "Vui lòng cho phép quyền thông báo trên trình duyệt.",
+                              "warning",
+                            );
                           }
                         }
                       }}
-                      className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-emerald-700 shadow-sm"
+                      className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700"
                     >
                       Kích hoạt Web Push
                     </button>
@@ -853,9 +863,17 @@ export function RecruiterSettingsPage() {
                               body: "Có ứng viên mới vừa nộp hồ sơ vào vị trí công việc của bạn!",
                               icon: "/upnext-logo/icon-cropped.png",
                             });
-                            Swal.fire("Đã gửi!", "Thông báo thử nghiệm đã xuất hiện trên màn hình của bạn.", "success");
+                            Swal.fire(
+                              "Đã gửi!",
+                              "Thông báo thử nghiệm đã xuất hiện trên màn hình của bạn.",
+                              "success",
+                            );
                           } else {
-                            Swal.fire("Chú ý!", "Bạn cần bấm 'Kích hoạt Web Push' và Allow trước.", "info");
+                            Swal.fire(
+                              "Chú ý!",
+                              "Bạn cần bấm 'Kích hoạt Web Push' và Allow trước.",
+                              "info",
+                            );
                           }
                         }
                       }}

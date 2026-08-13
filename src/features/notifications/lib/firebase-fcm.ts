@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import type { FirebaseOptions } from "firebase/app";
 import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
 import type { Messaging } from "firebase/messaging";
+
 import { registerFcmToken, unregisterFcmToken } from "../api/notifications";
 
 const LOCAL_STORAGE_FCM_KEY = "upnext_fcm_token";
@@ -100,7 +101,7 @@ export async function requestAndRegisterFcmToken(userAccessToken: string): Promi
       // Try to get existing registration with timeout
       const swReadyPromise = navigator.serviceWorker.ready;
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 2000)
+        setTimeout(() => reject(new Error("timeout")), 2000),
       );
       serviceWorkerRegistration = await Promise.race([swReadyPromise, timeoutPromise]);
       console.log("[FCM] Step 3 done: Active SW found");
@@ -122,7 +123,10 @@ export async function requestAndRegisterFcmToken(userAccessToken: string): Promi
         vapidKey,
       } as any);
     }
-    console.log("[FCM] Step 4 done: fcmToken =", fcmToken ? fcmToken.substring(0, 10) + "..." : "null");
+    console.log(
+      "[FCM] Step 4 done: fcmToken =",
+      fcmToken ? fcmToken.substring(0, 10) + "..." : "null",
+    );
 
     if (fcmToken) {
       console.log("[FCM] Step 5: Registering token with backend...");
