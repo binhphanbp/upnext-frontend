@@ -25,6 +25,7 @@ import {
   markNotificationAsRead,
   type Notification,
 } from "@/features/notifications/api/notifications";
+import { requestAndRegisterFcmToken } from "@/features/notifications/lib/firebase-fcm";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
@@ -175,6 +176,71 @@ export function CandidateNotificationsPage() {
   return (
     <div className="space-y-6 pb-4">
       {pageHeader}
+
+      {/* Web Push Notification Controller & Status Card */}
+      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+              <BellSimple size={20} weight="fill" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Thông báo đẩy Web Push (FCM)</h3>
+              <p className="text-xs text-slate-600">
+                Trạng thái trình duyệt:{" "}
+                <span className="font-bold text-emerald-700">
+                  {typeof window !== "undefined" && "Notification" in window
+                    ? Notification.permission === "granted"
+                      ? "Đã cấp quyền (Active) 🟢"
+                      : Notification.permission === "denied"
+                        ? "Đã bị chặn (Blocked) 🔴"
+                        : "Chưa kích hoạt (Default) 🟡"
+                    : "Không hỗ trợ"}
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              className="rounded-xl bg-emerald-600 text-xs font-semibold text-white hover:bg-emerald-700"
+              onClick={async () => {
+                if (session?.accessToken) {
+                  const token = await requestAndRegisterFcmToken(session.accessToken);
+                  if (token) {
+                    toast.success("Đã kích hoạt và đăng ký Web Push Notification thành công!");
+                  } else {
+                    toast.error(
+                      "Vui lòng kiểm tra quyền thông báo trên thanh địa chỉ trình duyệt.",
+                    );
+                  }
+                }
+              }}
+            >
+              Kích hoạt Web Push
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-xl border-emerald-200 bg-white text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+              onClick={() => {
+                if (typeof window !== "undefined" && "Notification" in window) {
+                  if (Notification.permission === "granted") {
+                    new Notification("UpNext Test Push", {
+                      body: "Đây là thông báo đẩy thử nghiệm trên trình duyệt của bạn!",
+                      icon: "/upnext-logo/icon-cropped.png",
+                    });
+                    toast.success("Đã gửi thông báo thử nghiệm!");
+                  } else {
+                    toast.error("Bạn cần bấm 'Kích hoạt Web Push' và Allow trước khi thử.");
+                  }
+                }
+              }}
+            >
+              Gửi thử thông báo
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {notificationsQuery.isLoading ? <CandidateNotificationsLoading /> : null}
       {notificationsQuery.isError ? (
         <NotificationsState

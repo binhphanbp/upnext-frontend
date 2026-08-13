@@ -32,6 +32,7 @@ import {
   resolveCandidateCvSelection,
 } from "@/features/candidate/cv-selection";
 import { getCandidateSession } from "@/features/candidate/session";
+import { requestAndRegisterFcmToken } from "@/features/notifications/lib/firebase-fcm";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
@@ -342,6 +343,26 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
       });
       void queryClient.invalidateQueries({ queryKey: ["check-applied-job", job.id] });
       setIsSuccess(true);
+
+      // Debug FCM registration
+      console.log("[DEBUG] Application submitted, attempting FCM registration...");
+      console.log("[DEBUG] session?.accessToken exists:", !!session?.accessToken);
+
+      if (session?.accessToken) {
+        console.log(
+          "[DEBUG] Calling requestAndRegisterFcmToken with token:",
+          session.accessToken.substring(0, 10) + "...",
+        );
+        void requestAndRegisterFcmToken(session.accessToken)
+          .then(() => {
+            console.log("[DEBUG] FCM registration promise settled");
+          })
+          .catch((err) => {
+            console.error("[DEBUG] FCM registration error:", err);
+          });
+      } else {
+        console.warn("[DEBUG] No session or accessToken available for FCM registration");
+      }
     } catch (err: unknown) {
       console.error("Failed to submit application", err);
       // Nếu API trả về 409 Conflict (đã ứng tuyển), hiển thị màn hình đã ứng tuyển
@@ -425,6 +446,9 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
               <div className="mt-8 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
                 <Button
                   onClick={() => {
+                    if (session?.accessToken) {
+                      void requestAndRegisterFcmToken(session.accessToken);
+                    }
                     closeApplyDialog();
                     router.push("/candidate/applications");
                   }}
@@ -434,7 +458,12 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={closeApplyDialog}
+                  onClick={() => {
+                    if (session?.accessToken) {
+                      void requestAndRegisterFcmToken(session.accessToken);
+                    }
+                    closeApplyDialog();
+                  }}
                   className="w-full cursor-pointer rounded-xl border-slate-200 py-2.5 text-xs font-bold text-slate-700"
                 >
                   Tìm thêm việc làm

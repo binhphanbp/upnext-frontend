@@ -5,9 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
 import { ChatSocketProvider } from "@/features/chat";
+import {
+  requestAndRegisterFcmToken,
+  listenForegroundMessages,
+} from "@/features/notifications/lib/firebase-fcm";
 import { recruiterApiRequest } from "@/features/recruiter/api/client";
 import type { RecruiterAccountDetail } from "@/features/recruiter/api/onboarding";
-import { clearRecruiterSession } from "@/features/recruiter/session";
+import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import {
   recruiterNavGroups,
   WorkspaceShell,
@@ -98,6 +102,66 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
 
   const companyTier = useMemo(() => getCompanyTier(accountDetail), [accountDetail]);
   const isRestricted = accountDetail?.company?.status === "RESTRICTED";
+
+  useEffect(() => {
+    const session = getRecruiterSession();
+    if (session?.accessToken && typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "granted") {
+        void requestAndRegisterFcmToken(session.accessToken);
+      } else if (Notification.permission === "default") {
+        setTimeout(() => {
+          void Swal.fire({
+            title: "Bật thông báo ứng tuyển?",
+            text: "Bạn có muốn nhận thông báo tức thì trên thiết bị khi có ứng viên mới nộp hồ sơ không?",
+            icon: "info",
+            showCancelButton: true,
+            confirmButtonText: "Bật thông báo ngay 🔔",
+            cancelButtonText: "Để sau",
+            confirmButtonColor: "#059669",
+          }).then(async (result) => {
+            if (result.isConfirmed) {
+              const token = await requestAndRegisterFcmToken(session.accessToken);
+              if (token) {
+                void Swal.fire(
+                  "Thành công!",
+                  "Bạn sẽ nhận được thông báo khi có ứng viên mới.",
+                  "success",
+                );
+              }
+            }
+          });
+        }, 500);
+      }
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    void listenForegroundMessages((payload) => {
+      console.log("[FCM] Recruiter foreground push message received:", payload);
+      const title =
+        payload?.notification?.title || payload?.data?.title || "Có hồ sơ ứng tuyển mới";
+      const body = payload?.notification?.body || payload?.data?.body || "";
+      const notificationId = payload?.data?.notificationId || payload?.data?.targetId || title;
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        new Notification(title, {
+          body,
+          icon: "/upnext-logo/icon-cropped.png",
+          tag: notificationId,
+        });
+      }
+    }).then((unsub) => {
+      if (unsub) unsubscribe = unsub;
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   const translatedNavGroups = useMemo(() => {
     const checkItem = (item: any): any | null => {

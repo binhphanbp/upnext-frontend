@@ -1,3 +1,8 @@
+import {
+  syncFcmTokenIfPermitted,
+  unregisterCurrentFcmToken,
+} from "@/features/notifications/lib/firebase-fcm";
+
 export type StoredCandidateUser = Readonly<{
   id: string;
   email: string;
@@ -25,6 +30,8 @@ export function getCandidateSession(): CandidateSession | null {
   try {
     const user = JSON.parse(rawUser) as StoredCandidateUser;
 
+    void syncFcmTokenIfPermitted(accessToken);
+
     return {
       accessToken,
       tokenType: "Bearer",
@@ -40,9 +47,16 @@ export function saveCandidateSession(session: CandidateSession) {
   localStorage.setItem(accessTokenKey, session.accessToken);
   localStorage.setItem(tokenTypeKey, session.tokenType);
   localStorage.setItem(userKey, JSON.stringify(session.user));
+
+  void syncFcmTokenIfPermitted(session.accessToken);
 }
 
 export function clearCandidateSession() {
+  const currentToken = localStorage.getItem(accessTokenKey);
+  if (currentToken) {
+    void unregisterCurrentFcmToken(currentToken);
+  }
+
   localStorage.removeItem(accessTokenKey);
   localStorage.removeItem(tokenTypeKey);
   localStorage.removeItem(userKey);

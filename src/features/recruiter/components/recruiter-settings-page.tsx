@@ -16,6 +16,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 
+import { requestAndRegisterFcmToken } from "@/features/notifications/lib/firebase-fcm";
 import {
   changePassword,
   getRecruiterAccount,
@@ -797,6 +798,88 @@ export function RecruiterSettingsPage() {
                       className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/15 hover:text-white"
                     >
                       Tắt tất cả
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Web Push Notification FCM Control Card for Recruiter */}
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 shadow-sm">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3.5">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+                      <BellRinging size={22} weight="fill" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-bold text-slate-900">
+                        Thông báo đẩy Web Push (FCM)
+                      </h5>
+                      <p className="mt-0.5 text-xs text-slate-600">
+                        Trạng thái trình duyệt:{" "}
+                        <span className="font-bold text-emerald-700">
+                          {typeof window !== "undefined" && "Notification" in window
+                            ? Notification.permission === "granted"
+                              ? "Đã đăng ký (Active) 🟢"
+                              : Notification.permission === "denied"
+                                ? "Đã bị chặn (Blocked) 🔴"
+                                : "Chưa kích hoạt 🟡"
+                            : "Không hỗ trợ"}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const session = getRecruiterSession();
+                        if (session?.accessToken) {
+                          const token = await requestAndRegisterFcmToken(session.accessToken);
+                          if (token) {
+                            Swal.fire(
+                              "Thành công!",
+                              "Đã đăng ký nhận thông báo đẩy FCM thành công!",
+                              "success",
+                            );
+                          } else {
+                            Swal.fire(
+                              "Chú ý!",
+                              "Vui lòng cho phép quyền thông báo trên trình duyệt.",
+                              "warning",
+                            );
+                          }
+                        }
+                      }}
+                      className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700"
+                    >
+                      Kích hoạt Web Push
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof window !== "undefined" && "Notification" in window) {
+                          if (Notification.permission === "granted") {
+                            new Notification("UpNext Recruiter Push", {
+                              body: "Có ứng viên mới vừa nộp hồ sơ vào vị trí công việc của bạn!",
+                              icon: "/upnext-logo/icon-cropped.png",
+                            });
+                            Swal.fire(
+                              "Đã gửi!",
+                              "Thông báo thử nghiệm đã xuất hiện trên màn hình của bạn.",
+                              "success",
+                            );
+                          } else {
+                            Swal.fire(
+                              "Chú ý!",
+                              "Bạn cần bấm 'Kích hoạt Web Push' và Allow trước.",
+                              "info",
+                            );
+                          }
+                        }
+                      }}
+                      className="rounded-xl border border-emerald-300 bg-white px-4 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100"
+                    >
+                      Gửi thử thông báo
                     </button>
                   </div>
                 </div>

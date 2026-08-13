@@ -86,3 +86,66 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(staleWhileRevalidate(event));
   }
 });
+
+// --- Firebase Cloud Messaging (FCM) Push Notifications ---
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  try {
+    const payload = event.data.json();
+    const notification = payload.notification || {};
+    const data = payload.data || {};
+
+    const title = notification.title || data.title || "UpNext Thông báo";
+    const notificationId = data.notificationId || data.targetId || title;
+    const options = {
+      body: notification.body || data.body || "",
+      icon: "/upnext-logo/icon-cropped.png",
+      badge: "/upnext-logo/icon-cropped.png",
+      tag: notificationId,
+      renotify: false,
+      data: {
+        type: data.type,
+        targetId: data.targetId,
+        notificationId: data.notificationId,
+        clickUrl: data.clickUrl,
+      },
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (err) {
+    console.error("[SW] Error parsing Push notification data:", err);
+  }
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const data = event.notification.data || {};
+  let targetPath = "/candidate/notifications";
+
+  if (data.clickUrl) {
+    targetPath = data.clickUrl;
+  } else if (data.type === "APPLICATION" && data.targetId) {
+    targetPath = `/candidate/applications/${data.targetId}`;
+  } else if (data.type === "CHAT" || data.type === "CONVERSATION") {
+    targetPath = "/conversations/chat";
+  } else if (data.type === "JOB" && data.targetId) {
+    targetPath = `/jobs/${data.targetId}`;
+  }
+
+  const destinationUrl = new URL(targetPath, self.location.origin).href;
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === destinationUrl && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(destinationUrl);
+      }
+    }),
+  );
+});
