@@ -17,7 +17,14 @@ const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
     globalNotFound: true,
-    optimizePackageImports: ["@phosphor-icons/react", "@phosphor-icons/react/dist/ssr"],
+    optimizePackageImports: [
+      "@phosphor-icons/react",
+      "@phosphor-icons/react/dist/ssr",
+      "date-fns",
+      "recharts",
+      "@dnd-kit/core",
+      "@dnd-kit/sortable",
+    ],
   },
   turbopack: {
     root: process.cwd(),

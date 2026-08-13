@@ -27,6 +27,8 @@ import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import { getMyCandidateProfile } from "@/features/candidate/api/profile";
 import { clearCandidateSession, getCandidateSession } from "@/features/candidate/session";
 import { getNotifications } from "@/features/notifications/api/notifications";
+import { requestAndRegisterFcmToken, listenForegroundMessages } from "@/features/notifications/lib/firebase-fcm";
+import Swal from "sweetalert2";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
 import { getPublicJobs } from "../home/api";
@@ -690,6 +692,36 @@ export function PublicHeader({
   const [storedViewer, setStoredViewer] = useState<PublicHeaderViewer | null>(null);
   const [hasResolvedStoredViewer, setHasResolvedStoredViewer] = useState(viewer !== undefined);
   const menuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const session = getCandidateSession();
+    if (session?.accessToken) {
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        void requestAndRegisterFcmToken(session.accessToken);
+      }
+    }
+
+    let unsubscribe: (() => void) | null = null;
+    void listenForegroundMessages((payload) => {
+      console.log("[FCM] Candidate foreground push message received:", payload);
+      const title = payload?.notification?.title || payload?.data?.title || "Cập nhật ứng tuyển mới";
+      const body = payload?.notification?.body || payload?.data?.body || "";
+      const notificationId = payload?.data?.notificationId || payload?.data?.targetId || title;
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        new Notification(title, {
+          body,
+          icon: "/upnext-logo/icon-cropped.png",
+          tag: notificationId,
+        });
+      }
+    }).then((unsub) => {
+      if (unsub) unsubscribe = unsub;
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
   const navRef = useRef<HTMLElement | null>(null);
   const langRef = useRef<HTMLDivElement | null>(null);
   const accountRef = useRef<HTMLDivElement | null>(null);
@@ -1155,7 +1187,13 @@ export function PublicHeader({
                   type="button"
                   className="marketing-home-auth-icon"
                   aria-label={copy.notificationsLabel}
-                  onClick={() => navigate("/candidate/notifications")}
+                  onClick={() => {
+                    const session = getCandidateSession();
+                    if (session?.accessToken) {
+                      void requestAndRegisterFcmToken(session.accessToken);
+                    }
+                    navigate("/candidate/notifications");
+                  }}
                 >
                   <Bell size={20} aria-hidden="true" />
                   {effectiveViewer.unreadNotifications ? (
