@@ -71,7 +71,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 
 import { CvPreview } from "./cv-preview";
-import { evaluateCv, isCvEmpty, mapProfileToCvData, toPlainText } from "./logic";
+import { evaluateCv, isCvEmpty, mapProfileToCvData, toEditableText, toPlainText } from "./logic";
 import {
   createInitialCvData,
   getCvBuilderStorageKey,
@@ -688,7 +688,7 @@ function PersonalEditor({
 function SummaryEditor({ evaluation }: Readonly<{ evaluation: CvEvaluation }>) {
   const t = useTranslations("CvBuilder");
   const { cvData, updateSummary } = useCvBuilderStore();
-  const summary = toPlainText(cvData.summary);
+  const summary = toEditableText(cvData.summary);
   const issue = getIssue(evaluation, "summary");
   return (
     <div className="cv-editor-section">
@@ -763,7 +763,7 @@ function ExperienceEditor({
             const startIssue = getIssue(evaluation, `${prefix}.startDate`);
             const endIssue = getIssue(evaluation, `${prefix}.endDate`);
             const descriptionIssue = getIssue(evaluation, `${prefix}.description`);
-            const description = toPlainText(experience.description);
+            const description = toEditableText(experience.description);
             return (
               <article
                 aria-labelledby={`experience-heading-${experience.id}`}
@@ -953,7 +953,7 @@ function ProjectsEditor({
           {cvData.projects.map((project, index) => {
             const prefix = `projects.${index}`;
             const title = project.name || t("projects.item", { index: index + 1 });
-            const description = toPlainText(project.description);
+            const description = toEditableText(project.description);
             return (
               <article
                 aria-labelledby={`project-heading-${project.id}`}
@@ -1278,7 +1278,7 @@ function EducationEditor({
                       updateEducation(education.id, { description: event.target.value })
                     }
                     placeholder={t("education.descriptionPlaceholder")}
-                    value={toPlainText(education.description)}
+                    value={toEditableText(education.description)}
                   />
                 </FormField>
               </article>
