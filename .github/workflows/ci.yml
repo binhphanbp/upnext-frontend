@@ -20,8 +20,9 @@ concurrency:
 
 jobs:
   ci:
-    name: Lint, typecheck, test, and build
+    name: Lint, typecheck, test, build, and e2e
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -55,3 +56,24 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # The end-to-end suite existed and was never run by this pipeline, so the checks a
+      # reviewer assumed were protecting the app were not running at all. It caught a blank
+      # CV export that unit tests structurally cannot see: the failure lived in a print
+      # media query, which only exists once a real browser lays the page out on paper.
+      # It runs after Build because the suite serves the standalone output, not a dev server.
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: E2E
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
