@@ -1,6 +1,6 @@
 # Bàn giao nền tảng AI UpNext
 
-> Cập nhật: 15/08/2026  
+> Cập nhật: 16/08/2026  
 > Phạm vi: `upnext-frontend`, `upnext-be`, `upnext-ai`, `upnext-infra`  
 > Mục tiêu: giúp Agent tiếp theo tiếp tục an toàn việc tách dần các năng lực AI khỏi backend sang dịch vụ `upnext-ai`.
 
@@ -47,6 +47,9 @@ flowchart LR
 | CV screening batch          | Đã merge theo chuỗi AI PR #4 / BE PR #143 | Đi theo capability riêng, không di chuyển hàng loạt.                                                                 |
 | Embeddings                  | Đã merge theo chuỗi AI PR #5 / BE PR #144 | Có private embedding gateway và fallback được cấu hình.                                                              |
 | Trích xuất dữ liệu JD       | Đã merge theo chuỗi AI PR #6 / BE PR #145 | Có capability extraction riêng và canary ở BE.                                                                       |
+| Sinh JD (JD generation)     | Đã merge AI PR #8 / BE PR #148            | CI đỏ do ruff line-length đã sửa; chạy đủ quality suite trước khi merge.                                             |
+| Quét giấy phép kinh doanh   | Đã merge AI PR #12 / BE PR #149           | Scope riêng `company-license:extract`; token đọc JD không đọc được giấy phép công ty.                                |
+| Nghiên cứu lương (grounded) | Đã merge AI PR #13 / BE PR #150           | Capability cuối cùng còn gọi Gemini trực tiếp. Scope riêng `research:grounded`. Xem mục 4.3 về bẫy citation.         |
 
 ### 3.2 Staging đã xác minh trực tiếp
 
@@ -72,56 +75,65 @@ Các kiểm tra sau đã từng thành công trên VPS `/opt/upnext`:
 
 ## 4. Những gì chưa hoàn thành hoặc chưa được chứng minh
 
-### P0 — cần xử lý trước khi gọi staging là production-ready
+> Cập nhật 16/08/2026. Toàn bộ mục P0 của bản 15/08 đã đóng; nội dung dưới đây thay thế chúng.
 
-1. **Candidate Copilot trên staging vẫn trả `AI_INVALID_OUTPUT`.**
-   - Đã xác minh đây không phải lỗi network/JWT: backend gọi được AI, secret và environment khớp.
-   - Một direct internal request tới `/internal/v1/llm/structured` trả HTTP 502 `AI_INVALID_OUTPUT`.
-   - Log AI cho thấy Gemini `gemini-2.5-flash-lite:generateContent` trả HTTP 400.
-   - Health check chỉ chứng minh process/config sẵn sàng; không chứng minh provider có thể hoàn tất structured generation.
-   - Cần xác minh deployed image có commit normalizer mới, đọc response provider đã redaction để phân loại chính xác lỗi schema/model/key/quota, rồi thực hiện smoke test thật.
+### 4.1 Ba lỗi từng che nhau, nay đã tìm ra và sửa
 
-2. **Nhánh AI tạo JD vẫn có CI lỗi.**
-   - Nhánh: `codex/job-post-generation-ai`, commit đã thấy: `36894b7`.
-   - Nguyên nhân đã xác định: `ruff` line-length 100, trong `app/contracts/job_post.py` có dòng `execution_profile` dài 102 ký tự.
-   - Cách sửa tối thiểu:
+`AI_INVALID_OUTPUT` trên staging không phải một lỗi mà là ba, xếp chồng lên nhau. Mỗi lỗi khi
+xuất hiện đơn lẻ đều trông giống lỗi schema, nên nhóm đã đuổi theo hướng sai nhiều ngày:
 
-```python
-execution_profile: Literal["interactive"] = Field(
-    default="interactive", alias="executionProfile"
-)
-```
+1. **Gemini chặn theo địa lý.** VPS nhận `HTTP 400 FAILED_PRECONDITION: User location is not
+supported for the API use.` Đọc theo nghĩa đen thì đó là lỗi request, nên nó bị gộp vào lỗi
+   chung. Đã tách thành mã riêng `AI_PROVIDER_REGION_BLOCKED` (AI PR #9) — retry, đổi model hay
+   sửa schema đều vô ích với lỗi này, và việc gộp chung chính là thứ làm nó bị hiểu nhầm.
+2. **Client pin sai `api_version="v1"`.** JSON mode không được phục vụ trên `v1`; mọi structured
+   output chết trong khi embeddings và streaming vẫn chạy, nên triệu chứng trông "lúc được lúc
+   không". Đã đổi sang `v1beta` (AI PR #10).
+3. **Thiếu `aiohttp`.** `google-genai` đánh dấu nó optional nhưng `_aiter_response_stream` vẫn
+   dereference `aiohttp.ClientResponse`. Streaming chết bằng `NameError` **sau khi** Gemini đã
+   trả 200, nên log đọc như "thành công rồi mất kết nối". Đã pin dependency (AI PR #11) kèm test
+   canh để lỗi không quay lại im lặng.
 
-- Sau sửa phải chạy đầy đủ `ruff check .`, `ruff format --check .`, `pyright`, `pytest`, export contract check và Docker build; không merge chỉ vì sửa được CI.
+Bài học giữ lại: **khi verify, tắt hết `*_FALLBACK_TO_GEMINI`** để lỗi lộ ra thay vì bị fallback
+che. Và dùng trường `model` trong event `done` để biết request đi đường nào: `upnext-ai/gemini`
+là qua service, `gemini-2.5-flash` là gọi thẳng Gemini.
 
-3. **Chưa có bằng chứng E2E staging cho từng capability mới.**
-   - Cần có test thực từ UI/BE cho Copilot, CV screening, embeddings và JD extraction/generation theo đúng feature flag/canary.
-   - Không coi `/health/ready` là kiểm thử chức năng AI.
+### 4.2 Còn tồn đọng
 
-### P1 — cần triển khai có kế hoạch
+| Hạng mục                        | Trạng thái                                  | Ghi chú                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gemini chặn địa lý trên VPS     | **Chưa xử lý, người dùng chủ động hoãn**    | Đã probe lại ngày 16/08: vẫn `FAILED_PRECONDITION`. Mọi tính năng AI trên `staging.upnext.works` hiện không chạy được, bất kể cấu hình flag. Ba hướng: bật billing, chuyển Vertex AI, hoặc egress proxy. Proxy là rẻ nhất — `google-genai` dùng httpx với `trust_env=True`, chỉ cần set `HTTPS_PROXY` trong `ai.staging.env`, không đụng code.                                        |
+| Push notification (FCM)         | **Chưa làm, người dùng tự nghiên cứu**      | Cần Firebase Web config (`apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, `appId`) và VAPID key.                                                                                                                                                                                                                                                            |
+| Staging mới bật 2/5 capability  | **Cần bật nốt**                             | `backend.staging.env` chỉ có `AI_LLM_PROVIDER` và `AI_EMBEDDING_PROVIDER` = `upnext-ai`. Ba cờ `AI_JOB_POST_GENERATION_PROVIDER`, `AI_JOB_POST_EXTRACTION_PROVIDER`, `AI_COMPANY_LICENSE_PROVIDER` chưa được set nên rơi về `gemini`, tức đang gọi thẳng Gemini. Nếu mục tiêu là giả lập production thì đây là lỗ hổng: ba capability đó sẽ lần đầu chạy đường mới ngay lúc lên prod. |
+| `AI_GROUNDED_RESEARCH_PROVIDER` | **Chưa bật**                                | Mặc định `gemini`. Bật sau khi gỡ geo-block.                                                                                                                                                                                                                                                                                                                                          |
+| Production chưa có cấu hình AI  | **Đúng thiết kế, không phải việc tồn đọng** | `backend.prod.env` không có `GEMINI_API_KEY` lẫn biến `AI_*` nào, và không tồn tại `ai.prod.env`. Prod chỉ nhận code từ `main` khi đã ổn định; hiện mọi thứ đang test trên `staging.upnext.works` qua nhánh `dev`/`develop`. Đừng coi đây là thiếu sót cần sửa.                                                                                                                       |
 
-| Capability AI            | Trạng thái                               | Việc cần làm                                                                                   |
-| ------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Candidate Copilot        | Gateway đã có, staging provider đang lỗi | Fix provider/schema rollout; canary, metrics và E2E.                                           |
-| CV screening             | Đã có route/batch tách riêng             | Kiểm tra cờ canary, fallback, scoring parity và cập nhật tài liệu cũ còn gọi Gemini trực tiếp. |
-| Embeddings               | Đã qua private gateway                   | Kiểm chứng index/query, timeout 20s, fallback và chi phí.                                      |
-| JD extraction            | Đã có capability riêng                   | Kiểm chứng input bound, schema, RBAC recruiter và fallback.                                    |
-| JD generation            | Nhánh đang CI đỏ                         | Fix CI, review output policy/rate limit rồi rollout canary độc lập.                            |
-| Salary research          | Chưa xác nhận đã tách                    | Lập capability riêng; không gom chung với JD generation.                                       |
-| Company/license scanning | Chưa xác nhận đã tách                    | Lập threat/privacy review và contract riêng.                                                   |
+### 4.3 Bẫy cần biết: citation chỉ bám vào văn xuôi
 
-Không được tuyên bố “đã tách toàn bộ AI”. Các service Gemini cũ trong BE phải được inventory từ `origin/dev` tại thời điểm bắt đầu tác vụ, vì các PR migration đã tiếp tục được merge sau các audit trước.
+Với capability grounded (salary research), Gemini chỉ trả `groundingChunks` khi câu trả lời có
+đoạn text để quy chiếu. Đã đo trực tiếp: prompt production hiện tại yêu cầu `summary` và
+`evidenceNotes` bằng tiếng Việt nên mỗi lần chạy nhận 4–7 nguồn và 5–6 search query. Nhưng khi
+thử prompt JSON gọn không có field văn xuôi, `groundingChunks` về **0** dù search vẫn chạy.
+
+Hệ quả: **nếu ai sửa prompt bỏ `summary`/`evidenceNotes`, toàn bộ citation sẽ chết âm thầm**,
+`validateResult` sẽ loại kết quả vì không đủ 2 nguồn, và salary research quay lại trả `null`
+mà không có lỗi nào. Đừng "tối ưu" prompt đó nếu chưa đo lại số nguồn.
 
 ## 5. Trạng thái worktree khi bàn giao
 
-> Các SHA/nhánh dưới đây chỉ là snapshot. Trước khi làm phải `git fetch --prune` và so sánh remote; không pull đè worktree bẩn.
+> Các SHA/nhánh dưới đây chỉ là snapshot ngày 16/08/2026. Trước khi làm phải `git fetch --prune`
+> và so sánh remote; không pull đè worktree bẩn.
 
-| Repo                                  | Snapshot đã quan sát                                                                                                         | Cảnh báo                                                                           |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `D:\Workspace\upnext\upnext-frontend` | Branch `codex/cv-builder-versioned-apply`, có thay đổi chưa commit ở `public-header.tsx`, thư mục AI interview và `.claude/` | Đây là thay đổi người dùng/tác vụ khác, không reset/commit kèm.                    |
-| `D:\Workspace\upnext\upnext-backend`  | Branch local `codex/cv-builder-versioned-apply`, có `docker-compose.yml` bẩn                                                 | Luôn bắt đầu bằng worktree sạch/nhánh mới từ `origin/dev`; không sửa file bẩn này. |
-| `D:\Workspace\upnext\upnext-ai`       | Branch `codex/normalize-gemini-json-schema`, lúc quan sát clean, HEAD `c6c3f9d`                                              | So sánh với `origin/develop`; đừng deploy branch cũ chưa chứa các routes mới.      |
-| `D:\Workspace\upnext\upnext-infra`    | `main`, từng clean, HEAD `0894e51`                                                                                           | Dùng đúng Compose project name `upnext` trên VPS.                                  |
+| Repo                                  | Snapshot đã quan sát                                                                        | Cảnh báo                                                                                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `D:\Workspace\upnext\upnext-frontend` | Branch `codex/cv-builder-versioned-apply`, bẩn: `public-header.tsx`, thư mục `ai-interview` | Thay đổi của người dùng/tác vụ khác. Không reset, không commit kèm. Muốn sửa tài liệu thì tạo worktree riêng từ `origin/develop`. |
+| `D:\Workspace\upnext\upnext-backend`  | Đã chuyển về `dev` và đồng bộ remote                                                        | Vẫn nên làm việc trong worktree riêng tạo từ `origin/dev`.                                                                        |
+| `D:\Workspace\upnext\upnext-ai`       | `develop`, đồng bộ remote                                                                   | Đã chứa PR #9/#10/#11/#12/#13.                                                                                                    |
+| `D:\Workspace\upnext\upnext-infra`    | `main`                                                                                      | Dùng đúng Compose project name `upnext` trên VPS.                                                                                 |
+
+Cách làm đã thống nhất với người dùng: **mỗi tác vụ một worktree riêng tạo từ remote branch**, xong
+việc thì xoá. Không sửa trực tiếp trong checkout dùng chung đang bẩn — đã có lần commit nhầm tài
+liệu vào nhánh feature của người khác vì bỏ qua quy tắc này.
 
 ## 6. Cấu hình local chuẩn
 
@@ -271,6 +283,11 @@ Sau đó mới thực hiện test thật qua API backend/UI. Không tự tạo J
 
 ## 8. Quy trình xử lý lỗi `AI_INVALID_OUTPUT` trên staging
 
+> Nguyên nhân gốc của sự cố tháng 8/2026 đã tìm ra và sửa — đọc mục 4.1 trước khi dùng quy trình
+> dưới đây. Quy trình vẫn giữ lại vì hữu ích cho lần sau, nhưng đừng lặp lại giả định cũ rằng
+> `AI_INVALID_OUTPUT` nghĩa là lỗi schema: nó từng là geo-block, sai `api_version`, và thiếu
+> dependency streaming.
+
 1. Xác minh image digest/container đang chạy, không chỉ tag `develop`:
 
 ```bash
@@ -325,11 +342,16 @@ Sau đó dùng container/backend image đúng phiên bản để chạy hoặc x
 
 ### Giai đoạn A — ổn định nền tảng (P0)
 
-1. Tạo worktree sạch của `upnext-ai` từ `origin/develop`.
-2. Resolve CI JD generation: format lỗi line-length, chạy toàn bộ quality suite, review contract một lần nữa.
-3. Kiểm tra image pipeline và đảm bảo staging chạy digest chứa fix Gemini JSON schema.
-4. Tái hiện và sửa `AI_INVALID_OUTPUT` bằng test/integration có redacted diagnostics.
-5. Chạy smoke checklist ở mục 11 trước khi mở canary rộng hơn.
+> Các mục của bản 15/08 (sửa CI JD generation, tái hiện `AI_INVALID_OUTPUT`, kiểm tra image
+> pipeline) đã hoàn tất. Việc còn lại của giai đoạn này chỉ còn một thứ, và nó chặn tất cả:
+
+1. **Gỡ chặn địa lý Gemini trên VPS.** Chừng nào chưa gỡ thì không thể xác minh bất kỳ capability
+   nào trên staging — cả đường `upnext-ai` lẫn đường Gemini trực tiếp đều xuất phát từ cùng IP đó,
+   nên fallback cũng không cứu được. Hướng rẻ nhất: đặt `HTTPS_PROXY` trong `ai.staging.env`
+   (`google-genai` dùng httpx với `trust_env=True`, không cần sửa code). Hướng bền hơn: bật billing
+   hoặc chuyển sang Vertex AI.
+2. Sau khi gỡ: bật nốt ba cờ provider còn thiếu ở `backend.staging.env` (mục 4.2), rồi chạy đủ
+   smoke checklist ở mục 11 cho cả 7 capability trước khi mở canary rộng hơn.
 
 ### Giai đoạn B — canary theo capability (P1)
 
@@ -396,4 +418,11 @@ Một capability AI chỉ được gọi là hoàn thiện khi đạt tất cả
 - AI PR #5 + BE PR #144: embeddings migration.
 - AI PR #6 + BE PR #145: JD extraction migration.
 - BE PR #146/#147 đã xuất hiện sau đó trên `origin/dev`; luôn đối chiếu branch hiện tại.
-- Nhánh `codex/job-post-generation-ai` là công việc JD generation còn cần sửa CI, chưa được xem là rollout hoàn tất.
+- AI PR #8 + BE PR #148: JD generation (đã sửa CI ruff line-length, đã merge).
+- AI PR #9: tách `AI_PROVIDER_REGION_BLOCKED` khỏi lỗi chung.
+- AI PR #10: pin client sang `api_version="v1beta"` để JSON mode hoạt động.
+- AI PR #11: pin `aiohttp` cho async streaming của `google-genai`.
+- AI PR #12 + BE PR #149: quét giấy phép kinh doanh, scope `company-license:extract`.
+- AI PR #13 + BE PR #150: salary research qua capability grounded, scope `research:grounded`.
+  BE đổi tên `GeminiSalaryResearchService` → `SalaryResearchService` vì class không còn gọi Gemini.
+- FE PR #243: đưa tài liệu bàn giao này lên `develop`.
