@@ -56,3 +56,6 @@ yarn-error.log*
 .qodo
 .history
 .idea
+
+# local agent/tooling state, per-developer and not shareable
+.claude
