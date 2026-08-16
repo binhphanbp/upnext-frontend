@@ -12,6 +12,7 @@ import {
   isValidGpa,
   isValidPhone,
   mapProfileToCvData,
+  toEditableText,
   toExternalHref,
   toPlainText,
 } from "./logic";
@@ -274,6 +275,32 @@ describe("CV Builder business rules", () => {
     expect(toPlainText("<p>Hello <strong>UpNext</strong></p><ul><li>Built UI</li></ul>")).toBe(
       "Hello UpNext\n• Built UI",
     );
+  });
+
+  describe("text bound to an input", () => {
+    // A textarea whose value is trimmed on every render can never hold a trailing space:
+    // the space is stripped the moment it is typed, so no space can be entered between
+    // two words and the field looks like it rejects input. TC_CAN_031.
+    it("keeps a space the author just typed", () => {
+      expect(toEditableText("Kỹ sư ")).toBe("Kỹ sư ");
+      expect(toPlainText("Kỹ sư ")).toBe("Kỹ sư");
+    });
+
+    it("keeps indentation and blank lines while the author is still writing", () => {
+      expect(toEditableText("  Thành tựu:\n\n\n- Tăng 20% doanh thu")).toBe(
+        "  Thành tựu:\n\n\n- Tăng 20% doanh thu",
+      );
+    });
+
+    it("still unwraps legacy HTML so imported CVs stay editable", () => {
+      expect(toEditableText("<p>Hello <strong>UpNext</strong></p><ul><li>Built UI</li></ul>")).toBe(
+        "Hello UpNext\n• Built UI\n",
+      );
+    });
+
+    it("drops carriage returns so a pasted Windows line ending is not doubled", () => {
+      expect(toEditableText("Dòng 1\r\nDòng 2")).toBe("Dòng 1\nDòng 2");
+    });
   });
 
   it("maps and sorts real profile data while preserving design preferences", () => {

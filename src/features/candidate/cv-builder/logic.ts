@@ -317,7 +317,18 @@ function decodeBasicEntities(value: string) {
     .replaceAll("&#39;", "'");
 }
 
-export function toPlainText(value: string) {
+/**
+ * Turns stored content into text, without touching whitespace the author typed.
+ *
+ * This is what a textarea binds to. `toPlainText` cannot be used there: it trims, and a
+ * controlled input whose value is trimmed on every render can never hold a trailing
+ * space — the space is stripped the instant it is typed, so no space can ever be entered
+ * between two words and the field looks like it rejects input entirely.
+ *
+ * Stored content may still be HTML from an imported CV or the old rich-text editor, so
+ * tags are unwrapped; only the cosmetic normalisation is left out.
+ */
+export function toEditableText(value: string) {
   return decodeBasicEntities(
     value
       .replace(/<\s*br\s*\/?\s*>/gi, "\n")
@@ -325,8 +336,15 @@ export function toPlainText(value: string) {
       .replace(/<\s*li[^>]*>/gi, "• ")
       .replace(/<\s*\/\s*li\s*>/gi, "\n")
       .replace(HTML_TAG_PATTERN, ""),
-  )
-    .replace(/\r/g, "")
+  ).replace(/\r/g, "");
+}
+
+/**
+ * The tidied form used for ATS scoring, the preview and export — never for an input's
+ * value. Collapsing blank lines and trimming is right for output and wrong while typing.
+ */
+export function toPlainText(value: string) {
+  return toEditableText(value)
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
