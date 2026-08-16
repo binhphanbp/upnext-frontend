@@ -673,6 +673,7 @@ export function RecruiterBillingPage() {
                                 alt="VietQR code"
                                 width={144}
                                 height={144}
+                                unoptimized
                                 className="size-36 object-contain"
                               />
                             </div>

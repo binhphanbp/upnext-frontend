@@ -993,6 +993,8 @@
       "settings": "Settings",
       "generalInfo": "General Info",
       "companyAddresses": "Company Addresses",
+      "companyReviews": "Company Reviews",
+      "companyReputation": "Trust Score",
       "inviteUsers": "Invite Users",
       "rolesSub": "Roles"
     },

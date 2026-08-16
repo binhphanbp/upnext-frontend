@@ -8,6 +8,7 @@ import {
   Check,
   CheckCircle,
   Clock,
+  DownloadSimple,
   Eye,
   FileText,
   MapPin,
@@ -797,6 +798,23 @@ function OfferPanel({
               label={t("applicationDetail.offer.note")}
               value={application.offerDetails.note}
             />
+          ) : null}
+          {application.offerDetails.offerLetterUrl ? (
+            <div className="flex items-center justify-between border-t border-emerald-100 bg-slate-50 px-4 py-3 text-xs">
+              <span className="font-semibold text-slate-700">
+                {locale === "vi" ? "File Offer đính kèm:" : "Attached Offer Letter:"}
+              </span>
+              <a
+                href={application.offerDetails.offerLetterUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+              >
+                <DownloadSimple size={15} weight="bold" />
+                {application.offerDetails.attachmentName ||
+                  (locale === "vi" ? "Tải xuống Offer Letter" : "Download Offer Letter")}
+              </a>
+            </div>
           ) : null}
         </dl>
       ) : null}

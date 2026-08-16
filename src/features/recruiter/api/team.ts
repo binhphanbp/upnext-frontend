@@ -194,6 +194,7 @@ export type Application = Readonly<{
   coverLetter: string | null;
   candidateProfile: {
     id: string;
+    phoneNumber?: string | null;
     account: {
       id: string;
       fullName: string | null;
@@ -264,12 +265,14 @@ export function updateApplicationStatus(
   noteOrOptions?:
     | string
     | Readonly<{
-        note?: string;
+        note?: string | undefined;
         offer?: Readonly<{
           salaryOffer: string;
           startDate: string;
           expiresAt: string;
-          note?: string;
+          note?: string | undefined;
+          offerLetterUrl?: string | undefined;
+          attachmentName?: string | undefined;
         }>;
       }>,
 ) {

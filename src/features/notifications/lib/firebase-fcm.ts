@@ -3,6 +3,8 @@ import type { FirebaseOptions } from "firebase/app";
 import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
 import type { Messaging } from "firebase/messaging";
 
+import { ApiError } from "@/shared/api/http";
+
 import { registerFcmToken, unregisterFcmToken } from "../api/notifications";
 
 const LOCAL_STORAGE_FCM_KEY = "upnext_fcm_token";
@@ -138,7 +140,11 @@ export async function requestAndRegisterFcmToken(userAccessToken: string): Promi
       return fcmToken;
     }
   } catch (error) {
-    console.error("[FCM] Error registering FCM token:", error);
+    if (error instanceof ApiError && error.status === 401) {
+      console.warn("[FCM] Session expired or unauthorized (401). Skipped FCM token registration.");
+    } else {
+      console.error("[FCM] Error registering FCM token:", error);
+    }
   }
 
   return null;
@@ -157,7 +163,11 @@ export async function unregisterCurrentFcmToken(userAccessToken: string): Promis
     await unregisterFcmToken(userAccessToken, storedToken);
     console.info("[FCM] Unregistered Web FCM Token successfully.");
   } catch (error) {
-    console.error("[FCM] Error unregistering FCM token:", error);
+    if (error instanceof ApiError && error.status === 401) {
+      // Ignore 401 during unregister since session is already gone/invalidated
+    } else {
+      console.error("[FCM] Error unregistering FCM token:", error);
+    }
   } finally {
     window.localStorage.removeItem(LOCAL_STORAGE_FCM_KEY);
   }
