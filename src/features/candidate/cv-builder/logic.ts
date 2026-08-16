@@ -27,6 +27,33 @@ const WORD_PATTERN = /[\p{L}\d][\p{L}\d+#./-]{1,}/gu;
 const QUANTIFIED_RESULT_PATTERN =
   /\b\d+(?:[.,]\d+)?\s*(?:%|x|k|m|ms|s|giây|phút|giờ|ngày|người|users?|customers?|requests?|downloads?|vnd|usd)\b/i;
 
+/**
+ * One skill, many spellings. A job ad saying "ReactJS" and a CV saying "React" describe
+ * the same thing, and counting them as different keywords is what kept a genuinely
+ * matching CV from scoring anywhere near the top.
+ */
+const KEYWORD_ALIASES: Record<string, string> = {
+  angularjs: "angular",
+  csharp: "c#",
+  dotnet: ".net",
+  expressjs: "express",
+  golang: "go",
+  k8s: "kubernetes",
+  nestjs: "nest",
+  "nest.js": "nest",
+  nextjs: "next",
+  "next.js": "next",
+  nodejs: "node",
+  "node.js": "node",
+  postgres: "postgresql",
+  reactjs: "react",
+  "react.js": "react",
+  restful: "rest",
+  tailwindcss: "tailwind",
+  ts: "typescript",
+  vuejs: "vue",
+  "vue.js": "vue",
+};
 const STOP_WORDS = new Set(
   [
     "and",
@@ -95,7 +122,42 @@ const STOP_WORDS = new Set(
     "voi",
     "yeu",
     "cau",
-  ].map(normalizeKeyword),
+    // Wording from the perks and company-blurb half of a Vietnamese job ad. No CV is
+    // supposed to contain these, so leaving them in the keyword set spent the budget on
+    // terms nobody could ever match and pushed every score toward the middle.
+    "bao",
+    "che",
+    "dai",
+    "dip",
+    "dong",
+    "du",
+    "gio",
+    "hiem",
+    "hoi",
+    "le",
+    "lich",
+    "loi",
+    "luong",
+    "moi",
+    "muc",
+    "nam",
+    "ngay",
+    "nghi",
+    "phep",
+    "phuc",
+    "quyen",
+    "suc",
+    "tet",
+    "thang",
+    "thoa",
+    "thuan",
+    "thuong",
+    "tien",
+    "tre",
+    "trung",
+    "truong",
+    "xet",
+  ].map(canonicalKeyword),
 );
 
 const EVIDENCE_SECTION_KEYS = CV_SECTION_KEYS.filter(
@@ -137,7 +199,7 @@ const PRIORITY_KEYWORDS = new Set(
     "tailwind",
     "typescript",
     "vue",
-  ].map(normalizeKeyword),
+  ].map(canonicalKeyword),
 );
 
 const ACTION_VERBS = new Set(
@@ -169,6 +231,9 @@ const ACTION_VERBS = new Set(
   ].map(normalizeKeyword),
 );
 
+/** Below this many recognised skills an ad is treated as non-technical prose. */
+const MIN_SKILL_KEYWORDS_FOR_SKILL_SCORING = 5;
+
 const SECTION_WEIGHTS: Record<CvSectionKey, number> = {
   personal: 25,
   summary: 15,
@@ -186,9 +251,22 @@ function normalizeKeyword(value: string) {
     .replace(/^[-./]+|[-./]+$/g, "");
 }
 
+/**
+ * The alias-folded form, for comparing one keyword against another.
+ *
+ * Deliberately separate from `normalizeKeyword`, which is also applied to whole blocks of
+ * CV text at once. Folding aliases in there would rewrite a single word \u2014 the skill being
+ * looked up \u2014 while leaving the text it is searched against spelled the original way, so a
+ * CV listing "ReactJS" and describing "ReactJS" would report the skill as unevidenced.
+ */
+function canonicalKeyword(value: string) {
+  const normalized = normalizeKeyword(value);
+  return KEYWORD_ALIASES[normalized] ?? normalized;
+}
+
 function tokensFor(value: string) {
   return (value.match(WORD_PATTERN) ?? [])
-    .map((raw) => ({ key: normalizeKeyword(raw), raw }))
+    .map((raw) => ({ key: canonicalKeyword(raw), raw }))
     .filter((token) => token.key.length >= 2 && !STOP_WORDS.has(token.key));
 }
 
@@ -229,8 +307,29 @@ export function evaluateJobMatch(cvData: CvData): CvJobMatchEvaluation {
     });
   }
 
-  const keywords = [...counts.entries()]
-    .filter(([key, value]) => PRIORITY_KEYWORDS.has(key) || value.count > 1 || key.length >= 5)
+  const entries = [...counts.entries()];
+  const skillKeywords = entries.filter(([key]) => PRIORITY_KEYWORDS.has(key));
+
+  /*
+   * When the ad names enough recognisable skills, score on those alone.
+   *
+   * The mixed fallback below keeps any word of five letters or more, which on a
+   * Vietnamese ad means the score is decided partly by prose the candidate has no reason
+   * to repeat — a CV matching every required technology still lost a third of the marks
+   * to the wording of the job description itself. Restricting to named skills makes the
+   * number answer the question the candidate is actually asking, and makes `missing` a
+   * list of skills to acquire rather than words to parrot.
+   *
+   * The threshold keeps the score from swinging on one or two keywords, and non-technical
+   * ads, where nothing is recognised, keep the previous behaviour unchanged.
+   */
+  const keywords = (
+    skillKeywords.length >= MIN_SKILL_KEYWORDS_FOR_SKILL_SCORING
+      ? skillKeywords
+      : entries.filter(
+          ([key, value]) => PRIORITY_KEYWORDS.has(key) || value.count > 1 || key.length >= 5,
+        )
+  )
     .toSorted(([firstKey, first], [secondKey, second]) => {
       const priorityDifference =
         Number(PRIORITY_KEYWORDS.has(secondKey)) - Number(PRIORITY_KEYWORDS.has(firstKey));
