@@ -433,7 +433,8 @@
       "skillsRecommended": "Nên bổ sung ít nhất 3 kỹ năng cốt lõi.",
       "skillNameRequired": "Vui lòng nhập tên kỹ năng hoặc xóa dòng trống.",
       "duplicateSkills": "Có kỹ năng bị lặp; nên giữ mỗi kỹ năng một lần.",
-      "careerEvidenceRequired": "Hãy thêm ít nhất một mục Kinh nghiệm, Dự án hoặc Học vấn để nhà tuyển dụng có bằng chứng đánh giá."
+      "careerEvidenceRequired": "Hãy thêm ít nhất một mục Kinh nghiệm, Dự án hoặc Học vấn để nhà tuyển dụng có bằng chứng đánh giá.",
+      "careerEvidenceHidden": "Bạn đang ẩn cả ba mục Kinh nghiệm, Dự án và Học vấn. Hãy hiện lại ít nhất một mục để nhà tuyển dụng có bằng chứng đánh giá."
     }
   },
   "Metadata": {
