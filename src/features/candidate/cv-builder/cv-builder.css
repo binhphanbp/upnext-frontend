@@ -3289,6 +3289,18 @@
     visibility: hidden !important;
   }
 
+  /*
+   * The preview holds the print area, and in edit mode — the default — it carries
+   * `cv-preview-mobile-hidden`. That class is `display: none` inside `max-width` queries
+   * which carry no `screen` keyword, and a printer evaluates width against the paper, not
+   * the screen: A4 is about 794px, so those queries match on every device and the preview
+   * was removed from the printed page. `visibility: visible` cannot bring back a subtree
+   * whose ancestor is `display: none`, so the export came out blank.
+   */
+  .cv-builder-preview.cv-preview-mobile-hidden {
+    display: block !important;
+  }
+
   .print-area,
   .print-area * {
     visibility: visible !important;

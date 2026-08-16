@@ -193,6 +193,105 @@ describe("CV Builder business rules", () => {
     expect(evaluateJobMatch(descriptionWithoutKeywords).hasDescription).toBe(false);
   });
 
+  describe("match score against a Vietnamese job ad", () => {
+    // The ad deliberately carries a perks section, because that is where the wording that
+    // used to distort the score comes from. TC_CAN_033 / TC_CAN_034.
+    const JOB_AD = [
+      "Tuyển Lập trình viên Frontend (ReactJS)",
+      "Mô tả công việc:",
+      "- Phát triển giao diện web bằng ReactJS và TypeScript",
+      "- Làm việc với REST API, tối ưu hiệu năng trang",
+      "Yêu cầu:",
+      "- Thành thạo ReactJS, TypeScript, HTML, CSS",
+      "- Biết sử dụng Git, TailwindCSS, NodeJS",
+      "Quyền lợi:",
+      "- Mức lương thỏa thuận, thưởng tháng 13",
+      "- Bảo hiểm sức khỏe, du lịch hàng năm, môi trường trẻ trung",
+    ].join("\n");
+
+    function cvWithSkills(title: string, skills: string[], technologies: string) {
+      const cvData = createInitialCvData();
+      cvData.targetJob.description = JOB_AD;
+      cvData.personalInfo.title = title;
+      cvData.experiences = [
+        {
+          id: "experience-1",
+          companyName: "UpNext",
+          positionTitle: title,
+          startDate: "2022-01",
+          endDate: "",
+          isCurrent: true,
+          description: "Phát triển sản phẩm cho khách hàng doanh nghiệp.",
+          technologies,
+        },
+      ];
+      cvData.skills = skills.map((name, index) => ({
+        id: `skill-${index}`,
+        name,
+        level: "ADVANCED" as const,
+      }));
+      return cvData;
+    }
+
+    it("scores a CV covering the required stack above 80%", () => {
+      const result = evaluateJobMatch(
+        cvWithSkills(
+          "Frontend Developer",
+          ["React", "TypeScript", "HTML", "CSS", "Git", "TailwindCSS", "Node.js", "REST API"],
+          "React, TypeScript, Git",
+        ),
+      );
+
+      expect(result.score).toBeGreaterThan(80);
+      // "ReactJS" in the ad and "React" on the CV are one skill, not two.
+      expect(result.missing).not.toContain("ReactJS");
+      expect(result.missing).not.toContain("NodeJS");
+    });
+
+    it("scores an unrelated CV below 30% and names the skills to acquire", () => {
+      const result = evaluateJobMatch(
+        cvWithSkills("Kế toán tổng hợp", ["Excel", "MISA", "Kê khai thuế"], "Excel, MISA"),
+      );
+
+      expect(result.score).toBeLessThan(30);
+      expect(result.missing.length).toBeGreaterThan(0);
+      // Advice has to be actionable: telling an accountant to add "thưởng" or "tháng" to
+      // their CV is what made the old suggestions worthless.
+      expect(result.missing.map((keyword) => keyword.toLocaleLowerCase())).toEqual(
+        expect.arrayContaining(["reactjs", "typescript"]),
+      );
+      for (const perk of ["tháng", "thưởng", "lương", "lợi"]) {
+        expect(result.missing).not.toContain(perk);
+      }
+    });
+
+    it("still scores a non-technical ad on its own wording", () => {
+      const cvData = createInitialCvData();
+      cvData.targetJob.description = [
+        "Tuyển Nhân viên chăm sóc khách hàng tại chi nhánh Hà Nội.",
+        "Nhiệm vụ: tiếp nhận phản hồi, xử lý khiếu nại, chăm sóc khách hàng thân thiết.",
+      ].join("\n");
+      cvData.experiences = [
+        {
+          id: "experience-1",
+          companyName: "UpNext",
+          positionTitle: "Nhân viên chăm sóc khách hàng",
+          startDate: "2022-01",
+          endDate: "",
+          isCurrent: true,
+          description: "Tiếp nhận phản hồi và xử lý khiếu nại của khách hàng thân thiết.",
+          technologies: "",
+        },
+      ];
+
+      // No skill is recognised here, so the mixed keyword fallback must still produce a
+      // score rather than leaving the candidate with nothing.
+      const result = evaluateJobMatch(cvData);
+      expect(result.hasDescription).toBe(true);
+      expect(result.score).toBeGreaterThan(0);
+    });
+  });
+
   it("counts action-led, quantified and skill-backed evidence in CV content", () => {
     const cvData = createInitialCvData();
     cvData.experiences = [
