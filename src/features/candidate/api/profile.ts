@@ -326,6 +326,8 @@ export type CandidateApplicationOfferDetails = Readonly<{
   salaryOffer: string;
   startDate: string;
   note?: string;
+  offerLetterUrl?: string;
+  attachmentName?: string;
 }>;
 
 export type CandidateApplicationApi = Readonly<{

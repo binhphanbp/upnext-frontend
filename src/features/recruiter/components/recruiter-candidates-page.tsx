@@ -24,6 +24,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
 
 import { authHeaders, RECRUITER_SESSION_REFRESHED_EVENT } from "@/features/recruiter/api/client";
 import {
@@ -86,7 +87,6 @@ const toast = Swal.mixin({
 const STATUS_OPTIONS = [
   "SUBMITTED",
   "VIEWED",
-  "CONSIDERING",
   "SHORTLISTED",
   "INTERVIEWING",
   "OFFERED",
@@ -94,6 +94,39 @@ const STATUS_OPTIONS = [
   "WITHDRAWN",
   "REJECTED",
 ] as const;
+
+const PIPELINE_STATUS_ORDER: Record<string, number> = {
+  SUBMITTED: 0,
+  VIEWED: 1,
+  CONSIDERING: 1, // fallback for legacy data
+  SHORTLISTED: 2,
+  INTERVIEWING: 3,
+  OFFERED: 4,
+  HIRED: 5,
+};
+
+function isStatusTransitionAllowed(currentStatus: string, targetStatus: string): boolean {
+  if (currentStatus === targetStatus) return true;
+  // Các trạng thái kết thúc không được lùi hoặc thay đổi
+  if (currentStatus === "HIRED" || currentStatus === "REJECTED" || currentStatus === "WITHDRAWN") {
+    return false;
+  }
+  // Không cho phép chuyển tới WITHDRAWN (chỉ ứng viên) hoặc CONSIDERING (đã bỏ)
+  if (targetStatus === "WITHDRAWN" || targetStatus === "CONSIDERING") {
+    return false;
+  }
+  // Cho phép chuyển sang REJECTED (Chưa phù hợp) từ bất kỳ trạng thái đang xử lý nào
+  if (targetStatus === "REJECTED") {
+    return true;
+  }
+  const currentRank = PIPELINE_STATUS_ORDER[currentStatus];
+  const targetRank = PIPELINE_STATUS_ORDER[targetStatus];
+  if (currentRank !== undefined && targetRank !== undefined) {
+    // Chỉ cho phép tiến về phía trước (cho phép nhảy cóc), tuyệt đối không cho phép lùi
+    return targetRank > currentRank;
+  }
+  return false;
+}
 
 const AI_LABEL_OPTIONS = ["excellent", "good", "average", "low", "unscored"] as const;
 
@@ -645,43 +678,74 @@ export function RecruiterCandidatesPage() {
       return;
     }
 
-    const headers =
-      locale === "vi"
-        ? ["Họ và tên", "Tin tuyển dụng", "Ngày nộp", "Tên file CV", "Trạng thái"]
-        : ["Full Name", "Job Post", "Submitted At", "CV Filename", "Status"];
-
-    const rows = candidatesToExport.map((app) => {
+    const excelData = candidatesToExport.map((app, index) => {
       const name =
-        app.candidateProfile.account.fullName ?? (locale === "vi" ? "Ẩn danh" : "Anonymous");
-      const jobTitle = app.jobPost.title;
+        app.candidateProfile?.account?.fullName ||
+        (locale === "vi" ? "Chưa cập nhật" : "Not specified");
+      const email = app.candidateProfile?.account?.email || "—";
+      const phone = app.candidateProfile?.phoneNumber || "—";
+      const jobTitle = app.jobPost?.title || "—";
       const submittedAt = formatAppDateTime(app.submittedAt);
-      const cvName = app.cvVersion?.fileName ?? "—";
+      const cvName = app.cvVersion?.fileName || "—";
       const statusText = t(`candidates.status.${app.status}` as any);
 
-      return [name, jobTitle, submittedAt, cvName, statusText].map((val) => {
-        const escaped = String(val).replace(/"/g, '""');
-        return `"${escaped}"`;
-      });
+      if (locale === "vi") {
+        return {
+          STT: index + 1,
+          "Họ và tên": name,
+          Email: email,
+          "Số điện thoại": phone,
+          "Vị trí ứng tuyển": jobTitle,
+          "Ngày nộp": submittedAt,
+          "Tên file CV": cvName,
+          "Trạng thái": statusText,
+        };
+      }
+
+      return {
+        "No.": index + 1,
+        "Full Name": name,
+        Email: email,
+        "Phone Number": phone,
+        "Job Post": jobTitle,
+        "Submitted At": submittedAt,
+        "CV Filename": cvName,
+        Status: statusText,
+      };
     });
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `UpNext_Candidates_${new Date().toISOString().split("T")[0]}.csv`,
+    // Set custom column widths for clear, readable Excel presentation
+    worksheet["!cols"] = [
+      { wch: 6 }, // STT
+      { wch: 25 }, // Họ và tên
+      { wch: 28 }, // Email
+      { wch: 18 }, // Số điện thoại
+      { wch: 32 }, // Vị trí ứng tuyển
+      { wch: 22 }, // Ngày nộp
+      { wch: 32 }, // Tên file CV
+      { wch: 18 }, // Trạng thái
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      locale === "vi" ? "Danh sách ứng viên" : "Candidates",
     );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    const today = new Date().toISOString().split("T")[0];
+    const filename = `UpNext_Candidates_${today}.xlsx`;
+
+    XLSX.writeFile(workbook, filename);
 
     void toast.fire({
       icon: "success",
-      title: locale === "vi" ? "Xuất dữ liệu thành công!" : "Data exported successfully!",
+      title:
+        locale === "vi"
+          ? "Xuất file Excel (.xlsx) thành công!"
+          : "Excel file exported successfully!",
     });
   };
 
@@ -1102,7 +1166,12 @@ export function RecruiterCandidatesPage() {
                       <td className="w-[145px] min-w-[145px] px-4 py-2.5">
                         <Select
                           value={app.status}
-                          disabled={saving || app.status === "WITHDRAWN"}
+                          disabled={
+                            saving ||
+                            app.status === "WITHDRAWN" ||
+                            app.status === "HIRED" ||
+                            app.status === "REJECTED"
+                          }
                           onValueChange={(nextStatus) => handleStatusChange(app.id, nextStatus)}
                         >
                           <SelectTrigger
@@ -1123,19 +1192,23 @@ export function RecruiterCandidatesPage() {
                             </span>
                           </SelectTrigger>
                           <SelectContent align="end">
-                            {STATUS_OPTIONS.map((st) => (
-                              <SelectItem key={st} value={st} disabled={st === "WITHDRAWN"}>
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={cn(
-                                      "size-1.5 rounded-full shrink-0",
-                                      getStatusDotClass(st),
-                                    )}
-                                  />
-                                  <span>{t(`candidates.status.${st}` as any)}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
+                            {STATUS_OPTIONS.map((st) => {
+                              const isAllowed = isStatusTransitionAllowed(app.status, st);
+                              const isCurrent = app.status === st;
+                              return (
+                                <SelectItem key={st} value={st} disabled={!isAllowed && !isCurrent}>
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={cn(
+                                        "size-1.5 rounded-full shrink-0",
+                                        getStatusDotClass(st),
+                                      )}
+                                    />
+                                    <span>{t(`candidates.status.${st}` as any)}</span>
+                                  </div>
+                                </SelectItem>
+                              );
+                            })}
                           </SelectContent>
                         </Select>
                       </td>

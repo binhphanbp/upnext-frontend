@@ -109,31 +109,35 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       if (Notification.permission === "granted") {
         void requestAndRegisterFcmToken(session.accessToken);
       } else if (Notification.permission === "default") {
-        setTimeout(() => {
-          void Swal.fire({
-            title: "Bật thông báo ứng tuyển?",
-            text: "Bạn có muốn nhận thông báo tức thì trên thiết bị khi có ứng viên mới nộp hồ sơ không?",
-            icon: "info",
-            showCancelButton: true,
-            confirmButtonText: "Bật thông báo ngay 🔔",
-            cancelButtonText: "Để sau",
-            confirmButtonColor: "#059669",
-          }).then(async (result) => {
-            if (result.isConfirmed) {
-              const token = await requestAndRegisterFcmToken(session.accessToken);
-              if (token) {
-                void Swal.fire(
-                  "Thành công!",
-                  "Bạn sẽ nhận được thông báo khi có ứng viên mới.",
-                  "success",
-                );
+        const hasPrompted = sessionStorage.getItem("upnext_recruiter_notif_prompted");
+        if (!hasPrompted) {
+          sessionStorage.setItem("upnext_recruiter_notif_prompted", "true");
+          setTimeout(() => {
+            void Swal.fire({
+              title: "Bật thông báo ứng tuyển?",
+              text: "Bạn có muốn nhận thông báo tức thì trên thiết bị khi có ứng viên mới nộp hồ sơ không?",
+              icon: "info",
+              showCancelButton: true,
+              confirmButtonText: "Bật thông báo ngay 🔔",
+              cancelButtonText: "Để sau",
+              confirmButtonColor: "#059669",
+            }).then(async (result) => {
+              if (result.isConfirmed) {
+                const token = await requestAndRegisterFcmToken(session.accessToken);
+                if (token) {
+                  void Swal.fire(
+                    "Thành công!",
+                    "Bạn sẽ nhận được thông báo khi có ứng viên mới.",
+                    "success",
+                  );
+                }
               }
-            }
-          });
-        }, 500);
+            });
+          }, 500);
+        }
       }
     }
-  }, [pathname]);
+  }, []);
 
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
@@ -219,6 +223,8 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
             let childLabel = child.label;
             if (child.label === "Thông tin chung") childLabel = t("nav.generalInfo");
             else if (child.label === "Địa chỉ làm việc") childLabel = t("nav.companyAddresses");
+            else if (child.label === "Quản lý đánh giá") childLabel = t("nav.companyReviews");
+            else if (child.label === "Điểm uy tín") childLabel = t("nav.companyReputation");
             else if (child.label === "Mời người dùng") childLabel = t("nav.inviteUsers");
             else if (child.label === "Vai trò") childLabel = t("nav.rolesSub");
 

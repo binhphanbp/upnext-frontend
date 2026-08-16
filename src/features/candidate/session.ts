@@ -30,8 +30,6 @@ export function getCandidateSession(): CandidateSession | null {
   try {
     const user = JSON.parse(rawUser) as StoredCandidateUser;
 
-    void syncFcmTokenIfPermitted(accessToken);
-
     return {
       accessToken,
       tokenType: "Bearer",

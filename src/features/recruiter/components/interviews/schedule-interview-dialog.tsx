@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretDown, MagnifyingGlass, X } from "@phosphor-icons/react";
+import { CaretDown, MagnifyingGlass, WarningCircle, X } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -9,6 +9,7 @@ import Swal from "sweetalert2";
 import {
   createInterview,
   getRecruiterInterviews,
+  type Interview,
   type InterviewType,
 } from "@/features/recruiter/api/interviews";
 import {
@@ -308,6 +309,92 @@ export function ScheduleInterviewDialog({
     setCandidateSearch("");
   }, [jobId, lockApplication]);
 
+  const { data: allCompanyInterviews } = useQuery({
+    queryKey: ["recruiter", "all-company-interviews"],
+    queryFn: () => {
+      if (!token) return [] as Interview[];
+      return getRecruiterInterviews(token);
+    },
+    enabled: open && !!token,
+  });
+
+  const conflictingInterview = useMemo(() => {
+    if (!startAt || !endAt || !allCompanyInterviews || allCompanyInterviews.length === 0)
+      return null;
+    const startMs = new Date(startAt).getTime();
+    const endMs = new Date(endAt).getTime();
+    if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) return null;
+
+    return (
+      allCompanyInterviews.find((item) => {
+        if (item.status === "CANCELLED") return false;
+
+        const isSameInterviewer =
+          recruiterProfileId && item.recruiterProfileId === recruiterProfileId;
+        const isSameCandidate = applicationId && item.applicationId === applicationId;
+
+        const session = getRecruiterSession();
+        const isCurrentRecruiter = session?.user?.id && !recruiterProfileId;
+
+        if (!isSameInterviewer && !isSameCandidate && !isCurrentRecruiter) return false;
+
+        const iStartMs = new Date(item.scheduledStartAt).getTime();
+        const iEndMs = new Date(item.scheduledEndAt).getTime();
+        if (isNaN(iStartMs) || isNaN(iEndMs)) return false;
+
+        return iStartMs < endMs && iEndMs > startMs;
+      }) ?? null
+    );
+  }, [startAt, endAt, allCompanyInterviews, recruiterProfileId, applicationId]);
+
+  type FormFieldErrors = {
+    applicationId?: string | undefined;
+    startAt?: string | undefined;
+    endAt?: string | undefined;
+  };
+
+  const [fieldErrors, setFieldErrors] = useState<FormFieldErrors>({});
+
+  const validateTimes = (startVal: string, endVal: string): FormFieldErrors => {
+    const errors: FormFieldErrors = {};
+    if (!startVal && !endVal) {
+      errors.startAt =
+        locale === "vi" ? "Bắt buộc nhập Ngày Giờ phỏng vấn" : "Interview date & time is required";
+      errors.endAt =
+        locale === "vi" ? "Bắt buộc nhập Ngày Giờ kết thúc" : "End date & time is required";
+      return errors;
+    }
+
+    if (!startVal) {
+      errors.startAt =
+        locale === "vi" ? "Bắt buộc nhập Ngày Giờ phỏng vấn" : "Interview date & time is required";
+    } else {
+      const startMs = new Date(startVal).getTime();
+      if (isNaN(startMs) || startMs < Date.now() - 60_000) {
+        errors.startAt =
+          locale === "vi"
+            ? "Ngày hẹn không hợp lệ. Thời gian phỏng vấn phải ở tương lai."
+            : "Invalid date. Interview time must be in the future.";
+      }
+    }
+
+    if (!endVal) {
+      errors.endAt =
+        locale === "vi" ? "Bắt buộc nhập Ngày Giờ kết thúc" : "End date & time is required";
+    } else if (startVal) {
+      const startMs = new Date(startVal).getTime();
+      const endMs = new Date(endVal).getTime();
+      if (isNaN(endMs) || endMs <= startMs) {
+        errors.endAt =
+          locale === "vi"
+            ? "Thời gian kết thúc phải sau thời gian bắt đầu."
+            : "End time must be after start time.";
+      }
+    }
+
+    return errors;
+  };
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error("No token available");
@@ -331,22 +418,100 @@ export function ScheduleInterviewDialog({
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["recruiter", "interviews"] });
       void queryClient.invalidateQueries({ queryKey: ["recruiter", "company-applications"] });
+      void queryClient.invalidateQueries({ queryKey: ["recruiter", "all-company-interviews"] });
       void toast.fire({ icon: "success", title: t("interviews.toasts.scheduleSuccess") });
       onScheduled?.(applicationId);
       onOpenChange(false);
     },
-    onError: () => {
-      void toast.fire({ icon: "error", title: t("interviews.toasts.scheduleError") });
+    onError: (err: unknown) => {
+      const message =
+        err instanceof Error
+          ? err.message
+          : ((err as { message?: string })?.message ?? t("interviews.toasts.scheduleError"));
+      void toast.fire({ icon: "error", title: message });
     },
   });
+
+  const handleSubmit = async () => {
+    const timeErrors = validateTimes(startAt, endAt);
+    const newErrors: FormFieldErrors = {
+      ...timeErrors,
+    };
+
+    if (!applicationId) {
+      newErrors.applicationId =
+        locale === "vi" ? "Vui lòng chọn ứng viên phỏng vấn" : "Please select a candidate";
+    }
+
+    setFieldErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      if (!startAt || !endAt) {
+        void toast.fire({
+          icon: "error",
+          title:
+            locale === "vi"
+              ? "Bắt buộc nhập Ngày Giờ phỏng vấn"
+              : "Interview date & time is required",
+        });
+      } else if (newErrors.startAt) {
+        void toast.fire({ icon: "error", title: newErrors.startAt });
+      } else if (newErrors.endAt) {
+        void toast.fire({ icon: "error", title: newErrors.endAt });
+      } else if (newErrors.applicationId) {
+        void toast.fire({ icon: "error", title: newErrors.applicationId });
+      }
+      return;
+    }
+
+    if (roundBlocked) {
+      void toast.fire({
+        icon: "error",
+        title:
+          locale === "vi"
+            ? "Vòng phỏng vấn hiện tại chưa hoàn thành hoặc chưa đạt."
+            : "Current round not completed or not passed.",
+      });
+      return;
+    }
+
+    if (conflictingInterview) {
+      const candName =
+        conflictingInterview.application?.candidateProfile?.account?.fullName || "ứng viên khác";
+      const startStr = new Date(conflictingInterview.scheduledStartAt).toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const endStr = new Date(conflictingInterview.scheduledEndAt).toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const dateStr = new Date(conflictingInterview.scheduledStartAt).toLocaleDateString("vi-VN");
+
+      const result = await Swal.fire({
+        title: locale === "vi" ? "⚠️ Cảnh báo trùng lịch phỏng vấn" : "⚠️ Schedule Conflict",
+        html: `<p class="text-sm text-slate-700 font-medium">Bạn đang có lịch trùng giờ này với <strong>${candName}</strong> (${startStr} - ${endStr} ngày ${dateStr}).</p><p class="mt-2 text-xs text-amber-700 font-semibold">Bạn có chắc chắn muốn tiếp tục lên lịch phỏng vấn?</p>`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#059669",
+        cancelButtonColor: "#64748b",
+        confirmButtonText: locale === "vi" ? "Tiếp tục đặt lịch" : "Continue anyway",
+        cancelButtonText: locale === "vi" ? "Chọn lại giờ" : "Pick another time",
+      });
+
+      if (!result.isConfirmed) {
+        return;
+      }
+    }
+
+    mutation.mutate();
+  };
 
   // In locked mode the job/candidate labels come from the selected application
   // itself, so callers do not have to supply the `jobs` list just for a label.
   const lockedApplication = lockApplication
     ? candidateOptions.find((option) => option.id === applicationId)
     : undefined;
-
-  const canSubmit = Boolean(applicationId && startAt && endAt);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -665,28 +830,109 @@ export function ScheduleInterviewDialog({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="schedule-start" className="text-xs font-bold text-slate-600">
-                {t("interviews.scheduleForm.startAt")}
+                {t("interviews.scheduleForm.startAt")} <span className="text-rose-500">*</span>
               </Label>
               <Input
                 id="schedule-start"
                 type="datetime-local"
                 value={startAt}
                 min={new Date().toISOString().slice(0, 16)}
-                onChange={(e) => setStartAt(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setStartAt(val);
+                  if (val) {
+                    const startMs = new Date(val).getTime();
+                    if (startMs < Date.now() - 60_000) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        startAt:
+                          locale === "vi"
+                            ? "Ngày hẹn không hợp lệ. Thời gian phỏng vấn phải ở tương lai."
+                            : "Invalid date. Interview time must be in the future.",
+                      }));
+                    } else {
+                      setFieldErrors((prev) => ({ ...prev, startAt: undefined }));
+                    }
+                  } else {
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      startAt:
+                        locale === "vi"
+                          ? "Bắt buộc nhập Ngày Giờ phỏng vấn"
+                          : "Interview date & time is required",
+                    }));
+                  }
+                }}
+                className={cn(
+                  fieldErrors.startAt &&
+                    "border-rose-400 focus:border-rose-500 focus:ring-rose-200",
+                )}
               />
+              {fieldErrors.startAt && (
+                <p className="mt-1 text-xs font-semibold text-rose-600">* {fieldErrors.startAt}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="schedule-end" className="text-xs font-bold text-slate-600">
-                {t("interviews.scheduleForm.endAt")}
+                {t("interviews.scheduleForm.endAt")} <span className="text-rose-500">*</span>
               </Label>
               <Input
                 id="schedule-end"
                 type="datetime-local"
                 value={endAt}
-                onChange={(e) => setEndAt(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setEndAt(val);
+                  if (val) {
+                    if (startAt && new Date(val).getTime() <= new Date(startAt).getTime()) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        endAt:
+                          locale === "vi"
+                            ? "Thời gian kết thúc phải sau thời gian bắt đầu."
+                            : "End time must be after start time.",
+                      }));
+                    } else {
+                      setFieldErrors((prev) => ({ ...prev, endAt: undefined }));
+                    }
+                  } else {
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      endAt:
+                        locale === "vi"
+                          ? "Bắt buộc nhập Ngày Giờ kết thúc"
+                          : "End date & time is required",
+                    }));
+                  }
+                }}
+                className={cn(
+                  fieldErrors.endAt && "border-rose-400 focus:border-rose-500 focus:ring-rose-200",
+                )}
               />
+              {fieldErrors.endAt && (
+                <p className="mt-1 text-xs font-semibold text-rose-600">* {fieldErrors.endAt}</p>
+              )}
             </div>
           </div>
+
+          {/* Conflict Warning Box (TC_EMP_041) */}
+          {conflictingInterview && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-amber-300 bg-amber-50 p-3.5 text-xs text-amber-900 shadow-sm">
+              <WarningCircle size={20} className="mt-0.5 shrink-0 text-amber-600" weight="fill" />
+              <div className="flex-1 space-y-1">
+                <p className="text-xs font-bold text-amber-900 sm:text-sm">
+                  {locale === "vi"
+                    ? "⚠️ Bạn đang có lịch trùng giờ này"
+                    : "⚠️ Schedule Conflict Warning"}
+                </p>
+                <p className="leading-relaxed text-amber-800">
+                  {locale === "vi"
+                    ? `Đã có lịch phỏng vấn với ứng viên ${conflictingInterview.application?.candidateProfile?.account?.fullName || "khác"} (${conflictingInterview.application?.jobPost?.title || ""}) từ ${new Date(conflictingInterview.scheduledStartAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - ${new Date(conflictingInterview.scheduledEndAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} ngày ${new Date(conflictingInterview.scheduledStartAt).toLocaleDateString("vi-VN")}.`
+                    : `Conflicting with interview for ${conflictingInterview.application?.candidateProfile?.account?.fullName || "another candidate"} (${conflictingInterview.application?.jobPost?.title || ""}) from ${new Date(conflictingInterview.scheduledStartAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} to ${new Date(conflictingInterview.scheduledEndAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })} on ${new Date(conflictingInterview.scheduledStartAt).toLocaleDateString("en-US")}.`}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Meeting URL or Location */}
           {type === "ONLINE" ? (
@@ -777,8 +1023,8 @@ export function ScheduleInterviewDialog({
           ) : null}
           <Button
             type="button"
-            onClick={() => mutation.mutate()}
-            disabled={!canSubmit || mutation.isPending || roundBlocked}
+            onClick={handleSubmit}
+            disabled={mutation.isPending || roundBlocked}
             className="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             {t("interviews.scheduleForm.submit")}

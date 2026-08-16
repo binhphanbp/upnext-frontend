@@ -8,6 +8,11 @@ export type ReputationActivity = Readonly<{
   score: string;
   reason: string | null;
   createdAt: string;
+  byAdmin?: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
 }>;
 
 export function getReputationActivities(companyId: string, token: string) {

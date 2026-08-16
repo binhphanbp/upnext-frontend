@@ -53,8 +53,6 @@ export function getRecruiterSession(): RecruiterSession | null {
       return null;
     }
 
-    void syncFcmTokenIfPermitted(accessToken);
-
     return { accessToken, user };
   } catch {
     clearRecruiterSession();
