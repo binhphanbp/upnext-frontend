@@ -436,3 +436,40 @@ test("switches between edit and preview without page overflow on mobile", async 
   await page.getByRole("button", { name: /^Thông tin/ }).click();
   await expect(page.getByLabel("Họ và tên")).toBeVisible();
 });
+
+test("prints the CV from the default edit mode instead of a blank page", async ({ page }) => {
+  // The export button never changes mode, so edit mode is what a user prints from.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/vi/candidate/cv-builder");
+  await expect(page.getByLabel("Bản xem trước A4")).toBeVisible();
+
+  // A printer resolves `max-width` against the paper, not the screen. Emulating the print
+  // media type alone keeps the 1440px viewport and hides nothing, so the page size has to be
+  // emulated too — that combination is what a viewport-based hiding rule actually meets when
+  // the sheet is A4, on every device.
+  await page.emulateMedia({ media: "print" });
+  await page.setViewportSize({ width: 794, height: 1123 });
+
+  // Reported as the offending ancestor rather than a bare boolean: `visibility: visible`
+  // inside `@media print` cannot resurrect a subtree whose ancestor is `display: none`, so
+  // the useful part of a failure is which rule removed it.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const area = document.querySelector("#cv-print-area");
+        if (!area) return "missing";
+        for (let node: Element | null = area; node; node = node.parentElement) {
+          if (getComputedStyle(node).display === "none") {
+            return `hidden by ${node.className || node.tagName}`;
+          }
+        }
+        return "visible";
+      }),
+    )
+    .toBe("visible");
+
+  // The real print pipeline, not a model of it: an empty A4 page is about 1KB, so anything
+  // near that means the export came out blank however the layout looked on screen.
+  const pdf = await page.pdf({ format: "A4", printBackground: true });
+  expect(pdf.byteLength).toBeGreaterThan(10_000);
+});

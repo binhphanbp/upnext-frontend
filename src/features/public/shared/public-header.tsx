@@ -935,7 +935,7 @@ export function PublicHeader({
           createCandidateViewer(currentLocale, {
             email: profile.account.email,
             fullName: profile.account.fullName,
-            unreadNotifications: notifications?.meta.unreadCount ?? 0,
+            unreadNotifications: notifications?.meta?.unreadCount ?? 0,
           }),
         );
       } catch {

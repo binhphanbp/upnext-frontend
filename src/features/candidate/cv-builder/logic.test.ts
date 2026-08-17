@@ -135,8 +135,21 @@ describe("CV Builder business rules", () => {
     // chứng nghề nghiệp — hai khái niệm không nên bị trộn lẫn.
     expect(result.score).toBe(100);
     expect(result.exportReady).toBe(false);
-    expect(result.issues.map((issue) => issue.code)).toEqual(["careerEvidenceRequired"]);
-    expect(result.blockingIssues.map((issue) => issue.code)).toEqual(["careerEvidenceRequired"]);
+    // Cả ba mục nghề nghiệp đều bị ẩn, nên thông điệp phải nói đúng chuyện đó.
+    // "Hãy thêm một mục" là lời khuyên sai ở đây: ứng viên có thể đã có sẵn vài
+    // mục, chỉ là đang ẩn, và thêm nữa cũng không gỡ được chặn xuất CV.
+    expect(result.issues.map((issue) => issue.code)).toEqual(["careerEvidenceHidden"]);
+    expect(result.blockingIssues.map((issue) => issue.code)).toEqual(["careerEvidenceHidden"]);
+
+    // Còn ít nhất một mục nghề nghiệp đang hiển thị: lỗi phải trỏ vào chính mục đó,
+    // vì thông điệp là một liên kết đưa ứng viên tới nơi cần sửa — trỏ vào mục đang
+    // ẩn thì họ không thao tác được gì.
+    const emptyCv = createInitialCvData();
+    const emptyResult = evaluateCv(emptyCv);
+    const careerIssue = emptyResult.blockingIssues.find(
+      (issue) => issue.code === "careerEvidenceRequired",
+    );
+    expect(careerIssue?.section).toBe("experience");
 
     cvData.hiddenSections = ["summary", "projects", "education", "skills"];
     const visibleExperienceResult = evaluateCv(cvData);
@@ -320,6 +333,28 @@ describe("CV Builder business rules", () => {
       totalBullets: 2,
       totalSkills: 2,
     });
+  });
+
+  it("counts evidence when the CV spells a skill the same way twice", () => {
+    // Folding "ReactJS" to "react" for keyword matching must not leak into the evidence
+    // check: the skill would be rewritten while the text it is searched against is not,
+    // and a CV that plainly demonstrates the skill would be told it has no evidence.
+    const cvData = createInitialCvData();
+    cvData.skills = [{ id: "skill-1", name: "ReactJS", level: "ADVANCED" }];
+    cvData.experiences = [
+      {
+        id: "experience-1",
+        companyName: "Công ty A",
+        positionTitle: "Frontend Developer",
+        startDate: "2020-01",
+        endDate: "2022-01",
+        isCurrent: false,
+        description: "Xây dựng dashboard bằng ReactJS và đưa lên production cho người dùng.",
+        technologies: "ReactJS",
+      },
+    ];
+
+    expect(evaluateContentSignals(cvData).skillsWithoutEvidence).toEqual([]);
   });
 
   it("does not treat partial technology names as skill evidence", () => {

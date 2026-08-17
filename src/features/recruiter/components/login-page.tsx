@@ -146,7 +146,6 @@ function resetAuthInputFocusStyle(
 
 export function RecruiterLoginPage() {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const tAuth = useTranslations("Auth");
   const t = useTranslations("RecruiterAuth");
@@ -161,12 +160,22 @@ export function RecruiterLoginPage() {
       params.delete("error");
       params.delete("verified");
       const newSearch = params.toString();
-      // `useRouter` expects a locale-free pathname. Passing
-      // `window.location.pathname` here includes `/vi` (or `/en`), so
-      // next-intl prepends the locale a second time: `/vi/vi/recruiter/login`.
-      router.replace(newSearch ? `${pathname}?${newSearch}` : pathname);
+      // Rewritten through History rather than the router. `router.replace` to the same
+      // route with only the query string removed does not update the address bar, so the
+      // consumed `?error=` survived and the toast fired again on every refresh — the user
+      // saw a failure they had already dismissed, from a sign-in attempt long finished.
+      //
+      // History also sidesteps the locale trap this code was carrying: next-intl's
+      // `usePathname` is locale-free, and handing it a `window.location.pathname` that
+      // already contains `/vi` produced `/vi/vi/recruiter/login`. Here the full path is
+      // written verbatim, so there is nothing to prepend.
+      window.history.replaceState(
+        null,
+        "",
+        newSearch ? `${window.location.pathname}?${newSearch}` : window.location.pathname,
+      );
     }
-  }, [pathname, searchParams, router]);
+  }, [searchParams, t]);
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(

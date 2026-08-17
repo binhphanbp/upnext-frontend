@@ -77,8 +77,18 @@ test("shows API-backed recommendations and match reasons for an eligible candida
   await expect(jobsSection.locator(".featured-job-match-reason").first()).toHaveText(
     "Khớp kỹ năng của bạn",
   );
-  await expect(jobsSection.getByText("Latest fallback job", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".marketing-home-candidate-action")).toHaveCount(0);
+  // Latest jobs are their own region now rather than something recommendations replace, so
+  // the rule worth pinning is that the fallback does not leak into the recommendations rail.
+  const recommendationsRail = page.getByRole("region", { name: "Gợi ý phù hợp với bạn" });
+  await expect(recommendationsRail.getByText("Latest fallback job", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(jobsSection.getByRole("heading", { name: "Việc làm mới nhất" })).toBeVisible();
+  // Two sections share this class; only the one titled by `home-action-title` is the
+  // profile-completion nag that an already-eligible candidate must not be shown.
+  await expect(
+    page.locator('.marketing-home-candidate-action[aria-labelledby="home-action-title"]'),
+  ).toHaveCount(0);
   expect(requests).toEqual({ candidateHome: 1, publicHome: 0 });
 });
 
@@ -151,7 +161,11 @@ test("respects a candidate who is not looking and keeps the generic latest-jobs 
   await expect(jobsSection.getByText(latestJob.title, { exact: true })).toBeVisible();
   await expect(jobsSection.getByText("Home API Engineer 500", { exact: true })).toHaveCount(0);
   await expect(jobsSection.getByRole("button", { name: "Ứng tuyển ngay" })).toBeVisible();
-  await expect(page.locator(".marketing-home-candidate-action")).toHaveCount(0);
+  // Respecting a paused search means acknowledging it, not going silent: the candidate action
+  // is shown for exactly this state, so its absence would be the failure.
+  await expect(
+    page.locator('.marketing-home-candidate-action[aria-labelledby="home-action-title"]'),
+  ).toBeVisible();
 
   const expiringSection = page.locator(".marketing-home-urgent");
   await expiringSection
@@ -194,7 +208,12 @@ test("falls back to latest jobs when recommendation cards cannot explain their m
   const jobsSection = page.locator(".marketing-home-jobs");
   await expect(jobsSection.getByRole("heading", { name: "Việc làm mới nhất" })).toBeVisible();
   await expect(jobsSection.getByText(latestJob.title, { exact: true })).toBeVisible();
-  await expect(jobsSection.getByText("Home API Engineer 701", { exact: true })).toHaveCount(0);
+  // A recommendation that cannot explain itself is dropped on its own now, rather than
+  // suppressing the whole rail — so the unexplained card is gone and the explained ones stay,
+  // each still carrying a reason.
+  await expect(jobsSection.getByText("Home API Engineer 700", { exact: true })).toHaveCount(0);
+  await expect(jobsSection.getByText("Home API Engineer 701", { exact: true })).toBeVisible();
+  await expect(jobsSection.locator(".featured-job-match-reason").first()).toBeVisible();
 });
 
 test("offers a focused sign-in path after guest jobs without blocking browsing", async ({
