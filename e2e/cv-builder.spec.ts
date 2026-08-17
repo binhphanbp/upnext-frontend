@@ -99,6 +99,28 @@ test("maps target-job keywords to evidence already present in the CV", async ({ 
   await expect(evidenceMap.getByText(/không phải “điểm ATS”/i)).toBeVisible();
 });
 
+test("keeps the CV on the page when the browser switches to print", async ({ page }) => {
+  await page.goto("/vi/candidate/cv-builder");
+  await expect(page.getByRole("heading", { name: "UpNext CV Studio" })).toBeVisible();
+
+  const preview = page.locator(".cv-builder-preview").first();
+  const printArea = page.locator("#cv-print-area");
+
+  // Edit mode is the default and, below the desktop breakpoint, it deliberately collapses
+  // the preview into a tab — so the CV starts out hidden on screen.
+  await expect(preview).toHaveClass(/cv-preview-mobile-hidden/);
+
+  // A printer measures width against the paper, not the screen, and A4 is about 794px —
+  // narrow enough for those same rules to match. The preview was therefore removed from
+  // the printed page, and Export produced a blank sheet on every device. TC_CAN_032.
+  await page.emulateMedia({ media: "print" });
+
+  await expect(preview).not.toHaveCSS("display", "none");
+  await expect(printArea).toBeVisible();
+  const box = await printArea.boundingBox();
+  expect(box?.height ?? 0).toBeGreaterThan(0);
+});
+
 test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page }) => {
   const snapshots: Record<string, unknown>[] = [];
   let defaultCvId: string | null = null;

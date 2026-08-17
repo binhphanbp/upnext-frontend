@@ -157,7 +157,7 @@ const STOP_WORDS = new Set(
     "trung",
     "truong",
     "xet",
-  ].map(canonicalKeyword),
+  ].map(normalizeKeyword),
 );
 
 const EVIDENCE_SECTION_KEYS = CV_SECTION_KEYS.filter(
