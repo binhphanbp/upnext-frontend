@@ -157,8 +157,7 @@ const STOP_WORDS = new Set(
     "trung",
     "truong",
     "xet",
-    // Folded the same way token keys are, so the two sets always agree.
-  ].map(canonicalKeyword),
+  ].map(normalizeKeyword),
 );
 
 const EVIDENCE_SECTION_KEYS = CV_SECTION_KEYS.filter(
