@@ -19,12 +19,8 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
  * change, only its removal from this list.
  */
 const QUARANTINED_SPECS = [
-  "**/candidate-ai-copilot.spec.ts",
-  "**/candidate-job-activity.spec.ts",
   "**/candidate-profile.spec.ts",
-  "**/company-logo-presentation.spec.ts",
   "**/home-featured-companies.spec.ts",
-  "**/home-insights.spec.ts",
   "**/home-personalization.spec.ts",
   "**/home.spec.ts",
   "**/jobs-natural-search.spec.ts",
