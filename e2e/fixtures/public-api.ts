@@ -59,6 +59,10 @@ function basePublicJob(index: number) {
       { jobLocation: { city: "Hà Nội", workingModel: "HYBRID", address: "Cầu Giấy" } },
     ],
     jobPostSkills: [{ skill: { id: "skill-java", name: "Java" } }],
+    // Present in the backend's public include, so the menu group built from it has data.
+    jobPostSpecializations: [
+      { specialization: { id: "spec-backend", name: "Backend Engineering" } },
+    ],
   };
 }
 

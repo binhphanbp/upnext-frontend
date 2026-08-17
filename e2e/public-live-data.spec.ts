@@ -133,7 +133,13 @@ test("keeps every public header mega menu readable and inside the viewport", asy
     {
       key: "companies",
       label: "Công ty IT",
-      destinations: ["/vi/companies", "/vi/companies", "/vi/companies", "/vi/companies"],
+      // The company rows are filtered entry points now, not four links to the same listing.
+      destinations: [
+        "/vi/companies?sort=jobs",
+        "/vi/companies?size=over-5000",
+        "/vi/companies?type=PRODUCT",
+        "/vi/companies",
+      ],
       directoryItems: 3,
     },
     {
@@ -166,6 +172,13 @@ test("keeps every public header mega menu readable and inside the viewport", asy
   // 1280 is intentionally absent: below 1361px the header collapses to the compact menu, so
   // there is no desktop navigation to inspect there. That width is covered by the
   // compact-layout test instead.
+  // The jobs panel lists destinations built from the loaded jobs, so it needs more than one.
+  await mockPublicJobs(page, [
+    createPublicJob(1, { title: "Senior React Engineer" }),
+    createPublicJob(2, { title: "Backend Java Engineer" }),
+    createPublicJob(3, { title: "Data Engineer" }),
+  ]);
+
   for (const width of [1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/vi");
@@ -272,7 +285,9 @@ test("gives directory menu rows the same hover feedback as job rows", async ({ p
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi");
 
-  await page.getByRole("button", { name: "Công ty IT", exact: true }).click();
+  // The companies section has a landing page, so its trigger is a link named "Công ty"; the
+  // panel opens on hover because clicking would navigate.
+  await page.locator("#public-nav-companies-trigger").hover();
   const firstItem = page
     .locator("#public-nav-companies-panel .marketing-home-directory-item")
     .first();
@@ -287,15 +302,56 @@ test("gives directory menu rows the same hover feedback as job rows", async ({ p
 
 test("loads live backend data for every jobs menu category", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  // Every tab in this menu is built from the loaded jobs, so the fixture has to vary the
+  // skill, title, company and city or some tabs come back empty.
+  await mockPublicJobs(page, [
+    createPublicJob(1, {
+      title: "Senior React Engineer",
+      jobPostSkills: [{ skill: { id: "react", name: "React" } }],
+      jobCategory: { name: "Frontend" },
+    }),
+    createPublicJob(2, {
+      title: "Backend Java Engineer",
+      jobPostSkills: [{ skill: { id: "java", name: "Java" } }],
+      jobCategory: { name: "Backend" },
+      company: {
+        id: "public-company-2",
+        name: "Hanoi Product",
+        slug: "hanoi-product",
+        address: "Đà Nẵng",
+        companySize: "200",
+        verificationStatus: "VERIFIED",
+        logoUrl: null,
+        logoFile: null,
+      },
+      jobPostLocations: [
+        { jobLocation: { city: "Đà Nẵng", workingModel: "ONSITE", address: "Hải Châu" } },
+      ],
+    }),
+  ]);
   await page.goto("/vi");
 
+  // The section has its own landing page, so its trigger is a link: clicking navigates and
+  // only hovering opens the panel.
   const trigger = page.locator("#public-nav-jobs-trigger");
-  await trigger.click();
+  await trigger.hover();
 
   const panel = page.locator("#public-nav-jobs-panel");
   const tabPanel = panel.getByRole("tabpanel");
   const tabs = panel.getByRole("tab");
-  const filterParams = ["jobCategory", "skill", "title", "expertise", "company", "location"];
+  // The "by job category" group was dropped; five remain.
+  const filterParams = ["skill", "title", "expertise", "company", "location"];
+
+  // The panel animates in, and hovering a tab mid-transition fails its stability check.
+  await expect(panel).toBeVisible();
+  await expect
+    .poll(async () => {
+      const first = await panel.boundingBox();
+      await page.waitForTimeout(100);
+      const second = await panel.boundingBox();
+      return first?.y === second?.y && first?.height === second?.height;
+    })
+    .toBe(true);
 
   await expect(tabs).toHaveCount(filterParams.length);
 
@@ -369,20 +425,35 @@ test("updates company follow controls to the confirmed state", async ({ page }) 
   // button at all, which is why this needs a session rather than only company data.
   await installCandidateSession(page);
   await mockPublicCompany(page, createPublicCompany());
-  const followed: string[] = [];
-  await page.route(/\/api\/v1\/company-follows(?:\/|\?|$)/, async (route) => {
-    const method = route.request().method();
-    if (method === "POST") {
-      followed.push("public-company-1");
-      await route.fulfill({ json: { companyId: "public-company-1" } });
-      return;
-    }
-    if (method === "DELETE") {
-      followed.length = 0;
+  // Reading the list and changing it are different routes: the list is
+  // `/company-follows/me`, while following posts to `/companies/{id}/follow`.
+  const followed = new Set<string>();
+  await page.route(/\/api\/v1\/company-follows\/me(?:\?|$)/, async (route) => {
+    await route.fulfill({
+      json: [...followed].map((companyId) => ({
+        id: `follow-${companyId}`,
+        candidateProfileId: "candidate-profile-1",
+        companyId,
+        createdAt: "2026-08-01T00:00:00.000Z",
+      })),
+    });
+  });
+  await page.route(/\/api\/v1\/companies\/([^/?]+)\/follow(?:\?|$)/, async (route) => {
+    const companyId = /companies\/([^/?]+)\/follow/.exec(route.request().url())?.[1] ?? "";
+    if (route.request().method() === "DELETE") {
+      followed.delete(companyId);
       await route.fulfill({ status: 204, body: "" });
       return;
     }
-    await route.fulfill({ json: followed.map((id) => ({ companyId: id })) });
+    followed.add(companyId);
+    await route.fulfill({
+      json: {
+        id: `follow-${companyId}`,
+        candidateProfileId: "candidate-profile-1",
+        companyId,
+        createdAt: "2026-08-01T00:00:00.000Z",
+      },
+    });
   });
   await page.goto("/vi/companies/fpt-software");
 
@@ -396,9 +467,9 @@ test("updates company follow controls to the confirmed state", async ({ page }) 
   // The heart is rendered directly in the button now, without the wrapper span the old
   // markup used, and it fills once the company is followed.
   await expect(followButton.locator("svg")).toHaveCount(1);
-  await expect(followControls).toHaveCount(2);
-  await expect(followControls).toHaveText(["Đang theo dõi", "Đang theo dõi"]);
-  await expect(followControls.nth(1)).toHaveAttribute("aria-pressed", "true");
+  // The page renders a single follow control now; the duplicate that this test used to keep
+  // in sync with it no longer exists.
+  await expect(followControls).toHaveCount(1);
 });
 
 test("opens company culture gallery with overflow images", async ({ page }) => {
@@ -409,11 +480,11 @@ test("opens company culture gallery with overflow images", async ({ page }) => {
 
   await expect(page.getByText("+15 ảnh")).toBeVisible();
   const galleryOpener = page.getByRole("button", {
-    name: "Xem ảnh môi trường làm việc 3",
+    name: "Xem ảnh công ty 3",
   });
   await galleryOpener.click();
 
-  const galleryDialog = page.getByRole("dialog", { name: "Ảnh môi trường làm việc" });
+  const galleryDialog = page.getByRole("dialog", { name: "Ảnh công ty" });
   await expect(galleryDialog).toBeVisible();
   await expect(galleryDialog.getByText("3/18")).toBeVisible();
   await expect.soft(galleryDialog.locator('[aria-live="polite"]')).toHaveText("3/18", {
@@ -521,9 +592,9 @@ test("supports direct drag navigation and keeps zoom drag as pan", async ({ page
   // "+15 ảnh" is the overflow badge past the three visible tiles, so eighteen photos.
   await mockPublicCompany(page, createPublicCompany({ photoCount: 18 }));
   await page.goto("/vi/companies/fpt-software");
-  await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
+  await page.getByRole("button", { name: "Xem ảnh công ty 3" }).click();
 
-  const galleryDialog = page.getByRole("dialog", { name: "Ảnh môi trường làm việc" });
+  const galleryDialog = page.getByRole("dialog", { name: "Ảnh công ty" });
   const stage = galleryDialog.locator(".company-gallery-lightbox-stage");
   const currentSlide = galleryDialog.locator('[data-gallery-slide="current"]');
   const nextSlide = galleryDialog.locator('[data-gallery-slide="next"]');
@@ -590,9 +661,9 @@ test("keeps the company culture gallery usable on mobile", async ({ page }) => {
   await mockPublicCompany(page, createPublicCompany({ photoCount: 18 }));
   await page.goto("/vi/companies/fpt-software");
 
-  await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
+  await page.getByRole("button", { name: "Xem ảnh công ty 3" }).click();
 
-  const galleryDialog = page.getByRole("dialog", { name: "Ảnh môi trường làm việc" });
+  const galleryDialog = page.getByRole("dialog", { name: "Ảnh công ty" });
   await expect(galleryDialog).toBeVisible();
 
   const dialogBox = await galleryDialog.boundingBox();
@@ -638,9 +709,9 @@ test("keeps all company gallery controls reachable on a compact mobile viewport"
   await mockPublicCompany(page, createPublicCompany({ photoCount: 18 }));
   await page.goto("/vi/companies/fpt-software");
 
-  await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
+  await page.getByRole("button", { name: "Xem ảnh công ty 3" }).click();
 
-  const galleryDialog = page.getByRole("dialog", { name: "Ảnh môi trường làm việc" });
+  const galleryDialog = page.getByRole("dialog", { name: "Ảnh công ty" });
   await expect(galleryDialog).toBeVisible();
 
   for (const controlName of [
