@@ -24,7 +24,6 @@ const QUARANTINED_SPECS = [
   "**/home-personalization.spec.ts",
   "**/home.spec.ts",
   "**/jobs-natural-search.spec.ts",
-  "**/recruiter-auth.spec.ts",
   "**/recruiter-job-post-preview.spec.ts",
 ];
 
