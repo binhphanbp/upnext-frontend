@@ -108,24 +108,23 @@ test("keeps advanced filters in the URL and restores them after reload", async (
   await page.getByRole("checkbox", { name: /Remote/ }).check();
   await expect.poll(() => new URL(page.url()).searchParams.getAll("mode")).toEqual(["remote"]);
 
-  await page.getByRole("button", { name: "TypeScript", exact: true }).click();
-  await expect
-    .poll(() => new URL(page.url()).searchParams.getAll("technology"))
-    .toEqual(["TypeScript"]);
+  // `technology` is still read from the URL and still filters, but nothing in the UI sets it
+  // any more — the chips above the results are keyword suggestions that write `?keyword=`.
+  // So it is exercised the only way a user can reach it now: through the address bar.
+  await page.goto("/vi/jobs?mode=remote&technology=React");
+  await expect.poll(() => new URL(page.url()).searchParams.getAll("technology")).toEqual(["React"]);
+  // The page rewrites the query once it has hydrated and reconciled state, so wait for it to
+  // have adopted the incoming filter before driving another control.
+  await expect(page.getByRole("checkbox", { name: /Remote/ })).toBeChecked();
 
-  await page.getByRole("button", { name: "Lương cao nhất" }).click();
-  await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("salary");
+  // Sorting is a select now rather than a row of toggles, and its value carries the direction.
+  await page.getByRole("combobox", { name: "Sắp xếp kết quả" }).selectOption("salary-desc");
+  await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("salary-desc");
 
   await page.reload();
   await expect(page.getByRole("checkbox", { name: /Remote/ })).toBeChecked();
-  await expect(page.getByRole("button", { name: "TypeScript", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(page.getByRole("button", { name: "Lương cao nhất" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect.poll(() => new URL(page.url()).searchParams.getAll("technology")).toEqual(["React"]);
+  await expect(page.getByRole("combobox", { name: "Sắp xếp kết quả" })).toHaveValue("salary-desc");
 });
 
 test("restores search state when navigating browser history", async ({ page }) => {
@@ -152,7 +151,8 @@ test("traps and restores focus for the advanced-filter dialog on mobile", async 
   const filterButton = page.getByRole("button", { name: "Bộ lọc", exact: true });
   await filterButton.click();
 
-  const dialog = page.getByRole("dialog", { name: "Bộ lọc tìm kiếm" });
+  // The dialog is labelled by its heading, which reads "Bộ lọc nâng cao".
+  const dialog = page.getByRole("dialog", { name: "Bộ lọc nâng cao" });
   await expect(dialog).toBeVisible();
   await expect(page.getByRole("button", { name: "Đóng bộ lọc" })).toBeFocused();
 
