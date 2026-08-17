@@ -96,7 +96,9 @@ test("explains and applies natural-language job constraints", async ({ page }) =
   await expect(page.getByText("Senior React Platform Engineer", { exact: true })).toBeVisible();
   await expect(page.getByText("Senior React Engineer", { exact: true })).toBeHidden();
   await expect(page.getByText("Middle Java Backend Engineer", { exact: true })).toBeHidden();
-  await expect(page.getByText("Tìm thấy 1 việc làm phù hợp")).toBeVisible();
+  // The result count is now a pagination summary ("Vị trí 1–1 của 1 việc làm") rather than
+  // a "Tìm thấy N…" line, so this asserts the total the summary reports.
+  await expect(page.getByText(/Vị trí\s*1–1\s*của\s*1\s*việc làm/)).toBeVisible();
 });
 
 test("keeps advanced filters in the URL and restores them after reload", async ({ page }) => {
