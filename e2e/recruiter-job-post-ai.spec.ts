@@ -242,6 +242,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("creates an IT JD draft with AI and fills the recruiter form", async ({ page }) => {
+  // Ends in a browser-rendered PDF export, which is the slowest step in the suite.
+  test.setTimeout(120_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi/recruiter/job-posts/create/ai");
 
@@ -295,7 +297,11 @@ test("creates an IT JD draft with AI and fills the recruiter form", async ({ pag
   await expect(
     page.getByRole("button", { name: "Tạo tin tuyển dụng từ JD này" }).first(),
   ).toBeVisible();
-  const downloadPromise = page.waitForEvent("download");
+  // The PDF is rendered in the browser, and on a loaded machine that regularly runs past the
+  // 30s default — this test failed all three attempts in a full suite run while passing on
+  // its own. The budget is generous rather than the assertion weakened: the file is still
+  // opened and checked below.
+  const downloadPromise = page.waitForEvent("download", { timeout: 90_000 });
   await page.getByRole("button", { name: "Xuất PDF" }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("senior-react-developer-JD.pdf");
