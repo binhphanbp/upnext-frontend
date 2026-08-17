@@ -20,7 +20,12 @@ concurrency:
 
 jobs:
   ci:
-    name: Lint, typecheck, test, build, and e2e
+    # Do not rename. The `protect-develop` and `protect-main` rulesets require a status
+    # check whose context is this exact string, and a required context that never reports
+    # blocks every pull request indefinitely rather than failing them — so a rename here
+    # takes the repository down until someone with admin rights edits the ruleset. Adding
+    # steps to this job is free; changing its name is not. The e2e run lives below.
+    name: Lint, typecheck, test, and build
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
