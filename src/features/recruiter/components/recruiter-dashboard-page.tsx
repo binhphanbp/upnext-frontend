@@ -717,7 +717,12 @@ export function RecruiterDashboardPage() {
   );
 
   const candidateStatCards = useMemo(() => {
-    if (!candidateSummary) return [];
+    // Guarding the envelope as well as the response. `!candidateSummary` catches a missing
+    // body but not one that arrived in a different shape, and reading `totals.unviewed` off
+    // that took the whole recruiter dashboard down to an error boundary — a landing page lost
+    // to one auxiliary summary call. Without the stats it renders no stat cards, which is the
+    // proportionate outcome.
+    if (!candidateSummary?.totals) return [];
 
     const { totals } = candidateSummary;
 
