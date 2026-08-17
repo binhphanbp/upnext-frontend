@@ -18,7 +18,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
  * They still run locally — `pnpm test:e2e` is unfiltered — so fixing one needs no config
  * change, only its removal from this list.
  */
-const QUARANTINED_SPECS = ["**/public-live-data.spec.ts", "**/jobs-natural-search.spec.ts"];
+const QUARANTINED_SPECS = ["**/public-live-data.spec.ts"];
 
 if (process.env.CI) {
   console.warn(
