@@ -1,6 +1,14 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { mockHomeApi } from "./fixtures/home-api";
+import { installCandidateSession, mockHomeApi } from "./fixtures/home-api";
+import {
+  createPublicCompany,
+  createPublicJob,
+  mockPublicCompany,
+  mockPublicCompanyList,
+  mockPublicJobDetailBySlug,
+  mockPublicJobs,
+} from "./fixtures/public-api";
 
 /**
  * Public pages that read live backend data.
@@ -312,6 +320,10 @@ test("loads live backend data for every jobs menu category", async ({ page }) =>
 });
 
 test("renders migrated public jobs and companies pages", async ({ page }) => {
+  const listedJob = createPublicJob(1, { title: "Technical Project Manager / Scrum Master" });
+  await mockPublicJobs(page, [listedJob]);
+  await mockPublicJobDetailBySlug(page, listedJob);
+  await mockPublicCompanyList(page);
   await page.goto("/vi/jobs");
 
   await expect(
@@ -330,22 +342,48 @@ test("renders migrated public jobs and companies pages", async ({ page }) => {
 });
 
 test("renders reference-inspired job detail and company profile sections", async ({ page }) => {
+  await mockPublicJobDetailBySlug(
+    page,
+    createPublicJob(2, { title: "Fresher Java Developer", slug: "fpt-java-fresher" }),
+  );
+  await mockPublicCompany(page, createPublicCompany());
   await page.goto("/vi/jobs/fpt-java-fresher");
 
   await expect(page.getByRole("heading", { name: /fresher java developer/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Sẵn sàng ứng tuyển?" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Tổng quan công việc" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Lý do nên ứng tuyển" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Thông tin tuyển dụng" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Mô tả công việc" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Yêu cầu ứng viên" })).toBeVisible();
 
   await page.goto("/vi/companies/fpt-software");
 
-  await expect(page.getByRole("heading", { name: "FPT Software", exact: true })).toBeVisible();
-  await expect(page.getByText("Nhà tuyển dụng được yêu thích")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Thông tin nhanh" })).toBeVisible();
+  // The company heading carries its verification badge, so its accessible name is
+  // "FPT Software Đã xác minh" rather than the name alone.
+  await expect(page.getByRole("heading", { name: /^FPT Software/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Giới thiệu công ty" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Thông tin công ty" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Việc làm đang tuyển" })).toBeVisible();
 });
 
 test("updates company follow controls to the confirmed state", async ({ page }) => {
+  // The follow control only renders for a resolved, signed-in candidate — a guest sees no
+  // button at all, which is why this needs a session rather than only company data.
+  await installCandidateSession(page);
+  await mockPublicCompany(page, createPublicCompany());
+  const followed: string[] = [];
+  await page.route(/\/api\/v1\/company-follows(?:\/|\?|$)/, async (route) => {
+    const method = route.request().method();
+    if (method === "POST") {
+      followed.push("public-company-1");
+      await route.fulfill({ json: { companyId: "public-company-1" } });
+      return;
+    }
+    if (method === "DELETE") {
+      followed.length = 0;
+      await route.fulfill({ status: 204, body: "" });
+      return;
+    }
+    await route.fulfill({ json: followed.map((id) => ({ companyId: id })) });
+  });
   await page.goto("/vi/companies/fpt-software");
 
   const followControls = page.locator("button.company-follow");
@@ -355,7 +393,9 @@ test("updates company follow controls to the confirmed state", async ({ page }) 
 
   await expect(followButton).toHaveText("Đang theo dõi");
   await expect(followButton).toHaveAttribute("aria-pressed", "true");
-  await expect(followButton.locator(".company-follow-icon svg")).toHaveCount(1);
+  // The heart is rendered directly in the button now, without the wrapper span the old
+  // markup used, and it fills once the company is followed.
+  await expect(followButton.locator("svg")).toHaveCount(1);
   await expect(followControls).toHaveCount(2);
   await expect(followControls).toHaveText(["Đang theo dõi", "Đang theo dõi"]);
   await expect(followControls.nth(1)).toHaveAttribute("aria-pressed", "true");
@@ -363,6 +403,8 @@ test("updates company follow controls to the confirmed state", async ({ page }) 
 
 test("opens company culture gallery with overflow images", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  // "+15 ảnh" is the overflow badge past the three visible tiles, so eighteen photos.
+  await mockPublicCompany(page, createPublicCompany({ photoCount: 18 }));
   await page.goto("/vi/companies/fpt-software");
 
   await expect(page.getByText("+15 ảnh")).toBeVisible();
@@ -476,6 +518,8 @@ test("opens company culture gallery with overflow images", async ({ page }) => {
 
 test("supports direct drag navigation and keeps zoom drag as pan", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  // "+15 ảnh" is the overflow badge past the three visible tiles, so eighteen photos.
+  await mockPublicCompany(page, createPublicCompany({ photoCount: 18 }));
   await page.goto("/vi/companies/fpt-software");
   await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
 
@@ -542,6 +586,8 @@ test("supports direct drag navigation and keeps zoom drag as pan", async ({ page
 
 test("keeps the company culture gallery usable on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  // "+15 ảnh" is the overflow badge past the three visible tiles, so eighteen photos.
+  await mockPublicCompany(page, createPublicCompany({ photoCount: 18 }));
   await page.goto("/vi/companies/fpt-software");
 
   await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
@@ -588,6 +634,8 @@ test("keeps all company gallery controls reachable on a compact mobile viewport"
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 568 });
+  // "+15 ảnh" is the overflow badge past the three visible tiles, so eighteen photos.
+  await mockPublicCompany(page, createPublicCompany({ photoCount: 18 }));
   await page.goto("/vi/companies/fpt-software");
 
   await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
