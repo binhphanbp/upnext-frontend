@@ -433,7 +433,8 @@
       "skillsRecommended": "Add at least 3 core skills.",
       "skillNameRequired": "Enter a skill name or remove the empty row.",
       "duplicateSkills": "A skill is duplicated; keep each skill once.",
-      "careerEvidenceRequired": "Add at least one Experience, Project or Education entry so recruiters have evidence to assess."
+      "careerEvidenceRequired": "Add at least one Experience, Project or Education entry so recruiters have evidence to assess.",
+      "careerEvidenceHidden": "Experience, Projects and Education are all hidden. Show at least one of them so recruiters have evidence to assess."
     }
   },
   "Metadata": {
