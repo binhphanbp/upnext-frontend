@@ -131,7 +131,7 @@ export function CandidateNotificationsPage() {
       description={t("notifications.page.description")}
       title={t("notifications.page.title")}
       action={
-        data && data.meta.unreadCount > 0 ? (
+        (data?.meta?.unreadCount ?? 0) > 0 ? (
           <Button
             variant="outline"
             className="w-full rounded-xl sm:w-auto"

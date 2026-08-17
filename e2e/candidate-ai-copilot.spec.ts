@@ -136,7 +136,10 @@ test("shows an actionable rate-limit state without leaking an internal error cod
 
   const runAlert = page.getByRole("region", { name: "UpNext AI Copilot" }).getByRole("alert");
   await expect(runAlert).toContainText("Bạn đã dùng hết hạn mức");
-  await expect(runAlert).toContainText("Bạn đã hỏi quá nhiều trong thời gian ngắn");
+  // The UI shows its own guidance rather than the `detail` the server sent, which keeps
+  // backend wording off the screen. Note the copy describes a plan quota while the signal
+  // here is AI_MODEL_RATE_LIMIT — sending too fast, not running out of allowance.
+  await expect(runAlert).toContainText("Hạn mức sẽ được khôi phục theo chu kỳ của gói");
   await expect(page.getByRole("button", { name: "Thử lại" })).toHaveCount(0);
   await expect(page.getByText("AI_RATE_LIMITED", { exact: true })).toHaveCount(0);
 });

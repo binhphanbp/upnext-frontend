@@ -1,6 +1,6 @@
 import { expect, test, type Locator } from "@playwright/test";
 
-import { mockHomeApi } from "./fixtures/home-api";
+import { createHomeData, createTopCompany, mockHomeApi } from "./fixtures/home-api";
 
 async function sectionActionSurface(locator: Locator) {
   return locator.evaluate((element) => {
@@ -96,7 +96,14 @@ test("settles on exactly one centered article after consecutive long drags", asy
 
 test("uses the featured companies navigation treatment for insights controls", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await mockHomeApi(page);
+  // The companies rail shows nine per page and renders its arrows only when there is a
+  // second page, so the default nine-company fixture leaves nothing to compare against.
+  await mockHomeApi(
+    page,
+    createHomeData({
+      topCompanies: Array.from({ length: 12 }, (_, index) => createTopCompany(index)),
+    }),
+  );
   await page.goto("/vi");
 
   const insightsArrow = page

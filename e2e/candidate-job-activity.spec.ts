@@ -318,6 +318,12 @@ test("shows a recoverable saved-jobs error state", async ({ page }) => {
 async function mockCandidateActivity(page: Page) {
   let savedJobs = [savedJob];
 
+  // The workspace header polls this on every page. Unmocked it reaches the dev proxy, 500s,
+  // and the test that asserts a clean console counts those failures as browser errors.
+  await page.route(/\/api\/v1\/notifications(?:\?|$)/, async (route) => {
+    await route.fulfill({ json: { data: [], meta: { unreadCount: 0 } } });
+  });
+
   await page.addInitScript(
     ({ id }) => {
       localStorage.setItem("upnext.candidate.accessToken", "test-access-token");

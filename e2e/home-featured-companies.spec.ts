@@ -19,7 +19,9 @@ test("uses aggregate ranking and cover data without repeating the spotlight comp
   const section = page.locator(".marketing-home-companies");
   await expect(section.getByText("9 nhà tuyển dụng nổi bật", { exact: true })).toBeVisible();
   await expect(section.locator(".featured-company-featured")).toHaveCount(1);
-  await expect(section.locator(".featured-company-card")).toHaveCount(7);
+  // A page holds ten employers: the first is promoted to the spotlight and the rest render
+  // as cards, so nine companies fill one page as one spotlight plus eight cards.
+  await expect(section.locator(".featured-company-card")).toHaveCount(8);
   await expect(section.getByText("FPT Software", { exact: true })).toHaveCount(1);
   await expect(section.locator(".featured-company-featured-cover-img")).toHaveAttribute(
     "src",
@@ -27,9 +29,7 @@ test("uses aggregate ranking and cover data without repeating the spotlight comp
   );
 });
 
-test("keeps only active employers and caps the homepage bento to one spotlight plus seven cards", async ({
-  page,
-}) => {
+test("keeps only active employers in the homepage bento", async ({ page }) => {
   const companies = [
     ...Array.from({ length: 9 }, (_, index) => createTopCompany(index)),
     createTopCompany(10, { activeJobsCount: 0, name: "Inactive employer" }),
@@ -40,7 +40,7 @@ test("keeps only active employers and caps the homepage bento to one spotlight p
 
   const section = page.locator(".marketing-home-companies");
   await expect(section.locator(".featured-company-featured")).toHaveCount(1);
-  await expect(section.locator(".featured-company-card")).toHaveCount(7);
+  await expect(section.locator(".featured-company-card")).toHaveCount(8);
   await expect(section.getByText("Inactive employer", { exact: true })).toHaveCount(0);
 });
 
@@ -61,17 +61,28 @@ test("keeps every returned top employer reachable across desktop carousel pages"
 
   const section = page.locator(".marketing-home-companies");
   await expect(section.getByText("20 nhà tuyển dụng nổi bật", { exact: true })).toBeVisible();
-  await expect(section.locator(".marketing-home-co-dot")).toHaveCount(3);
-  await expect(section.getByText("Home Company 7", { exact: true })).toBeVisible();
+  // Ten employers per page, the first of each promoted to the spotlight, so twenty fill two.
+  await expect(section.locator(".marketing-home-co-dot")).toHaveCount(2);
+
+  // The promoted employer is the point of the assertion: it leaves the card grid on its
+  // page, so counting only cards would report it missing when it is on screen and largest.
+  const visibleNames = async () =>
+    (
+      await section.locator(".featured-company-featured, .featured-company-card").allTextContents()
+    ).flatMap((text) => text.match(/FPT Software|Home Company \d+/) ?? []);
+
+  const firstPage = await visibleNames();
+  expect(firstPage).toHaveLength(10);
 
   await section.getByRole("button", { name: "Trang sau" }).click();
-  await expect(section.getByText("Home Company 8", { exact: true })).toBeVisible();
-  await expect(section.getByText("Home Company 15", { exact: true })).toBeVisible();
+  // Employer 10 leads the second page, so it renders as the spotlight rather than a card —
+  // the exact case that makes a card-only assertion report a visible employer as missing.
+  await expect(section.getByText("Home Company 10", { exact: true })).toBeVisible();
+  const secondPage = await visibleNames();
+  expect(secondPage).toHaveLength(10);
 
-  await section.getByRole("button", { name: "Trang sau" }).click();
-  await expect(section.getByText("Home Company 16", { exact: true })).toBeVisible();
-  await expect(section.getByText("Home Company 19", { exact: true })).toBeVisible();
-  await expect(section.locator(".featured-company-card")).toHaveCount(3);
+  // Every employer the aggregate returned is reachable, none twice.
+  expect(new Set([...firstPage, ...secondPage]).size).toBe(20);
 });
 
 test("does not render inert carousel controls when only one company page is available", async ({

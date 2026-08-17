@@ -81,4 +81,36 @@ describe("CV Builder draft hydration", () => {
     useCvBuilderStore.getState().undo();
     expect(useCvBuilderStore.getState().cvData.summary).toBe("");
   });
+
+  it("cho mỗi lần xoá một bước undo riêng, dù bấm liên tiếp", () => {
+    useCvBuilderStore.getState().addSkill();
+    useCvBuilderStore.getState().addSkill();
+    useCvBuilderStore.getState().addSkill();
+    const ids = useCvBuilderStore.getState().cvData.skills.map((skill) => skill.id);
+    const before = useCvBuilderStore.getState().past.length;
+
+    // Ba lần bấm xoá nhanh hơn cửa sổ gộp. Nếu chúng bị gộp như các ký tự gõ thì
+    // một lần Ctrl+Z sẽ khôi phục cả ba — người dùng mất dữ liệu ngoài ý muốn.
+    for (const id of ids) useCvBuilderStore.getState().deleteSkill(id);
+
+    expect(useCvBuilderStore.getState().cvData.skills).toHaveLength(0);
+    expect(useCvBuilderStore.getState().past.length).toBe(before + 3);
+
+    useCvBuilderStore.getState().undo();
+    expect(useCvBuilderStore.getState().cvData.skills).toHaveLength(1);
+  });
+
+  it("không nhập ký tự gõ ngay sau một thao tác rời rạc vào cùng bước với nó", () => {
+    useCvBuilderStore.getState().addExperience();
+    const after = useCvBuilderStore.getState().past.length;
+
+    // Gõ ngay sau khi thêm mục: nếu đợt gõ nối tiếp thao tác thêm, Ctrl+Z sẽ xoá
+    // luôn mục vừa tạo thay vì chỉ hoàn tác phần vừa gõ.
+    useCvBuilderStore.getState().updateSummary("Vừa gõ");
+
+    expect(useCvBuilderStore.getState().past.length).toBe(after + 1);
+    useCvBuilderStore.getState().undo();
+    expect(useCvBuilderStore.getState().cvData.summary).toBe("");
+    expect(useCvBuilderStore.getState().cvData.experiences).toHaveLength(1);
+  });
 });

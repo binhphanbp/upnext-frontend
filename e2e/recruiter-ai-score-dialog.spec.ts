@@ -352,8 +352,11 @@ test("keeps the evaluation page readable without horizontal overflow on mobile",
 
 async function openScorePage(page: Page) {
   await page.goto("/vi/recruiter/candidates");
-  await expect(page.getByRole("heading", { name: "Ứng viên" })).toBeVisible();
-  await page.getByRole("tab", { name: "AI lọc CV" }).click();
+  // Waits on the control this function is about to use, rather than on a page heading the
+  // narrow viewports in this file do not render at all.
+  const rankingTab = page.getByRole("tab", { name: "AI lọc CV" });
+  await expect(rankingTab).toBeVisible();
+  await rankingTab.click();
   await page.getByTitle("Xem đánh giá chi tiết").click();
   await expect(page).toHaveURL(`/vi/recruiter/candidates/${applicationId}/evaluation`);
 }
@@ -384,13 +387,54 @@ async function mockRecruiterWorkspace(page: Page) {
       return;
     }
 
+    // The workspace shell loads these on every recruiter page. The catch-all below answers
+    // `[]`, which is a valid body of the wrong shape, so leaving them unlisted made the
+    // shell fail before the page under test ever rendered.
+    if (path.endsWith("/auth/me")) {
+      await route.fulfill({ json: { data: { permissions: [] } } });
+      return;
+    }
+
+    if (path.includes("/notifications")) {
+      await route.fulfill({ json: { data: [], meta: { unreadCount: 0 } } });
+      return;
+    }
+
+    if (path.endsWith("/recruiter/candidate-summary")) {
+      await route.fulfill({
+        json: {
+          totals: {
+            total: 0,
+            unviewed: 0,
+            newLast7Days: 0,
+            staleOver7Days: 0,
+            upcomingInterviews: 0,
+            staleThresholdDays: 7,
+          },
+          funnel: [],
+          byStatus: {},
+          aiScoreBuckets: {},
+          recentApplications: [],
+        },
+      });
+      return;
+    }
+
     if (path.endsWith(`/recruiter-accounts/${recruiterId}`)) {
       await route.fulfill({
         json: {
           id: recruiterId,
           email: "recruiter@example.com",
           status: "ACTIVE",
-          company: null,
+          // A recruiter with no company sits at tier 0, and /recruiter/candidates requires
+          // tier 1 — so the layout bounced this spec to the dashboard before the page under
+          // test ever mounted. VERIFIED keeps it clear of the tier-2 gate as well.
+          company: {
+            id: "company-1",
+            name: "UpNext",
+            status: "ACTIVE",
+            verificationStatus: "VERIFIED",
+          },
           profile: {
             id: "profile-1",
             fullName: "UpNext Recruiter",
@@ -415,6 +459,12 @@ async function mockRecruiterWorkspace(page: Page) {
             id: "job-1",
             title: "Full-stack Developer",
             vacanciesCount: 2,
+            // The list formats these; without them the row renderer throws
+            // "Invalid date value" and takes the page down with it.
+            createdAt: "2026-08-01T00:00:00.000Z",
+            updatedAt: "2026-08-01T00:00:00.000Z",
+            deadline: "2026-12-31T00:00:00.000Z",
+            status: "ACTIVE",
           },
         ],
       });

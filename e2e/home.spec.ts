@@ -383,7 +383,9 @@ test("collapses header controls before the compact desktop layout can overlap", 
   const compactMenu = page.locator(".marketing-home-compact-menu");
   await expect(compactMenu).toBeVisible();
   await page.getByRole("button", { name: "Mở menu" }).click();
-  const compactNavigation = compactMenu.getByRole("navigation", { name: "Điều hướng chính" });
+  // The compact menu carries its own landmark, "Điều hướng thu gọn"; "Điều hướng chính"
+  // belongs to the desktop navigation that this breakpoint hides.
+  const compactNavigation = compactMenu.getByRole("navigation", { name: "Điều hướng thu gọn" });
   await expect(compactNavigation.getByRole("link", { name: "Việc làm IT" })).toHaveAttribute(
     "href",
     "/vi/jobs",
@@ -406,9 +408,14 @@ test("collapses header controls before the compact desktop layout can overlap", 
 });
 
 test("uses semibold weight across header navigation and actions", async ({ page }) => {
+  // Below 1361px the header collapses into the compact menu, and Playwright defaults to
+  // 1280 — so the full navigation has to be asked for explicitly.
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi");
 
-  const jobsNavigation = page.getByRole("button", { name: /Việc làm IT/ });
+  // A nav section that has its own landing page is a link now, not a button — clicking it
+  // navigates, and only hovering opens the panel.
+  const jobsNavigation = page.getByRole("link", { name: /Việc làm IT/ });
   await expect(jobsNavigation).toBeVisible();
   await expect(jobsNavigation).toHaveCSS("font-weight", "600");
 
@@ -461,7 +468,9 @@ test("uses localized candidate tools in the primary utility bar without adding h
   ).toHaveAttribute("href", "/en/register");
   await expect(englishUtilityNavigation.getByLabel("AI Interview — Coming soon")).toBeVisible();
 
-  await page.evaluate(() => window.localStorage.setItem("upnext.demo.auth", "candidate"));
+  // The header reads a real candidate session now; the old `upnext.demo.auth` flag no longer
+  // signs anyone in, so setting it left the guest utility bar on screen.
+  await installCandidateSession(page);
   await page.goto("/vi");
   const signedInCandidateUtilityNavigation = utilityBar.getByRole("navigation", {
     name: "Công cụ dành cho ứng viên",
@@ -484,32 +493,31 @@ test("uses localized candidate tools in the primary utility bar without adding h
 test("localizes header navigation and mega menus without mixed-language labels", async ({
   page,
 }) => {
+  // Below 1361px the header collapses into the compact menu, and Playwright defaults to
+  // 1280 — so the full navigation has to be asked for explicitly.
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi");
 
   const vietnameseNavigation = page.getByLabel("Điều hướng chính");
   await expect(
-    vietnameseNavigation.getByRole("button", { name: "Việc làm IT", exact: true }),
+    vietnameseNavigation.getByRole("link", { name: "Việc làm IT", exact: true }),
   ).toBeVisible();
-  await vietnameseNavigation.getByRole("button", { name: "Việc làm IT", exact: true }).click();
+  await vietnameseNavigation.getByRole("link", { name: "Việc làm IT", exact: true }).hover();
   await expect(page.getByRole("tab", { name: "Theo kỹ năng", exact: true })).toBeVisible();
   await expect(page.getByText("Theo kỹ năng (Skills)", { exact: true })).toHaveCount(0);
 
   await page.goto("/en");
 
   const englishNavigation = page.getByLabel("Primary navigation");
+  await expect(englishNavigation.getByRole("link", { name: "IT Jobs", exact: true })).toBeVisible();
   await expect(
-    englishNavigation.getByRole("button", { name: "IT Jobs", exact: true }),
-  ).toBeVisible();
-  await expect(
-    englishNavigation.getByRole("button", { name: "IT Companies", exact: true }),
+    englishNavigation.getByRole("link", { name: "Companies", exact: true }),
   ).toBeVisible();
 
-  await englishNavigation.getByRole("button", { name: "IT Companies", exact: true }).click();
+  await englishNavigation.getByRole("link", { name: "Companies", exact: true }).hover();
   const companiesPanel = page.locator("#public-nav-companies-panel");
-  await expect(companiesPanel.getByText("Top technology companies", { exact: true })).toBeVisible();
-  await expect(
-    companiesPanel.getByText("Ranked by reputation and candidate reviews.", { exact: true }),
-  ).toBeVisible();
+  await expect(companiesPanel.getByText("Most actively hiring", { exact: true })).toBeVisible();
+  await expect(companiesPanel.getByText("Big Tech & enterprises", { exact: true })).toBeVisible();
   await expect(companiesPanel.getByText("Top công ty công nghệ", { exact: true })).toHaveCount(0);
   await expect(companiesPanel.getByRole("link", { name: "View all companies" })).toBeVisible();
 });
@@ -577,7 +585,10 @@ test("keeps every public header mega menu readable and inside the viewport", asy
     },
   ] as const;
 
-  for (const width of [1280, 1440, 1920]) {
+  // 1280 is intentionally absent: below 1361px the header collapses to the compact menu, so
+  // there is no desktop navigation to inspect there. That width is covered by the
+  // compact-layout test instead.
+  for (const width of [1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/vi");
 
@@ -586,19 +597,40 @@ test("keeps every public header mega menu readable and inside the viewport", asy
     for (const menuCase of menuCases) {
       const triggerId = `public-nav-${menuCase.key}-trigger`;
       const panelId = `public-nav-${menuCase.key}-panel`;
-      const trigger = navigation.getByRole("button", { name: menuCase.label, exact: true });
+      // A section with its own landing page renders as a link, one without stays a button, so
+      // the trigger is addressed by the id this loop already asserts rather than by role.
+      const trigger = navigation.locator(`#${triggerId}`);
 
       await expect(trigger).toHaveAttribute("id", triggerId);
       await expect(trigger).toHaveAttribute("aria-controls", panelId);
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
 
-      await trigger.click();
+      // Sections that have a landing page are links: Enter follows them, so the panel opens on
+      // hover and on focus instead, and ArrowDown is the explicit keyboard affordance.
+      // Sections without a page are still buttons and still toggle on click.
+      const opensByPointerOnly = (await trigger.evaluate((node) => node.tagName)) === "A";
+
+      if (opensByPointerOnly) {
+        await trigger.hover();
+      } else {
+        await trigger.click();
+      }
       await expect(trigger).toHaveAttribute("aria-expanded", "true");
-      await page.keyboard.press("Escape");
+      // A hover-opened panel cannot be dismissed with Escape while the pointer is still on the
+      // trigger — it would reopen immediately — so leaving the trigger is the closing gesture.
+      if (opensByPointerOnly) {
+        await page.mouse.move(0, 0);
+      } else {
+        await page.keyboard.press("Escape");
+      }
       await expect(trigger).toHaveAttribute("aria-expanded", "false");
 
       await trigger.focus();
-      await page.keyboard.press("Enter");
+      if (opensByPointerOnly) {
+        await page.keyboard.press("ArrowDown");
+      } else {
+        await page.keyboard.press("Enter");
+      }
       await expect(trigger).toHaveAttribute("aria-expanded", "true");
 
       const panel = navigation.locator(`#${panelId}`);
@@ -680,7 +712,7 @@ test("keeps header mega menus open while the pointer crosses into the panel", as
   await page.goto("/vi");
 
   const header = page.locator(".marketing-home-header");
-  const trigger = page.getByRole("button", { name: "Việc làm IT", exact: true });
+  const trigger = page.getByRole("link", { name: "Việc làm IT", exact: true });
   const panel = page.locator("#public-nav-jobs-panel");
 
   await trigger.hover();
@@ -844,12 +876,12 @@ test("uses the shared Lexend typography in the public footer", async ({ page }) 
   const heading = footer.getByRole("heading").first();
   const textControls = footer.locator("button, input, summary");
 
-  await expect(page.locator("body")).toHaveCSS("font-family", /Lexend/);
-  await expect(footer).toHaveCSS("font-family", /Lexend/);
+  await expect(page.locator("body")).toHaveCSS("font-family", /lexend/i);
+  await expect(footer).toHaveCSS("font-family", /lexend/i);
   await expect(heading).toHaveCSS("font-weight", "700");
 
   for (const control of await textControls.all()) {
-    await expect(control).toHaveCSS("font-family", /Lexend/);
+    await expect(control).toHaveCSS("font-family", /lexend/i);
   }
 });
 
@@ -1157,23 +1189,25 @@ test("keeps all company gallery controls reachable on a compact mobile viewport"
 
 test("renders migrated auth pages", async ({ page }) => {
   await page.goto("/vi/login");
-  await expect(page.getByRole("heading", { name: "Đăng nhập", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Chào mừng trở lại", exact: true })).toBeVisible();
   await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Mật khẩu", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Tiếp tục với Google" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đăng nhập với Google" })).toBeVisible();
 
   await page.goto("/vi/register");
-  await expect(page.getByRole("heading", { name: "Đăng ký", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tạo tài khoản", exact: true })).toBeVisible();
   await expect(page.getByLabel("Họ và tên", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Xác nhận mật khẩu", { exact: true })).toBeVisible();
 
   await page.goto("/en/login");
-  await expect(page.getByRole("heading", { name: "Log in", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome back", exact: true })).toBeVisible();
   await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log in with Google" })).toBeVisible();
 
   await page.goto("/en/register");
-  await expect(page.getByRole("heading", { name: "Sign up", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Create your account", exact: true }),
+  ).toBeVisible();
   await expect(page.getByLabel("Full name", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Confirm password", { exact: true })).toBeVisible();
 });

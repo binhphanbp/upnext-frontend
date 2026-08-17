@@ -118,7 +118,10 @@ export function WorkspaceHeader({
   });
 
   const notifications = notificationsData?.data ?? [];
-  const unreadCount = notificationsData?.meta.unreadCount ?? 0;
+  // `meta` is guarded like `data` above: an unread badge is decoration, and a response
+  // that arrives without the envelope should cost the badge, not the whole workspace.
+  // Dereferencing it took the entire recruiter shell down to an error boundary.
+  const unreadCount = notificationsData?.meta?.unreadCount ?? 0;
 
   const markAsReadMutation = useMutation({
     mutationFn: (id: string) => markNotificationAsRead(notificationsToken!, id),

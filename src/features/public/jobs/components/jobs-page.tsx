@@ -21,6 +21,7 @@ import { useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
+import { useAppliedJobIds } from "@/features/candidate/applications/use-applied-job-ids";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
 import {
@@ -674,6 +675,8 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const filterCloseRef = useRef<HTMLButtonElement | null>(null);
   const deferredKeyword = useDeferredValue(keyword);
   const locationPreference = useLocationPreference();
+
+  const appliedJobIds = useAppliedJobIds();
 
   function handleApply(job: Job) {
     startJobApplication({
@@ -1896,15 +1899,27 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                             >
                               Chi tiết <ArrowRight size={12} />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleApply(job)}
-                              className={`flex-1 cursor-pointer rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700 ${
-                                view === "grid" ? "" : "sm:flex-initial"
-                              }`}
-                            >
-                              Ứng tuyển
-                            </button>
+                            {appliedJobIds.has(job.id) ? (
+                              <button
+                                type="button"
+                                disabled
+                                className={`flex-1 cursor-default rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold whitespace-nowrap text-emerald-700 ${
+                                  view === "grid" ? "" : "sm:flex-initial"
+                                }`}
+                              >
+                                Đã ứng tuyển
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleApply(job)}
+                                className={`flex-1 cursor-pointer rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700 ${
+                                  view === "grid" ? "" : "sm:flex-initial"
+                                }`}
+                              >
+                                Ứng tuyển
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

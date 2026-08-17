@@ -157,7 +157,8 @@ const STOP_WORDS = new Set(
     "trung",
     "truong",
     "xet",
-  ].map(normalizeKeyword),
+    // Folded the same way token keys are, so the two sets always agree.
+  ].map(canonicalKeyword),
 );
 
 const EVIDENCE_SECTION_KEYS = CV_SECTION_KEYS.filter(
@@ -199,7 +200,7 @@ const PRIORITY_KEYWORDS = new Set(
     "tailwind",
     "typescript",
     "vue",
-  ].map(normalizeKeyword),
+  ].map(canonicalKeyword),
 );
 
 const ACTION_VERBS = new Set(
@@ -244,18 +245,29 @@ const SECTION_WEIGHTS: Record<CvSectionKey, number> = {
 };
 
 function normalizeKeyword(value: string) {
-  const normalized = value
+  return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/^[-./]+|[-./]+$/g, "");
+}
 
+/**
+ * The alias-folded form, for comparing one keyword against another.
+ *
+ * Deliberately separate from `normalizeKeyword`, which is also applied to whole blocks of
+ * CV text at once. Folding aliases in there would rewrite a single word \u2014 the skill being
+ * looked up \u2014 while leaving the text it is searched against spelled the original way, so a
+ * CV listing "ReactJS" and describing "ReactJS" would report the skill as unevidenced.
+ */
+function canonicalKeyword(value: string) {
+  const normalized = normalizeKeyword(value);
   return KEYWORD_ALIASES[normalized] ?? normalized;
 }
 
 function tokensFor(value: string) {
   return (value.match(WORD_PATTERN) ?? [])
-    .map((raw) => ({ key: normalizeKeyword(raw), raw }))
+    .map((raw) => ({ key: canonicalKeyword(raw), raw }))
     .filter((token) => token.key.length >= 2 && !STOP_WORDS.has(token.key));
 }
 
@@ -520,6 +532,12 @@ function sectionEvaluation(
   };
 }
 
+function sectionEntryCount(cvData: CvData, section: "experience" | "projects" | "education") {
+  if (section === "experience") return cvData.experiences.length;
+  if (section === "projects") return cvData.projects.length;
+  return cvData.educations.length;
+}
+
 function addIssue(
   issues: CvIssue[],
   section: CvSectionKey,
@@ -677,12 +695,31 @@ export function evaluateCv(cvData: CvData): CvEvaluation {
   const visibleIssues = issues.filter(
     (issue) => issue.section === "personal" || !hidden.has(issue.section),
   );
-  const hasCareerEvidence =
-    (!hidden.has("experience") && cvData.experiences.length > 0) ||
-    (!hidden.has("projects") && cvData.projects.length > 0) ||
-    (!hidden.has("education") && cvData.educations.length > 0);
+  const careerSections = ["experience", "projects", "education"] as const;
+  const visibleCareerSections = careerSections.filter((section) => !hidden.has(section));
+  const hasCareerEvidence = visibleCareerSections.some(
+    (section) => sectionEntryCount(cvData, section) > 0,
+  );
+  const [firstVisibleCareerSection] = visibleCareerSections;
   if (!hasCareerEvidence) {
-    addIssue(visibleIssues, "projects", "careerEvidence", "careerEvidenceRequired");
+    // Pushed after the visibility filter on purpose: this rule blocks export, so it has to
+    // reach the candidate even in the case below where every section it names is hidden.
+    if (firstVisibleCareerSection) {
+      // Attributed to a section that is actually on screen, because the message is a link:
+      // it takes the candidate to the section named, and a hidden one is not somewhere they
+      // can act.
+      addIssue(
+        visibleIssues,
+        firstVisibleCareerSection,
+        "careerEvidence",
+        "careerEvidenceRequired",
+      );
+    } else {
+      // Telling someone to add an entry is wrong here — they may already have several, all
+      // hidden. Adding more would change nothing, and the previous message sent them to do
+      // exactly that, in a section they had chosen to hide.
+      addIssue(visibleIssues, "experience", "careerEvidence", "careerEvidenceHidden");
+    }
   }
   const blockingIssues = visibleIssues.filter((issue) => issue.severity === "error");
 

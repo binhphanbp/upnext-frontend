@@ -1,14 +1,16 @@
 "use client";
 
-import { Flag } from "@phosphor-icons/react";
+import { Flag, Heart } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { useCandidateCompanyFollows } from "@/features/candidate/company-follows";
 import { ReportDialog } from "@/features/candidate/reports/report-dialog";
 import { useCandidateReportStatus } from "@/features/candidate/reports/use-candidate-report-status";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
+import { cn } from "@/shared/lib/cn";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { toast } from "@/shared/ui/toast";
 
@@ -247,6 +249,8 @@ function CompanyProfile({
 }) {
   const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const companyFollows = useCandidateCompanyFollows();
+  const isFollowing = companyFollows.followedCompanyIds.includes(company.id);
   const reportStatus = useCandidateReportStatus("COMPANY", company.id || company.slug);
   const {
     isPending: isSavedJobPending,
@@ -361,6 +365,27 @@ function CompanyProfile({
                   ) : null}
                 </div>
                 <div className="company-banner-actions">
+                  {/*
+                    The styles for this button were already here; only the button was
+                    missing, so the one page a candidate lands on to judge a company was
+                    also the one place they could not follow it.
+                  */}
+                  {companyFollows.isSessionResolved && companyFollows.isAuthenticated ? (
+                    <button
+                      type="button"
+                      className={cn("company-follow", isFollowing && "is-following")}
+                      disabled={companyFollows.isPending(company.id)}
+                      aria-pressed={isFollowing}
+                      onClick={() =>
+                        companyFollows.toggleFollowCompany(company.id, {
+                          onError: () => toast.error("Không cập nhật được trạng thái theo dõi."),
+                        })
+                      }
+                    >
+                      <Heart size={16} weight={isFollowing ? "fill" : "regular"} />
+                      {isFollowing ? "Đang theo dõi" : "Theo dõi"}
+                    </button>
+                  ) : null}
                   {company.website ? (
                     <a
                       className="company-website"
