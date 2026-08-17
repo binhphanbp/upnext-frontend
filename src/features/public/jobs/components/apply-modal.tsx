@@ -41,6 +41,8 @@ import { Button } from "@/shared/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 
+import { resolveApplyErrorMessage } from "../apply-error-message";
+
 type ApplyModalProps = Readonly<{
   isOpen: boolean;
   onClose: () => void;
@@ -373,10 +375,11 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
         setAppliedApplicationId(aId);
         setAlreadyApplied(true);
       } else {
-        showError(
-          "Không thể nộp hồ sơ",
-          "Không thể nộp hồ sơ. Vui lòng kiểm tra lại thông tin và thử lại.",
-        );
+        // The server refuses for reasons the candidate can act on — an unverified email, a
+        // phone number it cannot accept, a posting that closed while the dialog was open.
+        // Replacing all of them with "check your information" left the candidate with
+        // nothing to check and no way out of the dialog.
+        showError("Không thể nộp hồ sơ", resolveApplyErrorMessage(err));
       }
     } finally {
       setSubmitting(false);
