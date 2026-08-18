@@ -2,35 +2,13 @@ import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 
-/**
- * Spec files that fail today and are therefore not enforced by CI yet.
- *
- * No pipeline had ever run this suite, and when it was finally run 44 of its 130 tests
- * failed — selectors, counts and CSS assertions describing a UI that has since changed.
- * The failures reproduce identically on a developer machine, so they are stale tests
- * rather than anything specific to CI.
- *
- * Blocking every pull request on them would have meant reverting to no e2e coverage at
- * all within a day. The rest of the suite is enforced now, and this list is the debt:
- * it is printed on every CI run so it cannot quietly become permanent, and it shrinks
- * one file at a time as each is repaired.
- *
- * They still run locally — `pnpm test:e2e` is unfiltered — so fixing one needs no config
- * change, only its removal from this list.
- */
-const QUARANTINED_SPECS = ["**/public-live-data.spec.ts"];
-
-if (process.env.CI) {
-  console.warn(
-    `[e2e] ${QUARANTINED_SPECS.length} spec files are quarantined and not enforced:\n` +
-      QUARANTINED_SPECS.map((spec) => `  - ${spec.replace("**/", "")}`).join("\n"),
-  );
-}
-
 export default defineConfig({
   testDir: "./e2e",
-  // Only CI is filtered: a developer repairing one of these must be able to run it.
-  testIgnore: process.env.CI ? QUARANTINED_SPECS : [],
+  // Every spec is enforced. This config carried a quarantine list while the suite was being
+  // repaired — no pipeline had ever run it, and 44 of its tests were describing a UI that had
+  // moved on. The list is gone because it is empty; if a spec ever has to be parked again,
+  // park it with `test.fixme` and a measurement in the comment, so the reason travels with
+  // the test instead of living in this file.
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
