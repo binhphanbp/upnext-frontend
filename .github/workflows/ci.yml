@@ -67,8 +67,28 @@ jobs:
       # CV export that unit tests structurally cannot see: the failure lived in a print
       # media query, which only exists once a real browser lays the page out on paper.
       # It runs after Build because the suite serves the standalone output, not a dev server.
+      #
+      # Browsers are cached across runs, keyed on the version pinned in the lockfile: without
+      # this, every run re-downloaded Chromium from scratch, which is normally ~30s but once
+      # hung on a slow runner until the job's 45-minute ceiling killed it -- after typecheck,
+      # lint, format, test and build had all already passed.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      # `--with-deps` also installs the OS packages Chromium needs (fonts, codecs) and is
+      # skipped above on a cache hit, since it would otherwise still hit the network for
+      # those every run. `install-deps` covers just that half, cheaply, every time.
+      - name: Install Playwright OS dependencies
+        run: pnpm exec playwright install-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
 
       - name: E2E
         run: pnpm test:e2e
