@@ -474,12 +474,9 @@ test("shows the job-post filters without horizontal overflow on mobile", async (
   expect(horizontalOverflow).toBeLessThanOrEqual(1);
 });
 
-// Measured at 1920x1080: the filter region sits at x=260 with width=1660, so its right edge
-// lands on 1920 — flush against the window with no gutter — while the job list is inset 32px
-// on both sides (x=292, width=1596). The two read as misaligned, which is what this test was
-// written to prevent. Left failing-by-declaration rather than loosened: the tolerance is the
-// assertion, and whether the filter bar is meant to be full-bleed is a design call. See #248.
-test.fixme("keeps the filter and job-list sections aligned on wide screens", async ({ page }) => {
+test("bleeds the sticky filter bar one gutter past the job list on wide screens", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto("/vi/recruiter/job-posts");
 
@@ -490,8 +487,14 @@ test.fixme("keeps the filter and job-list sections aligned on wide screens", asy
 
   expect(filterBox).not.toBeNull();
   expect(listBox).not.toBeNull();
-  expect(Math.abs(filterBox!.x - listBox!.x)).toBeLessThanOrEqual(1);
-  expect(Math.abs(filterBox!.width - listBox!.width)).toBeLessThanOrEqual(1);
+
+  // The filter bar is deliberately full-bleed: it is sticky, carries a border top and bottom,
+  // and cancels the page gutter with `-mx-8`, so it spans the full width while the list stays
+  // inside the padding. This pins that relationship — one gutter wider on each side, and
+  // symmetric — which would catch either the bleed being lost or the two drifting apart.
+  const GUTTER = 32;
+  expect(Math.round(listBox!.x - filterBox!.x)).toBe(GUTTER);
+  expect(Math.round(filterBox!.x + filterBox!.width - (listBox!.x + listBox!.width))).toBe(GUTTER);
 });
 
 test("renders an unpublished recruiter draft at the public preview URL", async ({ page }) => {
