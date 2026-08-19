@@ -17,11 +17,15 @@ import {
   Translate,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import {
+  getCandidateEmailVerificationStatus,
+  requestCandidateEmailVerification,
+} from "@/features/candidate/api/auth";
 import {
   type CandidateCvApi,
   deleteCandidateCertification,
@@ -254,6 +258,8 @@ export function CandidateProfilePage() {
     <div className="space-y-6 pb-12">
       {pageHeader}
 
+      <EmailVerificationBanner email={profile.account.email} />
+
       <div className="relative">
         <ProfileCommandHeader
           pendingControl={pendingControl}
@@ -373,6 +379,88 @@ export function CandidateProfilePage() {
           if (!open) setDeleteRequest(null);
         }}
       />
+    </div>
+  );
+}
+
+/**
+ * Nộp đơn ứng tuyển bị backend chặn nếu email chưa xác thực
+ * (`applications.service.ts` — `Please verify your email before applying to jobs`), nhưng
+ * trước đây không có nơi nào trên frontend để ứng viên biết và tự xác thực. Banner này tự
+ * kiểm tra trạng thái (không gửi email, chỉ đọc) và chỉ hiện khi thực sự chưa xác thực.
+ */
+function EmailVerificationBanner({ email }: Readonly<{ email: string }>) {
+  const t = useTranslations("CandidateProfile.content");
+  const locale = useLocale();
+  const [status, setStatus] = useState<"checking" | "verified" | "unverified">("checking");
+  const [resending, setResending] = useState(false);
+  const [feedback, setFeedback] = useState<ControlFeedback>(null);
+
+  useEffect(() => {
+    let active = true;
+    getCandidateEmailVerificationStatus(email)
+      .then((result) => {
+        if (active) setStatus(result.emailVerified ? "verified" : "unverified");
+      })
+      .catch(() => {
+        // Không chặn/hù nhầm ứng viên nếu bản thân việc kiểm tra bị lỗi.
+        if (active) setStatus("verified");
+      });
+    return () => {
+      active = false;
+    };
+  }, [email]);
+
+  if (status !== "unverified") return null;
+
+  async function handleResend() {
+    setResending(true);
+    setFeedback(null);
+    try {
+      await requestCandidateEmailVerification(email, locale);
+      setFeedback({ tone: "success", message: t("emailVerification.resendSuccessDescription") });
+    } catch {
+      setFeedback({ tone: "error", message: t("emailVerification.resendErrorDescription") });
+    } finally {
+      setResending(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-2.5">
+        <WarningCircle
+          aria-hidden="true"
+          className="mt-0.5 shrink-0 text-amber-600"
+          size={20}
+          weight="fill"
+        />
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-amber-900">{t("emailVerification.title")}</p>
+          <p className="mt-0.5 text-xs font-medium text-amber-700">
+            {t("emailVerification.description", { email })}
+          </p>
+          {feedback ? (
+            <p
+              className={cn(
+                "mt-1 text-xs font-semibold",
+                feedback.tone === "success" ? "text-emerald-700" : "text-red-700",
+              )}
+            >
+              {feedback.message}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={resending}
+        onClick={() => void handleResend()}
+        className="shrink-0 border-amber-300 bg-white text-amber-800 hover:bg-amber-100"
+      >
+        {resending ? t("emailVerification.resending") : t("emailVerification.resendButton")}
+      </Button>
     </div>
   );
 }

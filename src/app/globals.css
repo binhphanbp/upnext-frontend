@@ -676,3 +676,8 @@ body.swal2-shown {
   border: 2px solid transparent;
   background-clip: padding-box;
 }
+
+/* Radix popper wrappers must have z-index 1040 so that portalled popovers, dropdowns, and selects sit above open Dialogs (z-index 1030) */
+[data-radix-popper-content-wrapper] {
+  z-index: 1040 !important;
+}

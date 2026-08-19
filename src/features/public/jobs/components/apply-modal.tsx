@@ -79,6 +79,7 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const [appliedApplicationId, setAppliedApplicationId] = useState<string | null>(null);
   const [errorTitle, setErrorTitle] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorCta, setErrorCta] = useState<{ label: string; href: string } | null>(null);
   const [previewingCvId, setPreviewingCvId] = useState<string | null>(null);
   const [unavailableCvIds, setUnavailableCvIds] = useState<ReadonlySet<string>>(() => new Set());
   const [builderPreview, setBuilderPreview] = useState<{ title: string; cvData: CvData } | null>(
@@ -98,11 +99,13 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
   const clearError = () => {
     setErrorTitle(null);
     setErrorMessage(null);
+    setErrorCta(null);
   };
 
-  const showError = (title: string, message: string) => {
+  const showError = (title: string, message: string, cta?: { label: string; href: string }) => {
     setErrorTitle(title);
     setErrorMessage(message);
+    setErrorCta(cta ?? null);
   };
 
   useEffect(() => {
@@ -374,6 +377,17 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
         const aId: string | null = payload?.applicationId ?? payload?.data?.applicationId ?? null;
         setAppliedApplicationId(aId);
         setAlreadyApplied(true);
+      } else if (
+        err instanceof ApiError &&
+        err.message === "Please verify your email before applying to jobs"
+      ) {
+        // Backend chặn nộp đơn nếu email chưa xác thực (applications.service.ts) — trước đây
+        // ứng viên chỉ thấy đúng câu tiếng Anh này và không có cách nào để tự xác thực.
+        showError(
+          "Cần xác thực email trước khi ứng tuyển",
+          "Email của bạn chưa được xác thực. Vui lòng xác thực email để có thể nộp hồ sơ ứng tuyển.",
+          { label: "Đi xác thực email ngay", href: "/candidate/profile" },
+        );
       } else {
         // The server refuses for reasons the candidate can act on — an unverified email, a
         // phone number it cannot accept, a posting that closed while the dialog was open.
@@ -533,6 +547,18 @@ export function ApplyModal({ isOpen, onClose, job }: ApplyModalProps) {
                   <div>
                     <p className="font-semibold">{errorTitle ?? "Có lỗi xảy ra"}</p>
                     <p className="mt-0.5 leading-relaxed text-amber-800">{errorMessage}</p>
+                    {errorCta ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          closeApplyDialog();
+                          router.push(errorCta.href);
+                        }}
+                        className="mt-1.5 cursor-pointer text-xs font-bold text-emerald-700 underline hover:text-emerald-800"
+                      >
+                        {errorCta.label}
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               )}

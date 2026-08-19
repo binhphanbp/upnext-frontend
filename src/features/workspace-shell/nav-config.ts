@@ -33,7 +33,16 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
         href: "/recruiter/job-posts",
         icon: Briefcase,
       },
-      { label: "Ứng viên", href: "/recruiter/candidates", icon: Users },
+      {
+        label: "Ứng viên",
+        href: "/recruiter/candidates",
+        icon: Users,
+        children: [
+          { label: "Danh sách ứng tuyển", href: "/recruiter/candidates" },
+          { label: "AI lọc CV", href: "/recruiter/candidates?tab=cv-ranking" },
+          { label: "Ứng viên tiềm năng", href: "/recruiter/candidates?tab=potential" },
+        ],
+      },
       { label: "Phỏng vấn", href: "/recruiter/interviews", icon: Bell },
     ],
   },
