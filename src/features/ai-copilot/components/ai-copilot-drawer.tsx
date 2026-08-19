@@ -8,10 +8,12 @@ import { cn } from "@/shared/lib/cn";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/ui/sheet";
 
 import { useAiConversation } from "../hooks/use-ai-conversation";
+import { useAiCopilotQuota } from "../hooks/use-ai-copilot-quota";
 import { useCopilotSession } from "../hooks/use-copilot-session";
 import { resolvePageContext } from "../lib/page-context";
 import { useAiCopilotUiStore } from "../stores/ai-copilot-ui.store";
 import { AiCopilotConversation } from "./ai-copilot-conversation";
+import { AiCopilotQuotaBadge } from "./ai-copilot-quota";
 
 type AiCopilotDrawerProps = Readonly<{
   // Set by the candidate workspace shell, which has its own bottom tab bar
@@ -35,7 +37,8 @@ export function AiCopilotDrawer({ raised = false }: AiCopilotDrawerProps = {}) {
   const closeDrawer = useAiCopilotUiStore((state) => state.closeDrawer);
 
   const context = resolvePageContext(pathname);
-  const controller = useAiConversation(context);
+  const quota = useAiCopilotQuota();
+  const controller = useAiConversation(context, { onRunSettled: quota.refresh });
   const { isSignedIn, isSessionResolved } = useCopilotSession();
 
   if (pathname.startsWith("/candidate/ai")) return null;
@@ -91,6 +94,7 @@ export function AiCopilotDrawer({ raised = false }: AiCopilotDrawerProps = {}) {
                 {t("page.contextPrefix")} {t(context.labelKey)}
               </p>
             </div>
+            <AiCopilotQuotaBadge quota={quota.quota} />
             <button
               type="button"
               onClick={controller.startNewConversation}
@@ -111,7 +115,13 @@ export function AiCopilotDrawer({ raised = false }: AiCopilotDrawerProps = {}) {
             </Link>
           </header>
 
-          <AiCopilotConversation controller={controller} context={context} variant="drawer" />
+          <AiCopilotConversation
+            controller={controller}
+            context={context}
+            variant="drawer"
+            quota={quota.quota}
+            isQuotaExhausted={quota.isExhausted}
+          />
         </SheetContent>
       </Sheet>
     </>

@@ -119,10 +119,10 @@ describe("sseTransport", () => {
     localStorage.clear();
     const events = await collect([]);
     expect(events).toHaveLength(1);
-    expect(events[0]?.event).toBe("error");
-    if (events[0]?.event === "error") {
-      expect(events[0].data.status).toBe("permission_denied");
-    }
+    expect(events[0]).toMatchObject({
+      event: "error",
+      data: { status: "permission_denied" },
+    });
   });
 
   it("đổi 429 thành thông báo hết hạn mức", async () => {
@@ -142,11 +142,47 @@ describe("sseTransport", () => {
       events.push(event);
     }
 
-    expect(events[0]?.event).toBe("error");
-    if (events[0]?.event === "error") {
-      expect(events[0].data.code).toBe("AI_MODEL_RATE_LIMIT");
-      expect(events[0].data.status).toBe("rate_limited");
+    expect(events[0]).toMatchObject({
+      event: "error",
+      data: {
+        code: "AI_MODEL_RATE_LIMIT",
+        status: "rate_limited",
+      },
+    });
+  });
+
+  it("phân biệt quota của gói với giới hạn tạm thời của model", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ code: "QUOTA_EXHAUSTED" }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+    const { sseTransport } = await import("./sse-transport");
+
+    const events: AiStreamEvent[] = [];
+    for await (const event of sseTransport({
+      conversationId: "conv-1",
+      prompt: "x",
+      context,
+      signal: new AbortController().signal,
+    })) {
+      events.push(event);
     }
+
+    expect(events).toEqual([
+      {
+        event: "error",
+        data: {
+          code: "AI_COPILOT_QUOTA_EXHAUSTED",
+          detail: "Bạn đã dùng hết lượt AI Copilot trong chu kỳ hiện tại.",
+          status: "rate_limited",
+        },
+      },
+    ]);
   });
 
   it("không phát event nào khi người dùng bấm Dừng", async () => {

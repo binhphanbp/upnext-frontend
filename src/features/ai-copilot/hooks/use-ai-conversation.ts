@@ -51,6 +51,11 @@ type SendOptions = {
   forceScenario?: MockScenarioKey;
 };
 
+type UseAiConversationOptions = {
+  /** Refreshes server-authoritative allowance after every completed attempt. */
+  onRunSettled?: () => void | Promise<void>;
+};
+
 /**
  * Owns one live thread.
  *
@@ -59,7 +64,7 @@ type SendOptions = {
  * written back through `persistConversation` once the run closes, which is the
  * same moment NestJS persists the final message in the real flow (§13.1 step 13).
  */
-export function useAiConversation(context: AiPageContext) {
+export function useAiConversation(context: AiPageContext, options: UseAiConversationOptions = {}) {
   const queryClient = useQueryClient();
 
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -70,8 +75,12 @@ export function useAiConversation(context: AiPageContext) {
   const abortRef = useRef<AbortController | null>(null);
   const lastPromptRef = useRef<string>("");
   const conversationRef = useRef<AiConversation | null>(null);
+  const onRunSettledRef = useRef(options.onRunSettled);
 
   useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => {
+    onRunSettledRef.current = options.onRunSettled;
+  }, [options.onRunSettled]);
 
   const patchMessage = useCallback((id: string, patch: (message: AiMessage) => AiMessage) => {
     setMessages((current) =>
@@ -238,6 +247,10 @@ export function useAiConversation(context: AiPageContext) {
       }
 
       abortRef.current = null;
+      // The quota is reserved by the API before invoking the model and may be
+      // reversed if the model fails. Refresh only after the terminal event so
+      // the visible allowance always reflects the settled ledger.
+      void onRunSettledRef.current?.();
     },
     [context, patchMessage, status],
   );
@@ -263,14 +276,14 @@ export function useAiConversation(context: AiPageContext) {
     abortRef.current = null;
   }, []);
 
-  const retry = useCallback(() => {
+  const retry = useCallback(async () => {
     setMessages((current) => {
       // Drop the failed exchange so the retry reads as one attempt, not two.
       const lastUserIndex = current.findLastIndex((message) => message.role === "user");
       return lastUserIndex === -1 ? current : current.slice(0, lastUserIndex);
     });
     setStatus("idle");
-    void run(lastPromptRef.current);
+    await run(lastPromptRef.current);
   }, [run]);
 
   const openConversation = useCallback(async (id: string) => {

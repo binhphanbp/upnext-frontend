@@ -4421,6 +4421,14 @@
       "disclaimer": "AI can be wrong. Check the evidence before you act on it.",
       "hint": "Enter to send · Shift + Enter for a new line"
     },
+    "quota": {
+      "remaining": "{remaining}/{limit} left",
+      "remainingLabel": "{remaining} of {limit} AI Copilot runs remain in this period",
+      "exhaustedTitle": "You have used all AI Copilot runs",
+      "exhaustedDescription": "Your allowance will renew automatically on {date}. You can still review previous conversations.",
+      "exhaustedInlineDescription": "You can still review previous conversations. Your allowance renews automatically in the next billing period.",
+      "composerDisabled": "Your AI Copilot allowance renews in the next billing period"
+    },
     "list": {
       "scrollToBottom": "Jump to latest"
     },

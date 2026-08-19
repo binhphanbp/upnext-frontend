@@ -10,10 +10,12 @@ import { env } from "@/shared/lib/env";
 import { Sheet, SheetContent, SheetTitle } from "@/shared/ui/sheet";
 
 import { useAiConversation, useAiConversationList } from "../hooks/use-ai-conversation";
+import { useAiCopilotQuota } from "../hooks/use-ai-copilot-quota";
 import { useCopilotSession } from "../hooks/use-copilot-session";
 import { resolvePageContext } from "../lib/page-context";
 import { AiConversationSidebar } from "./ai-conversation-sidebar";
 import { AiCopilotConversation } from "./ai-copilot-conversation";
+import { AiCopilotQuotaBadge } from "./ai-copilot-quota";
 import { AiSignedOutState } from "./ai-signed-out-state";
 import { AiStatePreview } from "./ai-state-preview";
 
@@ -28,7 +30,8 @@ export function AiCopilotPage() {
   const t = useTranslations("AiCopilot");
   const pathname = usePathname();
   const context = resolvePageContext(pathname);
-  const controller = useAiConversation(context);
+  const quota = useAiCopilotQuota();
+  const controller = useAiConversation(context, { onRunSettled: quota.refresh });
   const conversationList = useAiConversationList();
   const { isSessionResolved, isSignedIn } = useCopilotSession();
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -80,6 +83,7 @@ export function AiCopilotPage() {
               {t("page.contextPrefix")} {t(context.labelKey)}
             </p>
           </div>
+          {isSignedOut ? null : <AiCopilotQuotaBadge quota={quota.quota} />}
 
           {isSignedOut ? null : (
             <>
@@ -107,7 +111,13 @@ export function AiCopilotPage() {
         {isSignedOut ? (
           <AiSignedOutState />
         ) : (
-          <AiCopilotConversation controller={controller} context={context} variant="page" />
+          <AiCopilotConversation
+            controller={controller}
+            context={context}
+            variant="page"
+            quota={quota.quota}
+            isQuotaExhausted={quota.isExhausted}
+          />
         )}
       </div>
 

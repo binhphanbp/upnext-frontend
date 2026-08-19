@@ -30,9 +30,15 @@ describe("AI Copilot feedback states", () => {
   });
 
   it("does not offer an immediate retry when the quota is exhausted", () => {
-    renderWithIntl(<AiStateNotice status="rate_limited" onRetry={vi.fn<() => void>()} />);
+    renderWithIntl(
+      <AiStateNotice
+        status="rate_limited"
+        errorCode="AI_COPILOT_QUOTA_EXHAUSTED"
+        onRetry={vi.fn<() => void>()}
+      />,
+    );
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Bạn đã dùng hết hạn mức");
+    expect(screen.getByRole("alert")).toHaveTextContent("Bạn đã dùng hết lượt AI Copilot");
     expect(screen.queryByRole("button", { name: "Thử lại" })).not.toBeInTheDocument();
   });
 
