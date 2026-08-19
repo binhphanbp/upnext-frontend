@@ -141,6 +141,17 @@ function networkError(): AiStreamEvent {
 
 /** Đổi mã HTTP thành thông báo người dùng đọc được, không phải "Error 429". */
 async function httpError(response: Response): Promise<AiStreamEvent> {
+  const payload = await readErrorPayload(response);
+  if (response.status === 409 && payload?.code === "QUOTA_EXHAUSTED") {
+    return {
+      event: "error",
+      data: {
+        code: "AI_COPILOT_QUOTA_EXHAUSTED",
+        detail: "Bạn đã dùng hết lượt AI Copilot trong chu kỳ hiện tại.",
+        status: "rate_limited",
+      },
+    };
+  }
   if (response.status === 401 || response.status === 403) {
     return {
       event: "error",
@@ -162,6 +173,32 @@ async function httpError(response: Response): Promise<AiStreamEvent> {
     };
   }
   return networkError();
+}
+
+/**
+ * The quota guard returns a NestJS JSON error before an SSE body exists. Read it
+ * once here so the UI can distinguish a plan limit from a temporary outage.
+ * Other endpoints may return a non-JSON proxy response; those deliberately fall
+ * back to the safe generic error.
+ */
+async function readErrorPayload(response: Response): Promise<{ code?: string } | null> {
+  try {
+    const body: unknown = await response.json();
+    if (typeof body !== "object" || body === null) return null;
+    if ("code" in body && typeof body.code === "string") return { code: body.code };
+    if (
+      "message" in body &&
+      typeof body.message === "object" &&
+      body.message !== null &&
+      "code" in body.message &&
+      typeof body.message.code === "string"
+    ) {
+      return { code: body.message.code };
+    }
+  } catch {
+    // A bad gateway can return HTML. It is not a quota decision.
+  }
+  return null;
 }
 
 /**

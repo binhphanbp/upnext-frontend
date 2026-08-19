@@ -4442,6 +4442,14 @@
       "disclaimer": "AI có thể sai. Hãy đối chiếu với dẫn chứng trước khi quyết định.",
       "hint": "Enter để gửi · Shift + Enter xuống dòng"
     },
+    "quota": {
+      "remaining": "Còn {remaining}/{limit} lượt",
+      "remainingLabel": "Còn {remaining} trong {limit} lượt AI Copilot của chu kỳ này",
+      "exhaustedTitle": "Bạn đã dùng hết lượt AI Copilot",
+      "exhaustedDescription": "Lượt mới sẽ tự động được làm mới vào {date}. Bạn vẫn có thể xem các cuộc trò chuyện trước đó.",
+      "exhaustedInlineDescription": "Bạn có thể xem lại các cuộc trò chuyện trước đó. Lượt mới sẽ tự động được làm mới vào kỳ tiếp theo.",
+      "composerDisabled": "Lượt AI Copilot sẽ được làm mới vào kỳ tiếp theo"
+    },
     "list": {
       "scrollToBottom": "Xuống cuối hội thoại"
     },

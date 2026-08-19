@@ -14,7 +14,7 @@ import type { ComponentType } from "react";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 
-import type { AiRunStatus } from "../types";
+import type { AiErrorCode, AiRunStatus } from "../types";
 
 type NoticeTone = "error" | "warning" | "neutral";
 
@@ -48,12 +48,25 @@ const STATE_PRESENTATION: Partial<
  * wording and its own affordance: a rate limit is not retryable, a blocked tool
  * is not a bug, and a partial result still shows whatever did arrive.
  */
-export function AiStateNotice({ status, onRetry }: { status: AiRunStatus; onRetry?: () => void }) {
+export function AiStateNotice({
+  status,
+  errorCode,
+  onRetry,
+}: {
+  status: AiRunStatus;
+  errorCode?: AiErrorCode | undefined;
+  onRetry?: () => void;
+}) {
   const t = useTranslations("AiCopilot");
   const presentation = STATE_PRESENTATION[status];
   if (!presentation) return null;
 
   const Icon = presentation.icon;
+  const isCopilotQuotaExhausted = errorCode === "AI_COPILOT_QUOTA_EXHAUSTED";
+  const title = isCopilotQuotaExhausted ? t("quota.exhaustedTitle") : t(`stateNotice.${status}`);
+  const description = isCopilotQuotaExhausted
+    ? t("quota.exhaustedInlineDescription")
+    : t(`stateNoticeDescription.${status}`);
 
   return (
     <div
@@ -63,10 +76,8 @@ export function AiStateNotice({ status, onRetry }: { status: AiRunStatus; onRetr
       <div className="flex items-start gap-2.5">
         <Icon className={cn("mt-px size-4.5 shrink-0", ICON_CLASS[presentation.tone])} />
         <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] font-semibold text-slate-900">{t(`stateNotice.${status}`)}</p>
-          <p className="mt-0.5 text-[13px] leading-relaxed text-slate-600">
-            {t(`stateNoticeDescription.${status}`)}
-          </p>
+          <p className="text-[13.5px] font-semibold text-slate-900">{title}</p>
+          <p className="mt-0.5 text-[13px] leading-relaxed text-slate-600">{description}</p>
         </div>
         {presentation.retry && onRetry ? (
           <Button size="sm" variant="outline" onClick={onRetry} className="shrink-0">

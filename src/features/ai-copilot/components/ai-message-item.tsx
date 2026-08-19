@@ -118,7 +118,7 @@ export function AiMessageItem({
 
         <AiCitationList citations={message.citations} highlightedId={highlightedCitationId} />
 
-        <AiStateNotice status={message.status} onRetry={onRetry} />
+        <AiStateNotice status={message.status} errorCode={message.errorCode} onRetry={onRetry} />
 
         {!isStreaming && hasBody ? (
           <div className="mt-2.5 flex flex-wrap items-center gap-0.5">

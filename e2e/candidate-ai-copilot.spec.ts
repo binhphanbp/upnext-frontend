@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
 type StreamMode = "rate-limited" | "cv-analysis";
+type QuotaMode = "available" | "exhausted";
 
 function sse(event: string, data: unknown) {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -15,7 +16,31 @@ async function respondJson(route: Route, data: unknown) {
  * catches regressions in conversation creation and SSE parsing without turning
  * on the internal state-preview control in a user build.
  */
-async function mockCopilotApi(page: Page, mode: StreamMode) {
+async function mockCopilotApi(page: Page, mode: StreamMode, quotaMode: QuotaMode) {
+  await page.route("**/api/v1/candidate-subscriptions/me", async (route) => {
+    await respondJson(route, {
+      plan: {
+        code: "CANDIDATE_FREE",
+        name: "Candidate Free",
+        audience: "CANDIDATE",
+        expiresAt: "2026-09-12T00:00:00.000Z",
+        periodStart: "2026-08-13T00:00:00.000Z",
+        periodEnd: "2026-09-12T00:00:00.000Z",
+      },
+      usage: [
+        {
+          feature: "AI_COPILOT_RUN",
+          enabled: true,
+          limit: 10,
+          used: quotaMode === "exhausted" ? 10 : 2,
+          remaining: quotaMode === "exhausted" ? 0 : 8,
+          periodStart: "2026-08-13T00:00:00.000Z",
+          periodEnd: "2026-09-12T00:00:00.000Z",
+        },
+      ],
+    });
+  });
+
   await page.route("**/api/v1/ai/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -122,10 +147,22 @@ test.beforeEach(async ({ page }, testInfo) => {
   await mockCopilotApi(
     page,
     testInfo.title.includes("rate-limit") ? "rate-limited" : "cv-analysis",
+    testInfo.title.includes("plan quota") ? "exhausted" : "available",
   );
 
   await page.goto("/vi/candidate/ai");
   await expect(page.getByRole("heading", { name: "UpNext AI Copilot" })).toBeVisible();
+});
+
+test("shows an exhausted plan quota before sending and keeps the draft safe", async ({ page }) => {
+  const composer = page.getByLabel("Nội dung câu hỏi");
+
+  await expect(
+    page.getByRole("region", { name: "UpNext AI Copilot" }).getByRole("alert"),
+  ).toContainText("Bạn đã dùng hết lượt AI Copilot");
+  await expect(composer).toBeDisabled();
+  await expect(composer).toHaveAttribute("placeholder", /Lượt AI Copilot sẽ được làm mới/);
+  await expect(page.getByText("Còn 0/10 lượt", { exact: true })).toBeVisible();
 });
 
 test("shows an actionable rate-limit state without leaking an internal error code", async ({
