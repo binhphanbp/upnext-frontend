@@ -285,6 +285,33 @@ async function mockCandidateWorkspace(
   await page.route(/\/api\/v1\/notifications(?:\?|$)/, async (route) => {
     await route.fulfill({ json: { data: [], meta: { unreadCount: 0 } } });
   });
+  await page.route(/\/api\/v1\/candidate-subscriptions\/me(?:\?|$)/, async (route) => {
+    await route.fulfill({
+      json: {
+        data: {
+          plan: {
+            code: "CANDIDATE_FREE",
+            name: "Candidate Free",
+            audience: "CANDIDATE",
+            expiresAt: "2026-09-12T00:00:00.000Z",
+            periodStart: "2026-08-13T00:00:00.000Z",
+            periodEnd: "2026-09-12T00:00:00.000Z",
+          },
+          usage: [
+            {
+              feature: "AI_COPILOT_RUN",
+              enabled: true,
+              limit: 10,
+              used: 0,
+              remaining: 10,
+              periodStart: "2026-08-13T00:00:00.000Z",
+              periodEnd: "2026-09-12T00:00:00.000Z",
+            },
+          ],
+        },
+      },
+    });
+  });
   await page.route(/\/api\/v1\/auth\/me(?:\?|$)/, async (route) => {
     await route.fulfill({ json: { data: { permissions: [] } } });
   });
