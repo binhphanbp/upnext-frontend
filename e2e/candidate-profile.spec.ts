@@ -294,6 +294,9 @@ async function mockCandidateWorkspace(
   await page.route(/\/api\/v1\/job-posts(?:\?|$)/, async (route) => {
     await route.fulfill({ json: { data: [], meta: { total: 0 } } });
   });
+  await page.route(/\/candidate\/account\/email-verification-status(?:\?|$)/, async (route) => {
+    await route.fulfill({ json: { data: { email: "minhanh@example.com", emailVerified: true } } });
+  });
 
   await page.route("**/candidate-profiles/me", async (route) => {
     await route.fulfill({

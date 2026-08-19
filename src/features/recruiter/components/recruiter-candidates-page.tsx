@@ -81,7 +81,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/shared
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/shared/ui/select";
 import { Separator } from "@/shared/ui/separator";
-import { Tabs, TabsContent } from "@/shared/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
 import { CandidateProfileDetailDialog } from "./candidate-profile-detail-dialog";
 import { CoverLetterDialog } from "./cover-letter-dialog";
@@ -1139,32 +1139,37 @@ export function RecruiterCandidatesPage() {
       ) : null}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        {/* 3 tab đã chuyển thành mục con trong sidebar ("Ứng viên") — Tabs vẫn
-            được dùng ở đây chỉ để chuyển nội dung theo `activeTab`, không hiện
-            thanh chọn tab nữa. */}
-        {activeTab === "candidates" ? (
-          <div className="mb-3 flex shrink-0 items-center justify-end gap-2">
-            {/* Refresh */}
-            <Button
-              variant="outline"
-              size="icon"
-              className="flex h-10 w-10 items-center justify-center rounded-full border-slate-200 p-0 text-slate-600 shadow-none transition-all hover:bg-slate-50 hover:text-slate-800"
-              onClick={handleRefresh}
-              aria-label="Refresh list"
-            >
-              <ArrowsCounterClockwise size={18} />
-            </Button>
-            {/* Export Excel Button */}
-            <Button
-              variant="outline"
-              className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border-emerald-600 px-4 font-bold text-emerald-600 shadow-none transition-all hover:bg-emerald-50/50"
-              onClick={handleExportExcel}
-            >
-              <DownloadSimple size={18} />
-              <span>{locale === "vi" ? "Xuất Excel" : "Export Excel"}</span>
-            </Button>
-          </div>
-        ) : null}
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
+            <TabsTrigger value="candidates">{t("nav.applicationsTab")}</TabsTrigger>
+            <TabsTrigger value="cv-ranking">{t("nav.aiCvScreeningTab")}</TabsTrigger>
+            <TabsTrigger value="potential">{t("nav.potentialCandidatesTab")}</TabsTrigger>
+          </TabsList>
+
+          {activeTab === "candidates" ? (
+            <div className="flex shrink-0 items-center justify-end gap-2">
+              {/* Refresh */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex h-10 w-10 items-center justify-center rounded-full border-slate-200 p-0 text-slate-600 shadow-none transition-all hover:bg-slate-50 hover:text-slate-800"
+                onClick={handleRefresh}
+                aria-label="Refresh list"
+              >
+                <ArrowsCounterClockwise size={18} />
+              </Button>
+              {/* Export Excel Button */}
+              <Button
+                variant="outline"
+                className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border-emerald-600 px-4 font-bold text-emerald-600 shadow-none transition-all hover:bg-emerald-50/50"
+                onClick={handleExportExcel}
+              >
+                <DownloadSimple size={18} />
+                <span>{locale === "vi" ? "Xuất Excel" : "Export Excel"}</span>
+              </Button>
+            </div>
+          ) : null}
+        </div>
 
         <TabsContent value="candidates" className="mt-0">
           {selectedIds.length > 0 ? (
