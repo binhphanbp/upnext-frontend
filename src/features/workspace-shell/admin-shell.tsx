@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 import { usePathname } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
@@ -119,16 +119,22 @@ export function AdminShell({ navGroups, identity, onLogout, children }: AdminShe
 
         {/* BOTTOM AREA */}
         <div className="flex flex-1 overflow-hidden">
-          <WorkspaceSidebar
-            workspaceRole="admin"
-            navGroups={navGroups}
-            identity={identity}
-            mobileOpen={mobileOpen}
-            setMobileOpen={setMobileOpen}
-            onLogout={onLogout}
-            collapsed={collapsed}
-            setCollapsed={setCollapsed}
-          />
+          <Suspense
+            fallback={
+              <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-200/80 bg-white md:flex" />
+            }
+          >
+            <WorkspaceSidebar
+              workspaceRole="admin"
+              navGroups={navGroups}
+              identity={identity}
+              mobileOpen={mobileOpen}
+              setMobileOpen={setMobileOpen}
+              onLogout={onLogout}
+              collapsed={collapsed}
+              setCollapsed={setCollapsed}
+            />
+          </Suspense>
 
           {/* RIGHT CONTENT AREA */}
           <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f4f6fa] dark:bg-slate-950">
