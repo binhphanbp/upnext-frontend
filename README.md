@@ -162,3 +162,17 @@ This frontend repo owns only the app image and CI image publishing. Docker Compo
 ## Agent Guidance
 
 Read `AGENTS.md` before changing code. `CLAUDE.md` points Claude to the same canonical guide.
+
+This repo declares the [Superpowers](https://github.com/obra/superpowers) Claude
+Code plugin in `.claude/settings.json`, but that file only records intent —
+Claude Code does not auto-install a plugin just because a repo declares it. After
+cloning, run once per machine:
+
+```bash
+claude plugin marketplace add obra/superpowers-marketplace
+claude plugin install superpowers@superpowers-marketplace --scope project
+```
+
+Skip this and `claude plugin list` will show the plugin as `failed to load` inside
+this repo. Not using Claude Code, or don't want the plugin? Nothing to do — it has
+no effect on the build or runtime.
