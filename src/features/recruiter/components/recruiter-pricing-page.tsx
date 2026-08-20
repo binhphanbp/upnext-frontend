@@ -24,7 +24,7 @@ import Swal from "sweetalert2";
 import {
   createInvoice,
   getActiveSubscription,
-  getSubscriptionPlans,
+  getPublicSubscriptionPlans,
   type CompanySubscriptionDetail,
   type SubscriptionFeature,
   type SubscriptionPlan,
@@ -84,8 +84,11 @@ export function RecruiterPricingPage() {
     async (accessToken: string) => {
       try {
         setLoading(true);
-        const plansData = await getSubscriptionPlans();
-        setPlans(plansData.filter((plan) => plan.status === "ACTIVE"));
+        // `GET /subscription-plans` is admin-only: it lists drafts and retired plans
+        // too. Recruiters buying/upgrading only ever need what is actually on sale,
+        // which `/subscription-plans/public` already filters for server-side.
+        const plansData = await getPublicSubscriptionPlans("RECRUITER");
+        setPlans(plansData);
 
         try {
           setActiveSub(await getActiveSubscription(accessToken));
