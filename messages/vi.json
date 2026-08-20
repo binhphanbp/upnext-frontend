@@ -3954,91 +3954,85 @@
           "planName": "Tên gói dịch vụ",
           "targetAudience": "Đối tượng",
           "price": "Đơn giá",
-          "activeSubscribers": "Người dùng active",
+          "visibility": "Hiển thị trên trang giá",
+          "daysUnit": "ngày",
           "status": "Trạng thái",
           "actions": "Thao tác",
-          "searchPlaceholder": "Tìm theo tên gói, mã ID...",
+          "searchPlaceholder": "Tìm theo tên gói, mã gói...",
           "allStatuses": "Tất cả trạng thái",
           "allAudiences": "Tất cả đối tượng",
+          "isPrivateBadge": "Không hiển thị công khai",
+          "features": "Quyền lợi của gói",
+          "noFeatures": "Gói này chưa được gán quyền lợi nào.",
+          "notIncludedFeatures": "Không bao gồm",
+          "unlimitedValue": "Không giới hạn",
           "targetAudienceOptions": {
             "employer": "Nhà tuyển dụng",
             "candidate": "Ứng viên"
           },
-          "billingCycleOptions": {
-            "month": "Tháng",
-            "year": "Năm",
-            "oneTime": "Gói tín dụng (One-time)"
+          "visibilityOptions": {
+            "public": "Công khai",
+            "private": "Ẩn"
           },
           "statusOptions": {
             "active": "Đang bán",
-            "legacy": "Ngừng bán (Legacy)",
-            "draft": "Bản nháp"
+            "legacy": "Ngừng bán"
           },
           "actionOptions": {
             "edit": "Chỉnh sửa gói",
-            "viewSubscribers": "Xem danh sách người mua",
             "publish": "Phát hành (Đưa lên bán)",
-            "retire": "Ngừng bán (Legacy)",
-            "viewDetails": "Xem chi tiết gói"
+            "retire": "Ngừng bán",
+            "viewDetails": "Xem chi tiết gói",
+            "showOnPricing": "Hiện trên trang giá",
+            "hideFromPricing": "Ẩn khỏi trang giá"
           },
-          "planNames": {
-            "PLAN-EMP-PRO": "Employer Pro",
-            "PLAN-EMP-PREM": "Employer Premium",
-            "PLAN-EMP-CRED": "Gói 5 Tin Tuyển Dụng",
-            "PLAN-CAN-PRO": "Candidate Pro (Nổi bật hồ sơ)",
-            "PLAN-EMP-BASIC-OLD": "Employer Basic (2025)",
-            "PLAN-EMP-LITE": "Employer Lite",
-            "PLAN-CAN-BASIC": "Candidate Basic",
-            "PLAN-EMP-ENT": "Employer Enterprise",
-            "PLAN-EMP-CRED-10": "Gói 10 Tin Tuyển Dụng",
-            "PLAN-CAN-MENTOR": "1:1 Mentorship",
-            "PLAN-EMP-CV": "Gói xem 100 CV",
-            "EMP-FREE": "Basic",
-            "EMP-STARTER": "Pro",
-            "EMP-GROWTH": "Premium",
-            "EMP-SCALE": "Enterprise",
-            "CAN-FREE": "Basic",
-            "CAN-PRO": "Talent",
-            "CAN-CAREER-PLUS": "Elite"
-          },
-          "features": "Tính năng nổi bật"
+          "toasts": {
+            "statusUpdated": "Đã cập nhật trạng thái gói.",
+            "visibilityUpdated": "Đã cập nhật hiển thị gói.",
+            "genericError": "Có lỗi xảy ra, vui lòng thử lại.",
+            "loadError": "Không tải được danh sách gói dịch vụ."
+          }
         },
         "dialog": {
-          "title": "Tạo Gói Dịch Vụ Mới",
-          "description": "Thiết lập thông tin cơ bản cho gói dịch vụ (Subscription/Credit) mới trên hệ thống.",
+          "title": "Tạo gói dịch vụ mới",
+          "description": "Thiết lập thông tin và quyền lợi cho gói dịch vụ mới.",
+          "editTitle": "Chỉnh sửa gói dịch vụ",
+          "editDescription": "Mã gói và đối tượng không thể thay đổi sau khi tạo.",
           "fields": {
             "planName": "Tên gói dịch vụ",
-            "planNamePlaceholder": "VD: Employer Premium 2026",
+            "planNamePlaceholder": "VD: Growth",
             "targetAudience": "Đối tượng khách hàng",
             "targetAudiencePlaceholder": "Chọn đối tượng",
             "price": "Đơn giá (VNĐ)",
-            "pricePlaceholder": "VD: 2500000",
-            "billingCycle": "Chu kỳ thanh toán",
-            "billingCyclePlaceholder": "Chọn chu kỳ",
-            "featuresEmployer": "Tính năng dành cho Nhà tuyển dụng",
-            "featuresCandidate": "Tính năng dành cho Ứng viên",
-            "empPostingLimit": "Giới hạn đăng tin",
-            "empVisibility": "Hiển thị",
-            "empInteraction": "Tương tác ứng viên",
-            "empAiLimit": "Giới hạn AI",
-            "empSystem": "Hệ thống",
-            "canCoreFunctions": "Chức năng cốt lõi",
-            "canAiLimit": "Giới hạn AI CV",
-            "canOptimization": "Tối ưu hóa",
-            "canInterview": "Luyện phỏng vấn",
-            "canVisibility": "Hiển thị"
+            "pricePlaceholder": "VD: 299000",
+            "durationDays": "Thời hạn (số ngày)",
+            "descriptionLabel": "Mô tả gói",
+            "sortOrder": "Thứ tự hiển thị",
+            "highlightLabel": "Nhãn nổi bật",
+            "highlightLabelPlaceholder": "VD: Phổ biến nhất",
+            "isPublic": "Hiển thị công khai trên trang giá",
+            "code": "Mã gói",
+            "codePlaceholder": "VD: RECRUITER_GROWTH",
+            "codeHint": "Chữ in, số và gạch dưới. Không thể sửa sau khi tạo.",
+            "codeInvalid": "Mã gói phải là chữ in, số và gạch dưới, dài 3-60 ký tự.",
+            "immutableHint": "Mã gói và đối tượng chỉ đặt được lúc tạo. Đặt sai thì ngừng bán gói này và tạo gói mới.",
+            "featuresSection": "Quyền lợi của gói"
           },
-          "billingCycleOptions": {
-            "monthly": "Hàng tháng (Monthly)",
-            "yearly": "Hàng năm (Yearly)",
-            "oneTime": "Gói tín dụng (One-time)",
-            "weekly": "Hàng tuần (Weekly)",
-            "quarterly": "Hàng quý (Quarterly)",
-            "biannual": "6 tháng (Biannual)"
+          "features": {
+            "unlimitedPlaceholder": "Không giới hạn",
+            "unlimitedHint": "Để trống = không giới hạn"
           },
           "buttons": {
             "cancel": "Hủy",
-            "createDraft": "Tạo bản nháp"
+            "create": "Tạo gói",
+            "save": "Lưu thay đổi",
+            "saving": "Đang lưu..."
+          },
+          "toasts": {
+            "createSuccess": "Đã tạo gói dịch vụ mới.",
+            "createError": "Không tạo được gói dịch vụ.",
+            "updateSuccess": "Đã cập nhật gói dịch vụ.",
+            "updateError": "Không cập nhật được gói dịch vụ."
           }
         }
       },

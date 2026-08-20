@@ -1,16 +1,15 @@
 "use client";
 
-import { Plus } from "@phosphor-icons/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Swal from "sweetalert2";
 
 import { clearAdminSession, getAdminSession } from "@/features/admin/session";
 import {
-  createSubscriptionPlan,
   setPlanFeatures,
-  type PlanAudience,
+  updateSubscriptionPlan,
+  type SubscriptionPlan,
 } from "@/features/recruiter/api/billing";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
@@ -23,15 +22,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
 
 import {
   emptyFeatureFormState,
+  featureFormStateFromPlan,
   PlanFeatureEditor,
   toSetFeaturesPayload,
   type PlanFeatureFormState,
@@ -45,13 +43,8 @@ const toast = Swal.mixin({
   timerProgressBar: true,
 });
 
-/** `code` must look like a constant, since every tier-based rule references it. */
-const PLAN_CODE_PATTERN = /^[A-Z][A-Z0-9_]{2,59}$/;
-
 type FormState = {
   subscriptionName: string;
-  code: string;
-  audience: PlanAudience;
   price: string;
   durationDays: string;
   description: string;
@@ -60,129 +53,138 @@ type FormState = {
   highlightLabel: string;
 };
 
-function initialFormState(): FormState {
+function formStateFromPlan(plan: SubscriptionPlan): FormState {
   return {
-    subscriptionName: "",
-    code: "",
-    audience: "RECRUITER",
-    price: "",
-    durationDays: "30",
-    description: "",
-    isPublic: true,
-    sortOrder: "0",
-    highlightLabel: "",
+    subscriptionName: plan.subscriptionName,
+    price: plan.price,
+    durationDays: String(plan.durationDays),
+    description: plan.description ?? "",
+    isPublic: plan.isPublic,
+    sortOrder: String(plan.sortOrder),
+    highlightLabel: plan.highlightLabel ?? "",
   };
 }
 
-export function AddPlanDialog() {
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(initialFormState());
+type EditPlanDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  plan: SubscriptionPlan | null;
+};
+
+/**
+ * `code` and `audience` are shown read-only, never editable here -- matching the
+ * backend, which omits both from `UpdateSubscriptionPlanDto` on purpose. Getting
+ * either wrong on a live plan is fixed by retiring it and creating a new one, not
+ * by editing in place: `code` is what tier-based logic and data migrations
+ * reference, and `audience` decides who is allowed to buy the plan.
+ */
+export function EditPlanDialog({ open, onOpenChange, plan }: EditPlanDialogProps) {
+  const [form, setForm] = useState<FormState>(() =>
+    plan ? formStateFromPlan(plan) : ({} as FormState),
+  );
   const [features, setFeatures] = useState<PlanFeatureFormState>(emptyFeatureFormState());
-  const [codeError, setCodeError] = useState<string | null>(null);
 
   const t = useTranslations("Admin.finance.plans.dialog");
-  const tPlans = useTranslations("Admin.finance.plans");
+  const tPlans = useTranslations("Admin.finance.plans.table");
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  const resetForm = () => {
-    setForm(initialFormState());
-    setFeatures(emptyFeatureFormState());
-    setCodeError(null);
+  // Re-seed the form whenever a different plan is opened, or when this plan's
+  // own data changes underneath it (e.g. a feature save just completed).
+  useEffect(() => {
+    if (!plan) return;
+    setForm(formStateFromPlan(plan));
+    setFeatures(featureFormStateFromPlan(plan.features));
+  }, [plan]);
+
+  const handleAuthError = (error: unknown): boolean => {
+    if (error instanceof Error && error.message === "No session") {
+      router.replace("/admin/login");
+      return true;
+    }
+    if (error instanceof ApiError && error.status === 401) {
+      clearAdminSession();
+      router.replace("/admin/login");
+      return true;
+    }
+    return false;
   };
 
   const { mutate: submit, isPending } = useMutation({
     mutationFn: async () => {
+      if (!plan) throw new Error("No plan");
       const session = getAdminSession();
       if (!session) throw new Error("No session");
 
-      const plan = await createSubscriptionPlan(
+      await updateSubscriptionPlan(
+        plan.id,
         {
           subscriptionName: form.subscriptionName.trim(),
-          code: form.code.trim() || undefined,
-          audience: form.audience,
           price: Number(form.price),
           durationDays: Number(form.durationDays),
           description: form.description.trim() || undefined,
           isPublic: form.isPublic,
           sortOrder: Number(form.sortOrder) || 0,
-          highlightLabel: form.highlightLabel.trim() || undefined,
+          highlightLabel: form.highlightLabel.trim() || null,
         },
         session.accessToken,
       );
 
-      const featurePayload = toSetFeaturesPayload(features);
-      if (featurePayload.length > 0) {
-        await setPlanFeatures(plan.id, featurePayload, session.accessToken);
-      }
-
-      return plan;
+      // Full replace, matching how the backend endpoint works: features left out
+      // of this payload are removed from the plan, which is what makes this a
+      // simple full-state save instead of a diff.
+      await setPlanFeatures(plan.id, toSetFeaturesPayload(features), session.accessToken);
     },
     onSuccess: () => {
-      void toast.fire({ icon: "success", title: t("toasts.createSuccess") });
+      void toast.fire({ icon: "success", title: t("toasts.updateSuccess") });
       queryClient.invalidateQueries({ queryKey: ["adminSubscriptionPlans"] });
-      resetForm();
-      setOpen(false);
+      onOpenChange(false);
     },
     onError: (error: unknown) => {
-      if (error instanceof Error && error.message === "No session") {
-        router.replace("/admin/login");
-        return;
-      }
-      if (error instanceof ApiError && error.status === 401) {
-        clearAdminSession();
-        router.replace("/admin/login");
-        return;
-      }
-      // Backend error codes (PLAN_NAME_TAKEN, PLAN_CODE_TAKEN, validation
-      // messages) already come back as readable Vietnamese text -- surface them
-      // as-is rather than a generic "something went wrong".
-      const message = error instanceof ApiError ? error.message : t("toasts.createError");
+      if (handleAuthError(error)) return;
+      const message = error instanceof ApiError ? error.message : t("toasts.updateError");
       void toast.fire({ icon: "error", title: message });
     },
   });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setCodeError(null);
-
-    if (form.code.trim() && !PLAN_CODE_PATTERN.test(form.code.trim())) {
-      setCodeError(t("fields.codeInvalid"));
-      return;
-    }
     submit();
   };
 
+  if (!plan) return null;
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) resetForm();
-      }}
-    >
-      <DialogTrigger asChild>
-        <Button variant="primary">
-          <Plus className="mr-2" weight="bold" />
-          {tPlans("addPlan")}
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{t("title")}</DialogTitle>
-            <DialogDescription>{t("description")}</DialogDescription>
+            <DialogTitle>{t("editTitle")}</DialogTitle>
+            <DialogDescription>{t("editDescription")}</DialogDescription>
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-6 py-4 md:grid-cols-2">
+            <div className="bg-muted/40 flex flex-col gap-1 rounded-lg border p-3 md:col-span-2">
+              <span className="text-muted-foreground text-xs">{t("fields.code")}</span>
+              <span className="font-mono text-sm">{plan.code ?? "—"}</span>
+              <span className="text-muted-foreground mt-2 text-xs">
+                {t("fields.targetAudience")}
+              </span>
+              <span className="text-sm">
+                {plan.audience === "RECRUITER"
+                  ? tPlans("targetAudienceOptions.employer")
+                  : tPlans("targetAudienceOptions.candidate")}
+              </span>
+              <p className="text-muted-foreground mt-2 text-xs">{t("fields.immutableHint")}</p>
+            </div>
+
             <div className="flex flex-col gap-2.5 md:col-span-2">
-              <Label htmlFor="planName" className="font-semibold">
+              <Label htmlFor="editPlanName" className="font-semibold">
                 {t("fields.planName")}
               </Label>
               <Input
-                id="planName"
+                id="editPlanName"
                 required
-                placeholder={t("fields.planNamePlaceholder")}
                 value={form.subscriptionName}
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, subscriptionName: event.target.value }))
@@ -191,66 +193,25 @@ export function AddPlanDialog() {
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <Label htmlFor="targetAudience" className="font-semibold">
-                {t("fields.targetAudience")}
-              </Label>
-              <Select
-                value={form.audience}
-                onValueChange={(value: PlanAudience) =>
-                  setForm((prev) => ({ ...prev, audience: value }))
-                }
-              >
-                <SelectTrigger id="targetAudience">
-                  <SelectValue placeholder={t("fields.targetAudiencePlaceholder")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="RECRUITER">
-                    {tPlans("table.targetAudienceOptions.employer")}
-                  </SelectItem>
-                  <SelectItem value="CANDIDATE">
-                    {tPlans("table.targetAudienceOptions.candidate")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2.5">
-              <Label htmlFor="planCode" className="font-semibold">
-                {t("fields.code")}
-              </Label>
-              <Input
-                id="planCode"
-                placeholder={t("fields.codePlaceholder")}
-                value={form.code}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, code: event.target.value.toUpperCase() }))
-                }
-              />
-              {codeError ? <p className="text-destructive text-xs">{codeError}</p> : null}
-              <p className="text-muted-foreground text-xs">{t("fields.codeHint")}</p>
-            </div>
-
-            <div className="flex flex-col gap-2.5">
-              <Label htmlFor="price" className="font-semibold">
+              <Label htmlFor="editPrice" className="font-semibold">
                 {t("fields.price")}
               </Label>
               <Input
-                id="price"
+                id="editPrice"
                 type="number"
                 required
                 min={0}
-                placeholder={t("fields.pricePlaceholder")}
                 value={form.price}
                 onChange={(event) => setForm((prev) => ({ ...prev, price: event.target.value }))}
               />
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <Label htmlFor="durationDays" className="font-semibold">
+              <Label htmlFor="editDurationDays" className="font-semibold">
                 {t("fields.durationDays")}
               </Label>
               <Input
-                id="durationDays"
+                id="editDurationDays"
                 type="number"
                 required
                 min={1}
@@ -262,11 +223,11 @@ export function AddPlanDialog() {
             </div>
 
             <div className="flex flex-col gap-2.5 md:col-span-2">
-              <Label htmlFor="description" className="font-semibold">
+              <Label htmlFor="editDescription" className="font-semibold">
                 {t("fields.descriptionLabel")}
               </Label>
               <Textarea
-                id="description"
+                id="editDescription"
                 rows={2}
                 value={form.description}
                 onChange={(event) =>
@@ -276,11 +237,11 @@ export function AddPlanDialog() {
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <Label htmlFor="sortOrder" className="font-semibold">
+              <Label htmlFor="editSortOrder" className="font-semibold">
                 {t("fields.sortOrder")}
               </Label>
               <Input
-                id="sortOrder"
+                id="editSortOrder"
                 type="number"
                 min={0}
                 value={form.sortOrder}
@@ -291,12 +252,11 @@ export function AddPlanDialog() {
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <Label htmlFor="highlightLabel" className="font-semibold">
+              <Label htmlFor="editHighlightLabel" className="font-semibold">
                 {t("fields.highlightLabel")}
               </Label>
               <Input
-                id="highlightLabel"
-                placeholder={t("fields.highlightLabelPlaceholder")}
+                id="editHighlightLabel"
                 maxLength={60}
                 value={form.highlightLabel}
                 onChange={(event) =>
@@ -307,13 +267,13 @@ export function AddPlanDialog() {
 
             <div className="flex items-center gap-2 md:col-span-2">
               <Checkbox
-                id="isPublic"
+                id="editIsPublic"
                 checked={form.isPublic}
                 onCheckedChange={(checked) =>
                   setForm((prev) => ({ ...prev, isPublic: checked === true }))
                 }
               />
-              <Label htmlFor="isPublic" className="cursor-pointer text-sm">
+              <Label htmlFor="editIsPublic" className="cursor-pointer text-sm">
                 {t("fields.isPublic")}
               </Label>
             </div>
@@ -327,18 +287,11 @@ export function AddPlanDialog() {
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setOpen(false);
-                resetForm();
-              }}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t("buttons.cancel")}
             </Button>
             <Button type="submit" variant="primary" disabled={isPending}>
-              {isPending ? t("buttons.saving") : t("buttons.create")}
+              {isPending ? t("buttons.saving") : t("buttons.save")}
             </Button>
           </DialogFooter>
         </form>

@@ -3926,98 +3926,92 @@
     },
     "finance": {
       "plans": {
-        "title": "Service Plans",
-        "subtitle": "Configure Subscriptions and individual services for Employers & Candidates.",
-        "addPlan": "Add New Plan",
+        "title": "Subscription plans",
+        "subtitle": "Configure subscriptions and one-off add-ons for recruiters & candidates.",
+        "addPlan": "Add new plan",
         "table": {
-          "planName": "Plan Name",
+          "planName": "Plan name",
           "targetAudience": "Audience",
           "price": "Price",
-          "activeSubscribers": "Active Subscribers",
+          "visibility": "Pricing page",
+          "daysUnit": "days",
           "status": "Status",
           "actions": "Actions",
-          "searchPlaceholder": "Search by plan name, ID...",
-          "allStatuses": "All Statuses",
-          "allAudiences": "All Audiences",
+          "searchPlaceholder": "Search by plan name or code...",
+          "allStatuses": "All statuses",
+          "allAudiences": "All audiences",
+          "isPrivateBadge": "Not public",
+          "features": "Plan entitlements",
+          "noFeatures": "No entitlements have been assigned to this plan yet.",
+          "notIncludedFeatures": "Not included",
+          "unlimitedValue": "Unlimited",
           "targetAudienceOptions": {
-            "employer": "Employer",
+            "employer": "Recruiter",
             "candidate": "Candidate"
           },
-          "billingCycleOptions": {
-            "month": "Month",
-            "year": "Year",
-            "oneTime": "One-time"
+          "visibilityOptions": {
+            "public": "Public",
+            "private": "Hidden"
           },
           "statusOptions": {
             "active": "Active",
-            "legacy": "Legacy (Retired)",
-            "draft": "Draft"
+            "legacy": "Retired"
           },
           "actionOptions": {
-            "edit": "Edit Plan",
-            "viewSubscribers": "View Subscribers",
-            "publish": "Publish",
-            "retire": "Retire Plan",
-            "viewDetails": "View Details"
+            "edit": "Edit plan",
+            "publish": "Publish (put on sale)",
+            "retire": "Retire",
+            "viewDetails": "View plan details",
+            "showOnPricing": "Show on pricing page",
+            "hideFromPricing": "Hide from pricing page"
           },
-          "planNames": {
-            "PLAN-EMP-PRO": "Employer Pro",
-            "PLAN-EMP-PREM": "Employer Premium",
-            "PLAN-EMP-CRED": "5 Job Posts Credit",
-            "PLAN-CAN-PRO": "Candidate Pro (Featured Profile)",
-            "PLAN-EMP-BASIC-OLD": "Employer Basic (2025)",
-            "PLAN-EMP-LITE": "Employer Lite",
-            "PLAN-CAN-BASIC": "Candidate Basic",
-            "PLAN-EMP-ENT": "Employer Enterprise",
-            "PLAN-EMP-CRED-10": "10 Job Posts Credit",
-            "PLAN-CAN-MENTOR": "1:1 Mentorship",
-            "PLAN-EMP-CV": "View 100 CVs Credit",
-            "EMP-FREE": "Basic",
-            "EMP-STARTER": "Pro",
-            "EMP-GROWTH": "Premium",
-            "EMP-SCALE": "Enterprise",
-            "CAN-FREE": "Basic",
-            "CAN-PRO": "Talent",
-            "CAN-CAREER-PLUS": "Elite"
-          },
-          "features": "Key Features"
+          "toasts": {
+            "statusUpdated": "Plan status updated.",
+            "visibilityUpdated": "Plan visibility updated.",
+            "genericError": "Something went wrong, please try again.",
+            "loadError": "Could not load subscription plans."
+          }
         },
         "dialog": {
-          "title": "Create New Service Plan",
-          "description": "Set up basic information for a new service plan (Subscription/Credit) on the system.",
+          "title": "Create a new plan",
+          "description": "Set up the basics and entitlements for the new plan.",
+          "editTitle": "Edit plan",
+          "editDescription": "The plan code and audience cannot change after creation.",
           "fields": {
-            "planName": "Plan Name",
-            "planNamePlaceholder": "Ex: Employer Premium 2026",
-            "targetAudience": "Target Audience",
-            "targetAudiencePlaceholder": "Select audience",
+            "planName": "Plan name",
+            "planNamePlaceholder": "e.g. Growth",
+            "targetAudience": "Audience",
+            "targetAudiencePlaceholder": "Choose audience",
             "price": "Price (VND)",
-            "pricePlaceholder": "Ex: 2500000",
-            "billingCycle": "Billing Cycle",
-            "billingCyclePlaceholder": "Select billing cycle",
-            "featuresEmployer": "Employer Features",
-            "featuresCandidate": "Candidate Features",
-            "empPostingLimit": "Job Posting Limit",
-            "empVisibility": "Visibility",
-            "empInteraction": "Candidate Interaction",
-            "empAiLimit": "AI Limit",
-            "empSystem": "System",
-            "canCoreFunctions": "Core Functions",
-            "canAiLimit": "AI CV Limit",
-            "canOptimization": "Optimization",
-            "canInterview": "Interview Prep",
-            "canVisibility": "Visibility"
+            "pricePlaceholder": "e.g. 299000",
+            "durationDays": "Duration (days)",
+            "descriptionLabel": "Description",
+            "sortOrder": "Sort order",
+            "highlightLabel": "Highlight label",
+            "highlightLabelPlaceholder": "e.g. Most popular",
+            "isPublic": "Show on the public pricing page",
+            "code": "Plan code",
+            "codePlaceholder": "e.g. RECRUITER_GROWTH",
+            "codeHint": "Uppercase letters, digits and underscores. Cannot be changed after creation.",
+            "codeInvalid": "The code must be uppercase letters, digits and underscores, 3-60 characters.",
+            "immutableHint": "Code and audience can only be set at creation. Getting either wrong means retiring this plan and creating a new one.",
+            "featuresSection": "Plan entitlements"
           },
-          "billingCycleOptions": {
-            "monthly": "Monthly",
-            "yearly": "Yearly",
-            "oneTime": "One-time Credit",
-            "weekly": "Weekly",
-            "quarterly": "Quarterly",
-            "biannual": "Biannual"
+          "features": {
+            "unlimitedPlaceholder": "Unlimited",
+            "unlimitedHint": "Leave empty = unlimited"
           },
           "buttons": {
             "cancel": "Cancel",
-            "createDraft": "Create Draft"
+            "create": "Create plan",
+            "save": "Save changes",
+            "saving": "Saving..."
+          },
+          "toasts": {
+            "createSuccess": "Plan created.",
+            "createError": "Could not create the plan.",
+            "updateSuccess": "Plan updated.",
+            "updateError": "Could not update the plan."
           }
         }
       },
