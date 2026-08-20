@@ -1,10 +1,20 @@
 "use client";
 
-import { DotsThree, MagnifyingGlass, Eye } from "@phosphor-icons/react";
+import { DotsThree, Eye, MagnifyingGlass, PencilSimple } from "@phosphor-icons/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useTranslations } from "next-intl";
 import * as React from "react";
+import Swal from "sweetalert2";
 
+import { clearAdminSession, getAdminSession } from "@/features/admin/session";
+import {
+  getSubscriptionPlans,
+  updateSubscriptionPlan,
+  type SubscriptionPlan,
+} from "@/features/recruiter/api/billing";
+import { useRouter } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { DataTable } from "@/shared/ui/data-table";
@@ -18,359 +28,293 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { Input } from "@/shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
+import { Skeleton } from "@/shared/ui/skeleton";
 
+import { EditPlanDialog } from "./edit-plan-dialog";
 import { PlanDetailsDialog } from "./plan-details-dialog";
 
-export type AdminSubscriptionPlanFeature = {
-  label: string;
-  value: string;
+const toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+});
+
+function formatPrice(
+  priceString: string,
+  cycleLabel: (days: number) => string,
+  durationDays: number,
+) {
+  const amount = Number(priceString);
+  return (
+    <div className="text-right font-medium">
+      {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount)}
+      <span className="text-muted-foreground block text-xs font-normal">
+        / {cycleLabel(durationDays)}
+      </span>
+    </div>
+  );
+}
+
+type GetColumnsArgs = {
+  t: ReturnType<typeof useTranslations>;
+  onViewDetails: (plan: SubscriptionPlan) => void;
+  onEdit: (plan: SubscriptionPlan) => void;
+  onToggleStatus: (plan: SubscriptionPlan) => void;
+  onTogglePublic: (plan: SubscriptionPlan) => void;
 };
 
-export type AdminSubscriptionPlan = {
-  id: string;
-  planName: string;
-  targetAudience: "Nhà tuyển dụng" | "Ứng viên";
-  price: number;
-  billingCycle: "Tháng" | "Năm" | "Gói tín dụng (One-time)";
-  activeSubscribers: number;
-  status: "Đang bán" | "Ngừng bán (Legacy)" | "Bản nháp";
-  features?: AdminSubscriptionPlanFeature[];
-};
-
-const data: AdminSubscriptionPlan[] = [
-  // B2B Plans
-  {
-    id: "EMP-FREE",
-    planName: "Basic",
-    targetAudience: "Nhà tuyển dụng",
-    price: 0,
-    billingCycle: "Tháng",
-    activeSubscribers: 15420,
-    status: "Đang bán",
-    features: [
-      {
-        label: "Giới hạn đăng tin",
-        value: "Được đăng 1 tin/tháng với thời hạn hiển thị mỗi tin là 14 ngày.",
-      },
-      { label: "Hiển thị", value: "Không hỗ trợ tin nổi bật hay gắn nhãn tuyển gấp." },
-      {
-        label: "Tương tác ứng viên",
-        value:
-          "Chỉ được xem CV của ứng viên nộp vào tin đăng, không được tìm kiếm kho CV hay liên hệ chủ động.",
-      },
-      {
-        label: "Giới hạn AI",
-        value:
-          "Chỉ sử dụng AI CV Matching ở mức cơ bản, không có AI chấm điểm phù hợp CV-JD, không gợi ý ứng viên hay AI viết JD.",
-      },
-      { label: "Hệ thống", value: "Cung cấp 1 tài khoản HR và quản lý thống kê ở mức cơ bản." },
-    ],
-  },
-  {
-    id: "EMP-STARTER",
-    planName: "Pro",
-    targetAudience: "Nhà tuyển dụng",
-    price: 99000,
-    billingCycle: "Tháng",
-    activeSubscribers: 4200,
-    status: "Đang bán",
-    features: [
-      { label: "Giới hạn đăng tin", value: "Được đăng 3 tin/tháng với thời hạn 30 ngày." },
-      { label: "Hiển thị", value: "Được cấp 1 tin nổi bật/tháng." },
-      {
-        label: "Tương tác ứng viên",
-        value:
-          "Được mở 30 lượt xem hồ sơ trong kho CV/tháng và có 15 lượt liên hệ ứng viên chủ động/tháng.",
-      },
-      {
-        label: "Giới hạn AI",
-        value:
-          "AI chấm điểm phù hợp tối đa 100 CV/tháng. AI gợi ý 20 ứng viên/tháng và hỗ trợ AI viết/tối ưu JD 10 lần/tháng.",
-      },
-      { label: "Hệ thống", value: "Cung cấp 1 tài khoản HR và quản lý Pipeline cơ bản." },
-    ],
-  },
-  {
-    id: "EMP-GROWTH",
-    planName: "Premium",
-    targetAudience: "Nhà tuyển dụng",
-    price: 299000,
-    billingCycle: "Tháng",
-    activeSubscribers: 1850,
-    status: "Đang bán",
-    features: [
-      { label: "Giới hạn đăng tin", value: "Được đăng 10 tin/tháng với thời hạn 30 ngày." },
-      { label: "Hiển thị", value: "Được cấp 3 tin nổi bật/tháng và 1 nhãn tuyển gấp/tháng." },
-      {
-        label: "Tương tác ứng viên",
-        value: "Được mở 150 lượt xem hồ sơ/tháng và có 80 lượt liên hệ ứng viên chủ động/tháng.",
-      },
-      {
-        label: "Giới hạn AI",
-        value:
-          "Khai thác AI CV Matching nâng cao, chấm điểm phù hợp 500 CV/tháng. AI gợi ý 100 ứng viên/tháng và AI viết JD 50 lần/tháng.",
-      },
-      {
-        label: "Hệ thống",
-        value:
-          "Cho phép sử dụng 3 tài khoản HR, quản lý Pipeline đầy đủ, trang công ty nâng cao và có báo cáo insight.",
-      },
-    ],
-  },
-  {
-    id: "EMP-SCALE",
-    planName: "Enterprise",
-    targetAudience: "Nhà tuyển dụng",
-    price: 799000,
-    billingCycle: "Tháng",
-    activeSubscribers: 620,
-    status: "Đang bán",
-    features: [
-      { label: "Giới hạn đăng tin", value: "Được đăng 30 tin/tháng với thời hạn 30 ngày." },
-      { label: "Hiển thị", value: "Được cấp 10 tin nổi bật/tháng và 5 nhãn tuyển gấp/tháng." },
-      {
-        label: "Tương tác ứng viên",
-        value: "Mở khóa 500 lượt xem hồ sơ/tháng và 250 lượt liên hệ ứng viên chủ động/tháng.",
-      },
-      {
-        label: "Giới hạn AI",
-        value:
-          "AI chấm điểm phù hợp 2.000 CV/tháng. AI gợi ý 300 ứng viên/tháng và AI viết JD 200 lần/tháng.",
-      },
-      {
-        label: "Hệ thống",
-        value:
-          "Hỗ trợ lên đến 10 tài khoản HR, Pipeline đầy đủ kèm báo cáo chi tiết, và trang công ty được branding cao cấp.",
-      },
-    ],
-  },
-
-  // B2C Plans
-  {
-    id: "CAN-FREE",
-    planName: "Basic",
-    targetAudience: "Ứng viên",
-    price: 0,
-    billingCycle: "Tháng",
-    activeSubscribers: 125000,
-    status: "Đang bán",
-    features: [
-      {
-        label: "Chức năng cốt lõi",
-        value:
-          "Được tạo hồ sơ, tạo CV online, tìm việc, ứng tuyển, lưu việc làm và theo dõi trạng thái ứng tuyển hoàn toàn miễn phí.",
-      },
-      {
-        label: "Giới hạn AI",
-        value: "Chỉ được AI phân tích CV 1 lần/tháng và trải nghiệm 1 buổi demo AI Mock Interview.",
-      },
-      {
-        label: "Tối ưu hóa",
-        value:
-          "Không hỗ trợ AI viết lại CV theo JD hay tạo Cover Letter. Lộ trình kỹ năng và AI CV Matching chỉ ở mức cơ bản.",
-      },
-    ],
-  },
-  {
-    id: "CAN-PRO",
-    planName: "Talent",
-    targetAudience: "Ứng viên",
-    price: 19000,
-    billingCycle: "Tháng",
-    activeSubscribers: 15400,
-    status: "Đang bán",
-    features: [
-      {
-        label: "Giới hạn AI CV",
-        value:
-          "AI phân tích CV 10 lần/tháng. Hỗ trợ AI viết lại CV theo JD 5 lần/tháng và AI tạo Cover Letter 5 lần/tháng.",
-      },
-      {
-        label: "Luyện phỏng vấn",
-        value: "Cung cấp 5 buổi AI Mock Interview/tháng kèm theo feedback phỏng vấn chi tiết.",
-      },
-      {
-        label: "Hiển thị",
-        value:
-          "Ứng viên nhận được Job alert cá nhân hóa, lộ trình kỹ năng theo vị trí, được gắn Badge 'Pro Candidate' và ưu tiên hiển thị nhẹ với Recruiter.",
-      },
-    ],
-  },
-  {
-    id: "CAN-CAREER-PLUS",
-    planName: "Elite",
-    targetAudience: "Ứng viên",
-    price: 49000,
-    billingCycle: "Tháng",
-    activeSubscribers: 4200,
-    status: "Đang bán",
-    features: [
-      {
-        label: "Giới hạn AI CV",
-        value:
-          "AI phân tích CV lên đến 30 lần/tháng. Hỗ trợ AI viết lại CV theo JD 20 lần/tháng và tạo Cover Letter 20 lần/tháng.",
-      },
-      {
-        label: "Luyện phỏng vấn",
-        value: "Cung cấp 20 buổi AI Mock Interview/tháng với feedback phỏng vấn nâng cao.",
-      },
-      {
-        label: "Hiển thị",
-        value:
-          "Job alert được cá nhân hóa sâu, ưu tiên hiển thị cao hơn với Recruiter và được gắn Badge 'Top Candidate'.",
-      },
-    ],
-  },
-];
-
-export const getColumns = (
-  t: any,
-  onViewDetails: (plan: AdminSubscriptionPlan) => void,
-): ColumnDef<AdminSubscriptionPlan>[] => [
-  {
-    accessorKey: "planName",
-    header: t("planName"),
-    cell: ({ row }) => {
-      const id = row.original.id;
-      // In next-intl, if a key doesn't exist, it returns the key string itself (or throws an error based on config).
-      const rawTranslation = t(`planNames.${id}`);
-      // Fallback in case translation doesn't match
-      const translatedName =
-        rawTranslation === `planNames.${id}` ? row.original.planName : rawTranslation;
-
-      return (
+function getColumns({
+  t,
+  onViewDetails,
+  onEdit,
+  onToggleStatus,
+  onTogglePublic,
+}: GetColumnsArgs): ColumnDef<SubscriptionPlan>[] {
+  return [
+    {
+      accessorKey: "subscriptionName",
+      header: t("planName"),
+      cell: ({ row }) => (
         <div>
-          <p className="text-foreground font-semibold">{translatedName}</p>
-          <p className="text-muted-foreground text-xs">{id}</p>
+          <p className="text-foreground font-semibold">{row.original.subscriptionName}</p>
+          {row.original.code ? (
+            <p className="text-muted-foreground font-mono text-xs">{row.original.code}</p>
+          ) : null}
         </div>
-      );
+      ),
     },
-  },
-  {
-    accessorKey: "targetAudience",
-    header: t("targetAudience"),
-    cell: ({ row }) => {
-      const audience = row.getValue("targetAudience") as string;
-      const tone = audience === "Nhà tuyển dụng" ? "brand" : "info";
-      const audienceKey = audience === "Nhà tuyển dụng" ? "employer" : "candidate";
-      return <Badge tone={tone}>{t(`targetAudienceOptions.${audienceKey}`)}</Badge>;
+    {
+      accessorKey: "audience",
+      header: t("targetAudience"),
+      cell: ({ row }) => {
+        const isEmployer = row.original.audience === "RECRUITER";
+        return (
+          <Badge tone={isEmployer ? "brand" : "info"}>
+            {t(`targetAudienceOptions.${isEmployer ? "employer" : "candidate"}`)}
+          </Badge>
+        );
+      },
     },
-  },
-  {
-    accessorKey: "price",
-    header: () => <div className="text-right">{t("price")}</div>,
-    cell: ({ row }) => {
-      const cycle = row.original.billingCycle;
-      const cycleKey = cycle === "Tháng" ? "month" : cycle === "Năm" ? "year" : "oneTime";
-      return (
-        <div className="text-right font-medium">
-          {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-            row.original.price,
-          )}
-          <span className="text-muted-foreground block text-xs font-normal">
-            / {t(`billingCycleOptions.${cycleKey}`)}
-          </span>
-        </div>
-      );
+    {
+      accessorKey: "price",
+      header: () => <div className="text-right">{t("price")}</div>,
+      cell: ({ row }) =>
+        formatPrice(
+          row.original.price,
+          (days) => `${days} ${t("daysUnit")}`,
+          row.original.durationDays,
+        ),
     },
-  },
-  {
-    accessorKey: "activeSubscribers",
-    header: () => <div className="text-right">{t("activeSubscribers")}</div>,
-    cell: ({ row }) => {
-      return (
-        <div className="text-right font-medium">
-          {new Intl.NumberFormat("vi-VN").format(row.original.activeSubscribers)}
-        </div>
-      );
+    {
+      accessorKey: "isPublic",
+      header: t("visibility"),
+      cell: ({ row }) => (
+        <Badge tone={row.original.isPublic ? "success" : "neutral"}>
+          {t(row.original.isPublic ? "visibilityOptions.public" : "visibilityOptions.private")}
+        </Badge>
+      ),
     },
-  },
-  {
-    accessorKey: "status",
-    header: t("status"),
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      const tone =
-        status === "Đang bán" ? "success" : status === "Bản nháp" ? "warning" : "neutral";
+    {
+      accessorKey: "status",
+      header: t("status"),
+      cell: ({ row }) => {
+        const isActive = row.original.status === "ACTIVE";
+        return (
+          <Badge tone={isActive ? "success" : "neutral"}>
+            {t(`statusOptions.${isActive ? "active" : "legacy"}`)}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">{t("actions")}</div>,
+      cell: ({ row }) => {
+        const plan = row.original;
 
-      const statusKey =
-        status === "Đang bán" ? "active" : status === "Bản nháp" ? "draft" : "legacy";
-      return <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>;
-    },
-  },
-  {
-    id: "actions",
-    header: () => <div className="text-right">{t("actions")}</div>,
-    cell: ({ row }) => {
-      const plan = row.original;
-
-      return (
-        <div className="flex justify-end gap-2 text-right">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Mở menu thao tác</span>
-                <DotsThree size={20} weight="bold" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onViewDetails(plan)}>
-                <Eye className="mr-2" size={16} />
-                {t("actionOptions.viewDetails") || "Xem chi tiết gói"}
-              </DropdownMenuItem>
-              <DropdownMenuItem>{t("actionOptions.edit")}</DropdownMenuItem>
-              <DropdownMenuItem>{t("actionOptions.viewSubscribers")}</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {plan.status === "Bản nháp" && (
-                <DropdownMenuItem className="text-success">
-                  {t("actionOptions.publish")}
+        return (
+          <div className="flex justify-end gap-2 text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">{t("actions")}</span>
+                  <DotsThree size={20} weight="bold" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onViewDetails(plan)}>
+                  <Eye className="mr-2" size={16} />
+                  {t("actionOptions.viewDetails")}
                 </DropdownMenuItem>
-              )}
-              {plan.status === "Đang bán" && (
-                <DropdownMenuItem className="text-warning">
-                  {t("actionOptions.retire")}
+                <DropdownMenuItem onClick={() => onEdit(plan)}>
+                  <PencilSimple className="mr-2" size={16} />
+                  {t("actionOptions.edit")}
                 </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      );
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onTogglePublic(plan)}>
+                  {t(
+                    plan.isPublic ? "actionOptions.hideFromPricing" : "actionOptions.showOnPricing",
+                  )}
+                </DropdownMenuItem>
+                {plan.status === "INACTIVE" ? (
+                  <DropdownMenuItem className="text-success" onClick={() => onToggleStatus(plan)}>
+                    {t("actionOptions.publish")}
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem className="text-warning" onClick={() => onToggleStatus(plan)}>
+                    {t("actionOptions.retire")}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
     },
-  },
-];
+  ];
+}
 
 export function PlansTable() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [audienceFilter, setAudienceFilter] = React.useState<string>("all");
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [selectedPlan, setSelectedPlan] = React.useState<AdminSubscriptionPlan | null>(null);
+  const [selectedPlan, setSelectedPlan] = React.useState<SubscriptionPlan | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
+  const [editingPlan, setEditingPlan] = React.useState<SubscriptionPlan | null>(null);
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
+
   const t = useTranslations("Admin.finance.plans.table");
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const {
+    data: plans = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["adminSubscriptionPlans"],
+    // `GET /subscription-plans` needs no auth, but every write action below does --
+    // the table itself renders for anyone, same as the rest of this admin screen.
+    queryFn: () => getSubscriptionPlans(),
+  });
+
+  const handleAuthError = React.useCallback(
+    (thrown: unknown): boolean => {
+      if (thrown instanceof Error && thrown.message === "No session") {
+        router.replace("/admin/login");
+        return true;
+      }
+      if (thrown instanceof ApiError && thrown.status === 401) {
+        clearAdminSession();
+        router.replace("/admin/login");
+        return true;
+      }
+      return false;
+    },
+    [router],
+  );
+
+  const { mutate: toggleStatus } = useMutation({
+    mutationFn: async (plan: SubscriptionPlan) => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      const nextStatus = plan.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+      return updateSubscriptionPlan(plan.id, { status: nextStatus }, session.accessToken);
+    },
+    onSuccess: () => {
+      void toast.fire({ icon: "success", title: t("toasts.statusUpdated") });
+      queryClient.invalidateQueries({ queryKey: ["adminSubscriptionPlans"] });
+    },
+    onError: (thrown: unknown) => {
+      if (handleAuthError(thrown)) return;
+      void toast.fire({
+        icon: "error",
+        title: thrown instanceof ApiError ? thrown.message : t("toasts.genericError"),
+      });
+    },
+  });
+
+  const { mutate: togglePublic } = useMutation({
+    mutationFn: async (plan: SubscriptionPlan) => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return updateSubscriptionPlan(plan.id, { isPublic: !plan.isPublic }, session.accessToken);
+    },
+    onSuccess: () => {
+      void toast.fire({ icon: "success", title: t("toasts.visibilityUpdated") });
+      queryClient.invalidateQueries({ queryKey: ["adminSubscriptionPlans"] });
+    },
+    onError: (thrown: unknown) => {
+      if (handleAuthError(thrown)) return;
+      void toast.fire({
+        icon: "error",
+        title: thrown instanceof ApiError ? thrown.message : t("toasts.genericError"),
+      });
+    },
+  });
 
   const filteredData = React.useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
 
-    return data.filter((item) => {
-      if (statusFilter !== "all" && item.status !== statusFilter) return false;
-      if (audienceFilter !== "all" && item.targetAudience !== audienceFilter) return false;
+    return plans.filter((plan) => {
+      if (statusFilter !== "all" && plan.status !== statusFilter) return false;
+      if (audienceFilter !== "all" && plan.audience !== audienceFilter) return false;
       if (
         keyword &&
-        !item.planName.toLowerCase().includes(keyword) &&
-        !item.id.toLowerCase().includes(keyword)
+        !plan.subscriptionName.toLowerCase().includes(keyword) &&
+        !(plan.code ?? "").toLowerCase().includes(keyword)
       ) {
         return false;
       }
       return true;
     });
-  }, [statusFilter, audienceFilter, searchTerm]);
+  }, [plans, statusFilter, audienceFilter, searchTerm]);
 
-  const handleViewDetails = React.useCallback((plan: AdminSubscriptionPlan) => {
+  const handleViewDetails = React.useCallback((plan: SubscriptionPlan) => {
     setSelectedPlan(plan);
     setIsDetailsOpen(true);
   }, []);
 
-  const columns = React.useMemo(() => getColumns(t, handleViewDetails), [t, handleViewDetails]);
+  const handleEdit = React.useCallback((plan: SubscriptionPlan) => {
+    setEditingPlan(plan);
+    setIsEditOpen(true);
+  }, []);
+
+  const columns = React.useMemo(
+    () =>
+      getColumns({
+        t,
+        onViewDetails: handleViewDetails,
+        onEdit: handleEdit,
+        onToggleStatus: toggleStatus,
+        onTogglePublic: togglePublic,
+      }),
+    [t, handleViewDetails, handleEdit, toggleStatus, togglePublic],
+  );
+
+  React.useEffect(() => {
+    // Keep the details/edit dialogs in sync after a mutation invalidates the list.
+    if (selectedPlan) {
+      const fresh = plans.find((plan) => plan.id === selectedPlan.id);
+      if (fresh && fresh !== selectedPlan) setSelectedPlan(fresh);
+    }
+    if (editingPlan) {
+      const fresh = plans.find((plan) => plan.id === editingPlan.id);
+      if (fresh && fresh !== editingPlan) setEditingPlan(fresh);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plans]);
+
+  if (isLoading) {
+    return <Skeleton className="h-[400px] w-full" />;
+  }
+
+  if (error) {
+    return <p className="text-destructive text-sm">{t("toasts.loadError")}</p>;
+  }
 
   return (
     <>
@@ -394,8 +338,8 @@ export function PlansTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("allAudiences")}</SelectItem>
-              <SelectItem value="Nhà tuyển dụng">{t("targetAudienceOptions.employer")}</SelectItem>
-              <SelectItem value="Ứng viên">{t("targetAudienceOptions.candidate")}</SelectItem>
+              <SelectItem value="RECRUITER">{t("targetAudienceOptions.employer")}</SelectItem>
+              <SelectItem value="CANDIDATE">{t("targetAudienceOptions.candidate")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -404,9 +348,8 @@ export function PlansTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("allStatuses")}</SelectItem>
-              <SelectItem value="Đang bán">{t("statusOptions.active")}</SelectItem>
-              <SelectItem value="Bản nháp">{t("statusOptions.draft")}</SelectItem>
-              <SelectItem value="Ngừng bán (Legacy)">{t("statusOptions.legacy")}</SelectItem>
+              <SelectItem value="ACTIVE">{t("statusOptions.active")}</SelectItem>
+              <SelectItem value="INACTIVE">{t("statusOptions.legacy")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -419,6 +362,7 @@ export function PlansTable() {
         plan={selectedPlan}
         t={t}
       />
+      <EditPlanDialog open={isEditOpen} onOpenChange={setIsEditOpen} plan={editingPlan} />
     </>
   );
 }
