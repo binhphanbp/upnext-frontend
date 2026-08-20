@@ -227,6 +227,10 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
             else if (child.label === "Điểm uy tín") childLabel = t("nav.companyReputation");
             else if (child.label === "Mời người dùng") childLabel = t("nav.inviteUsers");
             else if (child.label === "Vai trò") childLabel = t("nav.rolesSub");
+            else if (child.label === "Danh sách ứng tuyển") childLabel = t("nav.applicationsTab");
+            else if (child.label === "AI lọc CV") childLabel = t("nav.aiCvScreeningTab");
+            else if (child.label === "Ứng viên tiềm năng")
+              childLabel = t("nav.potentialCandidatesTab");
 
             const childRequiredTier = routeTierMap[child.href];
             const childTierLocked =

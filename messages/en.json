@@ -534,6 +534,23 @@
       "successDescription": "Your password has been reset. You can now log in with your new password.",
       "loginPrompt": "Ready to sign in?"
     },
+    "emailVerification": {
+      "ariaLabel": "Verify email",
+      "loadingTitle": "Verifying your email…",
+      "loadingSubtitle": "Please wait a moment.",
+      "successTitle": "Your email is verified!",
+      "successSubtitle": "You can now apply to jobs.",
+      "errorTitle": "Could not verify your email",
+      "errorSubtitle": "This verification link is invalid or has expired. Enter your email to get a new one.",
+      "goToProfile": "Go to my profile",
+      "resendButton": "Resend verification link",
+      "resending": "Sending…",
+      "resendSuccessTitle": "Verification link sent",
+      "resendSuccessDescription": "Please check your inbox.",
+      "resendErrorTitle": "Could not send the link",
+      "resendErrorDescription": "Please check the email and try again.",
+      "loginPrompt": "Go back"
+    },
     "errors": {
       "invalidCredentials": "The email or password is incorrect.",
       "emailInUse": "This email is already in use.",
@@ -997,7 +1014,10 @@
       "companyReviews": "Company Reviews",
       "companyReputation": "Trust Score",
       "inviteUsers": "Invite Users",
-      "rolesSub": "Roles"
+      "rolesSub": "Roles",
+      "applicationsTab": "Applications",
+      "aiCvScreeningTab": "AI CV Screening",
+      "potentialCandidatesTab": "Potential Candidates"
     },
     "shell": {
       "loading": "Loading admin workspace...",
@@ -2885,6 +2905,16 @@
         "description": "Manage what recruiters see and keep your profile accurate and consistent.",
         "lastUpdated": "Last updated {date}",
         "notUpdated": "No update information available"
+      },
+      "emailVerification": {
+        "title": "Your email is not verified yet",
+        "description": "You need to verify your email before you can apply to jobs. Please check your inbox at {email}.",
+        "resendButton": "Resend verification email",
+        "resending": "Sending…",
+        "resendSuccessTitle": "Verification email resent",
+        "resendSuccessDescription": "Please check your inbox.",
+        "resendErrorTitle": "Could not send the verification email",
+        "resendErrorDescription": "Please try again later."
       },
       "header": {
         "profileFallback": "Candidate profile",

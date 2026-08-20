@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
@@ -23,6 +24,19 @@ import { Logo } from "@/shared/ui/logo";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 
 import type { WorkspaceIdentity, WorkspaceNavGroup, WorkspaceRole } from "./types";
+
+/**
+ * Một số nhóm nav (ví dụ "Ứng viên") có nhiều mục con cùng trỏ về một pathname,
+ * chỉ khác nhau ở query `?tab=`. `usePathname()` không bao gồm query string nên
+ * so sánh `pathname === child.href` không phân biệt được các mục con này — cần
+ * so khớp thêm tham số `tab` được khai báo trong chính href của mục con đó.
+ */
+function isChildNavActive(pathname: string, currentTab: string | null, childHref: string) {
+  const [childPath, childQuery] = childHref.split("?");
+  if (pathname !== childPath) return false;
+  const childTab = childQuery ? new URLSearchParams(childQuery).get("tab") : null;
+  return childTab === currentTab;
+}
 
 export type WorkspaceSidebarProps = Readonly<{
   workspaceRole: WorkspaceRole;
@@ -47,6 +61,8 @@ export function WorkspaceSidebar({
 }: WorkspaceSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get("tab");
 
   const [localCollapsed, setLocalCollapsed] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -126,13 +142,13 @@ export function WorkspaceSidebar({
     const initialOpen: Record<string, boolean> = {};
     navGroups.forEach((group) => {
       group.items.forEach((item) => {
-        if (item.children?.some((child) => pathname === child.href)) {
+        if (item.children?.some((child) => isChildNavActive(pathname, currentTab, child.href))) {
           initialOpen[item.label] = true;
         }
       });
     });
     setOpenMenus((prev) => ({ ...prev, ...initialOpen }));
-  }, [pathname, navGroups]);
+  }, [pathname, currentTab, navGroups]);
 
   useEffect(() => {
     // Remove hover reset logic
@@ -181,8 +197,8 @@ export function WorkspaceSidebar({
 
                           if (hasChildren) {
                             const isMenuOpen = !!openMenus[item.label];
-                            const isAnyChildActive = item.children?.some(
-                              (child) => pathname === child.href,
+                            const isAnyChildActive = item.children?.some((child) =>
+                              isChildNavActive(pathname, currentTab, child.href),
                             );
                             const Icon = item.icon;
 
@@ -215,6 +231,11 @@ export function WorkspaceSidebar({
                                   {!activeCollapsed && (
                                     <>
                                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                                      {item.badge ? (
+                                        <Badge tone={item.badgeTone || "neutral"}>
+                                          {item.badge}
+                                        </Badge>
+                                      ) : null}
                                       <CaretDown
                                         size={16}
                                         className={cn(
@@ -229,7 +250,11 @@ export function WorkspaceSidebar({
                                 {!activeCollapsed && isMenuOpen && (
                                   <div className="space-y-1 pl-9 transition-all">
                                     {item.children?.map((child) => {
-                                      const active = pathname === child.href;
+                                      const active = isChildNavActive(
+                                        pathname,
+                                        currentTab,
+                                        child.href,
+                                      );
 
                                       if (child.locked) {
                                         return (
@@ -547,8 +572,8 @@ export function WorkspaceSidebar({
 
                       if (hasChildren) {
                         const isMenuOpen = !!openMenus[item.label];
-                        const isAnyChildActive = item.children?.some(
-                          (child) => pathname === child.href,
+                        const isAnyChildActive = item.children?.some((child) =>
+                          isChildNavActive(pathname, currentTab, child.href),
                         );
                         const Icon = item.icon;
 
@@ -577,6 +602,9 @@ export function WorkspaceSidebar({
                                 )}
                               />
                               <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                              {item.badge ? (
+                                <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
+                              ) : null}
                               <CaretDown
                                 size={14}
                                 className={cn(
@@ -589,7 +617,7 @@ export function WorkspaceSidebar({
                             {isMenuOpen && (
                               <div className="space-y-1 pl-9 transition-all">
                                 {item.children?.map((child) => {
-                                  const active = pathname === child.href;
+                                  const active = isChildNavActive(pathname, currentTab, child.href);
 
                                   if (child.locked) {
                                     return (

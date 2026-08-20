@@ -611,11 +611,12 @@ test("supports direct drag navigation and keeps zoom drag as pan", async ({ page
   await page.mouse.down();
   await page.mouse.move(startX - 180, startY, { steps: 6 });
 
-  const currentBoxDuringDrag = await currentSlide.boundingBox();
+  await expect
+    .poll(async () => (await currentSlide.boundingBox())?.x)
+    .toBeLessThan(currentBoxBeforeDrag!.x - 120);
+
   const nextBoxDuringDrag = await nextSlide.boundingBox();
-  expect(currentBoxDuringDrag).not.toBeNull();
   expect(nextBoxDuringDrag).not.toBeNull();
-  expect(currentBoxDuringDrag!.x).toBeLessThan(currentBoxBeforeDrag!.x - 120);
   expect(nextBoxDuringDrag!.x).toBeLessThan(stageBox!.x + stageBox!.width);
   expect(nextBoxDuringDrag!.x + nextBoxDuringDrag!.width).toBeGreaterThan(stageBox!.x);
   await expect(galleryDialog.getByText("3/18")).toBeVisible();

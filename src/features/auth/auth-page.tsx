@@ -12,7 +12,9 @@ import {
   confirmCandidatePasswordReset,
   loginCandidate,
   registerCandidate,
+  requestCandidateEmailVerification,
   requestCandidatePasswordReset,
+  verifyCandidateEmail,
 } from "@/features/candidate/api/auth";
 import { saveCandidateSession } from "@/features/candidate/session";
 import { upnextLogo } from "@/features/public/home/brand";
@@ -33,7 +35,7 @@ import {
 } from "./schemas/auth-schema";
 
 type AuthPageProps = Readonly<{
-  mode: "login" | "register" | "forgot-password" | "reset-password";
+  mode: "login" | "register" | "forgot-password" | "reset-password" | "verify-email";
 }>;
 
 const demoAuthStorageKey = "upnext.demo.auth";
@@ -53,8 +55,10 @@ export function AuthPage({ mode }: AuthPageProps) {
         <RegisterPage />
       ) : mode === "forgot-password" ? (
         <ForgotPasswordPage />
-      ) : (
+      ) : mode === "reset-password" ? (
         <ResetPasswordPage />
+      ) : (
+        <EmailVerificationPage />
       )}
     </Suspense>
   );
@@ -640,6 +644,124 @@ function ResetPasswordPage() {
 
         <p className="login-switch">
           {t("resetPassword.loginPrompt")} <Link href="/login">{t("register.loginLink")}</Link>
+        </p>
+      </div>
+    </AuthShell>
+  );
+}
+
+function EmailVerificationPage() {
+  const router = useRouter();
+  const locale = useLocale();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token") ?? "";
+  const t = useTranslations("Auth");
+
+  const [status, setStatus] = useState<"loading" | "success" | "error">(
+    token ? "loading" : "error",
+  );
+  const [resendEmail, setResendEmail] = useState("");
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    verifyCandidateEmail(token)
+      .then(() => {
+        if (active) setStatus("success");
+      })
+      .catch(() => {
+        if (active) setStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  async function handleResend(event: React.FormEvent) {
+    event.preventDefault();
+    if (!resendEmail.trim()) return;
+
+    setResending(true);
+    try {
+      await requestCandidateEmailVerification(resendEmail.trim(), locale);
+      toast.success(t("emailVerification.resendSuccessTitle"), {
+        description: t("emailVerification.resendSuccessDescription"),
+        id: "candidate-email-verification-resend-success",
+      });
+    } catch {
+      toast.error(t("emailVerification.resendErrorTitle"), {
+        description: t("emailVerification.resendErrorDescription"),
+        id: "candidate-email-verification-resend-error",
+      });
+    } finally {
+      setResending(false);
+    }
+  }
+
+  return (
+    <AuthShell label={t("emailVerification.ariaLabel")}>
+      <div className="login-auth-inner">
+        <h1 className="login-title">
+          {status === "loading"
+            ? t("emailVerification.loadingTitle")
+            : status === "success"
+              ? t("emailVerification.successTitle")
+              : t("emailVerification.errorTitle")}
+        </h1>
+        <p className="login-subtitle">
+          {status === "loading"
+            ? t("emailVerification.loadingSubtitle")
+            : status === "success"
+              ? t("emailVerification.successSubtitle")
+              : t("emailVerification.errorSubtitle")}
+        </p>
+
+        {status === "success" ? (
+          <button
+            type="button"
+            className="login-submit"
+            onClick={() => router.replace("/candidate/profile")}
+          >
+            {t("emailVerification.goToProfile")}
+          </button>
+        ) : status === "error" ? (
+          <form
+            className="login-form"
+            method="post"
+            noValidate
+            aria-busy={resending}
+            onSubmit={handleResend}
+          >
+            <div className="login-field">
+              <label className="login-field-label" htmlFor="verify-email-resend">
+                {t("fields.email")}
+              </label>
+              <div className="login-input">
+                <EnvelopeSimple size={18} aria-hidden="true" />
+                <input
+                  id="verify-email-resend"
+                  name="email"
+                  type="email"
+                  aria-label={t("fields.email")}
+                  value={resendEmail}
+                  onChange={(event) => setResendEmail(event.target.value)}
+                  placeholder={t("fields.emailPlaceholder")}
+                  autoComplete="email"
+                  maxLength={255}
+                  spellCheck={false}
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="login-submit" disabled={resending}>
+              {resending ? t("emailVerification.resending") : t("emailVerification.resendButton")}
+            </button>
+          </form>
+        ) : null}
+
+        <p className="login-switch">
+          {t("emailVerification.loginPrompt")} <Link href="/login">{t("register.loginLink")}</Link>
         </p>
       </div>
     </AuthShell>

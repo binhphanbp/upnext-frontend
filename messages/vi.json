@@ -534,6 +534,23 @@
       "successDescription": "Mật khẩu của bạn đã được đặt lại. Bạn có thể đăng nhập bằng mật khẩu mới.",
       "loginPrompt": "Sẵn sàng đăng nhập?"
     },
+    "emailVerification": {
+      "ariaLabel": "Xác thực email",
+      "loadingTitle": "Đang xác thực email…",
+      "loadingSubtitle": "Vui lòng chờ trong giây lát.",
+      "successTitle": "Email đã được xác thực!",
+      "successSubtitle": "Bạn có thể ứng tuyển việc làm ngay bây giờ.",
+      "errorTitle": "Không thể xác thực email",
+      "errorSubtitle": "Liên kết xác thực không hợp lệ hoặc đã hết hạn. Nhập email để nhận liên kết mới.",
+      "goToProfile": "Về hồ sơ của tôi",
+      "resendButton": "Gửi lại liên kết xác thực",
+      "resending": "Đang gửi…",
+      "resendSuccessTitle": "Đã gửi liên kết xác thực",
+      "resendSuccessDescription": "Vui lòng kiểm tra hộp thư email của bạn.",
+      "resendErrorTitle": "Không thể gửi liên kết",
+      "resendErrorDescription": "Vui lòng kiểm tra lại email và thử lại.",
+      "loginPrompt": "Quay lại"
+    },
     "errors": {
       "invalidCredentials": "Email hoặc mật khẩu không chính xác.",
       "emailInUse": "Email này đã được sử dụng.",
@@ -997,7 +1014,10 @@
       "companyReviews": "Quản lý đánh giá",
       "companyReputation": "Điểm uy tín",
       "inviteUsers": "Mời người dùng",
-      "rolesSub": "Vai trò"
+      "rolesSub": "Vai trò",
+      "applicationsTab": "Danh sách ứng tuyển",
+      "aiCvScreeningTab": "AI lọc CV",
+      "potentialCandidatesTab": "Ứng viên tiềm năng"
     },
     "shell": {
       "loading": "Đang tải không gian quản trị...",
@@ -2885,6 +2905,16 @@
         "description": "Quản lý thông tin nhà tuyển dụng nhìn thấy và giữ hồ sơ của bạn luôn chính xác, nhất quán.",
         "lastUpdated": "Cập nhật gần nhất {date}",
         "notUpdated": "Chưa có thông tin cập nhật"
+      },
+      "emailVerification": {
+        "title": "Email của bạn chưa được xác thực",
+        "description": "Bạn cần xác thực email trước khi có thể nộp hồ sơ ứng tuyển. Vui lòng kiểm tra hộp thư {email}.",
+        "resendButton": "Gửi lại email xác thực",
+        "resending": "Đang gửi…",
+        "resendSuccessTitle": "Đã gửi lại email xác thực",
+        "resendSuccessDescription": "Vui lòng kiểm tra hộp thư của bạn.",
+        "resendErrorTitle": "Không thể gửi email xác thực",
+        "resendErrorDescription": "Vui lòng thử lại sau."
       },
       "header": {
         "profileFallback": "Hồ sơ ứng viên",

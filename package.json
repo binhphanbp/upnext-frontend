@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "next dev --turbo --disable-source-maps",
+    "dev:webpack": "next dev --webpack --disable-source-maps",
     "proxy": "vite",
     "build": "next build",
     "start": "next start",
