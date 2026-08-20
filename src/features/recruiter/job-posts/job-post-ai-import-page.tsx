@@ -10,6 +10,12 @@ import { ApiError } from "@/shared/api/http";
 import { extractJobPostDraft, extractJobPostDraftFile } from "./api";
 import { saveJobPostAiDraft } from "./job-post-ai-draft-storage";
 import { JobPostAiImport } from "./job-post-ai-import";
+import {
+  fileSignature,
+  payloadSignature,
+  releaseRequestKey,
+  stableRequestKey,
+} from "./job-post-ai-request-key";
 
 export function JobPostAiImportPage() {
   const router = useRouter();
@@ -50,8 +56,10 @@ export function JobPostAiImportPage() {
     if (!token) return false;
     setErrorMessage("");
     setIsExtracting(true);
+    const signature = payloadSignature("extract-text", text);
     try {
-      const response = await extractJobPostDraft(text, token);
+      const response = await extractJobPostDraft(text, token, stableRequestKey(signature));
+      releaseRequestKey(signature);
       handleExtracted(response);
       return true;
     } catch (error) {
@@ -66,8 +74,10 @@ export function JobPostAiImportPage() {
     if (!token) return false;
     setErrorMessage("");
     setIsExtracting(true);
+    const signature = fileSignature("extract-file", file);
     try {
-      const response = await extractJobPostDraftFile(file, token);
+      const response = await extractJobPostDraftFile(file, token, stableRequestKey(signature));
+      releaseRequestKey(signature);
       handleExtracted(response);
       return true;
     } catch (error) {
