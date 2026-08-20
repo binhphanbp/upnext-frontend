@@ -172,7 +172,15 @@ test("uses one readiness indicator and one empty-state action on desktop", async
   page.on("pageerror", (error) => browserErrors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 1000 });
   await mockCandidateWorkspace(page, emptyProfile, false);
+  const emailVerificationResponse = page.waitForResponse((response) => {
+    const request = response.request();
+    return (
+      request.method() === "POST" &&
+      new URL(response.url()).pathname === "/api/v1/candidate-accounts/email-verification/status"
+    );
+  });
   await page.goto("/vi/candidate/profile?section=experience");
+  expect((await emailVerificationResponse).status()).toBe(200);
 
   await expect(page.getByText("Không gian ứng viên", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Nội dung hồ sơ", { exact: true })).toBeVisible();
@@ -294,9 +302,19 @@ async function mockCandidateWorkspace(
   await page.route(/\/api\/v1\/job-posts(?:\?|$)/, async (route) => {
     await route.fulfill({ json: { data: [], meta: { total: 0 } } });
   });
-  await page.route(/\/candidate\/account\/email-verification-status(?:\?|$)/, async (route) => {
-    await route.fulfill({ json: { data: { email: "minhanh@example.com", emailVerified: true } } });
-  });
+  await page.route(
+    /\/api\/v1\/candidate-accounts\/email-verification\/status(?:\?|$)/,
+    async (route) => {
+      await route.fulfill({
+        json: {
+          email: "minhanh@example.com",
+          emailVerified: true,
+          emailVerifiedAt: "2026-08-19T00:00:00.000Z",
+          message: "Email has already been verified.",
+        },
+      });
+    },
+  );
 
   await page.route("**/candidate-profiles/me", async (route) => {
     await route.fulfill({
