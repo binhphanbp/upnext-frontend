@@ -58,4 +58,7 @@ yarn-error.log*
 .idea
 
 # local agent/tooling state, per-developer and not shareable
-.claude
+.claude/*
+# ...except the shared project config: which agent plugins this repo expects.
+# `settings.local.json` and `launch.json` stay per-developer via the rule above.
+!.claude/settings.json
