@@ -9,7 +9,7 @@ import Swal from "sweetalert2";
 import {
   getActiveSubscription,
   getInvoices,
-  getSubscriptionPlans,
+  getPublicSubscriptionPlans,
   getSubscriptionUsage,
   payInvoice,
   type CompanySubscriptionDetail,
@@ -99,7 +99,10 @@ export function RecruiterBillingPage() {
     async (accessToken: string) => {
       try {
         setLoading(true);
-        const plansData = await getSubscriptionPlans();
+        // Public listing: a recruiter must never call the admin-only
+        // `/subscription-plans` endpoint, which 401s for non-admin roles and
+        // was silently logging every recruiter straight back out of this page.
+        const plansData = await getPublicSubscriptionPlans("RECRUITER");
         setPlans(plansData.filter((p) => p.status === "ACTIVE"));
 
         const invoicesData = await getInvoices(accessToken);
