@@ -24,7 +24,7 @@ import Swal from "sweetalert2";
 import {
   createInvoice,
   getActiveSubscription,
-  getSubscriptionPlans,
+  getPublicSubscriptionPlans,
   type CompanySubscriptionDetail,
   type SubscriptionFeature,
   type SubscriptionPlan,
@@ -84,7 +84,10 @@ export function RecruiterPricingPage() {
     async (accessToken: string) => {
       try {
         setLoading(true);
-        const plansData = await getSubscriptionPlans();
+        // Public listing: a recruiter must never call the admin-only
+        // `/subscription-plans` endpoint, which 401s for non-admin roles and
+        // was silently logging every recruiter straight back out of this page.
+        const plansData = await getPublicSubscriptionPlans("RECRUITER");
         setPlans(plansData.filter((plan) => plan.status === "ACTIVE"));
 
         try {
