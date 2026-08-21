@@ -22,6 +22,7 @@ import {
   setCandidateCvDefault,
   uploadCandidateCvFile,
 } from "@/features/candidate/api/profile";
+import { shouldRenderBuilderCvSnapshotForDownload } from "@/features/candidate/cv-builder/cv-download";
 import {
   renderCvDataToPdfBlob,
   toCvPdfFileName,
@@ -207,9 +208,7 @@ export function ProfileDocuments({
     setDownloadingId(cv.id);
     setFeedback(null);
     try {
-      // Builder versions saved before this flow existed have no `sourceFile`; once one is
-      // attached the stored PDF is authoritative, so prefer it over re-rendering.
-      if (cv.source === "BUILDER" && !version.sourceFile) {
+      if (shouldRenderBuilderCvSnapshotForDownload(cv, version)) {
         await downloadBuilderSnapshot(cv, version.id, version.contentJson);
         return;
       }

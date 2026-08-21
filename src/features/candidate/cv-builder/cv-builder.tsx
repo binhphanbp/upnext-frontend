@@ -46,6 +46,7 @@ import {
 } from "react";
 
 import {
+  attachRenderedCvVersionPdf,
   createCandidateBuilderVersion,
   createCandidateCv,
   getCandidateCv,
@@ -70,6 +71,7 @@ import {
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 
+import { renderCvDataToPdfBlob, toCvPdfFileName } from "./cv-pdf-export";
 import { CvPreview } from "./cv-preview";
 import { evaluateCv, isCvEmpty, mapProfileToCvData, toEditableText, toPlainText } from "./logic";
 import {
@@ -2093,6 +2095,7 @@ export function CandidateCvBuilder() {
     try {
       const status = evaluation.exportReady ? "ACTIVE" : "DRAFT";
       let savedCv: SavedBuilderCv;
+      let savedVersionId: string | undefined;
       let savedAsDefault = false;
       let defaultUpdateFailed = false;
 
@@ -2105,6 +2108,7 @@ export function CandidateCvBuilder() {
           expectedVersion: targetSavedCv.version,
         });
         savedCv = { id: saved.cv.id, title: saved.cv.title, version: saved.cv.version };
+        savedVersionId = saved.version.id;
         savedAsDefault = saved.cv.isDefault;
       } else {
         const saved = await createCandidateCv(session.accessToken, {
@@ -2118,7 +2122,25 @@ export function CandidateCvBuilder() {
           title,
         });
         savedCv = { id: saved.id, title: saved.title, version: saved.version };
+        savedVersionId = saved.versions[0]?.id;
         savedAsDefault = saved.isDefault;
+      }
+
+      // Store the exact snapshot PDF while the Builder preview is available. The download page
+      // still renders `contentJson` as its source of truth, so an attachment failure cannot
+      // downgrade a candidate back to a text-only or stale export.
+      if (savedVersionId) {
+        try {
+          const pdf = await renderCvDataToPdfBlob(cvData);
+          await attachRenderedCvVersionPdf(
+            session.accessToken,
+            savedVersionId,
+            pdf,
+            toCvPdfFileName(savedCv.title),
+          );
+        } catch {
+          // The immutable snapshot has already been saved. A later download will render it again.
+        }
       }
 
       setSavedBuilderCv(savedCv);
