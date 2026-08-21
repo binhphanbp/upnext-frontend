@@ -37,6 +37,69 @@
   animation: cv-spin 700ms linear infinite;
 }
 
+.cv-builder-load-error {
+  display: grid;
+  min-height: 100dvh;
+  padding: 24px;
+  background: #f8fafc;
+  place-items: center;
+}
+
+.cv-builder-load-error__card {
+  width: min(100%, 510px);
+  padding: clamp(24px, 5vw, 40px);
+  border: 1px solid #dbe5ea;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.1);
+  text-align: center;
+}
+
+.cv-builder-load-error__icon {
+  display: inline-grid;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  color: #0f9f74;
+  background: #e9f9f2;
+  place-items: center;
+}
+
+.cv-builder-load-error__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.cv-builder-load-error h1 {
+  margin: 18px 0 8px;
+  color: #162235;
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.cv-builder-load-error p {
+  max-width: 410px;
+  margin: 0 auto;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 450;
+  line-height: 1.65;
+}
+
+.cv-builder-load-error__actions {
+  display: flex;
+  margin-top: 24px;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cv-builder-load-error__actions button {
+  min-height: 42px;
+}
+
 @keyframes cv-spin {
   to {
     transform: rotate(360deg);
@@ -1583,6 +1646,42 @@
   height: 16px;
   margin-top: 1px;
   color: #0b9570;
+}
+
+.cv-server-save-default {
+  display: flex;
+  padding: 11px;
+  border: 1px solid #ccebdd;
+  border-radius: 10px;
+  color: #4a5b6b;
+  background: #f5fcf8;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cv-server-save-default > button {
+  flex: none;
+  margin-top: 1px;
+}
+
+.cv-server-save-default label {
+  display: grid;
+  min-width: 0;
+  cursor: pointer;
+  gap: 2px;
+}
+
+.cv-server-save-default strong {
+  color: #1e4034;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cv-server-save-default small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 450;
+  line-height: 1.45;
 }
 
 .cv-dialog-callout strong {
@@ -3188,6 +3287,18 @@
 
   body * {
     visibility: hidden !important;
+  }
+
+  /*
+   * The preview holds the print area, and in edit mode — the default — it carries
+   * `cv-preview-mobile-hidden`. That class is `display: none` inside `max-width` queries
+   * which carry no `screen` keyword, and a printer evaluates width against the paper, not
+   * the screen: A4 is about 794px, so those queries match on every device and the preview
+   * was removed from the printed page. `visibility: visible` cannot bring back a subtree
+   * whose ancestor is `display: none`, so the export came out blank.
+   */
+  .cv-builder-preview.cv-preview-mobile-hidden {
+    display: block !important;
   }
 
   .print-area,

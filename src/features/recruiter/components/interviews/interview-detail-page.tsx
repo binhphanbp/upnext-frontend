@@ -772,8 +772,7 @@ export function InterviewDetailPage({ interviewId }: InterviewDetailPageProps) {
         jobTitle={jobTitle}
         onConfirmOffer={async (appId, offerDetails) => {
           if (!token) return;
-          const payloadStr = JSON.stringify(offerDetails);
-          await updateApplicationStatus(appId, "OFFERED", token, payloadStr);
+          await updateApplicationStatus(appId, "OFFERED", token, { offer: offerDetails });
           invalidateAll();
         }}
       />

@@ -16,6 +16,11 @@ import {
   type JobPostCatalogs,
   type JobPostSalaryInsightResponse,
 } from "@/features/recruiter/job-posts/api";
+import {
+  payloadSignature,
+  releaseRequestKey,
+  stableRequestKey,
+} from "@/features/recruiter/job-posts/job-post-ai-request-key";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
@@ -225,12 +230,19 @@ export function JobPostAiGeneratorPage() {
   const handleSubmit = async (payload: GenerateJobPostDraftPayload) => {
     if (!token) return false;
 
+    // Khóa neo theo nội dung form: bấm hai lần hoặc thử lại sau lỗi dùng cùng một
+    // khóa nên không tốn thêm lượt AI. Nhả khóa sau khi thành công, để lần bấm sau
+    // với cùng đầu vào thực sự sinh bản nháp mới thay vì trả lại bản cũ từ cache.
+    const signature = payloadSignature("generate", payload);
+    const clientRequestId = stableRequestKey(signature);
+
     setErrorMessage("");
     setSalaryInsight(null);
     setSalaryInsightError("");
     setIsSubmitting(true);
     try {
-      const response = await generateJobPostDraft(payload, token);
+      const response = await generateJobPostDraft({ ...payload, clientRequestId }, token);
+      releaseRequestKey(signature);
       setGeneratedResult({ payload, response });
       // A fresh draft starts from that layout's default order with no leftover custom blocks.
       setSectionOrder(getDefaultSectionOrder(payload.presentationStyle));

@@ -38,6 +38,7 @@ import {
   type CSSProperties,
   type ReactNode,
   useCallback,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -49,12 +50,15 @@ import {
   createCandidateCv,
   getCandidateCv,
   getMyCandidateProfile,
+  setCandidateCvDefault,
   type CandidateProfileApi,
 } from "@/features/candidate/api/profile";
 import { getCandidateSession } from "@/features/candidate/session";
 import { useRouter } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
+import { Checkbox } from "@/shared/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -67,7 +71,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 
 import { CvPreview } from "./cv-preview";
-import { evaluateCv, isCvEmpty, mapProfileToCvData, toPlainText } from "./logic";
+import { evaluateCv, isCvEmpty, mapProfileToCvData, toEditableText, toPlainText } from "./logic";
 import {
   createInitialCvData,
   getCvBuilderStorageKey,
@@ -140,6 +144,43 @@ function createCvSnapshotText(cvData: CvData) {
 }
 
 type SavedBuilderCv = Readonly<{ id: string; title: string; version: number }>;
+
+type RequestedCvLoadError =
+  | "accessDenied"
+  | "missingSnapshot"
+  | "notEditable"
+  | "notFound"
+  | "unavailable";
+type SaveCvError = "authentication" | "conflict" | "generic" | "limit" | "reload";
+
+function getApiErrorCode(error: unknown) {
+  if (!(error instanceof ApiError) || typeof error.payload !== "object" || error.payload === null) {
+    return null;
+  }
+
+  const payload = error.payload as Record<string, unknown>;
+  return typeof payload.code === "string" ? payload.code : null;
+}
+
+function getRequestedCvLoadError(error: unknown): RequestedCvLoadError {
+  if (error instanceof ApiError) {
+    if (error.status === 404) return "notFound";
+    if (error.status === 401 || error.status === 403) return "accessDenied";
+  }
+
+  return "unavailable";
+}
+
+function getSaveCvError(error: unknown): SaveCvError {
+  const code = getApiErrorCode(error);
+  if (code === "CV_VERSION_CONFLICT") return "conflict";
+  if (code === "CV_LIMIT_REACHED" || code === "CV_VERSION_LIMIT_REACHED") return "limit";
+  if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+    return "authentication";
+  }
+
+  return "generic";
+}
 
 const EDITOR_SEQUENCE: CvEditorSectionKey[] = [
   "targeting",
@@ -647,7 +688,7 @@ function PersonalEditor({
 function SummaryEditor({ evaluation }: Readonly<{ evaluation: CvEvaluation }>) {
   const t = useTranslations("CvBuilder");
   const { cvData, updateSummary } = useCvBuilderStore();
-  const summary = toPlainText(cvData.summary);
+  const summary = toEditableText(cvData.summary);
   const issue = getIssue(evaluation, "summary");
   return (
     <div className="cv-editor-section">
@@ -722,7 +763,7 @@ function ExperienceEditor({
             const startIssue = getIssue(evaluation, `${prefix}.startDate`);
             const endIssue = getIssue(evaluation, `${prefix}.endDate`);
             const descriptionIssue = getIssue(evaluation, `${prefix}.description`);
-            const description = toPlainText(experience.description);
+            const description = toEditableText(experience.description);
             return (
               <article
                 aria-labelledby={`experience-heading-${experience.id}`}
@@ -912,7 +953,7 @@ function ProjectsEditor({
           {cvData.projects.map((project, index) => {
             const prefix = `projects.${index}`;
             const title = project.name || t("projects.item", { index: index + 1 });
-            const description = toPlainText(project.description);
+            const description = toEditableText(project.description);
             return (
               <article
                 aria-labelledby={`project-heading-${project.id}`}
@@ -1237,7 +1278,7 @@ function EducationEditor({
                       updateEducation(education.id, { description: event.target.value })
                     }
                     placeholder={t("education.descriptionPlaceholder")}
-                    value={toPlainText(education.description)}
+                    value={toEditableText(education.description)}
                   />
                 </FormField>
               </article>
@@ -1776,12 +1817,18 @@ export function CandidateCvBuilder() {
   const [profile, setProfile] = useState<CandidateProfileApi | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
+  const [requestedCvLoadError, setRequestedCvLoadError] = useState<RequestedCvLoadError | null>(
+    null,
+  );
+  const [requestedCvLoadAttempt, setRequestedCvLoadAttempt] = useState(0);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [saveCvDialogOpen, setSaveCvDialogOpen] = useState(false);
   const [saveCvTitle, setSaveCvTitle] = useState("");
-  const [saveCvError, setSaveCvError] = useState<string | null>(null);
+  const [saveCvError, setSaveCvError] = useState<SaveCvError | null>(null);
+  const [makeSavedCvDefault, setMakeSavedCvDefault] = useState(false);
   const [savingCv, setSavingCv] = useState(false);
+  const [reloadingSavedCv, setReloadingSavedCv] = useState(false);
   const [savedBuilderCv, setSavedBuilderCv] = useState<SavedBuilderCv | null>(null);
   const [savedSnapshotSignature, setSavedSnapshotSignature] = useState<string | null>(null);
   // Đúng thời điểm ứng viên nghĩ mình "đã xong" (dialog hướng dẫn in) là chỗ
@@ -1794,6 +1841,10 @@ export function CandidateCvBuilder() {
   const previewRef = useRef<HTMLDivElement>(null);
   const previewViewportRef = useRef<HTMLDivElement>(null);
   const evaluation = useMemo(() => evaluateCv(cvData), [cvData]);
+  // The print-quality preview is comparatively expensive. Deferring only that
+  // surface keeps text inputs responsive while preserving the authoritative
+  // `cvData` for validation and server saves.
+  const deferredPreviewCvData = useDeferredValue(cvData);
   const snapshotSignature = useMemo(() => JSON.stringify(cvData), [cvData]);
   const hasUnsyncedServerChanges = Boolean(
     savedBuilderCv && savedSnapshotSignature !== snapshotSignature,
@@ -1864,18 +1915,29 @@ export function CandidateCvBuilder() {
       if (cancelled) return;
       setAuthReady(true);
 
-      try {
-        const [candidateProfile, requestedCv] = await Promise.all([
-          getMyCandidateProfile(session.accessToken),
-          requestedCvId
-            ? getCandidateCv(session.accessToken, requestedCvId)
-            : Promise.resolve(null),
-        ]);
-        if (cancelled) return;
-        setProfile(candidateProfile);
-        if (requestedCv) {
+      const loadProfile = async () => {
+        try {
+          const candidateProfile = await getMyCandidateProfile(session.accessToken);
+          if (cancelled) return null;
+          setProfile(candidateProfile);
+          return candidateProfile;
+        } catch {
+          // Hồ sơ chỉ là dữ liệu bổ sung. Bản nháp cục bộ vẫn dùng được khi API hồ sơ tạm lỗi.
+          if (!cancelled && !requestedCvId) setProfileNotice(t("profileSync.error"));
+          return null;
+        } finally {
+          if (!cancelled) setProfileLoading(false);
+        }
+      };
+
+      if (requestedCvId) {
+        setRequestedCvLoadError(null);
+        try {
+          const requestedCv = await getCandidateCv(session.accessToken, requestedCvId);
+          if (cancelled) return;
+
           if (requestedCv.source !== "BUILDER") {
-            setProfileNotice(t("serverSave.uploadedCvNotEditable"));
+            setRequestedCvLoadError("notEditable");
           } else {
             const latestVersion = [...requestedCv.versions].sort(
               (left, right) =>
@@ -1883,35 +1945,41 @@ export function CandidateCvBuilder() {
                 new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
             )[0];
             const snapshot = latestVersion ? parseCvSnapshot(latestVersion.contentJson) : null;
-            if (snapshot) {
-              useCvBuilderStore.getState().setCvData(snapshot);
+            if (!snapshot) {
+              setRequestedCvLoadError("missingSnapshot");
+            } else {
+              // Đây là một bản máy chủ có chủ đích, không phải một thao tác người dùng để
+              // Ctrl+Z quay về bản nháp của tài khoản khác hoặc nội dung trước khi tải.
+              useCvBuilderStore.getState().hydrateCvData(snapshot);
+              const hydratedSnapshot = useCvBuilderStore.getState().cvData;
               setSavedBuilderCv({
                 id: requestedCv.id,
                 title: requestedCv.title,
                 version: requestedCv.version,
               });
-              setSavedSnapshotSignature(JSON.stringify(snapshot));
-            } else {
-              setProfileNotice(t("serverSave.builderSnapshotMissing"));
+              setSavedSnapshotSignature(JSON.stringify(hydratedSnapshot));
             }
           }
-        } else if (isCvEmpty(useCvBuilderStore.getState().cvData)) {
-          useCvBuilderStore
-            .getState()
-            .hydrateCvData(
-              mapProfileToCvData(candidateProfile, useCvBuilderStore.getState().cvData),
-            );
+        } catch (error) {
+          if (!cancelled) setRequestedCvLoadError(getRequestedCvLoadError(error));
         }
-      } catch {
-        // A local draft remains fully usable when the optional profile request is unavailable.
-      } finally {
-        if (!cancelled) setProfileLoading(false);
+
+        // Không để một lỗi tải hồ sơ phụ làm hỏng việc mở đúng phiên bản CV được yêu cầu.
+        void loadProfile();
+        return;
+      }
+
+      const candidateProfile = await loadProfile();
+      if (!cancelled && candidateProfile && isCvEmpty(useCvBuilderStore.getState().cvData)) {
+        useCvBuilderStore
+          .getState()
+          .hydrateCvData(mapProfileToCvData(candidateProfile, useCvBuilderStore.getState().cvData));
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [locale, requestedCvId, router, t]);
+  }, [locale, requestedCvId, requestedCvLoadAttempt, router, t]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1998,20 +2066,21 @@ export function CandidateCvBuilder() {
   };
 
   const requestSaveToUpNext = () => {
-    if (savedBuilderCv) {
-      void saveSnapshotToUpNext();
-      return;
-    }
     const role = cvData.targetJob.role.trim() || cvData.personalInfo.title.trim();
     const company = cvData.targetJob.company.trim();
-    setSaveCvTitle([role || t("serverSave.defaultTitle"), company].filter(Boolean).join(" · "));
+    setSaveCvTitle(
+      savedBuilderCv?.title ??
+        [role || t("serverSave.defaultTitle"), company].filter(Boolean).join(" · "),
+    );
     setSaveCvError(null);
+    setMakeSavedCvDefault(false);
     setSaveCvDialogOpen(true);
   };
 
-  const saveSnapshotToUpNext = async () => {
+  const saveSnapshotToUpNext = async ({ saveAsNew = false } = {}) => {
     const session = getCandidateSession();
-    const title = (savedBuilderCv?.title ?? saveCvTitle).trim();
+    const targetSavedCv = saveAsNew ? null : savedBuilderCv;
+    const title = saveCvTitle.trim();
     if (!session) {
       router.replace("/login");
       return;
@@ -2023,36 +2092,96 @@ export function CandidateCvBuilder() {
     setProfileNotice(null);
     try {
       const status = evaluation.exportReady ? "ACTIVE" : "DRAFT";
-      if (savedBuilderCv) {
-        const saved = await createCandidateBuilderVersion(session.accessToken, savedBuilderCv.id, {
+      let savedCv: SavedBuilderCv;
+      let savedAsDefault = false;
+      let defaultUpdateFailed = false;
+
+      if (targetSavedCv) {
+        const saved = await createCandidateBuilderVersion(session.accessToken, targetSavedCv.id, {
           contentJson: cvData as unknown as Record<string, unknown>,
           parsedText: createCvSnapshotText(cvData),
           status,
           title,
-          expectedVersion: savedBuilderCv.version,
+          expectedVersion: targetSavedCv.version,
         });
-        setSavedBuilderCv({ id: saved.cv.id, title: saved.cv.title, version: saved.cv.version });
+        savedCv = { id: saved.cv.id, title: saved.cv.title, version: saved.cv.version };
+        savedAsDefault = saved.cv.isDefault;
       } else {
         const saved = await createCandidateCv(session.accessToken, {
           contentJson: cvData as unknown as Record<string, unknown>,
-          isDefault: status === "ACTIVE",
+          // Omitting `isDefault` lets the server choose the first active CV as the
+          // initial default without silently replacing a candidate's existing choice.
+          ...(status === "ACTIVE" && makeSavedCvDefault ? { isDefault: true } : {}),
           parsedText: createCvSnapshotText(cvData),
           source: "BUILDER",
           status,
           title,
         });
-        setSavedBuilderCv({ id: saved.id, title: saved.title, version: saved.version });
+        savedCv = { id: saved.id, title: saved.title, version: saved.version };
+        savedAsDefault = saved.isDefault;
       }
+
+      setSavedBuilderCv(savedCv);
+
+      if (status === "ACTIVE" && makeSavedCvDefault && !savedAsDefault) {
+        try {
+          await setCandidateCvDefault(session.accessToken, savedCv.id);
+        } catch {
+          defaultUpdateFailed = true;
+          setProfileNotice(t("serverSave.defaultError", { title: savedCv.title }));
+        }
+      }
+
       setSaveCvDialogOpen(false);
       setHasSavedCvThisSession(true);
       setSavedSnapshotSignature(snapshotSignature);
-      setProfileNotice(
-        t(evaluation.exportReady ? "serverSave.success" : "serverSave.draftSuccess", { title }),
-      );
-    } catch {
-      setSaveCvError(t("serverSave.error"));
+      if (!defaultUpdateFailed) {
+        setProfileNotice(
+          t(evaluation.exportReady ? "serverSave.success" : "serverSave.draftSuccess", { title }),
+        );
+      }
+    } catch (error) {
+      setSaveCvError(getSaveCvError(error));
     } finally {
       setSavingCv(false);
+    }
+  };
+
+  const reloadSavedBuilderCv = async () => {
+    if (!savedBuilderCv) return;
+    const session = getCandidateSession();
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+
+    setReloadingSavedCv(true);
+    try {
+      const currentCv = await getCandidateCv(session.accessToken, savedBuilderCv.id);
+      const latestVersion = [...currentCv.versions].sort(
+        (left, right) =>
+          right.versionNo - left.versionNo ||
+          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+      )[0];
+      const snapshot = latestVersion ? parseCvSnapshot(latestVersion.contentJson) : null;
+      if (currentCv.source !== "BUILDER" || !snapshot) {
+        setSaveCvError("reload");
+        return;
+      }
+
+      // This is an explicit conflict-resolution action. Hydrating clears undo history
+      // so a later Ctrl+Z cannot accidentally resurrect the stale local document.
+      useCvBuilderStore.getState().hydrateCvData(snapshot);
+      const hydratedSnapshot = useCvBuilderStore.getState().cvData;
+      setSavedBuilderCv({ id: currentCv.id, title: currentCv.title, version: currentCv.version });
+      setSavedSnapshotSignature(JSON.stringify(hydratedSnapshot));
+      setSaveCvError(null);
+      setSaveCvDialogOpen(false);
+      setProfileNotice(t("serverSave.reloadSuccess", { title: currentCv.title }));
+    } catch {
+      setSaveCvError("reload");
+    } finally {
+      setReloadingSavedCv(false);
     }
   };
 
@@ -2061,13 +2190,22 @@ export function CandidateCvBuilder() {
     window.setTimeout(() => window.print(), 100);
   };
 
-  const savedLabel = draftSavedAt
-    ? t("save.savedAt", {
-        time: new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(
-          new Date(draftSavedAt),
-        ),
-      })
-    : t("save.autosaveReady");
+  const savedLabel =
+    savedBuilderCv && !hasUnsyncedServerChanges
+      ? t("save.syncedToUpNext")
+      : draftSavedAt
+        ? t("save.savedAt", {
+            time: new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(
+              new Date(draftSavedAt),
+            ),
+          })
+        : t("save.autosaveReady");
+  const savedScope =
+    savedBuilderCv && !hasUnsyncedServerChanges
+      ? t("save.serverCopy")
+      : savedBuilderCv
+        ? t("save.serverChangesPending")
+        : t("save.localOnly");
 
   const navItems: Array<{ id: CvEditorSectionKey; label: string }> = [
     { id: "targeting", label: t("tabs.targeting") },
@@ -2151,6 +2289,37 @@ export function CandidateCvBuilder() {
     );
   }
 
+  if (requestedCvLoadError) {
+    return (
+      <main className="cv-builder-load-error" role="alert">
+        <span className="cv-builder-load-error__icon" aria-hidden="true">
+          <WarningCircle weight="fill" />
+        </span>
+        <div>
+          <h1>{t(`serverLoad.${requestedCvLoadError}.title`)}</h1>
+          <p>{t(`serverLoad.${requestedCvLoadError}.description`)}</p>
+        </div>
+        <div className="cv-builder-load-error__actions">
+          {requestedCvLoadError === "unavailable" ? (
+            <Button
+              onClick={() => {
+                setProfileLoading(true);
+                setRequestedCvLoadError(null);
+                setRequestedCvLoadAttempt((attempt) => attempt + 1);
+              }}
+              type="button"
+            >
+              <ArrowClockwise aria-hidden="true" /> {t("serverLoad.retry")}
+            </Button>
+          ) : null}
+          <Button onClick={() => router.push("/candidate/profile")} type="button" variant="outline">
+            <ArrowLeft aria-hidden="true" /> {t("serverLoad.backToCvs")}
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="cv-builder-shell">
       <header className="cv-builder-topbar">
@@ -2185,7 +2354,7 @@ export function CandidateCvBuilder() {
           <div className="cv-builder-save-state" aria-live="polite">
             <ShieldCheck aria-hidden="true" />
             <span>{savedLabel}</span>
-            <small>{t("save.localOnly")}</small>
+            <small>{savedScope}</small>
           </div>
         </div>
         <div className="cv-builder-toolbar">
@@ -2481,7 +2650,7 @@ export function CandidateCvBuilder() {
                       ? (activeSection as CvSectionKey)
                       : undefined
                   }
-                  cvData={cvData}
+                  cvData={deferredPreviewCvData}
                   ref={previewRef}
                 />
               </div>
@@ -2566,37 +2735,78 @@ export function CandidateCvBuilder() {
           <p className="cv-server-save-note">
             <Info aria-hidden="true" />
             <span>
-              {t(evaluation.exportReady ? "serverSave.activeNote" : "serverSave.draftNote")}
+              {savedBuilderCv
+                ? t("serverSave.newVersionNote")
+                : t(evaluation.exportReady ? "serverSave.activeNote" : "serverSave.draftNote")}
             </span>
           </p>
+          {evaluation.exportReady ? (
+            <div className="cv-server-save-default">
+              <Checkbox
+                aria-describedby="cv-server-save-default-hint"
+                checked={makeSavedCvDefault}
+                id="cv-server-save-default"
+                onCheckedChange={(checked) => setMakeSavedCvDefault(checked === true)}
+              />
+              <label htmlFor="cv-server-save-default">
+                <strong>{t("serverSave.defaultLabel")}</strong>
+                <small id="cv-server-save-default-hint">{t("serverSave.defaultHint")}</small>
+              </label>
+            </div>
+          ) : null}
           {saveCvError ? (
             <p className="cv-field-message cv-field-message--error" role="alert">
               <WarningCircle aria-hidden="true" />
-              {saveCvError}
+              {t(`serverSave.errors.${saveCvError}`)}
             </p>
           ) : null}
           <DialogFooter>
-            <Button
-              disabled={savingCv}
-              onClick={() => {
-                setSaveCvDialogOpen(false);
-                setSaveCvError(null);
-              }}
-              variant="outline"
-            >
-              {t("actions.cancel")}
-            </Button>
-            <Button
-              disabled={savingCv || !saveCvTitle.trim()}
-              onClick={() => void saveSnapshotToUpNext()}
-            >
-              {savingCv ? (
-                <ArrowClockwise aria-hidden="true" className="animate-spin" />
-              ) : (
-                <CheckCircle aria-hidden="true" />
-              )}
-              {savingCv ? t("serverSave.saving") : t("serverSave.confirm")}
-            </Button>
+            {saveCvError === "conflict" ? (
+              <>
+                <Button
+                  disabled={reloadingSavedCv || savingCv}
+                  onClick={() => void reloadSavedBuilderCv()}
+                  variant="outline"
+                >
+                  {reloadingSavedCv ? (
+                    <ArrowClockwise aria-hidden="true" className="animate-spin" />
+                  ) : (
+                    <ArrowClockwise aria-hidden="true" />
+                  )}
+                  {t("serverSave.reload")}
+                </Button>
+                <Button
+                  disabled={reloadingSavedCv || savingCv || !saveCvTitle.trim()}
+                  onClick={() => void saveSnapshotToUpNext({ saveAsNew: true })}
+                >
+                  <FileText aria-hidden="true" /> {t("serverSave.saveAsNew")}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  disabled={savingCv}
+                  onClick={() => {
+                    setSaveCvDialogOpen(false);
+                    setSaveCvError(null);
+                  }}
+                  variant="outline"
+                >
+                  {t("actions.cancel")}
+                </Button>
+                <Button
+                  disabled={savingCv || !saveCvTitle.trim()}
+                  onClick={() => void saveSnapshotToUpNext()}
+                >
+                  {savingCv ? (
+                    <ArrowClockwise aria-hidden="true" className="animate-spin" />
+                  ) : (
+                    <CheckCircle aria-hidden="true" />
+                  )}
+                  {savingCv ? t("serverSave.saving") : t("serverSave.confirm")}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

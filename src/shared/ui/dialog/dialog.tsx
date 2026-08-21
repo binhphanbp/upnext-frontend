@@ -57,19 +57,25 @@ const DialogContent = forwardRef<
           )}
           onPointerDownOutside={(event) => {
             const target = event.target as HTMLElement;
-            if (target?.closest(".swal2-container")) {
-              event.preventDefault();
-            } else {
-              onPointerDownOutside?.(event);
+            if (
+              target?.closest(".swal2-container") ||
+              target?.closest("[data-radix-popper-content-wrapper]") ||
+              target?.closest("[data-radix-popover-content]")
+            ) {
+              return;
             }
+            onPointerDownOutside?.(event);
           }}
           onInteractOutside={(event) => {
             const target = event.target as HTMLElement;
-            if (target?.closest(".swal2-container")) {
-              event.preventDefault();
-            } else {
-              onInteractOutside?.(event);
+            if (
+              target?.closest(".swal2-container") ||
+              target?.closest("[data-radix-popper-content-wrapper]") ||
+              target?.closest("[data-radix-popover-content]")
+            ) {
+              return;
             }
+            onInteractOutside?.(event);
           }}
           {...props}
         >

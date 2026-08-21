@@ -1,11 +1,11 @@
 import type {
   CandidateActivityJobPostApi,
   CandidateApplicationApi,
+  CandidateApplicationActivityGroup,
   CandidateApplicationStatus,
 } from "@/features/candidate/api/profile";
-import type { PublicJob } from "@/features/public/home/api";
 
-export type ApplicationStatusGroup = "active" | "all" | "closed" | "interview" | "offer";
+export type ApplicationStatusGroup = CandidateApplicationActivityGroup;
 
 const activeStatuses = new Set<CandidateApplicationStatus>([
   "SUBMITTED",
@@ -13,14 +13,12 @@ const activeStatuses = new Set<CandidateApplicationStatus>([
   "CONSIDERING",
   "SHORTLISTED",
 ]);
-const offerStatuses = new Set<CandidateApplicationStatus>(["OFFERED", "HIRED"]);
 const withdrawableStatuses = new Set<CandidateApplicationStatus>([
   "SUBMITTED",
   "VIEWED",
   "CONSIDERING",
   "SHORTLISTED",
   "INTERVIEWING",
-  "OFFERED",
 ]);
 const cvEditableStatuses = new Set<CandidateApplicationStatus>(["SUBMITTED"]);
 
@@ -29,8 +27,11 @@ export function getApplicationStatusGroup(
 ): Exclude<ApplicationStatusGroup, "all"> {
   if (activeStatuses.has(status)) return "active";
   if (status === "INTERVIEWING") return "interview";
-  if (offerStatuses.has(status)) return "offer";
   return "closed";
+}
+
+export function getCandidateApplicationGroup(application: CandidateApplicationApi) {
+  return application.activityGroup ?? getApplicationStatusGroup(application.status);
 }
 
 export function canWithdrawApplication(status: CandidateApplicationStatus) {
@@ -49,7 +50,7 @@ export function filterApplications(
   const normalizedQuery = query.trim().toLocaleLowerCase();
 
   return applications.filter((application) => {
-    if (group !== "all" && getApplicationStatusGroup(application.status) !== group) return false;
+    if (group !== "all" && getCandidateApplicationGroup(application) !== group) return false;
     if (!normalizedQuery) return true;
 
     return [application.jobPost.title, application.jobPost.company.name]
@@ -63,8 +64,22 @@ export function getCompanyLogo(jobPost: CandidateActivityJobPostApi, fallbackLog
   return jobPost.company.logoUrl ?? jobPost.company.logoFile?.publicUrl ?? fallbackLogo ?? null;
 }
 
-export function getJobLocation(publicJob: PublicJob | undefined, fallback: string) {
-  return publicJob?.jobPostLocations?.[0]?.jobLocation.city || fallback;
+export function getJobLocation(
+  jobPost:
+    | Pick<CandidateActivityJobPostApi, "jobPostLocations">
+    | {
+        jobPostLocations?: ReadonlyArray<{
+          jobLocation: { city?: string | null; district?: string | null; country?: string | null };
+        }>;
+      }
+    | undefined,
+  fallback: string,
+) {
+  const location = jobPost?.jobPostLocations?.[0]?.jobLocation;
+  if (!location) return fallback;
+  return (
+    [location.district, location.city].filter(Boolean).join(", ") || location.country || fallback
+  );
 }
 
 export function getJobTags(jobPost: CandidateActivityJobPostApi) {

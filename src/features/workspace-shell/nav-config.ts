@@ -33,7 +33,16 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
         href: "/recruiter/job-posts",
         icon: Briefcase,
       },
-      { label: "Ứng viên", href: "/recruiter/candidates", icon: Users },
+      {
+        label: "Ứng viên",
+        href: "/recruiter/candidates",
+        icon: Users,
+        children: [
+          { label: "Danh sách ứng tuyển", href: "/recruiter/candidates" },
+          { label: "AI lọc CV", href: "/recruiter/candidates?tab=cv-ranking" },
+          { label: "Ứng viên tiềm năng", href: "/recruiter/candidates?tab=potential" },
+        ],
+      },
       { label: "Phỏng vấn", href: "/recruiter/interviews", icon: Bell },
     ],
   },
@@ -49,6 +58,7 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
           { label: "Thông tin chung", href: "/recruiter/company-profile" },
           { label: "Địa chỉ làm việc", href: "/recruiter/company-addresses" },
           { label: "Quản lý đánh giá", href: "/recruiter/company-reviews" },
+          { label: "Điểm uy tín", href: "/recruiter/company-reputation" },
         ],
       },
       {

@@ -3,11 +3,13 @@
 import { useTranslations } from "next-intl";
 import { useRef } from "react";
 
+import type { CandidateCopilotQuota } from "../api/candidate-subscription-api";
 import { useAiConversation } from "../hooks/use-ai-conversation";
 import { quickActionsForContext } from "../lib/quick-actions";
 import { useAiCopilotUiStore } from "../stores/ai-copilot-ui.store";
 import type { AiPageContext } from "../types";
 import { AiComposer, type AiComposerHandle } from "./ai-composer";
+import { AiCopilotQuotaNotice } from "./ai-copilot-quota";
 import { AiEmptyState } from "./ai-empty-state";
 import { AiMessageList } from "./ai-message-list";
 import { AiQuickActions } from "./ai-quick-actions";
@@ -22,10 +24,14 @@ export function AiCopilotConversation({
   controller,
   context,
   variant,
+  quota,
+  isQuotaExhausted,
 }: {
   controller: AiCopilotConversationController;
   context: AiPageContext;
   variant: "page" | "drawer";
+  quota?: CandidateCopilotQuota | undefined;
+  isQuotaExhausted: boolean;
 }) {
   const t = useTranslations("AiCopilot");
   const composerRef = useRef<AiComposerHandle>(null);
@@ -36,6 +42,7 @@ export function AiCopilotConversation({
   const actions = quickActionsForContext(context.type);
 
   const send = (prompt: string) => {
+    if (isQuotaExhausted) return;
     // Cleared here rather than in the hook: the draft is keyed on "new" until the
     // conversation exists, and only this component knows that key.
     setDraft(draftKey, "");
@@ -51,12 +58,14 @@ export function AiCopilotConversation({
         onFeedback={controller.setFeedback}
         onResolveAction={controller.resolveAction}
         onSuggestion={send}
-        onRetry={controller.retry}
+        onRetry={() => {
+          if (!isQuotaExhausted) void controller.retry();
+        }}
         emptyState={
           <AiEmptyState
             actions={actions}
             onSelect={send}
-            isDisabled={controller.isBusy}
+            isDisabled={controller.isBusy || isQuotaExhausted}
             compact={variant === "drawer"}
             {...(context.type === "GENERAL" ? {} : { contextLabel: t(context.labelKey) })}
           />
@@ -66,20 +75,28 @@ export function AiCopilotConversation({
       {controller.messages.length > 0 ? (
         <div className="border-t border-slate-100 px-4 pt-2.5 pb-1 sm:px-6">
           <div className="mx-auto w-full max-w-3xl">
-            <AiQuickActions actions={actions} onSelect={send} isDisabled={controller.isBusy} />
+            <AiQuickActions
+              actions={actions}
+              onSelect={send}
+              isDisabled={controller.isBusy || isQuotaExhausted}
+            />
           </div>
         </div>
       ) : null}
 
-      <AiComposer
-        value={draft}
-        onChange={(value) => setDraft(draftKey, value)}
-        onSubmit={() => send(draft)}
-        onStop={controller.stop}
-        isBusy={controller.isBusy}
-        handleRef={composerRef}
-        className={controller.messages.length > 0 ? "pt-2" : "pt-3"}
-      />
+      <div className={controller.messages.length > 0 ? "pt-2" : "pt-3"}>
+        <AiCopilotQuotaNotice quota={quota} />
+        <AiComposer
+          value={draft}
+          onChange={(value) => setDraft(draftKey, value)}
+          onSubmit={() => send(draft)}
+          onStop={controller.stop}
+          isBusy={controller.isBusy}
+          isDisabled={isQuotaExhausted}
+          {...(isQuotaExhausted ? { placeholder: t("quota.composerDisabled") } : {})}
+          handleRef={composerRef}
+        />
+      </div>
     </>
   );
 }

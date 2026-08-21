@@ -1,4 +1,4 @@
-import { ApiError, apiRequest } from "@/shared/api/http";
+import { ApiError, apiRequest, setAuthRefreshHandler } from "@/shared/api/http";
 
 const RECRUITER_ACCESS_TOKEN_KEY = "upnext.recruiter.accessToken";
 const RECRUITER_REFRESH_TOKEN_KEY = "upnext.recruiter.refreshToken";
@@ -15,6 +15,17 @@ type RecruiterRefreshResponse = {
 };
 
 let refreshRequest: Promise<string> | null = null;
+
+setAuthRefreshHandler(async (_path, headers) => {
+  if (typeof window === "undefined") return null;
+  const refreshToken = localStorage.getItem(RECRUITER_REFRESH_TOKEN_KEY);
+  if (!refreshToken) return null;
+
+  const authHeader = headers.get("Authorization");
+  if (authHeader && !authHeader.startsWith("Bearer ")) return null;
+
+  return await refreshRecruiterAccessToken();
+});
 
 export function authHeaders(token: string) {
   return {

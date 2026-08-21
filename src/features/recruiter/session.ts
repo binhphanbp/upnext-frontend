@@ -1,3 +1,8 @@
+import {
+  syncFcmTokenIfPermitted,
+  unregisterCurrentFcmToken,
+} from "@/features/notifications/lib/firebase-fcm";
+
 export type RecruiterSessionUser = Readonly<{
   id: string;
   email?: string;
@@ -56,6 +61,11 @@ export function getRecruiterSession(): RecruiterSession | null {
 }
 
 export function clearRecruiterSession() {
+  const currentToken = localStorage.getItem("upnext.recruiter.accessToken");
+  if (currentToken) {
+    void unregisterCurrentFcmToken(currentToken);
+  }
+
   const rawUser = localStorage.getItem("upnext.recruiter.user");
   if (rawUser) {
     try {

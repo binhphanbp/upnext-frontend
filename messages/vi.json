@@ -39,6 +39,9 @@
       "autosaveReady": "Tự động lưu đã sẵn sàng",
       "savedAt": "Đã lưu lúc {time}",
       "localOnly": "Trên thiết bị này",
+      "syncedToUpNext": "Đã lưu vào UpNext",
+      "serverCopy": "Bản đã lưu trên UpNext",
+      "serverChangesPending": "Có thay đổi chưa lưu",
       "privateTitle": "Bản nháp riêng tư",
       "privateDescription": "Nội dung được tự lưu trong trình duyệt của tài khoản này, chưa gửi lên máy chủ."
     },
@@ -51,14 +54,52 @@
       "namePlaceholder": "Ví dụ: Frontend Developer · UpNext",
       "activeNote": "Đây là bản CV sẵn sàng ứng tuyển tại thời điểm lưu. Các thay đổi tiếp theo trong Studio không tự ghi đè lên bản này.",
       "draftNote": "Bản CV này sẽ được lưu dưới dạng nháp vì còn thông tin cần hoàn thiện. Bạn có thể quay lại Studio, cập nhật rồi lưu bản sẵn sàng ứng tuyển.",
+      "newVersionNote": "Mỗi lần lưu sẽ tạo một phiên bản mới. Những đơn ứng tuyển đã gửi vẫn giữ nguyên phiên bản trước đó.",
+      "defaultLabel": "Đặt làm CV mặc định",
+      "defaultHint": "CV mặc định được chọn trước khi bạn ứng tuyển. Bạn luôn có thể đổi lại trong Hồ sơ ứng viên.",
       "confirm": "Lưu bản CV",
       "saving": "Đang lưu…",
       "success": "Đã lưu “{title}” vào UpNext. Bạn có thể chọn bản CV này khi ứng tuyển.",
       "draftSuccess": "Đã lưu “{title}” dưới dạng bản nháp vào UpNext. Bạn có thể tiếp tục hoàn thiện trong CV Studio.",
+      "defaultError": "Đã lưu “{title}”, nhưng chưa thể đặt làm CV mặc định. Bạn có thể thử lại trong Hồ sơ ứng viên.",
       "error": "Chưa thể lưu bản CV vào UpNext. Kiểm tra kết nối rồi thử lại.",
+      "reload": "Tải bản mới nhất",
+      "saveAsNew": "Lưu thành CV mới",
+      "reloadSuccess": "Đã tải bản mới nhất của “{title}”. Các chỉnh sửa chưa lưu trên thiết bị này đã được thay thế.",
+      "errors": {
+        "authentication": "Phiên đăng nhập đã hết hạn. Bản nháp trên thiết bị vẫn an toàn; hãy đăng nhập lại rồi thử lưu.",
+        "conflict": "CV này vừa được cập nhật ở nơi khác. Các chỉnh sửa trên thiết bị vẫn được giữ nguyên. Hãy tải bản mới nhất hoặc lưu các chỉnh sửa này thành CV mới.",
+        "generic": "Chưa thể lưu bản CV vào UpNext. Kiểm tra kết nối rồi thử lại.",
+        "limit": "Bạn đã đạt giới hạn lưu CV hoặc phiên bản. Hãy quản lý bớt CV cũ rồi thử lại.",
+        "reload": "Chưa thể tải bản CV mới nhất. Các chỉnh sửa trên thiết bị vẫn được giữ nguyên; hãy thử lại."
+      },
       "uploadedCvNotEditable": "CV đã tải lên không thể chỉnh sửa trong CV Studio.",
       "builderSnapshotMissing": "CV này chưa có dữ liệu từ CV Studio để chỉnh sửa.",
       "defaultTitle": "CV ứng tuyển"
+    },
+    "serverLoad": {
+      "retry": "Thử tải lại",
+      "backToCvs": "Quay lại CV của tôi",
+      "notFound": {
+        "title": "Không tìm thấy CV này",
+        "description": "CV có thể đã bị xóa hoặc đường dẫn không còn hợp lệ. Bản nháp trên thiết bị của bạn không bị thay đổi."
+      },
+      "accessDenied": {
+        "title": "Bạn không có quyền mở CV này",
+        "description": "Hãy kiểm tra lại tài khoản đang đăng nhập hoặc chọn một CV khác trong Hồ sơ ứng viên."
+      },
+      "notEditable": {
+        "title": "CV đã tải lên không thể mở trong CV Studio",
+        "description": "CV Studio chỉ chỉnh sửa các CV được tạo trong Studio. Bạn vẫn có thể dùng CV đã tải lên khi ứng tuyển."
+      },
+      "missingSnapshot": {
+        "title": "CV này chưa có nội dung để chỉnh sửa",
+        "description": "Bản CV này không còn dữ liệu từ CV Studio. Bạn có thể tạo một CV mới hoặc chọn một CV Studio khác."
+      },
+      "unavailable": {
+        "title": "Chưa thể mở CV lúc này",
+        "description": "Kết nối hoặc máy chủ đang gặp sự cố tạm thời. Bản nháp trên thiết bị của bạn vẫn an toàn."
+      }
     },
     "mobile": {
       "viewMode": "Chế độ làm việc",
@@ -392,7 +433,8 @@
       "skillsRecommended": "Nên bổ sung ít nhất 3 kỹ năng cốt lõi.",
       "skillNameRequired": "Vui lòng nhập tên kỹ năng hoặc xóa dòng trống.",
       "duplicateSkills": "Có kỹ năng bị lặp; nên giữ mỗi kỹ năng một lần.",
-      "careerEvidenceRequired": "Hãy thêm ít nhất một mục Kinh nghiệm, Dự án hoặc Học vấn để nhà tuyển dụng có bằng chứng đánh giá."
+      "careerEvidenceRequired": "Hãy thêm ít nhất một mục Kinh nghiệm, Dự án hoặc Học vấn để nhà tuyển dụng có bằng chứng đánh giá.",
+      "careerEvidenceHidden": "Bạn đang ẩn cả ba mục Kinh nghiệm, Dự án và Học vấn. Hãy hiện lại ít nhất một mục để nhà tuyển dụng có bằng chứng đánh giá."
     }
   },
   "Metadata": {
@@ -471,9 +513,48 @@
       "loginPrompt": "Đã có tài khoản?",
       "loginLink": "Đăng nhập"
     },
+    "forgotPassword": {
+      "ariaLabel": "Yêu cầu đặt lại mật khẩu",
+      "title": "Quên mật khẩu?",
+      "subtitle": "Nhập email để nhận liên kết đặt lại mật khẩu.",
+      "submit": "Gửi liên kết đặt lại mật khẩu",
+      "submitting": "Đang gửi…",
+      "successTitle": "Hãy kiểm tra hộp thư",
+      "successDescription": "Nếu có tài khoản khớp với email này, chúng tôi đã gửi liên kết đặt lại mật khẩu.",
+      "loginPrompt": "Bạn đã nhớ mật khẩu?"
+    },
+    "resetPassword": {
+      "ariaLabel": "Đặt mật khẩu mới",
+      "title": "Đặt mật khẩu mới",
+      "subtitle": "Tạo mật khẩu mới cho tài khoản ứng viên UpNext của bạn.",
+      "passwordLabel": "Mật khẩu mới",
+      "submit": "Đặt lại mật khẩu",
+      "submitting": "Đang đặt lại…",
+      "successTitle": "Đã cập nhật mật khẩu",
+      "successDescription": "Mật khẩu của bạn đã được đặt lại. Bạn có thể đăng nhập bằng mật khẩu mới.",
+      "loginPrompt": "Sẵn sàng đăng nhập?"
+    },
+    "emailVerification": {
+      "ariaLabel": "Xác thực email",
+      "loadingTitle": "Đang xác thực email…",
+      "loadingSubtitle": "Vui lòng chờ trong giây lát.",
+      "successTitle": "Email đã được xác thực!",
+      "successSubtitle": "Bạn có thể ứng tuyển việc làm ngay bây giờ.",
+      "errorTitle": "Không thể xác thực email",
+      "errorSubtitle": "Liên kết xác thực không hợp lệ hoặc đã hết hạn. Nhập email để nhận liên kết mới.",
+      "goToProfile": "Về hồ sơ của tôi",
+      "resendButton": "Gửi lại liên kết xác thực",
+      "resending": "Đang gửi…",
+      "resendSuccessTitle": "Đã gửi liên kết xác thực",
+      "resendSuccessDescription": "Vui lòng kiểm tra hộp thư email của bạn.",
+      "resendErrorTitle": "Không thể gửi liên kết",
+      "resendErrorDescription": "Vui lòng kiểm tra lại email và thử lại.",
+      "loginPrompt": "Quay lại"
+    },
     "errors": {
       "invalidCredentials": "Email hoặc mật khẩu không chính xác.",
       "emailInUse": "Email này đã được sử dụng.",
+      "resetTokenInvalid": "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu liên kết mới.",
       "requestFailed": "Không thể hoàn tất yêu cầu. Vui lòng thử lại.",
       "connectionFailed": "Không thể kết nối đến máy chủ. Vui lòng thử lại."
     },
@@ -930,8 +1011,13 @@
       "settings": "Cài đặt",
       "generalInfo": "Thông tin chung",
       "companyAddresses": "Địa chỉ làm việc",
+      "companyReviews": "Quản lý đánh giá",
+      "companyReputation": "Điểm uy tín",
       "inviteUsers": "Mời người dùng",
-      "rolesSub": "Vai trò"
+      "rolesSub": "Vai trò",
+      "applicationsTab": "Danh sách ứng tuyển",
+      "aiCvScreeningTab": "AI lọc CV",
+      "potentialCandidatesTab": "Ứng viên tiềm năng"
     },
     "shell": {
       "loading": "Đang tải không gian quản trị...",
@@ -2324,6 +2410,18 @@
       },
       "messages": {
         "statusUpdateSuccess": "Cập nhật trạng thái ứng tuyển thành công!"
+      },
+      "bulk": {
+        "selectedCount": "Đã chọn {count} ứng viên",
+        "clear": "Bỏ chọn",
+        "changeStatus": "Đổi trạng thái",
+        "exportSelected": "Xuất Excel",
+        "confirmTitle": "Đổi trạng thái cho {count} ứng viên?",
+        "confirmText": "Mỗi ứng viên sẽ nhận thông báo về việc chuyển sang trạng thái \"{status}\". Không thể hoàn tác bằng một lần bấm.",
+        "confirmButton": "Đổi trạng thái",
+        "cancelButton": "Huỷ",
+        "successAll": "Đã cập nhật {count} hồ sơ.",
+        "successPartial": "Cập nhật thành công {success}/{total} hồ sơ. Một số hồ sơ không đổi được trạng thái."
       }
     }
   },
@@ -2425,6 +2523,15 @@
     "candidateMobileNavLabel": "Điều hướng mobile của ứng viên"
   },
   "CandidateWorkspace": {
+    "tabBar": {
+      "navigationLabel": "Điều hướng chính",
+      "profile": "Hồ sơ",
+      "applications": "Ứng tuyển",
+      "savedJobs": "Đã lưu",
+      "messages": "Tin nhắn",
+      "cv": "CV",
+      "hasUnread": "Có tin nhắn mới"
+    },
     "common": {
       "home": "Trang chủ",
       "exploreJobs": "Khám phá việc làm",
@@ -2454,7 +2561,10 @@
       "summary": {
         "label": "Tổng quan hồ sơ ứng tuyển",
         "total": "Tổng hồ sơ",
-        "inProgress": "Đang tiến hành",
+        "inProgress": "Đang xử lý",
+        "interview": "Đang phỏng vấn",
+        "actionRequired": "Cần phản hồi",
+        "nextInterview": "Xem lịch phỏng vấn",
         "positive": "Offer & trúng tuyển"
       },
       "list": {
@@ -2466,13 +2576,14 @@
         "searchLabel": "Tìm hồ sơ ứng tuyển",
         "searchPlaceholder": "Tên vị trí hoặc công ty…",
         "sortLabel": "Sắp xếp hồ sơ ứng tuyển",
+        "recentActivity": "Hoạt động gần đây",
         "newest": "Ứng tuyển mới nhất",
         "oldest": "Ứng tuyển lâu nhất",
         "groups": {
           "all": "Tất cả",
           "active": "Đang xử lý",
           "interview": "Phỏng vấn",
-          "offer": "Kết quả tốt",
+          "action_required": "Cần phản hồi",
           "closed": "Đã kết thúc"
         }
       },
@@ -2493,7 +2604,10 @@
           "label": "Đang phỏng vấn"
         },
         "OFFERED": {
-          "label": "Đã nhận offer"
+          "label": "Cần phản hồi đề nghị",
+          "accepted": "Đã đồng ý đề nghị",
+          "declined": "Đã từ chối đề nghị",
+          "expired": "Đề nghị đã hết hạn"
         },
         "HIRED": {
           "label": "Đã tuyển"
@@ -2507,7 +2621,8 @@
       },
       "card": {
         "appliedAt": "Nộp {date}",
-        "viewDetail": "Xem tiến trình"
+        "viewDetail": "Xem tiến trình",
+        "reviewOffer": "Xem đề nghị"
       },
       "resume": {
         "title": "CV mặc định",
@@ -2560,8 +2675,14 @@
         "description": "Các mốc bên dưới được ghi nhận từ hoạt động thực tế của hồ sơ.",
         "submitted": "Đã nộp hồ sơ",
         "submittedDescription": "UpNext đã tiếp nhận và chuyển hồ sơ đến nhà tuyển dụng.",
+        "resubmitted": "Đã ứng tuyển lại",
+        "resubmittedDescription": "Bạn đã chủ động nộp lại hồ sơ ứng tuyển vào vị trí này.",
         "viewed": "Nhà tuyển dụng đã xem",
-        "viewedDescription": "Nhà tuyển dụng đã mở hồ sơ ứng tuyển của bạn."
+        "viewedDescription": "Nhà tuyển dụng đã mở hồ sơ ứng tuyển của bạn.",
+        "offerAccepted": "Bạn đã đồng ý đề nghị",
+        "offerAcceptedDescription": "Nhà tuyển dụng đã nhận phản hồi của bạn và sẽ liên hệ để thống nhất bước tiếp theo.",
+        "offerDeclined": "Bạn đã từ chối đề nghị",
+        "offerDeclinedDescription": "Nhà tuyển dụng đã nhận phản hồi của bạn. Hồ sơ này được chuyển sang trạng thái đã kết thúc."
       },
       "submission": {
         "title": "Thông tin đã gửi",
@@ -2617,6 +2738,40 @@
           "nextStep": "Hồ sơ này không còn được nhà tuyển dụng tiếp tục xử lý."
         }
       },
+      "interviews": {
+        "title": "Lịch phỏng vấn",
+        "description": "Các lịch hẹn còn hiệu lực được nhà tuyển dụng cập nhật cho hồ sơ này.",
+        "round": "Vòng phỏng vấn {round}",
+        "online": "Trực tuyến",
+        "onsite": "Tại địa điểm",
+        "joinMeeting": "Mở phòng họp"
+      },
+      "offer": {
+        "pendingTitle": "Bạn có một đề nghị cần phản hồi",
+        "pendingDescription": "Đọc kỹ các thông tin bên dưới trước khi quyết định. Phản hồi của bạn sẽ được gửi đến nhà tuyển dụng.",
+        "acceptedTitle": "Bạn đã đồng ý đề nghị",
+        "acceptedDescription": "Nhà tuyển dụng đã nhận phản hồi. Hãy chờ hướng dẫn tiếp theo về thủ tục nhận việc.",
+        "declinedTitle": "Bạn đã từ chối đề nghị",
+        "declinedDescription": "Nhà tuyển dụng đã nhận phản hồi. Hồ sơ này sẽ không tiếp tục ở bước đề nghị.",
+        "expiredTitle": "Đề nghị này đã hết thời hạn phản hồi",
+        "expiredDescription": "Bạn không thể phản hồi thêm trên UpNext. Nếu cần trao đổi, hãy liên hệ trực tiếp với nhà tuyển dụng.",
+        "salary": "Thu nhập đề nghị",
+        "startDate": "Ngày dự kiến bắt đầu",
+        "note": "Ghi chú từ nhà tuyển dụng",
+        "respondBy": "Phản hồi trước {date}",
+        "accept": "Đồng ý đề nghị",
+        "decline": "Từ chối đề nghị",
+        "cancel": "Quay lại",
+        "confirmAcceptTitle": "Đồng ý với đề nghị này?",
+        "confirmAcceptDescription": "Phản hồi đồng ý sẽ được gửi ngay đến nhà tuyển dụng. Việc này xác nhận bạn muốn tiếp tục bước nhận việc, không thay thế hợp đồng lao động.",
+        "confirmDeclineTitle": "Từ chối đề nghị này?",
+        "confirmDeclineDescription": "Phản hồi từ chối sẽ được gửi đến nhà tuyển dụng và không thể hoàn tác trên UpNext.",
+        "confirmAcceptAction": "Gửi phản hồi đồng ý",
+        "confirmDeclineAction": "Gửi phản hồi từ chối",
+        "acceptedToast": "Đã gửi phản hồi đồng ý đến nhà tuyển dụng.",
+        "declinedToast": "Đã gửi phản hồi từ chối đến nhà tuyển dụng.",
+        "responseError": "Chưa thể gửi phản hồi. Đề nghị có thể vừa thay đổi; hãy tải lại và thử lại."
+      },
       "job": {
         "title": "Thông tin công việc",
         "employmentType": "Loại hình",
@@ -2650,6 +2805,24 @@
         "success": "Đã cập nhật CV thành công.",
         "error": "Chưa thể cập nhật CV. Trạng thái hồ sơ có thể vừa thay đổi; hãy tải lại và thử lại.",
         "loadError": "Không thể tải danh sách CV. Vui lòng thử lại."
+      }
+    },
+    "notifications": {
+      "page": {
+        "title": "Thông báo",
+        "description": "Cập nhật về đơn ứng tuyển, lịch phỏng vấn và tin nhắn từ nhà tuyển dụng."
+      },
+      "markAllRead": "Đánh dấu tất cả đã đọc",
+      "unread": "Chưa đọc",
+      "delete": "Xoá thông báo: {title}",
+      "states": {
+        "errorTitle": "Không thể tải thông báo",
+        "errorDescription": "Kết nối đến UpNext chưa thành công. Hãy thử tải lại để xem thông báo mới nhất.",
+        "emptyTitle": "Chưa có thông báo nào",
+        "emptyDescription": "Thông báo về đơn ứng tuyển, lịch phỏng vấn và tin nhắn sẽ xuất hiện tại đây."
+      },
+      "feedback": {
+        "error": "Không thể cập nhật thông báo. Vui lòng thử lại."
       }
     },
     "savedJobs": {
@@ -2732,6 +2905,16 @@
         "description": "Quản lý thông tin nhà tuyển dụng nhìn thấy và giữ hồ sơ của bạn luôn chính xác, nhất quán.",
         "lastUpdated": "Cập nhật gần nhất {date}",
         "notUpdated": "Chưa có thông tin cập nhật"
+      },
+      "emailVerification": {
+        "title": "Email của bạn chưa được xác thực",
+        "description": "Bạn cần xác thực email trước khi có thể nộp hồ sơ ứng tuyển. Vui lòng kiểm tra hộp thư {email}.",
+        "resendButton": "Gửi lại email xác thực",
+        "resending": "Đang gửi…",
+        "resendSuccessTitle": "Đã gửi lại email xác thực",
+        "resendSuccessDescription": "Vui lòng kiểm tra hộp thư của bạn.",
+        "resendErrorTitle": "Không thể gửi email xác thực",
+        "resendErrorDescription": "Vui lòng thử lại sau."
       },
       "header": {
         "profileFallback": "Hồ sơ ứng viên",
@@ -3373,8 +3556,7 @@
         "deleteSuccess": "Đã xóa CV.",
         "uploadError": "Không thể tải CV lên. Vui lòng kiểm tra tệp và thử lại.",
         "previewUnavailable": "Không có bản xem trước cho tệp này.",
-        "downloadUnavailable": "Không thể tải tệp xuống lúc này.",
-        "builderDownloadUnavailable": "CV tạo trên UpNext có thể xem và chỉnh sửa trong CV Builder; hãy xuất PDF từ đó nếu cần một tệp tải xuống."
+        "downloadUnavailable": "Không thể tải tệp xuống lúc này."
       }
     }
   },
@@ -3801,91 +3983,85 @@
           "planName": "Tên gói dịch vụ",
           "targetAudience": "Đối tượng",
           "price": "Đơn giá",
-          "activeSubscribers": "Người dùng active",
+          "visibility": "Hiển thị trên trang giá",
+          "daysUnit": "ngày",
           "status": "Trạng thái",
           "actions": "Thao tác",
-          "searchPlaceholder": "Tìm theo tên gói, mã ID...",
+          "searchPlaceholder": "Tìm theo tên gói, mã gói...",
           "allStatuses": "Tất cả trạng thái",
           "allAudiences": "Tất cả đối tượng",
+          "isPrivateBadge": "Không hiển thị công khai",
+          "features": "Quyền lợi của gói",
+          "noFeatures": "Gói này chưa được gán quyền lợi nào.",
+          "notIncludedFeatures": "Không bao gồm",
+          "unlimitedValue": "Không giới hạn",
           "targetAudienceOptions": {
             "employer": "Nhà tuyển dụng",
             "candidate": "Ứng viên"
           },
-          "billingCycleOptions": {
-            "month": "Tháng",
-            "year": "Năm",
-            "oneTime": "Gói tín dụng (One-time)"
+          "visibilityOptions": {
+            "public": "Công khai",
+            "private": "Ẩn"
           },
           "statusOptions": {
             "active": "Đang bán",
-            "legacy": "Ngừng bán (Legacy)",
-            "draft": "Bản nháp"
+            "legacy": "Ngừng bán"
           },
           "actionOptions": {
             "edit": "Chỉnh sửa gói",
-            "viewSubscribers": "Xem danh sách người mua",
             "publish": "Phát hành (Đưa lên bán)",
-            "retire": "Ngừng bán (Legacy)",
-            "viewDetails": "Xem chi tiết gói"
+            "retire": "Ngừng bán",
+            "viewDetails": "Xem chi tiết gói",
+            "showOnPricing": "Hiện trên trang giá",
+            "hideFromPricing": "Ẩn khỏi trang giá"
           },
-          "planNames": {
-            "PLAN-EMP-PRO": "Employer Pro",
-            "PLAN-EMP-PREM": "Employer Premium",
-            "PLAN-EMP-CRED": "Gói 5 Tin Tuyển Dụng",
-            "PLAN-CAN-PRO": "Candidate Pro (Nổi bật hồ sơ)",
-            "PLAN-EMP-BASIC-OLD": "Employer Basic (2025)",
-            "PLAN-EMP-LITE": "Employer Lite",
-            "PLAN-CAN-BASIC": "Candidate Basic",
-            "PLAN-EMP-ENT": "Employer Enterprise",
-            "PLAN-EMP-CRED-10": "Gói 10 Tin Tuyển Dụng",
-            "PLAN-CAN-MENTOR": "1:1 Mentorship",
-            "PLAN-EMP-CV": "Gói xem 100 CV",
-            "EMP-FREE": "Basic",
-            "EMP-STARTER": "Pro",
-            "EMP-GROWTH": "Premium",
-            "EMP-SCALE": "Enterprise",
-            "CAN-FREE": "Basic",
-            "CAN-PRO": "Talent",
-            "CAN-CAREER-PLUS": "Elite"
-          },
-          "features": "Tính năng nổi bật"
+          "toasts": {
+            "statusUpdated": "Đã cập nhật trạng thái gói.",
+            "visibilityUpdated": "Đã cập nhật hiển thị gói.",
+            "genericError": "Có lỗi xảy ra, vui lòng thử lại.",
+            "loadError": "Không tải được danh sách gói dịch vụ."
+          }
         },
         "dialog": {
-          "title": "Tạo Gói Dịch Vụ Mới",
-          "description": "Thiết lập thông tin cơ bản cho gói dịch vụ (Subscription/Credit) mới trên hệ thống.",
+          "title": "Tạo gói dịch vụ mới",
+          "description": "Thiết lập thông tin và quyền lợi cho gói dịch vụ mới.",
+          "editTitle": "Chỉnh sửa gói dịch vụ",
+          "editDescription": "Mã gói và đối tượng không thể thay đổi sau khi tạo.",
           "fields": {
             "planName": "Tên gói dịch vụ",
-            "planNamePlaceholder": "VD: Employer Premium 2026",
+            "planNamePlaceholder": "VD: Growth",
             "targetAudience": "Đối tượng khách hàng",
             "targetAudiencePlaceholder": "Chọn đối tượng",
             "price": "Đơn giá (VNĐ)",
-            "pricePlaceholder": "VD: 2500000",
-            "billingCycle": "Chu kỳ thanh toán",
-            "billingCyclePlaceholder": "Chọn chu kỳ",
-            "featuresEmployer": "Tính năng dành cho Nhà tuyển dụng",
-            "featuresCandidate": "Tính năng dành cho Ứng viên",
-            "empPostingLimit": "Giới hạn đăng tin",
-            "empVisibility": "Hiển thị",
-            "empInteraction": "Tương tác ứng viên",
-            "empAiLimit": "Giới hạn AI",
-            "empSystem": "Hệ thống",
-            "canCoreFunctions": "Chức năng cốt lõi",
-            "canAiLimit": "Giới hạn AI CV",
-            "canOptimization": "Tối ưu hóa",
-            "canInterview": "Luyện phỏng vấn",
-            "canVisibility": "Hiển thị"
+            "pricePlaceholder": "VD: 299000",
+            "durationDays": "Thời hạn (số ngày)",
+            "descriptionLabel": "Mô tả gói",
+            "sortOrder": "Thứ tự hiển thị",
+            "highlightLabel": "Nhãn nổi bật",
+            "highlightLabelPlaceholder": "VD: Phổ biến nhất",
+            "isPublic": "Hiển thị công khai trên trang giá",
+            "code": "Mã gói",
+            "codePlaceholder": "VD: RECRUITER_GROWTH",
+            "codeHint": "Chữ in, số và gạch dưới. Không thể sửa sau khi tạo.",
+            "codeInvalid": "Mã gói phải là chữ in, số và gạch dưới, dài 3-60 ký tự.",
+            "immutableHint": "Mã gói và đối tượng chỉ đặt được lúc tạo. Đặt sai thì ngừng bán gói này và tạo gói mới.",
+            "featuresSection": "Quyền lợi của gói"
           },
-          "billingCycleOptions": {
-            "monthly": "Hàng tháng (Monthly)",
-            "yearly": "Hàng năm (Yearly)",
-            "oneTime": "Gói tín dụng (One-time)",
-            "weekly": "Hàng tuần (Weekly)",
-            "quarterly": "Hàng quý (Quarterly)",
-            "biannual": "6 tháng (Biannual)"
+          "features": {
+            "unlimitedPlaceholder": "Không giới hạn",
+            "unlimitedHint": "Để trống = không giới hạn"
           },
           "buttons": {
             "cancel": "Hủy",
-            "createDraft": "Tạo bản nháp"
+            "create": "Tạo gói",
+            "save": "Lưu thay đổi",
+            "saving": "Đang lưu..."
+          },
+          "toasts": {
+            "createSuccess": "Đã tạo gói dịch vụ mới.",
+            "createError": "Không tạo được gói dịch vụ.",
+            "updateSuccess": "Đã cập nhật gói dịch vụ.",
+            "updateError": "Không cập nhật được gói dịch vụ."
           }
         }
       },
@@ -4289,6 +4465,14 @@
       "disclaimer": "AI có thể sai. Hãy đối chiếu với dẫn chứng trước khi quyết định.",
       "hint": "Enter để gửi · Shift + Enter xuống dòng"
     },
+    "quota": {
+      "remaining": "Còn {remaining}/{limit} lượt",
+      "remainingLabel": "Còn {remaining} trong {limit} lượt AI Copilot của chu kỳ này",
+      "exhaustedTitle": "Bạn đã dùng hết lượt AI Copilot",
+      "exhaustedDescription": "Lượt mới sẽ tự động được làm mới vào {date}. Bạn vẫn có thể xem các cuộc trò chuyện trước đó.",
+      "exhaustedInlineDescription": "Bạn có thể xem lại các cuộc trò chuyện trước đó. Lượt mới sẽ tự động được làm mới vào kỳ tiếp theo.",
+      "composerDisabled": "Lượt AI Copilot sẽ được làm mới vào kỳ tiếp theo"
+    },
     "list": {
       "scrollToBottom": "Xuống cuối hội thoại"
     },
@@ -4306,7 +4490,7 @@
       "partial": "Kết quả một phần"
     },
     "runTimeline": {
-      "summary": "Đã dùng {count}/{total} công cụ dữ liệu"
+      "summary": "Đã kiểm tra {count}/{total} nguồn dữ liệu"
     },
     "intent": {
       "GENERAL_GUIDANCE": "Hướng dẫn chung",
@@ -4415,6 +4599,13 @@
       "model_unavailable": "Dịch vụ AI tạm thời không khả dụng",
       "partial": "Đây là kết quả một phần",
       "retry": "Thử lại"
+    },
+    "stateNoticeDescription": {
+      "failed": "Mình chưa thể hoàn thiện câu trả lời này. Bạn hãy thử lại hoặc hỏi cụ thể hơn nhé.",
+      "rate_limited": "Hạn mức sẽ được khôi phục theo chu kỳ của gói. Bạn có thể quay lại sau.",
+      "permission_denied": "Tính năng này không khả dụng với tài khoản hoặc dữ liệu hiện tại của bạn.",
+      "model_unavailable": "Các chức năng khác của UpNext vẫn hoạt động bình thường. Bạn có thể thử lại sau ít phút.",
+      "partial": "Mình giữ lại phần đã hoàn thành; bạn có thể thử lại để nhận câu trả lời đầy đủ hơn."
     },
     "statePreview": {
       "badge": "Demo",

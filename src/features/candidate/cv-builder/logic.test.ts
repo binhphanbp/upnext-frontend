@@ -12,6 +12,7 @@ import {
   isValidGpa,
   isValidPhone,
   mapProfileToCvData,
+  toEditableText,
   toExternalHref,
   toPlainText,
 } from "./logic";
@@ -73,6 +74,9 @@ describe("CV Builder business rules", () => {
     expect(isValidGpa("3.5/4.0")).toBe(true); // đúng placeholder gợi ý
     expect(isValidGpa("8.5")).toBe(true); // thang điểm 10
     expect(isValidGpa("90/100")).toBe(true); // thang điểm 100
+    expect(isValidGpa("3,5 / 4,0")).toBe(true); // chấp nhận dấu phẩy thập phân
+    expect(isValidGpa("5/4")).toBe(false); // tử số không thể lớn hơn mẫu số
+    expect(isValidGpa("2/0")).toBe(false); // không có thang điểm bằng 0
     expect(isValidGpa("A+")).toBe(false);
     expect(isValidGpa("giỏi")).toBe(false);
   });
@@ -101,7 +105,7 @@ describe("CV Builder business rules", () => {
     expect(result.blockingIssues.map((issue) => issue.code)).not.toContain("gpaInvalid");
   });
 
-  it("does not inflate the score when optional sections are hidden", () => {
+  it("normalizes the score to the sections the candidate chooses to show", () => {
     const cvData = createInitialCvData();
     cvData.personalInfo = {
       ...cvData.personalInfo,
@@ -126,10 +130,26 @@ describe("CV Builder business rules", () => {
 
     const result = evaluateCv(cvData);
 
-    expect(result.score).toBe(25);
+    // Khi ứng viên chủ động ẩn các phần tùy chọn, 100% nghĩa là phần đang
+    // hiển thị đã hoàn thiện. `exportReady` vẫn chặn xuất CV vì chưa có bằng
+    // chứng nghề nghiệp — hai khái niệm không nên bị trộn lẫn.
+    expect(result.score).toBe(100);
     expect(result.exportReady).toBe(false);
-    expect(result.issues.map((issue) => issue.code)).toEqual(["careerEvidenceRequired"]);
-    expect(result.blockingIssues.map((issue) => issue.code)).toEqual(["careerEvidenceRequired"]);
+    // Cả ba mục nghề nghiệp đều bị ẩn, nên thông điệp phải nói đúng chuyện đó.
+    // "Hãy thêm một mục" là lời khuyên sai ở đây: ứng viên có thể đã có sẵn vài
+    // mục, chỉ là đang ẩn, và thêm nữa cũng không gỡ được chặn xuất CV.
+    expect(result.issues.map((issue) => issue.code)).toEqual(["careerEvidenceHidden"]);
+    expect(result.blockingIssues.map((issue) => issue.code)).toEqual(["careerEvidenceHidden"]);
+
+    // Còn ít nhất một mục nghề nghiệp đang hiển thị: lỗi phải trỏ vào chính mục đó,
+    // vì thông điệp là một liên kết đưa ứng viên tới nơi cần sửa — trỏ vào mục đang
+    // ẩn thì họ không thao tác được gì.
+    const emptyCv = createInitialCvData();
+    const emptyResult = evaluateCv(emptyCv);
+    const careerIssue = emptyResult.blockingIssues.find(
+      (issue) => issue.code === "careerEvidenceRequired",
+    );
+    expect(careerIssue?.section).toBe("experience");
 
     cvData.hiddenSections = ["summary", "projects", "education", "skills"];
     const visibleExperienceResult = evaluateCv(cvData);
@@ -186,6 +206,105 @@ describe("CV Builder business rules", () => {
     expect(evaluateJobMatch(descriptionWithoutKeywords).hasDescription).toBe(false);
   });
 
+  describe("match score against a Vietnamese job ad", () => {
+    // The ad deliberately carries a perks section, because that is where the wording that
+    // used to distort the score comes from. TC_CAN_033 / TC_CAN_034.
+    const JOB_AD = [
+      "Tuyển Lập trình viên Frontend (ReactJS)",
+      "Mô tả công việc:",
+      "- Phát triển giao diện web bằng ReactJS và TypeScript",
+      "- Làm việc với REST API, tối ưu hiệu năng trang",
+      "Yêu cầu:",
+      "- Thành thạo ReactJS, TypeScript, HTML, CSS",
+      "- Biết sử dụng Git, TailwindCSS, NodeJS",
+      "Quyền lợi:",
+      "- Mức lương thỏa thuận, thưởng tháng 13",
+      "- Bảo hiểm sức khỏe, du lịch hàng năm, môi trường trẻ trung",
+    ].join("\n");
+
+    function cvWithSkills(title: string, skills: string[], technologies: string) {
+      const cvData = createInitialCvData();
+      cvData.targetJob.description = JOB_AD;
+      cvData.personalInfo.title = title;
+      cvData.experiences = [
+        {
+          id: "experience-1",
+          companyName: "UpNext",
+          positionTitle: title,
+          startDate: "2022-01",
+          endDate: "",
+          isCurrent: true,
+          description: "Phát triển sản phẩm cho khách hàng doanh nghiệp.",
+          technologies,
+        },
+      ];
+      cvData.skills = skills.map((name, index) => ({
+        id: `skill-${index}`,
+        name,
+        level: "ADVANCED" as const,
+      }));
+      return cvData;
+    }
+
+    it("scores a CV covering the required stack above 80%", () => {
+      const result = evaluateJobMatch(
+        cvWithSkills(
+          "Frontend Developer",
+          ["React", "TypeScript", "HTML", "CSS", "Git", "TailwindCSS", "Node.js", "REST API"],
+          "React, TypeScript, Git",
+        ),
+      );
+
+      expect(result.score).toBeGreaterThan(80);
+      // "ReactJS" in the ad and "React" on the CV are one skill, not two.
+      expect(result.missing).not.toContain("ReactJS");
+      expect(result.missing).not.toContain("NodeJS");
+    });
+
+    it("scores an unrelated CV below 30% and names the skills to acquire", () => {
+      const result = evaluateJobMatch(
+        cvWithSkills("Kế toán tổng hợp", ["Excel", "MISA", "Kê khai thuế"], "Excel, MISA"),
+      );
+
+      expect(result.score).toBeLessThan(30);
+      expect(result.missing.length).toBeGreaterThan(0);
+      // Advice has to be actionable: telling an accountant to add "thưởng" or "tháng" to
+      // their CV is what made the old suggestions worthless.
+      expect(result.missing.map((keyword) => keyword.toLocaleLowerCase())).toEqual(
+        expect.arrayContaining(["reactjs", "typescript"]),
+      );
+      for (const perk of ["tháng", "thưởng", "lương", "lợi"]) {
+        expect(result.missing).not.toContain(perk);
+      }
+    });
+
+    it("still scores a non-technical ad on its own wording", () => {
+      const cvData = createInitialCvData();
+      cvData.targetJob.description = [
+        "Tuyển Nhân viên chăm sóc khách hàng tại chi nhánh Hà Nội.",
+        "Nhiệm vụ: tiếp nhận phản hồi, xử lý khiếu nại, chăm sóc khách hàng thân thiết.",
+      ].join("\n");
+      cvData.experiences = [
+        {
+          id: "experience-1",
+          companyName: "UpNext",
+          positionTitle: "Nhân viên chăm sóc khách hàng",
+          startDate: "2022-01",
+          endDate: "",
+          isCurrent: true,
+          description: "Tiếp nhận phản hồi và xử lý khiếu nại của khách hàng thân thiết.",
+          technologies: "",
+        },
+      ];
+
+      // No skill is recognised here, so the mixed keyword fallback must still produce a
+      // score rather than leaving the candidate with nothing.
+      const result = evaluateJobMatch(cvData);
+      expect(result.hasDescription).toBe(true);
+      expect(result.score).toBeGreaterThan(0);
+    });
+  });
+
   it("counts action-led, quantified and skill-backed evidence in CV content", () => {
     const cvData = createInitialCvData();
     cvData.experiences = [
@@ -214,6 +333,28 @@ describe("CV Builder business rules", () => {
       totalBullets: 2,
       totalSkills: 2,
     });
+  });
+
+  it("counts evidence when the CV spells a skill the same way twice", () => {
+    // Folding "ReactJS" to "react" for keyword matching must not leak into the evidence
+    // check: the skill would be rewritten while the text it is searched against is not,
+    // and a CV that plainly demonstrates the skill would be told it has no evidence.
+    const cvData = createInitialCvData();
+    cvData.skills = [{ id: "skill-1", name: "ReactJS", level: "ADVANCED" }];
+    cvData.experiences = [
+      {
+        id: "experience-1",
+        companyName: "Công ty A",
+        positionTitle: "Frontend Developer",
+        startDate: "2020-01",
+        endDate: "2022-01",
+        isCurrent: false,
+        description: "Xây dựng dashboard bằng ReactJS và đưa lên production cho người dùng.",
+        technologies: "ReactJS",
+      },
+    ];
+
+    expect(evaluateContentSignals(cvData).skillsWithoutEvidence).toEqual([]);
   });
 
   it("does not treat partial technology names as skill evidence", () => {
@@ -268,6 +409,32 @@ describe("CV Builder business rules", () => {
     expect(toPlainText("<p>Hello <strong>UpNext</strong></p><ul><li>Built UI</li></ul>")).toBe(
       "Hello UpNext\n• Built UI",
     );
+  });
+
+  describe("text bound to an input", () => {
+    // A textarea whose value is trimmed on every render can never hold a trailing space:
+    // the space is stripped the moment it is typed, so no space can be entered between
+    // two words and the field looks like it rejects input. TC_CAN_031.
+    it("keeps a space the author just typed", () => {
+      expect(toEditableText("Kỹ sư ")).toBe("Kỹ sư ");
+      expect(toPlainText("Kỹ sư ")).toBe("Kỹ sư");
+    });
+
+    it("keeps indentation and blank lines while the author is still writing", () => {
+      expect(toEditableText("  Thành tựu:\n\n\n- Tăng 20% doanh thu")).toBe(
+        "  Thành tựu:\n\n\n- Tăng 20% doanh thu",
+      );
+    });
+
+    it("still unwraps legacy HTML so imported CVs stay editable", () => {
+      expect(toEditableText("<p>Hello <strong>UpNext</strong></p><ul><li>Built UI</li></ul>")).toBe(
+        "Hello UpNext\n• Built UI\n",
+      );
+    });
+
+    it("drops carriage returns so a pasted Windows line ending is not doubled", () => {
+      expect(toEditableText("Dòng 1\r\nDòng 2")).toBe("Dòng 1\nDòng 2");
+    });
   });
 
   it("maps and sorts real profile data while preserving design preferences", () => {

@@ -17,6 +17,9 @@ import {
   X,
   WarningCircle,
   ArrowSquareOut,
+  Star,
+  IdentificationCard,
+  Envelope,
 } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
@@ -24,6 +27,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
 
 import { authHeaders, RECRUITER_SESSION_REFRESHED_EVENT } from "@/features/recruiter/api/client";
 import {
@@ -33,6 +37,12 @@ import {
   type ScoreCriterionKey,
 } from "@/features/recruiter/api/cv-screening-api";
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
+import {
+  addToShortlist,
+  getRecruiterShortlist,
+  removeFromShortlist,
+  type ShortlistEntry,
+} from "@/features/recruiter/api/shortlist";
 import {
   getCompanyApplications,
   isRecruiterMissingCompanyError,
@@ -73,7 +83,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/shared/ui/se
 import { Separator } from "@/shared/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
+import { CandidateProfileDetailDialog } from "./candidate-profile-detail-dialog";
+import { CoverLetterDialog } from "./cover-letter-dialog";
+import { PotentialCandidatesTab } from "./potential-candidates-tab";
 import { RecruiterTableLayout } from "./recruiter-table-layout";
+import { SavePotentialCandidateDialog } from "./save-potential-candidate-dialog";
 
 const toast = Swal.mixin({
   toast: true,
@@ -86,7 +100,6 @@ const toast = Swal.mixin({
 const STATUS_OPTIONS = [
   "SUBMITTED",
   "VIEWED",
-  "CONSIDERING",
   "SHORTLISTED",
   "INTERVIEWING",
   "OFFERED",
@@ -95,9 +108,58 @@ const STATUS_OPTIONS = [
   "REJECTED",
 ] as const;
 
+// Chỉ cho đánh dấu "ứng viên tiềm năng" khi đơn ứng tuyển còn đang trong quy
+// trình xử lý — HIRED/REJECTED/WITHDRAWN coi như đã kết thúc, không cần lưu
+// thêm nữa (nhưng nếu đã lưu từ trước khi chuyển sang trạng thái này thì vẫn
+// cho bỏ lưu bình thường, chỉ chặn lưu MỚI).
+const SHORTLIST_ELIGIBLE_STATUSES = new Set([
+  "SUBMITTED",
+  "VIEWED",
+  "SHORTLISTED",
+  "INTERVIEWING",
+  "OFFERED",
+]);
+
+const PIPELINE_STATUS_ORDER: Record<string, number> = {
+  SUBMITTED: 0,
+  VIEWED: 1,
+  CONSIDERING: 1, // fallback for legacy data
+  SHORTLISTED: 2,
+  INTERVIEWING: 3,
+  OFFERED: 4,
+  HIRED: 5,
+};
+
+function isStatusTransitionAllowed(currentStatus: string, targetStatus: string): boolean {
+  if (currentStatus === targetStatus) return true;
+  // Các trạng thái kết thúc không được lùi hoặc thay đổi
+  if (currentStatus === "HIRED" || currentStatus === "REJECTED" || currentStatus === "WITHDRAWN") {
+    return false;
+  }
+  // Không cho phép chuyển tới WITHDRAWN (chỉ ứng viên) hoặc CONSIDERING (đã bỏ)
+  if (targetStatus === "WITHDRAWN" || targetStatus === "CONSIDERING") {
+    return false;
+  }
+  // Cho phép chuyển sang REJECTED (Chưa phù hợp) từ bất kỳ trạng thái đang xử lý nào
+  if (targetStatus === "REJECTED") {
+    return true;
+  }
+  const currentRank = PIPELINE_STATUS_ORDER[currentStatus];
+  const targetRank = PIPELINE_STATUS_ORDER[targetStatus];
+  if (currentRank !== undefined && targetRank !== undefined) {
+    // Chỉ cho phép tiến về phía trước (cho phép nhảy cóc), tuyệt đối không cho phép lùi
+    return targetRank > currentRank;
+  }
+  return false;
+}
+
 const AI_LABEL_OPTIONS = ["excellent", "good", "average", "low", "unscored"] as const;
 
-function getStatusBadgeClass(status: string) {
+function isKnownCandidatesTab(value: string | null): value is "cv-ranking" | "potential" {
+  return value === "cv-ranking" || value === "potential";
+}
+
+export function getStatusBadgeClass(status: string) {
   switch (status) {
     case "SUBMITTED":
       return "bg-sky-50 text-sky-700 hover:bg-sky-100/70 border border-sky-200/50";
@@ -122,7 +184,7 @@ function getStatusBadgeClass(status: string) {
   }
 }
 
-function getStatusDotClass(status: string) {
+export function getStatusDotClass(status: string) {
   switch (status) {
     case "SUBMITTED":
       return "bg-sky-500";
@@ -170,6 +232,21 @@ export function RecruiterCandidatesPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [missingCompany, setMissingCompany] = useState(false);
 
+  // "Ứng viên tiềm năng": ứng viên đã nộp đơn được đánh dấu lưu lại xem sau
+  // (RecruiterCandidateShortlist ở backend), độc lập với trạng thái pipeline.
+  const [shortlist, setShortlist] = useState<ShortlistEntry[]>([]);
+  const [shortlistPending, setShortlistPending] = useState<Set<string>>(new Set());
+  // Ứng viên đang được bấm ⭐ để lưu — mở dialog nhập mức độ quan tâm/ghi chú
+  // trước khi thật sự gọi API, thay vì lưu ngay một cú click.
+  const [shortlistDialogApp, setShortlistDialogApp] = useState<Application | null>(null);
+
+  // Popup "Xem chi tiết hồ sơ ứng viên" — id đơn ứng tuyển đang xem, null = đóng.
+  const [profileDetailApplicationId, setProfileDetailApplicationId] = useState<string | null>(null);
+
+  // Popup "Xem thư ứng tuyển" — tách riêng khỏi hồ sơ ứng viên vì đây là nội
+  // dung của TỪNG đơn ứng tuyển, không phải hồ sơ cá nhân.
+  const [coverLetterApplicationId, setCoverLetterApplicationId] = useState<string | null>(null);
+
   // Filter States
   const [search, setSearch] = useState("");
   const [jobPostId, setJobPostId] = useState(presetJobPostId || "ALL");
@@ -198,7 +275,7 @@ export function RecruiterCandidatesPage() {
   // AI CV Screening Tab States (preserved across tab switches & page navigation)
   const requestedTab = searchParams?.get("tab");
   const [activeTab, setActiveTab] = useState(() =>
-    requestedTab === "cv-ranking" ? "cv-ranking" : "candidates",
+    isKnownCandidatesTab(requestedTab) ? requestedTab : "candidates",
   );
 
   const handleScreeningUnauthorized = useCallback(() => {
@@ -219,16 +296,23 @@ export function RecruiterCandidatesPage() {
       window.removeEventListener(RECRUITER_SESSION_REFRESHED_EVENT, handleSessionRefresh);
   }, []);
 
-  // Load from sessionStorage on client mount
+  // Đồng bộ tab đang chọn với query `?tab=` mỗi khi nó đổi (vd. bấm mục con
+  // trong sidebar). Chỉ khôi phục tab đã lưu ở sessionStorage lần đầu mount —
+  // nếu dùng nó cho mọi lần đổi URL, bấm "Danh sách ứng tuyển" (không có
+  // `?tab=`) sau khi đã từng ở tab khác sẽ bị kẹt lại tab cũ trong sessionStorage
+  // thay vì quay về đúng tab mặc định mà đường link trỏ tới.
+  const isFirstTabResolve = useRef(true);
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window === "undefined") return;
+    if (isKnownCandidatesTab(requestedTab)) {
+      setActiveTab(requestedTab);
+    } else if (isFirstTabResolve.current) {
       const savedTab = sessionStorage.getItem("upnext_activeTab");
-      if (requestedTab === "cv-ranking") {
-        setActiveTab("cv-ranking");
-      } else if (savedTab) {
-        setActiveTab(savedTab);
-      }
+      if (savedTab) setActiveTab(savedTab);
+    } else {
+      setActiveTab("candidates");
     }
+    isFirstTabResolve.current = false;
   }, [requestedTab]);
 
   // Save changes to sessionStorage
@@ -408,14 +492,20 @@ export function RecruiterCandidatesPage() {
 
         const jobPostsPromise = getRecruiterJobPosts(accessToken, nextAccountId);
         const applicationsPromise = getCompanyApplications(accessToken, queryParams);
+        const shortlistPromise = getRecruiterShortlist(accessToken);
 
-        const [applicantsResult, jobPostsData] = await Promise.allSettled([
+        const [applicantsResult, jobPostsData, shortlistResult] = await Promise.allSettled([
           applicationsPromise,
           jobPostsPromise,
+          shortlistPromise,
         ] as const);
 
         if (jobPostsData.status === "fulfilled") {
           setJobs(jobPostsData.value);
+        }
+
+        if (shortlistResult.status === "fulfilled") {
+          setShortlist(shortlistResult.value);
         }
 
         if (applicantsResult.status === "fulfilled") {
@@ -474,9 +564,18 @@ export function RecruiterCandidatesPage() {
 
   const totalItems = candidates.length;
 
-  // Reset to page 1 if the candidates list changes (due to filtering)
+  // Reset to page 1 if the candidates list changes (due to filtering).
+  //
+  // Clearing the selection matters as much as the page reset: a filter change
+  // can drop selected rows out of the visible list entirely, and the bulk bar
+  // would still report them as selected. Changing status from there would move
+  // -- and notify -- candidates the recruiter can no longer see, which is the
+  // one outcome a bulk action must never have. Selection that spans *pages*
+  // inside the same filter is kept on purpose (see handleSelectAll); only
+  // switching filters resets it.
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedIds([]);
   }, [search, jobPostId, status, viewed, aiLabel]);
 
   const startIndex = (currentPage - 1) * pageSize;
@@ -520,10 +619,14 @@ export function RecruiterCandidatesPage() {
     }
   };
 
-  async function applyStatusChange(applicationId: string, nextStatus: string, note?: string) {
+  async function applyStatusChange(
+    applicationId: string,
+    nextStatus: string,
+    noteOrOptions?: Parameters<typeof updateApplicationStatus>[3],
+  ) {
     try {
       setSaving(true);
-      await updateApplicationStatus(applicationId, nextStatus, token, note);
+      await updateApplicationStatus(applicationId, nextStatus, token, noteOrOptions);
       void toast.fire({ icon: "success", title: t("candidates.messages.statusUpdateSuccess") });
       // Reload candidates list
       const applicantsData = await getCompanyApplications(token, buildQueryParams());
@@ -561,6 +664,212 @@ export function RecruiterCandidatesPage() {
     await applyStatusChange(applicationId, nextStatus);
   }
 
+  function shortlistKey(candidateProfileId: string, jobPostId: string | null) {
+    return `${candidateProfileId}:${jobPostId ?? ""}`;
+  }
+
+  function findShortlistEntry(candidateProfileId: string, jobPostId: string) {
+    return shortlist.find(
+      (entry) => entry.candidateProfileId === candidateProfileId && entry.jobPostId === jobPostId,
+    );
+  }
+
+  // Bấm ⭐ trong bảng "Danh sách ứng tuyển": nếu đã lưu rồi thì hỏi xác nhận rồi
+  // bỏ lưu; nếu chưa thì mở dialog nhập ghi chú/mức độ quan tâm trước khi lưu —
+  // không lưu ngay một cú click vì sẽ mất cơ hội ghi lại lý do quan tâm.
+  function handleStarClick(app: Application) {
+    const existing = findShortlistEntry(app.candidateProfile.id, app.jobPost.id);
+    if (existing) {
+      void handleRemoveShortlist(existing);
+    } else {
+      setShortlistDialogApp(app);
+    }
+  }
+
+  async function handleConfirmSaveShortlist(
+    app: Application,
+    input: { note?: string | undefined; priority: number },
+  ) {
+    const key = shortlistKey(app.candidateProfile.id, app.jobPost.id);
+    if (shortlistPending.has(key)) return;
+    setShortlistPending((prev) => new Set(prev).add(key));
+    try {
+      const created = await addToShortlist(token, {
+        candidateProfileId: app.candidateProfile.id,
+        jobPostId: app.jobPost.id,
+        note: input.note,
+        priority: input.priority,
+      });
+      setShortlist((prev) => [created, ...prev]);
+      setShortlistDialogApp(null);
+      void toast.fire({
+        icon: "success",
+        title: locale === "vi" ? "Đã lưu vào ứng viên tiềm năng" : "Saved as a potential candidate",
+      });
+    } catch (error) {
+      showActionError(error, t);
+    } finally {
+      setShortlistPending((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
+
+  // Sửa ghi chú/mức độ quan tâm của một ứng viên tiềm năng đã lưu. Backend
+  // không có API PATCH cho shortlist (chỉ POST/DELETE), nên "sửa" thực chất là
+  // bỏ lưu rồi lưu lại với dữ liệu mới — id/ngày lưu sẽ đổi nhưng đó là giới
+  // hạn thật của backend, không phải lựa chọn UI. Trả về true/false để dialog ở
+  // component con biết có nên tự đóng lại hay không.
+  async function handleEditShortlist(
+    entry: ShortlistEntry,
+    input: { note?: string | undefined; priority: number },
+  ): Promise<boolean> {
+    const key = shortlistKey(entry.candidateProfileId, entry.jobPostId);
+    if (shortlistPending.has(key)) return false;
+    setShortlistPending((prev) => new Set(prev).add(key));
+    let removed = false;
+    try {
+      await removeFromShortlist(token, entry.id);
+      removed = true;
+      const created = await addToShortlist(token, {
+        candidateProfileId: entry.candidateProfileId,
+        jobPostId: entry.jobPostId ?? undefined,
+        note: input.note,
+        priority: input.priority,
+      });
+      setShortlist((prev) => [created, ...prev.filter((item) => item.id !== entry.id)]);
+      void toast.fire({
+        icon: "success",
+        title: locale === "vi" ? "Đã cập nhật ứng viên tiềm năng" : "Potential candidate updated",
+      });
+      return true;
+    } catch (error) {
+      if (removed) {
+        // Đã bỏ lưu thành công nhưng lưu lại thất bại — đồng bộ lại state theo
+        // đúng thực tế (đã mất khỏi danh sách) và nói rõ để recruiter bấm ⭐
+        // lưu lại, tránh hiển thị sai như thể ghi chú cũ vẫn còn.
+        setShortlist((prev) => prev.filter((item) => item.id !== entry.id));
+        void Swal.fire({
+          icon: "error",
+          title: locale === "vi" ? "Không thể lưu lại thay đổi" : "Could not save the changes",
+          text:
+            locale === "vi"
+              ? "Ứng viên đã bị bỏ lưu do lỗi khi cập nhật. Vui lòng bấm ⭐ ở tab Danh sách ứng tuyển để lưu lại."
+              : 'This candidate was removed from the list due to an error while saving changes. Please click ⭐ in the "Applications" tab to save them again.',
+        });
+      } else {
+        showActionError(error, t);
+      }
+      return false;
+    } finally {
+      setShortlistPending((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
+
+  // Bỏ lưu ứng viên tiềm năng — dùng ở cả nút ⭐ (khi đã lưu) và nút "Bỏ lưu" ở
+  // tab "Ứng viên tiềm năng". Hỏi xác nhận trước vì backend không có API sửa,
+  // bỏ lưu rồi lưu lại sẽ mất ghi chú cũ.
+  async function handleRemoveShortlist(entry: ShortlistEntry) {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: locale === "vi" ? "Bỏ ứng viên tiềm năng?" : "Remove potential candidate?",
+      text:
+        locale === "vi"
+          ? "Ghi chú đã lưu cho ứng viên này sẽ bị xoá."
+          : "The note saved for this candidate will be deleted.",
+      showCancelButton: true,
+      confirmButtonText: locale === "vi" ? "Bỏ lưu" : "Remove",
+      cancelButtonText: locale === "vi" ? "Hủy" : "Cancel",
+      confirmButtonColor: "#dc2626",
+    });
+    if (!result.isConfirmed) return;
+
+    const key = shortlistKey(entry.candidateProfileId, entry.jobPostId);
+    if (shortlistPending.has(key)) return;
+    setShortlistPending((prev) => new Set(prev).add(key));
+    try {
+      await removeFromShortlist(token, entry.id);
+      setShortlist((prev) => prev.filter((item) => item.id !== entry.id));
+      void toast.fire({
+        icon: "success",
+        title: locale === "vi" ? "Đã bỏ đánh dấu tiềm năng" : "Removed from potential candidates",
+      });
+    } catch (error) {
+      showActionError(error, t);
+    } finally {
+      setShortlistPending((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
+
+  // Mỗi lượt đổi trạng thái tạo một thông báo gửi tới ứng viên (xem
+  // ApplicationsService.updateStatus ở backend) — đổi hàng loạt vẫn đi qua
+  // đúng endpoint đơn lẻ đã kiểm quyền/kiểm nghiệp vụ, chỉ gọi song song, để
+  // không phải viết lại logic phân quyền đã có sẵn cho một endpoint bulk mới.
+  async function handleBulkStatusChange(nextStatus: string) {
+    if (selectedIds.length === 0) return;
+
+    const statusLabel = t(`candidates.status.${nextStatus}` as any);
+    const result = await Swal.fire({
+      icon: "warning",
+      title: t("candidates.bulk.confirmTitle", { count: selectedIds.length }),
+      text: t("candidates.bulk.confirmText", { status: statusLabel }),
+      showCancelButton: true,
+      confirmButtonText: t("candidates.bulk.confirmButton"),
+      cancelButtonText: t("candidates.bulk.cancelButton"),
+      confirmButtonColor: "#059669",
+    });
+    if (!result.isConfirmed) return;
+
+    setSaving(true);
+    try {
+      const targetIds = [...selectedIds];
+      const results = await Promise.allSettled(
+        targetIds.map((id) => updateApplicationStatus(id, nextStatus, token)),
+      );
+      const failedCount = results.filter((item) => item.status === "rejected").length;
+      const successCount = targetIds.length - failedCount;
+
+      const applicantsData = await getCompanyApplications(token, buildQueryParams());
+      setMissingCompany(false);
+      setCandidates(applicantsData);
+      setSelectedIds([]);
+
+      if (failedCount === 0) {
+        void toast.fire({
+          icon: "success",
+          title: t("candidates.bulk.successAll", { count: successCount }),
+        });
+      } else {
+        void Swal.fire({
+          icon: successCount > 0 ? "warning" : "error",
+          title: t("candidates.bulk.successPartial", {
+            success: successCount,
+            total: targetIds.length,
+          }),
+        });
+      }
+    } catch (error) {
+      if (isRecruiterMissingCompanyError(error)) {
+        setMissingCompany(true);
+        setCandidates([]);
+        return;
+      }
+      showActionError(error, t);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const handleExportExcel = () => {
     const candidatesToExport =
       selectedIds.length > 0 ? candidates.filter((c) => selectedIds.includes(c.id)) : candidates;
@@ -573,43 +882,74 @@ export function RecruiterCandidatesPage() {
       return;
     }
 
-    const headers =
-      locale === "vi"
-        ? ["Họ và tên", "Tin tuyển dụng", "Ngày nộp", "Tên file CV", "Trạng thái"]
-        : ["Full Name", "Job Post", "Submitted At", "CV Filename", "Status"];
-
-    const rows = candidatesToExport.map((app) => {
+    const excelData = candidatesToExport.map((app, index) => {
       const name =
-        app.candidateProfile.account.fullName ?? (locale === "vi" ? "Ẩn danh" : "Anonymous");
-      const jobTitle = app.jobPost.title;
+        app.candidateProfile?.account?.fullName ||
+        (locale === "vi" ? "Chưa cập nhật" : "Not specified");
+      const email = app.candidateProfile?.account?.email || "—";
+      const phone = app.candidateProfile?.phoneNumber || "—";
+      const jobTitle = app.jobPost?.title || "—";
       const submittedAt = formatAppDateTime(app.submittedAt);
-      const cvName = app.cvVersion?.fileName ?? "—";
+      const cvName = app.cvVersion?.fileName || "—";
       const statusText = t(`candidates.status.${app.status}` as any);
 
-      return [name, jobTitle, submittedAt, cvName, statusText].map((val) => {
-        const escaped = String(val).replace(/"/g, '""');
-        return `"${escaped}"`;
-      });
+      if (locale === "vi") {
+        return {
+          STT: index + 1,
+          "Họ và tên": name,
+          Email: email,
+          "Số điện thoại": phone,
+          "Vị trí ứng tuyển": jobTitle,
+          "Ngày nộp": submittedAt,
+          "Tên file CV": cvName,
+          "Trạng thái": statusText,
+        };
+      }
+
+      return {
+        "No.": index + 1,
+        "Full Name": name,
+        Email: email,
+        "Phone Number": phone,
+        "Job Post": jobTitle,
+        "Submitted At": submittedAt,
+        "CV Filename": cvName,
+        Status: statusText,
+      };
     });
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `UpNext_Candidates_${new Date().toISOString().split("T")[0]}.csv`,
+    // Set custom column widths for clear, readable Excel presentation
+    worksheet["!cols"] = [
+      { wch: 6 }, // STT
+      { wch: 25 }, // Họ và tên
+      { wch: 28 }, // Email
+      { wch: 18 }, // Số điện thoại
+      { wch: 32 }, // Vị trí ứng tuyển
+      { wch: 22 }, // Ngày nộp
+      { wch: 32 }, // Tên file CV
+      { wch: 18 }, // Trạng thái
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      locale === "vi" ? "Danh sách ứng viên" : "Candidates",
     );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    const today = new Date().toISOString().split("T")[0];
+    const filename = `UpNext_Candidates_${today}.xlsx`;
+
+    XLSX.writeFile(workbook, filename);
 
     void toast.fire({
       icon: "success",
-      title: locale === "vi" ? "Xuất dữ liệu thành công!" : "Data exported successfully!",
+      title:
+        locale === "vi"
+          ? "Xuất file Excel (.xlsx) thành công!"
+          : "Excel file exported successfully!",
     });
   };
 
@@ -799,24 +1139,15 @@ export function RecruiterCandidatesPage() {
       ) : null}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <TabsList className="flex h-12 items-center gap-1 rounded-full border border-slate-200 bg-slate-100 p-1">
-            <TabsTrigger
-              value="candidates"
-              className="h-full cursor-pointer rounded-full px-5 text-sm font-semibold text-slate-600 shadow-none transition-all hover:text-slate-800 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
-            >
-              {locale === "vi" ? "Danh sách ứng tuyển" : "Applications"}
-            </TabsTrigger>
-            <TabsTrigger
-              value="cv-ranking"
-              className="h-full cursor-pointer rounded-full px-5 text-sm font-semibold text-slate-600 shadow-none transition-all hover:text-slate-800 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-sm"
-            >
-              {locale === "vi" ? "AI lọc CV" : "AI CV Screening"}
-            </TabsTrigger>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
+            <TabsTrigger value="candidates">{t("nav.applicationsTab")}</TabsTrigger>
+            <TabsTrigger value="cv-ranking">{t("nav.aiCvScreeningTab")}</TabsTrigger>
+            <TabsTrigger value="potential">{t("nav.potentialCandidatesTab")}</TabsTrigger>
           </TabsList>
 
           {activeTab === "candidates" ? (
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center justify-end gap-2">
               {/* Refresh */}
               <Button
                 variant="outline"
@@ -841,6 +1172,64 @@ export function RecruiterCandidatesPage() {
         </div>
 
         <TabsContent value="candidates" className="mt-0">
+          {selectedIds.length > 0 ? (
+            <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-2.5">
+              <span className="text-sm font-semibold text-emerald-800">
+                {t("candidates.bulk.selectedCount", { count: selectedIds.length })}
+              </span>
+
+              <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+                <Select
+                  disabled={saving}
+                  value=""
+                  onValueChange={(nextStatus) => void handleBulkStatusChange(nextStatus)}
+                >
+                  <SelectTrigger
+                    aria-label={t("candidates.bulk.changeStatus")}
+                    className="h-9 w-fit rounded-full border-emerald-300 bg-white px-3 text-xs font-semibold text-emerald-700 shadow-none focus:ring-0"
+                  >
+                    <span>{t("candidates.bulk.changeStatus")}</span>
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {STATUS_OPTIONS.filter((st) => st !== "WITHDRAWN" && st !== "INTERVIEWING").map(
+                      (st) => (
+                        <SelectItem key={st} value={st}>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                "size-1.5 rounded-full shrink-0",
+                                getStatusDotClass(st),
+                              )}
+                            />
+                            <span>{t(`candidates.status.${st}` as any)}</span>
+                          </div>
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 rounded-full border-emerald-300 bg-white px-3 text-xs font-semibold text-emerald-700 shadow-none hover:bg-emerald-50"
+                  onClick={handleExportExcel}
+                >
+                  <DownloadSimple size={14} />
+                  {t("candidates.bulk.exportSelected")}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="h-9 cursor-pointer rounded-full px-3 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                >
+                  {t("candidates.bulk.clear")}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <RecruiterTableLayout
             loading={loading}
             totalItems={totalItems}
@@ -859,6 +1248,12 @@ export function RecruiterCandidatesPage() {
                     className="text-primary accent-primary focus:ring-primary size-4 cursor-pointer rounded border border-slate-300 focus:ring-offset-0"
                     aria-label="Select all candidates on this page"
                   />
+                </th>
+                <th className="w-12 border-r border-slate-300 px-2 py-3 text-center last:border-r-0">
+                  <span className="sr-only">
+                    {locale === "vi" ? "Ứng viên tiềm năng" : "Potential candidate"}
+                  </span>
+                  <Star size={16} className="mx-auto text-slate-400" />
                 </th>
                 <th className="w-[160px] min-w-[150px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
                   {t("candidates.table.candidate")}
@@ -880,7 +1275,7 @@ export function RecruiterCandidatesPage() {
             <tbody>
               {candidates.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 !py-12 text-center text-sm text-slate-500">
+                  <td colSpan={7} className="px-4 !py-12 text-center text-sm text-slate-500">
                     <div className="flex flex-col items-center justify-center">
                       <Image
                         src="/assets/icons/empty-state.png"
@@ -933,6 +1328,52 @@ export function RecruiterCandidatesPage() {
                           aria-label={`Select candidate ${name}`}
                         />
                       </td>
+                      <td className="w-12 border-r border-slate-100/50 px-2 py-2.5 text-center last:border-r-0">
+                        {(() => {
+                          const existingEntry = findShortlistEntry(
+                            app.candidateProfile.id,
+                            app.jobPost.id,
+                          );
+                          const canStartNewShortlist = SHORTLIST_ELIGIBLE_STATUSES.has(app.status);
+                          const locked = !existingEntry && !canStartNewShortlist;
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => handleStarClick(app)}
+                              disabled={
+                                locked ||
+                                shortlistPending.has(
+                                  shortlistKey(app.candidateProfile.id, app.jobPost.id),
+                                )
+                              }
+                              aria-label={
+                                existingEntry
+                                  ? locale === "vi"
+                                    ? "Bỏ đánh dấu ứng viên tiềm năng"
+                                    : "Remove from potential candidates"
+                                  : locale === "vi"
+                                    ? "Đánh dấu ứng viên tiềm năng"
+                                    : "Mark as a potential candidate"
+                              }
+                              title={
+                                locked
+                                  ? locale === "vi"
+                                    ? "Đơn ứng tuyển đã kết thúc (đã tuyển/từ chối/rút đơn), không thể đánh dấu tiềm năng mới"
+                                    : "This application has ended (hired/rejected/withdrawn) — can't mark it as potential"
+                                  : undefined
+                              }
+                              className={cn(
+                                "inline-flex cursor-pointer items-center justify-center rounded-full p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+                                existingEntry
+                                  ? "text-amber-500"
+                                  : "text-slate-300 hover:text-amber-500",
+                              )}
+                            >
+                              <Star size={18} weight={existingEntry ? "fill" : "regular"} />
+                            </button>
+                          );
+                        })()}
+                      </td>
                       <td className="w-[160px] min-w-[150px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
                         <span className="text-sm font-semibold text-slate-800">{name}</span>
                       </td>
@@ -942,37 +1383,56 @@ export function RecruiterCandidatesPage() {
                       <td className="w-[140px] min-w-[140px] border-r border-slate-100/50 px-4 py-2.5 text-sm text-slate-600 last:border-r-0">
                         {formatAppDateTime(app.submittedAt)}
                       </td>
-                      <td className="w-[100px] min-w-[100px] border-r border-slate-100/50 px-2 py-2.5 last:border-r-0">
-                        {app.cvVersion ? (
-                          <div className="flex items-center justify-center gap-3">
-                            <button
-                              onClick={() =>
-                                handleDownloadCv(resolveCvUrl(app), app.cvVersion!.fileName)
-                              }
-                              className="inline-flex cursor-pointer items-center justify-center text-emerald-600 transition-colors hover:text-emerald-700"
-                              title={locale === "vi" ? "Tải xuống CV" : "Download CV"}
-                            >
-                              <FileArrowDown size={18} />
-                            </button>
-                            <span className="h-4 w-px bg-slate-200" />
-                            <button
-                              onClick={() => handleQuickView(app, name)}
-                              className="text-primary inline-flex cursor-pointer items-center justify-center transition-colors hover:text-emerald-700"
-                              title={locale === "vi" ? "Xem nhanh CV" : "Quick View CV"}
-                            >
-                              <Eye size={18} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="w-full text-center">
-                            <span className="text-slate-400">—</span>
-                          </div>
-                        )}
+                      <td className="w-[145px] min-w-[145px] border-r border-slate-100/50 px-2 py-2.5 last:border-r-0">
+                        <div className="flex items-center justify-center gap-3">
+                          {app.cvVersion ? (
+                            <>
+                              <button
+                                onClick={() =>
+                                  handleDownloadCv(resolveCvUrl(app), app.cvVersion!.fileName)
+                                }
+                                className="inline-flex cursor-pointer items-center justify-center text-emerald-600 transition-colors hover:text-emerald-700"
+                                title={locale === "vi" ? "Tải xuống CV" : "Download CV"}
+                              >
+                                <FileArrowDown size={18} />
+                              </button>
+                              <button
+                                onClick={() => handleQuickView(app, name)}
+                                className="text-primary inline-flex cursor-pointer items-center justify-center transition-colors hover:text-emerald-700"
+                                title={locale === "vi" ? "Xem nhanh CV" : "Quick View CV"}
+                              >
+                                <Eye size={18} />
+                              </button>
+                              <span className="h-4 w-px bg-slate-200" />
+                            </>
+                          ) : null}
+                          <button
+                            onClick={() => setProfileDetailApplicationId(app.id)}
+                            className="inline-flex cursor-pointer items-center justify-center text-slate-500 transition-colors hover:text-emerald-700"
+                            title={
+                              locale === "vi" ? "Xem hồ sơ ứng viên" : "View candidate profile"
+                            }
+                          >
+                            <IdentificationCard size={18} />
+                          </button>
+                          <button
+                            onClick={() => setCoverLetterApplicationId(app.id)}
+                            className="inline-flex cursor-pointer items-center justify-center text-slate-500 transition-colors hover:text-emerald-700"
+                            title={locale === "vi" ? "Xem thư ứng tuyển" : "View cover letter"}
+                          >
+                            <Envelope size={18} />
+                          </button>
+                        </div>
                       </td>
                       <td className="w-[145px] min-w-[145px] px-4 py-2.5">
                         <Select
                           value={app.status}
-                          disabled={saving || app.status === "WITHDRAWN"}
+                          disabled={
+                            saving ||
+                            app.status === "WITHDRAWN" ||
+                            app.status === "HIRED" ||
+                            app.status === "REJECTED"
+                          }
                           onValueChange={(nextStatus) => handleStatusChange(app.id, nextStatus)}
                         >
                           <SelectTrigger
@@ -993,19 +1453,23 @@ export function RecruiterCandidatesPage() {
                             </span>
                           </SelectTrigger>
                           <SelectContent align="end">
-                            {STATUS_OPTIONS.map((st) => (
-                              <SelectItem key={st} value={st} disabled={st === "WITHDRAWN"}>
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={cn(
-                                      "size-1.5 rounded-full shrink-0",
-                                      getStatusDotClass(st),
-                                    )}
-                                  />
-                                  <span>{t(`candidates.status.${st}` as any)}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
+                            {STATUS_OPTIONS.map((st) => {
+                              const isAllowed = isStatusTransitionAllowed(app.status, st);
+                              const isCurrent = app.status === st;
+                              return (
+                                <SelectItem key={st} value={st} disabled={!isAllowed && !isCurrent}>
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={cn(
+                                        "size-1.5 rounded-full shrink-0",
+                                        getStatusDotClass(st),
+                                      )}
+                                    />
+                                    <span>{t(`candidates.status.${st}` as any)}</span>
+                                  </div>
+                                </SelectItem>
+                              );
+                            })}
                           </SelectContent>
                         </Select>
                       </td>
@@ -1027,6 +1491,21 @@ export function RecruiterCandidatesPage() {
             token={token}
             cvScreening={cvScreening}
             onUnauthorized={handleScreeningUnauthorized}
+          />
+        </TabsContent>
+
+        <TabsContent value="potential" className="mt-0">
+          <PotentialCandidatesTab
+            token={token}
+            locale={locale}
+            t={t}
+            shortlist={shortlist}
+            pendingKeys={shortlistPending}
+            onRemove={(entry) => void handleRemoveShortlist(entry)}
+            onEdit={handleEditShortlist}
+            resolveCvUrl={resolveCvUrl}
+            onDownloadCv={handleDownloadCv}
+            onQuickView={handleQuickView}
           />
         </TabsContent>
       </Tabs>
@@ -1061,9 +1540,55 @@ export function RecruiterCandidatesPage() {
         candidateName={offerSeed?.candidateName}
         jobTitle={offerSeed?.jobTitle}
         onConfirmOffer={async (appId, offerDetails) => {
-          const payloadStr = JSON.stringify(offerDetails);
-          await applyStatusChange(appId, "OFFERED", payloadStr);
+          await applyStatusChange(appId, "OFFERED", { offer: offerDetails });
         }}
+      />
+
+      {/* Lưu ứng viên tiềm năng, mở khi bấm ⭐ trên một đơn ứng tuyển chưa lưu */}
+      <SavePotentialCandidateDialog
+        open={shortlistDialogApp !== null}
+        onOpenChange={(open) => {
+          if (!open) setShortlistDialogApp(null);
+        }}
+        candidateName={
+          shortlistDialogApp?.candidateProfile.account.fullName ??
+          (locale === "vi" ? "Ẩn danh" : "Anonymous")
+        }
+        jobTitle={shortlistDialogApp?.jobPost.title ?? ""}
+        locale={locale}
+        submitting={
+          shortlistDialogApp
+            ? shortlistPending.has(
+                shortlistKey(shortlistDialogApp.candidateProfile.id, shortlistDialogApp.jobPost.id),
+              )
+            : false
+        }
+        onConfirm={(input) => {
+          if (shortlistDialogApp) void handleConfirmSaveShortlist(shortlistDialogApp, input);
+        }}
+      />
+
+      {/* Xem chi tiết hồ sơ ứng viên (không chỉ CV) */}
+      <CandidateProfileDetailDialog
+        applicationId={profileDetailApplicationId}
+        onOpenChange={(open) => {
+          if (!open) setProfileDetailApplicationId(null);
+        }}
+        token={token}
+        locale={locale}
+        resolveCvUrl={resolveCvUrl}
+        onDownloadCv={handleDownloadCv}
+        onQuickView={handleQuickView}
+      />
+
+      {/* Xem thư ứng tuyển */}
+      <CoverLetterDialog
+        applicationId={coverLetterApplicationId}
+        onOpenChange={(open) => {
+          if (!open) setCoverLetterApplicationId(null);
+        }}
+        token={token}
+        locale={locale}
       />
 
       {/* CV Quick View Dialog Popup */}

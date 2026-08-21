@@ -99,8 +99,31 @@ test("maps target-job keywords to evidence already present in the CV", async ({ 
   await expect(evidenceMap.getByText(/không phải “điểm ATS”/i)).toBeVisible();
 });
 
+test("keeps the CV on the page when the browser switches to print", async ({ page }) => {
+  await page.goto("/vi/candidate/cv-builder");
+  await expect(page.getByRole("heading", { name: "UpNext CV Studio" })).toBeVisible();
+
+  const preview = page.locator(".cv-builder-preview").first();
+  const printArea = page.locator("#cv-print-area");
+
+  // Edit mode is the default and, below the desktop breakpoint, it deliberately collapses
+  // the preview into a tab — so the CV starts out hidden on screen.
+  await expect(preview).toHaveClass(/cv-preview-mobile-hidden/);
+
+  // A printer measures width against the paper, not the screen, and A4 is about 794px —
+  // narrow enough for those same rules to match. The preview was therefore removed from
+  // the printed page, and Export produced a blank sheet on every device. TC_CAN_032.
+  await page.emulateMedia({ media: "print" });
+
+  await expect(preview).not.toHaveCSS("display", "none");
+  await expect(printArea).toBeVisible();
+  const box = await printArea.boundingBox();
+  expect(box?.height ?? 0).toBeGreaterThan(0);
+});
+
 test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page }) => {
   const snapshots: Record<string, unknown>[] = [];
+  let defaultCvId: string | null = null;
   await page.route("**/cvs", async (route) => {
     if (route.request().method() !== "POST") {
       await route.continue();
@@ -111,7 +134,7 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
     await route.fulfill({
       body: JSON.stringify({
         id: "cv-builder-e2e",
-        isDefault: true,
+        isDefault: false,
         source: "BUILDER",
         status: "ACTIVE",
         title: "Frontend Developer · UpNext",
@@ -121,6 +144,19 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
       contentType: "application/json",
       status: 201,
     });
+  });
+  await page.route("**/cvs/**", async (route) => {
+    if (route.request().method() === "PATCH" && route.request().url().endsWith("/default")) {
+      defaultCvId = route.request().url().split("/").at(-2) ?? null;
+      await route.fulfill({
+        body: JSON.stringify({ id: "cv-builder-e2e", isDefault: true }),
+        contentType: "application/json",
+        status: 200,
+      });
+      return;
+    }
+
+    await route.continue();
   });
 
   await page.goto("/vi/candidate/cv-builder");
@@ -138,6 +174,7 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
   await page.getByRole("button", { name: "Lưu bản CV vào UpNext" }).click();
   await expect(page.getByRole("dialog")).toContainText("Lưu một bản CV vào UpNext");
   await page.getByLabel("Tên bản CV").fill("Frontend Developer · UpNext");
+  await page.getByRole("checkbox", { name: "Đặt làm CV mặc định" }).click();
   await page.getByRole("button", { name: "Lưu bản CV", exact: true }).click();
 
   await expect(page.getByText("Đã lưu “Frontend Developer · UpNext” vào UpNext.")).toBeVisible();
@@ -163,6 +200,7 @@ test("saves a validated builder CV as a distinct UpNext snapshot", async ({ page
   expect(snapshot.parsedText).toContain("minhanh@example.com");
   expect(snapshot.parsedText).toContain("0901234567");
   expect(snapshot.parsedText).toContain("TP. Hồ Chí Minh");
+  await expect.poll(() => defaultCvId).toBe("cv-builder-e2e");
 });
 
 test("keeps unfinished work available across devices as a server-side draft", async ({ page }) => {
@@ -269,9 +307,65 @@ test("opens a saved Builder CV and creates a new immutable version when saving e
   await page.getByRole("button", { name: /^Thông tin/ }).click();
   await page.getByLabel("Họ và tên").fill("Nguyễn Minh Anh Updated");
   await page.getByRole("button", { name: "Lưu bản CV vào UpNext" }).click();
+  await page.getByRole("button", { name: "Lưu bản CV", exact: true }).click();
 
   await expect.poll(() => savedVersions).toHaveLength(1);
   expect(savedVersions[0]).toMatchObject({ expectedVersion: 4 });
+});
+
+test("keeps local edits safe when a saved CV version conflicts", async ({ page }) => {
+  await page.route("**/cvs/conflicting-builder", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        id: "conflicting-builder",
+        isDefault: true,
+        source: "BUILDER",
+        status: "ACTIVE",
+        title: "Frontend CV",
+        updatedAt: "2026-08-08T00:00:00.000Z",
+        version: 4,
+        versions: [
+          {
+            contentJson: {
+              personalInfo: {
+                address: "Hà Nội",
+                email: "minhanh@example.com",
+                fullName: "Nguyễn Minh Anh",
+                phoneNumber: "0901234567",
+                title: "Frontend Developer",
+                website: "",
+              },
+            },
+            createdAt: "2026-08-08T00:00:00.000Z",
+            id: "conflicting-version-4",
+            sourceFile: null,
+            sourceFileId: null,
+            versionNo: 4,
+          },
+        ],
+      }),
+      contentType: "application/json",
+      status: 200,
+    });
+  });
+  await page.route("**/cvs/conflicting-builder/builder-versions", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ code: "CV_VERSION_CONFLICT", message: "Version conflict" }),
+      contentType: "application/json",
+      status: 409,
+    });
+  });
+
+  await page.goto("/vi/candidate/cv-builder?cvId=conflicting-builder");
+  await page.getByRole("button", { name: /^Thông tin/ }).click();
+  await page.getByLabel("Họ và tên").fill("Nguyễn Minh Anh Updated locally");
+  await page.getByRole("button", { name: "Lưu bản CV vào UpNext" }).click();
+  await page.getByRole("button", { name: "Lưu bản CV", exact: true }).click();
+
+  await expect(page.getByText("CV này vừa được cập nhật ở nơi khác.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tải bản mới nhất" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Lưu thành CV mới" })).toBeVisible();
+  await expect(page.getByLabel("Họ và tên")).toHaveValue("Nguyễn Minh Anh Updated locally");
 });
 
 test("takes a reviewer directly to the first field that needs attention", async ({ page }) => {
@@ -341,4 +435,41 @@ test("switches between edit and preview without page overflow on mobile", async 
   await page.getByRole("button", { name: "Chỉnh sửa", exact: true }).click();
   await page.getByRole("button", { name: /^Thông tin/ }).click();
   await expect(page.getByLabel("Họ và tên")).toBeVisible();
+});
+
+test("prints the CV from the default edit mode instead of a blank page", async ({ page }) => {
+  // The export button never changes mode, so edit mode is what a user prints from.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/vi/candidate/cv-builder");
+  await expect(page.getByLabel("Bản xem trước A4")).toBeVisible();
+
+  // A printer resolves `max-width` against the paper, not the screen. Emulating the print
+  // media type alone keeps the 1440px viewport and hides nothing, so the page size has to be
+  // emulated too — that combination is what a viewport-based hiding rule actually meets when
+  // the sheet is A4, on every device.
+  await page.emulateMedia({ media: "print" });
+  await page.setViewportSize({ width: 794, height: 1123 });
+
+  // Reported as the offending ancestor rather than a bare boolean: `visibility: visible`
+  // inside `@media print` cannot resurrect a subtree whose ancestor is `display: none`, so
+  // the useful part of a failure is which rule removed it.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const area = document.querySelector("#cv-print-area");
+        if (!area) return "missing";
+        for (let node: Element | null = area; node; node = node.parentElement) {
+          if (getComputedStyle(node).display === "none") {
+            return `hidden by ${node.className || node.tagName}`;
+          }
+        }
+        return "visible";
+      }),
+    )
+    .toBe("visible");
+
+  // The real print pipeline, not a model of it: an empty A4 page is about 1KB, so anything
+  // near that means the export came out blank however the layout looked on screen.
+  const pdf = await page.pdf({ format: "A4", printBackground: true });
+  expect(pdf.byteLength).toBeGreaterThan(10_000);
 });

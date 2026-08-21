@@ -27,6 +27,33 @@ const WORD_PATTERN = /[\p{L}\d][\p{L}\d+#./-]{1,}/gu;
 const QUANTIFIED_RESULT_PATTERN =
   /\b\d+(?:[.,]\d+)?\s*(?:%|x|k|m|ms|s|giây|phút|giờ|ngày|người|users?|customers?|requests?|downloads?|vnd|usd)\b/i;
 
+/**
+ * One skill, many spellings. A job ad saying "ReactJS" and a CV saying "React" describe
+ * the same thing, and counting them as different keywords is what kept a genuinely
+ * matching CV from scoring anywhere near the top.
+ */
+const KEYWORD_ALIASES: Record<string, string> = {
+  angularjs: "angular",
+  csharp: "c#",
+  dotnet: ".net",
+  expressjs: "express",
+  golang: "go",
+  k8s: "kubernetes",
+  nestjs: "nest",
+  "nest.js": "nest",
+  nextjs: "next",
+  "next.js": "next",
+  nodejs: "node",
+  "node.js": "node",
+  postgres: "postgresql",
+  reactjs: "react",
+  "react.js": "react",
+  restful: "rest",
+  tailwindcss: "tailwind",
+  ts: "typescript",
+  vuejs: "vue",
+  "vue.js": "vue",
+};
 const STOP_WORDS = new Set(
   [
     "and",
@@ -95,6 +122,41 @@ const STOP_WORDS = new Set(
     "voi",
     "yeu",
     "cau",
+    // Wording from the perks and company-blurb half of a Vietnamese job ad. No CV is
+    // supposed to contain these, so leaving them in the keyword set spent the budget on
+    // terms nobody could ever match and pushed every score toward the middle.
+    "bao",
+    "che",
+    "dai",
+    "dip",
+    "dong",
+    "du",
+    "gio",
+    "hiem",
+    "hoi",
+    "le",
+    "lich",
+    "loi",
+    "luong",
+    "moi",
+    "muc",
+    "nam",
+    "ngay",
+    "nghi",
+    "phep",
+    "phuc",
+    "quyen",
+    "suc",
+    "tet",
+    "thang",
+    "thoa",
+    "thuan",
+    "thuong",
+    "tien",
+    "tre",
+    "trung",
+    "truong",
+    "xet",
   ].map(normalizeKeyword),
 );
 
@@ -137,7 +199,7 @@ const PRIORITY_KEYWORDS = new Set(
     "tailwind",
     "typescript",
     "vue",
-  ].map(normalizeKeyword),
+  ].map(canonicalKeyword),
 );
 
 const ACTION_VERBS = new Set(
@@ -169,6 +231,9 @@ const ACTION_VERBS = new Set(
   ].map(normalizeKeyword),
 );
 
+/** Below this many recognised skills an ad is treated as non-technical prose. */
+const MIN_SKILL_KEYWORDS_FOR_SKILL_SCORING = 5;
+
 const SECTION_WEIGHTS: Record<CvSectionKey, number> = {
   personal: 25,
   summary: 15,
@@ -186,9 +251,22 @@ function normalizeKeyword(value: string) {
     .replace(/^[-./]+|[-./]+$/g, "");
 }
 
+/**
+ * The alias-folded form, for comparing one keyword against another.
+ *
+ * Deliberately separate from `normalizeKeyword`, which is also applied to whole blocks of
+ * CV text at once. Folding aliases in there would rewrite a single word \u2014 the skill being
+ * looked up \u2014 while leaving the text it is searched against spelled the original way, so a
+ * CV listing "ReactJS" and describing "ReactJS" would report the skill as unevidenced.
+ */
+function canonicalKeyword(value: string) {
+  const normalized = normalizeKeyword(value);
+  return KEYWORD_ALIASES[normalized] ?? normalized;
+}
+
 function tokensFor(value: string) {
   return (value.match(WORD_PATTERN) ?? [])
-    .map((raw) => ({ key: normalizeKeyword(raw), raw }))
+    .map((raw) => ({ key: canonicalKeyword(raw), raw }))
     .filter((token) => token.key.length >= 2 && !STOP_WORDS.has(token.key));
 }
 
@@ -229,8 +307,29 @@ export function evaluateJobMatch(cvData: CvData): CvJobMatchEvaluation {
     });
   }
 
-  const keywords = [...counts.entries()]
-    .filter(([key, value]) => PRIORITY_KEYWORDS.has(key) || value.count > 1 || key.length >= 5)
+  const entries = [...counts.entries()];
+  const skillKeywords = entries.filter(([key]) => PRIORITY_KEYWORDS.has(key));
+
+  /*
+   * When the ad names enough recognisable skills, score on those alone.
+   *
+   * The mixed fallback below keeps any word of five letters or more, which on a
+   * Vietnamese ad means the score is decided partly by prose the candidate has no reason
+   * to repeat — a CV matching every required technology still lost a third of the marks
+   * to the wording of the job description itself. Restricting to named skills makes the
+   * number answer the question the candidate is actually asking, and makes `missing` a
+   * list of skills to acquire rather than words to parrot.
+   *
+   * The threshold keeps the score from swinging on one or two keywords, and non-technical
+   * ads, where nothing is recognised, keep the previous behaviour unchanged.
+   */
+  const keywords = (
+    skillKeywords.length >= MIN_SKILL_KEYWORDS_FOR_SKILL_SCORING
+      ? skillKeywords
+      : entries.filter(
+          ([key, value]) => PRIORITY_KEYWORDS.has(key) || value.count > 1 || key.length >= 5,
+        )
+  )
     .toSorted(([firstKey, first], [secondKey, second]) => {
       const priorityDifference =
         Number(PRIORITY_KEYWORDS.has(secondKey)) - Number(PRIORITY_KEYWORDS.has(firstKey));
@@ -317,7 +416,18 @@ function decodeBasicEntities(value: string) {
     .replaceAll("&#39;", "'");
 }
 
-export function toPlainText(value: string) {
+/**
+ * Turns stored content into text, without touching whitespace the author typed.
+ *
+ * This is what a textarea binds to. `toPlainText` cannot be used there: it trims, and a
+ * controlled input whose value is trimmed on every render can never hold a trailing
+ * space — the space is stripped the instant it is typed, so no space can ever be entered
+ * between two words and the field looks like it rejects input entirely.
+ *
+ * Stored content may still be HTML from an imported CV or the old rich-text editor, so
+ * tags are unwrapped; only the cosmetic normalisation is left out.
+ */
+export function toEditableText(value: string) {
   return decodeBasicEntities(
     value
       .replace(/<\s*br\s*\/?\s*>/gi, "\n")
@@ -325,8 +435,15 @@ export function toPlainText(value: string) {
       .replace(/<\s*li[^>]*>/gi, "• ")
       .replace(/<\s*\/\s*li\s*>/gi, "\n")
       .replace(HTML_TAG_PATTERN, ""),
-  )
-    .replace(/\r/g, "")
+  ).replace(/\r/g, "");
+}
+
+/**
+ * The tidied form used for ATS scoring, the preview and export — never for an input's
+ * value. Collapsing blank lines and trimming is right for output and wrong while typing.
+ */
+export function toPlainText(value: string) {
+  return toEditableText(value)
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -355,8 +472,22 @@ export function toExternalHref(value: string) {
 const GPA_PATTERN = /^\d{1,2}(?:[.,]\d{1,2})?(?:\s*\/\s*\d{1,3}(?:[.,]\d{1,2})?)?$/;
 
 export function isValidGpa(value: string) {
-  if (!value.trim()) return true;
-  return GPA_PATTERN.test(value.trim());
+  const normalized = value.trim().replaceAll(",", ".");
+  if (!normalized) return true;
+  if (!GPA_PATTERN.test(normalized)) return false;
+
+  const [numeratorText, denominatorText] = normalized.split("/").map((part) => part.trim());
+  if (!denominatorText) return true;
+
+  const numerator = Number(numeratorText);
+  const denominator = Number(denominatorText);
+  return (
+    Number.isFinite(numerator) &&
+    Number.isFinite(denominator) &&
+    denominator > 0 &&
+    numerator >= 0 &&
+    numerator <= denominator
+  );
 }
 
 export function isValidExternalUrl(value: string) {
@@ -398,6 +529,12 @@ function sectionEvaluation(
     status: statusFor(completion, errors),
     warnings: sectionIssues.filter((issue) => issue.severity === "warning").length,
   };
+}
+
+function sectionEntryCount(cvData: CvData, section: "experience" | "projects" | "education") {
+  if (section === "experience") return cvData.experiences.length;
+  if (section === "projects") return cvData.projects.length;
+  return cvData.educations.length;
 }
 
 function addIssue(
@@ -550,15 +687,38 @@ export function evaluateCv(cvData: CvData): CvEvaluation {
     (total, section) => total + completionBySection[section] * SECTION_WEIGHTS[section],
     0,
   );
+  const visibleWeight = weightedSections.reduce(
+    (total, section) => total + SECTION_WEIGHTS[section],
+    0,
+  );
   const visibleIssues = issues.filter(
     (issue) => issue.section === "personal" || !hidden.has(issue.section),
   );
-  const hasCareerEvidence =
-    (!hidden.has("experience") && cvData.experiences.length > 0) ||
-    (!hidden.has("projects") && cvData.projects.length > 0) ||
-    (!hidden.has("education") && cvData.educations.length > 0);
+  const careerSections = ["experience", "projects", "education"] as const;
+  const visibleCareerSections = careerSections.filter((section) => !hidden.has(section));
+  const hasCareerEvidence = visibleCareerSections.some(
+    (section) => sectionEntryCount(cvData, section) > 0,
+  );
+  const [firstVisibleCareerSection] = visibleCareerSections;
   if (!hasCareerEvidence) {
-    addIssue(visibleIssues, "projects", "careerEvidence", "careerEvidenceRequired");
+    // Pushed after the visibility filter on purpose: this rule blocks export, so it has to
+    // reach the candidate even in the case below where every section it names is hidden.
+    if (firstVisibleCareerSection) {
+      // Attributed to a section that is actually on screen, because the message is a link:
+      // it takes the candidate to the section named, and a hidden one is not somewhere they
+      // can act.
+      addIssue(
+        visibleIssues,
+        firstVisibleCareerSection,
+        "careerEvidence",
+        "careerEvidenceRequired",
+      );
+    } else {
+      // Telling someone to add an entry is wrong here — they may already have several, all
+      // hidden. Adding more would change nothing, and the previous message sent them to do
+      // exactly that, in a section they had chosen to hide.
+      addIssue(visibleIssues, "experience", "careerEvidence", "careerEvidenceHidden");
+    }
   }
   const blockingIssues = visibleIssues.filter((issue) => issue.severity === "error");
 
@@ -568,7 +728,11 @@ export function evaluateCv(cvData: CvData): CvEvaluation {
     exportReady: blockingIssues.length === 0,
     issues: visibleIssues,
     jobMatch: evaluateJobMatch(cvData),
-    score: Math.round(weightedScore),
+    // Điểm phản ánh mức độ hoàn thiện của những phần đang hiển thị. Các điều
+    // kiện nghiệp vụ bắt buộc (ví dụ cần có bằng chứng kinh nghiệm) được thể
+    // hiện riêng qua `exportReady`, thay vì làm méo điểm khi người dùng chủ
+    // động ẩn một phần tùy chọn.
+    score: visibleWeight > 0 ? Math.round((weightedScore / visibleWeight) * 100) : 0,
     sections: {
       personal: sectionEvaluation(completionBySection.personal, visibleIssues, "personal"),
       summary: sectionEvaluation(completionBySection.summary, visibleIssues, "summary"),

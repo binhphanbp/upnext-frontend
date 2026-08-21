@@ -9,15 +9,15 @@ import Swal from "sweetalert2";
 import {
   getActiveSubscription,
   getInvoices,
-  getSubscriptionPlans,
+  getPublicSubscriptionPlans,
   getSubscriptionUsage,
   payInvoice,
   type CompanySubscriptionDetail,
   type InvoiceDetail,
   type QuotaSnapshot,
-  type SubscriptionFeature,
   type SubscriptionPlan,
 } from "@/features/recruiter/api/billing";
+import { QUOTA_FEATURE_LABELS } from "@/features/recruiter/components/plan-feature-labels";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
@@ -53,17 +53,6 @@ function formatCurrency(amountStr: string | number) {
   const amount = typeof amountStr === "string" ? parseFloat(amountStr) : amountStr;
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 }
-
-const QUOTA_FEATURE_LABELS: Record<SubscriptionFeature, string> = {
-  JOB_POST: "Tin tuyển dụng",
-  FEATURED_JOB: "Tin nổi bật",
-  URGENT_LABEL: "Nhãn Tuyển gấp",
-  CV_POOL_VIEW: "Lượt xem hồ sơ kho CV",
-  TALENT_CONTACT: "Liên hệ ứng viên chủ động",
-  AI_CV_MATCHING: "AI chấm điểm CV theo JD",
-  AI_JD_GENERATE: "AI viết và tối ưu JD",
-  HR_SEAT: "Tài khoản HR",
-};
 
 function formatOnlyDate(isoString: string | null) {
   if (!isoString) return "—";
@@ -110,7 +99,10 @@ export function RecruiterBillingPage() {
     async (accessToken: string) => {
       try {
         setLoading(true);
-        const plansData = await getSubscriptionPlans();
+        // Public listing: a recruiter must never call the admin-only
+        // `/subscription-plans` endpoint, which 401s for non-admin roles and
+        // was silently logging every recruiter straight back out of this page.
+        const plansData = await getPublicSubscriptionPlans("RECRUITER");
         setPlans(plansData.filter((p) => p.status === "ACTIVE"));
 
         const invoicesData = await getInvoices(accessToken);
@@ -673,6 +665,7 @@ export function RecruiterBillingPage() {
                                 alt="VietQR code"
                                 width={144}
                                 height={144}
+                                unoptimized
                                 className="size-36 object-contain"
                               />
                             </div>

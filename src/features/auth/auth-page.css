@@ -337,6 +337,25 @@
   line-height: 1.4;
 }
 
+.login-password-action {
+  display: flex;
+  justify-content: flex-end;
+  margin: -8px 0 18px;
+}
+
+.login-password-action a {
+  border-radius: 4px;
+  color: #078b65;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-password-action a:hover {
+  color: #056b4e;
+  text-decoration: underline;
+}
+
 .login-form-alert {
   margin: 0 0 18px;
   border: 1px solid #fecaca;
@@ -423,6 +442,7 @@
 
 .login-logo:focus-visible,
 .login-switch a:focus-visible,
+.login-password-action a:focus-visible,
 .login-eye:focus-visible,
 .login-submit:focus-visible,
 .login-social-button:focus-visible {
@@ -514,6 +534,10 @@
     margin-bottom: 12px;
   }
 
+  .login-password-action {
+    margin-bottom: 12px;
+  }
+
   .login-password-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -568,6 +592,10 @@
   }
 
   .login-field {
+    margin-bottom: 10px;
+  }
+
+  .login-password-action {
     margin-bottom: 10px;
   }
 

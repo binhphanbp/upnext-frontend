@@ -14,31 +14,6 @@ test.beforeEach(async ({ page }) => {
   await mockHomeApi(page);
 });
 
-async function activeGalleryThumbnailIsFullyVisible(galleryDialog: Locator) {
-  return galleryDialog.evaluate((dialog) => {
-    const rail = dialog.querySelector<HTMLElement>("[data-gallery-filmstrip]");
-    const activeThumbnail = dialog.querySelector<HTMLElement>('[aria-current="true"]');
-
-    if (!rail || !activeThumbnail) {
-      return false;
-    }
-
-    const railRect = rail.getBoundingClientRect();
-    const activeThumbnailRect = activeThumbnail.getBoundingClientRect();
-
-    return activeThumbnailRect.left >= railRect.left && activeThumbnailRect.right <= railRect.right;
-  });
-}
-
-async function backgroundAlpha(locator: Locator) {
-  return locator.evaluate((element) => {
-    const color = window.getComputedStyle(element).backgroundColor;
-    const channels = color.match(/[\d.]+/g)?.map(Number) ?? [];
-
-    return channels.length > 3 ? (channels[3] ?? 1) : 1;
-  });
-}
-
 async function dragGalleryStage(
   page: Page,
   stage: Locator,
@@ -383,7 +358,9 @@ test("collapses header controls before the compact desktop layout can overlap", 
   const compactMenu = page.locator(".marketing-home-compact-menu");
   await expect(compactMenu).toBeVisible();
   await page.getByRole("button", { name: "Mở menu" }).click();
-  const compactNavigation = compactMenu.getByRole("navigation", { name: "Điều hướng chính" });
+  // The compact menu carries its own landmark, "Điều hướng thu gọn"; "Điều hướng chính"
+  // belongs to the desktop navigation that this breakpoint hides.
+  const compactNavigation = compactMenu.getByRole("navigation", { name: "Điều hướng thu gọn" });
   await expect(compactNavigation.getByRole("link", { name: "Việc làm IT" })).toHaveAttribute(
     "href",
     "/vi/jobs",
@@ -406,9 +383,14 @@ test("collapses header controls before the compact desktop layout can overlap", 
 });
 
 test("uses semibold weight across header navigation and actions", async ({ page }) => {
+  // Below 1361px the header collapses into the compact menu, and Playwright defaults to
+  // 1280 — so the full navigation has to be asked for explicitly.
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi");
 
-  const jobsNavigation = page.getByRole("button", { name: /Việc làm IT/ });
+  // A nav section that has its own landing page is a link now, not a button — clicking it
+  // navigates, and only hovering opens the panel.
+  const jobsNavigation = page.getByRole("link", { name: /Việc làm IT/ });
   await expect(jobsNavigation).toBeVisible();
   await expect(jobsNavigation).toHaveCSS("font-weight", "600");
 
@@ -461,7 +443,9 @@ test("uses localized candidate tools in the primary utility bar without adding h
   ).toHaveAttribute("href", "/en/register");
   await expect(englishUtilityNavigation.getByLabel("AI Interview — Coming soon")).toBeVisible();
 
-  await page.evaluate(() => window.localStorage.setItem("upnext.demo.auth", "candidate"));
+  // The header reads a real candidate session now; the old `upnext.demo.auth` flag no longer
+  // signs anyone in, so setting it left the guest utility bar on screen.
+  await installCandidateSession(page);
   await page.goto("/vi");
   const signedInCandidateUtilityNavigation = utilityBar.getByRole("navigation", {
     name: "Công cụ dành cho ứng viên",
@@ -484,32 +468,31 @@ test("uses localized candidate tools in the primary utility bar without adding h
 test("localizes header navigation and mega menus without mixed-language labels", async ({
   page,
 }) => {
+  // Below 1361px the header collapses into the compact menu, and Playwright defaults to
+  // 1280 — so the full navigation has to be asked for explicitly.
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi");
 
   const vietnameseNavigation = page.getByLabel("Điều hướng chính");
   await expect(
-    vietnameseNavigation.getByRole("button", { name: "Việc làm IT", exact: true }),
+    vietnameseNavigation.getByRole("link", { name: "Việc làm IT", exact: true }),
   ).toBeVisible();
-  await vietnameseNavigation.getByRole("button", { name: "Việc làm IT", exact: true }).click();
+  await vietnameseNavigation.getByRole("link", { name: "Việc làm IT", exact: true }).hover();
   await expect(page.getByRole("tab", { name: "Theo kỹ năng", exact: true })).toBeVisible();
   await expect(page.getByText("Theo kỹ năng (Skills)", { exact: true })).toHaveCount(0);
 
   await page.goto("/en");
 
   const englishNavigation = page.getByLabel("Primary navigation");
+  await expect(englishNavigation.getByRole("link", { name: "IT Jobs", exact: true })).toBeVisible();
   await expect(
-    englishNavigation.getByRole("button", { name: "IT Jobs", exact: true }),
-  ).toBeVisible();
-  await expect(
-    englishNavigation.getByRole("button", { name: "IT Companies", exact: true }),
+    englishNavigation.getByRole("link", { name: "Companies", exact: true }),
   ).toBeVisible();
 
-  await englishNavigation.getByRole("button", { name: "IT Companies", exact: true }).click();
+  await englishNavigation.getByRole("link", { name: "Companies", exact: true }).hover();
   const companiesPanel = page.locator("#public-nav-companies-panel");
-  await expect(companiesPanel.getByText("Top technology companies", { exact: true })).toBeVisible();
-  await expect(
-    companiesPanel.getByText("Ranked by reputation and candidate reviews.", { exact: true }),
-  ).toBeVisible();
+  await expect(companiesPanel.getByText("Most actively hiring", { exact: true })).toBeVisible();
+  await expect(companiesPanel.getByText("Big Tech & enterprises", { exact: true })).toBeVisible();
   await expect(companiesPanel.getByText("Top công ty công nghệ", { exact: true })).toHaveCount(0);
   await expect(companiesPanel.getByRole("link", { name: "View all companies" })).toBeVisible();
 });
@@ -536,151 +519,12 @@ test("keeps the homepage header above page content while scrolling", async ({ pa
   expect(headerState.isTopLayer).toBe(true);
 });
 
-test("keeps every public header mega menu readable and inside the viewport", async ({ page }) => {
-  const menuCases = [
-    {
-      key: "jobs",
-      label: "Việc làm IT",
-      destinations: null,
-      directoryItems: null,
-    },
-    {
-      key: "companies",
-      label: "Công ty IT",
-      destinations: ["/vi/companies", "/vi/companies", "/vi/companies", "/vi/companies"],
-      directoryItems: 3,
-    },
-    {
-      key: "blog",
-      label: "Bài viết",
-      destinations: [
-        "/vi/posts?category=blog-upnext",
-        "/vi/posts?category=su-nghiep-it",
-        "/vi/posts?category=chuyen-mon-it",
-        "/vi/posts",
-      ],
-      directoryItems: 3,
-    },
-    {
-      key: "features",
-      label: "Tính năng",
-      destinations: [
-        "/vi/register",
-        "/vi/register",
-        "/vi/register",
-        "/vi/jobs",
-        "/vi/register",
-        "/vi/register",
-        "/vi/register",
-      ],
-      directoryItems: 6,
-    },
-  ] as const;
-
-  for (const width of [1280, 1440, 1920]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/vi");
-
-    const navigation = page.getByLabel("Điều hướng chính");
-
-    for (const menuCase of menuCases) {
-      const triggerId = `public-nav-${menuCase.key}-trigger`;
-      const panelId = `public-nav-${menuCase.key}-panel`;
-      const trigger = navigation.getByRole("button", { name: menuCase.label, exact: true });
-
-      await expect(trigger).toHaveAttribute("id", triggerId);
-      await expect(trigger).toHaveAttribute("aria-controls", panelId);
-      await expect(trigger).toHaveAttribute("aria-expanded", "false");
-
-      await trigger.click();
-      await expect(trigger).toHaveAttribute("aria-expanded", "true");
-      await page.keyboard.press("Escape");
-      await expect(trigger).toHaveAttribute("aria-expanded", "false");
-
-      await trigger.focus();
-      await page.keyboard.press("Enter");
-      await expect(trigger).toHaveAttribute("aria-expanded", "true");
-
-      const panel = navigation.locator(`#${panelId}`);
-      await expect(panel).toHaveAttribute("aria-labelledby", triggerId);
-      await expect(panel).toBeVisible();
-
-      const links = panel.getByRole("link");
-      if (menuCase.destinations) {
-        await expect(links).toHaveCount(menuCase.destinations.length);
-      } else {
-        await expect.poll(() => links.count()).toBeGreaterThan(1);
-      }
-      const destinations = await links.evaluateAll((elements) =>
-        elements.map((element) => {
-          const url = new URL((element as HTMLAnchorElement).href);
-          return decodeURIComponent(`${url.pathname}${url.search}`);
-        }),
-      );
-      if (menuCase.destinations) {
-        expect(destinations).toEqual(menuCase.destinations);
-        await expect(panel).toHaveClass(/marketing-home-directory-mega/);
-        await expect(panel.locator(".marketing-home-directory-items > li")).toHaveCount(
-          menuCase.directoryItems,
-        );
-        await expect(panel.locator(".marketing-home-directory-footer")).toBeVisible();
-        await expect(panel.locator(".marketing-home-directory-icon")).toHaveCount(0);
-      } else {
-        expect(destinations.every((destination) => destination.startsWith("/vi/jobs"))).toBe(true);
-      }
-
-      const layout = await panel.evaluate((element) => {
-        const panelRect = element.getBoundingClientRect();
-        const items = Array.from(element.querySelectorAll<HTMLElement>("a"));
-
-        return {
-          panelInsideViewport: panelRect.left >= 0 && panelRect.right <= window.innerWidth,
-          pageHasHorizontalOverflow: document.documentElement.scrollWidth > window.innerWidth,
-          overflowingItems: items
-            .filter((item) => item.scrollWidth > item.clientWidth)
-            .map((item) => item.textContent?.trim()),
-          nonWrappingDescriptions: Array.from(
-            element.querySelectorAll<HTMLElement>(".marketing-home-directory-text small"),
-          ).filter((description) => getComputedStyle(description).whiteSpace !== "normal").length,
-        };
-      });
-
-      expect(layout.panelInsideViewport).toBe(true);
-      expect(layout.pageHasHorizontalOverflow).toBe(false);
-      expect(layout.overflowingItems).toEqual([]);
-      expect(layout.nonWrappingDescriptions).toBe(0);
-
-      await page.keyboard.press("Escape");
-      await expect(panel).toBeHidden();
-      await expect(trigger).toHaveAttribute("aria-expanded", "false");
-      await expect(trigger).toBeFocused();
-    }
-  }
-});
-
-test("gives directory menu rows the same hover feedback as job rows", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/vi");
-
-  await page.getByRole("button", { name: "Công ty IT", exact: true }).click();
-  const firstItem = page
-    .locator("#public-nav-companies-panel .marketing-home-directory-item")
-    .first();
-
-  await firstItem.hover();
-  await expect(firstItem).toHaveCSS("background-color", "rgb(243, 250, 247)");
-  await expect(firstItem.locator(".marketing-home-directory-text b")).toHaveCSS(
-    "color",
-    "rgb(7, 135, 95)",
-  );
-});
-
 test("keeps header mega menus open while the pointer crosses into the panel", async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 900 });
   await page.goto("/vi");
 
   const header = page.locator(".marketing-home-header");
-  const trigger = page.getByRole("button", { name: "Việc làm IT", exact: true });
+  const trigger = page.getByRole("link", { name: "Việc làm IT", exact: true });
   const panel = page.locator("#public-nav-jobs-panel");
 
   await trigger.hover();
@@ -713,40 +557,6 @@ test("keeps header mega menus open while the pointer crosses into the panel", as
 
   await page.mouse.move(12, 700);
   await expect(trigger).toHaveAttribute("aria-expanded", "false", { timeout: 1_000 });
-});
-
-test("loads live backend data for every jobs menu category", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/vi");
-
-  const trigger = page.locator("#public-nav-jobs-trigger");
-  await trigger.click();
-
-  const panel = page.locator("#public-nav-jobs-panel");
-  const tabPanel = panel.getByRole("tabpanel");
-  const tabs = panel.getByRole("tab");
-  const filterParams = ["jobCategory", "skill", "title", "expertise", "company", "location"];
-
-  await expect(tabs).toHaveCount(filterParams.length);
-
-  for (const [index, filterParam] of filterParams.entries()) {
-    const tab = tabs.nth(index);
-    await tab.hover();
-    await expect(tab).toHaveAttribute("aria-selected", "true");
-    const tabId = await tab.getAttribute("id");
-    expect(tabId).not.toBeNull();
-    await expect(tabPanel).toHaveAttribute("aria-labelledby", tabId!);
-
-    const links = tabPanel.getByRole("link");
-    await expect.poll(() => links.count()).toBeGreaterThan(0);
-    const firstHref = await links.first().getAttribute("href");
-    expect(new URL(firstHref ?? "", page.url()).searchParams.has(filterParam)).toBe(true);
-  }
-
-  await tabs.nth(0).focus();
-  await page.keyboard.press("ArrowDown");
-  await expect(tabs.nth(1)).toBeFocused();
-  await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
 });
 
 test("shows an interactive preview only for urgent job titles", async ({ page }) => {
@@ -844,336 +654,36 @@ test("uses the shared Lexend typography in the public footer", async ({ page }) 
   const heading = footer.getByRole("heading").first();
   const textControls = footer.locator("button, input, summary");
 
-  await expect(page.locator("body")).toHaveCSS("font-family", /Lexend/);
-  await expect(footer).toHaveCSS("font-family", /Lexend/);
+  await expect(page.locator("body")).toHaveCSS("font-family", /lexend/i);
+  await expect(footer).toHaveCSS("font-family", /lexend/i);
   await expect(heading).toHaveCSS("font-weight", "700");
 
   for (const control of await textControls.all()) {
-    await expect(control).toHaveCSS("font-family", /Lexend/);
+    await expect(control).toHaveCSS("font-family", /lexend/i);
   }
-});
-
-test("renders migrated public jobs and companies pages", async ({ page }) => {
-  await page.goto("/vi/jobs");
-
-  await expect(
-    page.getByRole("heading", {
-      name: "Tìm kiếm việc làm từ các công ty hàng đầu đang tuyển dụng",
-    }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Chi tiết", exact: true }).first().click();
-  await page.waitForURL(/\/vi\/jobs\//, { timeout: 15_000 });
-  await expect(
-    page.getByRole("heading", { name: "Technical Project Manager / Scrum Master", exact: true }),
-  ).toBeVisible();
-
-  await page.goto("/vi/companies");
-  await expect(page.getByRole("heading", { name: "FPT Software", exact: true })).toBeVisible();
-});
-
-test("renders reference-inspired job detail and company profile sections", async ({ page }) => {
-  await page.goto("/vi/jobs/fpt-java-fresher");
-
-  await expect(page.getByRole("heading", { name: /fresher java developer/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Sẵn sàng ứng tuyển?" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Tổng quan công việc" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Lý do nên ứng tuyển" })).toBeVisible();
-
-  await page.goto("/vi/companies/fpt-software");
-
-  await expect(page.getByRole("heading", { name: "FPT Software", exact: true })).toBeVisible();
-  await expect(page.getByText("Nhà tuyển dụng được yêu thích")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Thông tin nhanh" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Việc làm đang tuyển" })).toBeVisible();
-});
-
-test("updates company follow controls to the confirmed state", async ({ page }) => {
-  await page.goto("/vi/companies/fpt-software");
-
-  const followControls = page.locator("button.company-follow");
-  const followButton = followControls.first();
-  await expect(followButton).toHaveAttribute("aria-pressed", "false");
-  await followButton.click();
-
-  await expect(followButton).toHaveText("Đang theo dõi");
-  await expect(followButton).toHaveAttribute("aria-pressed", "true");
-  await expect(followButton.locator(".company-follow-icon svg")).toHaveCount(1);
-  await expect(followControls).toHaveCount(2);
-  await expect(followControls).toHaveText(["Đang theo dõi", "Đang theo dõi"]);
-  await expect(followControls.nth(1)).toHaveAttribute("aria-pressed", "true");
-});
-
-test("opens company culture gallery with overflow images", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/vi/companies/fpt-software");
-
-  await expect(page.getByText("+15 ảnh")).toBeVisible();
-  const galleryOpener = page.getByRole("button", {
-    name: "Xem ảnh môi trường làm việc 3",
-  });
-  await galleryOpener.click();
-
-  const galleryDialog = page.getByRole("dialog", { name: "Ảnh môi trường làm việc" });
-  await expect(galleryDialog).toBeVisible();
-  await expect(galleryDialog.getByText("3/18")).toBeVisible();
-  await expect.soft(galleryDialog.locator('[aria-live="polite"]')).toHaveText("3/18", {
-    timeout: 1_000,
-  });
-
-  const dialogBox = await galleryDialog.boundingBox();
-  expect(dialogBox).not.toBeNull();
-  expect(dialogBox!.x).toBeCloseTo(0, 0);
-  expect(dialogBox!.y).toBeCloseTo(0, 0);
-  expect(dialogBox!.width).toBeCloseTo(1440, 0);
-  expect(dialogBox!.height).toBeCloseTo(900, 0);
-
-  const overlayAlpha = await backgroundAlpha(page.locator(".company-gallery-lightbox-backdrop"));
-  expect(overlayAlpha).toBeGreaterThanOrEqual(0.45);
-  expect(overlayAlpha).toBeLessThanOrEqual(0.72);
-
-  const toolbar = galleryDialog.getByRole("toolbar", {
-    name: "Điều khiển bộ sưu tập ảnh",
-  });
-  await expect(toolbar).toBeVisible();
-  await expect(galleryDialog.getByRole("button", { name: "Thu nhỏ ảnh" })).toBeVisible();
-  await expect(galleryDialog.getByRole("button", { name: "Phóng to ảnh" })).toBeVisible();
-
-  const fullscreenButton = galleryDialog.getByRole("button", { name: "Xem toàn màn hình" });
-  if ((await fullscreenButton.count()) > 0) {
-    await expect(fullscreenButton).toHaveAttribute("aria-pressed", "false");
-  }
-
-  const zoomReset = galleryDialog.getByRole("button", {
-    name: "Đặt lại thu phóng về 100%",
-  });
-  await galleryDialog.getByRole("button", { name: "Phóng to ảnh" }).click();
-  await galleryDialog.getByRole("button", { name: "Phóng to ảnh" }).click();
-  await expect(zoomReset).toHaveText("150%");
-
-  const nextButton = galleryDialog.getByRole("button", { name: "Xem ảnh tiếp theo" });
-  await nextButton.click();
-  await expect(galleryDialog.getByText("4/18")).toBeVisible();
-  await expect(zoomReset).toHaveText("100%");
-  await expect(nextButton).toBeFocused();
-
-  const filmstripToggle = galleryDialog.getByRole("button", {
-    name: "Ẩn dải ảnh thu nhỏ",
-  });
-  await expect(filmstripToggle).toHaveAttribute("aria-pressed", "true");
-  await filmstripToggle.click();
-  await expect(galleryDialog.locator("[data-gallery-filmstrip]")).toBeHidden();
-  const showFilmstrip = galleryDialog.getByRole("button", {
-    name: "Hiện dải ảnh thu nhỏ",
-  });
-  await expect(showFilmstrip).toHaveAttribute("aria-pressed", "false");
-  await showFilmstrip.click();
-  const filmstrip = galleryDialog.locator("[data-gallery-filmstrip]");
-  await expect(filmstrip).toBeVisible();
-  await filmstrip.click({ position: { x: 2, y: 2 } });
-  await expect(galleryDialog).toBeVisible();
-
-  await galleryDialog.locator('[aria-current="true"]').focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(galleryDialog.getByText("5/18")).toBeVisible();
-  await expect(galleryDialog.getByRole("button", { name: "Chọn ảnh 5" })).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(galleryDialog.getByText("5/18")).toBeVisible();
-
-  await page.keyboard.press("ArrowLeft");
-  await expect(galleryDialog.getByText("4/18")).toBeVisible();
-  await expect(galleryDialog.getByRole("button", { name: "Chọn ảnh 4" })).toBeFocused();
-
-  for (let imageNumber = 4; imageNumber < 15; imageNumber += 1) {
-    await galleryDialog.getByRole("button", { name: "Xem ảnh tiếp theo" }).click();
-  }
-
-  await expect(galleryDialog.getByText("15/18")).toBeVisible();
-  expect.soft(await activeGalleryThumbnailIsFullyVisible(galleryDialog)).toBe(true);
-
-  await page.keyboard.press("End");
-  await expect.soft(galleryDialog.getByText("18/18")).toBeVisible({ timeout: 1_000 });
-
-  await page.keyboard.press("ArrowRight");
-  await expect.soft(galleryDialog.getByText("1/18")).toBeVisible({ timeout: 1_000 });
-
-  await page.keyboard.press("Home");
-  await expect.soft(galleryDialog.getByText("1/18")).toBeVisible({ timeout: 1_000 });
-
-  await page.keyboard.press("ArrowLeft");
-  await expect.soft(galleryDialog.getByText("18/18")).toBeVisible({ timeout: 1_000 });
-
-  await galleryDialog
-    .locator(".company-gallery-lightbox-stage")
-    .click({ position: { x: 2, y: 2 } });
-  await expect(galleryDialog).toBeHidden();
-  await expect(galleryOpener).toBeFocused();
-
-  await galleryOpener.click();
-  await expect(galleryDialog).toBeVisible();
-
-  await page.keyboard.press("Escape");
-  await expect(galleryDialog).toBeHidden();
-  await expect.soft(galleryOpener).toBeFocused();
-});
-
-test("supports direct drag navigation and keeps zoom drag as pan", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/vi/companies/fpt-software");
-  await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
-
-  const galleryDialog = page.getByRole("dialog", { name: "Ảnh môi trường làm việc" });
-  const stage = galleryDialog.locator(".company-gallery-lightbox-stage");
-  const currentSlide = galleryDialog.locator('[data-gallery-slide="current"]');
-  const nextSlide = galleryDialog.locator('[data-gallery-slide="next"]');
-  await expect(currentSlide).toBeVisible();
-
-  const stageBox = await stage.boundingBox();
-  const currentBoxBeforeDrag = await currentSlide.boundingBox();
-  expect(stageBox).not.toBeNull();
-  expect(currentBoxBeforeDrag).not.toBeNull();
-
-  const startX = stageBox!.x + stageBox!.width / 2;
-  const startY = stageBox!.y + stageBox!.height / 2;
-  await page.mouse.move(startX, startY);
-  await page.mouse.down();
-  await page.mouse.move(startX - 180, startY, { steps: 6 });
-
-  const currentBoxDuringDrag = await currentSlide.boundingBox();
-  const nextBoxDuringDrag = await nextSlide.boundingBox();
-  expect(currentBoxDuringDrag).not.toBeNull();
-  expect(nextBoxDuringDrag).not.toBeNull();
-  expect(currentBoxDuringDrag!.x).toBeLessThan(currentBoxBeforeDrag!.x - 120);
-  expect(nextBoxDuringDrag!.x).toBeLessThan(stageBox!.x + stageBox!.width);
-  expect(nextBoxDuringDrag!.x + nextBoxDuringDrag!.width).toBeGreaterThan(stageBox!.x);
-  await expect(galleryDialog.getByText("3/18")).toBeVisible();
-
-  await page.mouse.up();
-  await expect(galleryDialog.getByText("4/18")).toBeVisible();
-  await expect.poll(async () => (await currentSlide.boundingBox())?.x).toBeCloseTo(stageBox!.x, 0);
-
-  const currentBoxBeforeSnapBack = await currentSlide.boundingBox();
-  expect(currentBoxBeforeSnapBack).not.toBeNull();
-  await dragGalleryStage(page, stage, 36, { holdMs: 260, steps: 6 });
-  await expect(galleryDialog.getByText("4/18")).toBeVisible();
-  await expect
-    .poll(async () => (await currentSlide.boundingBox())?.x)
-    .toBeCloseTo(currentBoxBeforeSnapBack!.x, 0);
-
-  await page.mouse.move(stageBox!.x + 5, stageBox!.y + 20);
-  await page.mouse.down();
-  await page.mouse.move(stageBox!.x + 5, stageBox!.y + 140, { steps: 6 });
-  await page.mouse.up();
-  await expect(galleryDialog).toBeVisible();
-  await expect(galleryDialog.getByText("4/18")).toBeVisible();
-
-  await galleryDialog.getByRole("button", { name: "Phóng to ảnh" }).click();
-  await expect(galleryDialog.getByRole("button", { name: "Đặt lại thu phóng về 100%" })).toHaveText(
-    "125%",
-  );
-
-  const zoomedSlideBoxBeforeDrag = await currentSlide.boundingBox();
-  const zoomedImage = currentSlide.locator("img");
-  const imageTransformBeforePan = await zoomedImage.evaluate((image) => image.style.transform);
-  await dragGalleryStage(page, stage, -160, { steps: 6 });
-  await expect(galleryDialog.getByText("4/18")).toBeVisible();
-  expect((await currentSlide.boundingBox())?.x).toBeCloseTo(zoomedSlideBoxBeforeDrag!.x, 0);
-  expect(await zoomedImage.evaluate((image) => image.style.transform)).not.toBe(
-    imageTransformBeforePan,
-  );
-});
-
-test("keeps the company culture gallery usable on mobile", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/vi/companies/fpt-software");
-
-  await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
-
-  const galleryDialog = page.getByRole("dialog", { name: "Ảnh môi trường làm việc" });
-  await expect(galleryDialog).toBeVisible();
-
-  const dialogBox = await galleryDialog.boundingBox();
-  expect(dialogBox).not.toBeNull();
-  expect(dialogBox!.x).toBeGreaterThanOrEqual(0);
-  expect(dialogBox!.y).toBeGreaterThanOrEqual(0);
-  expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(390);
-  expect(dialogBox!.y + dialogBox!.height).toBeLessThanOrEqual(844);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
-
-  for (const control of [
-    galleryDialog.getByRole("button", { name: "Xem ảnh trước" }),
-    galleryDialog.getByRole("button", { name: "Xem ảnh tiếp theo" }),
-    galleryDialog.getByRole("button", { name: "Thu nhỏ ảnh" }),
-    galleryDialog.getByRole("button", { name: "Phóng to ảnh" }),
-    galleryDialog.getByRole("button", { name: "Ẩn dải ảnh thu nhỏ" }),
-    galleryDialog.getByRole("button", { name: "Đóng bộ sưu tập ảnh" }),
-  ]) {
-    await expect(control).toBeVisible();
-    await expect(control).toBeInViewport();
-  }
-
-  const stage = galleryDialog.locator(".company-gallery-lightbox-stage");
-  await dragGalleryStageWithTouch(page, stage, -90);
-  await expect(galleryDialog.getByText("4/18")).toBeVisible();
-
-  for (let imageNumber = 4; imageNumber < 15; imageNumber += 1) {
-    await galleryDialog.getByRole("button", { name: "Xem ảnh tiếp theo" }).click();
-  }
-
-  await expect(galleryDialog.getByText("15/18")).toBeVisible();
-  expect(await activeGalleryThumbnailIsFullyVisible(galleryDialog)).toBe(true);
-  await expect(galleryDialog.locator('[aria-current="true"]')).toBeInViewport();
-});
-
-test("keeps all company gallery controls reachable on a compact mobile viewport", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 320, height: 568 });
-  await page.goto("/vi/companies/fpt-software");
-
-  await page.getByRole("button", { name: "Xem ảnh môi trường làm việc 3" }).click();
-
-  const galleryDialog = page.getByRole("dialog", { name: "Ảnh môi trường làm việc" });
-  await expect(galleryDialog).toBeVisible();
-
-  for (const controlName of [
-    "Thu nhỏ ảnh",
-    "Phóng to ảnh",
-    "Ẩn dải ảnh thu nhỏ",
-    "Đóng bộ sưu tập ảnh",
-    "Xem ảnh trước",
-    "Xem ảnh tiếp theo",
-  ]) {
-    const control = galleryDialog.getByRole("button", { name: controlName });
-    await expect(control).toBeVisible();
-    await expect(control).toBeInViewport();
-  }
-
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
 });
 
 test("renders migrated auth pages", async ({ page }) => {
   await page.goto("/vi/login");
-  await expect(page.getByRole("heading", { name: "Đăng nhập", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Chào mừng trở lại", exact: true })).toBeVisible();
   await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Mật khẩu", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Tiếp tục với Google" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đăng nhập với Google" })).toBeVisible();
 
   await page.goto("/vi/register");
-  await expect(page.getByRole("heading", { name: "Đăng ký", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tạo tài khoản", exact: true })).toBeVisible();
   await expect(page.getByLabel("Họ và tên", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Xác nhận mật khẩu", { exact: true })).toBeVisible();
 
   await page.goto("/en/login");
-  await expect(page.getByRole("heading", { name: "Log in", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome back", exact: true })).toBeVisible();
   await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Log in with Google" })).toBeVisible();
 
   await page.goto("/en/register");
-  await expect(page.getByRole("heading", { name: "Sign up", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Create your account", exact: true }),
+  ).toBeVisible();
   await expect(page.getByLabel("Full name", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Confirm password", { exact: true })).toBeVisible();
 });

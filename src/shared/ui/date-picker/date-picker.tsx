@@ -30,6 +30,7 @@ export interface DatePickerProps {
   ariaLabel?: string | undefined;
   /** Adds the red asterisk to the label. `aria-required` is not valid on the button trigger. */
   required?: boolean | undefined;
+  modal?: boolean | undefined;
 }
 
 function parseToDate(val?: string | Date | null): Date | undefined {
@@ -68,6 +69,7 @@ export function DatePicker({
   displayFormat = "dd/MM/yyyy",
   ariaLabel,
   required = false,
+  modal = true,
 }: DatePickerProps) {
   const generatedId = useId();
   const datePickerId = explicitId || generatedId;
@@ -128,7 +130,7 @@ export function DatePicker({
         </Label>
       ) : null}
 
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={modal}>
         <PopoverTrigger asChild disabled={disabled}>
           <button
             id={datePickerId}
@@ -180,6 +182,8 @@ export function DatePicker({
         <PopoverContent
           align="start"
           className="w-auto rounded-2xl border-slate-200 p-0 shadow-2xl"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
         >
           <Calendar
             mode="single"
@@ -187,7 +191,7 @@ export function DatePicker({
             onSelect={handleSelect}
             locale={vi}
             disabled={isDateDisabled}
-            autoFocus
+            showOutsideDays={false}
           />
 
           {(showTodayButton || showClearButton) && (

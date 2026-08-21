@@ -23,9 +23,15 @@ import Image from "next/image";
 import { useRouter as useNativeRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+import Swal from "sweetalert2";
 
 import { getMyCandidateProfile } from "@/features/candidate/api/profile";
 import { clearCandidateSession, getCandidateSession } from "@/features/candidate/session";
+import { getNotifications } from "@/features/notifications/api/notifications";
+import {
+  requestAndRegisterFcmToken,
+  listenForegroundMessages,
+} from "@/features/notifications/lib/firebase-fcm";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 
 import { getPublicJobs } from "../home/api";
@@ -170,7 +176,7 @@ export type PublicHeaderViewer = {
   roleLabel: string;
   workspaceHref: string;
   unreadMessages?: number;
-  unreadNotifications?: number;
+  unreadNotifications?: number | undefined;
 };
 
 const navMenus: NavMenu[] = [
@@ -640,6 +646,7 @@ function FlagIcon({ code, label }: { code: Language["code"]; label?: string }) {
 type CandidateViewerSource = Readonly<{
   email?: string | undefined;
   fullName?: string | undefined;
+  unreadNotifications?: number | undefined;
 }>;
 
 function getCandidateInitials(source: CandidateViewerSource) {
@@ -661,8 +668,14 @@ function createCandidateViewer(
     name,
     roleLabel: locale === "en" ? "Candidate" : "Ứng viên",
     workspaceHref: "/candidate/profile",
+    unreadNotifications: source.unreadNotifications,
   };
 }
+
+// Fired by the notifications page after mark-as-read/mark-all-as-read so the
+// header's bell badge (a separate fetch, not shared React Query cache) drops
+// its count immediately instead of only on the next full sync.
+const notificationsReadEvent = "upnext-notifications-read";
 
 export function PublicHeader({
   navigate,
@@ -682,6 +695,45 @@ export function PublicHeader({
   const [storedViewer, setStoredViewer] = useState<PublicHeaderViewer | null>(null);
   const [hasResolvedStoredViewer, setHasResolvedStoredViewer] = useState(viewer !== undefined);
   const menuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const session = getCandidateSession();
+    if (session?.accessToken) {
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        void requestAndRegisterFcmToken(session.accessToken);
+      }
+    }
+
+    let unsubscribe: (() => void) | null = null;
+    void listenForegroundMessages((payload) => {
+      console.log("[FCM] Candidate foreground push message received:", payload);
+      const title =
+        payload?.notification?.title || payload?.data?.title || "Cập nhật ứng tuyển mới";
+      const body = payload?.notification?.body || payload?.data?.body || "";
+      const notificationId = payload?.data?.notificationId || payload?.data?.targetId || title;
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        new Notification(title, {
+          body,
+          icon: "/upnext-logo/icon-cropped.png",
+          tag: notificationId,
+        });
+      }
+    }).then((unsub) => {
+      if (unsub) unsubscribe = unsub;
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
   const navRef = useRef<HTMLElement | null>(null);
   const langRef = useRef<HTMLDivElement | null>(null);
   const accountRef = useRef<HTMLDivElement | null>(null);
@@ -870,13 +922,20 @@ export function PublicHeader({
       setHasResolvedStoredViewer(true);
 
       try {
-        const profile = await getMyCandidateProfile(session.accessToken);
+        // In parallel: the profile call was already here, and the unread
+        // count is a cheap `limit=1` list fetch that only reads `meta.
+        // unreadCount` -- no reason to wait on it after the profile.
+        const [profile, notifications] = await Promise.all([
+          getMyCandidateProfile(session.accessToken),
+          getNotifications(session.accessToken, 1, 1).catch(() => null),
+        ]);
         if (ignore) return;
 
         setStoredViewer(
           createCandidateViewer(currentLocale, {
             email: profile.account.email,
             fullName: profile.account.fullName,
+            unreadNotifications: notifications?.meta?.unreadCount ?? 0,
           }),
         );
       } catch {
@@ -887,10 +946,12 @@ export function PublicHeader({
     void syncViewer();
     window.addEventListener("storage", syncViewer);
     window.addEventListener(demoAuthChangeEvent, syncViewer);
+    window.addEventListener(notificationsReadEvent, syncViewer);
     return () => {
       ignore = true;
       window.removeEventListener("storage", syncViewer);
       window.removeEventListener(demoAuthChangeEvent, syncViewer);
+      window.removeEventListener(notificationsReadEvent, syncViewer);
     };
   }, [currentLocale, viewer]);
 
@@ -1138,7 +1199,13 @@ export function PublicHeader({
                   type="button"
                   className="marketing-home-auth-icon"
                   aria-label={copy.notificationsLabel}
-                  onClick={() => navigate("/candidate/notifications")}
+                  onClick={() => {
+                    const session = getCandidateSession();
+                    if (session?.accessToken) {
+                      void requestAndRegisterFcmToken(session.accessToken);
+                    }
+                    navigate("/candidate/notifications");
+                  }}
                 >
                   <Bell size={20} aria-hidden="true" />
                   {effectiveViewer.unreadNotifications ? (
@@ -1151,7 +1218,7 @@ export function PublicHeader({
               {recruiterChatAvailable ? (
                 <button
                   type="button"
-                  className="marketing-home-auth-icon"
+                  className="marketing-home-auth-icon marketing-home-auth-messages"
                   aria-label={copy.messagesLabel}
                   onClick={openRecruiterChat}
                 >

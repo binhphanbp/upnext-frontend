@@ -8,6 +8,7 @@ import {
   Check,
   CheckCircle,
   Clock,
+  DownloadSimple,
   Eye,
   FileText,
   MapPin,
@@ -21,7 +22,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
-import Swal from "sweetalert2";
 
 import {
   downloadCandidateCvVersion,
@@ -43,7 +43,6 @@ import {
   getJobTags,
 } from "@/features/candidate/job-activity-model";
 import { useCandidateProfileWorkspace } from "@/features/candidate/profile/use-candidate-profile";
-import { getPublicJobs } from "@/features/public/home/api";
 import { Link } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
@@ -57,6 +56,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { toast } from "@/shared/ui/toast";
 
 import { ApplicationStatusBadge } from "./application-status-badge";
 import { ChangeCvDialog } from "./change-cv-dialog";
@@ -71,6 +71,7 @@ export function CandidateApplicationDetailPage({
   const queryClient = useQueryClient();
   const { isSessionResolved, session } = useCandidateProfileWorkspace();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [offerResponseAction, setOfferResponseAction] = useState<"ACCEPT" | "DECLINE" | null>(null);
   const [changeCvOpen, setChangeCvOpen] = useState(false);
   const [isViewingCv, setIsViewingCv] = useState(false);
   const [cvPreviewError, setCvPreviewError] = useState<string | null>(null);
@@ -83,27 +84,34 @@ export function CandidateApplicationDetailPage({
     queryFn: () => getCandidateApplication(session!.accessToken, applicationId),
     queryKey: detailQueryKey,
   });
-  const publicJobsQuery = useQuery({
-    enabled: Boolean(session),
-    queryFn: getPublicJobs,
-    queryKey: ["public-jobs"],
-  });
   const withdrawMutation = useMutation({
     mutationFn: () => withdrawCandidateApplication(session!.accessToken, applicationId),
     onSuccess: async (updatedApplication) => {
       setWithdrawOpen(false);
-      queryClient.setQueryData<CandidateApplicationApi>(detailQueryKey, (current) =>
-        current
-          ? {
-              ...current,
-              status: updatedApplication.status,
-              updatedAt: updatedApplication.updatedAt,
-            }
-          : current,
-      );
+      queryClient.setQueryData<CandidateApplicationApi>(detailQueryKey, (current) => {
+        if (!current) return current;
+        const availableActions = current.availableActions;
+
+        return {
+          ...current,
+          ...updatedApplication,
+          ...(availableActions
+            ? {
+                availableActions: {
+                  ...availableActions,
+                  canChangeCv: false,
+                  canWithdraw: false,
+                },
+              }
+            : {}),
+        };
+      });
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["candidate-applications", session?.user.id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["candidate-application-activity", session?.user.id],
         }),
         // The public job page caches whether this job was applied to. Without this the
         // job still reads "Đã ứng tuyển" after withdrawing until that cache expires.
@@ -116,36 +124,43 @@ export function CandidateApplicationDetailPage({
     mutationFn: (action: "ACCEPT" | "DECLINE") =>
       respondCandidateOffer(session!.accessToken, applicationId, action),
     onSuccess: async (updatedApplication, action) => {
-      queryClient.setQueryData<CandidateApplicationApi>(detailQueryKey, (current) =>
-        current
-          ? {
-              ...current,
-              status: updatedApplication.status,
-              updatedAt: updatedApplication.updatedAt,
-            }
-          : current,
-      );
+      setOfferResponseAction(null);
+      queryClient.setQueryData<CandidateApplicationApi>(detailQueryKey, (current) => {
+        if (!current) return current;
+        const availableActions = current.availableActions;
+        return {
+          ...current,
+          ...updatedApplication,
+          offerRespondedAt: updatedApplication.offerRespondedAt ?? new Date().toISOString(),
+          offerResponse:
+            updatedApplication.offerResponse ?? (action === "ACCEPT" ? "ACCEPTED" : "DECLINED"),
+          ...(availableActions
+            ? {
+                availableActions: {
+                  ...availableActions,
+                  canRespondToOffer: false,
+                  canWithdraw: false,
+                },
+              }
+            : {}),
+        };
+      });
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["candidate-applications", session?.user.id],
         }),
-        queryClient.invalidateQueries({ queryKey: detailQueryKey }),
+        queryClient.invalidateQueries({
+          queryKey: ["candidate-application-activity", session?.user.id],
+        }),
       ]);
-      void Swal.fire({
-        icon: "success",
-        title:
-          action === "ACCEPT"
-            ? "🎉 Chúc mừng bạn đã chấp nhận lời đề nghị làm việc!"
-            : "Bạn đã phản hồi từ chối đề nghị tuyển dụng.",
-        confirmButtonColor: action === "ACCEPT" ? "#10b981" : "#64748b",
-      });
+      toast.success(
+        action === "ACCEPT"
+          ? t("applicationDetail.offer.acceptedToast")
+          : t("applicationDetail.offer.declinedToast"),
+      );
     },
     onError: () => {
-      void Swal.fire({
-        icon: "error",
-        title: "Không thể xử lý phản hồi. Vui lòng thử lại!",
-        confirmButtonColor: "#ef4444",
-      });
+      toast.error(t("applicationDetail.offer.responseError"));
     },
   });
 
@@ -197,7 +212,6 @@ export function CandidateApplicationDetailPage({
   const application = applicationQuery.data;
   const isUnauthorized =
     applicationQuery.error instanceof ApiError && applicationQuery.error.status === 401;
-  const publicJob = publicJobsQuery.data?.find((job) => job.id === application?.jobPostId);
   const title = application?.jobPost.title ?? t("applicationDetail.page.fallbackTitle");
   const header = (
     <CandidatePageHeader
@@ -277,7 +291,7 @@ export function CandidateApplicationDetailPage({
   }
 
   const logo = getCompanyLogo(application.jobPost);
-  const location = getJobLocation(publicJob, t("common.locationFallback"));
+  const location = getJobLocation(application.jobPost, t("common.locationFallback"));
   const tags = getJobTags(application.jobPost);
   const history = getApplicationHistory(application, locale, t);
 
@@ -302,7 +316,11 @@ export function CandidateApplicationDetailPage({
             )}
           </span>
           <div className="min-w-0">
-            <ApplicationStatusBadge status={application.status} />
+            <ApplicationStatusBadge
+              status={application.status}
+              offerResponse={application.offerResponse}
+              offerDeadlineAt={application.offerDeadlineAt}
+            />
             <h2 className="mt-3 text-xl font-bold text-slate-950 sm:text-2xl">
               {application.jobPost.title}
             </h2>
@@ -346,6 +364,10 @@ export function CandidateApplicationDetailPage({
 
       <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-5">
+          {application.interviews?.length ? (
+            <InterviewSchedule application={application} locale={locale} />
+          ) : null}
+
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6">
             <div className="flex items-start gap-3">
               <span className="bg-brand-muted text-accent-foreground grid size-10 shrink-0 place-items-center rounded-xl">
@@ -364,8 +386,21 @@ export function CandidateApplicationDetailPage({
               {history.map((event, index) => (
                 <li key={event.key} className="grid grid-cols-[28px_minmax(0,1fr)] gap-3">
                   <div className="relative flex justify-center">
-                    <span className="bg-brand text-brand-foreground z-10 mt-0.5 grid size-6 place-items-center rounded-full">
-                      <Check aria-hidden="true" size={13} weight="bold" />
+                    <span
+                      className={cn(
+                        "z-10 mt-0.5 grid size-6 place-items-center rounded-full",
+                        event.tone === "positive" && "bg-brand text-brand-foreground",
+                        event.tone === "attention" && "bg-amber-100 text-amber-800",
+                        event.tone === "negative" && "bg-rose-100 text-rose-700",
+                      )}
+                    >
+                      {event.tone === "negative" ? (
+                        <XCircle aria-hidden="true" size={13} weight="bold" />
+                      ) : event.tone === "attention" ? (
+                        <Clock aria-hidden="true" size={13} weight="bold" />
+                      ) : (
+                        <Check aria-hidden="true" size={13} weight="bold" />
+                      )}
                     </span>
                     {index < history.length - 1 ? (
                       <span
@@ -432,7 +467,8 @@ export function CandidateApplicationDetailPage({
                 )}
                 {t("applicationDetail.submission.viewCv")}
               </Button>
-              {canChangeApplicationCv(application.status) ? (
+              {(application.availableActions?.canChangeCv ??
+              canChangeApplicationCv(application.status)) ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -481,7 +517,11 @@ export function CandidateApplicationDetailPage({
               {t("applicationDetail.current.title")}
             </p>
             <div className="mt-3">
-              <ApplicationStatusBadge status={application.status} />
+              <ApplicationStatusBadge
+                status={application.status}
+                offerResponse={application.offerResponse}
+                offerDeadlineAt={application.offerDeadlineAt}
+              />
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               {t(`applicationDetail.current.${application.status}.description`)}
@@ -491,46 +531,13 @@ export function CandidateApplicationDetailPage({
             </p>
           </section>
 
-          {application.status === "OFFERED" && (
-            <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-sm">
-              <div className="flex items-center gap-2">
-                <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-500 text-sm font-bold text-white shadow-sm">
-                  🎉
-                </span>
-                <h2 className="text-sm font-extrabold text-emerald-950">
-                  {locale === "vi" ? "Xác nhận Lời mời nhận việc" : "Offer Decision"}
-                </h2>
-              </div>
-              <p className="mt-2 text-xs leading-5 font-medium text-emerald-900">
-                {locale === "vi"
-                  ? "Nhà tuyển dụng đã gửi lời đề nghị làm việc. Vui lòng xác nhận phản hồi của bạn:"
-                  : "The recruiter has sent you a job offer. Please confirm your decision:"}
-              </p>
-              <div className="mt-4 flex flex-col gap-2.5">
-                <Button
-                  className="w-full rounded-xl bg-emerald-600 font-extrabold text-white shadow-sm hover:bg-emerald-700"
-                  disabled={respondOfferMutation.isPending}
-                  onClick={() => respondOfferMutation.mutate("ACCEPT")}
-                >
-                  {respondOfferMutation.isPending ? (
-                    <SpinnerGap className="mr-2 animate-spin" size={16} />
-                  ) : (
-                    <CheckCircle size={18} className="mr-2" weight="bold" />
-                  )}
-                  {locale === "vi" ? "Đồng ý nhận việc (Accept Offer)" : "Accept Offer"}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full rounded-xl border-rose-200 bg-white font-bold text-rose-700 hover:border-rose-300 hover:bg-rose-50"
-                  disabled={respondOfferMutation.isPending}
-                  onClick={() => respondOfferMutation.mutate("DECLINE")}
-                >
-                  <XCircle size={18} className="mr-2" weight="bold" />
-                  {locale === "vi" ? "Từ chối đề nghị (Decline Offer)" : "Decline Offer"}
-                </Button>
-              </div>
-            </section>
-          )}
+          {application.status === "OFFERED" ? (
+            <OfferPanel
+              application={application}
+              locale={locale}
+              onRespond={(action) => setOfferResponseAction(action)}
+            />
+          ) : null}
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
             <h2 className="text-base font-bold text-slate-950">
@@ -557,7 +564,8 @@ export function CandidateApplicationDetailPage({
             </dl>
           </section>
 
-          {canWithdrawApplication(application.status) ? (
+          {(application.availableActions?.canWithdraw ??
+          canWithdrawApplication(application.status)) ? (
             <section className="rounded-2xl border border-red-200 bg-red-50/60 p-5">
               <h2 className="text-sm font-bold text-red-900">
                 {t("applicationDetail.withdraw.title")}
@@ -590,6 +598,16 @@ export function CandidateApplicationDetailPage({
         }}
         title={builderPreview?.title ?? t("applicationDetail.submission.viewCv")}
         cvData={builderPreview?.cvData ?? null}
+      />
+      <OfferResponseDialog
+        action={offerResponseAction}
+        isPending={respondOfferMutation.isPending}
+        onConfirm={() => {
+          if (offerResponseAction) respondOfferMutation.mutate(offerResponseAction);
+        }}
+        onOpenChange={(open) => {
+          if (!open && !respondOfferMutation.isPending) setOfferResponseAction(null);
+        }}
       />
     </div>
   );
@@ -639,22 +657,270 @@ function WithdrawDialog({
   );
 }
 
+function InterviewSchedule({
+  application,
+  locale,
+}: Readonly<{ application: CandidateApplicationApi; locale: string }>) {
+  const t = useTranslations("CandidateWorkspace");
+  const upcoming = (application.interviews ?? []).filter((interview) =>
+    ["SCHEDULED", "RESCHEDULED"].includes(interview.status),
+  );
+  if (!upcoming.length) return null;
+
+  return (
+    <section className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-800">
+          <CalendarBlank aria-hidden="true" size={20} />
+        </span>
+        <div>
+          <h2 className="text-lg font-semibold text-slate-950">
+            {t("applicationDetail.interviews.title")}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            {t("applicationDetail.interviews.description")}
+          </p>
+        </div>
+      </div>
+      <ol className="mt-5 space-y-3">
+        {upcoming.map((interview) => (
+          <li key={interview.id} className="rounded-xl border border-amber-200 bg-white p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  {t("applicationDetail.interviews.round", { round: interview.interviewRound })}
+                </p>
+                <p className="mt-1 text-sm font-medium text-amber-900">
+                  {formatDateTime(interview.scheduledStartAt, locale)}
+                </p>
+              </div>
+              <span className="w-fit rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900">
+                {interview.type === "ONLINE"
+                  ? t("applicationDetail.interviews.online")
+                  : t("applicationDetail.interviews.onsite")}
+              </span>
+            </div>
+            {interview.type === "ONLINE" && interview.meetingUrl ? (
+              <Button asChild variant="outline" size="sm" className="mt-3 rounded-lg">
+                <a href={interview.meetingUrl} target="_blank" rel="noreferrer">
+                  {t("applicationDetail.interviews.joinMeeting")}
+                  <ArrowRight aria-hidden="true" />
+                </a>
+              </Button>
+            ) : interview.location ? (
+              <p className="mt-3 flex items-start gap-1.5 text-sm leading-6 text-slate-600">
+                <MapPin aria-hidden="true" className="mt-0.5 shrink-0" size={16} />
+                {interview.location}
+              </p>
+            ) : null}
+            {interview.recruiterNote ? (
+              <p className="mt-3 border-t border-slate-100 pt-3 text-sm leading-6 text-slate-600">
+                {interview.recruiterNote}
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function OfferPanel({
+  application,
+  locale,
+  onRespond,
+}: Readonly<{
+  application: CandidateApplicationApi;
+  locale: string;
+  onRespond: (action: "ACCEPT" | "DECLINE") => void;
+}>) {
+  const t = useTranslations("CandidateWorkspace");
+  const deadlineIsPast =
+    Boolean(application.offerDeadlineAt) &&
+    new Date(application.offerDeadlineAt as string).getTime() <= Date.now();
+  const pending =
+    !deadlineIsPast &&
+    (!application.offerResponse || application.offerResponse === "PENDING") &&
+    Boolean(application.availableActions?.canRespondToOffer);
+  const accepted = application.offerResponse === "ACCEPTED";
+  const title = pending
+    ? t("applicationDetail.offer.pendingTitle")
+    : accepted
+      ? t("applicationDetail.offer.acceptedTitle")
+      : deadlineIsPast
+        ? t("applicationDetail.offer.expiredTitle")
+        : t("applicationDetail.offer.declinedTitle");
+  const description = pending
+    ? t("applicationDetail.offer.pendingDescription")
+    : accepted
+      ? t("applicationDetail.offer.acceptedDescription")
+      : deadlineIsPast
+        ? t("applicationDetail.offer.expiredDescription")
+        : t("applicationDetail.offer.declinedDescription");
+
+  return (
+    <section
+      className={cn(
+        "rounded-2xl border p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+        pending ? "border-emerald-200 bg-emerald-50/70" : "border-slate-200 bg-white",
+      )}
+      aria-labelledby="offer-decision-title"
+    >
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          className={cn(
+            "grid size-10 shrink-0 place-items-center rounded-xl",
+            pending ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-600",
+          )}
+        >
+          {accepted ? <CheckCircle size={21} weight="fill" /> : <Briefcase size={20} />}
+        </span>
+        <div>
+          <h2 id="offer-decision-title" className="text-base font-semibold text-slate-950">
+            {title}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+        </div>
+      </div>
+      {application.offerDetails ? (
+        <dl className="mt-4 divide-y divide-emerald-100 overflow-hidden rounded-xl border border-emerald-100 bg-white">
+          <DetailRow
+            label={t("applicationDetail.offer.salary")}
+            value={application.offerDetails.salaryOffer}
+          />
+          <DetailRow
+            label={t("applicationDetail.offer.startDate")}
+            value={application.offerDetails.startDate}
+          />
+          {application.offerDetails.note ? (
+            <DetailRow
+              label={t("applicationDetail.offer.note")}
+              value={application.offerDetails.note}
+            />
+          ) : null}
+          {application.offerDetails.offerLetterUrl ? (
+            <div className="flex items-center justify-between border-t border-emerald-100 bg-slate-50 px-4 py-3 text-xs">
+              <span className="font-semibold text-slate-700">
+                {locale === "vi" ? "File Offer đính kèm:" : "Attached Offer Letter:"}
+              </span>
+              <a
+                href={application.offerDetails.offerLetterUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
+              >
+                <DownloadSimple size={15} weight="bold" />
+                {application.offerDetails.attachmentName ||
+                  (locale === "vi" ? "Tải xuống Offer Letter" : "Download Offer Letter")}
+              </a>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
+      {pending && application.offerDeadlineAt ? (
+        <p className="mt-4 rounded-xl bg-white/80 px-3 py-2 text-xs leading-5 font-medium text-emerald-900 ring-1 ring-emerald-100">
+          {t("applicationDetail.offer.respondBy", {
+            date: formatDateTime(application.offerDeadlineAt, locale),
+          })}
+        </p>
+      ) : null}
+      {pending ? (
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <Button className="rounded-xl" onClick={() => onRespond("ACCEPT")}>
+            <CheckCircle aria-hidden="true" weight="bold" />
+            {t("applicationDetail.offer.accept")}
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-xl border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
+            onClick={() => onRespond("DECLINE")}
+          >
+            <XCircle aria-hidden="true" weight="bold" />
+            {t("applicationDetail.offer.decline")}
+          </Button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function OfferResponseDialog({
+  action,
+  isPending,
+  onConfirm,
+  onOpenChange,
+}: Readonly<{
+  action: "ACCEPT" | "DECLINE" | null;
+  isPending: boolean;
+  onConfirm: () => void;
+  onOpenChange: (open: boolean) => void;
+}>) {
+  const t = useTranslations("CandidateWorkspace");
+  const accepting = action === "ACCEPT";
+  return (
+    <Dialog open={Boolean(action)} onOpenChange={onOpenChange}>
+      <DialogContent closeLabel={t("applicationDetail.offer.cancel")} className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {accepting
+              ? t("applicationDetail.offer.confirmAcceptTitle")
+              : t("applicationDetail.offer.confirmDeclineTitle")}
+          </DialogTitle>
+          <DialogDescription className="pt-1 leading-6">
+            {accepting
+              ? t("applicationDetail.offer.confirmAcceptDescription")
+              : t("applicationDetail.offer.confirmDeclineDescription")}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" disabled={isPending} onClick={() => onOpenChange(false)}>
+            {t("applicationDetail.offer.cancel")}
+          </Button>
+          <Button
+            variant={accepting ? "primary" : "destructive"}
+            disabled={isPending}
+            onClick={onConfirm}
+          >
+            {isPending ? <SpinnerGap aria-hidden="true" className="animate-spin" /> : null}
+            {accepting
+              ? t("applicationDetail.offer.confirmAcceptAction")
+              : t("applicationDetail.offer.confirmDeclineAction")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type ApplicationTimelineTone = "positive" | "attention" | "negative";
+
+type ApplicationHistoryEvent = {
+  key: string;
+  dateTime: string;
+  date: string;
+  title: string;
+  description: string;
+  tone: ApplicationTimelineTone;
+};
+
 function getApplicationHistory(
   application: CandidateApplicationApi,
   locale: string,
   t: ReturnType<typeof useTranslations>,
-) {
+): ApplicationHistoryEvent[] {
   if (application.statusLogs && application.statusLogs.length > 0) {
     return application.statusLogs.map((log) => {
       let title = t(`applications.status.${log.newStatus}.label`, { defaultValue: log.newStatus });
       let description = t(`applicationDetail.current.${log.newStatus}.description`, {
         defaultValue: log.note || "",
       });
+      let tone = getApplicationTimelineTone(log.newStatus, log.note);
 
       if (log.newStatus === "SUBMITTED") {
         if (log.oldStatus === "WITHDRAWN") {
-          title = "Đã ứng tuyển lại";
-          description = "Bạn đã chủ động nộp lại hồ sơ ứng tuyển vào vị trí này.";
+          title = t("applicationDetail.history.resubmitted");
+          description = t("applicationDetail.history.resubmittedDescription");
         } else {
           title = t("applicationDetail.history.submitted");
           description = t("applicationDetail.history.submittedDescription");
@@ -664,6 +930,14 @@ function getApplicationHistory(
         description = t("applicationDetail.current.WITHDRAWN.description", {
           defaultValue: "Bạn đã chủ động rút hồ sơ khỏi quy trình tuyển dụng.",
         });
+      } else if (log.note === "OFFER_RESPONSE:ACCEPTED") {
+        title = t("applicationDetail.history.offerAccepted");
+        description = t("applicationDetail.history.offerAcceptedDescription");
+        tone = "positive";
+      } else if (log.note === "OFFER_RESPONSE:DECLINED") {
+        title = t("applicationDetail.history.offerDeclined");
+        description = t("applicationDetail.history.offerDeclinedDescription");
+        tone = "negative";
       }
 
       return {
@@ -672,16 +946,18 @@ function getApplicationHistory(
         date: formatDateTime(log.changedAt, locale),
         title,
         description,
+        tone,
       };
     });
   }
 
-  const events = [
+  const events: Omit<ApplicationHistoryEvent, "date">[] = [
     {
       dateTime: application.submittedAt,
       description: t("applicationDetail.history.submittedDescription"),
       key: "submitted",
       title: t("applicationDetail.history.submitted"),
+      tone: "positive",
     },
   ];
 
@@ -691,6 +967,7 @@ function getApplicationHistory(
       description: t("applicationDetail.history.viewedDescription"),
       key: "viewed",
       title: t("applicationDetail.history.viewed"),
+      tone: "positive",
     });
   }
 
@@ -701,10 +978,22 @@ function getApplicationHistory(
       description: t(`applicationDetail.current.${application.status}.description`),
       key: application.status,
       title: t(`applications.status.${application.status}.label`),
+      tone: getApplicationTimelineTone(application.status),
     });
   }
 
   return events.map((event) => ({ ...event, date: formatDateTime(event.dateTime, locale) }));
+}
+
+function getApplicationTimelineTone(
+  status: CandidateApplicationApi["status"],
+  note?: string | null,
+): ApplicationTimelineTone {
+  if (status === "REJECTED" || status === "WITHDRAWN" || note === "OFFER_RESPONSE:DECLINED") {
+    return "negative";
+  }
+  if (status === "INTERVIEWING" || status === "OFFERED") return "attention";
+  return "positive";
 }
 
 function formatDate(value: string, locale: string) {

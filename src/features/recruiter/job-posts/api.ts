@@ -151,6 +151,9 @@ export type GenerateJobPostDraftPayload = Readonly<{
   outputLanguage: JobPostOutputLanguage;
   presentationStyle: JobPostPresentationStyle;
   hints?: string;
+  /** Khóa idempotency của lần bấm này. Backend dùng nó để một lần thử lại không
+   *  bị trừ thêm lượt AI và không gọi lại model. Xem job-post-ai-request-key.ts. */
+  clientRequestId?: string;
 }>;
 
 export type JobPostAiDraftResponse = Readonly<{
@@ -405,17 +408,19 @@ export function getJobPostSalaryInsight(payload: JobPostSalaryInsightPayload, to
   });
 }
 
-export function extractJobPostDraft(text: string, token: string) {
+export function extractJobPostDraft(text: string, token: string, clientRequestId?: string) {
   return apiRequest<JobPostAiDraftResponse>("/job-post-ai/extract", {
-    body: JSON.stringify({ text }),
+    body: JSON.stringify(clientRequestId ? { text, clientRequestId } : { text }),
     headers: jsonAuthHeaders(token),
     method: "POST",
   });
 }
 
-export function extractJobPostDraftFile(file: File, token: string) {
+export function extractJobPostDraftFile(file: File, token: string, clientRequestId?: string) {
   const formData = new FormData();
   formData.append("file", file);
+  // multipart nên khóa đi kèm dưới dạng form field, không phải JSON body.
+  if (clientRequestId) formData.append("clientRequestId", clientRequestId);
 
   return apiRequest<JobPostAiDraftResponse>("/job-post-ai/extract-file", {
     body: formData,

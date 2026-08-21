@@ -37,6 +37,27 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
 
+    // The recruiter dashboard reads this for its stat cards.
+    if (path.endsWith("/recruiter/candidate-summary")) {
+      await route.fulfill({
+        json: {
+          totals: {
+            total: 0,
+            unviewed: 0,
+            newLast7Days: 0,
+            staleOver7Days: 0,
+            upcomingInterviews: 0,
+            staleThresholdDays: 7,
+          },
+          funnel: [],
+          byStatus: {},
+          aiScoreBuckets: {},
+          recentApplications: [],
+        },
+      });
+      return;
+    }
+
     if (path.endsWith("/auth/me")) {
       await route.fulfill({
         json: {
@@ -223,10 +244,13 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("previews the current draft with the candidate job-detail UI", async ({ page }) => {
+test("previews the current draft with the candidate job-detail UI", async ({ page, context }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/vi/recruiter/job-posts");
   await page.getByRole("button", { name: "Tạo tin tuyển dụng" }).click();
+  // Creating now goes through a chooser: the two headline options navigate to the import and
+  // AI flows, and the manual form sits behind "Đăng tin tuyển dụng từ đầu" inside the modal.
+  await page.getByRole("button", { name: "Đăng tin tuyển dụng từ đầu" }).click();
 
   const titleInput = page.locator("#job-title");
   await titleInput.fill("Senior Frontend Engineer");
@@ -235,54 +259,53 @@ test("previews the current draft with the candidate job-detail UI", async ({ pag
     .locator(".ProseMirror")
     .nth(2)
     .fill("Quyền lợi\nChính sách đãi ngộ hấp dẫn dành cho nhân viên.");
-  await page.getByRole("tab", { name: "Xem trước" }).click();
 
-  await expect(page.getByRole("tab", { name: "Xem trước" })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  await expect(page.getByRole("heading", { name: "Senior Frontend Engineer" })).toBeVisible();
-  await expect(page.getByText("Công ty Công nghệ UpNext").first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Thông tin tuyển dụng" })).toBeVisible();
-  const previewPanel = page.getByRole("tabpanel", { name: "Xem trước" });
+  // Preview is no longer a tab inside the editor. It hands the draft to /jobs/preview in a new
+  // tab so the half-written post stays on screen next to it, which is also why the editor must
+  // still hold the typed title when the preview is closed.
+  const previewPage = await Promise.all([
+    context.waitForEvent("page"),
+    page.getByRole("button", { name: "Xem trước" }).click(),
+  ]).then(([opened]) => opened);
+  await previewPage.waitForLoadState("domcontentloaded");
+
   await expect(
-    previewPanel.getByRole("img", { name: "Logo Công ty Công nghệ UpNext" }).first(),
+    previewPage.getByRole("heading", { name: "Senior Frontend Engineer" }),
   ).toBeVisible();
-  await expect(previewPanel.getByText("Quyền lợi", { exact: true })).toHaveCount(1);
-  await expect(previewPanel.getByText("Hà Nội", { exact: true }).first()).toBeVisible();
-  await expect(previewPanel.getByText(/FPT Cầu Giấy Building/)).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "Ứng tuyển ngay (chỉ minh họa)" }).first(),
-  ).toBeDisabled();
+  await expect(previewPage.getByText("Công ty Công nghệ UpNext").first()).toBeVisible();
+  await expect(previewPage.getByText("Quyền lợi", { exact: true })).toHaveCount(1);
+  await expect(previewPage.getByText(/FPT Cầu Giấy Building/)).toHaveCount(0);
 
-  const horizontalOverflow = await page.evaluate(
+  const horizontalOverflow = await previewPage.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(horizontalOverflow).toBeLessThanOrEqual(1);
 
-  await page.screenshot({ path: "test-results/recruiter-job-post-preview.png", fullPage: true });
-
-  await page.getByRole("tab", { name: "Soạn tin" }).click();
+  await previewPage.close();
   await expect(titleInput).toHaveValue("Senior Frontend Engineer");
 });
 
-test("keeps the candidate-style preview responsive on mobile", async ({ page }) => {
+test("keeps the candidate-style preview responsive on mobile", async ({ page, context }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/vi/recruiter/job-posts");
   await page.getByRole("button", { name: "Tạo tin tuyển dụng" }).click();
+  await page.getByRole("button", { name: "Đăng tin tuyển dụng từ đầu" }).click();
   await page.locator("#job-title").fill("Senior Frontend Engineer");
-  await page.getByRole("tab", { name: "Xem trước" }).click();
 
-  await expect(page.getByRole("heading", { name: "Senior Frontend Engineer" })).toBeVisible();
-  const horizontalOverflow = await page.evaluate(
+  const previewPage = await Promise.all([
+    context.waitForEvent("page"),
+    page.getByRole("button", { name: "Xem trước" }).click(),
+  ]).then(([opened]) => opened);
+  await previewPage.setViewportSize({ width: 390, height: 844 });
+  await previewPage.waitForLoadState("domcontentloaded");
+
+  await expect(
+    previewPage.getByRole("heading", { name: "Senior Frontend Engineer" }),
+  ).toBeVisible();
+  const horizontalOverflow = await previewPage.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(horizontalOverflow).toBeLessThanOrEqual(1);
-
-  await page.screenshot({
-    path: "test-results/recruiter-job-post-preview-mobile.png",
-    fullPage: true,
-  });
 });
 
 test("filters published and pending-review jobs separately", async ({ page }) => {
@@ -333,7 +356,9 @@ test("shows publish and expiry dates instead of the job description in each row"
   await expect(
     activeJobRow.getByLabel("5 ứng viên đã ứng tuyển trên 10 chỉ tiêu tuyển"),
   ).toHaveText("5 / 10");
-  await expect(activeJobRow.getByText("đã ứng tuyển / cần tuyển", { exact: true })).toBeVisible();
+  // The caption under the ratio is gone; the count now stands alone as "5 / 10" and carries its
+  // meaning in the aria-label asserted just above, which is what a screen reader announces.
+  await expect(activeJobRow.getByText("5 / 10", { exact: true })).toBeVisible();
   await expect(
     page.getByText("Mô tả tuyển dụng đầy đủ cho vị trí đang được kiểm thử.", { exact: true }),
   ).toHaveCount(0);
@@ -449,7 +474,9 @@ test("shows the job-post filters without horizontal overflow on mobile", async (
   expect(horizontalOverflow).toBeLessThanOrEqual(1);
 });
 
-test("keeps the filter and job-list sections aligned on wide screens", async ({ page }) => {
+test("bleeds the sticky filter bar one gutter past the job list on wide screens", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto("/vi/recruiter/job-posts");
 
@@ -460,8 +487,14 @@ test("keeps the filter and job-list sections aligned on wide screens", async ({ 
 
   expect(filterBox).not.toBeNull();
   expect(listBox).not.toBeNull();
-  expect(Math.abs(filterBox!.x - listBox!.x)).toBeLessThanOrEqual(1);
-  expect(Math.abs(filterBox!.width - listBox!.width)).toBeLessThanOrEqual(1);
+
+  // The filter bar is deliberately full-bleed: it is sticky, carries a border top and bottom,
+  // and cancels the page gutter with `-mx-8`, so it spans the full width while the list stays
+  // inside the padding. This pins that relationship — one gutter wider on each side, and
+  // symmetric — which would catch either the bleed being lost or the two drifting apart.
+  const GUTTER = 32;
+  expect(Math.round(listBox!.x - filterBox!.x)).toBe(GUTTER);
+  expect(Math.round(filterBox!.x + filterBox!.width - (listBox!.x + listBox!.width))).toBe(GUTTER);
 });
 
 test("renders an unpublished recruiter draft at the public preview URL", async ({ page }) => {

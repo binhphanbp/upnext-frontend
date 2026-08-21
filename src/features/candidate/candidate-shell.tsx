@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AiCopilotDrawer } from "@/features/ai-copilot";
@@ -10,9 +11,12 @@ import {
   useChatSocket,
   useConversations,
 } from "@/features/chat";
+import { InstallPromptBanner } from "@/features/pwa/install-prompt-banner";
+import { OfflineBanner } from "@/features/pwa/offline-banner";
 import { usePathname, useRouter } from "@/i18n/navigation";
 
 import { PublicHeader } from "../public/shared/public-header";
+import { CandidateTabBar } from "./candidate-tab-bar";
 import { getCandidateSession } from "./session";
 
 type CandidateShellProps = Readonly<{
@@ -47,6 +51,8 @@ function CandidateWorkspace({
   children: React.ReactNode;
   onNavigate: (path: string) => void;
 }>) {
+  const pathname = usePathname();
+  const locale = useLocale();
   const { identity } = useChatSocket();
   const conversations = useConversations();
   const [candidateId, setCandidateId] = useState<string | null>(null);
@@ -96,14 +102,33 @@ function CandidateWorkspace({
         onRecruiterChatViewed={markRecruiterChatViewed}
       />
 
+      <OfflineBanner locale={locale} />
+      <InstallPromptBanner locale={locale} />
+
       <main className="mx-auto w-[min(1400px,calc(100vw-32px))] pt-6 pb-10 md:w-[min(1400px,calc(100vw-60px))] md:pt-8 md:pb-14 xl:w-[min(1400px,calc(100vw-96px))]">
         {children}
       </main>
 
+      {/* Reserves the tab bar's own height so it doesn't cover the last bit of
+          page content — a sibling spacer rather than tweaking `main`'s
+          existing responsive padding chain above, which already has a
+          separate desktop/tablet progression. */}
+      <div
+        aria-hidden="true"
+        className="hidden max-[820px]:block"
+        style={{ height: "calc(56px + env(safe-area-inset-bottom))" }}
+      />
+
+      <CandidateTabBar
+        activePath={pathname}
+        hasNewMessages={hasNewRecruiterMessages}
+        onMessagesTabClick={markRecruiterChatViewed}
+      />
+
       {/* Follows the candidate across the workspace and reads the current route
           as context (§8.3). Left off the CV builder branch above on purpose: that
           screen is a full-bleed editor with its own bottom action bar. */}
-      <AiCopilotDrawer />
+      <AiCopilotDrawer raised />
     </div>
   );
 }

@@ -194,6 +194,7 @@ export type Application = Readonly<{
   coverLetter: string | null;
   candidateProfile: {
     id: string;
+    phoneNumber?: string | null;
     account: {
       id: string;
       fullName: string | null;
@@ -215,6 +216,94 @@ export type Application = Readonly<{
 }>;
 
 export type ApplicationAiLabel = "excellent" | "good" | "average" | "low" | "unscored";
+
+/**
+ * Hồ sơ ứng viên đầy đủ — chỉ có ở endpoint chi tiết 1 đơn ứng tuyển
+ * (`GET /applications/:id`, xem getApplicationDetail), KHÔNG có ở danh sách
+ * (getCompanyApplications) vì backend không include các quan hệ này khi trả
+ * danh sách nhiều bản ghi.
+ */
+export type CandidateProfileDetail = Readonly<{
+  id: string;
+  phoneNumber: string | null;
+  gender: "MALE" | "FEMALE" | null;
+  address: string | null;
+  birthdate: string | null;
+  description: string | null;
+  jobSearchStatus: "OPEN_TO_WORK" | "NOT_LOOKING";
+  profileVisibility: "PUBLIC" | "PRIVATE";
+  account: { id: string; fullName: string | null; email: string };
+  educations: ReadonlyArray<{
+    id: string;
+    schoolName: string;
+    degree: string | null;
+    major: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    isCurrent: boolean;
+    gpa: string | number | null;
+    description: string | null;
+  }>;
+  experiences: ReadonlyArray<{
+    id: string;
+    companyName: string;
+    positionTitle: string;
+    employmentType: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    isCurrent: boolean;
+    description: string | null;
+    technologies: string | null;
+  }>;
+  skills: ReadonlyArray<{
+    id: string;
+    proficiencyLevel: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
+    yearsOfExperience: string | number | null;
+    skill: { id: string; name: string };
+  }>;
+  projects: ReadonlyArray<{
+    id: string;
+    name: string;
+    role: string | null;
+    description: string | null;
+    projectUrl: string | null;
+    deployUrl: string | null;
+    technologies: string | null;
+    startDate: string | null;
+    endDate: string | null;
+  }>;
+  certifications: ReadonlyArray<{
+    id: string;
+    name: string;
+    organization: string | null;
+    issuedDate: string | null;
+    expiredDate: string | null;
+    credentialUrl: string | null;
+  }>;
+  languages: ReadonlyArray<{ id: string; language: string; proficiency: string }>;
+  links: ReadonlyArray<{ id: string; type: string; url: string }>;
+  jobPreference: {
+    desiredPosition: string | null;
+    desiredSalaryMin: string | number | null;
+    desiredSalaryMax: string | number | null;
+    salaryCurrency: string;
+    workingModel: "ONSITE" | "REMOTE" | "HYBRID" | null;
+    noticePeriodDays: number | null;
+    isRelocate: boolean;
+    desiredLevel: { id: string; name: string } | null;
+  } | null;
+}>;
+
+export type ApplicationDetail = Omit<Application, "candidateProfile"> &
+  Readonly<{
+    candidateProfile: CandidateProfileDetail;
+  }>;
+
+export function getApplicationDetail(token: string, applicationId: string) {
+  return apiRequest<ApplicationDetail>(`/applications/${applicationId}`, {
+    headers: authHeaders(token),
+  });
+}
 
 export function getCompanyApplications(
   token: string,
@@ -261,10 +350,24 @@ export function updateApplicationStatus(
   applicationId: string,
   status: string,
   token: string,
-  note?: string,
+  noteOrOptions?:
+    | string
+    | Readonly<{
+        note?: string | undefined;
+        offer?: Readonly<{
+          salaryOffer: string;
+          startDate: string;
+          expiresAt: string;
+          note?: string | undefined;
+          offerLetterUrl?: string | undefined;
+          attachmentName?: string | undefined;
+        }>;
+      }>,
 ) {
+  const options =
+    typeof noteOrOptions === "string" ? { note: noteOrOptions } : (noteOrOptions ?? {});
   return apiRequest<Application>(`/applications/${applicationId}/status`, {
-    body: JSON.stringify({ status, note }),
+    body: JSON.stringify({ status, ...options }),
     headers: jsonAuthHeaders(token),
     method: "PATCH",
   });

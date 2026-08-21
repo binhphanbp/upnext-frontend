@@ -11,6 +11,23 @@ export class ApiError extends Error {
   }
 }
 
+export type AuthRefreshHandler = (path: string, headers: Headers) => Promise<string | null>;
+let authRefreshHandler: AuthRefreshHandler | null = null;
+
+export function setAuthRefreshHandler(handler: AuthRefreshHandler | null) {
+  authRefreshHandler = handler;
+}
+
+function isAuthBypassPath(path: string) {
+  return (
+    path.includes("/auth/login") ||
+    path.includes("/auth/refresh") ||
+    path.includes("/auth/register") ||
+    path.includes("/email-verification") ||
+    path.includes("/password-reset")
+  );
+}
+
 export function createApiUrl(path: string) {
   if (/^https?:\/\//u.test(path)) {
     return path;
@@ -37,10 +54,26 @@ export async function apiRequest<TResponse>(
     headers.set("Accept", "application/json");
   }
 
-  const response = await fetch(createApiUrl(path), {
+  const url = createApiUrl(path);
+  let response = await fetch(url, {
     ...init,
     headers,
   });
+
+  if (response.status === 401 && authRefreshHandler && !isAuthBypassPath(path)) {
+    try {
+      const refreshedToken = await authRefreshHandler(path, headers);
+      if (refreshedToken) {
+        headers.set("Authorization", `Bearer ${refreshedToken}`);
+        response = await fetch(url, {
+          ...init,
+          headers,
+        });
+      }
+    } catch {
+      // Keep going to response status handling if refresh fails
+    }
+  }
 
   if (!response.ok) {
     const payload = await readResponsePayload(response);

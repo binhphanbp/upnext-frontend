@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { createLoginSchema, createRegisterSchema } from "./auth-schema";
+import {
+  createForgotPasswordSchema,
+  createLoginSchema,
+  createRegisterSchema,
+  createResetPasswordSchema,
+} from "./auth-schema";
 
 const messages = {
   emailRequired: "Email is required",
@@ -62,5 +67,21 @@ describe("candidate auth schemas", () => {
     expect(schema.safeParse({ email: "candidate@example.com", password: "password" }).success).toBe(
       true,
     );
+  });
+
+  it("uses the API email and password constraints for password recovery", () => {
+    const forgotPasswordSchema = createForgotPasswordSchema(messages);
+    const resetPasswordSchema = createResetPasswordSchema(messages);
+
+    expect(forgotPasswordSchema.safeParse({ email: "  candidate@example.com " }).success).toBe(
+      true,
+    );
+    expect(forgotPasswordSchema.safeParse({ email: "not-an-email" }).success).toBe(false);
+    expect(
+      resetPasswordSchema.safeParse({ password: "new-password", confirm: "different" }).success,
+    ).toBe(false);
+    expect(
+      resetPasswordSchema.safeParse({ password: "new-password", confirm: "new-password" }).success,
+    ).toBe(true);
   });
 });

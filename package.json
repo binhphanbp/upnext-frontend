@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node -e \"const fs=require('fs');fs.rmSync('.next',{recursive:true,force:true})\" && next dev",
+    "dev": "next dev --turbo --disable-source-maps",
+    "dev:webpack": "next dev --webpack --disable-source-maps",
     "proxy": "vite",
     "build": "next build",
     "start": "next start",
@@ -52,6 +53,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "embla-carousel-react": "^8.6.0",
+    "firebase": "^12.17.1",
     "html2canvas-pro": "^2.3.1",
     "jspdf": "^4.2.1",
     "motion": "^12.40.0",
@@ -66,6 +68,7 @@
     "sonner": "^2.0.7",
     "sweetalert2": "^11.26.25",
     "tailwind-merge": "^3.6.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },

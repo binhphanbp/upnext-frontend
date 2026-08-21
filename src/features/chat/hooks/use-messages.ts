@@ -18,7 +18,9 @@ export function useMessages(conversationId: string | null) {
         ...(pageParam ? { before: pageParam } : {}),
         limit: 30,
       }),
-    getNextPageParam: (page) => page.meta.nextCursor ?? undefined,
+    // See useConversations: a stale or externally hydrated malformed page
+    // should degrade to an empty page, never take down the chat workspace.
+    getNextPageParam: (page) => page?.meta?.nextCursor ?? undefined,
     staleTime: 10_000,
   });
 
@@ -26,7 +28,7 @@ export function useMessages(conversationId: string | null) {
     const seen = new Set<string>();
     return [...(query.data?.pages ?? [])]
       .reverse()
-      .flatMap((page) => page.data)
+      .flatMap((page) => (Array.isArray(page?.data) ? page.data : []))
       .filter((message) => {
         const key = message.id || `${message.senderParticipantId}:${message.clientMessageId}`;
         if (seen.has(key)) return false;

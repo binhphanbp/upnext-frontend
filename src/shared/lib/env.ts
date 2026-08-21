@@ -13,6 +13,11 @@ const envSchema = z.object({
    * thành bản trình diễn. Muốn dữ liệu giả thì phải bật có ý thức.
    */
   NEXT_PUBLIC_AI_COPILOT_SOURCE: z.enum(["api", "mock"]).default("api"),
+  /**
+   * Hiện bộ chọn kịch bản lỗi/thành công dành cho QA. Mặc định tắt để người
+   * dùng thật không thấy một affordance nội bộ hoặc vô tình gửi dữ liệu giả.
+   */
+  NEXT_PUBLIC_AI_COPILOT_STATE_PREVIEW: z.enum(["enabled", "disabled"]).default("disabled"),
   NEXT_PUBLIC_RECRUITER_COMPANY_ID: z
     .string()
     .uuid()
@@ -24,5 +29,6 @@ export const env = envSchema.parse({
   NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL,
   NEXT_PUBLIC_API_MOCKING: process.env.NEXT_PUBLIC_API_MOCKING,
   NEXT_PUBLIC_AI_COPILOT_SOURCE: process.env.NEXT_PUBLIC_AI_COPILOT_SOURCE,
+  NEXT_PUBLIC_AI_COPILOT_STATE_PREVIEW: process.env.NEXT_PUBLIC_AI_COPILOT_STATE_PREVIEW,
   NEXT_PUBLIC_RECRUITER_COMPANY_ID: process.env.NEXT_PUBLIC_RECRUITER_COMPANY_ID,
 });
