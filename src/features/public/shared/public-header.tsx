@@ -348,7 +348,7 @@ const navMenus: NavMenu[] = [
           "Practice questions tailored to your CV, role, and seniority.",
         ),
         icon: <Bot size={20} />,
-        path: "/register",
+        path: "/candidate/ai-interview",
         badge: localized("Mới", "New"),
         iconClass: "feat-icon-ai",
       },
