@@ -15,12 +15,17 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 
 import {
+  attachRenderedCvVersionPdf,
   type CandidateCvApi,
   createCandidateCv,
   downloadCandidateCvVersion,
   setCandidateCvDefault,
   uploadCandidateCvFile,
 } from "@/features/candidate/api/profile";
+import {
+  renderCvDataToPdfBlob,
+  toCvPdfFileName,
+} from "@/features/candidate/cv-builder/cv-pdf-export";
 import { CvSnapshotPreviewDialog } from "@/features/candidate/cv-builder/cv-snapshot-preview-dialog";
 import { parseCvSnapshot } from "@/features/candidate/cv-builder/store";
 import type { CvData } from "@/features/candidate/cv-builder/types";
@@ -149,6 +154,49 @@ export function ProfileDocuments({
     }
   };
 
+  const saveBlob = (blob: Blob, fileName: string) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+  };
+
+  /**
+   * Downloads a Builder CV that has no stored file yet by rendering its snapshot here.
+   *
+   * A Builder version only carries `contentJson`, so the download endpoint has no bytes
+   * to serve — this button used to answer with "open CV Builder and export from there"
+   * instead of producing a file. The rendered PDF is also pushed back to the API so the
+   * version gains a real file for later downloads and for recruiters reading it.
+   */
+  const downloadBuilderSnapshot = async (
+    cv: CandidateCvApi,
+    versionId: string,
+    snapshot: unknown,
+  ) => {
+    const cvData = parseCvSnapshot(snapshot);
+    if (!cvData) {
+      setFeedback(t("documents.downloadUnavailable"));
+      return;
+    }
+
+    const fileName = toCvPdfFileName(cv.title);
+    const pdf = await renderCvDataToPdfBlob(cvData);
+    saveBlob(pdf, fileName);
+
+    // The file the candidate asked for is already saved; backfilling the version is a
+    // bonus for later readers, so a failure here must not surface as a failed download.
+    try {
+      await mutateCvs((token) => attachRenderedCvVersionPdf(token, versionId, pdf, fileName));
+    } catch {
+      // Most often a 409: another tab or an earlier download already attached one.
+    }
+  };
+
   const download = async (cv: CandidateCvApi) => {
     const version = getLatestCvVersion(cv);
     if (!version) {
@@ -156,26 +204,21 @@ export function ProfileDocuments({
       return;
     }
 
-    if (cv.source === "BUILDER") {
-      setFeedback(t("documents.builderDownloadUnavailable"));
-      return;
-    }
-
     setDownloadingId(cv.id);
     setFeedback(null);
     try {
+      // Builder versions saved before this flow existed have no `sourceFile`; once one is
+      // attached the stored PDF is authoritative, so prefer it over re-rendering.
+      if (cv.source === "BUILDER" && !version.sourceFile) {
+        await downloadBuilderSnapshot(cv, version.id, version.contentJson);
+        return;
+      }
+
       const { blob } = await downloadCandidateCvVersion(accessToken, version.id, {
         expectedMimeType: version.sourceFile?.mimeType ?? null,
         fileName: version.sourceFile?.originalName ?? cv.title,
       });
-      const objectUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = objectUrl;
-      anchor.download = version.sourceFile?.originalName ?? `${cv.title}.pdf`;
-      document.body.append(anchor);
-      anchor.click();
-      anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+      saveBlob(blob, version.sourceFile?.originalName ?? toCvPdfFileName(cv.title));
     } catch {
       setFeedback(t("documents.downloadUnavailable"));
     } finally {

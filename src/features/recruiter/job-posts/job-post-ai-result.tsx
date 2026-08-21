@@ -44,6 +44,17 @@ import type {
   JobPostWorkMode,
 } from "@/features/recruiter/job-posts/api";
 import { cn } from "@/shared/lib/cn";
+import {
+  findBlankRows,
+  inlineDocumentStyles,
+  isBlankRange,
+  measureInkedHeight,
+  PDF_CAPTURE_SCALE,
+  PDF_IMAGE_QUALITY,
+  PDF_PAGE_HEIGHT_MM,
+  PDF_PAGE_WIDTH_MM,
+  pickPageBreak,
+} from "@/shared/lib/pdf-capture";
 import { Button } from "@/shared/ui/button";
 import {
   Dialog,
@@ -160,98 +171,9 @@ const WORK_MODE_LABELS = {
   },
 } as const;
 
-const PDF_PAGE_WIDTH_MM = 210;
-const PDF_PAGE_HEIGHT_MM = 297;
-const PDF_IMAGE_QUALITY = 0.95;
 const PDF_CONTINUATION_MARGIN_MM = 12;
-const PDF_CAPTURE_SCALE = 2;
 const PDF_FOOTER_CLASS = "ai-jd-document-footer";
 const PDF_FOOTER_BLEED_PX = 8;
-
-/**
- * html2canvas clones the document into an iframe and resolves styles there, but the clone's own
- * <link> stylesheets race the render: often enough they lose, and the capture comes out with no app
- * CSS at all (serif text, no colours, no layout). Injecting the live CSS synchronously into the
- * clone removes the race, so every export is identical instead of occasionally unusable.
- */
-function inlineDocumentStyles(clonedDocument: Document) {
-  const css = Array.from(document.styleSheets)
-    .flatMap((sheet) => {
-      try {
-        return Array.from(sheet.cssRules).map((rule) => rule.cssText);
-      } catch {
-        // Cross-origin sheets are unreadable and never carry this document's design.
-        return [];
-      }
-    })
-    // Re-declaring @font-face makes the iframe re-download the font, and text is measured before
-    // it arrives — which visibly eats the spaces between words. The already-loaded FontFace
-    // objects are handed over below instead.
-    .filter((rule) => !rule.startsWith("@font-face"))
-    .join("\n");
-
-  document.fonts.forEach((font) => {
-    if (font.status === "loaded") clonedDocument.fonts.add(font);
-  });
-
-  if (!css) return;
-
-  const style = clonedDocument.createElement("style");
-  style.textContent = css;
-  clonedDocument.head.append(style);
-}
-
-/**
- * Marks every horizontal row of the render that carries no ink.
- *
- * Page breaks are chosen from these rows rather than from DOM rectangles: element and line boxes
- * do not map onto the rasterised canvas closely enough, and being a few pixels out slices a row of
- * glyphs in half. A blank row provably cannot.
- */
-function findBlankRows(canvas: HTMLCanvasElement) {
-  const blank = new Uint8Array(canvas.height);
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) return blank;
-
-  const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
-  const rowBytes = canvas.width * 4;
-
-  for (let y = 0; y < canvas.height; y += 1) {
-    const rowStart = y * rowBytes;
-    let isBlank = 1;
-    for (let index = rowStart; index < rowStart + rowBytes; index += 4) {
-      // Near-white is background: only real ink should block a break.
-      if (data[index]! < 245 || data[index + 1]! < 245 || data[index + 2]! < 245) {
-        isBlank = 0;
-        break;
-      }
-    }
-    blank[y] = isBlank;
-  }
-
-  return blank;
-}
-
-function isBlankRange(blankRows: Uint8Array, from: number, to: number) {
-  for (let y = Math.max(0, from); y < to; y += 1) {
-    if (!blankRows[y]) return false;
-  }
-  return true;
-}
-
-/**
- * Picks where one page ends: the lowest blank row that still fills most of the page, falling back
- * to a hard cut so a solid block taller than a page can never stall the loop or lose content.
- */
-function pickPageBreak(blankRows: Uint8Array, start: number, limit: number, available: number) {
-  const earliest = start + Math.floor(available * 0.75);
-
-  for (let y = limit; y > earliest; y -= 1) {
-    if (blankRows[y]) return y;
-  }
-
-  return limit;
-}
 
 const BLOCK_CONTROL_BUTTON_CLASS =
   "flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700";
@@ -1167,10 +1089,7 @@ export function JobPostAiResult({
       // The document's own padding only cushions the very top and bottom of the whole article, so
       // every page break needs its own breathing room or the text sits flush against the paper cut.
       const marginPx = Math.round((PDF_CONTINUATION_MARGIN_MM / PDF_PAGE_HEIGHT_MM) * pageHeight);
-      // A short JD is padded out to a full A4 by `min-h`, and that padding is not content: trailing
-      // blank rows must never become a page of their own.
-      let contentHeight = canvas.height;
-      while (contentHeight > 1 && blankRows[contentHeight - 1]) contentHeight -= 1;
+      const contentHeight = measureInkedHeight(canvas, blankRows);
 
       let start = 0;
       let pageIndex = 0;

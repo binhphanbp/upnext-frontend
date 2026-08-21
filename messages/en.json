@@ -3556,8 +3556,7 @@
         "deleteSuccess": "Resume deleted.",
         "uploadError": "Could not upload the resume. Check the file and try again.",
         "previewUnavailable": "A preview is not available for this file.",
-        "downloadUnavailable": "The file cannot be downloaded right now.",
-        "builderDownloadUnavailable": "A resume created in UpNext can be viewed and edited in CV Builder. Export a PDF there when you need a downloadable file."
+        "downloadUnavailable": "The file cannot be downloaded right now."
       }
     }
   },
