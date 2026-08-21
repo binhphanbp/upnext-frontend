@@ -3556,8 +3556,7 @@
         "deleteSuccess": "Đã xóa CV.",
         "uploadError": "Không thể tải CV lên. Vui lòng kiểm tra tệp và thử lại.",
         "previewUnavailable": "Không có bản xem trước cho tệp này.",
-        "downloadUnavailable": "Không thể tải tệp xuống lúc này.",
-        "builderDownloadUnavailable": "CV tạo trên UpNext có thể xem và chỉnh sửa trong CV Builder; hãy xuất PDF từ đó nếu cần một tệp tải xuống."
+        "downloadUnavailable": "Không thể tải tệp xuống lúc này."
       }
     }
   },

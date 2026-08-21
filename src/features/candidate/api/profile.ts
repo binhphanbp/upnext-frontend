@@ -1087,6 +1087,32 @@ export function createCandidateBuilderVersion(
   });
 }
 
+/**
+ * Attaches a browser-rendered PDF to a Builder CV version so the snapshot becomes a real
+ * downloadable file for every later reader (the candidate, and recruiters they apply to).
+ *
+ * Write-once on the API side: a version already carrying a file answers 409, which callers
+ * treat as "someone already did this", not as a failure.
+ */
+export function attachRenderedCvVersionPdf(
+  token: string,
+  cvVersionId: string,
+  pdf: Blob,
+  fileName: string,
+) {
+  const formData = new FormData();
+  formData.append("file", new File([pdf], fileName, { type: "application/pdf" }));
+
+  return apiRequest<CandidateCvApi["versions"][number]>(
+    `/cv-versions/${cvVersionId}/rendered-pdf`,
+    {
+      body: formData,
+      headers: authHeaders(token),
+      method: "POST",
+    },
+  );
+}
+
 export function submitApplication(
   token: string,
   payload: {
