@@ -2122,28 +2122,30 @@ export function CandidateCvBuilder() {
           title,
         });
         savedCv = { id: saved.id, title: saved.title, version: saved.version };
-        savedVersionId = saved.versions[0]?.id;
+        savedVersionId = saved.versions?.[0]?.id;
         savedAsDefault = saved.isDefault;
       }
 
-      // Store the exact snapshot PDF while the Builder preview is available. The download page
-      // still renders `contentJson` as its source of truth, so an attachment failure cannot
-      // downgrade a candidate back to a text-only or stale export.
-      if (savedVersionId) {
-        try {
-          const pdf = await renderCvDataToPdfBlob(cvData);
-          await attachRenderedCvVersionPdf(
-            session.accessToken,
-            savedVersionId,
-            pdf,
-            toCvPdfFileName(savedCv.title),
-          );
-        } catch {
-          // The immutable snapshot has already been saved. A later download will render it again.
-        }
-      }
-
       setSavedBuilderCv(savedCv);
+
+      // Store the exact snapshot PDF while the Builder preview is available. The download page
+      // still renders `contentJson` as its source of truth, so a slow or failed attachment
+      // cannot downgrade a candidate back to a text-only or stale export -- it must not block
+      // the save from completing, so it runs in the background instead of being awaited here.
+      if (savedVersionId) {
+        void renderCvDataToPdfBlob(cvData)
+          .then((pdf) =>
+            attachRenderedCvVersionPdf(
+              session.accessToken,
+              savedVersionId,
+              pdf,
+              toCvPdfFileName(savedCv.title),
+            ),
+          )
+          .catch(() => {
+            // A later download will render the snapshot again.
+          });
+      }
 
       if (status === "ACTIVE" && makeSavedCvDefault && !savedAsDefault) {
         try {
