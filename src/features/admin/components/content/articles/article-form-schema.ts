@@ -17,6 +17,7 @@ export const articleFormSchema = z.object({
   type: z.enum(["BLOG", "NEWS", "FAQ"]),
   categoryId: z.string(),
   tagIds: z.array(z.string()),
+  focusKeyword: z.string().optional(),
   metaTitle: z.string().trim().max(255, "Meta title tối đa 255 ký tự."),
   metaDescription: z.string().trim().max(500, "Meta description tối đa 500 ký tự."),
   metaKeywords: z.string().trim().max(500, "Meta keywords tối đa 500 ký tự."),

@@ -33,6 +33,7 @@ export type AdminPostResponse = Readonly<{
   metaTitle: string | null;
   metaDescription: string | null;
   metaKeywords: string | null;
+  focusKeyword: string | null;
   viewCount: number;
   createdAt: string;
   updatedAt: string;
@@ -56,11 +57,6 @@ export type AdminPostsPaginatedResponse = Readonly<{
   };
 }>;
 
-/**
- * `slug` is generated server-side from the title and is never accepted as input.
- * Passing `null` for a file id clears it; omitting `tagIds` leaves tags untouched,
- * while sending it replaces the whole set.
- */
 export type CreateAdminPostPayload = {
   title: string;
   content: string;
@@ -69,13 +65,20 @@ export type CreateAdminPostPayload = {
   categoryId?: string | null | undefined;
   thumbnailFileId?: string | null | undefined;
   coverImageFileId?: string | null | undefined;
+  socialImageFileId?: string | null | undefined;
+  thumbnailAlt?: string | undefined;
+  coverImageAlt?: string | undefined;
+  excerpt?: string | undefined;
   metaTitle?: string | undefined;
   metaDescription?: string | undefined;
   metaKeywords?: string | undefined;
+  focusKeyword?: string | undefined;
   tagIds?: string[] | undefined;
 };
 
-export type UpdateAdminPostPayload = Partial<CreateAdminPostPayload>;
+export type UpdateAdminPostPayload = Partial<CreateAdminPostPayload> & {
+  expectedUpdatedAt?: string | undefined;
+};
 
 function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` };
@@ -124,6 +127,22 @@ export function updateAdminPost(token: string, id: string, payload: UpdateAdminP
   });
 }
 
+export function publishAdminPost(token: string, id: string, expectedUpdatedAt: string) {
+  return apiRequest<AdminPostResponse>(`/admin/posts/${id}/publish`, {
+    method: "POST",
+    headers: jsonAuthHeaders(token),
+    body: JSON.stringify({ expectedUpdatedAt }),
+  });
+}
+
+export function archiveAdminPost(token: string, id: string, expectedUpdatedAt: string) {
+  return apiRequest<AdminPostResponse>(`/admin/posts/${id}/archive`, {
+    method: "POST",
+    headers: jsonAuthHeaders(token),
+    body: JSON.stringify({ expectedUpdatedAt }),
+  });
+}
+
 export function deleteAdminPost(token: string, id: string) {
   return apiRequest<void>(`/admin/posts/${id}`, {
     method: "DELETE",
@@ -148,10 +167,6 @@ export type UploadedPostImage = Readonly<{
   file: { id: string; publicUrl: string; originalName: string; mimeType: string };
 }>;
 
-/**
- * Post images must be PUBLIC so anonymous blog readers can load them.
- * Content-Type is intentionally omitted so the browser sets the multipart boundary.
- */
 export function uploadPostImage(
   token: string,
   file: File,

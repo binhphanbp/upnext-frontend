@@ -12,7 +12,15 @@ import { useTranslations } from "next-intl";
 import * as React from "react";
 import Swal from "sweetalert2";
 
-import { getAdminPosts, type AdminPostResponse } from "@/features/admin/api/posts";
+import {
+  archiveAdminPost,
+  deleteAdminPost,
+  getAdminPosts,
+  publishAdminPost,
+  updateAdminPost,
+  type AdminPostResponse,
+  type PostStatus,
+} from "@/features/admin/api/posts";
 import { AdminTableLayout } from "@/features/admin/components/admin-table-layout";
 import { getAdminSession, clearAdminSession } from "@/features/admin/session";
 import { useRouter } from "@/i18n/navigation";
@@ -115,20 +123,50 @@ export function ArticlesTable() {
     }
   }, [error, router]);
 
-  const { mutate: updatePost } = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+  const rawPostMap = React.useMemo(() => {
+    return new Map(apiPosts.map((p) => [p.id, p]));
+  }, [apiPosts]);
+
+  const { mutate: changePostStatus } = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: PostStatus }) => {
       const session = getAdminSession();
       if (!session) throw new Error("No session");
-      // @ts-ignore
-      const { updateAdminPost } = await import("@/features/admin/api/posts");
-      return updateAdminPost(session.accessToken, id, data);
+      const post = rawPostMap.get(id);
+      const expectedUpdatedAt = post?.updatedAt || new Date().toISOString();
+
+      if (status === "PUBLISHED") {
+        return publishAdminPost(session.accessToken, id, expectedUpdatedAt);
+      }
+      if (status === "ARCHIVED") {
+        return archiveAdminPost(session.accessToken, id, expectedUpdatedAt);
+      }
+      return updateAdminPost(session.accessToken, id, {
+        status,
+        expectedUpdatedAt,
+      });
     },
-    onSuccess: () => {
-      void toast.fire({ icon: "success", title: "Cập nhật bài viết thành công!" });
+    onSuccess: (_, variables) => {
+      const msg =
+        variables.status === "PUBLISHED"
+          ? "Đã xuất bản bài viết thành công!"
+          : variables.status === "ARCHIVED"
+            ? "Đã lưu trữ bài viết!"
+            : "Đã chuyển bài viết thành bản nháp!";
+      void toast.fire({ icon: "success", title: msg });
       handleRefresh();
     },
-    onError: () => {
-      void toast.fire({ icon: "error", title: "Có lỗi xảy ra khi cập nhật!" });
+    onError: (err) => {
+      let msg = "Có lỗi xảy ra khi cập nhật!";
+      if (err instanceof ApiError) {
+        if (err.payload && typeof err.payload === "object") {
+          const d = err.payload as any;
+          if (Array.isArray(d.message)) msg = d.message.join(", ");
+          else if (typeof d.message === "string") msg = d.message;
+        } else {
+          msg = err.message;
+        }
+      }
+      void toast.fire({ icon: "error", title: msg });
     },
   });
 
@@ -136,16 +174,17 @@ export function ArticlesTable() {
     mutationFn: async (id: string) => {
       const session = getAdminSession();
       if (!session) throw new Error("No session");
-      // @ts-ignore
-      const { deleteAdminPost } = await import("@/features/admin/api/posts");
       return deleteAdminPost(session.accessToken, id);
     },
     onSuccess: () => {
       void toast.fire({ icon: "success", title: "Xóa bài viết thành công!" });
       handleRefresh();
     },
-    onError: () => {
-      void toast.fire({ icon: "error", title: "Có lỗi xảy ra khi xóa!" });
+    onError: (err) => {
+      void toast.fire({
+        icon: "error",
+        title: err instanceof ApiError ? err.message : "Có lỗi xảy ra khi xóa bài viết!",
+      });
     },
   });
 
@@ -309,19 +348,19 @@ export function ArticlesTable() {
             <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
               {t("article")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold whitespace-nowrap last:border-r-0">
               {t("author")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold whitespace-nowrap last:border-r-0">
               {t("status")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-right font-semibold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-right font-semibold whitespace-nowrap last:border-r-0">
               {t("views")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 font-semibold last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 font-semibold whitespace-nowrap last:border-r-0">
               {t("date")}
             </th>
-            <th className="px-4 py-3 text-right font-semibold">Thao tác</th>
+            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap">Thao tác</th>
           </tr>
         </thead>
         <tbody>
@@ -385,24 +424,29 @@ export function ArticlesTable() {
                       onChange={(e) => handleSelectOne(article.id, e.target.checked)}
                     />
                   </td>
-                  <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
-                    <div>
-                      <p className="text-foreground font-semibold">{article.title}</p>
-                      <p className="text-muted-foreground text-xs">
+                  <td className="max-w-xs border-r border-slate-200 px-4 py-3 last:border-r-0 md:max-w-sm xl:max-w-md">
+                    <div className="min-w-0">
+                      <p
+                        className="truncate font-semibold text-slate-900 transition-colors hover:text-emerald-700"
+                        title={article.title}
+                      >
+                        {article.title}
+                      </p>
+                      <p className="text-muted-foreground truncate text-xs">
                         {t(`categoryOptions.${categoryKey}`)}
                       </p>
                     </div>
                   </td>
-                  <td className="border-r border-slate-200 px-4 py-3 font-medium last:border-r-0">
+                  <td className="border-r border-slate-200 px-4 py-3 font-medium whitespace-nowrap last:border-r-0">
                     {article.author}
                   </td>
-                  <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
+                  <td className="border-r border-slate-200 px-4 py-3 whitespace-nowrap last:border-r-0">
                     <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>
                   </td>
-                  <td className="border-r border-slate-200 px-4 py-3 text-right font-medium last:border-r-0">
+                  <td className="border-r border-slate-200 px-4 py-3 text-right font-medium whitespace-nowrap last:border-r-0">
                     {new Intl.NumberFormat("vi-VN").format(article.views)}
                   </td>
-                  <td className="border-r border-slate-200 px-4 py-3 last:border-r-0">
+                  <td className="border-r border-slate-200 px-4 py-3 whitespace-nowrap last:border-r-0">
                     {article.publishedDate || "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -432,7 +476,7 @@ export function ArticlesTable() {
                           <DropdownMenuItem
                             className="text-success cursor-pointer"
                             onClick={() =>
-                              updatePost({ id: article.id, data: { status: "PUBLISHED" } })
+                              changePostStatus({ id: article.id, status: "PUBLISHED" })
                             }
                           >
                             {t("actionOptions.publish")}
@@ -441,11 +485,17 @@ export function ArticlesTable() {
                         {article.status === "Đã xuất bản" && (
                           <DropdownMenuItem
                             className="cursor-pointer"
-                            onClick={() =>
-                              updatePost({ id: article.id, data: { status: "DRAFT" } })
-                            }
+                            onClick={() => changePostStatus({ id: article.id, status: "DRAFT" })}
                           >
                             {t("actionOptions.moveToDraft")}
+                          </DropdownMenuItem>
+                        )}
+                        {article.status !== "Lưu trữ" && (
+                          <DropdownMenuItem
+                            className="cursor-pointer text-slate-600"
+                            onClick={() => changePostStatus({ id: article.id, status: "ARCHIVED" })}
+                          >
+                            Lưu trữ bài viết
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
