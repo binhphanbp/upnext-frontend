@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 
 import { getMyCandidateProfile, updateMyCandidateProfile } from "@/features/candidate/api/profile";
 import { getCandidateSession } from "@/features/candidate/session";
+import { resolveProvinceName, toProvinceSearchLabel } from "@/shared/utils/vietnam-provinces";
 
-const STORAGE_KEY = "upnext.search-preference.location";
+// `.v2` because the previous key holds district-level values ("Thủ Đức", "Biên Hòa") cached by the
+// version of this module that read Nominatim's `city` field. Those can no longer be lifted to a
+// province, so the key is bumped instead of migrated.
+const STORAGE_KEY = "upnext.search-preference.location.v2";
 const PROMPTED_KEY = "upnext.search-preference.location-prompted";
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse";
 
@@ -17,44 +21,23 @@ type StoredLocation = {
   savedAt: string;
 };
 
-const CITY_ALIASES: Array<[RegExp, string]> = [
-  [/^(tp\.?\s*)?(ho\s*chi\s*minh|hcm|sai\s*gon|thanh pho ho chi minh)/iu, "TP. Hồ Chí Minh"],
-  [/^(tp\.?\s*)?(ha\s*noi|hanoi|thanh pho ha noi)/iu, "Hà Nội"],
-  [/^(tp\.?\s*)?(da\s*nang|danang|thanh pho da nang)/iu, "Đà Nẵng"],
-  [/^(tp\.?\s*)?(can\s*tho|thanh pho can tho)/iu, "Cần Thơ"],
-  [/^(ba\s*r?a\s*ria\s*-?\s*)?vung\s*tau/iu, "Bà Rịa - Vũng Tàu"],
-];
-
-const CITY_TOKENS: Array<[string[], string]> = [
-  [["ho chi minh", "hcm", "sai gon"], "TP. Hồ Chí Minh"],
-  [["ha noi", "hanoi"], "Hà Nội"],
-  [["da nang", "danang"], "Đà Nẵng"],
-  [["can tho"], "Cần Thơ"],
-  [["vung tau"], "Bà Rịa - Vũng Tàu"],
-];
-
-function removeVietnameseAccents(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/gu, "")
-    .replace(/đ/giu, "d")
-    .trim();
+function normalizeFreeFormCity(value: string) {
+  return value.replace(/^(tỉnh|thành phố|city|province)\s+/iu, "").trim() || null;
 }
 
+/**
+ * Every search surface filters by province, so a location only counts once it has been resolved
+ * up to the province it belongs to: a district, a ward, or a street address must not leak through
+ * as the search value.
+ */
 export function normalizeSearchCity(value: string | null | undefined) {
   const raw = value?.replace(/\s+/gu, " ").trim();
   if (!raw) return null;
 
-  const ascii = removeVietnameseAccents(raw).toLowerCase();
-  const alias = CITY_ALIASES.find(([pattern]) => pattern.test(ascii));
-  if (alias) return alias[1];
+  const province = resolveProvinceName(raw);
+  if (province) return toProvinceSearchLabel(province);
 
-  const embeddedCity = CITY_TOKENS.find(([tokens]) =>
-    tokens.some((token) => ascii.includes(token)),
-  );
-  if (embeddedCity) return embeddedCity[1];
-
-  return raw.replace(/^(tỉnh|thành phố|city|province)\s+/iu, "").trim() || null;
+  return normalizeFreeFormCity(raw);
 }
 
 function readStoredLocation() {
@@ -102,6 +85,7 @@ async function reverseGeocode(latitude: number, longitude: number) {
     format: "jsonv2",
     lat: String(latitude),
     lon: String(longitude),
+    addressdetails: "1",
     "accept-language": "vi",
   });
   const response = await fetch(`${NOMINATIM_URL}?${query.toString()}`, {
@@ -111,11 +95,37 @@ async function reverseGeocode(latitude: number, longitude: number) {
 
   const payload = (await response.json()) as {
     address?: Record<string, string | undefined>;
+    display_name?: string;
   };
   const address = payload.address ?? {};
-  return normalizeSearchCity(
-    address.city ?? address.town ?? address.municipality ?? address.state ?? address.province,
-  );
+
+  // Nominatim reports Vietnamese provinces under `state`, and puts a district-level unit (Thu Duc,
+  // Bien Hoa, ...) in `city`/`town`. Reading `city` first is what made the search box fill with a
+  // district instead of the province the job listings are tagged with, so the province-level keys
+  // are read first and the smaller units only serve as a fallback for the few places Nominatim
+  // leaves `state` empty.
+  const candidates = [
+    address.state,
+    address.province,
+    address.region,
+    address.city,
+    address.municipality,
+    address.town,
+    address.county,
+    payload.display_name,
+  ];
+
+  for (const candidate of candidates) {
+    const city = normalizeProvinceCandidate(candidate);
+    if (city) return city;
+  }
+
+  return null;
+}
+
+function normalizeProvinceCandidate(value: string | undefined) {
+  const province = resolveProvinceName(value);
+  return province ? toProvinceSearchLabel(province) : null;
 }
 
 async function resolveFromBrowser() {
