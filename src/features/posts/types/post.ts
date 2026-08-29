@@ -25,6 +25,11 @@ export type PostTag = {
   id: string;
   name: string;
   slug: string;
+  createdAt?: string;
+  updatedAt?: string;
+  _count?: {
+    postTags: number;
+  };
 };
 
 export type Post = {
