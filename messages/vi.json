@@ -3583,6 +3583,7 @@
     "financeAndBusiness": {
       "title": "Tài chính & Kinh doanh",
       "plans": "Gói dịch vụ",
+      "paymentConfig": "Cấu hình thanh toán",
       "transactions": "Hóa đơn"
     },
     "systemAdmin": {
@@ -4120,6 +4121,47 @@
             "Shopee Vietnam": "Shopee Vietnam",
             "Phạm F (Candidate)": "Phạm F (Ứng viên)",
             "Tiki HR": "Tiki HR"
+          }
+        }
+      },
+      "paymentConfig": {
+        "title": "Cấu hình thanh toán",
+        "subtitle": "Cấu hình cổng thanh toán tự động cho luồng mua gói dịch vụ của Nhà tuyển dụng.",
+        "tabs": {
+          "sepay": "SePay"
+        },
+        "sepay": {
+          "description": "SePay theo dõi biến động số dư tài khoản ngân hàng và tự động xác nhận thanh toán qua VietQR -- không cần ai bấm xác nhận thủ công.",
+          "fields": {
+            "isEnabled": "Bật thanh toán qua SePay",
+            "bankName": "Tên ngân hàng",
+            "bankNamePlaceholder": "VD: Vietcombank (VCB)",
+            "bankBin": "Mã BIN ngân hàng",
+            "bankBinPlaceholder": "VD: 970436",
+            "bankBinHint": "Tra mã BIN theo chuẩn Napas/VietQR của ngân hàng bạn dùng.",
+            "accountNumber": "Số tài khoản",
+            "accountName": "Tên chủ tài khoản",
+            "accountNamePlaceholder": "VD: CONG TY CO PHAN UPNEXT",
+            "contentPrefix": "Tiền tố nội dung chuyển khoản (VA)",
+            "contentPrefixPlaceholder": "VD: TKPUPN -- để trống nếu không dùng Virtual Account",
+            "contentPrefixHint": "Chỉ cần điền nếu tài khoản ngân hàng có bật Virtual Account (VA) trên SePay -- lấy đúng chuỗi ở mục \"Phải có từ\" khi xem chi tiết VA.",
+            "webhookSecret": "Secret Key (HMAC-SHA256)",
+            "webhookSecretPlaceholder": "Để trống nếu không muốn đổi secret hiện tại",
+            "webhookSecretCurrentHint": "Secret hiện tại: {masked}",
+            "webhookSecretEmptyHint": "Chưa cấu hình secret nào.",
+            "webhookUrl": "Webhook URL",
+            "webhookUrlHint": "Dán URL này vào phần cấu hình Webhook trên trang quản trị SePay."
+          },
+          "buttons": {
+            "save": "Lưu cấu hình",
+            "saving": "Đang lưu...",
+            "copy": "Sao chép"
+          },
+          "toasts": {
+            "saveSuccess": "Đã lưu cấu hình SePay.",
+            "saveError": "Không lưu được cấu hình, vui lòng thử lại.",
+            "loadError": "Không tải được cấu hình thanh toán.",
+            "copied": "Đã sao chép"
           }
         }
       }

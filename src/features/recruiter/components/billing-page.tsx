@@ -1,6 +1,6 @@
 "use client";
 
-import { Bank, CheckCircle, Copy, Info, PaypalLogo, QrCode, Spinner } from "@phosphor-icons/react";
+import { Copy, Info, QrCode, Spinner } from "@phosphor-icons/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -8,15 +8,19 @@ import Swal from "sweetalert2";
 
 import {
   getActiveSubscription,
+  getInvoice,
   getInvoices,
   getPublicSubscriptionPlans,
   getSubscriptionUsage,
-  payInvoice,
   type CompanySubscriptionDetail,
   type InvoiceDetail,
   type QuotaSnapshot,
   type SubscriptionPlan,
 } from "@/features/recruiter/api/billing";
+import {
+  getPublicSepayConfig,
+  type PublicSepayConfig,
+} from "@/features/recruiter/api/payment-config";
 import { QUOTA_FEATURE_LABELS } from "@/features/recruiter/components/plan-feature-labels";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
@@ -40,14 +44,6 @@ type StoredRecruiterUser = Readonly<{
   role: string;
   companyId?: string;
 }>;
-
-/**
- * PayPal is settled manually, same as the bank transfer: the recruiter sends the
- * money with the invoice code as the note and finance activates the plan after
- * reconciling. There is no PayPal SDK wired up.
- */
-const PAYPAL_ACCOUNT = "finance@upnext.vn";
-const PAYPAL_ME_LINK = "https://www.paypal.me/upnextvn";
 
 function formatCurrency(amountStr: string | number) {
   const amount = typeof amountStr === "string" ? parseFloat(amountStr) : amountStr;
@@ -87,13 +83,22 @@ export function RecruiterBillingPage() {
   const [invoicePage, setInvoicePage] = useState(1);
   const invoicePageSize = 5;
 
-  // Checkout modal states
+  // Checkout modal states -- SePay is the only payment method now (see
+  // sepay-config-form.tsx on the admin side); there is nothing left to pick,
+  // so no paymentMethod state.
   const [checkoutInvoice, setCheckoutInvoice] = useState<InvoiceDetail | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"SEPAY" | "PAYPAL">("SEPAY");
-  const [paying, setPaying] = useState(false);
+  const [sepayConfig, setSepayConfig] = useState<PublicSepayConfig | null>(null);
 
   const invoice = checkoutInvoice;
   const invoiceAmountInt = invoice ? (invoice.amount.split(".")[0] ?? "") : "";
+  // The bank content the recruiter must actually type/scan -- prefixed when
+  // the configured bank account uses SePay's Virtual Account feature (e.g.
+  // "TKPUPN"), so the transfer routes to the right sub-account and the
+  // webhook's own prefix check (see sepay-webhook.service.ts) accepts it.
+  const transferContent =
+    invoice && sepayConfig?.contentPrefix
+      ? `${sepayConfig.contentPrefix} ${invoice.invoiceCode}`
+      : (invoice?.invoiceCode ?? "");
 
   const loadBillingData = useCallback(
     async (accessToken: string) => {
@@ -173,43 +178,56 @@ export function RecruiterBillingPage() {
     const target = invoices.find((item) => item.id === requestedId);
     if (target && target.paymentStatus !== "PAID") {
       setCheckoutInvoice(target);
-      setPaymentMethod("SEPAY");
     }
 
     // Drop the param so a refresh does not reopen the dialog.
     window.history.replaceState({}, "", window.location.pathname);
   }, [invoices]);
 
-  // Handle simulated payment (Confirm Payment)
-  async function handleConfirmPayment() {
-    if (!checkoutInvoice) return;
+  // Bank info + VietQR image for the SePay tab are admin-configured now, not
+  // hard-coded -- needs no auth, so this loads once independent of the
+  // session check above.
+  useEffect(() => {
+    getPublicSepayConfig()
+      .then(setSepayConfig)
+      .catch(() => setSepayConfig(null));
+  }, []);
 
-    try {
-      setPaying(true);
-
-      await payInvoice(checkoutInvoice.id, paymentMethod, token);
-
-      void Swal.fire({
-        icon: "success",
-        title: "Thanh toán thành công!",
-        text: "Gói dịch vụ mới của bạn đã được kích hoạt thành công.",
-        confirmButtonColor: "#10a778",
-      });
-
-      setCheckoutInvoice(null);
-
-      // Reload updated billing status
-      void loadBillingData(token);
-    } catch (err) {
-      void Swal.fire({
-        icon: "error",
-        title: "Thanh toán thất bại",
-        text: err instanceof Error ? err.message : "Có lỗi xảy ra khi xác nhận giao dịch.",
-      });
-    } finally {
-      setPaying(false);
-    }
+  function handlePaymentConfirmed() {
+    void Swal.fire({
+      icon: "success",
+      title: "Thanh toán thành công!",
+      text: "Gói dịch vụ mới của bạn đã được kích hoạt thành công.",
+      confirmButtonColor: "#10a778",
+    });
+    setCheckoutInvoice(null);
+    void loadBillingData(token);
   }
+
+  // SePay is a real, webhook-verified gateway: once the recruiter's transfer
+  // lands, the backend flips the invoice to PAID on its own. Poll for that
+  // instead of asking the recruiter to self-report "I paid" -- there is no
+  // manual confirm button anymore, SePay is the only payment method left.
+  useEffect(() => {
+    if (!checkoutInvoice || checkoutInvoice.paymentStatus !== "PENDING") return;
+    if (!token) return;
+
+    const invoiceId = checkoutInvoice.id;
+    const intervalId = window.setInterval(() => {
+      getInvoice(invoiceId, token)
+        .then((updated) => {
+          if (updated.paymentStatus === "PAID") {
+            handlePaymentConfirmed();
+          }
+        })
+        .catch(() => {
+          // Transient network hiccup -- just try again on the next tick.
+        });
+    }, 4000);
+
+    return () => window.clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- token/handlePaymentConfirmed are stable for the life of one open dialog
+  }, [checkoutInvoice, token]);
 
   // Copy to clipboard helper
   function handleCopyText(text: string, label: string) {
@@ -445,10 +463,7 @@ export function RecruiterBillingPage() {
                         {isPending ? (
                           <Button
                             className="h-8 bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700"
-                            onClick={() => {
-                              setCheckoutInvoice(inv);
-                              setPaymentMethod("SEPAY");
-                            }}
+                            onClick={() => setCheckoutInvoice(inv)}
                           >
                             Thanh toán
                           </Button>
@@ -534,8 +549,8 @@ export function RecruiterBillingPage() {
                   id="checkout-dialog-description"
                   className="mt-1 text-xs font-medium text-slate-500"
                 >
-                  Vui lòng chọn phương thức thanh toán và thực hiện chuyển khoản để kích hoạt gói
-                  dịch vụ.
+                  Chuyển khoản đúng số tiền và nội dung bên dưới qua SePay -- gói dịch vụ sẽ được
+                  kích hoạt tự động, không cần xác nhận thủ công.
                 </DialogPrimitive.Description>
               </div>
 
@@ -561,47 +576,12 @@ export function RecruiterBillingPage() {
                       </div>
                     </div>
 
-                    {/* Payment Method Tabs */}
-                    <div>
-                      <span className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                        Chọn phương thức thanh toán
-                      </span>
-                      <div className="mt-2.5 grid grid-cols-2 gap-3">
-                        {/* Bank Transfer Tab Button */}
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod("SEPAY")}
-                          className={[
-                            "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all cursor-pointer",
-                            paymentMethod === "SEPAY"
-                              ? "border-emerald-600 bg-emerald-50/40 text-emerald-700"
-                              : "border-slate-200 text-slate-500 hover:bg-slate-50",
-                          ].join(" ")}
-                        >
-                          <Bank size={24} weight="bold" />
-                          <span className="text-xs font-bold">Chuyển khoản (VietQR)</span>
-                        </button>
-
-                        {/* PayPal Tab Button */}
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod("PAYPAL")}
-                          className={[
-                            "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-all cursor-pointer",
-                            paymentMethod === "PAYPAL"
-                              ? "border-emerald-600 bg-emerald-50/40 text-emerald-700"
-                              : "border-slate-200 text-slate-500 hover:bg-slate-50",
-                          ].join(" ")}
-                        >
-                          <PaypalLogo size={24} weight="bold" />
-                          <span className="text-xs font-bold">PayPal</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Payment Details Container */}
+                    {/* Payment Details Container -- SePay only, no method picker */}
                     <div className="rounded-xl border border-slate-100 bg-white p-5">
-                      {paymentMethod === "SEPAY" && (
+                      {sepayConfig?.enabled &&
+                      sepayConfig.bankBin &&
+                      sepayConfig.accountNumber &&
+                      sepayConfig.accountName ? (
                         <div className="flex flex-col gap-5 md:flex-row md:items-center">
                           <div className="flex flex-1 flex-col gap-2.5 text-xs text-slate-600">
                             <h4 className="text-sm font-bold text-slate-800">
@@ -609,17 +589,21 @@ export function RecruiterBillingPage() {
                             </h4>
                             <div className="grid grid-cols-[100px_1fr] gap-y-2">
                               <span>Ngân hàng:</span>
-                              <span className="font-bold text-slate-800">Vietcombank (VCB)</span>
+                              <span className="font-bold text-slate-800">
+                                {sepayConfig.bankName ?? sepayConfig.bankBin}
+                              </span>
                               <span>Chủ tài khoản:</span>
                               <span className="font-bold text-slate-800 uppercase">
-                                CÔNG TY CỔ PHẦN UPNEXT
+                                {sepayConfig.accountName}
                               </span>
                               <span>Số tài khoản:</span>
                               <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
-                                999988888
+                                {sepayConfig.accountNumber}
                                 <button
                                   type="button"
-                                  onClick={() => handleCopyText("999988888", "Số tài khoản")}
+                                  onClick={() =>
+                                    handleCopyText(sepayConfig.accountNumber ?? "", "Số tài khoản")
+                                  }
                                   className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
                                 >
                                   <Copy size={10} /> Sao chép
@@ -639,12 +623,12 @@ export function RecruiterBillingPage() {
                               <span>Nội dung CK:</span>
                               <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
                                 <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-800">
-                                  {invoice.invoiceCode}
+                                  {transferContent}
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    handleCopyText(invoice.invoiceCode, "Nội dung chuyển khoản")
+                                    handleCopyText(transferContent, "Nội dung chuyển khoản")
                                   }
                                   className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
                                 >
@@ -661,7 +645,7 @@ export function RecruiterBillingPage() {
                           <div className="flex shrink-0 flex-col items-center justify-center">
                             <div className="relative rounded-lg border border-slate-100 bg-white p-2.5 shadow-sm">
                               <Image
-                                src={`https://img.vietqr.io/image/vietcombank-999988888-compact.png?amount=${invoiceAmountInt}&addInfo=${invoice.invoiceCode}&accountName=CONG%20TY%20CO%20PHAN%20UPNEXT`}
+                                src={`https://img.vietqr.io/image/${sepayConfig.bankBin}-${sepayConfig.accountNumber}-compact.png?amount=${invoiceAmountInt}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(sepayConfig.accountName)}`}
                                 alt="VietQR code"
                                 width={144}
                                 height={144}
@@ -674,60 +658,12 @@ export function RecruiterBillingPage() {
                             </span>
                           </div>
                         </div>
-                      )}
-
-                      {paymentMethod === "PAYPAL" && (
-                        <div className="flex flex-col gap-2.5 text-xs text-slate-600">
-                          <h4 className="text-sm font-bold text-slate-800">
-                            Thanh toán qua PayPal
-                          </h4>
-                          <div className="grid grid-cols-[100px_1fr] gap-y-2">
-                            <span>Tài khoản:</span>
-                            <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
-                              {PAYPAL_ACCOUNT}
-                              <button
-                                type="button"
-                                onClick={() => handleCopyText(PAYPAL_ACCOUNT, "tài khoản PayPal")}
-                                className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
-                              >
-                                <Copy size={10} /> Sao chép
-                              </button>
-                            </span>
-                            <span>Số tiền:</span>
-                            <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
-                              {invoiceAmountInt}
-                              <span className="font-sans text-[11px] font-medium text-slate-400">
-                                VND — PayPal sẽ quy đổi theo tỷ giá tại thời điểm trả
-                              </span>
-                            </span>
-                            <span>Ghi chú (note):</span>
-                            <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
-                              <span className="rounded bg-sky-50 px-2 py-0.5 text-sky-800">
-                                {invoice.invoiceCode}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleCopyText(invoice.invoiceCode, "ghi chú PayPal")
-                                }
-                                className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
-                              >
-                                <Copy size={10} /> Sao chép
-                              </button>
-                            </span>
-                          </div>
-                          <a
-                            href={PAYPAL_ME_LINK}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-xl bg-[#0070ba] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#005ea6]"
-                          >
-                            <PaypalLogo size={16} weight="bold" />
-                            Mở PayPal để thanh toán
-                          </a>
-                          <p className="mt-1 text-[11px] text-slate-400 italic">
-                            * Chọn hình thức &quot;Gửi cho bạn bè/người thân&quot; và ghi đúng mã
-                            hóa đơn ở phần note để đội ngũ UpNext đối soát và kích hoạt gói cho bạn.
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 py-6 text-center text-xs text-slate-500">
+                          <Info size={20} className="text-slate-400" />
+                          <p>
+                            Phương thức thanh toán SePay hiện tạm chưa khả dụng. Vui lòng liên hệ
+                            đội ngũ UpNext để được hỗ trợ.
                           </p>
                         </div>
                       )}
@@ -736,33 +672,20 @@ export function RecruiterBillingPage() {
                 )}
               </div>
 
-              {/* Modal Footer */}
+              {/* Modal Footer -- SePay is webhook-verified, so there is no
+                  self-confirm button here, only a passive status. */}
               <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
                 <Button
                   variant="ghost"
                   className="h-10 cursor-pointer border border-slate-200 px-4 text-xs font-bold text-slate-600 hover:bg-slate-100"
                   onClick={() => setCheckoutInvoice(null)}
-                  disabled={paying}
                 >
                   Hủy bỏ
                 </Button>
-                <Button
-                  className="flex h-10 cursor-pointer items-center gap-1.5 bg-emerald-600 px-5 text-xs font-bold text-white hover:bg-emerald-700"
-                  onClick={() => void handleConfirmPayment()}
-                  disabled={paying}
-                >
-                  {paying ? (
-                    <>
-                      <Spinner className="size-4 animate-spin" />
-                      Đang kích hoạt...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle size={16} weight="bold" />
-                      Xác nhận đã thanh toán
-                    </>
-                  )}
-                </Button>
+                <div className="flex h-10 items-center gap-1.5 px-2 text-xs font-bold text-slate-500">
+                  <Spinner className="size-4 animate-spin text-emerald-600" />
+                  Đang chờ SePay xác nhận tự động...
+                </div>
               </div>
             </DialogPrimitive.Content>
           </div>
