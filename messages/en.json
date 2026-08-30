@@ -3583,6 +3583,7 @@
     "financeAndBusiness": {
       "title": "Finance & Business",
       "plans": "Service Plans",
+      "paymentConfig": "Payment Configuration",
       "transactions": "Invoices"
     },
     "systemAdmin": {
@@ -4099,6 +4100,44 @@
             "Shopee Vietnam": "Shopee Vietnam",
             "Phạm F (Candidate)": "Phạm F (Candidate)",
             "Tiki HR": "Tiki HR"
+          }
+        }
+      },
+      "paymentConfig": {
+        "title": "Payment Configuration",
+        "subtitle": "Configure the automated payment gateway for the recruiter checkout flow.",
+        "tabs": {
+          "sepay": "SePay"
+        },
+        "sepay": {
+          "description": "SePay watches your bank account balance and automatically confirms payments over VietQR -- no one has to click a manual confirm button.",
+          "fields": {
+            "isEnabled": "Enable SePay payments",
+            "bankName": "Bank name",
+            "bankNamePlaceholder": "e.g. Vietcombank (VCB)",
+            "bankBin": "Bank BIN code",
+            "bankBinPlaceholder": "e.g. 970436",
+            "bankBinHint": "Look up your bank's Napas/VietQR BIN code.",
+            "accountNumber": "Account number",
+            "accountName": "Account holder name",
+            "accountNamePlaceholder": "e.g. CONG TY CO PHAN UPNEXT",
+            "webhookApiKey": "Webhook API key",
+            "webhookApiKeyPlaceholder": "Leave blank to keep the current key",
+            "webhookApiKeyCurrentHint": "Current key: {masked}",
+            "webhookApiKeyEmptyHint": "No key configured yet.",
+            "webhookUrl": "Webhook URL",
+            "webhookUrlHint": "Paste this into SePay's dashboard webhook settings."
+          },
+          "buttons": {
+            "save": "Save configuration",
+            "saving": "Saving...",
+            "copy": "Copy"
+          },
+          "toasts": {
+            "saveSuccess": "SePay configuration saved.",
+            "saveError": "Could not save the configuration, please try again.",
+            "loadError": "Could not load the payment configuration.",
+            "copied": "Copied"
           }
         }
       }

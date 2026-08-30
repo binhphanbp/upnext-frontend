@@ -27,13 +27,16 @@ export type SubscriptionFeature = (typeof SUBSCRIPTION_FEATURES)[number];
 export type PlanAudience = "RECRUITER" | "CANDIDATE";
 
 /**
- * Every method the backend can store. STRIPE and MOMO are kept so historical
- * invoices still render; checkout only offers {@link CHECKOUT_PAYMENT_METHODS}.
+ * Every method the backend can store. STRIPE, MOMO and PAYPAL are kept so
+ * historical invoices still render correctly -- the recruiter checkout modal
+ * only offers SePay now (see {@link CheckoutPaymentMethod}); PayPal was a
+ * manual, unverified placeholder and was removed once SePay gave the
+ * checkout a real, webhook-verified payment method.
  */
 export type PaymentMethod = "STRIPE" | "MOMO" | "SEPAY" | "PAYPAL";
 
-/** Methods a recruiter can actually pick today. */
-export type CheckoutPaymentMethod = "SEPAY" | "PAYPAL";
+/** The only method a recruiter can actually pick in checkout today. */
+export type CheckoutPaymentMethod = "SEPAY";
 
 export type PlanFeature = Readonly<{
   id: string;
@@ -203,6 +206,13 @@ export function getActiveSubscription(token: string): Promise<CompanySubscriptio
 
 export function getInvoices(token: string): Promise<InvoiceDetail[]> {
   return apiRequest<InvoiceDetail[]>("/invoices", {
+    headers: authHeaders(token),
+  });
+}
+
+/** Used to poll a single invoice's status while a SePay checkout is open. */
+export function getInvoice(invoiceId: string, token: string): Promise<InvoiceDetail> {
+  return apiRequest<InvoiceDetail>(`/invoices/${invoiceId}`, {
     headers: authHeaders(token),
   });
 }

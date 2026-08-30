@@ -118,6 +118,11 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
     items: [
       { label: "financeAndBusiness.plans", href: "/admin/finance/plans", icon: Package },
       {
+        label: "financeAndBusiness.paymentConfig",
+        href: "/admin/finance/payment-config",
+        icon: CreditCard,
+      },
+      {
         label: "financeAndBusiness.transactions",
         href: "/admin/finance/transactions",
         icon: Receipt,
