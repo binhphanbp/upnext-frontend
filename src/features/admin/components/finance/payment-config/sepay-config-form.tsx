@@ -34,7 +34,8 @@ type FormState = {
   bankBin: string;
   accountNumber: string;
   accountName: string;
-  webhookApiKey: string;
+  contentPrefix: string;
+  webhookSecret: string;
 };
 
 const emptyForm: FormState = {
@@ -43,7 +44,8 @@ const emptyForm: FormState = {
   bankBin: "",
   accountNumber: "",
   accountName: "",
-  webhookApiKey: "",
+  contentPrefix: "",
+  webhookSecret: "",
 };
 
 export function SepayConfigForm() {
@@ -76,7 +78,7 @@ export function SepayConfigForm() {
   });
 
   // Re-seed the form whenever the loaded config changes -- never pre-fill
-  // webhookApiKey, it stays blank ("keep current key") until the admin
+  // webhookSecret, it stays blank ("keep current key") until the admin
   // deliberately types a new one.
   useEffect(() => {
     if (!config) return;
@@ -86,7 +88,8 @@ export function SepayConfigForm() {
       bankBin: config.bankBin ?? "",
       accountNumber: config.accountNumber ?? "",
       accountName: config.accountName ?? "",
-      webhookApiKey: "",
+      contentPrefix: config.contentPrefix ?? "",
+      webhookSecret: "",
     });
   }, [config]);
 
@@ -102,14 +105,15 @@ export function SepayConfigForm() {
           bankBin: form.bankBin.trim(),
           accountNumber: form.accountNumber.trim(),
           accountName: form.accountName.trim(),
-          webhookApiKey: form.webhookApiKey.trim() || undefined,
+          contentPrefix: form.contentPrefix.trim(),
+          webhookSecret: form.webhookSecret.trim() || undefined,
         },
         session.accessToken,
       );
     },
     onSuccess: () => {
       void toast.fire({ icon: "success", title: t("toasts.saveSuccess") });
-      setForm((prev) => ({ ...prev, webhookApiKey: "" }));
+      setForm((prev) => ({ ...prev, webhookSecret: "" }));
       void queryClient.invalidateQueries({ queryKey: ["adminPaymentConfig", "SEPAY"] });
     },
     onError: (error: unknown) => {
@@ -189,11 +193,21 @@ export function SepayConfigForm() {
 
       <div className="flex flex-col gap-1.5">
         <FormInput
-          label={t("fields.webhookApiKey")}
+          label={t("fields.contentPrefix")}
+          placeholder={t("fields.contentPrefixPlaceholder")}
+          value={form.contentPrefix}
+          onChange={(event) => setForm((prev) => ({ ...prev, contentPrefix: event.target.value }))}
+        />
+        <p className="text-muted-foreground text-xs">{t("fields.contentPrefixHint")}</p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <FormInput
+          label={t("fields.webhookSecret")}
           type={showApiKey ? "text" : "password"}
-          placeholder={t("fields.webhookApiKeyPlaceholder")}
-          value={form.webhookApiKey}
-          onChange={(event) => setForm((prev) => ({ ...prev, webhookApiKey: event.target.value }))}
+          placeholder={t("fields.webhookSecretPlaceholder")}
+          value={form.webhookSecret}
+          onChange={(event) => setForm((prev) => ({ ...prev, webhookSecret: event.target.value }))}
           suffix={
             <button
               type="button"
@@ -206,9 +220,9 @@ export function SepayConfigForm() {
           }
         />
         <p className="text-muted-foreground text-xs">
-          {config?.webhookApiKeyMasked
-            ? t("fields.webhookApiKeyCurrentHint", { masked: config.webhookApiKeyMasked })
-            : t("fields.webhookApiKeyEmptyHint")}
+          {config?.webhookSecretMasked
+            ? t("fields.webhookSecretCurrentHint", { masked: config.webhookSecretMasked })
+            : t("fields.webhookSecretEmptyHint")}
         </p>
       </div>
 

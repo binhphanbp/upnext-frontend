@@ -11,6 +11,8 @@ export type PublicSepayConfig = Readonly<{
   bankBin: string | null;
   accountNumber: string | null;
   accountName: string | null;
+  /** Prepend to the invoice code in the transfer content (e.g. "TKPUPN" for a SePay Virtual Account). */
+  contentPrefix: string | null;
 }>;
 
 export function getPublicSepayConfig(): Promise<PublicSepayConfig> {

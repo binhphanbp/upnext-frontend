@@ -91,6 +91,14 @@ export function RecruiterBillingPage() {
 
   const invoice = checkoutInvoice;
   const invoiceAmountInt = invoice ? (invoice.amount.split(".")[0] ?? "") : "";
+  // The bank content the recruiter must actually type/scan -- prefixed when
+  // the configured bank account uses SePay's Virtual Account feature (e.g.
+  // "TKPUPN"), so the transfer routes to the right sub-account and the
+  // webhook's own prefix check (see sepay-webhook.service.ts) accepts it.
+  const transferContent =
+    invoice && sepayConfig?.contentPrefix
+      ? `${sepayConfig.contentPrefix} ${invoice.invoiceCode}`
+      : (invoice?.invoiceCode ?? "");
 
   const loadBillingData = useCallback(
     async (accessToken: string) => {
@@ -615,12 +623,12 @@ export function RecruiterBillingPage() {
                               <span>Nội dung CK:</span>
                               <span className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
                                 <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-800">
-                                  {invoice.invoiceCode}
+                                  {transferContent}
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    handleCopyText(invoice.invoiceCode, "Nội dung chuyển khoản")
+                                    handleCopyText(transferContent, "Nội dung chuyển khoản")
                                   }
                                   className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 transition-colors hover:bg-slate-200"
                                 >
@@ -637,7 +645,7 @@ export function RecruiterBillingPage() {
                           <div className="flex shrink-0 flex-col items-center justify-center">
                             <div className="relative rounded-lg border border-slate-100 bg-white p-2.5 shadow-sm">
                               <Image
-                                src={`https://img.vietqr.io/image/${sepayConfig.bankBin}-${sepayConfig.accountNumber}-compact.png?amount=${invoiceAmountInt}&addInfo=${invoice.invoiceCode}&accountName=${encodeURIComponent(sepayConfig.accountName)}`}
+                                src={`https://img.vietqr.io/image/${sepayConfig.bankBin}-${sepayConfig.accountNumber}-compact.png?amount=${invoiceAmountInt}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(sepayConfig.accountName)}`}
                                 alt="VietQR code"
                                 width={144}
                                 height={144}

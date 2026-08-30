@@ -8,8 +8,10 @@ export type AdminPaymentConfig = Readonly<{
   bankBin: string | null;
   accountNumber: string | null;
   accountName: string | null;
-  /** Last 4 characters only, or null if no key is set -- never the real secret. */
-  webhookApiKeyMasked: string | null;
+  /** Prepend to the invoice code in the transfer content (e.g. "TKPUPN" for a SePay Virtual Account). */
+  contentPrefix: string | null;
+  /** Last 4 characters only, or null if no secret is set -- never the real secret. */
+  webhookSecretMasked: string | null;
   /** Paste this into the SePay dashboard's webhook settings. */
   webhookUrl: string;
 }>;
@@ -20,8 +22,9 @@ export type UpsertPaymentConfigPayload = Readonly<{
   bankBin?: string | undefined;
   accountNumber?: string | undefined;
   accountName?: string | undefined;
-  /** Omit or leave blank to keep the currently configured key unchanged. */
-  webhookApiKey?: string | undefined;
+  contentPrefix?: string | undefined;
+  /** Omit or leave blank to keep the currently configured secret unchanged. */
+  webhookSecret?: string | undefined;
 }>;
 
 function authHeaders(token: string) {
