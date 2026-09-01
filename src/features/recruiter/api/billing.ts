@@ -60,7 +60,6 @@ export type SubscriptionPlan = Readonly<{
   highlightLabel: string | null;
   sortOrder: number;
   boostCreditLimit: number;
-  jobPostLimit: number;
   /** Prisma returns enum keys, so these are uppercase on the wire. */
   status: "ACTIVE" | "INACTIVE";
   createdAt: string;
@@ -84,8 +83,6 @@ export type CompanySubscriptionDetail = Readonly<{
   id: string;
   planId: string;
   companyId: string;
-  jobPostLimit: number;
-  jobPostUsed: number;
   boostCreditTotal: number;
   boostCreditUsed: number;
   startedAt: string;
@@ -127,7 +124,6 @@ export type CreateSubscriptionPlanPayload = Readonly<{
   sortOrder?: number | undefined;
   highlightLabel?: string | null | undefined;
   boostCreditLimit?: number | undefined;
-  jobPostLimit?: number | undefined;
   status?: "ACTIVE" | "INACTIVE" | undefined;
 }>;
 

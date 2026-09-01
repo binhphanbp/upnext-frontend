@@ -264,18 +264,6 @@ function getJobPostErrorMessage(t: JobPostTranslator, error: unknown, reputation
 
   if (error.status === 403 || error.status === 409) {
     const msg = error.message.toLowerCase();
-    if (
-      msg.includes("hết số lượng") ||
-      msg.includes("quota") ||
-      msg.includes("gói dịch vụ") ||
-      msg.includes("hạn mức") ||
-      msg.includes("quota_exhausted") ||
-      msg.includes("feature_not_in_plan") ||
-      msg.includes("no_active_subscription")
-    ) {
-      return error.message;
-    }
-
     if (msg.includes("reputation score")) {
       // The threshold is server-side config, so read it back out of the message rather than
       // hardcoding a second copy of it here.
@@ -796,43 +784,11 @@ export function RecruiterJobPostsPage({
     }
   }
 
-  const handleQuotaOrActionError = useCallback(
+  const handleActionError = useCallback(
     async (error: unknown) => {
-      if (error instanceof ApiError) {
-        const msg = (error.message || "").toLowerCase();
-        const isQuota =
-          (error.status === 403 || error.status === 409) &&
-          (msg.includes("hết số lượng") ||
-            msg.includes("quota") ||
-            msg.includes("gói dịch vụ") ||
-            msg.includes("hạn mức") ||
-            msg.includes("quota_exhausted") ||
-            msg.includes("feature_not_in_plan") ||
-            msg.includes("no_active_subscription"));
-
-        if (isQuota) {
-          const result = await Swal.fire({
-            icon: "warning",
-            title: locale === "vi" ? "Hết lượt đăng tin tuyển dụng" : "Job Post Limit Reached",
-            html: `<div class="text-sm text-slate-600 text-left space-y-2">
-              <p>${error.message || (locale === "vi" ? "Doanh nghiệp của bạn đã sử dụng hết số lượng tin đăng tuyển dụng trong gói dịch vụ hiện tại." : "Your company has reached the job post limit for the current subscription plan.")}</p>
-              <p class="text-xs text-slate-500 font-medium">${locale === "vi" ? "Vui lòng mua thêm hoặc nâng cấp gói dịch vụ để tiếp tục tạo và đăng tin tuyển dụng." : "Please purchase or upgrade a service plan to continue posting jobs."}</p>
-            </div>`,
-            showCancelButton: true,
-            confirmButtonText: locale === "vi" ? "Mua gói dịch vụ ngay" : "Upgrade Plan Now",
-            cancelButtonText: locale === "vi" ? "Để sau" : "Later",
-            confirmButtonColor: "#059669",
-          });
-
-          if (result.isConfirmed) {
-            router.push("/recruiter/pricing");
-          }
-          return;
-        }
-      }
       showToast("error", getJobPostErrorMessage(t, error, account?.company?.reputationScore));
     },
-    [account?.company?.reputationScore, locale, router, showToast, t],
+    [account?.company?.reputationScore, showToast, t],
   );
 
   async function submit(values: JobPostFormValues) {
@@ -921,7 +877,7 @@ export function RecruiterJobPostsPage({
         }
       }
     } catch (error) {
-      await handleQuotaOrActionError(error);
+      await handleActionError(error);
       return;
     }
 
@@ -939,36 +895,19 @@ export function RecruiterJobPostsPage({
         await publishRecruiterJobPost(publishTargetId, token);
         showToast("success", t("jobPostsPage.toasts.published"));
       } catch (error) {
-        // Check if error is quota related
-        const msg = (error instanceof ApiError ? error.message : "").toLowerCase();
-        const isQuota =
-          error instanceof ApiError &&
-          (error.status === 403 || error.status === 409) &&
-          (msg.includes("hết số lượng") ||
-            msg.includes("quota") ||
-            msg.includes("gói dịch vụ") ||
-            msg.includes("hạn mức") ||
-            msg.includes("quota_exhausted") ||
-            msg.includes("feature_not_in_plan") ||
-            msg.includes("no_active_subscription"));
-
-        if (isQuota) {
-          await handleQuotaOrActionError(error);
-        } else {
-          // A refused publish is a blocking condition with a reason worth reading, not a toast that
-          // slides away after three seconds.
-          const isReputation =
-            error instanceof ApiError && error.message.toLowerCase().includes("reputation score");
-          await Swal.fire({
-            icon: "warning",
-            title: isReputation
-              ? t("jobPostsPage.publishDialog.reputationTitle")
-              : t("jobPostsPage.publishDialog.genericTitle"),
-            text: `${getJobPostErrorMessage(t, error, account?.company?.reputationScore)}${t("jobPostsPage.publishDialog.savedNote")}`,
-            confirmButtonText: t("jobPostsPage.publishDialog.confirm"),
-            confirmButtonColor: "#059669",
-          });
-        }
+        // A refused publish is a blocking condition with a reason worth reading, not a toast that
+        // slides away after three seconds. Publishing is never refused because of a package quota.
+        const isReputation =
+          error instanceof ApiError && error.message.toLowerCase().includes("reputation score");
+        await Swal.fire({
+          icon: "warning",
+          title: isReputation
+            ? t("jobPostsPage.publishDialog.reputationTitle")
+            : t("jobPostsPage.publishDialog.genericTitle"),
+          text: `${getJobPostErrorMessage(t, error, account?.company?.reputationScore)}${t("jobPostsPage.publishDialog.savedNote")}`,
+          confirmButtonText: t("jobPostsPage.publishDialog.confirm"),
+          confirmButtonColor: "#059669",
+        });
       }
     }
 
@@ -1042,7 +981,7 @@ export function RecruiterJobPostsPage({
       await reloadJobs();
       showToast("success", t("jobPostsPage.toasts.published"));
     } catch (error) {
-      await handleQuotaOrActionError(error);
+      await handleActionError(error);
     } finally {
       setActionJobId(null);
     }
@@ -1055,7 +994,7 @@ export function RecruiterJobPostsPage({
       await reloadJobs();
       showToast("success", t("jobPostsPage.toasts.reopened"));
     } catch (error) {
-      await handleQuotaOrActionError(error);
+      await handleActionError(error);
     } finally {
       setActionJobId(null);
     }

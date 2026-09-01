@@ -2,7 +2,11 @@
 
 import { useTranslations } from "next-intl";
 
-import { SUBSCRIPTION_FEATURES, type SubscriptionFeature } from "@/features/recruiter/api/billing";
+import {
+  SUBSCRIPTION_FEATURES,
+  type PlanAudience,
+  type SubscriptionFeature,
+} from "@/features/recruiter/api/billing";
 import { QUOTA_FEATURE_LABELS } from "@/features/recruiter/components/plan-feature-labels";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Input } from "@/shared/ui/input";
@@ -45,18 +49,33 @@ export function featureFormStateFromPlan(
  * limit field should not resurrect a `limitValue` the admin never meant to keep.
  * Empty limit means unlimited (`null`), matching how the backend already reads it.
  */
-export function toSetFeaturesPayload(state: PlanFeatureFormState) {
-  return SUBSCRIPTION_FEATURES.filter((feature) => state[feature].enabled).map((feature) => {
-    const raw = state[feature].limitValue.trim();
-    return {
-      feature,
-      enabled: true,
-      limitValue: raw === "" ? null : Number(raw),
-    };
-  });
+export function toSetFeaturesPayload(state: PlanFeatureFormState, audience: PlanAudience) {
+  const editableFeatures = SUBSCRIPTION_FEATURES.filter((feature) => feature !== "JOB_POST");
+  const payload: Array<{
+    feature: SubscriptionFeature;
+    enabled: boolean;
+    limitValue: number | null;
+  }> = editableFeatures
+    .filter((feature) => state[feature].enabled)
+    .map((feature) => {
+      const raw = state[feature].limitValue.trim();
+      return {
+        feature,
+        enabled: true,
+        limitValue: raw === "" ? null : Number(raw),
+      };
+    });
+
+  // Job posting is always available and unlimited for recruiters. The server
+  // enforces this invariant too; including it here keeps admin saves explicit.
+  if (audience === "RECRUITER") {
+    payload.push({ feature: "JOB_POST", enabled: true, limitValue: null });
+  }
+  return payload;
 }
 
 type PlanFeatureEditorProps = {
+  audience: PlanAudience;
   value: PlanFeatureFormState;
   onChange: (next: PlanFeatureFormState) => void;
 };
@@ -69,7 +88,7 @@ type PlanFeatureEditorProps = {
  * (a paid plan must never change search ranking). A generic editor over the real
  * enum cannot reintroduce that: there is no feature key for it to expose.
  */
-export function PlanFeatureEditor({ value, onChange }: PlanFeatureEditorProps) {
+export function PlanFeatureEditor({ audience, value, onChange }: PlanFeatureEditorProps) {
   const t = useTranslations("Admin.finance.plans.dialog.features");
 
   const setFeature = (
@@ -81,28 +100,48 @@ export function PlanFeatureEditor({ value, onChange }: PlanFeatureEditorProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      {SUBSCRIPTION_FEATURES.map((feature) => {
+      {SUBSCRIPTION_FEATURES.filter(
+        (feature) => audience === "RECRUITER" || feature !== "JOB_POST",
+      ).map((feature) => {
         const row = value[feature];
+        const isPlatformJobPosting = audience === "RECRUITER" && feature === "JOB_POST";
         return (
           <div key={feature} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
-            <Checkbox
-              id={`feature-${feature}`}
-              checked={row.enabled}
-              onCheckedChange={(checked) => setFeature(feature, { enabled: checked === true })}
-            />
-            <Label htmlFor={`feature-${feature}`} className="min-w-[220px] flex-1 cursor-pointer">
+            {isPlatformJobPosting ? (
+              <span className="flex size-4 shrink-0 items-center justify-center rounded bg-emerald-600 text-[10px] font-bold text-white">
+                ✓
+              </span>
+            ) : (
+              <Checkbox
+                id={`feature-${feature}`}
+                checked={row.enabled}
+                onCheckedChange={(checked) => setFeature(feature, { enabled: checked === true })}
+              />
+            )}
+            <Label
+              htmlFor={isPlatformJobPosting ? undefined : `feature-${feature}`}
+              className="min-w-[220px] flex-1 cursor-pointer"
+            >
               {QUOTA_FEATURE_LABELS[feature]}
             </Label>
-            <Input
-              type="number"
-              min={0}
-              className="h-9 w-32"
-              placeholder={t("unlimitedPlaceholder")}
-              disabled={!row.enabled}
-              value={row.limitValue}
-              onChange={(event) => setFeature(feature, { limitValue: event.target.value })}
-            />
-            <span className="text-muted-foreground text-xs">{t("unlimitedHint")}</span>
+            {isPlatformJobPosting ? (
+              <span className="text-xs font-semibold text-emerald-700">
+                {t("platformUnlimited")}
+              </span>
+            ) : (
+              <>
+                <Input
+                  type="number"
+                  min={0}
+                  className="h-9 w-32"
+                  placeholder={t("unlimitedPlaceholder")}
+                  disabled={!row.enabled}
+                  value={row.limitValue}
+                  onChange={(event) => setFeature(feature, { limitValue: event.target.value })}
+                />
+                <span className="text-muted-foreground text-xs">{t("unlimitedHint")}</span>
+              </>
+            )}
           </div>
         );
       })}

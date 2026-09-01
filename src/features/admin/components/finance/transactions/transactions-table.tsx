@@ -50,7 +50,7 @@ const data: AdminTransaction[] = [
   {
     id: "TRX-88206",
     client: "Startup B",
-    service: "Gói 5 Tin Tuyển Dụng",
+    service: "Gói AI Starter (1 Tháng)",
     amount: 1500000,
     paymentMethod: "MoMo",
     status: "Thất bại",
@@ -105,7 +105,7 @@ const data: AdminTransaction[] = [
   {
     id: "TRX-88210",
     client: "FPT Software",
-    service: "Gói 10 Tin Tuyển Dụng",
+    service: "Gói AI Pro (1 Tháng)",
     amount: 2800000,
     paymentMethod: "VNPAY",
     status: "Đang xử lý",
@@ -168,12 +168,12 @@ export const getColumns = (t: any): ColumnDef<AdminTransaction>[] => [
         service = t("mockServices.Employer Premium (1 Năm)");
       else if (serviceStr === "Employer Pro (1 Tháng)")
         service = t("mockServices.Employer Pro (1 Tháng)");
-      else if (serviceStr === "Gói 5 Tin Tuyển Dụng")
-        service = t("mockServices.Gói 5 Tin Tuyển Dụng");
+      else if (serviceStr === "Gói AI Starter (1 Tháng)")
+        service = t("mockServices.Gói AI Starter (1 Tháng)");
       else if (serviceStr === "Candidate Pro (1 Tháng)")
         service = t("mockServices.Candidate Pro (1 Tháng)");
-      else if (serviceStr === "Gói 10 Tin Tuyển Dụng")
-        service = t("mockServices.Gói 10 Tin Tuyển Dụng");
+      else if (serviceStr === "Gói AI Pro (1 Tháng)")
+        service = t("mockServices.Gói AI Pro (1 Tháng)");
       else if (serviceStr === "Gói xem 100 CV") service = t("mockServices.Gói xem 100 CV");
 
       return (

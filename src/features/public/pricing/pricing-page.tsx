@@ -10,6 +10,10 @@ import {
   type SubscriptionFeature,
   type SubscriptionPlan,
 } from "@/features/recruiter/api/billing";
+import {
+  isRecruiterFeatureAvailable,
+  recruiterFeatureLimit,
+} from "@/features/recruiter/api/plan-entitlements";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
@@ -77,15 +81,19 @@ export function PricingPage() {
   const comparedFeatures = useMemo(
     () =>
       SUBSCRIPTION_FEATURES.filter((feature) =>
-        (plans ?? []).some((plan) => limitByPlan.get(plan.id)?.get(feature)?.enabled),
+        (plans ?? []).some((plan) =>
+          isRecruiterFeatureAvailable(feature, limitByPlan.get(plan.id)?.get(feature)?.enabled),
+        ),
       ),
     [plans, limitByPlan],
   );
 
   const renderLimit = (planId: string, feature: SubscriptionFeature) => {
     const entry = limitByPlan.get(planId)?.get(feature);
+    const available = isRecruiterFeatureAvailable(feature, entry?.enabled);
+    const limit = recruiterFeatureLimit(feature, entry?.limit);
 
-    if (!entry?.enabled) {
+    if (!available) {
       return (
         <span className="inline-flex items-center gap-1 text-slate-400">
           <Minus size={14} aria-hidden="true" />
@@ -93,12 +101,10 @@ export function PricingPage() {
         </span>
       );
     }
-    if (entry.limit === null) {
+    if (limit === null) {
       return <span className="font-semibold text-emerald-700">{t("unlimited")}</span>;
     }
-    return (
-      <span className="font-semibold text-slate-900">{entry.limit.toLocaleString("vi-VN")}</span>
-    );
+    return <span className="font-semibold text-slate-900">{limit.toLocaleString("vi-VN")}</span>;
   };
 
   return (
@@ -197,11 +203,15 @@ export function PricingPage() {
                   <ul className="mt-5 flex-1 space-y-2">
                     {SUBSCRIPTION_FEATURES.filter((feature) => {
                       const entry = limitByPlan.get(plan.id)?.get(feature);
-                      return entry?.enabled && entry.limit !== 0;
+                      return (
+                        isRecruiterFeatureAvailable(feature, entry?.enabled) &&
+                        recruiterFeatureLimit(feature, entry?.limit) !== 0
+                      );
                     })
                       .slice(0, 4)
                       .map((feature) => {
                         const entry = limitByPlan.get(plan.id)?.get(feature);
+                        const limit = recruiterFeatureLimit(feature, entry?.limit);
                         return (
                           <li
                             key={feature}
@@ -216,9 +226,7 @@ export function PricingPage() {
                               {t(`features.${feature}`)}
                               {": "}
                               <strong className="font-semibold">
-                                {entry?.limit === null
-                                  ? t("unlimited")
-                                  : entry?.limit?.toLocaleString("vi-VN")}
+                                {limit === null ? t("unlimited") : limit.toLocaleString("vi-VN")}
                               </strong>
                             </span>
                           </li>
