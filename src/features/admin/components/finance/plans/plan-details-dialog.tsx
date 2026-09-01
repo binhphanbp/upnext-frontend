@@ -33,22 +33,22 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, t }: PlanDetailsDi
   const audienceKey = isEmployer ? "employer" : "candidate";
   const statusKey = plan.status === "ACTIVE" ? "active" : "legacy";
   const planFeatures =
-    isEmployer && !plan.features.some((feature) => feature.feature === "JOB_POST")
+    isEmployer && !plan.features.some((feature) => feature.feature === "job_post")
       ? [
           ...plan.features,
           {
             id: "platform-job-post",
-            feature: "JOB_POST" as const,
+            feature: "job_post" as const,
             enabled: true,
             limitValue: null,
           },
         ]
       : plan.features;
   const enabledFeatures = planFeatures.filter(
-    (feature) => feature.enabled || (isEmployer && feature.feature === "JOB_POST"),
+    (feature) => feature.enabled || (isEmployer && feature.feature === "job_post"),
   );
   const disabledFeatures = planFeatures.filter(
-    (feature) => !feature.enabled && !(isEmployer && feature.feature === "JOB_POST"),
+    (feature) => !feature.enabled && !(isEmployer && feature.feature === "job_post"),
   );
 
   return (

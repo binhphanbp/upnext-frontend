@@ -1823,7 +1823,14 @@
         "reputationCurrentPrefix": "Hiện tại: {current}. ",
         "companyNotVerified": "Công ty cần được xác thực trước khi xuất bản tin tuyển dụng.",
         "serverError": "Hệ thống đang gặp sự cố khi xử lý tin tuyển dụng.",
-        "unknown": "Không thể xử lý tin tuyển dụng. Vui lòng thử lại."
+        "unknown": "Không thể xử lý tin tuyển dụng. Vui lòng thử lại.",
+        "boost": {
+          "quotaExhausted": "Bạn đã dùng hết lượt đẩy tin trong kỳ này. Hãy nâng cấp gói để tiếp tục.",
+          "alreadyActive": "Tin này đang được đẩy, không thể đẩy thêm lần nữa.",
+          "notEligible": "Tin này chưa đủ điều kiện đẩy (đã ẩn, hết hạn, hoặc chưa được duyệt).",
+          "notPublished": "Chỉ tin đang hiển thị công khai mới đẩy được.",
+          "notStoppable": "Lượt đẩy tin này đã kết thúc hoặc đã bị hủy."
+        }
       },
       "aiErrors": {
         "connectionFailed": "Không thể kết nối đến dịch vụ AI. Vui lòng thử lại.",
@@ -1954,7 +1961,39 @@
           "reopen": "Mở lại tin",
           "publish": "Xuất bản",
           "close": "Đóng tin tuyển dụng",
-          "delete": "Xóa tin tuyển dụng"
+          "delete": "Xóa tin tuyển dụng",
+          "boost": "Đẩy tin",
+          "stopBoost": "Dừng đẩy tin"
+        }
+      },
+      "boost": {
+        "badge": "Được tài trợ · còn {days} ngày",
+        "toasts": {
+          "started": "Đã đẩy tin thành công.",
+          "stoppedRefunded": "Đã dừng đẩy tin và hoàn lại lượt đã dùng.",
+          "stoppedNoRefund": "Đã dừng đẩy tin."
+        },
+        "dialog": {
+          "title": "Đẩy tin tuyển dụng",
+          "description": "Đẩy \"{title}\" trong 7 ngày để tăng lượt tiếp cận ứng viên.",
+          "typeFeatured": "Nổi bật",
+          "typeFeaturedHint": "Ưu tiên hiển thị ở các vị trí nổi bật.",
+          "typeUrgent": "Tuyển gấp",
+          "typeUrgentHint": "Gắn nhãn \"Tuyển gấp\" để thu hút ứng viên nhanh.",
+          "rules": "Mỗi lượt đẩy tiêu 1 lượt trong hạn mức gói, kéo dài đúng 7 ngày, không cộng dồn. Sau khi tin đã được hiển thị, dừng sớm sẽ không được hoàn lại.",
+          "quotaRemaining": "Còn lại {count} lượt đẩy trong kỳ này.",
+          "quotaUnlimited": "Gói của bạn không giới hạn lượt đẩy.",
+          "outOfQuota": "Bạn đã dùng hết lượt đẩy tin trong kỳ này. Hãy nâng cấp gói để tiếp tục.",
+          "cancel": "Hủy",
+          "confirm": "Đẩy tin ngay",
+          "submitting": "Đang xử lý..."
+        },
+        "stopDialog": {
+          "title": "Dừng đẩy tin?",
+          "textWillRefund": "Tin chưa được hiển thị nên lượt đẩy sẽ được hoàn lại vào hạn mức của bạn.",
+          "textMayNotRefund": "Tin đã được hiển thị cho ứng viên nên lượt đẩy này sẽ KHÔNG được hoàn lại.",
+          "confirm": "Dừng đẩy tin",
+          "cancel": "Đóng"
         }
       },
       "form": {

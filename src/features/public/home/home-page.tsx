@@ -16,6 +16,7 @@ import { toast } from "@/shared/ui/toast";
 import { useLocationPreference } from "@/shared/utils/location-preference";
 import { removeVietnameseAccents } from "@/shared/utils/natural-search";
 
+import { SponsoredJobsSection } from "../jobs/sponsored-jobs-section";
 import { PublicFooter } from "../shared/public-footer";
 import { PublicHeader } from "../shared/public-header";
 import {
@@ -809,6 +810,11 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
               navigate={navigate}
               copy={copy}
               candidateState={candidateState}
+            />
+            <SponsoredJobsSection
+              placement="HOMEPAGE"
+              navigate={navigate}
+              containerClassName="mb-2"
             />
             {showCandidateRecommendations ? (
               <FeaturedJobs

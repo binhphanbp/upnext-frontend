@@ -13,6 +13,7 @@ import { ReportDialog } from "@/features/candidate/reports/report-dialog";
 import { useCandidateReportStatus } from "@/features/candidate/reports/use-candidate-report-status";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { formatRelativeTime } from "@/shared/lib/date";
+import { getOrCreateVisitorKey } from "@/shared/lib/visitor-key";
 import { Breadcrumb } from "@/shared/ui/breadcrumb";
 import { toast } from "@/shared/ui/toast";
 
@@ -59,27 +60,7 @@ type PublicJobDetailPageProps = {
   navigate: (path: string) => void;
 };
 
-const visitorKeyStorageName = "upnext:visitor-key:v1";
 const recordedJobViews = new Set<string>();
-
-function getOrCreateVisitorKey() {
-  if (typeof window === "undefined") return undefined;
-
-  try {
-    const existingKey = window.localStorage.getItem(visitorKeyStorageName);
-    if (existingKey) return existingKey;
-
-    const visitorKey =
-      typeof window.crypto?.randomUUID === "function"
-        ? window.crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    window.localStorage.setItem(visitorKeyStorageName, visitorKey);
-    return visitorKey;
-  } catch {
-    // Privacy mode or a blocked storage area should never prevent viewing a job.
-    return undefined;
-  }
-}
 
 function getCleanLeadText(html: string) {
   if (!html) return "";

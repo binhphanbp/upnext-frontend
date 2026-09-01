@@ -1,7 +1,18 @@
 import { apiRequest } from "@/shared/api/http";
 
 /**
- * Metered features a plan can grant. Mirrors the backend SubscriptionFeature enum.
+ * Metered features a plan can grant. Mirrors the backend `SubscriptionFeature`
+ * registry (`be/src/modules/subscriptions/feature-registry.ts`).
+ *
+ * These were uppercase (`"FEATURED_JOB"`) until this fix -- the backend's
+ * `feature` columns are `VARCHAR(60)` storing the enum's lowercase `@map()`
+ * value (`'featured_job'`), confirmed by calling `/subscriptions/usage` and
+ * `/subscription-plans/public` directly: both return lowercase snake_case on
+ * every environment. The uppercase list matched a Prisma enum this codebase
+ * no longer has (see the migration note in feature-registry.ts) -- every
+ * `feature === "FEATURED_JOB"` comparison against real API data was silently
+ * always false, TypeScript included, because the type itself encoded the
+ * wrong runtime value.
  *
  * `AI_COPILOT_RUN` was missing here even though it is the one feature every
  * candidate plan actually uses (see candidate-subscription-api.ts, which defines
@@ -11,15 +22,15 @@ import { apiRequest } from "@/shared/api/http";
  * admin UI keyed off this list could never see or edit that feature.
  */
 export const SUBSCRIPTION_FEATURES = [
-  "JOB_POST",
-  "FEATURED_JOB",
-  "URGENT_LABEL",
-  "CV_POOL_VIEW",
-  "TALENT_CONTACT",
-  "AI_CV_MATCHING",
-  "AI_JD_GENERATE",
-  "AI_COPILOT_RUN",
-  "HR_SEAT",
+  "job_post",
+  "featured_job",
+  "urgent_label",
+  "cv_pool_view",
+  "talent_contact",
+  "ai_cv_matching",
+  "ai_jd_generate",
+  "ai_copilot_run",
+  "hr_seat",
 ] as const;
 
 export type SubscriptionFeature = (typeof SUBSCRIPTION_FEATURES)[number];

@@ -63,6 +63,7 @@ import {
 import { getPublicJobsWithFilters } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
+import { SponsoredJobsSection } from "../sponsored-jobs-section";
 import { startJobApplication } from "../start-job-application";
 import { ApplyModal } from "./apply-modal";
 
@@ -949,11 +950,11 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         categories,
         categoryName: job.jobCategory?.name,
         specializations: job.jobPostSpecializations?.map((item) => item.specialization.name) ?? [],
-        urgent: false,
-        featured: false,
         requirements: job.requirements,
         benefits: job.benefits,
         expiredAt: job.expiredAt,
+        urgent: job.boosts?.[0]?.type === "URGENT",
+        featured: job.boosts?.[0]?.type === "FEATURED",
       };
     });
 
@@ -1542,6 +1543,14 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
               </button>
             ))}
           </div>
+
+          <SponsoredJobsSection
+            placement="SEARCH"
+            keyword={deferredKeyword}
+            location={location === ALL_LOCATIONS ? undefined : location}
+            navigate={navigate}
+            containerClassName="jobs-container"
+          />
 
           {/* Main Section: List & Filter */}
           <div className="jobs-container mt-2 grid grid-cols-1 gap-8 lg:grid-cols-12">
