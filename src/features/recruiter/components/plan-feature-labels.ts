@@ -1,6 +1,6 @@
 import type { SubscriptionFeature } from "@/features/recruiter/api/billing";
 
-/** Vietnamese labels for metered plan features, shared by pricing and billing. */
+/** Vietnamese labels for plan features, shared by pricing and billing. */
 export const QUOTA_FEATURE_LABELS: Record<SubscriptionFeature, string> = {
   JOB_POST: "Tin tuyển dụng",
   FEATURED_JOB: "Tin nổi bật",

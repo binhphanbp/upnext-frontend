@@ -133,7 +133,11 @@ export function EditPlanDialog({ open, onOpenChange, plan }: EditPlanDialogProps
       // Full replace, matching how the backend endpoint works: features left out
       // of this payload are removed from the plan, which is what makes this a
       // simple full-state save instead of a diff.
-      await setPlanFeatures(plan.id, toSetFeaturesPayload(features), session.accessToken);
+      await setPlanFeatures(
+        plan.id,
+        toSetFeaturesPayload(features, plan.audience),
+        session.accessToken,
+      );
     },
     onSuccess: () => {
       void toast.fire({ icon: "success", title: t("toasts.updateSuccess") });
@@ -282,7 +286,7 @@ export function EditPlanDialog({ open, onOpenChange, plan }: EditPlanDialogProps
               <h3 className="text-foreground mb-4 border-b pb-3 text-lg font-semibold">
                 {t("fields.featuresSection")}
               </h3>
-              <PlanFeatureEditor value={features} onChange={setFeatures} />
+              <PlanFeatureEditor audience={plan.audience} value={features} onChange={setFeatures} />
             </div>
           </div>
 

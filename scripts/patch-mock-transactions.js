@@ -14,10 +14,10 @@ function patch(filePath, isVi) {
     table.mockServices = {
       "Employer Premium (1 Năm)": isVi ? "Employer Premium (1 Năm)" : "Employer Premium (1 Year)",
       "Employer Pro (1 Tháng)": isVi ? "Employer Pro (1 Tháng)" : "Employer Pro (1 Month)",
-      "Gói 5 Tin Tuyển Dụng": isVi ? "Gói 5 Tin Tuyển Dụng" : "5 Job Posts Credit",
+      "Gói AI Starter (1 Tháng)": isVi ? "Gói AI Starter (1 Tháng)" : "AI Starter (1 Month)",
       "Candidate Pro (1 Tháng)": isVi ? "Candidate Pro (1 Tháng)" : "Candidate Pro (1 Month)",
       "Candidate Pro": "Candidate Pro",
-      "Gói 10 Tin Tuyển Dụng": isVi ? "Gói 10 Tin Tuyển Dụng" : "10 Job Posts Credit",
+      "Gói AI Pro (1 Tháng)": isVi ? "Gói AI Pro (1 Tháng)" : "AI Pro (1 Month)",
       "Employer Enterprise": "Employer Enterprise",
       "1:1 Mentorship": "1:1 Mentorship",
       "Gói xem 100 CV": isVi ? "Gói xem 100 CV" : "View 100 CVs Credit",

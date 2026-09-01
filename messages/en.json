@@ -2432,7 +2432,7 @@
     },
     "eyebrow": "Pricing",
     "headline": "Pick the plan that helps you hire the right people faster",
-    "subheadline": "Recruiters use AI to screen CVs, source candidates and manage the hiring pipeline.",
+    "subheadline": "Verified companies can post jobs without limits; plans add AI, Boost and CV-pool capabilities.",
     "tabs": {
       "recruiter": "Employers",
       "candidate": "Candidates"
@@ -4029,7 +4029,8 @@
           },
           "features": {
             "unlimitedPlaceholder": "Unlimited",
-            "unlimitedHint": "Leave empty = unlimited"
+            "unlimitedHint": "Leave empty = unlimited",
+            "platformUnlimited": "Always included · Unlimited"
           },
           "buttons": {
             "cancel": "Cancel",
@@ -4079,10 +4080,10 @@
           "mockServices": {
             "Employer Premium (1 Năm)": "Employer Premium (1 Year)",
             "Employer Pro (1 Tháng)": "Employer Pro (1 Month)",
-            "Gói 5 Tin Tuyển Dụng": "5 Job Posts Credit",
+            "Gói AI Starter (1 Tháng)": "AI Starter (1 Month)",
             "Candidate Pro (1 Tháng)": "Candidate Pro (1 Month)",
             "Candidate Pro": "Candidate Pro",
-            "Gói 10 Tin Tuyển Dụng": "10 Job Posts Credit",
+            "Gói AI Pro (1 Tháng)": "AI Pro (1 Month)",
             "Employer Enterprise": "Employer Enterprise",
             "1:1 Mentorship": "1:1 Mentorship",
             "Gói xem 100 CV": "View 100 CVs Credit"

@@ -29,6 +29,10 @@ import {
   type SubscriptionFeature,
   type SubscriptionPlan,
 } from "@/features/recruiter/api/billing";
+import {
+  isRecruiterFeatureAvailable,
+  recruiterFeatureLimit,
+} from "@/features/recruiter/api/plan-entitlements";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
@@ -41,8 +45,9 @@ function formatCurrency(amountStr: string) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 }
 
-function limitLabel(limit: number | null) {
-  return limit === null ? "Không giới hạn" : limit.toLocaleString("vi-VN");
+function limitLabel(feature: SubscriptionFeature, limit: number | null | undefined) {
+  const effectiveLimit = recruiterFeatureLimit(feature, limit);
+  return effectiveLimit === null ? "Không giới hạn" : effectiveLimit.toLocaleString("vi-VN");
 }
 
 function getPlanIcon(plan: SubscriptionPlan) {
@@ -59,7 +64,7 @@ const FAQS = [
   },
   {
     q: "Tôi có thể nâng cấp gói khi đang sử dụng gói khác không?",
-    a: "Có. Bạn có thể đăng ký gói dịch vụ mới bất kỳ lúc nào. Hệ thống sẽ tự động kích hoạt gói mới và cộng dồn thời hạn hoặc cập nhật lại hạn mức tuyển dụng cho doanh nghiệp.",
+    a: "Có. Bạn có thể đăng ký gói dịch vụ mới bất kỳ lúc nào. Hệ thống sẽ tự động kích hoạt gói mới và cập nhật các quyền lợi trả phí như AI, Boost và kho CV. Việc đăng tin tuyển dụng luôn không giới hạn.",
   },
   {
     q: "Các tính năng AI hoạt động như thế nào?",
@@ -157,7 +162,12 @@ export function RecruiterPricingPage() {
   }
 
   const comparedFeatures = QUOTA_FEATURE_ORDER.filter((feature) =>
-    plans.some((plan) => plan.features?.some((item) => item.feature === feature && item.enabled)),
+    plans.some((plan) =>
+      isRecruiterFeatureAvailable(
+        feature,
+        plan.features?.find((item) => item.feature === feature)?.enabled,
+      ),
+    ),
   );
 
   const featureEntry = (plan: SubscriptionPlan, feature: SubscriptionFeature) =>
@@ -183,8 +193,8 @@ export function RecruiterPricingPage() {
                 Gói hiện tại: {activeSub.plan.subscriptionName}
               </h2>
               <p className="text-xs text-slate-300">
-                Đã sử dụng {activeSub.jobPostUsed} / {activeSub.jobPostLimit} lượt tin đăng &bull;{" "}
-                {activeSub.boostCreditUsed} / {activeSub.boostCreditTotal} điểm Boost
+                Đăng tin không giới hạn &bull; {activeSub.boostCreditUsed} /{" "}
+                {activeSub.boostCreditTotal} điểm Boost
               </p>
             </div>
             <Button
@@ -212,8 +222,8 @@ export function RecruiterPricingPage() {
             Bảng Giá Gói Dịch Vụ Tuyển Dụng
           </h1>
           <p className="text-base leading-relaxed text-slate-300 sm:text-lg">
-            Tối ưu chi phí, bứt phá tốc độ săn nhân tài IT với công nghệ AI sàng lọc thông minh và
-            quyền truy cập kho dữ liệu CV hàng đầu.
+            Đăng tin tuyển dụng không giới hạn cho mọi doanh nghiệp đã xác thực; các gói dịch vụ mở
+            rộng hiệu quả tuyển dụng với AI, Boost và quyền truy cập kho dữ liệu CV.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-xs font-medium text-slate-300">
@@ -298,7 +308,10 @@ export function RecruiterPricingPage() {
                   <ul className="mt-6 space-y-3.5 text-xs">
                     {QUOTA_FEATURE_ORDER.filter((feature) => {
                       const entry = featureEntry(plan, feature);
-                      return entry?.enabled && entry.limitValue !== 0;
+                      return (
+                        isRecruiterFeatureAvailable(feature, entry?.enabled) &&
+                        recruiterFeatureLimit(feature, entry?.limitValue) !== 0
+                      );
                     }).map((feature) => {
                       const isAiFeature = feature.startsWith("AI_");
                       return (
@@ -319,7 +332,7 @@ export function RecruiterPricingPage() {
                           <span className="leading-snug text-slate-600">
                             {QUOTA_FEATURE_LABELS[feature]}:{" "}
                             <strong className="font-bold text-slate-900">
-                              {limitLabel(featureEntry(plan, feature)?.limitValue ?? null)}
+                              {limitLabel(feature, featureEntry(plan, feature)?.limitValue ?? null)}
                             </strong>
                           </span>
                         </li>
@@ -375,7 +388,7 @@ export function RecruiterPricingPage() {
             <div>
               <h2 className="text-xl font-extrabold text-slate-900">So sánh chi tiết tính năng</h2>
               <p className="text-xs text-slate-500">
-                Đối chiếu các hạn mức đăng tin, quyền truy cập kho CV và công nghệ AI giữa các gói.
+                Đối chiếu các quyền lợi AI, Boost và quyền truy cập kho CV giữa các gói.
               </p>
             </div>
           </div>
@@ -422,9 +435,9 @@ export function RecruiterPricingPage() {
                       const entry = featureEntry(plan, feature);
                       return (
                         <td key={plan.id} className="px-6 py-4 text-center text-xs">
-                          {entry?.enabled ? (
+                          {isRecruiterFeatureAvailable(feature, entry?.enabled) ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-bold text-emerald-800">
-                              {limitLabel(entry.limitValue)}
+                              {limitLabel(feature, entry?.limitValue)}
                             </span>
                           ) : (
                             <Minus

@@ -2432,7 +2432,7 @@
     },
     "eyebrow": "Bảng giá",
     "headline": "Chọn gói phù hợp để tuyển đúng người nhanh hơn với UpNext",
-    "subheadline": "Nhà tuyển dụng dùng AI để lọc CV, tìm ứng viên và quản lý pipeline tuyển dụng.",
+    "subheadline": "Nhà tuyển dụng đăng tin không giới hạn sau khi doanh nghiệp được xác thực; các gói dịch vụ bổ sung AI, Boost và kho CV.",
     "tabs": {
       "recruiter": "Nhà tuyển dụng",
       "candidate": "Ứng viên"
@@ -4050,7 +4050,8 @@
           },
           "features": {
             "unlimitedPlaceholder": "Không giới hạn",
-            "unlimitedHint": "Để trống = không giới hạn"
+            "unlimitedHint": "Để trống = không giới hạn",
+            "platformUnlimited": "Luôn bật · Không giới hạn"
           },
           "buttons": {
             "cancel": "Hủy",
@@ -4100,10 +4101,10 @@
           "mockServices": {
             "Employer Premium (1 Năm)": "Employer Premium (1 Năm)",
             "Employer Pro (1 Tháng)": "Employer Pro (1 Tháng)",
-            "Gói 5 Tin Tuyển Dụng": "Gói 5 Tin Tuyển Dụng",
+            "Gói AI Starter (1 Tháng)": "Gói AI Starter (1 Tháng)",
             "Candidate Pro (1 Tháng)": "Candidate Pro (1 Tháng)",
             "Candidate Pro": "Candidate Pro",
-            "Gói 10 Tin Tuyển Dụng": "Gói 10 Tin Tuyển Dụng",
+            "Gói AI Pro (1 Tháng)": "Gói AI Pro (1 Tháng)",
             "Employer Enterprise": "Employer Enterprise",
             "1:1 Mentorship": "1:1 Mentorship",
             "Gói xem 100 CV": "Gói xem 100 CV"

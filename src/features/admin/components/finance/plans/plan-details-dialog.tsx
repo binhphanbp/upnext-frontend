@@ -1,6 +1,7 @@
 import { CheckCircle, XCircle } from "@phosphor-icons/react";
 
 import type { SubscriptionPlan } from "@/features/recruiter/api/billing";
+import { recruiterFeatureLimit } from "@/features/recruiter/api/plan-entitlements";
 import { QUOTA_FEATURE_LABELS } from "@/features/recruiter/components/plan-feature-labels";
 import { Badge } from "@/shared/ui/badge";
 import {
@@ -31,8 +32,24 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, t }: PlanDetailsDi
   const tone = isEmployer ? "brand" : "info";
   const audienceKey = isEmployer ? "employer" : "candidate";
   const statusKey = plan.status === "ACTIVE" ? "active" : "legacy";
-  const enabledFeatures = plan.features.filter((feature) => feature.enabled);
-  const disabledFeatures = plan.features.filter((feature) => !feature.enabled);
+  const planFeatures =
+    isEmployer && !plan.features.some((feature) => feature.feature === "JOB_POST")
+      ? [
+          ...plan.features,
+          {
+            id: "platform-job-post",
+            feature: "JOB_POST" as const,
+            enabled: true,
+            limitValue: null,
+          },
+        ]
+      : plan.features;
+  const enabledFeatures = planFeatures.filter(
+    (feature) => feature.enabled || (isEmployer && feature.feature === "JOB_POST"),
+  );
+  const disabledFeatures = planFeatures.filter(
+    (feature) => !feature.enabled && !(isEmployer && feature.feature === "JOB_POST"),
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,17 +83,20 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, t }: PlanDetailsDi
             <h3 className="border-b pb-2 text-lg font-semibold">{t("features")}</h3>
             {enabledFeatures.length > 0 ? (
               <div className="mt-4 grid grid-cols-1 gap-3">
-                {enabledFeatures.map((feature) => (
-                  <div key={feature.id} className="flex items-center gap-3">
-                    <CheckCircle size={20} weight="fill" className="text-success shrink-0" />
-                    <span className="text-foreground text-sm font-medium">
-                      {QUOTA_FEATURE_LABELS[feature.feature]}
-                    </span>
-                    <span className="text-muted-foreground ml-auto text-sm">
-                      {feature.limitValue === null ? t("unlimitedValue") : `${feature.limitValue}`}
-                    </span>
-                  </div>
-                ))}
+                {enabledFeatures.map((feature) => {
+                  const limit = recruiterFeatureLimit(feature.feature, feature.limitValue);
+                  return (
+                    <div key={feature.id} className="flex items-center gap-3">
+                      <CheckCircle size={20} weight="fill" className="text-success shrink-0" />
+                      <span className="text-foreground text-sm font-medium">
+                        {QUOTA_FEATURE_LABELS[feature.feature]}
+                      </span>
+                      <span className="text-muted-foreground ml-auto text-sm">
+                        {limit === null ? t("unlimitedValue") : `${limit}`}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-muted-foreground mt-4 text-sm italic">{t("noFeatures")}</p>

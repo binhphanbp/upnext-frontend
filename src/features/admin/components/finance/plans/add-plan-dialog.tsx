@@ -111,7 +111,7 @@ export function AddPlanDialog() {
         session.accessToken,
       );
 
-      const featurePayload = toSetFeaturesPayload(features);
+      const featurePayload = toSetFeaturesPayload(features, form.audience);
       if (featurePayload.length > 0) {
         await setPlanFeatures(plan.id, featurePayload, session.accessToken);
       }
@@ -322,7 +322,7 @@ export function AddPlanDialog() {
               <h3 className="text-foreground mb-4 border-b pb-3 text-lg font-semibold">
                 {t("fields.featuresSection")}
               </h3>
-              <PlanFeatureEditor value={features} onChange={setFeatures} />
+              <PlanFeatureEditor audience={form.audience} value={features} onChange={setFeatures} />
             </div>
           </div>
 

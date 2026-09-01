@@ -21,6 +21,7 @@ import {
   getPublicSepayConfig,
   type PublicSepayConfig,
 } from "@/features/recruiter/api/payment-config";
+import { isUnlimitedRecruiterFeature } from "@/features/recruiter/api/plan-entitlements";
 import { QUOTA_FEATURE_LABELS } from "@/features/recruiter/components/plan-feature-labels";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
@@ -275,7 +276,8 @@ export function RecruiterBillingPage() {
         </p>
         <h1 className="mt-1 text-2xl font-bold text-slate-950">Thanh toán & Gói dịch vụ</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Quản lý gói tuyển dụng hiện tại, nâng cấp dịch vụ và theo dõi lịch sử giao dịch.
+          Đăng tin tuyển dụng không giới hạn; quản lý các quyền lợi trả phí và theo dõi lịch sử giao
+          dịch.
         </p>
       </header>
 
@@ -304,7 +306,7 @@ export function RecruiterBillingPage() {
                 </div>
               </div>
 
-              {usage.length > 0 ? (
+              {usage.some((item) => item.enabled && !isUnlimitedRecruiterFeature(item.feature)) ? (
                 <div className="mt-8">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-sm font-bold text-slate-800">Hạn mức trong chu kỳ</h3>
@@ -317,7 +319,7 @@ export function RecruiterBillingPage() {
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     {usage
-                      .filter((item) => item.enabled)
+                      .filter((item) => item.enabled && !isUnlimitedRecruiterFeature(item.feature))
                       .map((item) => {
                         const percent =
                           item.limit === null || item.limit === 0
@@ -377,8 +379,8 @@ export function RecruiterBillingPage() {
                 Chưa đăng ký gói tuyển dụng
               </h3>
               <p className="mt-2 max-w-md text-sm text-slate-500">
-                Doanh nghiệp của bạn chưa đăng ký gói dịch vụ nào hoặc gói cũ đã hết hạn. Vui lòng
-                đăng ký một trong các gói bên dưới để bắt đầu đăng tin tuyển dụng.
+                Doanh nghiệp vẫn có thể đăng tin không giới hạn sau khi được xác thực. Hãy đăng ký
+                gói dịch vụ khi cần các quyền lợi trả phí như AI, Boost hoặc kho CV.
               </p>
             </div>
           )}
