@@ -2002,7 +2002,7 @@
           "daysLeft": "{days} days left",
           "impressions": "Impressions",
           "clicks": "Clicks",
-          "ctr": "CTR",
+          "ctr": "Click Rate",
           "applications": "Applications",
           "saves": "Saves",
           "dailyBreakdown": "Daily Breakdown",
