@@ -40,7 +40,6 @@ import {
 import {
   getCvScreeningConfig,
   updateCvScreeningConfig,
-  type CvScreeningConfig,
 } from "@/features/recruiter/api/cv-screening-config-api";
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
@@ -91,6 +90,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
 import { CandidateProfileDetailDialog } from "./candidate-profile-detail-dialog";
 import { CoverLetterDialog } from "./cover-letter-dialog";
+import {
+  CvScreeningConfigForm,
+  type CvScreeningConfigFormValues,
+} from "./cv-screening-config-form";
 import { PotentialCandidatesTab } from "./potential-candidates-tab";
 import { RecruiterTableLayout } from "./recruiter-table-layout";
 import { SavePotentialCandidateDialog } from "./save-potential-candidate-dialog";
@@ -1749,23 +1752,27 @@ function CvRankingTable({
    * faster than scoring every applicant. */
   const [scoreLimit, setScoreLimit] = useState<10 | 20>(10);
 
-  // Per-company AI screening config (custom prompt instructions, default Top
-  // N, similarity threshold) -- editable right here via the gear button so
-  // recruiters don't have to leave this screen to go to Cài đặt.
+  // Per-company AI screening config, organized by the same 4 rubric groups
+  // shown in an AI score's breakdown (skills/experience/projects/education)
+  // -- editable right here via the gear button so recruiters don't have to
+  // leave this screen to go to Cài đặt. Shape/behaviour shared with the
+  // Cài đặt tab via CvScreeningConfigForm so the two never drift apart.
   const [aiConfigDialogOpen, setAiConfigDialogOpen] = useState(false);
   const [aiConfigSaving, setAiConfigSaving] = useState(false);
-  const [aiConfigCustomInstructions, setAiConfigCustomInstructions] = useState("");
-  const [aiConfigDefaultTopN, setAiConfigDefaultTopN] =
-    useState<CvScreeningConfig["defaultTopN"]>(null);
-  const [aiConfigMinSimilarityScore, setAiConfigMinSimilarityScore] = useState<number | null>(null);
+  const [aiConfigValues, setAiConfigValues] = useState<CvScreeningConfigFormValues>({
+    skillsInstructions: null,
+    experienceInstructions: null,
+    projectsInstructions: null,
+    ignoreEducationRequirement: false,
+    defaultTopN: null,
+    minSimilarityScore: null,
+  });
 
   const loadAiConfig = useCallback(async () => {
     if (!token) return;
     try {
       const config = await getCvScreeningConfig(token);
-      setAiConfigCustomInstructions(config.customInstructions ?? "");
-      setAiConfigDefaultTopN(config.defaultTopN);
-      setAiConfigMinSimilarityScore(config.minSimilarityScore);
+      setAiConfigValues(config);
       // Pre-fill the Top 10/Top 20 run toggle from the company default so
       // recruiters don't have to reselect it every run. Only 10/20 fit this
       // screen's two-button toggle -- a default of 50/"Tất cả" only applies
@@ -1776,6 +1783,7 @@ function CvRankingTable({
     } catch {
       // Non-critical: the hardcoded defaults still work fine.
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => {
@@ -1786,18 +1794,18 @@ function CvRankingTable({
     if (!token) return;
     setAiConfigSaving(true);
     try {
-      const trimmed = aiConfigCustomInstructions.trim();
       const saved = await updateCvScreeningConfig(
         {
-          customInstructions: trimmed.length > 0 ? trimmed : null,
-          defaultTopN: aiConfigDefaultTopN,
-          minSimilarityScore: aiConfigMinSimilarityScore,
+          skillsInstructions: aiConfigValues.skillsInstructions?.trim() || null,
+          experienceInstructions: aiConfigValues.experienceInstructions?.trim() || null,
+          projectsInstructions: aiConfigValues.projectsInstructions?.trim() || null,
+          ignoreEducationRequirement: aiConfigValues.ignoreEducationRequirement,
+          defaultTopN: aiConfigValues.defaultTopN,
+          minSimilarityScore: aiConfigValues.minSimilarityScore,
         },
         token,
       );
-      setAiConfigCustomInstructions(saved.customInstructions ?? "");
-      setAiConfigDefaultTopN(saved.defaultTopN);
-      setAiConfigMinSimilarityScore(saved.minSimilarityScore);
+      setAiConfigValues(saved);
       if (saved.defaultTopN === 10 || saved.defaultTopN === 20) {
         setScoreLimit(saved.defaultTopN);
       }
@@ -2899,93 +2907,24 @@ function CvRankingTable({
           CV, editable right here so recruiters don't have to leave this
           screen. */}
       <Dialog open={aiConfigDialogOpen} onOpenChange={setAiConfigDialogOpen}>
-        <DialogContent className="max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
+        <DialogContent className="max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-slate-900">
               Cấu hình AI lọc CV
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-400">
-              Thang điểm chấm (kỹ năng, kinh nghiệm, dự án, học vấn) luôn cố định -- các thiết lập
-              dưới đây chỉ bổ sung thêm bối cảnh và mặc định cho mỗi lượt lọc của công ty bạn.
+              Thang điểm chấm luôn cố định (tổng 100đ: kỹ năng 40, kinh nghiệm 30, dự án 20, học vấn
+              10) -- các thiết lập dưới đây chỉ bổ sung thêm bối cảnh và mặc định cho mỗi lượt lọc
+              của công ty bạn.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 py-2">
-            <div>
-              <label
-                htmlFor="cv_ranking_ai_custom_instructions"
-                className="mb-2 block text-sm font-bold text-slate-700"
-              >
-                Hướng dẫn tùy chỉnh cho AI
-              </label>
-              <textarea
-                id="cv_ranking_ai_custom_instructions"
-                rows={4}
-                maxLength={2000}
-                value={aiConfigCustomInstructions}
-                onChange={(e) => setAiConfigCustomInstructions(e.target.value)}
-                placeholder='Ví dụ: "Ưu tiên ứng viên có chứng chỉ AWS", "Không yêu cầu bằng đại học"...'
-                className="w-full rounded-lg border border-slate-200 p-3 text-sm text-slate-700 focus:border-emerald-500 focus:ring-emerald-500"
-              />
-              <p className="mt-1 text-right text-[11px] text-slate-400">
-                {aiConfigCustomInstructions.length}/2000 ký tự
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-sm font-bold text-slate-700">Số lượng chấm điểm mặc định</p>
-              <div
-                className="flex h-11 w-fit items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-1"
-                role="group"
-                aria-label="Số lượng chấm điểm mặc định"
-              >
-                {(
-                  [
-                    { value: 10 as const, label: "Top 10" },
-                    { value: 20 as const, label: "Top 20" },
-                    { value: 50 as const, label: "Top 50" },
-                    { value: null, label: "Tất cả" },
-                  ] satisfies Array<{ value: CvScreeningConfig["defaultTopN"]; label: string }>
-                ).map((option) => (
-                  <button
-                    key={option.label}
-                    type="button"
-                    onClick={() => setAiConfigDefaultTopN(option.value)}
-                    className={cn(
-                      "h-full cursor-pointer rounded-md px-3 text-xs font-bold transition-colors",
-                      aiConfigDefaultTopN === option.value
-                        ? "bg-white text-emerald-700 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700",
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="cv_ranking_ai_min_similarity"
-                className="mb-2 block text-sm font-bold text-slate-700"
-              >
-                Ngưỡng độ tương đồng tối thiểu (%)
-              </label>
-              <input
-                id="cv_ranking_ai_min_similarity"
-                type="number"
-                min={0}
-                max={100}
-                value={aiConfigMinSimilarityScore ?? ""}
-                onChange={(e) =>
-                  setAiConfigMinSimilarityScore(
-                    e.target.value === "" ? null : Number(e.target.value),
-                  )
-                }
-                placeholder="Không giới hạn"
-                className="upnext-focus border-input h-11 w-40 rounded-lg border bg-white px-3 py-2 text-sm font-medium text-slate-700"
-              />
-            </div>
+          <div className="py-2">
+            <CvScreeningConfigForm
+              idPrefix="cv_ranking_ai"
+              values={aiConfigValues}
+              onChange={(patch) => setAiConfigValues((prev) => ({ ...prev, ...patch }))}
+            />
           </div>
 
           <DialogFooter>
