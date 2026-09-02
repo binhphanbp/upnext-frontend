@@ -70,6 +70,11 @@ export function AiCitationList({
                     <span className="min-w-0 truncate text-[13px] font-semibold text-slate-800">
                       {citation.title}
                     </span>
+                    {citation.sourceVersion ? (
+                      <span className="text-[11px] font-medium text-slate-500">
+                        {t("citations.version", { version: citation.sourceVersion })}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-1 border-l-2 border-slate-200 pl-2.5 text-[13px] leading-relaxed text-slate-600 italic">
                     {citation.excerpt}

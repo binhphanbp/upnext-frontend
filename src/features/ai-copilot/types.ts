@@ -84,6 +84,8 @@ export type AiCitation = {
   sourceId: string;
   title: string;
   excerpt: string;
+  /** Immutable version of a reviewed source, supplied for managed knowledge. */
+  sourceVersion?: string;
   href?: string;
 };
 

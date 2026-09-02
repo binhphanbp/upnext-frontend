@@ -51,6 +51,19 @@ type ServerConversationSummary = {
   messageCount: number;
 };
 
+type ServerKnowledgeSource = {
+  id: string;
+  locale: string;
+  title: string;
+  sourceVersion: string;
+  effectiveAt: string | null;
+  reviewAt: string | null;
+  updatedAt: string;
+  content: string;
+};
+
+export type CandidateKnowledgeSource = ServerKnowledgeSource;
+
 type ServerMessage = {
   id: string;
   role: "USER" | "ASSISTANT";
@@ -195,6 +208,23 @@ export async function getConversation(id: string): Promise<AiConversation | null
     messageCount: response.data.messages.length,
     messages: response.data.messages.map(toMessage),
   };
+}
+
+/**
+ * Loads the complete body for a source the assistant has already cited.
+ * The API re-applies the publication lifecycle policy, so this is not a
+ * generic knowledge-browsing endpoint and archived links fail closed.
+ */
+export async function getCandidateKnowledgeSource(
+  documentId: string,
+): Promise<CandidateKnowledgeSource> {
+  const response = await apiRequest<{ data: ServerKnowledgeSource }>(
+    `/ai/knowledge/${documentId}`,
+    {
+      headers: authHeaders(),
+    },
+  );
+  return response.data;
 }
 
 export async function createConversation(contextType: AiContextType): Promise<AiConversation> {

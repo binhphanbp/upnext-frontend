@@ -4719,6 +4719,7 @@
     "citations": {
       "title": "Dẫn chứng",
       "open": "Mở nguồn: {title}",
+      "version": "Phiên bản {version}",
       "source": {
         "CV": "CV",
         "JOB": "Tin tuyển dụng",
@@ -4727,6 +4728,16 @@
         "POLICY": "Chính sách",
         "INTERVIEW": "Phỏng vấn"
       }
+    },
+    "knowledgeSource": {
+      "back": "Quay lại AI Copilot",
+      "badge": "Hướng dẫn UpNext đã được duyệt",
+      "version": "Phiên bản {version}",
+      "effective": "Có hiệu lực từ {date}",
+      "review": "Rà soát trước {date}",
+      "unavailableTitle": "Nguồn này hiện không khả dụng",
+      "unavailableDetail": "Nguồn có thể không còn được xuất bản hoặc phiên đăng nhập của bạn đã hết hạn.",
+      "retry": "Thử lại"
     },
     "match": {
       "fit": "Phù hợp",
