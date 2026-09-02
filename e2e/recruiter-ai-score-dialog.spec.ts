@@ -471,6 +471,22 @@ async function mockRecruiterWorkspace(page: Page) {
       return;
     }
 
+    if (path.includes("/recruiter/cv-screening/config")) {
+      await route.fulfill({
+        json: {
+          weights: { skills: 40, experience: 30, projects: 20, education: 10 },
+          weightPreset: null,
+          mustHaveCriteria: [],
+          niceToHaveCriteria: [],
+          customPrompt: null,
+          passingScore: null,
+          defaultTopN: null,
+          inherited: {},
+        },
+      });
+      return;
+    }
+
     await route.fulfill({ json: [] });
   });
 }

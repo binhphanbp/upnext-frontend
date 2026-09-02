@@ -2341,7 +2341,16 @@ function CvRankingTable({
   );
 
   const applyLoadedConfig = useCallback((config: CvScreeningConfig) => {
-    setAiConfigValues(config);
+    if (!config || typeof config !== "object" || !config.weights) return;
+    setAiConfigValues({
+      weights: config.weights ?? DEFAULT_CONFIG_FORM_VALUES.weights,
+      weightPreset: config.weightPreset ?? null,
+      mustHaveCriteria: config.mustHaveCriteria ?? [],
+      niceToHaveCriteria: config.niceToHaveCriteria ?? [],
+      customPrompt: config.customPrompt ?? null,
+      passingScore: config.passingScore ?? null,
+      defaultTopN: config.defaultTopN ?? null,
+    });
     setAiConfigInherited(config.inherited ?? {});
     // Pre-fill the Top 10/Top 20 run toggle from the configured default so
     // recruiters don't have to reselect it every run. Only 10/20 fit this

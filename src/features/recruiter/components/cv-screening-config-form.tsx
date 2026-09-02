@@ -62,17 +62,29 @@ const WEIGHT_ROWS: Array<{ key: keyof ScoringWeights; label: string }> = [
   { key: "education", label: "Học vấn" },
 ];
 
-export function weightsTotal(weights: ScoringWeights) {
-  return weights.skills + weights.experience + weights.projects + weights.education;
+export function weightsTotal(weights?: ScoringWeights | null) {
+  if (!weights) return WEIGHT_TOTAL;
+  return (
+    (weights.skills ?? 0) +
+    (weights.experience ?? 0) +
+    (weights.projects ?? 0) +
+    (weights.education ?? 0)
+  );
 }
 
 /** The Save button is blocked unless the split is a valid 100-point split. */
-export function isValidWeights(weights: ScoringWeights) {
+export function isValidWeights(weights?: ScoringWeights | null) {
+  if (!weights) return false;
   return (
     weightsTotal(weights) === WEIGHT_TOTAL &&
     WEIGHT_ROWS.every(({ key }) => {
       const value = weights[key];
-      return Number.isInteger(value) && value >= 0 && value % WEIGHT_STEP === 0;
+      return (
+        typeof value === "number" &&
+        Number.isInteger(value) &&
+        value >= 0 &&
+        value % WEIGHT_STEP === 0
+      );
     })
   );
 }
@@ -92,19 +104,21 @@ export const DEFAULT_CONFIG_FORM_VALUES: CvScreeningConfigFormValues = {
 /** Flattens the form values into the PUT payload, so the settings tab and the
  * ranking-screen dialog can't save different shapes. */
 export function toConfigPayload(values: CvScreeningConfigFormValues) {
+  const weights = values?.weights ?? DEFAULT_CONFIG_FORM_VALUES.weights;
   return {
-    weightSkills: values.weights.skills,
-    weightExperience: values.weights.experience,
-    weightProjects: values.weights.projects,
-    weightEducation: values.weights.education,
-    weightPreset: values.weightPreset,
-    mustHaveCriteria: values.mustHaveCriteria,
-    niceToHaveCriteria: values.niceToHaveCriteria,
-    customPrompt: values.customPrompt?.trim() || null,
+    weightSkills: weights.skills ?? 40,
+    weightExperience: weights.experience ?? 30,
+    weightProjects: weights.projects ?? 20,
+    weightEducation: weights.education ?? 10,
+    weightPreset: values?.weightPreset ?? null,
+    mustHaveCriteria: values?.mustHaveCriteria ?? [],
+    niceToHaveCriteria: values?.niceToHaveCriteria ?? [],
+    customPrompt: values?.customPrompt?.trim() || null,
   };
 }
 
-function matchPreset(weights: ScoringWeights): WeightPreset {
+function matchPreset(weights?: ScoringWeights | null): WeightPreset {
+  if (!weights) return "CUSTOM";
   const preset = WEIGHT_PRESETS.find(
     (candidate) =>
       candidate.weights.skills === weights.skills &&
@@ -241,11 +255,12 @@ export function CvScreeningConfigForm({
   onChange: (patch: Partial<CvScreeningConfigFormValues>) => void;
   inherited?: Record<string, boolean> | undefined;
 }) {
-  const total = weightsTotal(values.weights);
-  const activePreset = values.weightPreset ?? matchPreset(values.weights);
+  const currentWeights = values?.weights ?? DEFAULT_CONFIG_FORM_VALUES.weights;
+  const total = weightsTotal(currentWeights);
+  const activePreset = values?.weightPreset ?? matchPreset(currentWeights);
 
   const setWeight = (key: keyof ScoringWeights, value: number) => {
-    const next = { ...values.weights, [key]: value };
+    const next = { ...currentWeights, [key]: value };
     onChange({ weights: next, weightPreset: matchPreset(next) });
   };
 
@@ -317,12 +332,12 @@ export function CvScreeningConfigForm({
                 min={0}
                 max={WEIGHT_TOTAL}
                 step={WEIGHT_STEP}
-                value={values.weights[row.key]}
+                value={currentWeights[row.key] ?? 0}
                 onChange={(e) => setWeight(row.key, Number(e.target.value))}
                 className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-600"
               />
               <span className="w-12 shrink-0 text-right text-xs font-bold text-slate-700 dark:text-slate-200">
-                {values.weights[row.key]}%
+                {currentWeights[row.key] ?? 0}%
               </span>
             </div>
           ))}
@@ -340,14 +355,14 @@ export function CvScreeningConfigForm({
           title="Tiêu chí bắt buộc"
           description="Thiếu tiêu chí nào sẽ bị cảnh báo trên bảng kết quả và bị phản ánh vào điểm tiêu chí liên quan."
         />
-        {inherited?.mustHaveCriteria && values.mustHaveCriteria.length > 0 && (
+        {inherited?.mustHaveCriteria && (values?.mustHaveCriteria?.length ?? 0) > 0 && (
           <p className="mb-2 flex items-center gap-1.5 text-xs text-slate-400">
             <Info size={13} /> Đang theo tiêu chí mặc định của công ty.
           </p>
         )}
         <CriteriaListInput
           id={`${idPrefix}_must_have`}
-          values={values.mustHaveCriteria}
+          values={values?.mustHaveCriteria ?? []}
           onChange={(next) => onChange({ mustHaveCriteria: next })}
           placeholder='VD: "Ít nhất 2 năm React" rồi nhấn Enter'
           accent="rose"
@@ -361,7 +376,7 @@ export function CvScreeningConfigForm({
         />
         <CriteriaListInput
           id={`${idPrefix}_nice_to_have`}
-          values={values.niceToHaveCriteria}
+          values={values?.niceToHaveCriteria ?? []}
           onChange={(next) => onChange({ niceToHaveCriteria: next })}
           placeholder='VD: "Từng làm fintech" rồi nhấn Enter'
           accent="emerald"
