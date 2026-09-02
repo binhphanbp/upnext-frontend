@@ -2,22 +2,26 @@
 
 import {
   ArrowsCounterClockwise,
+  ArrowSquareOut,
+  CaretDown,
+  Check,
+  CheckCircle,
   CircleNotch,
   DownloadSimple,
+  Envelope,
   Eye,
   FileArrowDown,
   Funnel,
-  Sparkle,
-  CheckCircle,
-  XCircle,
-  Info,
-  X,
-  WarningCircle,
-  ArrowSquareOut,
-  Star,
+  Gear,
   IdentificationCard,
-  Envelope,
+  Info,
+  MagnifyingGlass,
+  Sparkle,
+  Star,
   Users,
+  WarningCircle,
+  X,
+  XCircle,
 } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
@@ -34,6 +38,14 @@ import {
   type ApplicationAiScoreResponse,
   type ScoreCriterionKey,
 } from "@/features/recruiter/api/cv-screening-api";
+import {
+  getCvScreeningConfig,
+  getJobCvScreeningConfig,
+  resetJobCvScreeningConfig,
+  updateCvScreeningConfig,
+  updateJobCvScreeningConfig,
+  type CvScreeningConfig,
+} from "@/features/recruiter/api/cv-screening-config-api";
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
   addToShortlist,
@@ -75,6 +87,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/shared/ui/dropdown-menu";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/shared/ui/select";
 import { Separator } from "@/shared/ui/separator";
@@ -82,6 +95,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 
 import { CandidateProfileDetailDialog } from "./candidate-profile-detail-dialog";
 import { CoverLetterDialog } from "./cover-letter-dialog";
+import {
+  CvScreeningConfigForm,
+  DEFAULT_CONFIG_FORM_VALUES,
+  isValidWeights,
+  toConfigPayload,
+  type CvScreeningConfigFormValues,
+} from "./cv-screening-config-form";
 import { PotentialCandidatesTab } from "./potential-candidates-tab";
 import { RecruiterTableLayout } from "./recruiter-table-layout";
 import { SHORTLIST_PRIORITY_OPTIONS } from "./save-potential-candidate-dialog";
@@ -1279,7 +1299,7 @@ export function RecruiterCandidatesPage() {
       />
 
       <Button
-        onClick={cvScreening.startScreening}
+        onClick={() => void cvScreening.startScreening()}
         disabled={cvScreening.isRunning || !cvScreening.selectedJobId}
         className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 text-sm font-bold text-white shadow-none transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
@@ -2234,6 +2254,7 @@ function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>, l
 }
 
 function CvRankingTable({
+  jobs,
   locale,
   saving,
   onStatusChange,
@@ -2262,7 +2283,26 @@ function CvRankingTable({
   const [rubricOpen, setRubricOpen] = useState(false);
   const rubricCloseTimer = useRef<number | null>(null);
 
-  const { results, isRunning, error, hasFiltered, progress, startScreening } = cvScreening;
+  // Dropdown states
+  const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
+  const [jobSearch, setJobSearch] = useState("");
+  /** "Top N": ranks by embedding similarity to the JD first, then only AI-scores
+   * that shortlist -- both cheaper (fewer AI_CV_MATCHING credits) and much
+   * faster than scoring every applicant. */
+  const [scoreLimit, setScoreLimit] = useState<10 | 20>(10);
+
+  const {
+    selectedJobId,
+    setSelectedJobId,
+    progress,
+    results,
+    isRunning,
+    isCancelling,
+    error,
+    hasFiltered,
+    startScreening,
+    cancelScreening,
+  } = cvScreening;
 
   const filteredResults = useMemo(() => {
     let list = results;
@@ -2287,6 +2327,137 @@ function CvRankingTable({
     }
     return list;
   }, [results, search, scoreFilter]);
+
+  // AI screening config, editable right here via the gear button so recruiters
+  // don't have to leave this screen. The scope switch decides whether they are
+  // tuning just the selected job post or the company-wide defaults; the form
+  // itself is shared with the Cài đặt tab so the two never drift apart.
+  const [aiConfigDialogOpen, setAiConfigDialogOpen] = useState(false);
+  const [aiConfigSaving, setAiConfigSaving] = useState(false);
+  const [aiConfigScope, setAiConfigScope] = useState<"JOB_POST" | "COMPANY">("JOB_POST");
+  const [aiConfigInherited, setAiConfigInherited] = useState<Record<string, boolean>>({});
+  const [aiConfigValues, setAiConfigValues] = useState<CvScreeningConfigFormValues>(
+    DEFAULT_CONFIG_FORM_VALUES,
+  );
+
+  const applyLoadedConfig = useCallback((config: CvScreeningConfig) => {
+    if (!config || typeof config !== "object" || !config.weights) return;
+    setAiConfigValues({
+      weights: config.weights ?? DEFAULT_CONFIG_FORM_VALUES.weights,
+      weightPreset: config.weightPreset ?? null,
+      mustHaveCriteria: config.mustHaveCriteria ?? [],
+      niceToHaveCriteria: config.niceToHaveCriteria ?? [],
+      customPrompt: config.customPrompt ?? null,
+      passingScore: config.passingScore ?? null,
+      defaultTopN: config.defaultTopN ?? null,
+    });
+    setAiConfigInherited(config.inherited ?? {});
+    // Pre-fill the Top 10/Top 20 run toggle from the configured default so
+    // recruiters don't have to reselect it every run. Only 10/20 fit this
+    // screen's two-button toggle -- a default of 50/"Tất cả" only applies when
+    // `limit` is omitted entirely (handled server-side).
+    if (config.defaultTopN === 10 || config.defaultTopN === 20) {
+      setScoreLimit(config.defaultTopN);
+    }
+  }, []);
+
+  const loadAiConfig = useCallback(
+    async (scope: "JOB_POST" | "COMPANY", jobPostId: string) => {
+      if (!token) return;
+      try {
+        const config =
+          scope === "JOB_POST" && jobPostId
+            ? await getJobCvScreeningConfig(jobPostId, token)
+            : await getCvScreeningConfig(token);
+        applyLoadedConfig(config);
+      } catch {
+        // Non-critical: the defaults still produce a usable ranking.
+      }
+    },
+    [token, applyLoadedConfig],
+  );
+
+  // Reload whenever the scope or the selected job changes, so the dialog never
+  // shows one job's tuning while another is selected.
+  useEffect(() => {
+    void loadAiConfig(aiConfigScope, selectedJobId);
+  }, [loadAiConfig, aiConfigScope, selectedJobId]);
+
+  const handleSaveAiConfig = async () => {
+    if (!token) return;
+    if (!isValidWeights(aiConfigValues.weights)) {
+      void Swal.fire({
+        icon: "warning",
+        title: "Trọng số chưa hợp lệ",
+        text: "Tổng trọng số 4 tiêu chí phải bằng 100%.",
+      });
+      return;
+    }
+
+    setAiConfigSaving(true);
+    try {
+      const payload = toConfigPayload(aiConfigValues);
+      const saved =
+        aiConfigScope === "JOB_POST" && selectedJobId
+          ? await updateJobCvScreeningConfig(selectedJobId, payload, token)
+          : await updateCvScreeningConfig(payload, token);
+      applyLoadedConfig(saved);
+      setAiConfigDialogOpen(false);
+      void Swal.fire({
+        icon: "success",
+        title: "Đã lưu cấu hình AI lọc CV!",
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (err: any) {
+      const isForbidden = err instanceof ApiError && err.status === 403;
+      const errorMsg =
+        err instanceof ApiError &&
+        err.payload &&
+        typeof err.payload === "object" &&
+        "message" in err.payload
+          ? Array.isArray((err.payload as any).message)
+            ? (err.payload as any).message.join(", ")
+            : (err.payload as any).message
+          : err?.message || "Không thể lưu cấu hình. Vui lòng thử lại.";
+      void Swal.fire({
+        icon: "error",
+        title: isForbidden ? "Không đủ quyền" : "Lỗi lưu cấu hình",
+        text: isForbidden
+          ? "Chỉ quản trị viên công ty mới có quyền chỉnh cấu hình AI lọc CV."
+          : errorMsg,
+      });
+    } finally {
+      setAiConfigSaving(false);
+    }
+  };
+
+  /** Drops this job's override so it follows the company defaults again. */
+  const handleResetJobAiConfig = async () => {
+    if (!token || !selectedJobId) return;
+    setAiConfigSaving(true);
+    try {
+      applyLoadedConfig(await resetJobCvScreeningConfig(selectedJobId, token));
+      void Swal.fire({
+        icon: "success",
+        title: "Đã trở về cấu hình mặc định của công ty",
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch {
+      void Swal.fire({
+        icon: "error",
+        title: "Không thể đặt lại cấu hình",
+        text: "Vui lòng thử lại.",
+      });
+    } finally {
+      setAiConfigSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (rubricCloseTimer.current !== null) {
@@ -2468,33 +2639,23 @@ function CvRankingTable({
     return "bg-rose-500";
   };
 
+  // Maxima come from the rubric the API returns, which is already scaled to
+  // the weights this score was computed with -- so a company that put 50% on
+  // experience sees "45/50", and a score from before configurable weights
+  // still reads "24/30".
+  const scoreByCriterion: Record<ScoreCriterionKey, number> = {
+    skills: aiScoreDetail?.skillScore ?? 0,
+    experience: aiScoreDetail?.experienceScore ?? 0,
+    projects: aiScoreDetail?.projectScore ?? 0,
+    education: aiScoreDetail?.educationScore ?? 0,
+  };
   const scoreMetrics = aiScoreDetail
-    ? [
-        {
-          key: "skills" as const,
-          label: "Kỹ năng",
-          score: aiScoreDetail.skillScore,
-          maximum: 40,
-        },
-        {
-          key: "experience" as const,
-          label: "Kinh nghiệm",
-          score: aiScoreDetail.experienceScore,
-          maximum: 30,
-        },
-        {
-          key: "projects" as const,
-          label: "Dự án liên quan",
-          score: aiScoreDetail.projectScore,
-          maximum: 20,
-        },
-        {
-          key: "education" as const,
-          label: "Học vấn",
-          score: aiScoreDetail.educationScore,
-          maximum: 10,
-        },
-      ]
+    ? (aiScoreDetail.evaluationRubric ?? []).map((criterion) => ({
+        key: criterion.key,
+        label: criterion.label,
+        score: scoreByCriterion[criterion.key] ?? 0,
+        maximum: criterion.maxScore,
+      }))
     : [];
   const selectedMetric = scoreMetrics.find((metric) => metric.key === selectedScoreCriterion);
   const selectedBreakdown = aiScoreDetail?.criteriaBreakdown?.find(
@@ -2508,6 +2669,129 @@ function CvRankingTable({
     <div className="space-y-4">
       <RecruiterTableLayout
         loading={false}
+        filterBar={
+          <>
+            <div className="w-full sm:w-[280px]">
+              <DropdownMenu open={jobDropdownOpen} onOpenChange={setJobDropdownOpen}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    role="combobox"
+                    aria-expanded={jobDropdownOpen}
+                    disabled={isRunning}
+                    className="upnext-focus border-input flex h-11 w-full cursor-pointer items-center justify-between rounded-lg border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors hover:bg-slate-50/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className="truncate">
+                      {jobs.find((j) => j.id === selectedJobId)?.title ??
+                        (locale === "vi" ? "Chọn tin tuyển dụng..." : "Select job post...")}
+                    </span>
+                    <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="z-50 flex max-h-80 flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+                  style={{ width: "var(--radix-dropdown-menu-trigger-width)" }}
+                >
+                  <div className="relative flex items-center px-1 py-1">
+                    <MagnifyingGlass size={16} className="absolute left-3 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
+                      aria-label={locale === "vi" ? "Tìm tin tuyển dụng" : "Search jobs"}
+                      value={jobSearch}
+                      onChange={(e) => setJobSearch(e.target.value)}
+                      className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-3 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:outline-none"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="flex max-h-60 flex-col gap-0.5 overflow-y-auto pr-0.5">
+                    {jobs
+                      .filter((job) => job.title.toLowerCase().includes(jobSearch.toLowerCase()))
+                      .map((job) => (
+                        <button
+                          key={job.id}
+                          onClick={() => {
+                            setSelectedJobId(job.id);
+                            setJobDropdownOpen(false);
+                          }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors hover:bg-slate-50 flex items-center justify-between cursor-pointer",
+                            selectedJobId === job.id
+                              ? "text-primary bg-primary/10 font-bold"
+                              : "text-slate-700",
+                          )}
+                        >
+                          <span className="truncate pr-2">{job.title}</span>
+                          {selectedJobId === job.id && (
+                            <Check size={14} className="text-primary font-bold" />
+                          )}
+                        </button>
+                      ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Embedding pre-filter shortlist size: ranks all applicants by CV/JD
+                similarity first, then only sends this many to the slow, metered AI
+                scorer. */}
+            <div
+              className="flex h-11 items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-1"
+              role="group"
+              aria-label="Số lượng ứng viên chấm điểm"
+            >
+              {(
+                [
+                  { value: 10 as const, label: "Top 10" },
+                  { value: 20 as const, label: "Top 20" },
+                ] satisfies Array<{ value: 10 | 20; label: string }>
+              ).map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  disabled={isRunning}
+                  onClick={() => setScoreLimit(option.value)}
+                  className={cn(
+                    "h-full cursor-pointer rounded-md px-3 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                    scoreLimit === option.value
+                      ? "bg-white text-emerald-700 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              aria-label="Cấu hình AI lọc CV"
+              title="Cấu hình AI lọc CV"
+              onClick={() => setAiConfigDialogOpen(true)}
+              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+            >
+              <Gear size={18} />
+            </button>
+
+            <Button
+              onClick={() => void startScreening(scoreLimit)}
+              disabled={isRunning || !selectedJobId}
+              className="flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-6 font-bold text-white shadow-none hover:bg-emerald-700"
+            >
+              {isRunning ? (
+                <>
+                  <CircleNotch className="size-4 animate-spin" />
+                  <span>Đang phân tích...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkle size={16} />
+                  <span>Lọc xếp hạng</span>
+                </>
+              )}
+            </Button>
+          </>
+        }
         emptyState={
           !isRunning && !error ? (
             !hasFiltered ? (
@@ -2614,6 +2898,24 @@ function CvRankingTable({
                           : `Failed to process ${progress.failedCount} resumes. The remaining results will still be shown.`}
                       </div>
                     )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void cancelScreening()}
+                      disabled={isCancelling}
+                      className="cursor-pointer border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isCancelling ? (
+                        <>
+                          <CircleNotch className="mr-1.5 size-4 animate-spin" />
+                          {locale === "vi" ? "Đang hủy..." : "Cancelling..."}
+                        </>
+                      ) : locale === "vi" ? (
+                        "Hủy lọc CV"
+                      ) : (
+                        "Cancel"
+                      )}
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -2631,7 +2933,7 @@ function CvRankingTable({
                       {error}
                     </p>
                     <Button
-                      onClick={startScreening}
+                      onClick={() => void startScreening(scoreLimit)}
                       className="mt-2 h-9 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700"
                     >
                       Thử lại
@@ -2914,11 +3216,20 @@ function CvRankingTable({
                       >
                         Chi tiết điểm
                       </h3>
-                      <span className="text-xs text-slate-500">Tổng trọng số 100 điểm</span>
+                      <span className="text-xs text-slate-500">
+                        {scoreMetrics.length > 0
+                          ? `Trọng số: ${scoreMetrics
+                              .map((metric) => `${metric.label} ${metric.maximum}`)
+                              .join(" · ")}`
+                          : "Tổng trọng số 100 điểm"}
+                      </span>
                     </div>
                     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                       {scoreMetrics.map((metric) => {
-                        const percentage = Math.round((metric.score / metric.maximum) * 100);
+                        const percentage =
+                          metric.maximum > 0
+                            ? Math.round((metric.score / metric.maximum) * 100)
+                            : 0;
                         const selected = selectedScoreCriterion === metric.key;
 
                         return (
@@ -3130,6 +3441,75 @@ function CvRankingTable({
                     </Card>
                   </section>
 
+                  {/* The recruiter's own criteria, checked one by one. A missed
+                      must-have is a warning: it is reflected in the related
+                      rubric items but never vetoes the candidate. */}
+                  {((aiScoreDetail.mustHaveResults?.length ?? 0) > 0 ||
+                    (aiScoreDetail.niceToHaveResults?.length ?? 0) > 0) && (
+                    <section className="grid gap-3 md:grid-cols-2" aria-label="Tiêu chí tuyển dụng">
+                      {(
+                        [
+                          {
+                            title: "Tiêu chí bắt buộc",
+                            verdicts: aiScoreDetail.mustHaveResults ?? [],
+                            missTone: "text-rose-600",
+                          },
+                          {
+                            title: "Tiêu chí ưu tiên",
+                            verdicts: aiScoreDetail.niceToHaveResults ?? [],
+                            missTone: "text-slate-400",
+                          },
+                        ] as const
+                      )
+                        .filter((group) => group.verdicts.length > 0)
+                        .map((group) => (
+                          <Card key={group.title} className="border-slate-200 shadow-none">
+                            <CardContent className="p-4">
+                              <h3 className="mb-3 text-sm font-semibold text-slate-900">
+                                {group.title}
+                              </h3>
+                              <ul className="space-y-2">
+                                {group.verdicts.map((verdict) => (
+                                  <li key={verdict.criterion} className="flex items-start gap-2">
+                                    {verdict.met ? (
+                                      <CheckCircle
+                                        size={15}
+                                        weight="fill"
+                                        className="mt-0.5 shrink-0 text-emerald-600"
+                                        aria-hidden="true"
+                                      />
+                                    ) : (
+                                      <XCircle
+                                        size={15}
+                                        weight="fill"
+                                        className={cn("mt-0.5 shrink-0", group.missTone)}
+                                        aria-hidden="true"
+                                      />
+                                    )}
+                                    <div className="min-w-0">
+                                      <p
+                                        className={cn(
+                                          "text-sm leading-5",
+                                          verdict.met
+                                            ? "font-semibold text-slate-700"
+                                            : "text-slate-500",
+                                        )}
+                                      >
+                                        {verdict.criterion}
+                                      </p>
+                                      <p className="mt-0.5 text-xs leading-5 text-slate-400">
+                                        {verdict.evidence ?? "CV chưa cung cấp bằng chứng."}
+                                      </p>
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </section>
+                  )}
+
                   <section className="grid gap-3 md:grid-cols-2" aria-label="Nhận xét chi tiết">
                     <Card className="border-slate-200 shadow-none">
                       <CardContent className="p-4">
@@ -3233,6 +3613,105 @@ function CvRankingTable({
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* AI CV screening config -- the same form as Cài đặt > Cấu hình AI lọc
+          CV, editable right here (and per job post) so recruiters can tune a
+          run without leaving this screen. */}
+      <Dialog open={aiConfigDialogOpen} onOpenChange={setAiConfigDialogOpen}>
+        <DialogContent className="flex max-h-[calc(100dvh-3rem)] max-w-xl flex-col gap-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-0 shadow-xl">
+          <DialogHeader className="shrink-0 border-b border-slate-100 px-6 py-4 pr-12 text-left">
+            <DialogTitle className="text-base font-bold text-slate-900">
+              Cấu hình AI lọc CV
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400">
+              Chọn cách AI cho điểm và tiêu chí tuyển dụng thực tế của bạn. Tổng thang điểm luôn là
+              100.
+            </DialogDescription>
+
+            {/* Scope switch: this screen always has a job selected, so tuning
+                just that job is the common case; the company default is the
+                fallback for everything else. */}
+            <div
+              className="mt-3 flex h-9 w-fit items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-1"
+              role="group"
+              aria-label="Phạm vi áp dụng cấu hình"
+            >
+              {(
+                [
+                  { value: "JOB_POST" as const, label: "Tin này" },
+                  { value: "COMPANY" as const, label: "Toàn công ty" },
+                ] satisfies Array<{ value: "JOB_POST" | "COMPANY"; label: string }>
+              ).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  disabled={aiConfigSaving || (option.value === "JOB_POST" && !selectedJobId)}
+                  onClick={() => setAiConfigScope(option.value)}
+                  className={cn(
+                    "h-full cursor-pointer rounded-md px-3 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                    aiConfigScope === option.value
+                      ? "bg-white text-emerald-700 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            {aiConfigScope === "JOB_POST" && !selectedJobId && (
+              <p className="mt-1.5 text-xs text-amber-600">
+                Chọn một tin tuyển dụng trước để cấu hình riêng cho tin đó.
+              </p>
+            )}
+          </DialogHeader>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+            <CvScreeningConfigForm
+              idPrefix="cv_ranking_ai"
+              values={aiConfigValues}
+              onChange={(patch) => setAiConfigValues((prev) => ({ ...prev, ...patch }))}
+              inherited={aiConfigScope === "JOB_POST" ? aiConfigInherited : undefined}
+            />
+          </div>
+
+          <DialogFooter className="shrink-0 items-center border-t border-slate-100 px-6 py-4 sm:justify-between">
+            {aiConfigScope === "JOB_POST" && selectedJobId ? (
+              <button
+                type="button"
+                onClick={() => void handleResetJobAiConfig()}
+                disabled={aiConfigSaving}
+                className="cursor-pointer text-xs font-semibold text-slate-400 underline-offset-2 transition-colors hover:text-slate-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Về mặc định công ty
+              </button>
+            ) : (
+              <span />
+            )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setAiConfigDialogOpen(false)}
+                disabled={aiConfigSaving}
+                className="rounded-lg px-4"
+              >
+                Hủy
+              </Button>
+              <Button
+                onClick={() => void handleSaveAiConfig()}
+                disabled={
+                  aiConfigSaving ||
+                  !isValidWeights(aiConfigValues.weights) ||
+                  (aiConfigScope === "JOB_POST" && !selectedJobId)
+                }
+                className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 font-bold text-white hover:bg-emerald-700"
+              >
+                {aiConfigSaving && <CircleNotch className="size-4 animate-spin" />}
+                Lưu cấu hình
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

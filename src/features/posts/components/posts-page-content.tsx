@@ -383,8 +383,11 @@ export function PostsPageContent() {
                     alt="UpNext HR Analytics, Recruitment Insights & Resources"
                     className="aspect-[16/9] h-auto w-full object-contain drop-shadow-sm"
                     onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src =
-                        "/assets/images/posts/hero-banner.jpg";
+                      const target = e.currentTarget as HTMLImageElement;
+                      if (!target.dataset.fallback) {
+                        target.dataset.fallback = "true";
+                        target.src = "/assets/marketing/home/hero-banner.png";
+                      }
                     }}
                   />
                 </div>

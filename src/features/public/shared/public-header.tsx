@@ -5,6 +5,8 @@ import {
   BookmarkSimple,
   Briefcase,
   Buildings,
+  CalendarCheck,
+  ChatCircleDots,
   ChatCircleText,
   Code,
   FileText as FileTextIcon,
@@ -16,7 +18,7 @@ import {
   User,
   UserCircle,
 } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useRouter as useNativeRouter } from "next/navigation";
@@ -25,12 +27,25 @@ import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 
 import { getMyCandidateProfile } from "@/features/candidate/api/profile";
 import { clearCandidateSession, getCandidateSession } from "@/features/candidate/session";
-import { getNotifications } from "@/features/notifications/api/notifications";
+import {
+  getNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+  type Notification,
+} from "@/features/notifications/api/notifications";
 import {
   requestAndRegisterFcmToken,
   listenForegroundMessages,
 } from "@/features/notifications/lib/firebase-fcm";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { cn } from "@/shared/lib/cn";
+import { formatRelativeTime } from "@/shared/lib/date";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
 
 import { getPublicJobs } from "../home/api";
 import type { PublicJob } from "../home/api";
@@ -675,6 +690,21 @@ function createCandidateViewer(
 // its count immediately instead of only on the next full sync.
 const notificationsReadEvent = "upnext-notifications-read";
 
+function getNotificationIcon(targetType: string | null) {
+  switch (targetType) {
+    case "JOB_POST":
+      return { Icon: Briefcase, bg: "bg-emerald-50", fg: "text-emerald-600" };
+    case "INTERVIEW":
+      return { Icon: CalendarCheck, bg: "bg-indigo-50", fg: "text-indigo-600" };
+    case "SUPPORT_CASE":
+    case "TALENT_CONTACT_REQUEST":
+    case "CONVERSATION":
+      return { Icon: ChatCircleDots, bg: "bg-amber-50", fg: "text-amber-600" };
+    default:
+      return { Icon: Bell, bg: "bg-slate-100", fg: "text-slate-500" };
+  }
+}
+
 export function PublicHeader({
   navigate,
   viewer,
@@ -685,6 +715,7 @@ export function PublicHeader({
   const nativeRouter = useNativeRouter();
   const pathname = usePathname();
   const locale = useLocale();
+  const queryClient = useQueryClient();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [jobsMegaLeft, setJobsMegaLeft] = useState<number | null>(null);
   const [langOpen, setLangOpen] = useState(false);
@@ -693,6 +724,53 @@ export function PublicHeader({
   const [storedViewer, setStoredViewer] = useState<PublicHeaderViewer | null>(null);
   const [hasResolvedStoredViewer, setHasResolvedStoredViewer] = useState(viewer !== undefined);
   const menuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const session = getCandidateSession();
+  const candidateToken = session?.accessToken;
+  const notificationsQueryKey = ["candidateHeaderNotifications", candidateToken];
+
+  const { data: notificationsData } = useQuery({
+    queryKey: notificationsQueryKey,
+    queryFn: () => getNotifications(candidateToken!, 1, 8),
+    enabled: !!candidateToken,
+    refetchInterval: 60_000,
+  });
+
+  const notifications = notificationsData?.data ?? [];
+  const unreadCount =
+    notificationsData?.meta?.unreadCount ??
+    storedViewer?.unreadNotifications ??
+    viewer?.unreadNotifications ??
+    0;
+
+  const markAsReadMutation = useMutation({
+    mutationFn: (id: string) => markNotificationAsRead(candidateToken!, id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
+      window.dispatchEvent(new Event(notificationsReadEvent));
+    },
+  });
+
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => markAllNotificationsAsRead(candidateToken!),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
+      window.dispatchEvent(new Event(notificationsReadEvent));
+    },
+  });
+
+  function handleNotificationClick(notification: Notification) {
+    if (!notification.readAt && candidateToken) {
+      markAsReadMutation.mutate(notification.id);
+    }
+    if (notification.targetType === "JOB_POST" && notification.targetId) {
+      navigate(`/jobs/${notification.targetId}`);
+    } else if (notification.targetType === "APPLICATION") {
+      navigate("/candidate/applications");
+    } else if (notification.targetType === "CONVERSATION") {
+      nativeRouter.push("/conversations/chat");
+    }
+  }
 
   useEffect(() => {
     const session = getCandidateSession();
@@ -1193,25 +1271,108 @@ export function PublicHeader({
           {effectiveViewer ? (
             <div className="marketing-home-auth">
               {effectiveViewer.unreadNotifications !== undefined && (
-                <button
-                  type="button"
-                  className="marketing-home-auth-icon"
-                  aria-label={copy.notificationsLabel}
-                  onClick={() => {
-                    const session = getCandidateSession();
-                    if (session?.accessToken) {
-                      void requestAndRegisterFcmToken(session.accessToken);
-                    }
-                    navigate("/candidate/notifications");
-                  }}
-                >
-                  <Bell size={20} aria-hidden="true" />
-                  {effectiveViewer.unreadNotifications ? (
-                    <span className="marketing-home-auth-badge">
-                      {effectiveViewer.unreadNotifications}
-                    </span>
-                  ) : null}
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="marketing-home-auth-icon"
+                      aria-label={copy.notificationsLabel}
+                      onClick={() => {
+                        const currentSession = getCandidateSession();
+                        if (currentSession?.accessToken) {
+                          void requestAndRegisterFcmToken(currentSession.accessToken);
+                        }
+                      }}
+                    >
+                      <Bell size={20} aria-hidden="true" />
+                      {unreadCount > 0 ? (
+                        <span className="marketing-home-auth-badge">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      ) : null}
+                    </button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent
+                    align="end"
+                    className="z-50 w-[360px] overflow-hidden rounded-2xl border border-slate-100 bg-white p-0 shadow-2xl"
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
+                      <h4 className="text-sm font-bold text-slate-800">
+                        {copy.notificationsLabel}
+                      </h4>
+                      {unreadCount > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => markAllAsReadMutation.mutate()}
+                          disabled={markAllAsReadMutation.isPending}
+                          className="text-xs font-semibold text-[#0b7f5f] transition hover:text-[#08634a] disabled:opacity-50"
+                        >
+                          {currentLocale === "en" ? "Mark all read" : "Đánh dấu đã đọc"}
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="max-h-[360px] overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-xs text-slate-400">
+                          <Bell size={24} className="mx-auto mb-2 opacity-40" />
+                          <p>
+                            {currentLocale === "en"
+                              ? "No notifications yet"
+                              : "Chưa có thông báo nào"}
+                          </p>
+                        </div>
+                      ) : (
+                        notifications.map((notification) => {
+                          const { Icon, bg, fg } = getNotificationIcon(notification.targetType);
+                          return (
+                            <button
+                              key={notification.id}
+                              type="button"
+                              onClick={() => handleNotificationClick(notification)}
+                              className={cn(
+                                "flex w-full items-start gap-3 border-b border-slate-50 p-3.5 text-left transition hover:bg-slate-50/80",
+                                !notification.readAt && "bg-emerald-50/40",
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "flex size-9 shrink-0 items-center justify-center rounded-full mt-0.5",
+                                  bg,
+                                  fg,
+                                )}
+                              >
+                                <Icon size={18} />
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <h5
+                                  className={cn(
+                                    "text-xs leading-snug font-bold text-slate-800",
+                                    !notification.readAt && "text-slate-950",
+                                  )}
+                                >
+                                  {notification.title}
+                                </h5>
+                                <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">
+                                  {notification.body}
+                                </p>
+                                <span className="mt-1 block text-[10px] text-slate-400">
+                                  {formatRelativeTime(notification.createdAt, currentLocale)}
+                                </span>
+                              </div>
+
+                              {!notification.readAt && (
+                                <span className="mt-1.5 size-2 shrink-0 rounded-full bg-[#10a778]" />
+                              )}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
               {recruiterChatAvailable ? (
                 <button

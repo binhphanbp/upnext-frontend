@@ -52,7 +52,19 @@ export function CompanyReviewsSection({
 
   const reviewsQuery = useQuery({
     queryKey: ["public-company-reviews", companyId],
-    queryFn: () => getPublicCompanyReviews(companyId),
+    queryFn: async () => {
+      const data = await getPublicCompanyReviews(companyId);
+      return (
+        data ?? {
+          items: [],
+          summary: {
+            totalReviews: 0,
+            averageRating: 0,
+            starCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+          },
+        }
+      );
+    },
   });
 
   const candidateReview = useCandidateCompanyReview(companyId);

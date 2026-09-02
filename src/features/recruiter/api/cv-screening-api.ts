@@ -1,6 +1,12 @@
 import { recruiterApiRequest } from "@/features/recruiter/api/client";
 
-export type RunStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "PARTIAL_FAILED";
+export type RunStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED"
+  | "PARTIAL_FAILED"
+  | "CANCELLED";
 
 export interface RunCvScreeningPayload {
   jobPostId: string;
@@ -22,9 +28,18 @@ export interface CvScreeningRunResponse {
   failedCount: number;
   limit: number | null;
   errorMessage?: string | null;
+  /** Set once a cancel was requested for this run -- while `status` is still
+   * PROCESSING, this means the recruiter asked to stop and the run is
+   * winding down (current batch finishes, then no more are started). */
+  cancelRequestedAt?: string | null;
   startedAt?: string | null;
   finishedAt?: string | null;
 }
+
+export type CancelCvScreeningRunResponse = {
+  runId: string;
+  status: RunStatus | "CANCEL_REQUESTED";
+};
 
 export interface CvScreeningResultItem {
   applicationId: string;
@@ -40,6 +55,12 @@ export interface CvScreeningResultItem {
   missingSkills: string[];
   summary: string;
   recommendation: string;
+  /** The configured "Đạt tiêu chuẩn" threshold, null if the company set none. */
+  passingScore?: number | null;
+  /** null on scores from before a passing score existed -- hide the badge. */
+  meetsPassingScore?: boolean | null;
+  /** How many of the recruiter's must-have criteria the CV missed (warning only). */
+  missingMustHaveCount?: number;
   cvFileUrl?: string | null;
 }
 
@@ -76,6 +97,12 @@ export interface ScoreCriterionBreakdown {
   items: ScoreBreakdownItem[];
 }
 
+export interface CriterionVerdict {
+  criterion: string;
+  met: boolean;
+  evidence: string | null;
+}
+
 export interface ApplicationAiScoreResponse {
   applicationId: string;
   status?: string | null;
@@ -94,7 +121,19 @@ export interface ApplicationAiScoreResponse {
   summary: string;
   recommendation: string;
   criteriaBreakdown: ScoreCriterionBreakdown[];
+  /** Already scaled to the weights this score was computed with, so awarded
+   * points and maxima always add up to the group totals above. */
   evaluationRubric: EvaluationRubricCriterion[];
+  scoringWeights?: {
+    skills: number;
+    experience: number;
+    projects: number;
+    education: number;
+  } | null;
+  passingScore?: number | null;
+  meetsPassingScore?: boolean | null;
+  mustHaveResults?: CriterionVerdict[];
+  niceToHaveResults?: CriterionVerdict[];
   cvFileUrl?: string | null;
 }
 
@@ -104,6 +143,14 @@ export function runCvScreening(payload: RunCvScreeningPayload, token: string) {
     body: JSON.stringify(payload),
     headers: { "Content-Type": "application/json" },
   });
+}
+
+export function cancelCvScreeningRun(runId: string, token: string) {
+  return recruiterApiRequest<CancelCvScreeningRunResponse>(
+    `/recruiter/cv-screening/runs/${runId}/cancel`,
+    token,
+    { method: "POST" },
+  );
 }
 
 export function getCvScreeningRun(runId: string, token: string) {

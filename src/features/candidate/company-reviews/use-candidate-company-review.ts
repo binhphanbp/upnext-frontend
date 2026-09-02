@@ -27,7 +27,10 @@ export function useCandidateCompanyReview(companyId: string) {
 
   const myReviewQuery = useQuery({
     enabled: Boolean(session),
-    queryFn: () => getMyCompanyReview(session!.accessToken, companyId),
+    queryFn: async () => {
+      const data = await getMyCompanyReview(session!.accessToken, companyId);
+      return data ?? null;
+    },
     queryKey: myReviewQueryKey,
   });
 

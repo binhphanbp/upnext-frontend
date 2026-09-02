@@ -1,0 +1,410 @@
+"use client";
+
+import { Check, Info, Plus, Sparkle, X } from "@phosphor-icons/react";
+import { useState } from "react";
+
+import type {
+  CvScreeningConfig,
+  ScoringWeights,
+  WeightPreset,
+} from "@/features/recruiter/api/cv-screening-config-api";
+import { cn } from "@/shared/lib/cn";
+
+const CUSTOM_PROMPT_MAX_LENGTH = 1000;
+const CRITERION_MAX_LENGTH = 120;
+const MAX_CRITERIA_ITEMS = 10;
+const WEIGHT_STEP = 5;
+const WEIGHT_TOTAL = 100;
+
+export type CvScreeningConfigFormValues = Pick<
+  CvScreeningConfig,
+  | "weights"
+  | "weightPreset"
+  | "mustHaveCriteria"
+  | "niceToHaveCriteria"
+  | "customPrompt"
+  | "passingScore"
+  | "defaultTopN"
+>;
+
+/** Ready-made splits per seniority: the point of the presets is that a
+ * recruiter never has to reason about percentages to get a sane ranking. */
+const WEIGHT_PRESETS: Array<{
+  key: Exclude<WeightPreset, "CUSTOM">;
+  label: string;
+  hint: string;
+  weights: ScoringWeights;
+}> = [
+  {
+    key: "FRESHER",
+    label: "Thực tập / Mới tốt nghiệp",
+    hint: "Chưa có kinh nghiệm nhiều — chấm theo kỹ năng, dự án và học vấn",
+    weights: { skills: 40, projects: 35, education: 20, experience: 5 },
+  },
+  {
+    key: "MID",
+    label: "Nhân viên",
+    hint: "Cân bằng giữa kỹ năng và kinh nghiệm thực tế",
+    weights: { skills: 35, experience: 35, projects: 20, education: 10 },
+  },
+  {
+    key: "SENIOR",
+    label: "Chuyên viên cao cấp / Quản lý",
+    hint: "Ưu tiên kinh nghiệm và độ sâu dự án đã làm",
+    weights: { skills: 20, experience: 50, projects: 25, education: 5 },
+  },
+];
+
+const WEIGHT_ROWS: Array<{ key: keyof ScoringWeights; label: string }> = [
+  { key: "skills", label: "Kỹ năng" },
+  { key: "experience", label: "Kinh nghiệm" },
+  { key: "projects", label: "Dự án liên quan" },
+  { key: "education", label: "Học vấn" },
+];
+
+export function weightsTotal(weights?: ScoringWeights | null) {
+  if (!weights) return WEIGHT_TOTAL;
+  return (
+    (weights.skills ?? 0) +
+    (weights.experience ?? 0) +
+    (weights.projects ?? 0) +
+    (weights.education ?? 0)
+  );
+}
+
+/** The Save button is blocked unless the split is a valid 100-point split. */
+export function isValidWeights(weights?: ScoringWeights | null) {
+  if (!weights) return false;
+  return (
+    weightsTotal(weights) === WEIGHT_TOTAL &&
+    WEIGHT_ROWS.every(({ key }) => {
+      const value = weights[key];
+      return (
+        typeof value === "number" &&
+        Number.isInteger(value) &&
+        value >= 0 &&
+        value % WEIGHT_STEP === 0
+      );
+    })
+  );
+}
+
+/** The system defaults, used until the real config loads. Mirrors
+ * SYSTEM_DEFAULT_SCREENING_CONFIG on the backend. */
+export const DEFAULT_CONFIG_FORM_VALUES: CvScreeningConfigFormValues = {
+  weights: { skills: 40, experience: 30, projects: 20, education: 10 },
+  weightPreset: null,
+  mustHaveCriteria: [],
+  niceToHaveCriteria: [],
+  customPrompt: null,
+  passingScore: null,
+  defaultTopN: null,
+};
+
+/** Flattens the form values into the PUT payload, so the settings tab and the
+ * ranking-screen dialog can't save different shapes. */
+export function toConfigPayload(values: CvScreeningConfigFormValues) {
+  const weights = values?.weights ?? DEFAULT_CONFIG_FORM_VALUES.weights;
+  return {
+    weightSkills: weights.skills ?? 40,
+    weightExperience: weights.experience ?? 30,
+    weightProjects: weights.projects ?? 20,
+    weightEducation: weights.education ?? 10,
+    weightPreset: values?.weightPreset ?? null,
+    mustHaveCriteria: values?.mustHaveCriteria ?? [],
+    niceToHaveCriteria: values?.niceToHaveCriteria ?? [],
+    customPrompt: values?.customPrompt?.trim() || null,
+  };
+}
+
+function matchPreset(weights?: ScoringWeights | null): WeightPreset {
+  if (!weights) return "CUSTOM";
+  const preset = WEIGHT_PRESETS.find(
+    (candidate) =>
+      candidate.weights.skills === weights.skills &&
+      candidate.weights.experience === weights.experience &&
+      candidate.weights.projects === weights.projects &&
+      candidate.weights.education === weights.education,
+  );
+  return preset?.key ?? "CUSTOM";
+}
+
+/** A free-text list of criteria as removable chips. Enter (or the + button)
+ * commits the draft; duplicates and blanks are dropped. */
+function CriteriaListInput({
+  id,
+  values,
+  onChange,
+  placeholder,
+  accent,
+}: {
+  id: string;
+  values: string[];
+  onChange: (values: string[]) => void;
+  placeholder: string;
+  accent: "rose" | "emerald";
+}) {
+  const [draft, setDraft] = useState("");
+  const atLimit = values.length >= MAX_CRITERIA_ITEMS;
+
+  const addDraft = () => {
+    const trimmed = draft.trim().slice(0, CRITERION_MAX_LENGTH);
+    if (!trimmed || atLimit) return;
+    const isDuplicate = values.some((value) => value.toLowerCase() === trimmed.toLowerCase());
+    if (!isDuplicate) {
+      onChange([...values, trimmed]);
+    }
+    setDraft("");
+  };
+
+  return (
+    <div>
+      {values.length > 0 && (
+        <ul className="mb-2 flex flex-wrap gap-1.5">
+          {values.map((value) => (
+            <li
+              key={value}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+                accent === "rose"
+                  ? "border-rose-200 bg-rose-50 text-rose-700"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-700",
+              )}
+            >
+              <span className="max-w-[240px] truncate">{value}</span>
+              <button
+                type="button"
+                aria-label={`Xoá tiêu chí ${value}`}
+                onClick={() => onChange(values.filter((item) => item !== value))}
+                className="cursor-pointer opacity-60 transition-opacity hover:opacity-100"
+              >
+                <X size={11} weight="bold" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex items-center gap-2">
+        <input
+          id={id}
+          type="text"
+          value={draft}
+          maxLength={CRITERION_MAX_LENGTH}
+          disabled={atLimit}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addDraft();
+            }
+          }}
+          placeholder={atLimit ? `Tối đa ${MAX_CRITERIA_ITEMS} tiêu chí` : placeholder}
+          className="upnext-focus border-input h-10 w-full rounded-lg border bg-white px-3 text-sm text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-50"
+        />
+        <button
+          type="button"
+          aria-label="Thêm tiêu chí"
+          disabled={atLimit || !draft.trim()}
+          onClick={addDraft}
+          className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Plus size={16} weight="bold" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SectionHeading({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-3 flex items-start justify-between gap-3">
+      <div>
+        <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{title}</p>
+        {description && <p className="mt-0.5 text-xs text-slate-400">{description}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * The AI CV-screening config form, shared by the "AI lọc CV" screen's quick
+ * settings dialog and the Cài đặt tab so the two can never drift apart.
+ *
+ * Fully controlled: the parent owns the values, this component only reports
+ * patches. `inherited` (job scope only) drives the "đang theo cấu hình công
+ * ty" hints.
+ */
+export function CvScreeningConfigForm({
+  idPrefix,
+  values,
+  onChange,
+  inherited,
+}: {
+  idPrefix: string;
+  values: CvScreeningConfigFormValues;
+  onChange: (patch: Partial<CvScreeningConfigFormValues>) => void;
+  inherited?: Record<string, boolean> | undefined;
+}) {
+  const currentWeights = values?.weights ?? DEFAULT_CONFIG_FORM_VALUES.weights;
+  const total = weightsTotal(currentWeights);
+  const activePreset = values?.weightPreset ?? matchPreset(currentWeights);
+
+  const setWeight = (key: keyof ScoringWeights, value: number) => {
+    const next = { ...currentWeights, [key]: value };
+    onChange({ weights: next, weightPreset: matchPreset(next) });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* 1. Score weighting */}
+      <section>
+        <SectionHeading
+          title="Trọng số điểm theo cấp bậc"
+          description="Chọn nhanh một preset, hoặc tự kéo trọng số cho từng tiêu chí."
+        >
+          <span
+            className={cn(
+              "shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold",
+              total === WEIGHT_TOTAL
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-rose-200 bg-rose-50 text-rose-700",
+            )}
+          >
+            Tổng: {total}%
+          </span>
+        </SectionHeading>
+
+        {inherited?.weights && (
+          <p className="mb-2 flex items-center gap-1.5 text-xs text-slate-400">
+            <Info size={13} /> Đang theo trọng số mặc định của công ty.
+          </p>
+        )}
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          {WEIGHT_PRESETS.map((preset) => {
+            const selected = activePreset === preset.key;
+            return (
+              <button
+                key={preset.key}
+                type="button"
+                onClick={() => onChange({ weights: preset.weights, weightPreset: preset.key })}
+                className={cn(
+                  "cursor-pointer rounded-lg border p-3 text-left transition-colors",
+                  selected
+                    ? "border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
+                )}
+              >
+                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                  {selected && <Check size={12} weight="bold" className="text-emerald-600" />}
+                  {preset.label}
+                </span>
+                <span className="mt-1 block text-[11px] leading-snug text-slate-400">
+                  {preset.hint}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-3 space-y-2.5 rounded-lg border border-slate-100 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-950/20">
+          {WEIGHT_ROWS.map((row) => (
+            <div key={row.key} className="flex items-center gap-3">
+              <label
+                htmlFor={`${idPrefix}_weight_${row.key}`}
+                className="w-28 shrink-0 text-xs font-semibold text-slate-600 dark:text-slate-300"
+              >
+                {row.label}
+              </label>
+              <input
+                id={`${idPrefix}_weight_${row.key}`}
+                type="range"
+                min={0}
+                max={WEIGHT_TOTAL}
+                step={WEIGHT_STEP}
+                value={currentWeights[row.key] ?? 0}
+                onChange={(e) => setWeight(row.key, Number(e.target.value))}
+                className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-600"
+              />
+              <span className="w-12 shrink-0 text-right text-xs font-bold text-slate-700 dark:text-slate-200">
+                {currentWeights[row.key] ?? 0}%
+              </span>
+            </div>
+          ))}
+          {total !== WEIGHT_TOTAL && (
+            <p className="text-[11px] font-semibold text-rose-600">
+              Tổng 4 tiêu chí phải bằng 100% mới lưu được (đang {total}%).
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* 2. Real hiring criteria */}
+      <section>
+        <SectionHeading
+          title="Tiêu chí bắt buộc"
+          description="Thiếu tiêu chí nào sẽ bị cảnh báo trên bảng kết quả và bị phản ánh vào điểm tiêu chí liên quan."
+        />
+        {inherited?.mustHaveCriteria && (values?.mustHaveCriteria?.length ?? 0) > 0 && (
+          <p className="mb-2 flex items-center gap-1.5 text-xs text-slate-400">
+            <Info size={13} /> Đang theo tiêu chí mặc định của công ty.
+          </p>
+        )}
+        <CriteriaListInput
+          id={`${idPrefix}_must_have`}
+          values={values?.mustHaveCriteria ?? []}
+          onChange={(next) => onChange({ mustHaveCriteria: next })}
+          placeholder='VD: "Ít nhất 2 năm React" rồi nhấn Enter'
+          accent="rose"
+        />
+      </section>
+
+      <section>
+        <SectionHeading
+          title="Tiêu chí ưu tiên"
+          description="Có thì được cộng điểm, không có thì không bị trừ thêm."
+        />
+        <CriteriaListInput
+          id={`${idPrefix}_nice_to_have`}
+          values={values?.niceToHaveCriteria ?? []}
+          onChange={(next) => onChange({ niceToHaveCriteria: next })}
+          placeholder='VD: "Từng làm fintech" rồi nhấn Enter'
+          accent="emerald"
+        />
+      </section>
+
+      {/* 3. Free-text note */}
+      <section>
+        <SectionHeading title="Ghi chú thêm cho AI" />
+        <textarea
+          id={`${idPrefix}_custom_prompt`}
+          rows={3}
+          maxLength={CUSTOM_PROMPT_MAX_LENGTH}
+          value={values.customPrompt ?? ""}
+          onChange={(e) => onChange({ customPrompt: e.target.value })}
+          placeholder="VD: Ưu tiên ứng viên có thể onboard trong tháng này, làm việc tại Đà Nẵng."
+          className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 focus:border-emerald-500 focus:ring-emerald-500"
+        />
+        <p className="mt-1 text-right text-[11px] text-slate-400">
+          {(values.customPrompt ?? "").length}/{CUSTOM_PROMPT_MAX_LENGTH} ký tự
+        </p>
+      </section>
+
+      <p className="flex items-start gap-1.5 rounded-lg bg-slate-50 p-2.5 text-[11px] leading-relaxed text-slate-400 dark:bg-slate-950/20">
+        <Sparkle size={13} className="mt-0.5 shrink-0" />
+        Đổi trọng số sẽ xếp hạng lại các CV đã chấm ngay lập tức, không chấm lại bằng AI nên không
+        tốn thêm lượt. Đổi tiêu chí hoặc ghi chú thì lượt lọc sau sẽ chấm lại bằng AI.
+      </p>
+    </div>
+  );
+}

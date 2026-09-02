@@ -18,6 +18,10 @@ import Swal from "sweetalert2";
 
 import { requestAndRegisterFcmToken } from "@/features/notifications/lib/firebase-fcm";
 import {
+  getCvScreeningConfig,
+  updateCvScreeningConfig,
+} from "@/features/recruiter/api/cv-screening-config-api";
+import {
   changePassword,
   getRecruiterAccount,
   createRecruiterProfile,
@@ -33,6 +37,13 @@ import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { FormInput } from "@/shared/ui/input";
 
+import {
+  CvScreeningConfigForm,
+  DEFAULT_CONFIG_FORM_VALUES,
+  isValidWeights,
+  toConfigPayload,
+  type CvScreeningConfigFormValues,
+} from "./cv-screening-config-form";
 import { RecruiterTableLayout } from "./recruiter-table-layout";
 
 function AccountIcon() {
@@ -182,9 +193,9 @@ export function RecruiterSettingsPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [activeTab, setActiveTab] = useState<"account" | "notification" | "bills" | "security">(
-    "account",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "account" | "notification" | "bills" | "security" | "ai-screening"
+  >("account");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -219,6 +230,74 @@ export function RecruiterSettingsPage() {
 
   // Security tab state
   const [tfaEnabled, setTfaEnabled] = useState(false);
+
+  // AI CV-screening config tab state
+  const [aiConfigLoading, setAiConfigLoading] = useState(true);
+  const [aiConfigSaving, setAiConfigSaving] = useState(false);
+  const [aiConfigValues, setAiConfigValues] = useState<CvScreeningConfigFormValues>(
+    DEFAULT_CONFIG_FORM_VALUES,
+  );
+
+  const fetchAiScreeningConfig = useCallback(async (accessToken: string) => {
+    try {
+      setAiConfigLoading(true);
+      const config = await getCvScreeningConfig(accessToken);
+      setAiConfigValues(config);
+    } catch (error) {
+      console.error("Failed to load CV screening config:", error);
+    } finally {
+      setAiConfigLoading(false);
+    }
+  }, []);
+
+  const handleSaveAiScreeningConfig = async () => {
+    if (!token) return;
+
+    if (!isValidWeights(aiConfigValues.weights)) {
+      void Swal.fire({
+        icon: "warning",
+        title: "Trọng số chưa hợp lệ",
+        text: "Tổng trọng số 4 tiêu chí phải bằng 100%.",
+      });
+      return;
+    }
+
+    setAiConfigSaving(true);
+    try {
+      const saved = await updateCvScreeningConfig(toConfigPayload(aiConfigValues), token);
+      setAiConfigValues(saved);
+      void Swal.fire({
+        icon: "success",
+        title: "Đã lưu cấu hình AI lọc CV!",
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (error) {
+      const isForbidden = error instanceof ApiError && error.status === 403;
+      const errorMsg =
+        error instanceof ApiError &&
+        error.payload &&
+        typeof error.payload === "object" &&
+        "message" in error.payload
+          ? Array.isArray((error.payload as any).message)
+            ? (error.payload as any).message.join(", ")
+            : (error.payload as any).message
+          : error instanceof Error
+            ? error.message
+            : "Không thể lưu cấu hình. Vui lòng thử lại.";
+      void Swal.fire({
+        icon: "error",
+        title: isForbidden ? "Không đủ quyền" : "Lỗi lưu cấu hình",
+        text: isForbidden
+          ? "Chỉ quản trị viên công ty mới có quyền chỉnh cấu hình AI lọc CV."
+          : errorMsg,
+      });
+    } finally {
+      setAiConfigSaving(false);
+    }
+  };
 
   const fetchDetails = useCallback(
     async (id: string, accessToken: string) => {
@@ -265,7 +344,8 @@ export function RecruiterSettingsPage() {
     setToken(session.accessToken);
     setAccountId(session.user.id);
     void fetchDetails(session.user.id, session.accessToken);
-  }, [fetchDetails, router]);
+    void fetchAiScreeningConfig(session.accessToken);
+  }, [fetchDetails, fetchAiScreeningConfig, router]);
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -510,6 +590,20 @@ export function RecruiterSettingsPage() {
           >
             <SecurityIcon />
             Bảo mật
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "ai-screening"}
+            className={`flex items-center justify-center gap-2 border-b-2 p-4 text-sm font-medium whitespace-nowrap transition-all ${
+              activeTab === "ai-screening"
+                ? "border-emerald-600 font-semibold text-emerald-600"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+            onClick={() => setActiveTab("ai-screening")}
+          >
+            <Sparkle size={20} />
+            Cấu hình AI lọc CV
           </button>
         </div>
 
@@ -1402,6 +1496,49 @@ export function RecruiterSettingsPage() {
                   className="h-10 rounded-md bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700"
                 >
                   Lưu thiết lập
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Panel: AI CV Screening Config */}
+        {activeTab === "ai-screening" && (
+          <div className="mt-2 border-none p-6">
+            <div className="max-w-2xl rounded-xl border border-slate-100 bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h5 className="mb-1 text-base font-bold text-slate-800 dark:text-white">
+                Cấu hình AI lọc CV
+              </h5>
+              <p className="mb-6 text-xs text-slate-400 dark:text-slate-500">
+                Tùy chỉnh cách AI chấm điểm và rút gọn danh sách ứng viên cho công ty của bạn. Thang
+                điểm chấm (kỹ năng, kinh nghiệm, dự án, học vấn) luôn cố định — các thiết lập dưới
+                đây chỉ bổ sung thêm bối cảnh và mặc định cho mỗi lượt lọc.
+              </p>
+
+              {aiConfigLoading ? (
+                <div className="flex items-center gap-2 py-8 text-sm text-slate-400">
+                  <CircleNotch className="h-5 w-5 animate-spin" />
+                  Đang tải cấu hình...
+                </div>
+              ) : (
+                <CvScreeningConfigForm
+                  idPrefix="settings_ai"
+                  values={aiConfigValues}
+                  onChange={(patch) => setAiConfigValues((prev) => ({ ...prev, ...patch }))}
+                />
+              )}
+
+              <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-6 dark:border-slate-800">
+                <button
+                  type="button"
+                  disabled={
+                    aiConfigLoading || aiConfigSaving || !isValidWeights(aiConfigValues.weights)
+                  }
+                  onClick={() => void handleSaveAiScreeningConfig()}
+                  className="flex h-10 items-center gap-2 rounded-md bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {aiConfigSaving && <CircleNotch className="h-4 w-4 animate-spin" />}
+                  Lưu cấu hình
                 </button>
               </div>
             </div>

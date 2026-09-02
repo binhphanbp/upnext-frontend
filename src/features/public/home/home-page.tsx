@@ -419,7 +419,8 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             // A recommendation needs an API-backed reason. The API's LATEST response is deliberately
             // still useful, but is labelled as fresh jobs rather than being presented as a match.
             (!candidateRecommendationIsPersonalized || item.reasonCodes.length > 0),
-        ),
+        )
+        .slice(0, 12),
     [candidateRecommendationIsPersonalized, homeData?.recommendations?.items, now, urgentJobIds],
   );
   // The API owns the matching threshold. When it returns its honest LATEST fallback for an otherwise
@@ -488,7 +489,7 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
       interleaveSponsored(
         latestSectionJobs,
         sponsoredJobs.map((entry) => entry.job),
-      ),
+      ).slice(0, 12),
     [latestSectionJobs, sponsoredJobs],
   );
 
