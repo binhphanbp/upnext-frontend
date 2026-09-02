@@ -1,987 +1,888 @@
 "use client";
-
 import {
-  Camera,
-  CameraSlash,
-  Microphone,
-  MicrophoneSlash,
-  PhoneDisconnect,
-  CheckCircle,
-  Calendar,
-  Sparkle,
-  PaperPlaneRight,
-  SpeakerHigh,
-  SpeakerSimpleSlash,
-  ListChecks,
-  ChartBar,
-  ArrowLeft,
-  Tag,
-  Users,
-  Lightbulb,
-  ArrowsClockwise,
+  Sparkles,
   ArrowRight,
+  RotateCcw,
+  Clock,
+  Send,
   StopCircle,
-  VideoCamera,
-  Smiley,
-  Eye,
-  Info,
-  Waveform,
-  ShieldCheck,
-  TrendUp,
-} from "@phosphor-icons/react";
-import React, { useState, useEffect, useRef } from "react";
+  HelpCircle,
+  Settings as SettingsIcon,
+  Shield,
+  Volume2,
+  AlertCircle,
+  Server,
+  FastForward,
+} from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
-import { MOCK_QUESTIONS_BY_ROLE, DEFAULT_MOCK_REPORT } from "../mock-data";
-import { RolePreset, SeniorityLevel, InterviewType, InterviewQuestion } from "../types";
-import { AiScoreRadar } from "./ai-score-radar";
-import { AudioWave } from "./audio-wave";
+import { apiClient } from "../services/apiClient";
+import { AudioAnalysisService } from "../services/audioAnalysis";
+import { AudioRecorderService } from "../services/audioRecorder";
+import { getDefaultFaceMetrics } from "../services/faceDetection";
+import { appLogger } from "../services/logger";
+import { SpeechRecognitionService } from "../services/speechRecognition";
+import { SpeechSynthesisService } from "../services/speechSynthesis";
+import {
+  Question,
+  InterviewSessionConfig,
+  QuestionAnswerRecord,
+  FinalInterviewReport,
+  FaceMetrics,
+  AudioMetrics,
+} from "../types";
+import { AIAvatar } from "./ai-avatar";
+import { AudioVisualizer } from "./audio-visualizer";
+import { CandidateVideo } from "./candidate-video";
+import { LiveMetricsPanel } from "./live-metrics-panel";
+import { LiveTranscript } from "./live-transcript";
+import { SettingsModal } from "./settings-modal";
 
 interface InterviewRoomProps {
-  role: RolePreset;
-  level: SeniorityLevel;
-  interviewType: InterviewType;
-  isCameraEnabled: boolean;
-  isMicEnabled: boolean;
-  candidateName: string;
-  onFinishInterview: () => void;
+  questions: Question[];
+  config: InterviewSessionConfig;
+  stream: MediaStream | null;
+  onFinishInterview: (report: FinalInterviewReport) => void;
   onExit: () => void;
 }
 
-const defaultFrontendQuestions: InterviewQuestion[] =
-  MOCK_QUESTIONS_BY_ROLE["frontend-developer"] || [];
+function checkAnswerCompletionKeyword(text: string): { isCompleted: boolean; cleanText: string } {
+  const normalized = text.toLowerCase();
+
+  // Check if both "câu trả lời / trả lời" AND "kết thúc / xong / hoàn thành / hết" are present
+  const hasAnswerTerm = /(câu trả lời|phần trả lời|trả lời|answer)/i.test(normalized);
+  const hasEndTerm = /(kết thúc|hoàn thành|xong|hết|complete|finished|done)/i.test(normalized);
+
+  const patternsToClean = [
+    /(câu trả lời|phần trả lời|trả lời).*?(kết thúc|hoàn thành|xong|hết)/gi,
+    /(kết thúc|hoàn thành|xong|hết).*?(câu trả lời|phần trả lời|trả lời)/gi,
+    /my answer is (finished|complete|done)/gi,
+    /i have finished my answer/gi,
+    /i am done with my answer/gi,
+    /that is all for my answer/gi,
+    /that's my answer/gi,
+  ];
+
+  if (hasAnswerTerm && hasEndTerm) {
+    let cleanText = text;
+    for (const pat of patternsToClean) {
+      cleanText = cleanText.replace(pat, "").trim();
+    }
+    return { isCompleted: true, cleanText: cleanText.replace(/\s+/g, " ").trim() };
+  }
+
+  return { isCompleted: false, cleanText: text };
+}
 
 export const InterviewRoom: React.FC<InterviewRoomProps> = ({
-  role,
-  level,
-  interviewType: _interviewType,
-  isCameraEnabled: initialCamera,
-  isMicEnabled: initialMic,
-  candidateName,
+  questions,
+  config,
+  stream,
   onFinishInterview,
   onExit,
 }) => {
-  const [questions, setQuestions] = useState<InterviewQuestion[]>(() => {
-    return MOCK_QUESTIONS_BY_ROLE[role.id] ?? defaultFrontendQuestions;
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [sessionStartTime] = useState<number>(Date.now());
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [elapsedQuestionSeconds, setElapsedQuestionSeconds] = useState(0);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [sttError, setSttError] = useState<string | null>(null);
+  const [isTranscribingChunk, setIsTranscribingChunk] = useState(false);
+  const [isVoiceSubmitting, setIsVoiceSubmitting] = useState(false);
+
+  // Lazy render question text only when BE generates voice
+  const [displayedQuestionText, setDisplayedQuestionText] = useState<string>("");
+  const [isGeneratingVoice, setIsGeneratingVoice] = useState<boolean>(true);
+
+  // Deep-dive Follow-up State
+  const [followUpState, setFollowUpState] = useState<{
+    isActive: boolean;
+    index: number;
+    max: number;
+    question: Question;
+  } | null>(null);
+
+  // Live Multimodal Telemetry State
+  const [currentFaceMetrics, setCurrentFaceMetrics] =
+    useState<FaceMetrics>(getDefaultFaceMetrics());
+  const [currentAudioMetrics, setCurrentAudioMetrics] = useState<AudioMetrics>({
+    volume: 0,
+    volumeLevel: "silent",
+    isSpeaking: false,
+    pitch: 0,
+    pitchStability: 80,
+    speechRateWPM: 0,
+    fillerWordsCount: 0,
+    fillerWordsDetected: [],
+    totalSilenceSeconds: 0,
+    totalSpeakingSeconds: 0,
   });
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-  const currentQuestion: InterviewQuestion =
-    questions[currentQuestionIndex] ?? defaultFrontendQuestions[0]!;
+  const faceTimelineRef = useRef<Array<{ timestamp: number; metrics: FaceMetrics }>>([]);
+  const audioTimelineRef = useRef<Array<{ timestamp: number; metrics: AudioMetrics }>>([]);
+  const detectedFillersRef = useRef<string[]>([]);
+  const [answersList, setAnswersList] = useState<QuestionAnswerRecord[]>([]);
 
-  const [isCameraOn, setIsCameraOn] = useState<boolean>(initialCamera);
-  const [isMicOn, setIsMicOn] = useState<boolean>(initialMic);
-  const [isAiSpeaking, setIsAiSpeaking] = useState<boolean>(true);
-  const [isCandidateSpeaking, setIsCandidateSpeaking] = useState<boolean>(false);
-  const [isRecording, setIsRecording] = useState<boolean>(true);
-  const [isMutedSound, setIsMutedSound] = useState<boolean>(false);
+  // STT / TTS & Audio Service Instances
+  const [transcript, setTranscript] = useState("");
+  const [currentWpm, setCurrentWpm] = useState(0);
+  const [detectedFillers, setDetectedFillers] = useState<string[]>([]);
+  const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  const [isTtsMuted, setIsTtsMuted] = useState(!config.enableTTS);
 
-  // Tabs: 'questions' | 'telemetry' | 'radar'
-  const [activeTab, setActiveTab] = useState<"questions" | "telemetry" | "radar">("questions");
+  const audioServiceRef = useRef<AudioAnalysisService | null>(null);
+  const audioRecorderRef = useRef<AudioRecorderService>(new AudioRecorderService());
+  const sttServiceRef = useRef<SpeechRecognitionService | null>(null);
+  const ttsServiceRef = useRef<SpeechSynthesisService>(new SpeechSynthesisService());
 
-  // Timers
-  const [questionSeconds, setQuestionSeconds] = useState<number>(0);
-  const [speakingDuration, setSpeakingDuration] = useState<number>(0);
-  const questionTimeLimit = 90; // 90 seconds per question
+  const currentQuestionIndexRef = useRef<number>(-1);
+  const questionStartTimeRef = useRef<number>(Date.now());
+  const handleSubmitAnswerRef = useRef<(customTranscript?: string) => Promise<void>>(
+    async () => {},
+  );
+  const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Real-time Speech & Audio Telemetry
-  const [transcriptText, setTranscriptText] = useState<string>("");
-  const [answerDraft, setAnswerDraft] = useState<string>("");
-  const [wordCount, setWordCount] = useState<number>(0);
-  const [wpm, setWpm] = useState<number>(0);
-  const [rmsIntensity, setRmsIntensity] = useState<number>(18);
-  const [voiceStability, setVoiceStability] = useState<number>(88);
+  // Synchronization refs to prevent asynchronous double-submits
+  const isAiSpeakingRef = useRef<boolean>(false);
+  const isGeneratingVoiceRef = useRef<boolean>(true);
+  const isEvaluatingRef = useRef<boolean>(false);
 
-  // Multimodal Vision Metrics
-  const [confidenceScore, setConfidenceScore] = useState<number>(82);
-  const [eyeContactScore, setEyeContactScore] = useState<number>(96);
-  const [smileScore, setSmileScore] = useState<number>(15);
-
-  // Hints Modal Toggle
-  const [showHintModal, setShowHintModal] = useState<boolean>(false);
-
-  const candidateVideoRef = useRef<HTMLVideoElement | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  // Per-question timer
   useEffect(() => {
-    const timer = setInterval(() => {
-      setQuestionSeconds((prev) => prev + 1);
-      if (isCandidateSpeaking && isMicOn) {
-        setSpeakingDuration((prev) => +(prev + 1).toFixed(1));
+    isAiSpeakingRef.current = isAiSpeaking;
+  }, [isAiSpeaking]);
+
+  useEffect(() => {
+    isGeneratingVoiceRef.current = isGeneratingVoice;
+  }, [isGeneratingVoice]);
+
+  useEffect(() => {
+    isEvaluatingRef.current = isEvaluating;
+  }, [isEvaluating]);
+
+  const defaultQuestion: Question = {
+    id: "q-default",
+    text: "Đang tải nội dung câu hỏi phỏng vấn...",
+    role: config.role,
+    level: config.level,
+    category: "intro",
+    expectedKeyPoints: [],
+    sampleGoodAnswer: "",
+    timeLimitSeconds: 90,
+  };
+  const currentMainQuestion = questions[currentIndex] || questions[0] || defaultQuestion;
+  const activeQuestion: Question = followUpState?.isActive
+    ? followUpState.question
+    : currentMainQuestion;
+
+  // Process incoming text chunks & check for voice completion command
+  const handleTranscriptAppend = (incomingText: string) => {
+    // Completely ignore any speech / STT while AI is speaking, evaluating or generating voice
+    if (isAiSpeakingRef.current || isGeneratingVoiceRef.current || isEvaluatingRef.current) {
+      return;
+    }
+
+    setTranscript((prev) => {
+      const full = prev ? `${prev} ${incomingText}` : incomingText;
+      const { isCompleted, cleanText } = checkAnswerCompletionKeyword(full);
+
+      const words = cleanText.split(/\s+/).filter(Boolean);
+      const elapsedMinutes = Math.max(0.05, (Date.now() - questionStartTimeRef.current) / 60000);
+      setCurrentWpm(Math.round(words.length / elapsedMinutes));
+
+      if (
+        isCompleted &&
+        !isEvaluatingRef.current &&
+        !isAiSpeakingRef.current &&
+        !isGeneratingVoiceRef.current
+      ) {
+        appLogger.info(
+          "VAD",
+          '🎯 Voice completion keyword detected: "Câu trả lời của mình đã kết thúc". Auto-submitting in 500ms...',
+        );
+        setIsVoiceSubmitting(true);
+        if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+        submitTimerRef.current = setTimeout(() => {
+          setIsVoiceSubmitting(false);
+          submitTimerRef.current = null;
+          handleSubmitAnswerRef.current(cleanText);
+        }, 500);
       }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [isCandidateSpeaking, isMicOn]);
+
+      return cleanText.trim();
+    });
+  };
+
+  // 1. Initialize Audio Analysis and Recorder on mount
+  useEffect(() => {
+    if (stream) {
+      const audioService = new AudioAnalysisService();
+      audioService.init(stream, config.enableNoiseSuppression ?? true);
+      audioServiceRef.current = audioService;
+
+      audioRecorderRef.current.init(stream);
+    }
+
+    const stt = new SpeechRecognitionService();
+    sttServiceRef.current = stt;
+
+    return () => {
+      if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+      audioServiceRef.current?.dispose();
+      audioRecorderRef.current?.stop();
+      sttServiceRef.current?.stop();
+      ttsServiceRef.current?.stop();
+    };
+  }, [stream, config.enableNoiseSuppression]);
+
+  // Helper to start candidate recording cleanly
+  const beginCandidateAnswering = (qId: string) => {
+    // Safety guard: do not start candidate mic if AI is speaking or voice is loading
+    if (isAiSpeakingRef.current || isGeneratingVoiceRef.current || isEvaluatingRef.current) {
+      return;
+    }
+
+    startCandidateSTT();
+    audioRecorderRef.current.start(async (chunkBlob) => {
+      if (isAiSpeakingRef.current || isGeneratingVoiceRef.current || isEvaluatingRef.current) {
+        return;
+      }
+      setIsTranscribingChunk(true);
+      try {
+        const text = await apiClient.transcribeAudio(
+          chunkBlob,
+          config.language,
+          config.sessionId,
+          qId,
+        );
+        if (
+          text &&
+          !isAiSpeakingRef.current &&
+          !isGeneratingVoiceRef.current &&
+          !isEvaluatingRef.current
+        ) {
+          handleTranscriptAppend(text);
+        }
+      } catch (err) {
+        console.warn("[InterviewRoom] Chunk transcription error:", err);
+      } finally {
+        setIsTranscribingChunk(false);
+      }
+    });
+  };
+
+  // 2. Start Question Cycle: Speak question TTS once, then activate Candidate Mic
+  const startQuestionCycle = (qIndex: number) => {
+    const q = questions[qIndex];
+    if (!q) return;
+
+    if (submitTimerRef.current) {
+      clearTimeout(submitTimerRef.current);
+      submitTimerRef.current = null;
+    }
+    setIsVoiceSubmitting(false);
+
+    setFollowUpState(null);
+    const now = Date.now();
+    questionStartTimeRef.current = now;
+    setQuestionStartTime(now);
+    setElapsedQuestionSeconds(0);
+    setTranscript("");
+    setCurrentWpm(0);
+    setDetectedFillers([]);
+    setShowHint(false);
+    faceTimelineRef.current = [];
+    audioTimelineRef.current = [];
+    detectedFillersRef.current = [];
+    audioServiceRef.current?.resetTimers();
+
+    // Stop any existing audio or speech
+    ttsServiceRef.current.stop();
+    sttServiceRef.current?.stop();
+    audioRecorderRef.current.stop();
+
+    // Start AI TTS
+    if (!isTtsMuted) {
+      isGeneratingVoiceRef.current = true;
+      setIsGeneratingVoice(true);
+      setDisplayedQuestionText("");
+      isAiSpeakingRef.current = true;
+      setIsAiSpeaking(true);
+
+      ttsServiceRef.current.speak(q.text, {
+        language: config.language,
+        voiceId: config.selectedVoiceId,
+        onStart: () => {
+          isGeneratingVoiceRef.current = false;
+          setIsGeneratingVoice(false);
+          setDisplayedQuestionText(q.text);
+          isAiSpeakingRef.current = true;
+          setIsAiSpeaking(true);
+        },
+        onEnd: () => {
+          isAiSpeakingRef.current = false;
+          setIsAiSpeaking(false);
+          setTranscript("");
+          beginCandidateAnswering(q.id);
+        },
+        onError: () => {
+          isGeneratingVoiceRef.current = false;
+          setIsGeneratingVoice(false);
+          setDisplayedQuestionText(q.text);
+          isAiSpeakingRef.current = false;
+          setIsAiSpeaking(false);
+          setTranscript("");
+          beginCandidateAnswering(q.id);
+        },
+      });
+    } else {
+      isGeneratingVoiceRef.current = false;
+      setIsGeneratingVoice(false);
+      setDisplayedQuestionText(q.text);
+      isAiSpeakingRef.current = false;
+      setIsAiSpeaking(false);
+      setTranscript("");
+      beginCandidateAnswering(q.id);
+    }
+  };
+
+  const startCandidateSTT = () => {
+    if (!sttServiceRef.current) return;
+    setSttError(null);
+    sttServiceRef.current.start(config.language, {
+      onTranscriptChange: (text) => {
+        setTranscript(text);
+        if (text) setSttError(null);
+      },
+      onWpmChange: (wpm) => {
+        setCurrentWpm(wpm);
+      },
+      onFillerWordDetected: (filler) => {
+        detectedFillersRef.current.push(filler);
+        setDetectedFillers([...detectedFillersRef.current]);
+      },
+      onError: (err) => {
+        console.warn("[InterviewRoom] STT Error:", err);
+        setSttError(err);
+      },
+    });
+  };
+
+  useEffect(() => {
+    startQuestionCycle(currentIndex);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex]);
+
+  // 3. Telemetry Polling Loop (Audio + Face sampling at 10Hz)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (audioServiceRef.current) {
+        const audioMetrics = audioServiceRef.current.getLiveMetrics();
+        setCurrentAudioMetrics(audioMetrics);
+        audioTimelineRef.current.push({
+          timestamp: Date.now(),
+          metrics: audioMetrics,
+        });
+      }
+
+      if (currentFaceMetrics) {
+        faceTimelineRef.current.push({
+          timestamp: Date.now(),
+          metrics: currentFaceMetrics,
+        });
+      }
+
+      setElapsedQuestionSeconds(Math.round((Date.now() - questionStartTime) / 1000));
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [currentFaceMetrics, questionStartTime, isAiSpeaking]);
+
+  // 4. Handle Face Detection updates from CandidateVideo (30-60 FPS real-time trigger)
+  const handleFaceMetricsUpdate = (metrics: FaceMetrics) => {
+    setCurrentFaceMetrics(metrics);
+    if (!isAiSpeaking) {
+      audioRecorderRef.current.feedMouthAndVoiceActivity(
+        metrics.isMouthTalking,
+        metrics.isMouthMoving,
+        metrics.mouthOpenness,
+        currentAudioMetrics.volume,
+      );
+    }
+  };
+
+  // 5. Replay Question TTS (pauses recording during playback to eliminate echo)
+  const handleReplayTTS = () => {
+    sttServiceRef.current?.stop();
+    audioRecorderRef.current.stop();
+    setIsAiSpeaking(true);
+    ttsServiceRef.current.speak(activeQuestion.text, {
+      language: config.language,
+      voiceId: config.selectedVoiceId,
+      onStart: () => setIsAiSpeaking(true),
+      onEnd: () => {
+        setIsAiSpeaking(false);
+        beginCandidateAnswering(activeQuestion.id);
+      },
+      onError: () => {
+        setIsAiSpeaking(false);
+        beginCandidateAnswering(activeQuestion.id);
+      },
+    });
+  };
+
+  // 6. Submit Current Answer & Advance or Handle Follow-up via Backend API Client
+  const handleSubmitAnswer = async (customFinalText?: string) => {
+    if (isEvaluatingRef.current) return;
+    isEvaluatingRef.current = true;
+    setIsEvaluating(true);
+
+    if (submitTimerRef.current) {
+      clearTimeout(submitTimerRef.current);
+      submitTimerRef.current = null;
+    }
+    setIsVoiceSubmitting(false);
+
+    ttsServiceRef.current.stop();
+
+    // 1. Stop audio recording and extract audio Blob & Base64
+    const audioBlob = await audioRecorderRef.current.stop();
+    const audioBase64 = await audioRecorderRef.current.getBase64();
+    sttServiceRef.current?.stop();
+
+    // 2. Get transcript from STT or send audioBlob to Backend STT
+    let rawText = typeof customFinalText === "string" ? customFinalText : transcript;
+    let finalSpokenText = checkAnswerCompletionKeyword(rawText).cleanText;
+
+    if (!finalSpokenText.trim() && audioBlob) {
+      const serverTranscript = await apiClient.transcribeAudio(audioBlob, config.language);
+      if (serverTranscript) {
+        finalSpokenText = checkAnswerCompletionKeyword(serverTranscript).cleanText;
+      }
+    }
+
+    const durationSeconds = Math.max(5, Math.round((Date.now() - questionStartTime) / 1000));
+    const isFollowUpAnswer = Boolean(followUpState?.isActive);
+
+    // Send answer telemetry + raw audio to Backend Server
+    const response = await apiClient.evaluateAnswer(
+      config.sessionId || "current_sess",
+      activeQuestion,
+      finalSpokenText,
+      faceTimelineRef.current,
+      audioTimelineRef.current,
+      detectedFillersRef.current,
+      durationSeconds,
+      config,
+      audioBase64,
+      isFollowUpAnswer,
+    );
+
+    // Check if Backend generated a Follow-up Question (Deep-dive mode)
+    if (response.isFollowUp && response.followUpQuestion) {
+      appLogger.info(
+        "VAD",
+        `🔍 Follow-up Question #${response.followUpIndex || 1}/${response.maxFollowUps || 2} received: "${response.followUpQuestion.text}"`,
+      );
+
+      const nextFollowUp = {
+        isActive: true,
+        index: response.followUpIndex || 1,
+        max: response.maxFollowUps || 2,
+        question: response.followUpQuestion,
+      };
+      setFollowUpState(nextFollowUp);
+
+      // Reset candidate recording & timers for the follow-up question
+      const now = Date.now();
+      questionStartTimeRef.current = now;
+      setQuestionStartTime(now);
+      setElapsedQuestionSeconds(0);
+      setTranscript("");
+      setCurrentWpm(0);
+      setDetectedFillers([]);
+      faceTimelineRef.current = [];
+      audioTimelineRef.current = [];
+      detectedFillersRef.current = [];
+      audioServiceRef.current?.resetTimers();
+
+      isEvaluatingRef.current = false;
+      setIsEvaluating(false);
+
+      // Speak the Follow-up Question via TTS
+      if (!isTtsMuted) {
+        isGeneratingVoiceRef.current = true;
+        setIsGeneratingVoice(true);
+        setDisplayedQuestionText("");
+        isAiSpeakingRef.current = true;
+        setIsAiSpeaking(true);
+
+        ttsServiceRef.current.speak(response.followUpQuestion.text, {
+          language: config.language,
+          voiceId: config.selectedVoiceId,
+          onStart: () => {
+            isGeneratingVoiceRef.current = false;
+            setIsGeneratingVoice(false);
+            setDisplayedQuestionText(response.followUpQuestion!.text);
+            isAiSpeakingRef.current = true;
+            setIsAiSpeaking(true);
+          },
+          onEnd: () => {
+            isAiSpeakingRef.current = false;
+            setIsAiSpeaking(false);
+            setTranscript("");
+            beginCandidateAnswering(response.followUpQuestion!.id);
+          },
+          onError: () => {
+            isGeneratingVoiceRef.current = false;
+            setIsGeneratingVoice(false);
+            setDisplayedQuestionText(response.followUpQuestion!.text);
+            isAiSpeakingRef.current = false;
+            setIsAiSpeaking(false);
+            setTranscript("");
+            beginCandidateAnswering(response.followUpQuestion!.id);
+          },
+        });
+      } else {
+        isGeneratingVoiceRef.current = false;
+        setIsGeneratingVoice(false);
+        setDisplayedQuestionText(response.followUpQuestion.text);
+        isAiSpeakingRef.current = false;
+        setIsAiSpeaking(false);
+        setTranscript("");
+        beginCandidateAnswering(response.followUpQuestion.id);
+      }
+      return;
+    }
+
+    // Follow-up completed or Basic mode: Final evaluation ready for current main question
+    setFollowUpState(null);
+    isEvaluatingRef.current = false;
+    setIsEvaluating(false);
+
+    if (response.answerRecord) {
+      const updatedAnswers = [...answersList, response.answerRecord];
+      setAnswersList(updatedAnswers);
+
+      if (currentIndex + 1 < questions.length) {
+        setCurrentIndex(currentIndex + 1);
+      } else {
+        // Completed all questions -> Finalize on Backend
+        const totalSessionSeconds = Math.round((Date.now() - sessionStartTime) / 1000);
+        const finalReport = await apiClient.finishSession(
+          config.sessionId || "current_sess",
+          updatedAnswers,
+          totalSessionSeconds,
+          config,
+        );
+        onFinishInterview(finalReport);
+      }
+    } else {
+      if (currentIndex + 1 < questions.length) {
+        setCurrentIndex(currentIndex + 1);
+      }
+    }
+  };
+
+  // 7. Skip Follow-up and advance to next main question
+  const handleSkipFollowUp = async () => {
+    if (isEvaluating) return;
+    setIsEvaluating(true);
+    ttsServiceRef.current.stop();
+    audioRecorderRef.current.stop();
+
+    appLogger.info("VAD", "⏩ Candidate skipped follow-up question. Finalizing question answer...");
+    const response = await apiClient.skipFollowUp(config.sessionId || "current_sess");
+    setFollowUpState(null);
+    setIsEvaluating(false);
+
+    if (response.answerRecord) {
+      const updatedAnswers = [...answersList, response.answerRecord];
+      setAnswersList(updatedAnswers);
+
+      if (currentIndex + 1 < questions.length) {
+        setCurrentIndex(currentIndex + 1);
+      } else {
+        const totalSessionSeconds = Math.round((Date.now() - sessionStartTime) / 1000);
+        const finalReport = await apiClient.finishSession(
+          config.sessionId || "current_sess",
+          updatedAnswers,
+          totalSessionSeconds,
+          config,
+        );
+        onFinishInterview(finalReport);
+      }
+    } else {
+      if (currentIndex + 1 < questions.length) {
+        setCurrentIndex(currentIndex + 1);
+      }
+    }
+  };
+
+  useEffect(() => {
+    handleSubmitAnswerRef.current = handleSubmitAnswer;
+  });
 
   const formatTimer = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
-
-  // Text-To-Speech: AI Reads question out loud
-  const speakAiQuestion = () => {
-    if (typeof window === "undefined" || isMutedSound) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(currentQuestion.questionVi);
-      utterance.lang = "vi-VN";
-      utterance.rate = 1.0;
-      utterance.pitch = 1.02;
-
-      utterance.onstart = () => {
-        setIsAiSpeaking(true);
-        setIsCandidateSpeaking(false);
-      };
-
-      utterance.onend = () => {
-        setIsAiSpeaking(false);
-        setIsCandidateSpeaking(true);
-      };
-
-      utterance.onerror = () => {
-        setIsAiSpeaking(false);
-      };
-
-      window.speechSynthesis.speak(utterance);
-    } catch {
-      // TTS fallback
-    }
-  };
-
-  // Switch question reset & announce
-  useEffect(() => {
-    setQuestionSeconds(0);
-    setSpeakingDuration(0);
-    setTranscriptText("");
-    setAnswerDraft("");
-    setWordCount(0);
-    setWpm(0);
-
-    speakAiQuestion();
-
-    return () => {
-      if (typeof window !== "undefined") {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, [currentQuestionIndex]);
-
-  // Webcam stream
-  useEffect(() => {
-    const initCamera = async () => {
-      if (!isCameraOn) return;
-      try {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-          });
-          mediaStreamRef.current = stream;
-          if (candidateVideoRef.current) {
-            candidateVideoRef.current.srcObject = stream;
-          }
-
-          // Audio meter
-          try {
-            if (!audioContextRef.current) {
-              audioContextRef.current = new (
-                window.AudioContext ||
-                (window as unknown as { webkitAudioContext: typeof AudioContext })
-                  .webkitAudioContext
-              )();
-            }
-            const source = audioContextRef.current.createMediaStreamSource(stream);
-            const analyser = audioContextRef.current.createAnalyser();
-            analyser.fftSize = 64;
-            source.connect(analyser);
-
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            const updateVolume = () => {
-              analyser.getByteFrequencyData(dataArray);
-              const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-              const rms = Math.min(100, Math.round((avg / 128) * 100));
-              setRmsIntensity(rms);
-              setIsCandidateSpeaking(rms > 6);
-              requestAnimationFrame(updateVolume);
-            };
-            updateVolume();
-          } catch {
-            // Audio context fallback
-          }
-        }
-      } catch {
-        // Fallback
-      }
-    };
-
-    initCamera();
-
-    return () => {
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, [isCameraOn]);
-
-  // Speech Recognition (Web Speech API)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition || !isMicOn) return;
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "vi-VN";
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onresult = (event: any) => {
-        let fullTranscript = "";
-        for (let i = 0; i < event.results.length; i++) {
-          fullTranscript += event.results[i][0].transcript + " ";
-        }
-        const cleaned = fullTranscript.trim();
-        if (cleaned) {
-          setTranscriptText(cleaned);
-          setAnswerDraft(cleaned);
-          const words = cleaned.split(/\s+/).filter(Boolean);
-          const count = words.length;
-          setWordCount(count);
-
-          if (speakingDuration > 2) {
-            const calculatedWpm = Math.round(count / (speakingDuration / 60));
-            setWpm(Math.min(170, Math.max(40, calculatedWpm)));
-          }
-
-          setConfidenceScore((prev) =>
-            Math.min(96, Math.max(72, prev + (Math.random() > 0.5 ? 1 : -1))),
-          );
-          setEyeContactScore((prev) =>
-            Math.min(100, Math.max(90, prev + (Math.random() > 0.6 ? 1 : -1))),
-          );
-          setSmileScore(Math.floor(Math.random() * 20));
-        }
-      };
-
-      recognition.start();
-
-      return () => {
-        try {
-          recognition.stop();
-        } catch {
-          // ignore
-        }
-      };
-    } catch {
-      // Speech recognition fallback
-    }
-  }, [isMicOn, speakingDuration]);
-
-  const toggleCamera = () => {
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getVideoTracks().forEach((t) => (t.enabled = !isCameraOn));
-    }
-    setIsCameraOn(!isCameraOn);
-  };
-
-  const toggleMic = () => {
-    setIsMicOn(!isMicOn);
-    setIsCandidateSpeaking(!isMicOn);
-  };
-
-  const handleCompleteCurrentQuestion = () => {
-    const updated = [...questions];
-    const targetQ = updated[currentQuestionIndex];
-    if (targetQ) {
-      updated[currentQuestionIndex] = {
-        ...targetQ,
-        status: "answered",
-        score: Math.min(96, Math.max(80, confidenceScore + Math.floor(Math.random() * 6))),
-        answeredText:
-          answerDraft ||
-          transcriptText ||
-          targetQ.sampleAnswerVi ||
-          "Ứng viên đã trình bày đầy đủ các luận điểm trọng tâm.",
-      };
-    }
-    setQuestions(updated);
-    setAnswerDraft("");
-    setTranscriptText("");
-
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      onFinishInterview();
-    }
-  };
-
-  const candidateInitials =
-    candidateName
-      .split(" ")
-      .map((n) => n[0])
-      .slice(-2)
-      .join("")
-      .toUpperCase() || "UN";
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-4 px-3 py-4 font-sans text-slate-800 sm:px-6 md:py-6 dark:text-slate-200">
-      {/* 1. TOP HEADER (Refined UpNext Style, Matching HireByte Reference 1) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:border-slate-800 dark:bg-slate-900">
-        {/* Left: Back Button & Room Info */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onExit}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 shadow-xs transition-colors hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
-            title="Quay lại"
-          >
-            <ArrowLeft size={16} weight="bold" />
-          </button>
+    <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl flex-col space-y-4 p-3 sm:p-6">
+      {/* Top Session Status Bar */}
+      <div className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-900/90 px-4 py-3 shadow-lg backdrop-blur-xl">
+        {/* Role & Level Info */}
+        <div className="flex items-center space-x-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/30 bg-indigo-600/20 text-indigo-400">
+            <Shield className="h-4 w-4" />
+          </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm font-semibold tracking-tight text-slate-900 sm:text-base dark:text-white">
-                Hiring: {role.title}
-              </h1>
-              <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-emerald-700 uppercase dark:border-emerald-800/60 dark:bg-emerald-950/60 dark:text-emerald-300">
-                {level.toUpperCase()}
+            <h2 className="flex flex-wrap items-center gap-1.5 text-xs font-black tracking-wider text-white uppercase sm:text-sm">
+              Phỏng Vấn: {config.role}
+              <span className="rounded border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-bold text-indigo-400 uppercase">
+                {config.level}
               </span>
+              {config.educationType && (
+                <span className="rounded border border-cyan-500/25 bg-cyan-500/15 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
+                  🎓 {config.educationType === "university" ? "Đại học" : "Cao đẳng"}
+                </span>
+              )}
+              <span className="rounded border border-purple-500/25 bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-300">
+                {config.interviewMode === "deep" ? "🧠 Chuyên Sâu" : "⚡ Cơ Bản"}
+              </span>
+              {followUpState?.isActive && (
+                <span className="flex animate-pulse items-center gap-1 rounded border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                  <Sparkles className="h-2.5 w-2.5" />
+                  Đào Sâu #{followUpState.index}/{followUpState.max}
+                </span>
+              )}
+            </h2>
+            <div className="text-[11px] text-slate-400">
+              Ứng viên: <strong className="text-slate-200">{config.candidateName}</strong>
             </div>
-            <p className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
-              Ứng viên:{" "}
-              <span className="font-medium text-slate-700 dark:text-slate-300">
-                {candidateName}
-              </span>
-            </p>
           </div>
         </div>
 
-        {/* Right Header Status & Action Controls */}
-        <div className="flex items-center gap-2">
-          {/* Question Counter Pill */}
-          <div className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-            Câu hỏi:{" "}
-            <span className="font-mono font-bold text-slate-900 dark:text-white">
-              {currentQuestionIndex + 1}
-            </span>{" "}
-            / {questions.length}
+        {/* Progress & Timers */}
+        <div className="flex items-center space-x-3">
+          <div className="hidden items-center space-x-1.5 rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-bold sm:flex">
+            <span className="text-slate-400">Câu hỏi:</span>
+            <span className="text-indigo-400">
+              {currentIndex + 1} / {questions.length}
+            </span>
           </div>
 
-          {/* Question Timer Countdown Pill */}
-          <div className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-1.5 font-mono text-xs font-medium text-emerald-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-emerald-400">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-            <span>{formatTimer(questionSeconds)}</span>
-            <span className="text-[11px] text-slate-400">/ {questionTimeLimit}s</span>
+          <div className="flex items-center space-x-1.5 rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs font-bold">
+            <Clock className="h-3.5 w-3.5 text-amber-400" />
+            <span className="text-slate-200">{formatTimer(elapsedQuestionSeconds)}</span>
+            <span className="text-[10px] font-normal text-slate-500">
+              / {activeQuestion.timeLimitSeconds || 90}s
+            </span>
           </div>
 
-          {/* Recording Status (Reference 1: Stop / Live Recording) */}
           <button
-            type="button"
-            onClick={() => setIsRecording(!isRecording)}
-            className="hidden items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-xs transition-colors hover:bg-slate-50 sm:flex dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+            onClick={() => setShowSettings(true)}
+            title="Cài đặt & Máy chủ"
+            className="rounded-xl border border-slate-700 bg-slate-800/80 p-2 text-slate-300 transition hover:bg-slate-700"
           >
-            <StopCircle size={14} />
-            <span>Stop Recording</span>
+            <SettingsIcon className="h-4 w-4" />
           </button>
 
-          <div className="flex items-center gap-1.5 rounded-xl bg-red-500 px-3 py-1.5 text-xs font-medium text-white shadow-xs">
-            <VideoCamera size={14} weight="fill" />
-            <span>Live Recording</span>
-          </div>
-
-          {/* Finish Button */}
           <button
-            type="button"
-            onClick={onFinishInterview}
-            className="cursor-pointer rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-xs transition-colors hover:bg-emerald-700"
+            onClick={onExit}
+            title="Dừng phỏng vấn"
+            className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-2 text-rose-400 transition hover:bg-rose-500/20"
           >
-            Báo Cáo
+            <StopCircle className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {/* 2. MAIN 2-COLUMN STUDIO (Left 8 cols Video & Notes | Right 4 cols Checklist & Telemetry) */}
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
-        {/* LEFT COLUMN (8 cols) */}
-        <div className="space-y-3.5 lg:col-span-8">
-          {/* Main Video Call Stage (Clean, Cinematic, Modern SaaS quality) */}
-          <div className="relative flex aspect-[16/9.3] items-center justify-center overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950 shadow-[0_4px_20px_rgba(0,0,0,0.1)]">
-            {/* AI Lead Video Stream Background */}
-            <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950">
-              <div className="relative flex flex-col items-center justify-center space-y-2.5">
-                {/* Professional AI Avatar with Pulsing Audio Ring */}
-                <div className="relative">
-                  <div
-                    className={`h-28 w-28 overflow-hidden rounded-full border-2 shadow-xl transition-all duration-300 sm:h-32 sm:w-32 ${
-                      isAiSpeaking
-                        ? "border-emerald-500 ring-4 shadow-emerald-500/20 ring-emerald-500/20"
-                        : "border-slate-700"
-                    }`}
-                  >
-                    <img
-                      src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80"
-                      alt="Mrs. Tania Shahira - AI Lead"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
+      {/* Main Split Grid */}
+      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-12">
+        {/* Left Column (5 cols): AI Avatar & Question Presentation */}
+        <div className="flex flex-col space-y-4 lg:col-span-5">
+          <AIAvatar
+            isSpeaking={isAiSpeaking}
+            isEvaluating={isEvaluating}
+            isLoadingVoice={isGeneratingVoice}
+            questionText={displayedQuestionText}
+            badge={
+              followUpState?.isActive ? (
+                <span className="flex items-center gap-1 rounded-full border border-purple-500/30 bg-purple-500/20 px-2.5 py-0.5 text-[11px] font-bold text-purple-300">
+                  <Sparkles className="h-3 w-3 animate-spin text-amber-400" />
+                  Câu hỏi đào sâu #{followUpState.index}/{followUpState.max}
+                </span>
+              ) : undefined
+            }
+            onReplayTTS={handleReplayTTS}
+            isMuted={isTtsMuted}
+            onToggleMute={() => setIsTtsMuted(!isTtsMuted)}
+            currentEmotion={currentFaceMetrics.dominantEmotion}
+          />
 
-                  {/* AI Status Badge */}
-                  <div className="absolute inset-x-0 -bottom-2 flex justify-center">
+          <AudioVisualizer
+            audioService={audioServiceRef.current}
+            metrics={currentAudioMetrics}
+            isRecording={!isAiSpeaking}
+          />
+
+          {showHint &&
+            !isGeneratingVoice &&
+            displayedQuestionText &&
+            activeQuestion.expectedKeyPoints && (
+              <div className="animate-fadeIn space-y-1.5 rounded-2xl border border-indigo-500/30 bg-indigo-950/40 p-3 text-xs">
+                <div className="flex items-center gap-1.5 font-bold text-indigo-300">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Gợi ý các khía cạnh nên đề
+                  cập:
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {activeQuestion.expectedKeyPoints.map((kp, idx) => (
                     <span
-                      className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium tracking-wide shadow-xs ${
-                        isAiSpeaking
-                          ? "bg-emerald-600 text-white"
-                          : "border border-slate-700 bg-slate-800 text-slate-300"
-                      }`}
+                      key={idx}
+                      className="rounded-md border border-indigo-500/30 bg-indigo-500/20 px-2 py-0.5 text-[11px] text-indigo-200"
                     >
-                      {isAiSpeaking ? "Đang đặt câu hỏi" : "Đang lắng nghe"}
+                      {kp}
                     </span>
-                  </div>
-                </div>
-
-                <div className="space-y-0.5 text-center">
-                  <h2 className="flex items-center justify-center gap-1.5 text-sm font-medium text-white sm:text-base">
-                    Mrs. Tania Shahira
-                    <span className="py-0.2 rounded border border-emerald-800/60 bg-emerald-950/80 px-1.5 text-[10px] font-medium text-emerald-400">
-                      AI Lead
-                    </span>
-                  </h2>
-                  <p className="text-[11px] font-normal text-slate-400">UpNext Technical Panel</p>
-                </div>
-
-                <div className="pt-0.5">
-                  <AudioWave isActive={isAiSpeaking} color="#10b981" barCount={20} height={22} />
-                </div>
-              </div>
-
-              {/* Top Left Speaker Badge (Reference 1: TS Mrs. Tania Shahira) */}
-              <div className="absolute top-3.5 left-3.5 flex items-center gap-2 rounded-full border border-slate-700/50 bg-slate-900/75 px-2.5 py-1 text-xs text-slate-200 shadow-sm backdrop-blur-md">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-[10px] font-semibold text-slate-200">
-                  TS
-                </span>
-                <span className="text-[11px] font-medium">Mrs. Tania Shahira</span>
-              </div>
-
-              {/* Candidate PIP Video Card (Reference 1: Top Right RT Candidate) */}
-              <div className="absolute top-3.5 right-3.5 aspect-video w-36 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900 shadow-lg sm:w-44">
-                {isCameraOn ? (
-                  <video
-                    ref={candidateVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="h-full w-full -scale-x-100 transform object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center bg-slate-900 text-slate-300">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-xs font-semibold text-emerald-400">
-                      {candidateInitials}
-                    </div>
-                  </div>
-                )}
-
-                {/* Candidate Name Tag & Live Indicator inside PIP */}
-                <div className="absolute right-1.5 bottom-1.5 left-1.5 flex items-center justify-between rounded-md bg-slate-950/80 px-2 py-0.5 text-[10px] text-slate-200 backdrop-blur-xs">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-purple-600/80 text-[8px] font-bold text-white">
-                      {candidateInitials}
-                    </span>
-                    <span className="truncate font-normal">{candidateName}</span>
-                  </div>
-                  {isCandidateSpeaking && (
-                    <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400" />
-                  )}
-                </div>
-              </div>
-
-              {/* Floating Center Control Bar (Reference 1: HireByte) */}
-              <div className="absolute inset-x-0 bottom-3.5 flex items-center justify-center">
-                <div className="flex items-center gap-1.5 rounded-2xl border border-slate-800 bg-slate-900/80 p-1 shadow-xl backdrop-blur-md">
-                  {/* Microphone toggle */}
-                  <button
-                    type="button"
-                    onClick={toggleMic}
-                    className={`rounded-xl p-2.5 transition-colors ${
-                      isMicOn
-                        ? "bg-slate-800 text-slate-200 hover:bg-slate-700"
-                        : "bg-red-500 text-white hover:bg-red-600"
-                    }`}
-                    title={isMicOn ? "Tắt Micro" : "Bật Micro"}
-                  >
-                    {isMicOn ? (
-                      <Microphone size={16} weight="bold" />
-                    ) : (
-                      <MicrophoneSlash size={16} weight="bold" />
-                    )}
-                  </button>
-
-                  {/* Camera toggle */}
-                  <button
-                    type="button"
-                    onClick={toggleCamera}
-                    className={`rounded-xl p-2.5 transition-colors ${
-                      isCameraOn
-                        ? "bg-slate-800 text-slate-200 hover:bg-slate-700"
-                        : "bg-red-500 text-white hover:bg-red-600"
-                    }`}
-                    title={isCameraOn ? "Tắt Camera" : "Bật Camera"}
-                  >
-                    {isCameraOn ? (
-                      <Camera size={16} weight="bold" />
-                    ) : (
-                      <CameraSlash size={16} weight="bold" />
-                    )}
-                  </button>
-
-                  {/* Speaker sound toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setIsMutedSound(!isMutedSound)}
-                    className="rounded-xl bg-slate-800 p-2.5 text-slate-200 transition-colors hover:bg-slate-700"
-                    title={isMutedSound ? "Bật âm thanh" : "Tắt âm thanh"}
-                  >
-                    {isMutedSound ? (
-                      <SpeakerSimpleSlash size={16} weight="bold" />
-                    ) : (
-                      <SpeakerHigh size={16} weight="bold" />
-                    )}
-                  </button>
-
-                  {/* End Call button */}
-                  <button
-                    type="button"
-                    onClick={onFinishInterview}
-                    className="ml-1 rounded-xl bg-red-600 p-2.5 text-white transition-colors hover:bg-red-700"
-                    title="Kết thúc phỏng vấn"
-                  >
-                    <PhoneDisconnect size={16} weight="bold" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Real-time Conversation Subtitles Bar (Reference 2: Conversation now) */}
-          <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                <AudioWave
-                  isActive={isAiSpeaking || isCandidateSpeaking}
-                  color="#0aa56f"
-                  barCount={10}
-                  height={16}
-                />
-                Conversation now
-              </span>
-              <div className="flex items-center gap-2 font-mono text-[11px]">
-                <span>
-                  Tốc độ: <strong className="text-slate-800 dark:text-slate-200">{wpm} WPM</strong>
-                </span>
-                <span>•</span>
-                <span>
-                  Số từ: <strong className="text-slate-800 dark:text-slate-200">{wordCount}</strong>
-                </span>
-              </div>
-            </div>
-
-            <div className="flex min-h-[48px] items-center rounded-xl border border-slate-200/60 bg-slate-50 p-3 text-xs leading-relaxed font-normal text-slate-800 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-200">
-              {transcriptText ? (
-                <p>&quot;{transcriptText}&quot;</p>
-              ) : (
-                <p className="flex items-center gap-1.5 text-slate-400 italic dark:text-slate-500">
-                  <Microphone size={14} />
-                  Hãy bắt đầu nói câu trả lời của bạn qua Micro hoặc gõ vào ô bên dưới...
-                </p>
-              )}
-            </div>
-
-            {/* Quick Answer Input Box */}
-            <div className="flex items-center gap-2 pt-0.5">
-              <input
-                type="text"
-                value={answerDraft}
-                onChange={(e) => setAnswerDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && answerDraft.trim()) {
-                    handleCompleteCurrentQuestion();
-                  }
-                }}
-                placeholder="Gõ nhanh bổ sung câu trả lời của bạn..."
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-normal text-slate-900 focus:ring-1 focus:ring-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-white"
-              />
-              <button
-                type="button"
-                onClick={handleCompleteCurrentQuestion}
-                className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
-              >
-                <span>Xác nhận</span>
-                <PaperPlaneRight size={14} weight="bold" />
-              </button>
-            </div>
-          </div>
-
-          {/* Key Meeting Notes & AI Summary Card (Reference 1: HireByte) */}
-          <div className="space-y-3.5 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-xs font-semibold text-slate-900 sm:text-sm dark:text-white">
-                Key Meeting Notes — Hiring: {role.title}
-              </h3>
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                <span className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 dark:bg-slate-800">
-                  <Calendar size={13} className="text-slate-500" />
-                  {new Date().toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-                <span className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 dark:bg-slate-800">
-                  <Tag size={13} className="text-slate-500" />
-                  Technical
-                </span>
-                <span className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 dark:bg-slate-800">
-                  <Users size={13} className="text-slate-500" />
-                  Mrs. Tania Shahira, {candidateName}
-                </span>
-              </div>
-            </div>
-
-            {/* AI Summary of Meeting Box */}
-            <div className="space-y-1.5 rounded-xl border border-purple-100 bg-purple-50/50 p-3.5 dark:border-purple-900/40 dark:bg-purple-950/20">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-900 dark:text-purple-300">
-                <Sparkle size={14} weight="fill" className="text-purple-600 dark:text-purple-400" />
-                AI Summary of Response
-              </div>
-              <p className="text-[11px] leading-relaxed font-normal text-slate-600 dark:text-slate-300">
-                {currentQuestion.feedbackVi ||
-                  "Mrs. Tania Shahira led the technical screening for the position. Candidate responses are evaluated on architectural depth, code quality, and system scalability."}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN (4 cols) */}
-        <div className="space-y-3.5 lg:col-span-4">
-          <div className="space-y-3.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:border-slate-800 dark:bg-slate-900">
-            {/* Tabs Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-              <div className="flex gap-1 rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800/80">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("questions")}
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                    activeTab === "questions"
-                      ? "bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
-                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
-                  }`}
-                >
-                  <ListChecks size={15} />
-                  Question List
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("telemetry")}
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                    activeTab === "telemetry"
-                      ? "bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
-                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
-                  }`}
-                >
-                  <Waveform size={15} />
-                  AI Telemetry
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("radar")}
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                    activeTab === "radar"
-                      ? "bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
-                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
-                  }`}
-                >
-                  <ChartBar size={15} />
-                  AI Radar
-                </button>
-              </div>
-
-              <span className="font-mono text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                {questions.filter((q) => q.status === "answered").length}/{questions.length}
-              </span>
-            </div>
-
-            {/* TAB 1: Question List (Reference 1: HireByte) */}
-            {activeTab === "questions" && (
-              <div className="space-y-2.5">
-                {questions.map((q, idx) => {
-                  const isCurrent = idx === currentQuestionIndex;
-                  const isAnswered = q.status === "answered";
-
-                  return (
-                    <div
-                      key={q.id}
-                      onClick={() => setCurrentQuestionIndex(idx)}
-                      className={`cursor-pointer rounded-xl border p-3.5 text-left transition-all ${
-                        isCurrent
-                          ? "border-emerald-500 bg-emerald-50/30 shadow-xs ring-1 ring-emerald-500/20 dark:bg-emerald-950/20"
-                          : isAnswered
-                            ? "border-slate-200/70 bg-slate-50/40 dark:border-slate-800 dark:bg-slate-800/30"
-                            : "border-slate-200/70 bg-white hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-900 dark:hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="mb-1 flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`flex h-5 w-5 items-center justify-center rounded-md font-mono text-[11px] font-medium ${
-                              isCurrent
-                                ? "bg-emerald-600 text-white"
-                                : isAnswered
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-                            }`}
-                          >
-                            {String(idx + 1).padStart(2, "0")}
-                          </span>
-                          <span className="text-[10px] font-medium text-slate-400">
-                            {q.categoryVi}
-                          </span>
-                        </div>
-
-                        {isAnswered && (
-                          <CheckCircle
-                            size={16}
-                            weight="fill"
-                            className="shrink-0 text-emerald-500"
-                          />
-                        )}
-                      </div>
-
-                      <h4 className="text-xs leading-relaxed font-medium text-slate-900 dark:text-white">
-                        {q.question}
-                      </h4>
-
-                      {isAnswered && q.sampleAnswer && (
-                        <p className="mt-1.5 line-clamp-2 text-[11px] leading-relaxed font-normal text-slate-500 dark:text-slate-400">
-                          {q.sampleAnswer}
-                        </p>
-                      )}
-
-                      {isCurrent && (
-                        <div className="mt-2 flex flex-wrap gap-1 border-t border-emerald-200/50 pt-2 dark:border-emerald-900/50">
-                          {q.keyTopics.map((t, i) => (
-                            <span
-                              key={i}
-                              className="rounded border border-emerald-200/80 bg-white px-1.5 py-0.5 text-[10px] font-normal text-slate-600 dark:border-emerald-800 dark:bg-slate-900 dark:text-slate-300"
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* TAB 2: AI Live Telemetry (Web Audio & Computer Vision Metrics) */}
-            {activeTab === "telemetry" && (
-              <div className="space-y-3.5 text-xs">
-                {/* 2 Circle Gauges (Reference 2: InterviewAI) */}
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div className="space-y-1 rounded-xl border border-slate-200/60 bg-slate-50 p-3 text-center dark:border-slate-800 dark:bg-slate-800/40">
-                    <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border-2 border-emerald-500 font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      {confidenceScore}%
-                    </div>
-                    <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200">
-                      Tự Tin & Thần Thái
-                    </p>
-                  </div>
-
-                  <div className="space-y-1 rounded-xl border border-slate-200/60 bg-slate-50 p-3 text-center dark:border-slate-800 dark:bg-slate-800/40">
-                    <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border-2 border-blue-500 font-mono text-xs font-semibold text-blue-500">
-                      {eyeContactScore}%
-                    </div>
-                    <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200">
-                      Giao Tiếp Mắt
-                    </p>
-                  </div>
-                </div>
-
-                {/* Audio Telemetry Indicators */}
-                <div className="space-y-2 rounded-xl border border-slate-200/60 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/40">
-                  <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                    <Microphone size={14} className="text-emerald-500" />
-                    Chỉ số Giọng nói (Web Audio)
-                  </span>
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div className="flex justify-between rounded-lg border border-slate-200/60 bg-white p-1.5 dark:border-slate-800 dark:bg-slate-900">
-                      <span className="text-slate-400">Cường độ (RMS):</span>
-                      <span className="font-mono font-bold text-emerald-600">{rmsIntensity}%</span>
-                    </div>
-                    <div className="flex justify-between rounded-lg border border-slate-200/60 bg-white p-1.5 dark:border-slate-800 dark:bg-slate-900">
-                      <span className="text-slate-400">Độ ổn định:</span>
-                      <span className="font-mono font-bold text-blue-500">{voiceStability}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* AI Multimodal Live Coaching Advice */}
-                <div className="space-y-1 rounded-xl border border-emerald-200/70 bg-emerald-50 p-3 text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/30 dark:text-emerald-300">
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold">
-                    <ShieldCheck size={14} className="text-emerald-600" />
-                    Đánh giá Thời Gian Thực
-                  </div>
-                  <p className="text-[11px] leading-relaxed font-normal">
-                    Thần thái và âm điệu đang rất ổn định! Hãy tiếp tục duy trì tốc độ nói tự nhiên
-                    ({wpm} WPM).
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: AI Radar & Workmap Score (Reference 2) */}
-            {activeTab === "radar" && (
-              <div className="space-y-3.5">
-                <div className="flex flex-col items-center rounded-xl border border-slate-200/60 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-800/30">
-                  <div className="flex w-full items-center justify-between px-2 pb-1 text-xs font-medium text-slate-700 dark:text-slate-300">
-                    <span>Biểu đồ Năng lực AI</span>
-                    <Info size={13} className="text-slate-400" />
-                  </div>
-                  <AiScoreRadar competencies={DEFAULT_MOCK_REPORT.competencies} size={230} />
-                </div>
-
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300">
-                    <span>Workmap Breakdown</span>
-                    <TrendUp size={13} className="text-purple-500" />
-                  </div>
-                  {DEFAULT_MOCK_REPORT.workmapMetrics.map((metric, idx) => (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex justify-between text-[11px]">
-                        <span className="font-normal text-slate-600 dark:text-slate-400">
-                          {metric.label}
-                        </span>
-                        <span className="font-mono font-medium text-slate-800 dark:text-slate-200">
-                          {metric.percentage}%
-                        </span>
-                      </div>
-                      <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${metric.percentage}%`,
-                            backgroundColor: metric.color,
-                          }}
-                        />
-                      </div>
-                    </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
+        </div>
+
+        {/* Right Column (7 cols): Candidate Live Feed, STT Subtitles & Multimodal Telemetry */}
+        <div className="flex flex-col space-y-4 lg:col-span-7">
+          <CandidateVideo
+            stream={stream}
+            onMetricsUpdate={handleFaceMetricsUpdate}
+            isActive={true}
+          />
+
+          <LiveTranscript
+            transcript={transcript}
+            onTranscriptChange={(newT) => setTranscript(newT)}
+            wpm={currentWpm}
+            detectedFillers={detectedFillers}
+            isListening={!isAiSpeaking}
+            isAiSpeaking={isAiSpeaking}
+            language={config.language}
+            error={sttError}
+            isTranscribing={isTranscribingChunk}
+            onRestart={startCandidateSTT}
+          />
+
+          <LiveMetricsPanel faceMetrics={currentFaceMetrics} audioMetrics={currentAudioMetrics} />
         </div>
       </div>
 
-      {/* 3. BOTTOM ACTION FOOTER BAR */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:border-slate-800 dark:bg-slate-900">
-        {/* Left Side: Hints & Reset Buttons */}
-        <div className="flex items-center gap-2">
+      {/* Bottom Action / Navigation Toolbar */}
+      <div className="sticky bottom-2 z-30 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-800 bg-slate-900/95 p-3 shadow-2xl backdrop-blur-xl">
+        <div className="flex items-center space-x-2">
           <button
             type="button"
-            onClick={() => setShowHintModal(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 shadow-xs transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"
+            onClick={() => setShowHint(!showHint)}
+            className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-700"
           >
-            <Lightbulb size={15} weight="duotone" className="text-amber-500" />
-            <span>Gợi ý ý chính</span>
+            <HelpCircle className="h-4 w-4 text-indigo-400" />
+            <span className="hidden sm:inline">Gợi ý ý chính</span>
           </button>
 
           <button
             type="button"
             onClick={() => {
-              setTranscriptText("");
-              setAnswerDraft("");
-              setWordCount(0);
-              setWpm(0);
+              setTranscript("");
+              detectedFillersRef.current = [];
+              setDetectedFillers([]);
             }}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 shadow-xs transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-700"
           >
-            <ArrowsClockwise size={15} />
-            <span>Làm lại câu này</span>
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Xóa trả lời</span>
           </button>
+
+          {/* Skip Follow-up Button (Only appears during follow-up questions) */}
+          {followUpState?.isActive && (
+            <button
+              type="button"
+              onClick={handleSkipFollowUp}
+              disabled={isEvaluating}
+              className="flex items-center gap-1.5 rounded-xl border border-purple-500/40 bg-purple-950/80 px-3 py-2 text-xs font-bold text-purple-300 shadow-lg shadow-purple-950/50 transition hover:bg-purple-900/80 hover:text-purple-100"
+              title="Bỏ qua câu hỏi đào sâu này và chuyển sang câu hỏi chính tiếp theo"
+            >
+              <FastForward className="h-3.5 w-3.5 text-purple-400" />
+              <span>Bỏ qua hỏi sâu</span>
+            </button>
+          )}
         </div>
 
-        {/* Right Side: Primary Next/Finish CTA */}
+        <div className="hidden items-center gap-1.5 rounded-xl border border-indigo-500/30 bg-indigo-950/60 px-3 py-1.5 text-xs text-indigo-300 lg:flex">
+          <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+          <span>
+            Khẩu lệnh: Đọc{" "}
+            <strong className="text-white">&quot;Câu trả lời của mình đã kết thúc&quot;</strong>
+          </span>
+        </div>
+
         <button
           type="button"
-          onClick={handleCompleteCurrentQuestion}
-          className="flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-emerald-700 sm:text-sm"
+          onClick={() => handleSubmitAnswer()}
+          disabled={isEvaluating}
+          className={`flex items-center space-x-2 rounded-xl px-6 py-2.5 text-xs font-bold shadow-xl transition disabled:opacity-50 sm:text-sm ${
+            followUpState?.isActive
+              ? "bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white shadow-purple-600/25 hover:from-purple-500 hover:to-pink-500"
+              : "bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-indigo-600/25 hover:from-indigo-500 hover:to-purple-500"
+          }`}
         >
-          <span>
-            {currentQuestionIndex < questions.length - 1
-              ? "Hoàn Thành & Chuyển Câu Tiếp"
-              : "Hoàn Tất & Xem Báo Cáo"}
-          </span>
-          <ArrowRight size={15} weight="bold" />
+          {isEvaluating ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <span>AI Server Đang Đánh Giá...</span>
+            </>
+          ) : followUpState?.isActive ? (
+            <>
+              <span>Gửi Trả Lời Đào Sâu</span>
+              <ArrowRight className="h-4 w-4" />
+            </>
+          ) : currentIndex + 1 < questions.length ? (
+            <>
+              <span>Hoàn Thành & Chuyển Câu Tiếp</span>
+              <ArrowRight className="h-4 w-4" />
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4" />
+              <span>Nộp Bài & Xem Báo Cáo Tổng Kết</span>
+            </>
+          )}
         </button>
       </div>
 
-      {/* Floating Modal for Hints */}
-      {showHintModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-              <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-                <Lightbulb size={18} className="text-amber-500" />
-                Gợi Ý Ý Chính Cho Câu Hỏi Này
-              </h4>
-              <button
-                type="button"
-                onClick={() => setShowHintModal(false)}
-                className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs text-slate-500 hover:text-slate-900 dark:bg-slate-800"
-              >
-                Đóng
-              </button>
+      {/* Voice Auto-Submit Toast Overlay */}
+      {isVoiceSubmitting && (
+        <div className="animate-fadeIn fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+          <div className="flex max-w-sm flex-col items-center space-y-3 rounded-2xl border-2 border-emerald-500/80 bg-slate-900 p-6 text-center shadow-2xl">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/20 text-emerald-400">
+              <Sparkles className="h-6 w-6 animate-spin" />
             </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <span className="mb-1 block text-[11px] font-semibold tracking-wider text-purple-600 uppercase dark:text-purple-400">
-                  Từ khóa trọng tâm:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {currentQuestion.keyTopics.map((topic, i) => (
-                    <span
-                      key={i}
-                      className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                    >
-                      {topic}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <span className="mb-1 block text-[11px] font-semibold tracking-wider text-emerald-600 uppercase dark:text-emerald-400">
-                  Cấu trúc trả lời khuyên dùng (STAR Method):
-                </span>
-                <ul className="list-disc space-y-1.5 pl-4 font-normal text-slate-600 dark:text-slate-300">
-                  {currentQuestion.idealPointsVi.map((pt, i) => (
-                    <li key={i} className="leading-relaxed">
-                      {pt}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+            <h3 className="text-base font-bold text-slate-100">🎯 Đã Nhận Khẩu Lệnh Kết Thúc!</h3>
+            <p className="text-xs font-medium text-emerald-300">
+              &quot;Câu trả lời của mình đã kết thúc&quot; ➔ Đang tự động nộp câu trả lời...
+            </p>
           </div>
         </div>
       )}
+
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        config={config}
+        onUpdateConfig={(updates) => {
+          Object.assign(config, updates);
+        }}
+      />
     </div>
   );
 };
