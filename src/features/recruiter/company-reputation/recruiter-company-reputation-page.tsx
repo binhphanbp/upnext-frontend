@@ -152,7 +152,9 @@ export function RecruiterCompanyReputationPage() {
       try {
         const session = getRecruiterSession();
         if (!session) {
-          router.replace("/recruiter/login");
+          router.replace(
+            `/recruiter/login?redirect=${encodeURIComponent("/recruiter/company-reputation")}`,
+          );
           return;
         }
 
@@ -177,7 +179,9 @@ export function RecruiterCompanyReputationPage() {
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
           clearRecruiterSession();
-          router.replace("/recruiter/login");
+          router.replace(
+            `/recruiter/login?redirect=${encodeURIComponent("/recruiter/company-reputation")}`,
+          );
           return;
         }
         setLoadError(t("state.loadErrorDesc"));

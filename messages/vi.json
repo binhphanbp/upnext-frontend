@@ -3871,12 +3871,15 @@
           "statusOptions": {
             "pending": "Chờ duyệt",
             "verified": "Đã xác thực",
+            "rejected": "Hồ sơ bị từ chối",
+            "unverified": "Chưa xác thực",
             "locked": "Bị khóa"
           },
           "actionOptions": {
             "copyId": "Copy ID Công ty",
             "viewProfile": "Xem hồ sơ công ty",
             "approve": "Duyệt tài khoản (KYC)",
+            "reject": "Từ chối hồ sơ",
             "upgrade": "Nâng cấp gói dịch vụ",
             "lock": "Khóa tài khoản"
           }
@@ -4588,6 +4591,7 @@
       "submitting": "Đang xử lý...",
       "success": "Chúc mừng! Bạn đã tham gia công ty thành công.",
       "invalidInvitation": "Lời mời không hợp lệ hoặc đã hết hạn.",
+      "expiredInvitation": "Lời mời đã hết hạn. Vui lòng liên hệ công ty để được gửi lại lời mời.",
       "backToLogin": "Quay lại trang Đăng nhập",
       "alreadyAccepted": "Lời mời này đã được chấp nhận hoặc không còn hiệu lực.",
       "alreadyLoggedInTitle": "Chấp nhận lời mời",

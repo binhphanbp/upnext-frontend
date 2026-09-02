@@ -3866,12 +3866,15 @@
           "statusOptions": {
             "pending": "Pending",
             "verified": "Verified",
+            "rejected": "Rejected",
+            "unverified": "Unverified",
             "locked": "Locked"
           },
           "actionOptions": {
             "copyId": "Copy Company ID",
             "viewProfile": "View Company Profile",
             "approve": "Approve Account (KYC)",
+            "reject": "Reject application",
             "upgrade": "Upgrade Service Plan",
             "lock": "Lock Account"
           }
@@ -4567,6 +4570,7 @@
       "submitting": "Processing...",
       "success": "Congratulations! You have successfully joined the company.",
       "invalidInvitation": "Invalid or expired invitation link.",
+      "expiredInvitation": "This invitation has expired. Please ask the company to send you a new one.",
       "backToLogin": "Back to Login",
       "alreadyAccepted": "This invitation has already been accepted or is no longer valid.",
       "alreadyLoggedInTitle": "Accept Invitation",
