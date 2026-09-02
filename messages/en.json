@@ -994,6 +994,7 @@
       "report": "Recruitment Dashboard",
       "jobPosts": "Job Posts",
       "candidates": "Candidates",
+      "talentPool": "Find Candidates",
       "interviews": "Interviews",
       "messages": "Messages",
       "company": "Company",
@@ -1700,6 +1701,8 @@
           "benefitsPlaceholder": "Enter employee benefits...",
           "offerLetterTemplate": "Offer Letter Template",
           "offerLetterTemplatePlaceholder": "Write the offer letter sent to candidates...",
+          "applicationInvitationTemplate": "Application Invitation Template",
+          "applicationInvitationTemplatePlaceholder": "Write the application invitation letter sent to candidates...",
           "rejectionLetterTemplate": "Rejection Letter Template",
           "rejectionLetterTemplatePlaceholder": "Write the rejection letter sent to candidates...",
           "license": "Business License",
@@ -2587,6 +2590,115 @@
         "cancelButton": "Cancel",
         "successAll": "Updated {count} applications.",
         "successPartial": "Updated {success}/{total} applications successfully. Some could not be changed."
+      }
+    },
+    "talentPool": {
+      "title": "Find Candidates",
+      "subtitle": "Browse candidates who made their profile public and open to outreach.",
+      "browse": {
+        "empty": "No candidates match the current filters yet."
+      },
+      "tabs": {
+        "browse": "Browse all",
+        "aiSearch": "AI-filter by JD",
+        "premiumBadge": "Paid"
+      },
+      "quota": {
+        "label": "Detail views",
+        "unlimited": "Unlimited views",
+        "usageTemplate": "{used}/{limit} views used this month",
+        "resetsOnTemplate": "resets on {date}",
+        "upgradeAction": "Upgrade plan",
+        "unlockedBadge": "Full contact info unlocked"
+      },
+      "searchResultsCount": "{count} search results",
+      "viewMode": {
+        "list": "List view",
+        "grid": "Grid view"
+      },
+      "card": {
+        "noHeadline": "No professional headline yet",
+        "viewDetail": "Detailed Profile",
+        "viewedBadge": "Viewed this month",
+        "matchScoreLabel": "{score}% match",
+        "activeSeeking": "Open to work",
+        "lastUpdated": "Last updated: {date}",
+        "upgradeToViewCompany": "Upgrade plan to view full details...",
+        "noExperience": "No experience",
+        "experienceYears": "{years} years",
+        "salaryNegotiable": "Negotiable",
+        "hasCvTooltip": "Original CV attached",
+        "saveCandidate": "Save profile",
+        "savedCandidate": "Saved"
+      },
+      "detail": {
+        "title": "Candidate detail",
+        "backToList": "Back to Find Candidates",
+        "maskedNotice": "Upgrade your plan to see this candidate's phone number, email, and download their original CV.",
+        "upgradeAction": "Upgrade plan",
+        "viewContactAction": "View contact information",
+        "viewContactWithPoints": "View contact information (-2 Points)",
+        "inviteAction": "Send application invitation",
+        "invitationDialogText": "Leave the message blank to use the template saved in Company Profile.",
+        "invitationMessageLabel": "Application invitation message",
+        "invitationMessagePlaceholder": "Enter a custom message for this invitation (optional)",
+        "sendInvitation": "Send invitation",
+        "cancelInvitation": "Cancel",
+        "sendingInvitation": "Sending...",
+        "invitationSentTitle": "Invitation sent",
+        "invitationSentText": "The application invitation email has been sent to the candidate.",
+        "invitationErrorTitle": "Could not send invitation",
+        "invitationAlreadySent": "Invitation Sent",
+        "shareAction": "Share",
+        "shareCopied": "Candidate profile link copied to clipboard",
+        "quotaTrialNotice": "You have {count} candidate preview views left this month.",
+        "downloadCv": "Download original CV",
+        "downloading": "Downloading…",
+        "noContactInfo": "This candidate hasn't provided contact details.",
+        "experienceHeading": "Work experience",
+        "educationHeading": "Education",
+        "projectsHeading": "Projects",
+        "certificationsHeading": "Certifications",
+        "languagesHeading": "Languages",
+        "noSourceFile": "This candidate has no original CV file to download (CV Builder only).",
+        "current": "Current",
+        "generalInfoHeading": "General information",
+        "currentPositionLabel": "Current position",
+        "desiredLevelLabel": "Desired level",
+        "workingModelLabel": "Desired working model",
+        "desiredSalaryLabel": "Desired salary",
+        "birthdateLabel": "Date of birth",
+        "genderLabel": "Gender",
+        "addressLabel": "Address",
+        "preferredWorkLocationLabel": "Preferred work location",
+        "educationDegreeLabel": "Highest degree",
+        "languageSkillLabel": "Languages",
+        "desiredPositionLabel": "Desired position",
+        "attachedCvHeading": "Attached CV",
+        "previewCvNotice": "Preview of candidate's original attached CV",
+        "noCvAttached": "This candidate has not attached an original CV file."
+      },
+      "aiSearch": {
+        "jobPostPlaceholder": "Pick a job post to use as the JD",
+        "searchAction": "Filter Candidates",
+        "searching": "Filtering…",
+        "remainingTemplate": "{remaining} searches left this month",
+        "emptyResult": "No candidates matched this JD yet.",
+        "upsellTitle": "AI Candidate Search by JD",
+        "upsellDescription": "Upgrade your plan to let AI rank all candidates by how well they match a specific job post."
+      },
+      "errors": {
+        "viewDetailTitle": "Could not open candidate detail",
+        "downloadTitle": "Could not download CV",
+        "aiSearchTitle": "Could not filter candidates",
+        "generic": "Something went wrong. Please try again."
+      },
+      "pagination": {
+        "showingRange": "Showing {from} - {to} of {total} candidates",
+        "perPage": "{count} / page",
+        "previous": "Previous page",
+        "next": "Next page",
+        "pageLabel": "Page {page}"
       }
     }
   },
