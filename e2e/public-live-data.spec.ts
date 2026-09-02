@@ -158,7 +158,7 @@ test("keeps every public header mega menu readable and inside the viewport", asy
       label: "Tính năng",
       destinations: [
         "/vi/register",
-        "/vi/register",
+        "/vi/ai-interview",
         "/vi/register",
         "/vi/jobs",
         "/vi/register",
