@@ -1976,10 +1976,8 @@
         "dialog": {
           "title": "Đẩy tin tuyển dụng",
           "description": "Đẩy \"{title}\" trong 7 ngày để tăng lượt tiếp cận ứng viên.",
-          "typeFeatured": "Nổi bật",
-          "typeFeaturedHint": "Ưu tiên hiển thị ở các vị trí nổi bật.",
-          "typeUrgent": "Tuyển gấp",
-          "typeUrgentHint": "Gắn nhãn \"Tuyển gấp\" để thu hút ứng viên nhanh.",
+          "typeFeatured": "Đẩy tin nổi bật (Hiệu lực 7 ngày)",
+          "typeFeaturedHint": "Tin tuyển dụng sẽ được gắn nhãn Được tài trợ và ưu tiên hiển thị ở các vị trí tài trợ trên trang tìm việc và trang chủ.",
           "rules": "Mỗi lượt đẩy tiêu 1 lượt trong hạn mức gói, kéo dài đúng 7 ngày, không cộng dồn. Sau khi tin đã được hiển thị, dừng sớm sẽ không được hoàn lại.",
           "quotaRemaining": "Còn lại {count} lượt đẩy trong kỳ này.",
           "quotaUnlimited": "Gói của bạn không giới hạn lượt đẩy.",

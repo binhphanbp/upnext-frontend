@@ -1976,10 +1976,8 @@
         "dialog": {
           "title": "Boost job post",
           "description": "Boost \"{title}\" for 7 days to reach more candidates.",
-          "typeFeatured": "Featured",
-          "typeFeaturedHint": "Priority placement in featured spots.",
-          "typeUrgent": "Urgent hiring",
-          "typeUrgentHint": "Tag as \"Urgent hiring\" to attract candidates faster.",
+          "typeFeatured": "Featured Boost (7-day duration)",
+          "typeFeaturedHint": "Your job post will receive the Sponsored badge and priority sponsored placement across search and homepage.",
           "rules": "Each boost consumes 1 credit from your plan's allowance, lasts exactly 7 days, and does not roll over. Once the post has been shown to candidates, stopping early does not refund the credit.",
           "quotaRemaining": "{count} boost credit(s) left this period.",
           "quotaUnlimited": "Your plan has unlimited boost credits.",

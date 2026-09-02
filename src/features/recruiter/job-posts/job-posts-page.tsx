@@ -2494,11 +2494,6 @@ function BoostConfirmDialog({
   onConfirm: (type: JobBoostType) => void;
 }) {
   const t = useTranslations("Recruiter");
-  const [type, setType] = useState<JobBoostType>("FEATURED");
-
-  useEffect(() => {
-    if (job) setType("FEATURED");
-  }, [job]);
 
   const remaining = quota?.remaining ?? null;
   const outOfQuota = remaining !== null && remaining <= 0;
@@ -2517,32 +2512,20 @@ function BoostConfirmDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-2">
-          <div className="grid grid-cols-2 gap-3">
-            {(["FEATURED", "URGENT"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                disabled={submitting}
-                onClick={() => setType(option)}
-                className={cn(
-                  "cursor-pointer rounded-xl border-2 p-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60",
-                  type === option
-                    ? "border-indigo-500 bg-indigo-50"
-                    : "border-slate-200 hover:border-slate-300",
-                )}
-              >
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm">
+                <Rocket size={20} weight="fill" />
+              </div>
+              <div>
                 <p className="text-sm font-semibold text-slate-800">
-                  {option === "FEATURED"
-                    ? t("jobPostsPage.boost.dialog.typeFeatured")
-                    : t("jobPostsPage.boost.dialog.typeUrgent")}
+                  {t("jobPostsPage.boost.dialog.typeFeatured")}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {option === "FEATURED"
-                    ? t("jobPostsPage.boost.dialog.typeFeaturedHint")
-                    : t("jobPostsPage.boost.dialog.typeUrgentHint")}
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                  {t("jobPostsPage.boost.dialog.typeFeaturedHint")}
                 </p>
-              </button>
-            ))}
+              </div>
+            </div>
           </div>
 
           <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
@@ -2567,7 +2550,7 @@ function BoostConfirmDialog({
           </Button>
           <Button
             type="button"
-            onClick={() => onConfirm(type)}
+            onClick={() => onConfirm("FEATURED")}
             disabled={submitting || outOfQuota}
             className="bg-indigo-600 font-semibold text-white hover:bg-indigo-700"
           >
