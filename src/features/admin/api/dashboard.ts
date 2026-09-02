@@ -89,7 +89,7 @@ export async function getAdminDashboard(
       apiRequest<any>(`/candidate-accounts?limit=50`, {
         headers: { Authorization: `Bearer ${token}` },
       }).catch(() => null),
-      apiRequest<any>(`/companies?limit=1000`, {
+      apiRequest<any>(`/companies?limit=100`, {
         headers: { Authorization: `Bearer ${token}` },
       }).catch(() => null),
       apiRequest<any>(`/recruiter-accounts?limit=50`, {
