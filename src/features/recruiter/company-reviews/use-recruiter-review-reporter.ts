@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
   reportCompanyReview,
-  uploadReviewReportEvidence,
+  uploadReviewReportEvidenceIds,
 } from "@/features/recruiter/company-reviews/api";
 import { getRecruiterSession, type RecruiterSession } from "@/features/recruiter/session";
 
@@ -34,13 +34,11 @@ export function useRecruiterReviewReporter(companyId: string) {
     }: {
       reviewId: string;
       reason: string;
-      evidence: File | null;
+      evidence: File[];
     }) => {
       if (!session) throw new Error("Recruiter session is unavailable");
-      const evidenceFileId = evidence
-        ? (await uploadReviewReportEvidence(evidence, session.accessToken)).file.id
-        : undefined;
-      return reportCompanyReview(session.accessToken, reviewId, reason, evidenceFileId);
+      const evidenceFileIds = await uploadReviewReportEvidenceIds(evidence, session.accessToken);
+      return reportCompanyReview(session.accessToken, reviewId, reason, evidenceFileIds);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["public-company-reviews", companyId] });
@@ -50,7 +48,7 @@ export function useRecruiterReviewReporter(companyId: string) {
   return {
     canReport,
     isSessionResolved: session !== undefined,
-    report: (reviewId: string, reason: string, evidence: File | null = null) =>
+    report: (reviewId: string, reason: string, evidence: File[] = []) =>
       reportMutation.mutateAsync({ reviewId, reason, evidence }),
     isReporting: reportMutation.isPending,
   };

@@ -69,15 +69,6 @@ export type PublicCompanyReview = Readonly<{
   id: string;
   overallRating: number;
   summary: string | null;
-  overtimeSatisfaction: number | null;
-  overtimeReason: string | null;
-  whatILove: string | null;
-  improvementSuggestion: string | null;
-  salaryBenefitsRating: number | null;
-  trainingLearningRating: number | null;
-  managementCareRating: number | null;
-  cultureFunRating: number | null;
-  officeWorkspaceRating: number | null;
   createdAt: string;
   /** Reviews are attributed: the reviewer's name is shown, and nothing else from their profile. */
   reviewer: { id: string; fullName: string };
@@ -86,14 +77,6 @@ export type PublicCompanyReview = Readonly<{
 export type CompanyReviewSummary = Readonly<{
   totalReviews: number;
   averageOverallRating: number | null;
-  averageBySection: Readonly<{
-    salaryBenefits: number | null;
-    trainingLearning: number | null;
-    managementCare: number | null;
-    cultureFun: number | null;
-    officeWorkspace: number | null;
-    overtimeSatisfaction: number | null;
-  }>;
 }>;
 
 export type CompanyReviewsResponse = Readonly<{
