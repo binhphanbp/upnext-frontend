@@ -259,7 +259,12 @@ export function RecruiterPricingPage() {
 
       {/* Pricing Cards Grid */}
       <section aria-label="Danh sách gói dịch vụ">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div
+          className={cn(
+            "grid gap-6 md:grid-cols-2",
+            plans.length <= 3 ? "lg:grid-cols-3" : "lg:grid-cols-3 xl:grid-cols-4",
+          )}
+        >
           {plans.map((plan) => {
             const isCurrent = activeSub?.planId === plan.id;
             const isHighlighted = Boolean(plan.highlightLabel);
@@ -269,24 +274,24 @@ export function RecruiterPricingPage() {
               <div
                 key={plan.id}
                 className={cn(
-                  "group relative flex flex-col justify-between rounded-3xl bg-white p-7 transition-all duration-300",
+                  "group relative flex flex-col justify-between rounded-3xl bg-white p-6 sm:p-7 transition-all duration-300",
                   isHighlighted
                     ? "border-2 border-emerald-500 shadow-xl shadow-emerald-500/10 ring-4 ring-emerald-500/10"
-                    : "border border-slate-200/80 shadow-sm hover:border-slate-300 hover:shadow-xl",
+                    : "border border-slate-200/90 shadow-sm hover:border-slate-300 hover:shadow-xl",
                 )}
               >
                 {/* Popular / Highlight Badge */}
                 {plan.highlightLabel ? (
-                  <div className="absolute -top-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-1 text-[11px] font-black tracking-widest text-white uppercase shadow-md">
-                    <Star size={12} weight="fill" className="text-amber-300" />
+                  <div className="absolute -top-3.5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-1 text-[11px] font-black tracking-wider whitespace-nowrap text-white uppercase shadow-md">
+                    <Star size={12} weight="fill" className="shrink-0 text-amber-300" />
                     {plan.highlightLabel}
                   </div>
                 ) : null}
 
-                <div>
+                <div className="flex flex-1 flex-col">
                   {/* Plan Icon Header */}
                   <div className="flex items-center justify-between">
-                    <div className="flex size-12 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 transition-transform group-hover:scale-110">
+                    <div className="flex size-12 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 transition-transform group-hover:scale-105">
                       {getPlanIcon(plan)}
                     </div>
                     {isFree ? (
@@ -300,29 +305,33 @@ export function RecruiterPricingPage() {
                     )}
                   </div>
 
-                  <h2 className="mt-5 text-xl font-extrabold text-slate-900">
+                  <h2 className="mt-4 flex min-h-[32px] items-center text-xl font-extrabold tracking-tight text-slate-900">
                     {plan.subscriptionName}
                   </h2>
                   {plan.description ? (
-                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                    <p className="mt-1.5 min-h-[36px] text-xs leading-relaxed text-slate-500">
                       {plan.description}
                     </p>
-                  ) : null}
+                  ) : (
+                    <div className="mt-1.5 min-h-[36px]" />
+                  )}
 
                   {/* Price */}
-                  <div className="mt-6 flex items-baseline border-b border-slate-100 pb-6">
-                    <span className="text-3xl font-black tracking-tight text-slate-950">
-                      {isFree ? "0 ₫" : formatCurrency(plan.price)}
-                    </span>
-                    {!isFree && (
-                      <span className="ml-1.5 text-xs font-semibold text-slate-400">
-                        / {plan.durationDays} ngày
+                  <div className="mt-5 border-b border-slate-100 pb-5">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span className="text-2xl font-black tracking-tight text-slate-950 sm:text-[28px]">
+                        {isFree ? "0 ₫" : formatCurrency(plan.price)}
                       </span>
-                    )}
+                      {!isFree && (
+                        <span className="text-xs font-semibold whitespace-nowrap text-slate-400">
+                          / {plan.durationDays} ngày
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Features Highlight */}
-                  <ul className="mt-6 space-y-3.5 text-xs">
+                  <ul className="mt-6 flex-1 space-y-3 text-xs">
                     {QUOTA_FEATURE_ORDER.filter((feature) => {
                       const entry = featureEntry(plan, feature);
                       return (
@@ -359,7 +368,7 @@ export function RecruiterPricingPage() {
                 </div>
 
                 {/* CTA Action */}
-                <div className="mt-8 pt-4">
+                <div className="mt-8 pt-2">
                   {isCurrent ? (
                     <Button
                       className="w-full cursor-not-allowed border border-emerald-200 bg-emerald-50 font-bold text-emerald-700 hover:bg-emerald-50"
