@@ -4702,6 +4702,7 @@
     "citations": {
       "title": "Evidence",
       "open": "Open source: {title}",
+      "version": "Version {version}",
       "source": {
         "CV": "CV",
         "JOB": "Job post",
@@ -4710,6 +4711,16 @@
         "POLICY": "Policy",
         "INTERVIEW": "Interview"
       }
+    },
+    "knowledgeSource": {
+      "back": "Back to AI Copilot",
+      "badge": "Reviewed UpNext guidance",
+      "version": "Version {version}",
+      "effective": "Effective {date}",
+      "review": "Review by {date}",
+      "unavailableTitle": "This source is unavailable",
+      "unavailableDetail": "It may no longer be published or your session may have expired.",
+      "retry": "Try again"
     },
     "match": {
       "fit": "Fit",
