@@ -429,7 +429,9 @@ test("uses localized candidate tools in the primary utility bar without adding h
   await expect(
     vietnameseUtilityNavigation.getByRole("link", { name: "Gợi ý việc theo hồ sơ" }),
   ).toHaveAttribute("href", "/vi/register");
-  await expect(vietnameseUtilityNavigation.getByLabel("AI Interview — Sắp ra mắt")).toBeVisible();
+  await expect(
+    vietnameseUtilityNavigation.getByRole("link", { name: "AI Interview" }),
+  ).toHaveAttribute("href", "/vi/ai-interview");
 
   await page.goto("/en");
   const englishUtilityNavigation = utilityBar.getByRole("navigation", {
@@ -441,7 +443,9 @@ test("uses localized candidate tools in the primary utility bar without adding h
   await expect(
     englishUtilityNavigation.getByRole("link", { name: "Build an ATS-ready CV" }),
   ).toHaveAttribute("href", "/en/register");
-  await expect(englishUtilityNavigation.getByLabel("AI Interview — Coming soon")).toBeVisible();
+  await expect(
+    englishUtilityNavigation.getByRole("link", { name: "AI Interview" }),
+  ).toHaveAttribute("href", "/en/ai-interview");
 
   // The header reads a real candidate session now; the old `upnext.demo.auth` flag no longer
   // signs anyone in, so setting it left the guest utility bar on screen.
@@ -459,6 +463,9 @@ test("uses localized candidate tools in the primary utility bar without adding h
   await expect(
     signedInCandidateUtilityNavigation.getByRole("link", { name: "CV của tôi" }),
   ).toHaveAttribute("href", "/vi/candidate/cv-builder");
+  await expect(
+    signedInCandidateUtilityNavigation.getByRole("link", { name: "AI Interview" }),
+  ).toHaveAttribute("href", "/vi/ai-interview");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(utilityBar).toBeHidden();
