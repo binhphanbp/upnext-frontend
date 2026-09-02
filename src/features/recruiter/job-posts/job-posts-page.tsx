@@ -2628,9 +2628,7 @@ function BoostMetricsDialog({
 
   const totals = data?.totals ?? { impressions: 0, clicks: 0, applications: 0, saves: 0 };
   const ctr =
-    totals.impressions > 0
-      ? `${((totals.clicks / totals.impressions) * 100).toFixed(1)}%`
-      : "0.0%";
+    totals.impressions > 0 ? `${((totals.clicks / totals.impressions) * 100).toFixed(1)}%` : "0.0%";
 
   return (
     <Dialog open={Boolean(boostId)} onOpenChange={(open) => !open && onClose()}>
@@ -2662,8 +2660,8 @@ function BoostMetricsDialog({
         ) : (
           <div className="flex flex-col gap-6 py-2">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4 text-center">
-                <span className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center sm:p-4">
+                <span className="flex items-center justify-center gap-1.5 text-[11px] font-semibold whitespace-nowrap text-slate-500 uppercase sm:text-xs">
                   <Eye size={15} className="shrink-0 text-indigo-600" />
                   {t("jobPostsPage.boost.metricsDialog.impressions")}
                 </span>
@@ -2672,8 +2670,8 @@ function BoostMetricsDialog({
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4 text-center">
-                <span className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center sm:p-4">
+                <span className="flex items-center justify-center gap-1.5 text-[11px] font-semibold whitespace-nowrap text-slate-500 uppercase sm:text-xs">
                   <CursorClick size={15} className="shrink-0 text-emerald-600" />
                   {t("jobPostsPage.boost.metricsDialog.clicks")}
                 </span>
@@ -2682,16 +2680,16 @@ function BoostMetricsDialog({
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4 text-center">
-                <span className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center sm:p-4">
+                <span className="flex items-center justify-center gap-1.5 text-[11px] font-semibold whitespace-nowrap text-slate-500 uppercase sm:text-xs">
                   <ChartLineUp size={15} className="shrink-0 text-amber-600" />
                   {t("jobPostsPage.boost.metricsDialog.ctr")}
                 </span>
                 <p className="mt-2 text-2xl font-bold text-slate-800">{ctr}</p>
               </div>
 
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4 text-center">
-                <span className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center sm:p-4">
+                <span className="flex items-center justify-center gap-1.5 text-[11px] font-semibold whitespace-nowrap text-slate-500 uppercase sm:text-xs">
                   <PaperPlaneTilt size={15} className="shrink-0 text-blue-600" />
                   {t("jobPostsPage.boost.metricsDialog.applications")}
                 </span>
@@ -2710,7 +2708,9 @@ function BoostMetricsDialog({
                   <table className="w-full text-left text-xs">
                     <thead className="sticky top-0 border-b border-slate-100 bg-slate-50 font-semibold text-slate-600">
                       <tr>
-                        <th className="px-4 py-2.5">{t("jobPostsPage.boost.metricsDialog.date")}</th>
+                        <th className="px-4 py-2.5">
+                          {t("jobPostsPage.boost.metricsDialog.date")}
+                        </th>
                         <th className="px-4 py-2.5 text-right">
                           {t("jobPostsPage.boost.metricsDialog.impressions")}
                         </th>
@@ -2729,7 +2729,9 @@ function BoostMetricsDialog({
                       {data.daily.map((row) => (
                         <tr key={row.date} className="hover:bg-slate-50/50">
                           <td className="px-4 py-2 font-medium">{formatAppDate(row.date)}</td>
-                          <td className="px-4 py-2 text-right">{row.impressions.toLocaleString()}</td>
+                          <td className="px-4 py-2 text-right">
+                            {row.impressions.toLocaleString()}
+                          </td>
                           <td className="px-4 py-2 text-right">{row.clicks.toLocaleString()}</td>
                           <td className="px-4 py-2 text-right font-semibold text-emerald-600">
                             {row.applicationsCount}
@@ -2916,7 +2918,7 @@ function RecruiterJobDetailView({
                   })}
                 </Badge>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs leading-relaxed text-slate-600">
                 {t("jobPostsPage.boost.dialog.typeFeaturedHint")}
               </p>
               <Button
