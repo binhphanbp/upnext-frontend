@@ -13,6 +13,7 @@ import {
   FaceMetrics,
   AudioMetrics,
   TTSVoiceInfo,
+  CvScanResponse,
 } from "../types";
 import { InterviewEngine } from "./interviewEngine";
 import { appLogger } from "./logger";
@@ -119,6 +120,57 @@ export class ApiClient {
     return getQuestionsForSession(role, level, language, count);
   }
 
+  public async scanCvAndJd(params: {
+    cvFile?: File | null | undefined;
+    cvText?: string | undefined;
+    jdFile?: File | null | undefined;
+    jdText?: string | undefined;
+    language?: Language | undefined;
+    questionCount?: number | undefined;
+  }): Promise<CvScanResponse> {
+    const { cvFile, cvText, jdFile, jdText, language = "vi", questionCount = 3 } = params;
+
+    if (cvFile || jdFile) {
+      const formData = new FormData();
+      if (cvFile) formData.append("cv", cvFile);
+      else if (cvText) formData.append("cvText", cvText);
+
+      if (jdFile) formData.append("jd", jdFile);
+      else if (jdText) formData.append("jdText", jdText);
+
+      formData.append("language", language);
+      formData.append("questionCount", questionCount.toString());
+
+      const res = await fetch(`${this.baseUrl}/api/cv/scan`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Scan API error (${res.status}): ${errText}`);
+      }
+      return await res.json();
+    }
+
+    const res = await fetch(`${this.baseUrl}/api/cv/scan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cvText: cvText || "",
+        jdText: jdText || "",
+        language,
+        questionCount,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Scan API error (${res.status}): ${errText}`);
+    }
+    return await res.json();
+  }
+
   public async startSession(config: InterviewSessionConfig): Promise<{
     success?: boolean;
     sessionId: string;
@@ -131,12 +183,16 @@ export class ApiClient {
         body: JSON.stringify({
           ...config,
           interviewMode: config.interviewMode || "basic",
+          cvMarkdown: config.cvMarkdown,
+          jdMarkdown: config.jdMarkdown,
+          matchAnalysis: config.matchAnalysis,
+          customQuestions: config.customQuestions,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        if (data.success) {
+        if (data.success && Array.isArray(data.questions) && data.questions.length > 0) {
           return {
             success: true,
             sessionId: data.sessionId,
@@ -149,12 +205,10 @@ export class ApiClient {
     }
 
     // Local fallback
-    const localQuestions = getQuestionsForSession(
-      config.role,
-      config.level,
-      config.language,
-      config.questionCount,
-    );
+    const localQuestions =
+      config.customQuestions && config.customQuestions.length > 0
+        ? config.customQuestions
+        : getQuestionsForSession(config.role, config.level, config.language, config.questionCount);
     return {
       success: true,
       sessionId: "local_sess_" + Date.now().toString(36),

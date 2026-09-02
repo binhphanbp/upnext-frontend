@@ -22,11 +22,12 @@ export interface Question {
   level: ExperienceLevel;
   category: "technical" | "behavioral" | "situational" | "intro";
   expectedKeyPoints: string[];
-  sampleGoodAnswer: string;
+  sampleGoodAnswer?: string | undefined;
   timeLimitSeconds: number;
   parentQuestionId?: string | undefined;
   isFollowUp?: boolean | undefined;
   followUpIndex?: number | undefined;
+  fromCvProject?: string | undefined;
 }
 
 export type EmotionType =
@@ -170,6 +171,51 @@ export interface TTSVoiceInfo {
   isDefault?: boolean | undefined;
 }
 
+export interface CvProject {
+  name: string;
+  technologies?: string[];
+  role?: string;
+  description?: string;
+}
+
+export interface CvMetadata {
+  candidateName?: string;
+  suggestedRole?: InterviewRole;
+  suggestedLevel?: ExperienceLevel;
+  skills?: string[];
+  summary?: string;
+  projects?: CvProject[];
+  education?: string[];
+}
+
+export interface JdMetadata {
+  jobTitle?: string;
+  targetRole?: InterviewRole;
+  targetLevel?: ExperienceLevel;
+  requiredSkills?: string[];
+  responsibilities?: string[];
+  requirements?: string[];
+}
+
+export interface MatchAnalysis {
+  matchScore: number;
+  matchingSkills: string[];
+  missingSkills: string[];
+  experienceMatch?: string;
+  strengthsSummary?: string;
+  gapsSummary?: string;
+  recommendations?: string[];
+}
+
+export interface CvScanResponse {
+  cvMarkdown?: string;
+  cvMetadata?: CvMetadata;
+  jdMarkdown?: string;
+  jdMetadata?: JdMetadata;
+  matchAnalysis: MatchAnalysis;
+  suggestedQuestions: Question[];
+}
+
 export interface InterviewSessionConfig {
   sessionId?: string | undefined;
   candidateName: string;
@@ -186,6 +232,10 @@ export interface InterviewSessionConfig {
   selectedVoiceId?: string | undefined;
   selectedVoiceURI?: string | undefined;
   geminiApiKey?: string | undefined;
+  cvMarkdown?: string | undefined;
+  jdMarkdown?: string | undefined;
+  matchAnalysis?: MatchAnalysis | undefined;
+  customQuestions?: Question[] | undefined;
 }
 
 export type InterviewStage = "setup" | "interview" | "report";
