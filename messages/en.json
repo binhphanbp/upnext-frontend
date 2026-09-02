@@ -2611,6 +2611,21 @@
       "upgrade": "Upgrade now",
       "contact": "Talk to sales"
     },
+    "candidate": {
+      "headline": "Accelerate your career with AI Copilot",
+      "subheadline": "Optimize your ATS-friendly CV, practice interviews with AI, and unlock top career opportunities.",
+      "aiCopilot": "AI Copilot Runs",
+      "runsPerMonth": "{count} runs / month",
+      "freePlanCta": "Default Free Plan",
+      "upgradeCta": "Upgrade Plan Now",
+      "activeCta": "Active Plan",
+      "features": {
+        "unlimitedCv": "Unlimited ATS-standard CVs",
+        "aiCopilot": "{count} AI Copilot runs (CV writing, profile optimization, interviews)",
+        "prioritySupport": "Priority technical support",
+        "badge": "Featured Candidate Badge"
+      }
+    },
     "comparison": {
       "title": "Compare plans in detail",
       "feature": "Feature"

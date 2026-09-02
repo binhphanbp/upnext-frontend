@@ -2611,6 +2611,21 @@
       "upgrade": "Nâng cấp ngay",
       "contact": "Liên hệ tư vấn"
     },
+    "candidate": {
+      "headline": "Bứt phá sự nghiệp với trợ lý AI Copilot",
+      "subheadline": "Tối ưu hóa CV chuẩn ATS, luyện phỏng vấn thử cùng AI và mở khóa các cơ hội nghề nghiệp hàng đầu.",
+      "aiCopilot": "Lượt trợ lý AI Copilot",
+      "runsPerMonth": "{count} lượt / tháng",
+      "freePlanCta": "Gói miễn phí mặc định",
+      "upgradeCta": "Nâng cấp gói ngay",
+      "activeCta": "Đang sử dụng",
+      "features": {
+        "unlimitedCv": "Tạo CV chuẩn ATS không giới hạn",
+        "aiCopilot": "{count} lượt AI Copilot (viết CV, tối ưu hồ sơ, phỏng vấn)",
+        "prioritySupport": "Hỗ trợ kỹ thuật ưu tiên",
+        "badge": "Huy hiệu Ứng viên Nổi bật"
+      }
+    },
     "comparison": {
       "title": "So sánh chi tiết các gói",
       "feature": "Tính năng"
