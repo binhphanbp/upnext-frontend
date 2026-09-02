@@ -9,6 +9,7 @@ import {
   Eye,
   FileArrowDown,
   Funnel,
+  Gear,
   MagnifyingGlass,
   Sparkle,
   CheckCircle,
@@ -36,7 +37,11 @@ import {
   type ApplicationAiScoreResponse,
   type ScoreCriterionKey,
 } from "@/features/recruiter/api/cv-screening-api";
-import { getCvScreeningConfig } from "@/features/recruiter/api/cv-screening-config-api";
+import {
+  getCvScreeningConfig,
+  updateCvScreeningConfig,
+  type CvScreeningConfig,
+} from "@/features/recruiter/api/cv-screening-config-api";
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
   addToShortlist,
@@ -1744,26 +1749,80 @@ function CvRankingTable({
    * faster than scoring every applicant. */
   const [scoreLimit, setScoreLimit] = useState<10 | 20>(10);
 
-  // Pre-fill from the company's configured default (Cài đặt > Cấu hình AI lọc
-  // CV) so recruiters don't have to reselect it every run. Only 10/20 fit this
-  // screen's two-button toggle -- a company default of 50/"Tất cả" is applied
-  // server-side only (via CvScreeningConfigService), not shown here.
-  useEffect(() => {
+  // Per-company AI screening config (custom prompt instructions, default Top
+  // N, similarity threshold) -- editable right here via the gear button so
+  // recruiters don't have to leave this screen to go to Cài đặt.
+  const [aiConfigDialogOpen, setAiConfigDialogOpen] = useState(false);
+  const [aiConfigSaving, setAiConfigSaving] = useState(false);
+  const [aiConfigCustomInstructions, setAiConfigCustomInstructions] = useState("");
+  const [aiConfigDefaultTopN, setAiConfigDefaultTopN] =
+    useState<CvScreeningConfig["defaultTopN"]>(null);
+  const [aiConfigMinSimilarityScore, setAiConfigMinSimilarityScore] = useState<number | null>(null);
+
+  const loadAiConfig = useCallback(async () => {
     if (!token) return;
-    let cancelled = false;
-    void getCvScreeningConfig(token)
-      .then((config) => {
-        if (!cancelled && (config.defaultTopN === 10 || config.defaultTopN === 20)) {
-          setScoreLimit(config.defaultTopN);
-        }
-      })
-      .catch(() => {
-        // Non-critical: the hardcoded default (10) still works fine.
-      });
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const config = await getCvScreeningConfig(token);
+      setAiConfigCustomInstructions(config.customInstructions ?? "");
+      setAiConfigDefaultTopN(config.defaultTopN);
+      setAiConfigMinSimilarityScore(config.minSimilarityScore);
+      // Pre-fill the Top 10/Top 20 run toggle from the company default so
+      // recruiters don't have to reselect it every run. Only 10/20 fit this
+      // screen's two-button toggle -- a default of 50/"Tất cả" only applies
+      // when `limit` is omitted entirely (handled server-side).
+      if (config.defaultTopN === 10 || config.defaultTopN === 20) {
+        setScoreLimit(config.defaultTopN);
+      }
+    } catch {
+      // Non-critical: the hardcoded defaults still work fine.
+    }
   }, [token]);
+
+  useEffect(() => {
+    void loadAiConfig();
+  }, [loadAiConfig]);
+
+  const handleSaveAiConfig = async () => {
+    if (!token) return;
+    setAiConfigSaving(true);
+    try {
+      const trimmed = aiConfigCustomInstructions.trim();
+      const saved = await updateCvScreeningConfig(
+        {
+          customInstructions: trimmed.length > 0 ? trimmed : null,
+          defaultTopN: aiConfigDefaultTopN,
+          minSimilarityScore: aiConfigMinSimilarityScore,
+        },
+        token,
+      );
+      setAiConfigCustomInstructions(saved.customInstructions ?? "");
+      setAiConfigDefaultTopN(saved.defaultTopN);
+      setAiConfigMinSimilarityScore(saved.minSimilarityScore);
+      if (saved.defaultTopN === 10 || saved.defaultTopN === 20) {
+        setScoreLimit(saved.defaultTopN);
+      }
+      setAiConfigDialogOpen(false);
+      void Swal.fire({
+        icon: "success",
+        title: "Đã lưu cấu hình AI lọc CV!",
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (err: any) {
+      const isForbidden = err instanceof ApiError && err.status === 403;
+      void Swal.fire({
+        icon: "error",
+        title: isForbidden ? "Không đủ quyền" : "Lỗi lưu cấu hình",
+        text: isForbidden
+          ? "Chỉ quản trị viên công ty mới có quyền chỉnh cấu hình AI lọc CV."
+          : "Không thể lưu cấu hình. Vui lòng thử lại.",
+      });
+    } finally {
+      setAiConfigSaving(false);
+    }
+  };
 
   const {
     selectedJobId,
@@ -2091,6 +2150,16 @@ function CvRankingTable({
                 </button>
               ))}
             </div>
+
+            <button
+              type="button"
+              aria-label="Cấu hình AI lọc CV"
+              title="Cấu hình AI lọc CV"
+              onClick={() => setAiConfigDialogOpen(true)}
+              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+            >
+              <Gear size={18} />
+            </button>
 
             <Button
               onClick={() => void startScreening(scoreLimit)}
@@ -2823,6 +2892,120 @@ function CvRankingTable({
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* AI CV screening config -- same fields as Cài đặt > Cấu hình AI lọc
+          CV, editable right here so recruiters don't have to leave this
+          screen. */}
+      <Dialog open={aiConfigDialogOpen} onOpenChange={setAiConfigDialogOpen}>
+        <DialogContent className="max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900">
+              Cấu hình AI lọc CV
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400">
+              Thang điểm chấm (kỹ năng, kinh nghiệm, dự án, học vấn) luôn cố định -- các thiết lập
+              dưới đây chỉ bổ sung thêm bối cảnh và mặc định cho mỗi lượt lọc của công ty bạn.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            <div>
+              <label
+                htmlFor="cv_ranking_ai_custom_instructions"
+                className="mb-2 block text-sm font-bold text-slate-700"
+              >
+                Hướng dẫn tùy chỉnh cho AI
+              </label>
+              <textarea
+                id="cv_ranking_ai_custom_instructions"
+                rows={4}
+                maxLength={2000}
+                value={aiConfigCustomInstructions}
+                onChange={(e) => setAiConfigCustomInstructions(e.target.value)}
+                placeholder='Ví dụ: "Ưu tiên ứng viên có chứng chỉ AWS", "Không yêu cầu bằng đại học"...'
+                className="w-full rounded-lg border border-slate-200 p-3 text-sm text-slate-700 focus:border-emerald-500 focus:ring-emerald-500"
+              />
+              <p className="mt-1 text-right text-[11px] text-slate-400">
+                {aiConfigCustomInstructions.length}/2000 ký tự
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-sm font-bold text-slate-700">Số lượng chấm điểm mặc định</p>
+              <div
+                className="flex h-11 w-fit items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-1"
+                role="group"
+                aria-label="Số lượng chấm điểm mặc định"
+              >
+                {(
+                  [
+                    { value: 10 as const, label: "Top 10" },
+                    { value: 20 as const, label: "Top 20" },
+                    { value: 50 as const, label: "Top 50" },
+                    { value: null, label: "Tất cả" },
+                  ] satisfies Array<{ value: CvScreeningConfig["defaultTopN"]; label: string }>
+                ).map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    onClick={() => setAiConfigDefaultTopN(option.value)}
+                    className={cn(
+                      "h-full cursor-pointer rounded-md px-3 text-xs font-bold transition-colors",
+                      aiConfigDefaultTopN === option.value
+                        ? "bg-white text-emerald-700 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700",
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="cv_ranking_ai_min_similarity"
+                className="mb-2 block text-sm font-bold text-slate-700"
+              >
+                Ngưỡng độ tương đồng tối thiểu (%)
+              </label>
+              <input
+                id="cv_ranking_ai_min_similarity"
+                type="number"
+                min={0}
+                max={100}
+                value={aiConfigMinSimilarityScore ?? ""}
+                onChange={(e) =>
+                  setAiConfigMinSimilarityScore(
+                    e.target.value === "" ? null : Number(e.target.value),
+                  )
+                }
+                placeholder="Không giới hạn"
+                className="upnext-focus border-input h-11 w-40 rounded-lg border bg-white px-3 py-2 text-sm font-medium text-slate-700"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAiConfigDialogOpen(false)}
+              disabled={aiConfigSaving}
+              className="rounded-lg px-4"
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={() => void handleSaveAiConfig()}
+              disabled={aiConfigSaving}
+              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 font-bold text-white hover:bg-emerald-700"
+            >
+              {aiConfigSaving && <CircleNotch className="size-4 animate-spin" />}
+              Lưu cấu hình
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
