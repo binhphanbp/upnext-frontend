@@ -64,6 +64,10 @@ Việc cần làm:
 Chi phí: một PR frontend nhỏ + một PR infra (nginx). Đổi lại A3, DoD #9 và toàn bộ mô hình
 release trở nên thực hiện được.
 
+Lưu ý kèm theo: phương án A cố định `NEXT_PUBLIC_API_BASE_URL` ở dạng **tương đối** cho mọi môi
+trường, nên nó biến "chưa có client gọi API phía server" (§6 B3.1) từ một bất tiện thành **điều
+kiện tiên quyết** của B3/B4. Hai việc dùng chung một nguồn `API_PROXY_ORIGIN`, nên làm cùng đợt.
+
 **Phương án B (fallback): bỏ yêu cầu cùng-digest cho frontend.**
 
 Sửa A3 và DoD #9 thành: "cùng **commit SHA**, hai digest riêng cho staging/production, cả hai
@@ -538,7 +542,65 @@ Sitemap: https://upnext.works/sitemap.xml
 - **Giới hạn bắt buộc tuân thủ:** mỗi sitemap tối đa **50.000 URL** và **50 MB** khi giải nén.
   Dùng sitemap index chia `static`, `jobs`, `companies`, `posts` ngay từ đầu để không phải
   refactor khi vượt ngưỡng.
+
+- **Bẫy: chia nhỏ sitemap sẽ làm `Sitemap:` ở trên trỏ vào 404.** Đã đo bằng build probe —
+  `generateSitemaps()` trả `[{id:"static"},{id:"jobs"}]` sinh ra:
+
+  ```txt
+  └ ● /sitemap/[__metadata_id__]
+    ├ /sitemap/static.xml
+    └ /sitemap/jobs.xml
+  ```
+
+  Khi dùng `generateSitemaps()`, Next **không** còn phục vụ `/sitemap.xml` nữa. Dòng
+  `Sitemap: https://upnext.works/sitemap.xml` trong `robots.txt` ở trên sẽ trỏ vào một URL không
+  tồn tại, và Search Console báo lỗi fetch.
+
+  Chọn một trong hai, đừng trộn:
+  - **Một sitemap duy nhất:** giữ `sitemap.ts` không có `generateSitemaps()`, `robots.txt` trỏ
+    `/sitemap.xml`. Đơn giản, nhưng chạm trần 50.000 URL là phải đổi.
+  - **Chia nhỏ:** dùng `generateSitemaps()`, rồi `robots.txt` phải liệt kê **từng** URL con
+    (`/sitemap/static.xml`, `/sitemap/jobs.xml`, …) hoặc tự viết một sitemap-index XML riêng qua
+    route handler trỏ tới chúng. `robots.txt` chấp nhận nhiều dòng `Sitemap:`.
+
+  Route này cũng ra `●` (prerender lúc build), nên áp dụng luôn ghi chú revalidate ở §6 B3.1.
+
 - `lastmod` lấy từ `updatedAt` của entity, không phải thời điểm build.
+
+### B3.1. Chưa có client gọi API phía server — B3 và B4 đều đứng trên chỗ trống
+
+Cả sitemap (B3) lẫn SSR (B4) đều cần đọc dữ liệu **từ phía server**. Hôm nay điều đó không làm
+được, và không phải vì thiếu thời gian mà vì hai lý do cụ thể:
+
+**1. `apiRequest` không dùng lại được ở Server Component.** `src/shared/lib/env.ts` cho phép
+`NEXT_PUBLIC_API_BASE_URL` là đường dẫn tương đối và **mặc định đúng bằng `/api/v1`**. Với giá
+trị đó, `createApiUrl("/job-posts")` trả về `/api/v1/job-posts`, và `fetch()` của Node ném ngay:
+
+```txt
+TypeError: Failed to parse URL from /api/v1/job-posts
+```
+
+(đã chạy thử, không phải suy đoán). URL tương đối chỉ có nghĩa trong trình duyệt, nơi có
+`window.location` làm gốc. Server không có gốc nào cả.
+
+**2. Chưa có tiền lệ nào trong repo.** Không một file nào dưới `src/app/` gọi `apiRequest`, và
+lời gọi `fetch` phía server duy nhất nằm trong chính route proxy
+(`src/app/api/v1/[...proxy]/route.ts`) — nó tự dựng URL tuyệt đối từ `API_PROXY_ORIGIN`.
+
+**Việc phải làm:** một client server-only riêng, ví dụ `src/shared/api/server-http.ts`, đọc
+`API_PROXY_ORIGIN` (biến server, đã tồn tại và đã được `next.config.ts` dùng cho `rewrites()`)
+làm gốc tuyệt đối. Không sửa `apiRequest` để "dùng chung cho cả hai" — nó là mã client và kéo
+`env.ts` theo.
+
+**Điểm nối với P0-1 mà dễ bỏ sót:** nếu chọn **phương án A**, `NEXT_PUBLIC_API_BASE_URL` sẽ
+được cố tình đặt tương đối cho _mọi_ môi trường. Khi đó việc thiếu client server-side không còn
+là bất tiện mà là **điều kiện tiên quyết** — không có nó thì không SSR được gì. Tin tốt là cả
+hai đều dùng chung một nguồn: `API_PROXY_ORIGIN`.
+
+**Sitemap còn một bẫy riêng.** Route `sitemap.ts` mặc định được prerender **tĩnh lúc build**
+(build probe ở B3 sinh ra `○ /sitemap.xml`). Một sitemap tính lúc build sẽ đứng yên trong khi
+job liên tục publish và hết hạn. Phải cho nó `revalidate` hoặc gắn tag để `revalidateTag` chạm
+tới, cùng cơ chế với B4 — nếu không thì sitemap sẽ nói dối ngay từ ngày thứ hai.
 
 ### B4. SSR/ISR thay cho client-only content
 
@@ -973,26 +1035,28 @@ Quy trình DNS đã có tại `upnext-infra/docs/02-dns-namecom.md`. Domain prop
 
 Cột "Chặn bởi" là điều kiện tiên quyết cứng — không bắt đầu hạng mục khi mục chặn chưa xong.
 
-| #   | Hạng mục                                                                                                                                                                | Repo/owner      | Chặn bởi | Blocker launch    |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | -------- | ----------------- |
-| 0a  | **P0-1: quyết định artifact promotion** (chọn A hoặc B; nếu A: đổi build args + nginx `/socket.io/`)                                                                    | Infra + FE      | —        | **Có**            |
-| 0b  | **P0-2/P0-3: đo lại hreflang và `/` redirect trên deployment thật**, cập nhật §2.1                                                                                      | FE              | —        | **Có**            |
-| 1   | Staging/placeholder production noindex header; tách `www` 301; monitoring healthy                                                                                       | Infra           | 0a       | Có                |
-| 2   | Compose dùng digest/`sha-*` thay tag động; migration rehearsal                                                                                                          | Infra/BE        | 0a       | Có                |
-| 3   | Production chạy đầy đủ public routes                                                                                                                                    | FE/BE/Infra     | 2        | Có                |
-| 4   | Site config server-only, `metadataBase`, canonical, `permanentRedirect`, root `not-found.tsx`; `noindex` ở **cả 5 nơi** (§6 B2), gồm `(root)/layout.tsx`                | FE              | 0b       | Có                |
-| 5   | Root `robots.ts` + sitemap index (có giới hạn 50k)                                                                                                                      | FE              | 4        | Có                |
-| 6   | BE: format slug job + history + endpoint tra cứu slug; public SEO read model có cursor; lifecycle events qua outbox                                                     | BE              | 2        | Có                |
-| 6b  | **Sanitize JD** (`description`/`requirements`/`benefits`) ở backend khi ghi + rà lại `getCleanHtml` ở FE. PR bảo mật riêng, ngoài phạm vi SEO nhưng chặn #7 — xem §8 D3 | BE (+FE)        | —        | Có                |
-| 7   | FE: `/api/revalidate` có HMAC; đưa **cả ba** trang chi tiết (job/company/post) lên Server Component + ISR, metadata/H1 riêng từng entity                                | FE              | 4, 6, 6b | Có                |
-| 8   | JobPosting/Organization/Article/Breadcrumb schema + escaping                                                                                                            | FE/BE           | 7        | Có                |
-| 9   | CI SEO tests, i18n parity test, redirect table test, rich-result fixtures, link checks                                                                                  | FE/BE/QA        | 5, 7, 8  | Có                |
-| 10  | Search Console/Bing (DNS TXT), analytics dashboard                                                                                                                      | SEO/Infra       | 1        | Có                |
-| 11  | Trang About/Contact/Policy/Editorial                                                                                                                                    | Content/FE      | 4        | Có (F3 phụ thuộc) |
-| 12  | Curated landing pages, editorial governance                                                                                                                             | Content/Product | 9        | Không             |
-| 13  | AEO/GEO content program                                                                                                                                                 | Content/Product | 11, 12   | Không             |
+| #   | Hạng mục                                                                                                                                                                | Repo/owner      | Chặn bởi     | Blocker launch    |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------ | ----------------- |
+| 0a  | **P0-1: quyết định artifact promotion** (chọn A hoặc B; nếu A: đổi build args + nginx `/socket.io/`)                                                                    | Infra + FE      | —            | **Có**            |
+| 0b  | **P0-2/P0-3: đo lại hreflang và `/` redirect trên deployment thật**, cập nhật §2.1                                                                                      | FE              | —            | **Có**            |
+| 1   | Staging/placeholder production noindex header; tách `www` 301; monitoring healthy                                                                                       | Infra           | 0a           | Có                |
+| 2   | Compose dùng digest/`sha-*` thay tag động; migration rehearsal                                                                                                          | Infra/BE        | 0a           | Có                |
+| 3   | Production chạy đầy đủ public routes                                                                                                                                    | FE/BE/Infra     | 2            | Có                |
+| 4   | Site config server-only, `metadataBase`, canonical, `permanentRedirect`, root `not-found.tsx`; `noindex` ở **cả 5 nơi** (§6 B2), gồm `(root)/layout.tsx`                | FE              | 0b           | Có                |
+| 4b  | **Client gọi API phía server** (`server-http.ts` dùng `API_PROXY_ORIGIN`) — B3 và B4 đều đứng trên nó, xem §6 B3.1                                                      | FE              | 0a           | Có                |
+| 5   | Root `robots.ts` + sitemap index (có giới hạn 50k, route phải revalidate)                                                                                               | FE              | 4, 4b        | Có                |
+| 6   | BE: format slug job + history + endpoint tra cứu slug; public SEO read model có cursor; lifecycle events qua outbox                                                     | BE              | 2            | Có                |
+| 6b  | **Sanitize JD** (`description`/`requirements`/`benefits`) ở backend khi ghi + rà lại `getCleanHtml` ở FE. PR bảo mật riêng, ngoài phạm vi SEO nhưng chặn #7 — xem §8 D3 | BE (+FE)        | —            | Có                |
+| 7   | FE: `/api/revalidate` có HMAC; đưa **cả ba** trang chi tiết (job/company/post) lên Server Component + ISR, metadata/H1 riêng từng entity                                | FE              | 4, 4b, 6, 6b | Có                |
+| 8   | JobPosting/Organization/Article/Breadcrumb schema + escaping                                                                                                            | FE/BE           | 7            | Có                |
+| 9   | CI SEO tests, i18n parity test, redirect table test, rich-result fixtures, link checks                                                                                  | FE/BE/QA        | 5, 7, 8      | Có                |
+| 10  | Search Console/Bing (DNS TXT), analytics dashboard                                                                                                                      | SEO/Infra       | 1            | Có                |
+| 11  | Trang About/Contact/Policy/Editorial                                                                                                                                    | Content/FE      | 4            | Có (F3 phụ thuộc) |
+| 12  | Curated landing pages, editorial governance                                                                                                                             | Content/Product | 9            | Không             |
+| 13  | AEO/GEO content program                                                                                                                                                 | Content/Product | 11, 12       | Không             |
 
-Đường găng: **0a → 2 → 6 → 7 → 8 → 9**. Backend (#6) là hạng mục dài nhất vì có migration backfill;
+Đường găng: **0a → 4b → 2 → 6 → 7 → 8 → 9**. #4b nhỏ nhưng nằm trên đường găng: không có client
+gọi API phía server thì cả sitemap lẫn SSR đều không bắt đầu được. Backend (#6) là hạng mục dài nhất vì có migration backfill;
 bắt đầu nó song song với #1 ngay sau khi #0a chốt. #6b không phụ thuộc gì cả — mở PR bảo mật đó
 ngay hôm nay, đừng để nó thành thứ chặn #7 vào phút chót.
 
@@ -1031,3 +1095,7 @@ SEO production launch chỉ được đánh dấu hoàn thành khi:
 10. `/` redirect một hop 308 tới `/vi`; `www.` redirect 301 về apex; không còn duplicate locale/legacy job URL indexable.
 11. Dashboard theo dõi organic/crawl/conversion có owner chịu trách nhiệm vận hành.
 12. Ba mục **[cần đo lại]** ở §2.1 đã được đo trên deployment thật và bảng audit đã cập nhật.
+
+    > Không đóng được từ môi trường agent: đã thử `curl https://staging.upnext.works/vi`, gateway
+    > trả **403 CONNECT (policy denial)** — host không nằm trong allowlist. Ba lệnh ở §2.1 phải
+    > chạy từ máy có truy cập thật.
