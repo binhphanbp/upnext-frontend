@@ -62,13 +62,6 @@ const WEIGHT_ROWS: Array<{ key: keyof ScoringWeights; label: string }> = [
   { key: "education", label: "Học vấn" },
 ];
 
-const TOP_N_OPTIONS: Array<{ value: number | null; label: string }> = [
-  { value: 10, label: "Top 10" },
-  { value: 20, label: "Top 20" },
-  { value: 50, label: "Top 50" },
-  { value: null, label: "Tất cả" },
-];
-
 export function weightsTotal(weights: ScoringWeights) {
   return weights.skills + weights.experience + weights.projects + weights.education;
 }
@@ -108,8 +101,6 @@ export function toConfigPayload(values: CvScreeningConfigFormValues) {
     mustHaveCriteria: values.mustHaveCriteria,
     niceToHaveCriteria: values.niceToHaveCriteria,
     customPrompt: values.customPrompt?.trim() || null,
-    passingScore: values.passingScore,
-    defaultTopN: values.defaultTopN,
   };
 }
 
@@ -392,72 +383,6 @@ export function CvScreeningConfigForm({
         <p className="mt-1 text-right text-[11px] text-slate-400">
           {(values.customPrompt ?? "").length}/{CUSTOM_PROMPT_MAX_LENGTH} ký tự
         </p>
-      </section>
-
-      {/* 4. Shortlist + passing score */}
-      <section>
-        <SectionHeading
-          title="Sàng lọc & điểm đạt"
-          description="Số ứng viên đưa vào chấm điểm, và mốc điểm được coi là đạt."
-        />
-        <div className="space-y-3">
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
-              Số lượng chấm điểm mặc định
-            </p>
-            <div
-              className="flex h-10 w-fit items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-950/30"
-              role="group"
-              aria-label="Số lượng chấm điểm mặc định"
-            >
-              {TOP_N_OPTIONS.map((option) => (
-                <button
-                  key={option.label}
-                  type="button"
-                  onClick={() => onChange({ defaultTopN: option.value })}
-                  className={cn(
-                    "h-full cursor-pointer rounded-md px-3 text-xs font-bold transition-colors",
-                    values.defaultTopN === option.value
-                      ? "bg-white text-emerald-700 shadow-sm dark:bg-slate-900"
-                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor={`${idPrefix}_passing_score`}
-              className="mb-1.5 block text-xs font-semibold text-slate-600 dark:text-slate-300"
-            >
-              Điểm đạt tối thiểu (trên 100)
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                id={`${idPrefix}_passing_score`}
-                type="number"
-                min={0}
-                max={100}
-                value={values.passingScore ?? ""}
-                onChange={(e) =>
-                  onChange({
-                    passingScore: e.target.value === "" ? null : Number(e.target.value),
-                  })
-                }
-                placeholder="Không gắn nhãn"
-                className="upnext-focus border-input h-10 w-32 rounded-lg border bg-white px-3 text-sm font-medium text-slate-700"
-              />
-              <p className="text-xs text-slate-400">
-                {values.passingScore === null
-                  ? "Để trống nếu không muốn gắn nhãn Đạt tiêu chuẩn."
-                  : `Ứng viên từ ${values.passingScore} điểm trở lên được gắn nhãn "Đạt tiêu chuẩn".`}
-              </p>
-            </div>
-          </div>
-        </div>
       </section>
 
       <p className="flex items-start gap-1.5 rounded-lg bg-slate-50 p-2.5 text-[11px] leading-relaxed text-slate-400 dark:bg-slate-950/20">

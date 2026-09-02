@@ -276,12 +276,23 @@ export function RecruiterSettingsPage() {
       });
     } catch (error) {
       const isForbidden = error instanceof ApiError && error.status === 403;
+      const errorMsg =
+        error instanceof ApiError &&
+        error.payload &&
+        typeof error.payload === "object" &&
+        "message" in error.payload
+          ? Array.isArray((error.payload as any).message)
+            ? (error.payload as any).message.join(", ")
+            : (error.payload as any).message
+          : error instanceof Error
+            ? error.message
+            : "Không thể lưu cấu hình. Vui lòng thử lại.";
       void Swal.fire({
         icon: "error",
         title: isForbidden ? "Không đủ quyền" : "Lỗi lưu cấu hình",
         text: isForbidden
           ? "Chỉ quản trị viên công ty mới có quyền chỉnh cấu hình AI lọc CV."
-          : "Không thể lưu cấu hình. Vui lòng thử lại.",
+          : errorMsg,
       });
     } finally {
       setAiConfigSaving(false);

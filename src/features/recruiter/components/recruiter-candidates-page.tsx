@@ -1848,12 +1848,21 @@ function CvRankingTable({
       });
     } catch (err: any) {
       const isForbidden = err instanceof ApiError && err.status === 403;
+      const errorMsg =
+        err instanceof ApiError &&
+        err.payload &&
+        typeof err.payload === "object" &&
+        "message" in err.payload
+          ? Array.isArray((err.payload as any).message)
+            ? (err.payload as any).message.join(", ")
+            : (err.payload as any).message
+          : err?.message || "Không thể lưu cấu hình. Vui lòng thử lại.";
       void Swal.fire({
         icon: "error",
         title: isForbidden ? "Không đủ quyền" : "Lỗi lưu cấu hình",
         text: isForbidden
           ? "Chỉ quản trị viên công ty mới có quyền chỉnh cấu hình AI lọc CV."
-          : "Không thể lưu cấu hình. Vui lòng thử lại.",
+          : errorMsg,
       });
     } finally {
       setAiConfigSaving(false);
