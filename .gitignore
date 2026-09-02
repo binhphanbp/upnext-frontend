@@ -62,3 +62,11 @@ yarn-error.log*
 # ...except the shared project config: which agent plugins this repo expects.
 # `settings.local.json` and `launch.json` stay per-developer via the rule above.
 !.claude/settings.json
+
+# raw assets & 3d models
+/public/models/
+/public/mouth_patch.png
+/public/upnext_avatar*.png
+/public/upnext_character.*
+/public/upnext_mascot_*.png
+

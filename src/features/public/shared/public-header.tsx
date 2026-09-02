@@ -367,7 +367,7 @@ const navMenus: NavMenu[] = [
           "Practice questions tailored to your CV, role, and seniority.",
         ),
         icon: <Bot size={20} />,
-        path: "/register",
+        path: "/ai-interview",
         badge: localized("Mới", "New"),
         iconClass: "feat-icon-ai",
       },
@@ -518,13 +518,13 @@ const languages: Language[] = [
 const guestCandidateUtilityItems: CandidateUtilityItem[] = [
   { label: localized("Tạo CV chuẩn ATS", "Build an ATS-ready CV"), href: "/register" },
   { label: localized("Gợi ý việc theo hồ sơ", "Personalized job matches"), href: "/register" },
-  { label: localized("AI Interview", "AI Interview"), comingSoon: true },
+  { label: localized("AI Interview", "AI Interview"), href: "/ai-interview" },
 ];
 
 const signedInCandidateUtilityItems: CandidateUtilityItem[] = [
   { label: localized("Cập nhật hồ sơ", "Update your profile"), href: "/candidate/profile" },
   { label: localized("CV của tôi", "My CV"), href: "/candidate/cv-builder" },
-  { label: localized("AI Interview", "AI Interview"), comingSoon: true },
+  { label: localized("AI Interview", "AI Interview"), href: "/ai-interview" },
 ];
 
 const publicCompactNavigationLinks: CompactNavigationLink[] = [
