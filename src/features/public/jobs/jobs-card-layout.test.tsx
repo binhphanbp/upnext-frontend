@@ -76,6 +76,17 @@ const apiJob = {
 } as unknown as PublicJob;
 
 vi.mock("@tanstack/react-query", () => ({
+  useMutation: () => ({
+    isPending: false,
+    mutate: vi.fn<(input: unknown) => void>(),
+    variables: undefined,
+  }),
+  useQueryClient: () => ({
+    getQueryData: () => undefined,
+    setQueryData: () => undefined,
+    invalidateQueries: () => Promise.resolve(),
+    cancelQueries: () => Promise.resolve(),
+  }),
   useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => ({
     data: queryKey.includes("public-jobs") ? [apiJob] : [],
     isError: false,
