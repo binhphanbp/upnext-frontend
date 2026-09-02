@@ -53,28 +53,33 @@ function hasPermissionForHref(href: string, userPermissions: string[]): boolean 
 type CompanyTier = 0 | 1 | 2;
 
 const routeTierMap: Record<string, CompanyTier> = {
-  "/recruiter/job-posts": 1,
-  "/recruiter/candidates": 1,
-  "/recruiter/interviews": 1,
+  "/recruiter/job-posts": 2,
+  "/recruiter/job-posts/create": 2,
+  "/recruiter/job-posts/create/ai": 2,
+  "/recruiter/job-posts/create/import": 2,
+  "/recruiter/candidates": 2,
+  "/recruiter/interviews": 2,
   "/recruiter/messages": 1,
   "/recruiter/team": 2,
   "/recruiter/team/members": 2,
   "/recruiter/team/roles": 2,
   "/recruiter/analytics": 2,
-  "/recruiter/billing": 2,
 };
+
+function getRequiredCompanyTier(pathname: string): CompanyTier | undefined {
+  return Object.entries(routeTierMap)
+    .filter(([route]) => pathname === route || pathname.startsWith(`${route}/`))
+    .reduce<CompanyTier | undefined>(
+      (highestTier, [, tier]) =>
+        highestTier === undefined || tier > highestTier ? tier : highestTier,
+      undefined,
+    );
+}
 
 function getCompanyTier(account: RecruiterAccountDetail | null): CompanyTier {
   if (!account?.company?.id) return 0;
   if (account.company.verificationStatus !== "VERIFIED") return 1;
   return 2;
-}
-
-function getLockedReason(requiredTier: CompanyTier): string {
-  if (requiredTier >= 2) {
-    return "Công ty của bạn cần được xác minh trước khi sử dụng tính năng này.";
-  }
-  return "Bạn cần thêm thông tin công ty trước khi sử dụng tính năng này.";
 }
 
 // Restricted Mode (kích hoạt khi có khiếu nại): chỉ cho phép xem Dashboard, lịch sử ứng tuyển
@@ -95,13 +100,14 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
   const [identity, setIdentity] = useState<WorkspaceIdentity | null>(null);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [accountDetail, setAccountDetail] = useState<RecruiterAccountDetail | null>(null);
-  const [stats, setStats] = useState<{ totalJobPosts: number; totalCandidates: number } | null>(
-    null,
-  );
   const t = useTranslations("Recruiter");
 
   const companyTier = useMemo(() => getCompanyTier(accountDetail), [accountDetail]);
   const isRestricted = accountDetail?.company?.status === "RESTRICTED";
+  const requiredTier = getRequiredCompanyTier(pathname);
+  const tierBlocked = requiredTier !== undefined && companyTier < requiredTier;
+  const restrictedBlocked = isRestricted && !RESTRICTED_MODE_ALLOWED_HREFS.has(pathname);
+  const routeBlocked = tierBlocked || restrictedBlocked;
 
   useEffect(() => {
     const session = getRecruiterSession();
@@ -185,10 +191,8 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
         itemLabel = t("nav.report");
       else if (item.label === "Tin tuyển dụng") {
         itemLabel = t("nav.jobPosts");
-        if (stats) badge = String(stats.totalJobPosts);
       } else if (item.label === "Ứng viên") {
         itemLabel = t("nav.candidates");
-        if (stats) badge = String(stats.totalCandidates);
       } else if (item.label === "Phỏng vấn") {
         itemLabel = t("nav.interviews");
         badge = undefined;
@@ -210,7 +214,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
         lockedReason: locked
           ? restrictedLocked
             ? RESTRICTED_MODE_LOCKED_REASON
-            : getLockedReason(requiredTier!)
+            : t("nav.companyVerificationRequired")
           : undefined,
       };
 
@@ -246,7 +250,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
               lockedReason: childLocked
                 ? childRestrictedLocked
                   ? RESTRICTED_MODE_LOCKED_REASON
-                  : getLockedReason(childRequiredTier!)
+                  : t("nav.companyVerificationRequired")
                 : undefined,
             };
           })
@@ -286,7 +290,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
         };
       })
       .filter(Boolean) as any[];
-  }, [t, userPermissions, companyTier, isRestricted, stats]);
+  }, [t, userPermissions, companyTier, isRestricted]);
 
   const isAuthPage =
     pathname.includes("/login") ||
@@ -374,7 +378,7 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
             });
           }
         } catch (error) {
-          if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          if (error instanceof ApiError && error.status === 401) {
             clearRecruiterSession();
             router.replace("/recruiter/login");
             return;
@@ -386,48 +390,23 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
       };
 
       void loadRecruiterData();
-
-      void recruiterApiRequest<{ totalJobPosts: number; totalCandidates: number }>(
-        `/recruiter-accounts/${parsedUser.id}/dashboard-stats`,
-        accessToken,
-      )
-        .then((statsData) => {
-          setStats(statsData);
-        })
-        .catch((err) => {
-          if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return;
-          console.error("getRecruiterStats error in layout:", err);
-        });
     } catch (e) {
       console.error("Error in recruiter layout try-catch:", e);
       clearRecruiterSession();
       router.replace("/recruiter/login");
       setLoading(false);
     }
-  }, [pathname, isAuthPage, isLoginOrRegisterPage, router]);
+  }, [isAuthPage, isLoginOrRegisterPage, router]);
 
   // Chặn truy cập trực tiếp bằng URL vào các route yêu cầu tier cao hơn hiện tại
   // (phòng trường hợp gõ thẳng URL thay vì bấm mục đã bị khoá trên sidebar).
   useEffect(() => {
     if (loading || isAuthPage) return;
 
-    const requiredTier = routeTierMap[pathname];
-    const tierBlocked = requiredTier !== undefined && companyTier < requiredTier;
-    const restrictedBlocked = isRestricted && !RESTRICTED_MODE_ALLOWED_HREFS.has(pathname);
-
-    if (tierBlocked || restrictedBlocked) {
-      void Swal.fire({
-        icon: "info",
-        title: restrictedBlocked ? RESTRICTED_MODE_LOCKED_REASON : getLockedReason(requiredTier!),
-        toast: true,
-        position: "top-end",
-        showConfirmButton: false,
-        timer: 3200,
-        timerProgressBar: true,
-      });
-      router.replace("/recruiter");
+    if (routeBlocked) {
+      router.replace(tierBlocked ? "/recruiter/company-profile" : "/recruiter");
     }
-  }, [pathname, loading, isAuthPage, companyTier, isRestricted, router]);
+  }, [loading, isAuthPage, routeBlocked, tierBlocked, router]);
 
   useEffect(() => {
     document.body.classList.add("recruiter-workspace");
@@ -442,6 +421,15 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
   }
 
   if (loading) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-slate-50 text-sm font-semibold text-slate-600">
+        {t("shell.loading")}
+      </main>
+    );
+  }
+
+  // Do not mount protected page content for even one render while its redirect is pending.
+  if (!isAuthPage && routeBlocked) {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-50 text-sm font-semibold text-slate-600">
         {t("shell.loading")}

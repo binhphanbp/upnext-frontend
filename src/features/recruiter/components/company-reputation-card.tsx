@@ -2,7 +2,7 @@
 
 import { Calendar, CaretDown, Crown, Info, X } from "@phosphor-icons/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -70,7 +70,8 @@ export function CompanyReputationCard({
   token,
   className,
 }: CompanyReputationCardProps) {
-  const t = useTranslations("Recruiter.dashboard");
+  const t = useTranslations("Recruiter");
+  const locale = useLocale();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(true);
@@ -196,7 +197,7 @@ export function CompanyReputationCard({
               <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                    Điểm số hiện tại
+                    {t("dashboard.reputation.currentScore")}
                   </span>
                   <span
                     className={cn("rounded-full px-2.5 py-0.5 text-xs font-bold", tier.badgeClass)}
@@ -208,7 +209,9 @@ export function CompanyReputationCard({
                   <span className="text-3xl font-extrabold text-slate-900">
                     {Math.round(score)}
                   </span>
-                  <span className="text-sm font-semibold text-slate-400">/ 100 điểm</span>
+                  <span className="text-sm font-semibold text-slate-400">
+                    {t("dashboard.reputation.scoreUnit")}
+                  </span>
                 </div>
               </div>
 
@@ -319,7 +322,9 @@ export function CompanyReputationCard({
                   )}
                 >
                   {loadingActivities ? (
-                    <p className="text-sm text-slate-400">Đang tải lịch sử biến động...</p>
+                    <p className="text-sm text-slate-400">
+                      {t("dashboard.reputation.dialog.historyLoading")}
+                    </p>
                   ) : activities.length === 0 ? (
                     <p className="text-sm text-slate-400">
                       {t("dashboard.reputation.dialog.historyEmpty")}
@@ -338,13 +343,16 @@ export function CompanyReputationCard({
                                 {activity.reason || activity.actionType}
                               </p>
                               <span className="text-xs text-slate-400">
-                                {new Date(activity.createdAt).toLocaleDateString("vi-VN", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })}
+                                {new Date(activity.createdAt).toLocaleDateString(
+                                  locale === "vi" ? "vi-VN" : "en-US",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  },
+                                )}
                               </span>
                             </div>
                             <span

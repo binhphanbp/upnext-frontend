@@ -6,7 +6,6 @@ import {
   Briefcase,
   Code,
   EnvelopeSimple,
-  FolderSimple,
   Heart,
   MagnifyingGlass,
   Sparkle,
@@ -14,7 +13,6 @@ import {
   Users,
   X,
 } from "@phosphor-icons/react";
-import { useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -25,12 +23,6 @@ import { useRouter } from "@/i18n/navigation";
 import { apiRequest } from "@/shared/api/http";
 
 import { getPublicPostCategories, getPublicPosts, getPublicPostTags } from "../api/posts";
-import {
-  formatPostDate,
-  getPostLocale,
-  localizePostCategory,
-  postCopy,
-} from "../post-localization";
 import type { PaginatedPostsResponse, Post, PostCategory, PostTag } from "../types/post";
 
 // Fallback tags if API is loading
@@ -47,6 +39,7 @@ const DEFAULT_TRENDING_TAGS: PostTag[] = [
     _count: { postTags: 7 },
   },
 ];
+const EMPTY_POSTS: Post[] = [];
 
 // Helper to assign contextual Phosphor icons to real tags from database
 function getTagIcon(slug: string, name: string) {
@@ -72,9 +65,6 @@ function getTagIcon(slug: string, name: string) {
 export function PostsPageContent() {
   const router = useRouter();
   const navigate = (path: string) => router.push(path);
-  const locale = getPostLocale(useLocale());
-  const copy = postCopy[locale];
-
   const searchParams = useSearchParams();
   const searchParamQuery = searchParams.get("search") || searchParams.get("q") || "";
   const categoryParam = searchParams.get("category") || searchParams.get("categorySlug") || "";
@@ -102,7 +92,7 @@ export function PostsPageContent() {
       setSearchInput(searchParamQuery);
       setActiveSearch(searchParamQuery);
     }
-  }, [categoryParam, tagParam, searchParamQuery]);
+  }, [activeSearch, categoryParam, tagParam, searchParamQuery]);
 
   // 1. Fetch Real Categories from Database
   useEffect(() => {
@@ -154,7 +144,7 @@ export function PostsPageContent() {
     };
   }, [selectedCategorySlug, selectedTagSlug, activeSearch, currentPage]);
 
-  const apiPosts = postsResponse?.items || [];
+  const apiPosts = postsResponse?.items ?? EMPTY_POSTS;
   const meta = postsResponse?.meta;
   const totalCount = meta?.total ?? meta?.totalItems ?? apiPosts.length;
 

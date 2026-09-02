@@ -115,7 +115,7 @@ export function RecruiterPricingPage() {
           setFeaturedJobQuota(null);
         }
       } catch (err) {
-        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        if (err instanceof ApiError && err.status === 401) {
           localStorage.removeItem("upnext.recruiter.accessToken");
           localStorage.removeItem("upnext.recruiter.user");
           router.replace("/recruiter/login");

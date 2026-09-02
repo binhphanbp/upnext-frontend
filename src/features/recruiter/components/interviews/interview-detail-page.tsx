@@ -33,12 +33,10 @@ import {
   useRecruiterInterviews,
 } from "@/features/recruiter/hooks/use-recruiter-interviews";
 import { getRecruiterJobPosts, type RecruiterJobPost } from "@/features/recruiter/job-posts/api";
-import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
+import { getRecruiterSession } from "@/features/recruiter/session";
 import { Link, useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/shared/api/http";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
-import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { Separator } from "@/shared/ui/separator";
@@ -128,7 +126,7 @@ export function InterviewDetailPage({ interviewId }: InterviewDetailPageProps) {
     setFeedbackNote("");
   };
 
-  const rescheduleMutation = useMutation({
+  const _rescheduleMutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error("Missing token");
       return rescheduleInterview(
@@ -245,7 +243,7 @@ export function InterviewDetailPage({ interviewId }: InterviewDetailPageProps) {
     interview.status === "CANCELLED" ||
     interview.status === "COMPLETED" ||
     interview.status === "NO_SHOW";
-  const rescheduleLimitReached = interview.rescheduleCount >= interview.maxRescheduleCount;
+  const _rescheduleLimitReached = interview.rescheduleCount >= interview.maxRescheduleCount;
 
   const candidateName = interview.application?.candidateProfile.account.fullName ?? "—";
   const jobTitle = interview.application?.jobPost.title ?? "—";

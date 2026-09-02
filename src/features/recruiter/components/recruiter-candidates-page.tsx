@@ -2,14 +2,11 @@
 
 import {
   ArrowsCounterClockwise,
-  CaretDown,
-  Check,
   CircleNotch,
   DownloadSimple,
   Eye,
   FileArrowDown,
   Funnel,
-  MagnifyingGlass,
   Sparkle,
   CheckCircle,
   XCircle,
@@ -20,12 +17,13 @@ import {
   Star,
   IdentificationCard,
   Envelope,
+  Users,
 } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
 
@@ -77,7 +75,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/shared/ui/dropdown-menu";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/shared/ui/select";
 import { Separator } from "@/shared/ui/separator";
@@ -87,6 +84,7 @@ import { CandidateProfileDetailDialog } from "./candidate-profile-detail-dialog"
 import { CoverLetterDialog } from "./cover-letter-dialog";
 import { PotentialCandidatesTab } from "./potential-candidates-tab";
 import { RecruiterTableLayout } from "./recruiter-table-layout";
+import { SHORTLIST_PRIORITY_OPTIONS } from "./save-potential-candidate-dialog";
 import { SavePotentialCandidateDialog } from "./save-potential-candidate-dialog";
 
 const toast = Swal.mixin({
@@ -255,6 +253,18 @@ export function RecruiterCandidatesPage() {
   const [aiLabel, setAiLabel] = useState("ALL");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  // AI CV Ranking Filter States (Top Bar)
+  const [cvRankingSearch, setCvRankingSearch] = useState("");
+  const [cvRankingScoreFilter, setCvRankingScoreFilter] = useState("ALL");
+  const [cvRankingShowMobileFilters, setCvRankingShowMobileFilters] = useState(false);
+
+  // Potential Candidates Filter States (Top Bar)
+  const [potentialSearch, setPotentialSearch] = useState("");
+  const [potentialJobFilter, setPotentialJobFilter] = useState("ALL");
+  const [potentialStatusFilter, setPotentialStatusFilter] = useState("ALL");
+  const [potentialPriorityFilter, setPotentialPriorityFilter] = useState("ALL");
+  const [potentialShowMobileFilters, setPotentialShowMobileFilters] = useState(false);
+
   // Set when the recruiter picks "Hẹn phỏng vấn"; drives the schedule dialog.
   const [interviewSeed, setInterviewSeed] = useState<{
     applicationId: string;
@@ -282,6 +292,22 @@ export function RecruiterCandidatesPage() {
     clearRecruiterSession();
     router.replace("/recruiter/login");
   }, [router]);
+
+  const handleTabChange = useCallback(
+    (newTab: string) => {
+      setActiveTab(newTab);
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+      if (newTab === "candidates") {
+        params.delete("tab");
+      } else {
+        params.set("tab", newTab);
+      }
+      const queryString = params.toString();
+      const targetUrl = `/recruiter/candidates${queryString ? `?${queryString}` : ""}`;
+      router.replace(targetUrl, { scroll: false });
+    },
+    [router, searchParams],
+  );
 
   const cvScreening = useCvScreening(token, handleScreeningUnauthorized);
 
@@ -327,7 +353,7 @@ export function RecruiterCandidatesPage() {
     if (firstJob && !cvScreening.selectedJobId) {
       cvScreening.setSelectedJobId(firstJob.id);
     }
-  }, [jobs, cvScreening.selectedJobId, cvScreening.setSelectedJobId]);
+  }, [jobs, cvScreening]);
 
   // Quick View CV State
   const [quickViewUrl, setQuickViewUrl] = useState<string | null>(null);
@@ -385,7 +411,7 @@ export function RecruiterCandidatesPage() {
     return () => {
       active = false;
     };
-  }, [quickViewUrl, token]);
+  }, [quickViewBlobUrl, quickViewUrl, token]);
 
   const handleDownloadCv = useCallback(
     async (fileUrl: string, fileName: string) => {
@@ -540,9 +566,16 @@ export function RecruiterCandidatesPage() {
   const handleRefresh = useCallback(async () => {
     const session = getRecruiterSession();
     if (session) {
+      if (activeTab === "cv-ranking" && cvScreening.selectedJobId) {
+        cvScreening.startScreening();
+      }
       await loadCandidates(session.user.id, session.accessToken);
+      void toast.fire({
+        icon: "success",
+        title: locale === "vi" ? "Đã làm mới dữ liệu" : "Data refreshed",
+      });
     }
-  }, [loadCandidates]);
+  }, [loadCandidates, activeTab, cvScreening, locale]);
 
   const isFirstLoad = useRef(true);
 
@@ -871,6 +904,129 @@ export function RecruiterCandidatesPage() {
   }
 
   const handleExportExcel = () => {
+    if (activeTab === "cv-ranking") {
+      if (cvScreening.results.length === 0) {
+        void toast.fire({
+          icon: "warning",
+          title:
+            locale === "vi"
+              ? "Không có dữ liệu xếp hạng AI để xuất!"
+              : "No AI ranking data to export!",
+        });
+        return;
+      }
+      const excelData = cvScreening.results.map((item, index) => {
+        return locale === "vi"
+          ? {
+              STT: index + 1,
+              "Họ và tên": item.candidateName || "—",
+              "Vị trí ứng tuyển": item.jobTitle || "—",
+              "Điểm AI Match": `${item.finalScore}/100`,
+              "Đánh giá tóm tắt": item.summary || "—",
+              "Khuyến nghị": item.recommendation || "—",
+              "Kỹ năng phù hợp": item.matchedSkills?.join(", ") || "—",
+              "Kỹ năng còn thiếu": item.missingSkills?.join(", ") || "—",
+            }
+          : {
+              "No.": index + 1,
+              "Full Name": item.candidateName || "—",
+              "Job Post": item.jobTitle || "—",
+              "AI Match Score": `${item.finalScore}/100`,
+              "AI Summary": item.summary || "—",
+              Recommendation: item.recommendation || "—",
+              "Matched Skills": item.matchedSkills?.join(", ") || "—",
+              "Missing Skills": item.missingSkills?.join(", ") || "—",
+            };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      worksheet["!cols"] = [
+        { wch: 6 },
+        { wch: 25 },
+        { wch: 30 },
+        { wch: 16 },
+        { wch: 45 },
+        { wch: 25 },
+        { wch: 30 },
+        { wch: 30 },
+      ];
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        locale === "vi" ? "XepHangAI" : "AIRanking",
+      );
+      const today = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `UpNext_AI_Screening_${today}.xlsx`);
+      void toast.fire({
+        icon: "success",
+        title:
+          locale === "vi"
+            ? "Xuất file Excel (.xlsx) thành công!"
+            : "Excel file exported successfully!",
+      });
+      return;
+    }
+
+    if (activeTab === "potential") {
+      if (shortlist.length === 0) {
+        void toast.fire({
+          icon: "warning",
+          title:
+            locale === "vi"
+              ? "Không có ứng viên tiềm năng để xuất!"
+              : "No potential candidates to export!",
+        });
+        return;
+      }
+      const excelData = shortlist.map((entry, index) => {
+        const priorityText =
+          entry.priority === 2
+            ? locale === "vi"
+              ? "Ưu tiên cao"
+              : "High priority"
+            : entry.priority === 1
+              ? locale === "vi"
+                ? "Quan tâm"
+                : "Interested"
+              : locale === "vi"
+                ? "Bình thường"
+                : "Normal";
+        return locale === "vi"
+          ? {
+              STT: index + 1,
+              "Mức độ quan tâm": priorityText,
+              "Ghi chú": entry.note || "—",
+              "Ngày lưu": formatAppDateTime(entry.createdAt),
+            }
+          : {
+              "No.": index + 1,
+              "Interest Level": priorityText,
+              Note: entry.note || "—",
+              "Saved At": formatAppDateTime(entry.createdAt),
+            };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      worksheet["!cols"] = [{ wch: 6 }, { wch: 20 }, { wch: 40 }, { wch: 22 }];
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        locale === "vi" ? "UngVienTiemNang" : "Potential",
+      );
+      const today = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `UpNext_Potential_${today}.xlsx`);
+      void toast.fire({
+        icon: "success",
+        title:
+          locale === "vi"
+            ? "Xuất file Excel (.xlsx) thành công!"
+            : "Excel file exported successfully!",
+      });
+      return;
+    }
+
     const candidatesToExport =
       selectedIds.length > 0 ? candidates.filter((c) => selectedIds.includes(c.id)) : candidates;
 
@@ -1048,16 +1204,200 @@ export function RecruiterCandidatesPage() {
           aiLabel !== "ALL" && "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
         )}
       />
+      {hasActiveFilters ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleClearFilters}
+          className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
+        >
+          <X size={14} aria-hidden="true" />
+          {t("candidates.filters.clear")}
+        </Button>
+      ) : null}
+    </div>
+  );
+
+  // Controls cho bộ lọc AI Lọc CV ở Top trang
+  const cvRankingScoreOptions: SelectFilterOption[] = [
+    { value: "ALL", label: locale === "vi" ? "Tất cả mức điểm" : "All score levels" },
+    { value: "EXCELLENT", label: locale === "vi" ? "Xuất sắc (≥ 85đ)" : "Excellent (≥ 85)" },
+    { value: "GOOD", label: locale === "vi" ? "Tốt (70 - 84đ)" : "Good (70 - 84)" },
+    { value: "AVERAGE", label: locale === "vi" ? "Trung bình (50 - 69đ)" : "Average (50 - 69)" },
+    { value: "LOW", label: locale === "vi" ? "Cần xem xét (< 50đ)" : "Review needed (< 50)" },
+  ];
+
+  const cvRankingActiveFiltersCount = [
+    cvRankingSearch.trim().length > 0,
+    cvRankingScoreFilter !== "ALL",
+  ].filter(Boolean).length;
+  const cvRankingHasActiveFilters =
+    cvRankingSearch.trim().length > 0 || cvRankingScoreFilter !== "ALL";
+
+  const handleClearCvRankingFilters = () => {
+    setCvRankingSearch("");
+    setCvRankingScoreFilter("ALL");
+  };
+
+  const renderCvRankingFilterControls = () => (
+    <div className="contents">
+      <SelectFilter
+        ariaLabel={locale === "vi" ? "Chọn tin tuyển dụng" : "Select job post"}
+        value={cvScreening.selectedJobId || "ALL"}
+        onChange={(val) => {
+          cvScreening.setSelectedJobId(val === "ALL" ? "" : val);
+        }}
+        options={[
+          {
+            value: "ALL",
+            label: locale === "vi" ? "Chọn tin tuyển dụng..." : "Select job post...",
+          },
+          ...jobs.map((j) => ({ value: j.id, label: j.title })),
+        ]}
+        placeholder={locale === "vi" ? "Chọn tin tuyển dụng..." : "Select job post..."}
+        className="w-full lg:w-60"
+        showSearch
+        triggerClassName={cn(
+          "rounded-full",
+          cvScreening.selectedJobId &&
+            "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
+        )}
+      />
+
+      <SelectFilter
+        ariaLabel={locale === "vi" ? "Lọc theo mức điểm AI" : "Filter by AI score"}
+        value={cvRankingScoreFilter}
+        onChange={setCvRankingScoreFilter}
+        options={cvRankingScoreOptions}
+        placeholder={locale === "vi" ? "Tất cả mức điểm" : "All score levels"}
+        className="w-full lg:w-48"
+        triggerClassName={cn(
+          "rounded-full",
+          cvRankingScoreFilter !== "ALL" &&
+            "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
+        )}
+      />
+
       <Button
-        type="button"
-        variant="outline"
-        onClick={handleClearFilters}
-        disabled={!hasActiveFilters}
-        className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
+        onClick={cvScreening.startScreening}
+        disabled={cvScreening.isRunning || !cvScreening.selectedJobId}
+        className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 text-sm font-bold text-white shadow-none transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <X size={14} aria-hidden="true" />
-        {t("candidates.filters.clear")}
+        {cvScreening.isRunning ? (
+          <>
+            <CircleNotch className="size-4 animate-spin" />
+            <span>{locale === "vi" ? "Đang phân tích..." : "Analyzing..."}</span>
+          </>
+        ) : (
+          <>
+            <Sparkle size={16} weight="fill" />
+            <span>{locale === "vi" ? "Lọc xếp hạng" : "Filter & Rank"}</span>
+          </>
+        )}
       </Button>
+
+      {cvRankingHasActiveFilters ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleClearCvRankingFilters}
+          className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
+        >
+          <X size={14} aria-hidden="true" />
+          <span>{locale === "vi" ? "Đặt lại" : "Reset"}</span>
+        </Button>
+      ) : null}
+    </div>
+  );
+
+  // Controls cho bộ lọc Ứng viên tiềm năng ở Top trang
+  const potentialJobOptions: SelectFilterOption[] = [
+    { value: "ALL", label: locale === "vi" ? "Tất cả tin tuyển dụng" : "All job posts" },
+    ...jobs.map((job) => ({ value: job.id, label: job.title })),
+  ];
+  const potentialStatusOptions: SelectFilterOption[] = [
+    { value: "ALL", label: locale === "vi" ? "Tất cả trạng thái" : "All statuses" },
+    ...STATUS_OPTIONS.map((status) => ({
+      value: status,
+      label: t(`candidates.status.${status}` as any),
+    })),
+  ];
+  const potentialPriorityOptions: SelectFilterOption[] = [
+    { value: "ALL", label: locale === "vi" ? "Tất cả mức độ" : "All interest levels" },
+    ...SHORTLIST_PRIORITY_OPTIONS.map((option) => ({
+      value: option.value,
+      label: locale === "vi" ? option.vi : option.en,
+    })),
+  ];
+
+  const potentialActiveFiltersCount = [
+    potentialJobFilter !== "ALL",
+    potentialStatusFilter !== "ALL",
+    potentialPriorityFilter !== "ALL",
+  ].filter(Boolean).length;
+  const potentialHasActiveFilters =
+    potentialSearch.trim().length > 0 || potentialActiveFiltersCount > 0;
+
+  const handleClearPotentialFilters = () => {
+    setPotentialSearch("");
+    setPotentialJobFilter("ALL");
+    setPotentialStatusFilter("ALL");
+    setPotentialPriorityFilter("ALL");
+  };
+
+  const renderPotentialFilterControls = () => (
+    <div className="contents">
+      <SelectFilter
+        ariaLabel={locale === "vi" ? "Lọc theo tin tuyển dụng" : "Filter by job post"}
+        value={potentialJobFilter}
+        onChange={setPotentialJobFilter}
+        options={potentialJobOptions}
+        placeholder={locale === "vi" ? "Tất cả tin tuyển dụng" : "All job posts"}
+        className="w-full lg:w-56"
+        showSearch
+        triggerClassName={cn(
+          "rounded-full",
+          potentialJobFilter !== "ALL" &&
+            "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
+        )}
+      />
+      <SelectFilter
+        ariaLabel={locale === "vi" ? "Lọc theo trạng thái" : "Filter by status"}
+        value={potentialStatusFilter}
+        onChange={setPotentialStatusFilter}
+        options={potentialStatusOptions}
+        placeholder={locale === "vi" ? "Tất cả trạng thái" : "All statuses"}
+        className="w-full lg:w-48"
+        triggerClassName={cn(
+          "rounded-full",
+          potentialStatusFilter !== "ALL" &&
+            "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
+        )}
+      />
+      <SelectFilter
+        ariaLabel={locale === "vi" ? "Lọc theo mức độ quan tâm" : "Filter by interest level"}
+        value={potentialPriorityFilter}
+        onChange={setPotentialPriorityFilter}
+        options={potentialPriorityOptions}
+        placeholder={locale === "vi" ? "Tất cả mức độ" : "All interest levels"}
+        className="w-full lg:w-48"
+        triggerClassName={cn(
+          "rounded-full",
+          potentialPriorityFilter !== "ALL" &&
+            "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
+        )}
+      />
+      {potentialHasActiveFilters ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleClearPotentialFilters}
+          className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
+        >
+          <X size={14} aria-hidden="true" />
+          <span>{locale === "vi" ? "Xóa bộ lọc" : "Clear filters"}</span>
+        </Button>
+      ) : null}
     </div>
   );
 
@@ -1136,39 +1476,222 @@ export function RecruiterCandidatesPage() {
             ) : null}
           </div>
         </section>
+      ) : activeTab === "cv-ranking" ? (
+        <section
+          aria-label="Bộ lọc AI lọc CV"
+          className="sticky top-[-16px] z-30 -mx-4 -mt-4 border-y border-slate-200 bg-white px-4 py-4 md:top-[-32px] md:-mx-8 md:-mt-8 md:px-8"
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <span className="hidden shrink-0 text-xs font-semibold text-slate-500 md:inline">
+                {locale === "vi" ? "Bộ lọc:" : "Filters:"}
+              </span>
+              <div className="min-w-0 flex-1">
+                <SearchInput
+                  value={cvRankingSearch}
+                  onChange={setCvRankingSearch}
+                  placeholder={
+                    locale === "vi"
+                      ? "Tìm theo tên ứng viên, kỹ năng..."
+                      : "Search candidates, skills..."
+                  }
+                  inputClassName="rounded-full"
+                />
+              </div>
+
+              <button
+                type="button"
+                aria-expanded={cvRankingShowMobileFilters}
+                aria-controls="cv-ranking-mobile-filters"
+                aria-label={cvRankingShowMobileFilters ? "Ẩn bộ lọc" : "Hiện bộ lọc"}
+                onClick={() => setCvRankingShowMobileFilters((visible) => !visible)}
+                className={cn(
+                  "relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 lg:hidden",
+                  (cvRankingShowMobileFilters || cvRankingActiveFiltersCount > 0) &&
+                    "border-emerald-500 bg-emerald-50/10 text-emerald-600",
+                )}
+              >
+                <Funnel
+                  size={18}
+                  weight={
+                    cvRankingShowMobileFilters || cvRankingActiveFiltersCount > 0
+                      ? "bold"
+                      : "regular"
+                  }
+                  aria-hidden="true"
+                />
+                {cvRankingActiveFiltersCount > 0 ? (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white shadow-xs">
+                    {cvRankingActiveFiltersCount}
+                  </span>
+                ) : null}
+              </button>
+
+              <div className="hidden items-center gap-2 lg:flex">
+                {renderCvRankingFilterControls()}
+              </div>
+            </div>
+
+            {cvRankingShowMobileFilters ? (
+              <div
+                id="cv-ranking-mobile-filters"
+                className="animate-in fade-in slide-in-from-top-2 flex flex-col gap-3 border-t border-slate-100 pt-3 duration-200 lg:hidden"
+              >
+                {renderCvRankingFilterControls()}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : activeTab === "potential" ? (
+        <section
+          aria-label="Bộ lọc ứng viên tiềm năng"
+          className="sticky top-[-16px] z-30 -mx-4 -mt-4 border-y border-slate-200 bg-white px-4 py-4 md:top-[-32px] md:-mx-8 md:-mt-8 md:px-8"
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <span className="hidden shrink-0 text-xs font-semibold text-slate-500 md:inline">
+                {locale === "vi" ? "Bộ lọc:" : "Filters:"}
+              </span>
+              <div className="min-w-0 flex-1">
+                <SearchInput
+                  value={potentialSearch}
+                  onChange={setPotentialSearch}
+                  placeholder={
+                    locale === "vi"
+                      ? "Tìm theo tên, email, số điện thoại..."
+                      : "Search name, email, phone..."
+                  }
+                  inputClassName="rounded-full"
+                />
+              </div>
+
+              <button
+                type="button"
+                aria-expanded={potentialShowMobileFilters}
+                aria-controls="potential-candidate-mobile-filters"
+                aria-label={potentialShowMobileFilters ? "Ẩn bộ lọc" : "Hiện bộ lọc"}
+                onClick={() => setPotentialShowMobileFilters((visible) => !visible)}
+                className={cn(
+                  "relative flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 lg:hidden",
+                  (potentialShowMobileFilters || potentialActiveFiltersCount > 0) &&
+                    "border-emerald-500 bg-emerald-50/10 text-emerald-600",
+                )}
+              >
+                <Funnel
+                  size={18}
+                  weight={
+                    potentialShowMobileFilters || potentialActiveFiltersCount > 0
+                      ? "bold"
+                      : "regular"
+                  }
+                  aria-hidden="true"
+                />
+                {potentialActiveFiltersCount > 0 ? (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white shadow-xs">
+                    {potentialActiveFiltersCount}
+                  </span>
+                ) : null}
+              </button>
+
+              <div className="hidden items-center gap-2 lg:flex">
+                {renderPotentialFilterControls()}
+              </div>
+            </div>
+
+            {potentialShowMobileFilters ? (
+              <div
+                id="potential-candidate-mobile-filters"
+                className="animate-in fade-in slide-in-from-top-2 flex flex-col gap-3 border-t border-slate-100 pt-3 duration-200 lg:hidden"
+              >
+                {renderPotentialFilterControls()}
+              </div>
+            ) : null}
+          </div>
+        </section>
       ) : null}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
-            <TabsTrigger value="candidates">{t("nav.applicationsTab")}</TabsTrigger>
-            <TabsTrigger value="cv-ranking">{t("nav.aiCvScreeningTab")}</TabsTrigger>
-            <TabsTrigger value="potential">{t("nav.potentialCandidatesTab")}</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <div className="mb-4 flex flex-col gap-3 border-b-2 border-emerald-600 pb-0 sm:flex-row sm:items-end sm:justify-between">
+          <TabsList className="-mb-[2px] flex h-auto w-full flex-wrap items-center gap-2 bg-transparent p-0 pb-0 sm:w-auto">
+            <TabsTrigger
+              value="candidates"
+              className={cn(
+                "group relative flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-t-lg rounded-b-none border border-emerald-600 px-4 text-xs font-semibold transition-all sm:text-sm",
+                "data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:border-emerald-600 data-[state=active]:shadow-none",
+                "data-[state=inactive]:bg-white data-[state=inactive]:text-emerald-600 data-[state=inactive]:hover:bg-emerald-50/50",
+              )}
+            >
+              <Users
+                size={18}
+                weight="bold"
+                className={cn(
+                  "shrink-0 transition-colors",
+                  activeTab === "candidates" ? "text-white" : "text-emerald-600",
+                )}
+              />
+              <span className="whitespace-nowrap">{t("nav.applicationsTab")}</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="cv-ranking"
+              className={cn(
+                "group relative flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-t-lg rounded-b-none border border-emerald-600 px-4 text-xs font-semibold transition-all sm:text-sm",
+                "data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:border-emerald-600 data-[state=active]:shadow-none",
+                "data-[state=inactive]:bg-white data-[state=inactive]:text-emerald-600 data-[state=inactive]:hover:bg-emerald-50/50",
+              )}
+            >
+              <Sparkle
+                size={18}
+                weight="bold"
+                className={cn(
+                  "shrink-0 transition-colors",
+                  activeTab === "cv-ranking" ? "text-white" : "text-emerald-600",
+                )}
+              />
+              <span className="whitespace-nowrap">{t("nav.aiCvScreeningTab")}</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="potential"
+              className={cn(
+                "group relative flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-t-lg rounded-b-none border border-emerald-600 px-4 text-xs font-semibold transition-all sm:text-sm",
+                "data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:border-emerald-600 data-[state=active]:shadow-none",
+                "data-[state=inactive]:bg-white data-[state=inactive]:text-emerald-600 data-[state=inactive]:hover:bg-emerald-50/50",
+              )}
+            >
+              <Star
+                size={18}
+                weight="bold"
+                className={cn(
+                  "shrink-0 transition-colors",
+                  activeTab === "potential" ? "text-white" : "text-emerald-600",
+                )}
+              />
+              <span className="whitespace-nowrap">{t("nav.potentialCandidatesTab")}</span>
+            </TabsTrigger>
           </TabsList>
 
-          {activeTab === "candidates" ? (
-            <div className="flex shrink-0 items-center justify-end gap-2">
-              {/* Refresh */}
-              <Button
-                variant="outline"
-                size="icon"
-                className="flex h-10 w-10 items-center justify-center rounded-full border-slate-200 p-0 text-slate-600 shadow-none transition-all hover:bg-slate-50 hover:text-slate-800"
-                onClick={handleRefresh}
-                aria-label="Refresh list"
-              >
-                <ArrowsCounterClockwise size={18} />
-              </Button>
-              {/* Export Excel Button */}
-              <Button
-                variant="outline"
-                className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border-emerald-600 px-4 font-bold text-emerald-600 shadow-none transition-all hover:bg-emerald-50/50"
-                onClick={handleExportExcel}
-              >
-                <DownloadSimple size={18} />
-                <span>{locale === "vi" ? "Xuất Excel" : "Export Excel"}</span>
-              </Button>
-            </div>
-          ) : null}
+          <div className="flex shrink-0 items-center justify-end gap-2 self-end pb-1.5 sm:self-auto">
+            {/* Refresh */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-slate-200 p-0 text-slate-600 shadow-none transition-all hover:bg-slate-50 hover:text-slate-800"
+              onClick={handleRefresh}
+              aria-label="Refresh list"
+            >
+              <ArrowsCounterClockwise size={18} />
+            </Button>
+            {/* Export Excel Button */}
+            <Button
+              variant="outline"
+              className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full border-emerald-600 px-4 text-sm font-bold text-emerald-600 shadow-none transition-all hover:bg-emerald-50/50"
+              onClick={handleExportExcel}
+            >
+              <DownloadSimple size={18} />
+              <span>{locale === "vi" ? "Xuất Excel" : "Export Excel"}</span>
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="candidates" className="mt-0">
@@ -1237,6 +1760,33 @@ export function RecruiterCandidatesPage() {
             pageSize={pageSize}
             onPageChange={setCurrentPage}
             onPageSizeChange={setPageSize}
+            emptyState={
+              candidates.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-center">
+                  <Image
+                    src="/assets/recruiter/icon/icon_cv.png"
+                    alt="Empty"
+                    width={200}
+                    height={150}
+                    unoptimized
+                    className="mx-auto h-auto w-[200px] max-w-full object-contain select-none"
+                  />
+                  <span className="mt-2 text-sm font-medium text-slate-600">
+                    {missingCompany
+                      ? locale === "vi"
+                        ? "Vui lòng cập nhật hồ sơ công ty trước khi xem danh sách ứng viên."
+                        : "Please complete your company profile before viewing applications."
+                      : hasActiveFilters
+                        ? locale === "vi"
+                          ? "Không tìm thấy ứng viên phù hợp"
+                          : "No matching candidates found"
+                        : locale === "vi"
+                          ? "Hiện tại chưa có ứng viên nào nộp hồ sơ ứng tuyển"
+                          : "There are currently no applicants"}
+                  </span>
+                </div>
+              ) : null
+            }
           >
             <thead>
               <tr className="border-b border-slate-300 bg-slate-200">
@@ -1255,58 +1805,26 @@ export function RecruiterCandidatesPage() {
                   </span>
                   <Star size={16} className="mx-auto text-slate-400" />
                 </th>
-                <th className="w-[160px] min-w-[150px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+                <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
                   {t("candidates.table.candidate")}
                 </th>
-                <th className="min-w-[200px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+                <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
                   {t("candidates.table.jobPost")}
                 </th>
-                <th className="w-[140px] min-w-[140px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+                <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
                   {t("candidates.table.submittedAt")}
                 </th>
-                <th className="w-[100px] min-w-[100px] border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
+                <th className="w-24 border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
                   {t("candidates.table.cv")}
                 </th>
-                <th className="w-[145px] min-w-[145px] px-4 py-3 text-left text-xs font-bold text-slate-900">
+                <th className="px-4 py-3 text-left text-xs font-bold text-slate-900">
                   {t("candidates.table.status")}
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {candidates.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 !py-12 text-center text-sm text-slate-500">
-                    <div className="flex flex-col items-center justify-center">
-                      <Image
-                        src="/assets/icons/empty-state.png"
-                        alt="Empty"
-                        width={120}
-                        height={120}
-                        priority
-                        style={{ height: "auto", width: "auto" }}
-                        className="opacity-90"
-                      />
-                      {missingCompany ? (
-                        <>
-                          <span className="font-bold text-slate-800">
-                            {locale === "vi" ? "Chưa có hồ sơ công ty" : "No company profile yet"}
-                          </span>
-                          <span className="mt-1 max-w-md text-sm font-medium text-slate-500">
-                            {locale === "vi"
-                              ? "Vui lòng cập nhật hồ sơ công ty trước khi xem danh sách ứng viên."
-                              : "Please complete your company profile before viewing applications."}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="font-medium text-slate-500">
-                          {t("candidates.table.empty")}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                paginatedCandidates.map((app) => {
+            {candidates.length > 0 ? (
+              <tbody>
+                {paginatedCandidates.map((app) => {
                   const name =
                     app.candidateProfile.account.fullName ??
                     (locale === "vi" ? "Ẩn danh" : "Anonymous");
@@ -1475,9 +1993,9 @@ export function RecruiterCandidatesPage() {
                       </td>
                     </tr>
                   );
-                })
-              )}
-            </tbody>
+                })}
+              </tbody>
+            ) : null}
           </RecruiterTableLayout>
         </TabsContent>
 
@@ -1491,6 +2009,8 @@ export function RecruiterCandidatesPage() {
             token={token}
             cvScreening={cvScreening}
             onUnauthorized={handleScreeningUnauthorized}
+            search={cvRankingSearch}
+            scoreFilter={cvRankingScoreFilter}
           />
         </TabsContent>
 
@@ -1506,6 +2026,10 @@ export function RecruiterCandidatesPage() {
             resolveCvUrl={resolveCvUrl}
             onDownloadCv={handleDownloadCv}
             onQuickView={handleQuickView}
+            search={potentialSearch}
+            jobFilter={potentialJobFilter}
+            statusFilter={potentialStatusFilter}
+            priorityFilter={potentialPriorityFilter}
           />
         </TabsContent>
       </Tabs>
@@ -1710,13 +2234,14 @@ function handleAuthError(error: unknown, router: ReturnType<typeof useRouter>, l
 }
 
 function CvRankingTable({
-  jobs,
   locale,
   saving,
   onStatusChange,
   token,
   cvScreening,
   onUnauthorized,
+  search,
+  scoreFilter,
 }: {
   jobs: RecruiterJobPost[];
   t: any;
@@ -1726,6 +2251,8 @@ function CvRankingTable({
   token: string;
   cvScreening: ReturnType<typeof useCvScreening>;
   onUnauthorized: () => void;
+  search: string;
+  scoreFilter: string;
 }) {
   const router = useRouter();
   const [activeApplicationId, setActiveApplicationId] = useState<string | null>(null);
@@ -1735,20 +2262,31 @@ function CvRankingTable({
   const [rubricOpen, setRubricOpen] = useState(false);
   const rubricCloseTimer = useRef<number | null>(null);
 
-  // Dropdown states
-  const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
-  const [jobSearch, setJobSearch] = useState("");
+  const { results, isRunning, error, hasFiltered, progress, startScreening } = cvScreening;
 
-  const {
-    selectedJobId,
-    setSelectedJobId,
-    progress,
-    results,
-    isRunning,
-    error,
-    hasFiltered,
-    startScreening,
-  } = cvScreening;
+  const filteredResults = useMemo(() => {
+    let list = results;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (r) =>
+          r.candidateName.toLowerCase().includes(q) ||
+          r.jobTitle.toLowerCase().includes(q) ||
+          r.summary.toLowerCase().includes(q) ||
+          r.matchedSkills.some((s) => s.toLowerCase().includes(q)),
+      );
+    }
+    if (scoreFilter === "EXCELLENT") {
+      list = list.filter((r) => r.finalScore >= 85);
+    } else if (scoreFilter === "GOOD") {
+      list = list.filter((r) => r.finalScore >= 70 && r.finalScore < 85);
+    } else if (scoreFilter === "AVERAGE") {
+      list = list.filter((r) => r.finalScore >= 50 && r.finalScore < 70);
+    } else if (scoreFilter === "LOW") {
+      list = list.filter((r) => r.finalScore < 50);
+    }
+    return list;
+  }, [results, search, scoreFilter]);
 
   useEffect(() => {
     if (rubricCloseTimer.current !== null) {
@@ -1970,87 +2508,58 @@ function CvRankingTable({
     <div className="space-y-4">
       <RecruiterTableLayout
         loading={false}
-        filterBar={
-          <>
-            <div className="w-full sm:w-[280px]">
-              <DropdownMenu open={jobDropdownOpen} onOpenChange={setJobDropdownOpen}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    role="combobox"
-                    aria-expanded={jobDropdownOpen}
-                    disabled={isRunning}
-                    className="upnext-focus border-input flex h-11 w-full cursor-pointer items-center justify-between rounded-lg border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors hover:bg-slate-50/50 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <span className="truncate">
-                      {jobs.find((j) => j.id === selectedJobId)?.title ??
-                        (locale === "vi" ? "Chọn tin tuyển dụng..." : "Select job post...")}
-                    </span>
-                    <CaretDown size={16} className="ml-2 shrink-0 text-slate-400" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="z-50 flex max-h-80 flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
-                  style={{ width: "var(--radix-dropdown-menu-trigger-width)" }}
-                >
-                  <div className="relative flex items-center px-1 py-1">
-                    <MagnifyingGlass size={16} className="absolute left-3 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
-                      aria-label={locale === "vi" ? "Tìm tin tuyển dụng" : "Search jobs"}
-                      value={jobSearch}
-                      onChange={(e) => setJobSearch(e.target.value)}
-                      className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-3 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:outline-none"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                  <div className="flex max-h-60 flex-col gap-0.5 overflow-y-auto pr-0.5">
-                    {jobs
-                      .filter((job) => job.title.toLowerCase().includes(jobSearch.toLowerCase()))
-                      .map((job) => (
-                        <button
-                          key={job.id}
-                          onClick={() => {
-                            setSelectedJobId(job.id);
-                            setJobDropdownOpen(false);
-                          }}
-                          className={cn(
-                            "w-full text-left px-3 py-2 text-xs font-semibold rounded-lg transition-colors hover:bg-slate-50 flex items-center justify-between cursor-pointer",
-                            selectedJobId === job.id
-                              ? "text-primary bg-primary/10 font-bold"
-                              : "text-slate-700",
-                          )}
-                        >
-                          <span className="truncate pr-2">{job.title}</span>
-                          {selectedJobId === job.id && (
-                            <Check size={14} className="text-primary font-bold" />
-                          )}
-                        </button>
-                      ))}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <Button
-              onClick={startScreening}
-              disabled={isRunning || !selectedJobId}
-              className="flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-6 font-bold text-white shadow-none hover:bg-emerald-700"
-            >
-              {isRunning ? (
-                <>
-                  <CircleNotch className="size-4 animate-spin" />
-                  <span>Đang phân tích...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkle size={16} />
-                  <span>Lọc xếp hạng</span>
-                </>
-              )}
-            </Button>
-          </>
+        emptyState={
+          !isRunning && !error ? (
+            !hasFiltered ? (
+              <div className="flex flex-col items-center justify-center text-center">
+                <Image
+                  src="/assets/recruiter/icon/icon_cv.png"
+                  alt="Empty"
+                  width={200}
+                  height={150}
+                  unoptimized
+                  className="mx-auto h-auto w-[200px] max-w-full object-contain select-none"
+                />
+                <span className="mt-2 text-sm font-medium text-slate-600">
+                  {locale === "vi"
+                    ? "Hiện tại chưa có dữ liệu lọc xếp hạng CV bằng AI"
+                    : "No AI screening data available yet"}
+                </span>
+              </div>
+            ) : results.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center">
+                <Image
+                  src="/assets/recruiter/icon/icon_cv.png"
+                  alt="Empty"
+                  width={200}
+                  height={150}
+                  unoptimized
+                  className="mx-auto h-auto w-[200px] max-w-full object-contain select-none"
+                />
+                <span className="mt-2 text-sm font-medium text-slate-600">
+                  {locale === "vi"
+                    ? "Tin tuyển dụng này hiện chưa có ứng viên nào để AI chấm điểm"
+                    : "This job post currently has no applicants for AI screening"}
+                </span>
+              </div>
+            ) : filteredResults.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center">
+                <Image
+                  src="/assets/recruiter/icon/icon_cv.png"
+                  alt="Empty"
+                  width={200}
+                  height={150}
+                  unoptimized
+                  className="mx-auto h-auto w-[200px] max-w-full object-contain select-none"
+                />
+                <span className="mt-2 text-sm font-medium text-slate-600">
+                  {locale === "vi"
+                    ? "Không tìm thấy ứng viên nào phù hợp với bộ lọc"
+                    : "No candidates match your current filter"}
+                </span>
+              </div>
+            ) : null
+          ) : null
         }
       >
         <thead>
@@ -2058,194 +2567,172 @@ function CvRankingTable({
             <th className="w-16 border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Hạng" : "Rank"}
             </th>
-            <th className="w-[160px] min-w-[150px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Ứng viên" : "Candidate"}
             </th>
-            <th className="w-[200px] min-w-[180px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Tin tuyển dụng" : "Job Post"}
             </th>
-            <th className="min-w-[280px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Lý do phù hợp / summary" : "Matching Summary"}
             </th>
-            <th className="w-[120px] min-w-[120px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {locale === "vi" ? "Độ phù hợp" : "AI Score"}
             </th>
-            <th className="w-20 min-w-[80px] px-4 py-3 text-center text-xs font-bold text-slate-900">
+            <th className="w-24 px-4 py-3 text-center text-xs font-bold text-slate-900">
               {locale === "vi" ? "Thao tác" : "Actions"}
             </th>
           </tr>
         </thead>
-        <tbody>
-          {isRunning ? (
-            <tr>
-              <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
-                <div className="flex flex-col items-center justify-center space-y-4">
-                  <CircleNotch className="size-10 animate-spin text-emerald-600" />
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-slate-800">
-                      {locale === "vi" ? "Đang phân tích hồ sơ..." : "Analyzing resumes..."}
-                    </h4>
-                    {progress ? (
-                      <p className="text-xs font-semibold text-slate-400">
+        {isRunning || error || filteredResults.length > 0 ? (
+          <tbody>
+            {isRunning ? (
+              <tr>
+                <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
+                  <div className="flex flex-col items-center justify-center space-y-4">
+                    <CircleNotch className="size-10 animate-spin text-emerald-600" />
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-slate-800">
+                        {locale === "vi" ? "Đang phân tích hồ sơ..." : "Analyzing resumes..."}
+                      </h4>
+                      {progress ? (
+                        <p className="text-xs font-semibold text-slate-400">
+                          {locale === "vi"
+                            ? `Đã xử lý ${progress.processedCount}/${progress.totalApplications} hồ sơ`
+                            : `Processed ${progress.processedCount}/${progress.totalApplications} resumes`}
+                        </p>
+                      ) : (
+                        <p className="text-slate-450 text-xs font-semibold">
+                          {locale === "vi" ? "Khởi tạo tiến trình..." : "Initializing process..."}
+                        </p>
+                      )}
+                    </div>
+                    {progress && progress.failedCount > 0 && (
+                      <div className="mx-auto max-w-sm rounded-lg border border-rose-100 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
                         {locale === "vi"
-                          ? `Đã xử lý ${progress.processedCount}/${progress.totalApplications} hồ sơ`
-                          : `Processed ${progress.processedCount}/${progress.totalApplications} resumes`}
-                      </p>
-                    ) : (
-                      <p className="text-slate-450 text-xs font-semibold">
-                        {locale === "vi" ? "Khởi tạo tiến trình..." : "Initializing process..."}
-                      </p>
+                          ? `Có ${progress.failedCount} hồ sơ xử lý lỗi. Kết quả còn lại vẫn được hiển thị.`
+                          : `Failed to process ${progress.failedCount} resumes. The remaining results will still be shown.`}
+                      </div>
                     )}
-                  </div>
-                  {progress && progress.failedCount > 0 && (
-                    <div className="mx-auto max-w-sm rounded-lg border border-rose-100 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
-                      {locale === "vi"
-                        ? `Có ${progress.failedCount} hồ sơ xử lý lỗi. Kết quả còn lại vẫn được hiển thị.`
-                        : `Failed to process ${progress.failedCount} resumes. The remaining results will still be shown.`}
-                    </div>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ) : error ? (
-            <tr>
-              <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
-                <div className="flex flex-col items-center justify-center space-y-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-                    <WarningCircle size={24} />
-                  </div>
-                  <h4 className="text-sm font-bold text-slate-800">
-                    {locale === "vi" ? "Lọc xếp hạng thất bại" : "Screening Failed"}
-                  </h4>
-                  <p className="mx-auto max-w-md text-xs leading-relaxed font-semibold text-slate-400">
-                    {error}
-                  </p>
-                  <Button
-                    onClick={startScreening}
-                    className="mt-2 h-9 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700"
-                  >
-                    Thử lại
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ) : !hasFiltered ? (
-            <tr>
-              <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
-                <div className="flex flex-col items-center justify-center">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                    <MagnifyingGlass size={28} />
-                  </div>
-                  <h4 className="mb-1 text-sm font-bold text-slate-800">
-                    {locale === "vi" ? "Chưa có kết quả" : "No results yet"}
-                  </h4>
-                  <p className="mx-auto max-w-sm text-xs leading-relaxed font-semibold text-slate-400">
-                    {locale === "vi"
-                      ? "Chưa có kết quả xếp hạng. Hãy chọn tin tuyển dụng và bấm “Lọc xếp hạng”."
-                      : 'No matching results yet. Please select a job and click "Filter & Rank".'}
-                  </p>
-                </div>
-              </td>
-            </tr>
-          ) : results.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="px-4 !py-12 text-center text-sm text-slate-500">
-                {locale === "vi"
-                  ? "Không tìm thấy ứng viên nào đạt điểm lọc."
-                  : "No candidates found."}
-              </td>
-            </tr>
-          ) : (
-            results.map((cand, index) => (
-              <tr
-                key={cand.applicationId}
-                className="border-b border-slate-200 bg-white transition-colors duration-150 last:border-b-0 even:bg-slate-100/50 hover:bg-sky-50/30"
-              >
-                <td className="w-16 border-r border-slate-100/50 px-4 py-2.5 text-center last:border-r-0">
-                  <span
-                    className={cn(
-                      "inline-flex size-6 items-center justify-center rounded-full border text-[10px] tracking-tight",
-                      getRankBadgeClass(index),
-                    )}
-                  >
-                    #{index + 1}
-                  </span>
-                </td>
-                <td className="w-[160px] min-w-[150px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
-                  <span className="text-sm font-semibold text-slate-800">{cand.candidateName}</span>
-                </td>
-                <td className="w-[200px] min-w-[180px] truncate border-r border-slate-100/50 px-4 py-2.5 text-sm text-slate-800 last:border-r-0">
-                  {cand.jobTitle}
-                </td>
-                <td className="min-w-[280px] border-r border-slate-100/50 px-4 py-2.5 text-left last:border-r-0">
-                  <div className="flex flex-col gap-1.5 whitespace-normal">
-                    <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">
-                      {cand.summary}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {cand.matchedSkills.slice(0, 3).map((skill, idx) => (
-                        <span
-                          key={idx}
-                          className="rounded-md border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                      {cand.matchedSkills.length > 3 && (
-                        <span className="text-[10px] font-bold text-slate-400">
-                          +{cand.matchedSkills.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td className="w-[120px] min-w-[120px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
-                  <div className="w-full space-y-1">
-                    <span
-                      className={cn(
-                        "px-1.5 py-0.5 rounded-md font-extrabold border text-[10px] leading-none shrink-0 inline-block",
-                        getScoreColorClass(cand.finalScore),
-                      )}
-                    >
-                      {cand.finalScore}%
-                    </span>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className={cn(
-                          "h-full rounded-full transition-all duration-300",
-                          getProgressBarColor(cand.finalScore),
-                        )}
-                        style={{ width: `${cand.finalScore}%` }}
-                      />
-                    </div>
-                  </div>
-                </td>
-                <td className="w-20 min-w-[80px] px-4 py-2.5 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      onClick={() =>
-                        router.push(`/recruiter/candidates/${cand.applicationId}/evaluation`)
-                      }
-                      aria-label="Xem đánh giá chi tiết"
-                      className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
-                      title="Xem đánh giá chi tiết"
-                    >
-                      <Eye size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleViewCv(cand.applicationId, cand.cvFileUrl)}
-                      aria-label="Xem CV"
-                      className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-emerald-600 transition-colors hover:bg-slate-50 hover:text-emerald-700"
-                      title="Xem CV"
-                    >
-                      <FileArrowDown size={14} />
-                    </button>
                   </div>
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
+            ) : error ? (
+              <tr>
+                <td colSpan={6} className="px-4 !py-16 text-center text-sm text-slate-500">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+                      <WarningCircle size={24} />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-800">
+                      {locale === "vi" ? "Lọc xếp hạng thất bại" : "Screening Failed"}
+                    </h4>
+                    <p className="mx-auto max-w-md text-xs leading-relaxed font-semibold text-slate-400">
+                      {error}
+                    </p>
+                    <Button
+                      onClick={startScreening}
+                      className="mt-2 h-9 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700"
+                    >
+                      Thử lại
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              filteredResults.map((cand, index) => (
+                <tr
+                  key={cand.applicationId}
+                  className="border-b border-slate-200 bg-white transition-colors duration-150 last:border-b-0 even:bg-slate-100/50 hover:bg-sky-50/30"
+                >
+                  <td className="w-16 border-r border-slate-100/50 px-4 py-2.5 text-center last:border-r-0">
+                    <span
+                      className={cn(
+                        "inline-flex size-6 items-center justify-center rounded-full border text-[10px] tracking-tight",
+                        getRankBadgeClass(index),
+                      )}
+                    >
+                      #{index + 1}
+                    </span>
+                  </td>
+                  <td className="w-[160px] min-w-[150px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
+                    <span className="text-sm font-semibold text-slate-800">
+                      {cand.candidateName}
+                    </span>
+                  </td>
+                  <td className="w-[200px] min-w-[180px] truncate border-r border-slate-100/50 px-4 py-2.5 text-sm text-slate-800 last:border-r-0">
+                    {cand.jobTitle}
+                  </td>
+                  <td className="min-w-[280px] border-r border-slate-100/50 px-4 py-2.5 text-left last:border-r-0">
+                    <div className="flex flex-col gap-1.5 whitespace-normal">
+                      <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">
+                        {cand.summary}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {cand.matchedSkills.slice(0, 3).map((skill, idx) => (
+                          <span
+                            key={idx}
+                            className="rounded-md border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {cand.matchedSkills.length > 3 && (
+                          <span className="text-[10px] font-bold text-slate-400">
+                            +{cand.matchedSkills.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="w-[120px] min-w-[120px] border-r border-slate-100/50 px-4 py-2.5 last:border-r-0">
+                    <div className="w-full space-y-1">
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.5 rounded-md font-extrabold border text-[10px] leading-none shrink-0 inline-block",
+                          getScoreColorClass(cand.finalScore),
+                        )}
+                      >
+                        {cand.finalScore}%
+                      </span>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all duration-300",
+                            getProgressBarColor(cand.finalScore),
+                          )}
+                          style={{ width: `${cand.finalScore}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="w-20 min-w-[80px] px-4 py-2.5 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() =>
+                          router.push(`/recruiter/candidates/${cand.applicationId}/evaluation`)
+                        }
+                        aria-label="Xem đánh giá chi tiết"
+                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800"
+                        title="Xem đánh giá chi tiết"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleViewCv(cand.applicationId, cand.cvFileUrl)}
+                        aria-label="Xem CV"
+                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-emerald-600 transition-colors hover:bg-slate-50 hover:text-emerald-700"
+                        title="Xem CV"
+                      >
+                        <FileArrowDown size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        ) : null}
       </RecruiterTableLayout>
 
       <Dialog

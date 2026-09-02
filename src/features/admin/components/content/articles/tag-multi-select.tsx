@@ -5,7 +5,6 @@ import { useState, useRef, useEffect, useMemo } from "react";
 
 import { type AdminPostTag } from "@/features/admin/api/posts";
 import { cn } from "@/shared/lib/cn";
-import { Badge } from "@/shared/ui/badge";
 
 export interface TagMultiSelectProps {
   tags: AdminPostTag[];

@@ -187,6 +187,7 @@ export type ScanCompanyLicenseResult = {
   email: string | null;
   phone: string | null;
   website: string | null;
+  description: string | null;
 };
 
 export function scanCompanyBusinessLicense(companyId: string, file: File, token: string) {
@@ -208,6 +209,18 @@ export function scanCompanyBusinessLicensePreview(file: File, token: string) {
   return apiRequest<ScanCompanyLicenseResult>("/companies/scan-license", {
     body: formData,
     headers: authHeaders(token),
+    method: "POST",
+  });
+}
+
+export function generateCompanyLetterTemplate(
+  companyId: string,
+  type: "OFFER" | "REJECTION",
+  token: string,
+) {
+  return apiRequest<{ template: string }>(`/companies/${companyId}/letter-templates/generate`, {
+    body: JSON.stringify({ type }),
+    headers: jsonAuthHeaders(token),
     method: "POST",
   });
 }

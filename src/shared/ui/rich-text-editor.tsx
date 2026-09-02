@@ -4,7 +4,6 @@ import {
   TextB,
   TextItalic,
   TextUnderline,
-  TextH,
   TextHTwo,
   TextHThree,
   ListBullets,
@@ -156,7 +155,7 @@ export function RichTextEditor({
     const chars = text.length;
     const readingMin = Math.max(1, Math.ceil(words / 200));
     return { words, chars, readingMin };
-  }, [editor, editor?.state?.doc]);
+  }, [editor]);
 
   if (!editor) {
     return <div className="min-h-[260px] w-full rounded-xl border border-slate-200 bg-slate-50" />;

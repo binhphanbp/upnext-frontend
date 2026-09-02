@@ -308,20 +308,20 @@ test("keeps the candidate-style preview responsive on mobile", async ({ page, co
   expect(horizontalOverflow).toBeLessThanOrEqual(1);
 });
 
-test("filters published and pending-review jobs separately", async ({ page }) => {
+test("filters active and draft jobs separately", async ({ page }) => {
   await page.goto("/vi/recruiter/job-posts");
   const statusFilter = page.getByRole("combobox", {
     name: "Lọc theo trạng thái tin tuyển dụng",
   });
 
   await statusFilter.click();
-  await page.getByRole("option", { name: "Đang đăng", exact: true }).click();
+  await page.getByRole("option", { name: "Đã đăng", exact: true }).click();
   await expect(page.getByText("Tin đang đăng", { exact: true })).toBeVisible();
   await expect(page.getByText("Tin chờ duyệt", { exact: true })).toHaveCount(0);
 
   await statusFilter.click();
-  await page.getByRole("option", { name: "Chờ duyệt", exact: true }).click();
-  await expect(page.getByText("Tin chờ duyệt", { exact: true })).toBeVisible();
+  await page.getByRole("option", { name: "Bản nháp", exact: true }).click();
+  await expect(page.getByText("Tin bản nháp", { exact: true })).toBeVisible();
   await expect(page.getByText("Tin đang đăng", { exact: true })).toHaveCount(0);
 });
 
@@ -392,14 +392,11 @@ test("uses a distinct badge color for each job-post status", async ({ page }) =>
   await page.goto("/vi/recruiter/job-posts");
 
   await expect(
-    page.getByRole("row", { name: "Tin đang đăng" }).getByText("Đang đăng", { exact: true }),
+    page.getByRole("row", { name: "Tin đang đăng" }).getByText("Đã đăng", { exact: true }),
   ).toHaveClass(/bg-emerald-100/);
   await expect(
     page.getByRole("row", { name: "Tin sắp hết hạn" }).getByText("Sắp hết hạn", { exact: true }),
   ).toHaveClass(/bg-orange-100/);
-  await expect(
-    page.getByRole("row", { name: "Tin chờ duyệt" }).getByText("Chờ duyệt", { exact: true }),
-  ).toHaveClass(/bg-amber-100/);
   await expect(
     page.getByRole("row", { name: "Tin bản nháp" }).getByText("Bản nháp", { exact: true }),
   ).toHaveClass(/bg-blue-100/);

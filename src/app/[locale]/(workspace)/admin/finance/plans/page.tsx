@@ -1,4 +1,3 @@
-import { useTranslations } from "next-intl";
 import { Suspense } from "react";
 
 import { AddPlanDialog } from "@/features/admin/components/finance/plans/add-plan-dialog";
@@ -6,8 +5,6 @@ import { PlansTable } from "@/features/admin/components/finance/plans/plans-tabl
 import { Skeleton } from "@/shared/ui/skeleton";
 
 export default function AdminPlansPage() {
-  const t = useTranslations("Admin.finance.plans");
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-end">

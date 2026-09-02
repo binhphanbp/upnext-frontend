@@ -404,5 +404,31 @@ test("extracts a pasted existing JD and fills the same recruiter form", async ({
     0,
   );
   await expect(page.getByRole("button", { name: "Lưu bản nháp" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Đăng tin (gửi duyệt)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đăng tin" })).toBeVisible();
+});
+
+test("redirects an unverified company before mounting the create form", async ({ page }) => {
+  await page.route(`**/api/v1/recruiter-accounts/${recruiterId}`, async (route) => {
+    await route.fulfill({
+      json: {
+        id: recruiterId,
+        email: "recruiter@example.com",
+        status: "ACTIVE",
+        profile: { id: "profile-1", fullName: "UpNext Recruiter" },
+        company: {
+          id: "company-1",
+          name: "UpNext",
+          status: "ACTIVE",
+          verificationStatus: "PENDING",
+          businessLicenseFileId: "license-1",
+        },
+      },
+    });
+  });
+
+  await page.goto("/vi/recruiter/job-posts/create");
+
+  await expect(page).toHaveURL(/\/vi\/recruiter\/company-profile$/);
+  await expect(page.locator("#job-title")).toHaveCount(0);
+  await expect(page.locator('[role="dialog"]')).toHaveCount(0);
 });

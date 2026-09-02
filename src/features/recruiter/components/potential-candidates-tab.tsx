@@ -8,7 +8,6 @@ import {
   IdentificationCard,
   PencilSimple,
   Star,
-  X,
 } from "@phosphor-icons/react";
 import { format } from "date-fns";
 import Image from "next/image";
@@ -19,7 +18,6 @@ import { getCompanyApplications, type Application } from "@/features/recruiter/a
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/shared/lib/cn";
 import { toDate } from "@/shared/lib/date";
-import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -30,8 +28,6 @@ import {
 
 import { CandidateProfileDetailDialog } from "./candidate-profile-detail-dialog";
 import { CoverLetterDialog } from "./cover-letter-dialog";
-import { SearchInput } from "./interviews/search-input";
-import { SelectFilter, type SelectFilterOption } from "./interviews/select-filter";
 import { getStatusBadgeClass, getStatusDotClass } from "./recruiter-candidates-page";
 import { RecruiterTableLayout } from "./recruiter-table-layout";
 import {
@@ -40,17 +36,6 @@ import {
 } from "./save-potential-candidate-dialog";
 
 /** Khớp STATUS_OPTIONS ở recruiter-candidates-page.tsx (không export nên khai lại). */
-const STATUS_OPTIONS = [
-  "SUBMITTED",
-  "VIEWED",
-  "SHORTLISTED",
-  "INTERVIEWING",
-  "OFFERED",
-  "HIRED",
-  "WITHDRAWN",
-  "REJECTED",
-] as const;
-
 function priorityBadgeClass(priority: number) {
   if (priority >= 2) return "bg-rose-50 text-rose-700 border border-rose-200/50";
   if (priority >= 1) return "bg-amber-50 text-amber-700 border border-amber-200/50";
@@ -77,18 +62,16 @@ type PotentialCandidatesTabProps = Readonly<{
   resolveCvUrl: (app: Application) => string;
   onDownloadCv: (fileUrl: string, fileName: string) => void;
   onQuickView: (app: Application, title: string) => void;
+  search: string;
+  jobFilter: string;
+  statusFilter: string;
+  priorityFilter: string;
 }>;
 
 /**
  * Tab "Ứng viên tiềm năng": danh sách ứng viên ĐÃ NỘP ĐƠN mà recruiter bấm ⭐
  * để lưu lại xem sau (RecruiterCandidateShortlist ở backend) — độc lập với
  * trạng thái pipeline của đơn ứng tuyển ở tab "Danh sách ứng tuyển".
- *
- * Component này tự tải toàn bộ đơn ứng tuyển của công ty (không áp bộ lọc của
- * tab 1) để join đủ thông tin hiển thị (tên, CV, trạng thái) cho từng mục đã
- * lưu, vì danh sách ứng viên tiềm năng phải luôn đầy đủ bất kể tab 1 đang lọc gì.
- * Lọc theo tên/job/trạng thái/mức độ quan tâm được thực hiện phía client vì
- * toàn bộ dữ liệu đã tải sẵn, không cần gọi lại API mỗi lần đổi bộ lọc.
  */
 export function PotentialCandidatesTab({
   token,
@@ -101,17 +84,16 @@ export function PotentialCandidatesTab({
   resolveCvUrl,
   onDownloadCv,
   onQuickView,
+  search,
+  jobFilter,
+  statusFilter,
+  priorityFilter,
 }: PotentialCandidatesTabProps) {
   const vi = locale === "vi";
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  const [search, setSearch] = useState("");
-  const [jobFilter, setJobFilter] = useState("ALL");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [priorityFilter, setPriorityFilter] = useState("ALL");
 
   const [viewNoteEntry, setViewNoteEntry] = useState<{ name: string; note: string } | null>(null);
   const [editState, setEditState] = useState<{
@@ -163,35 +145,6 @@ export function PotentialCandidatesTab({
     [shortlist, applications],
   );
 
-  const jobOptions: SelectFilterOption[] = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const { application } of rows) {
-      if (application && !seen.has(application.jobPost.id)) {
-        seen.set(application.jobPost.id, application.jobPost.title);
-      }
-    }
-    return [
-      { value: "ALL", label: vi ? "Tất cả tin tuyển dụng" : "All job posts" },
-      ...Array.from(seen, ([value, label]) => ({ value, label })),
-    ];
-  }, [rows, vi]);
-
-  const statusOptions: SelectFilterOption[] = [
-    { value: "ALL", label: vi ? "Tất cả trạng thái" : "All statuses" },
-    ...STATUS_OPTIONS.map((status) => ({
-      value: status,
-      label: t(`candidates.status.${status}` as any),
-    })),
-  ];
-
-  const priorityOptions: SelectFilterOption[] = [
-    { value: "ALL", label: vi ? "Tất cả mức độ" : "All interest levels" },
-    ...SHORTLIST_PRIORITY_OPTIONS.map((option) => ({
-      value: option.value,
-      label: vi ? option.vi : option.en,
-    })),
-  ];
-
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return rows.filter(({ entry, application }) => {
@@ -219,21 +172,10 @@ export function PotentialCandidatesTab({
     setCurrentPage(1);
   }, [search, jobFilter, statusFilter, priorityFilter, totalItems]);
 
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedRows = filteredRows.slice(startIndex, startIndex + pageSize);
-
-  const hasActiveFilters =
-    search.trim().length > 0 ||
-    jobFilter !== "ALL" ||
-    statusFilter !== "ALL" ||
-    priorityFilter !== "ALL";
-
-  function handleClearFilters() {
-    setSearch("");
-    setJobFilter("ALL");
-    setStatusFilter("ALL");
-    setPriorityFilter("ALL");
-  }
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, currentPage, pageSize]);
 
   function formatSavedAt(value: string) {
     try {
@@ -253,72 +195,7 @@ export function PotentialCandidatesTab({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 lg:flex-row lg:items-center">
-        <span className="hidden shrink-0 text-xs font-semibold text-slate-500 lg:inline">
-          {vi ? "Lọc theo" : "Filter by"}
-        </span>
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={
-            vi ? "Tìm theo tên, email, số điện thoại..." : "Search name, email, phone..."
-          }
-          className="w-full lg:max-w-xs"
-          inputClassName="rounded-full"
-        />
-        <SelectFilter
-          ariaLabel={vi ? "Lọc theo tin tuyển dụng" : "Filter by job post"}
-          value={jobFilter}
-          onChange={setJobFilter}
-          options={jobOptions}
-          placeholder={vi ? "Tất cả tin tuyển dụng" : "All job posts"}
-          className="w-full lg:w-56"
-          showSearch
-          triggerClassName={cn(
-            "rounded-full",
-            jobFilter !== "ALL" &&
-              "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
-          )}
-        />
-        <SelectFilter
-          ariaLabel={vi ? "Lọc theo trạng thái" : "Filter by status"}
-          value={statusFilter}
-          onChange={setStatusFilter}
-          options={statusOptions}
-          placeholder={vi ? "Tất cả trạng thái" : "All statuses"}
-          className="w-full lg:w-48"
-          triggerClassName={cn(
-            "rounded-full",
-            statusFilter !== "ALL" &&
-              "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
-          )}
-        />
-        <SelectFilter
-          ariaLabel={vi ? "Lọc theo mức độ quan tâm" : "Filter by interest level"}
-          value={priorityFilter}
-          onChange={setPriorityFilter}
-          options={priorityOptions}
-          placeholder={vi ? "Tất cả mức độ" : "All interest levels"}
-          className="w-full lg:w-48"
-          triggerClassName={cn(
-            "rounded-full",
-            priorityFilter !== "ALL" &&
-              "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
-          )}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleClearFilters}
-          disabled={!hasActiveFilters}
-          className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
-        >
-          <X size={14} aria-hidden="true" />
-          {vi ? "Xóa bộ lọc" : "Clear filters"}
-        </Button>
-      </div>
-
+    <div className="space-y-4">
       <RecruiterTableLayout
         loading={false}
         totalItems={totalItems}
@@ -326,72 +203,61 @@ export function PotentialCandidatesTab({
         pageSize={pageSize}
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
+        emptyState={
+          paginatedRows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-center">
+              <Image
+                src="/assets/recruiter/icon/icon_cv.png"
+                alt="Empty"
+                width={200}
+                height={150}
+                unoptimized
+                className="mx-auto h-auto w-[200px] max-w-full object-contain select-none"
+              />
+              <span className="mt-2 text-sm font-medium text-slate-600">
+                {shortlist.length === 0
+                  ? vi
+                    ? "Hiện tại chưa có ứng viên tiềm năng nào"
+                    : "No potential candidates yet"
+                  : vi
+                    ? "Không tìm thấy ứng viên phù hợp với bộ lọc"
+                    : "No candidates match your filters"}
+              </span>
+            </div>
+          ) : null
+        }
       >
         <thead>
           <tr className="border-b border-slate-300 bg-slate-200">
-            <th className="min-w-[160px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {t("candidates.table.candidate")}
             </th>
-            <th className="min-w-[200px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {t("candidates.table.jobPost")}
             </th>
-            <th className="w-[145px] min-w-[145px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {t("candidates.table.status")}
             </th>
-            <th className="w-[100px] min-w-[100px] border-r border-slate-300 px-2 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="w-24 border-r border-slate-300 px-2 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0">
               {t("candidates.table.cv")}
             </th>
-            <th className="w-[130px] min-w-[130px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {vi ? "Mức độ quan tâm" : "Interest"}
             </th>
-            <th className="min-w-[220px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {vi ? "Ghi chú" : "Note"}
             </th>
-            <th className="w-[140px] min-w-[140px] border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
+            <th className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0">
               {vi ? "Ngày lưu" : "Saved at"}
             </th>
-            <th className="w-[100px] min-w-[100px] px-4 py-3 text-center text-xs font-bold text-slate-900">
+            <th className="w-24 px-4 py-3 text-center text-xs font-bold text-slate-900">
               {vi ? "Hành động" : "Actions"}
             </th>
           </tr>
         </thead>
-        <tbody>
-          {paginatedRows.length === 0 ? (
-            <tr>
-              <td colSpan={8} className="px-4 !py-12 text-center text-sm text-slate-500">
-                <div className="flex flex-col items-center justify-center">
-                  <Image
-                    src="/assets/icons/empty-state.png"
-                    alt="Empty"
-                    width={120}
-                    height={120}
-                    priority
-                    style={{ height: "auto", width: "auto" }}
-                    className="opacity-90"
-                  />
-                  <span className="font-bold text-slate-800">
-                    {shortlist.length === 0
-                      ? vi
-                        ? "Chưa có ứng viên tiềm năng nào"
-                        : "No potential candidates yet"
-                      : vi
-                        ? "Không có ứng viên phù hợp với bộ lọc"
-                        : "No candidates match your filters"}
-                  </span>
-                  <span className="mt-1 max-w-md text-sm font-medium text-slate-500">
-                    {shortlist.length === 0
-                      ? vi
-                        ? 'Ở tab "Danh sách ứng tuyển", bấm biểu tượng ⭐ trên một ứng viên đã nộp đơn để lưu lại xem sau.'
-                        : 'From the "Applications" tab, click the ⭐ icon on an applicant to save them here for later.'
-                      : vi
-                        ? "Thử xóa bớt bộ lọc để xem nhiều ứng viên hơn."
-                        : "Try clearing some filters to see more candidates."}
-                  </span>
-                </div>
-              </td>
-            </tr>
-          ) : (
-            paginatedRows.map(({ entry, application }) => {
+        {paginatedRows.length > 0 ? (
+          <tbody>
+            {paginatedRows.map(({ entry, application }) => {
               const name =
                 application?.candidateProfile.account.fullName ?? (vi ? "Ẩn danh" : "Anonymous");
               const jobTitle = application?.jobPost.title ?? "—";
@@ -538,9 +404,9 @@ export function PotentialCandidatesTab({
                   </td>
                 </tr>
               );
-            })
-          )}
-        </tbody>
+            })}
+          </tbody>
+        ) : null}
       </RecruiterTableLayout>
 
       {/* Xem toàn bộ ghi chú — cột bảng chỉ hiện tối đa 2 dòng (line-clamp) nên

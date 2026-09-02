@@ -24,6 +24,7 @@ interface RecruiterTableLayoutProps {
   pageSize?: number;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
+  emptyState?: ReactNode;
   children: ReactNode;
 }
 
@@ -36,6 +37,7 @@ export function RecruiterTableLayout({
   pageSize,
   onPageChange,
   onPageSizeChange,
+  emptyState,
   children,
 }: RecruiterTableLayoutProps) {
   const locale = useLocale();
@@ -161,10 +163,16 @@ export function RecruiterTableLayout({
         )}
 
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-full border-collapse text-sm whitespace-nowrap [&_tbody_td[colspan]]:sticky [&_tbody_td[colspan]]:left-0 [&_tbody_td[colspan]]:w-[calc(100vw-48px)] sm:[&_tbody_td[colspan]]:w-[calc(100vw-280px)] lg:[&_tbody_td[colspan]]:w-full [&_tbody_tr]:border-b [&_tbody_tr]:border-slate-200 hover:[&_tbody_tr]:bg-slate-50/40 [&_tbody_tr:nth-child(even)]:bg-slate-50/80 [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold [&_th]:text-slate-800 [&_thead_tr]:border-b [&_thead_tr]:border-slate-300 [&_thead_tr]:bg-slate-200">
+          <table className="w-full min-w-full border-collapse text-sm whitespace-nowrap [&_tbody_tr]:border-b [&_tbody_tr]:border-slate-200 hover:[&_tbody_tr]:bg-slate-50/40 [&_tbody_tr:last-child]:border-b-0 [&_tbody_tr:nth-child(even)]:bg-slate-50/80 [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold [&_th]:text-slate-800 [&_thead_tr]:border-b [&_thead_tr]:border-slate-300 [&_thead_tr]:bg-slate-200">
             {children}
           </table>
         </div>
+
+        {emptyState ? (
+          <div className="flex w-full flex-col items-center justify-center py-8 text-center">
+            {emptyState}
+          </div>
+        ) : null}
       </div>
 
       {/* Pagination Section */}

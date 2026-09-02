@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 
 import { routing } from "@/i18n/routing";
 
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang={routing.defaultLocale} suppressHydrationWarning>
       <head>
-        <script
+        <Script
+          id="cleanup-bis-skin-attributes-root"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {

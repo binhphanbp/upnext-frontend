@@ -26,6 +26,7 @@ import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
 import { FullScreenOverlay } from "@/shared/ui/full-screen-overlay";
 
+import { resolveAiError } from "./ai-error-message";
 import {
   applyPayloadFallbacks,
   buildJobPostSourceText,
@@ -57,16 +58,11 @@ const EMPTY_CATALOGS: JobPostCatalogs = {
 };
 
 function getAiErrorMessage(t: ReturnType<typeof useTranslations>, error: unknown) {
-  if (!(error instanceof ApiError)) {
-    return t("jobPostsPage.aiErrors.connectionFailed");
-  }
-  if (error.status === 429) {
-    return t("jobPostsPage.aiErrors.rateLimited");
-  }
-  if (error.status >= 500) {
-    return t("jobPostsPage.aiErrors.busy");
-  }
-  return error.message || t("jobPostsPage.aiGenerator.genericError");
+  // Dùng chung `resolveAiError` với trang import để hai bản không phân kỳ lại: bản
+  // ở trang import từng tự thêm nhánh đăng xuất khi gặp 403, và đó là cách một lỗi
+  // phân quyền biến thành mất session.
+  const resolved = resolveAiError(error);
+  return resolved.fallbackMessage ?? t(resolved.messageKey);
 }
 
 /** Measured against the real extraction endpoint: ~6s. Rounded up so the clock rarely hits zero. */
@@ -177,7 +173,9 @@ export function JobPostAiGeneratorPage() {
       );
       setCompanyDescription(company?.description ?? "");
     } catch (error) {
-      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+      // 403 ở đây là công ty bị hạn chế quyền, không phải phiên đăng nhập hỏng --
+      // xoá session sẽ đẩy một người vẫn đăng nhập hợp lệ ra ngoài kèm thông báo sai.
+      if (error instanceof ApiError && error.status === 401) {
         clearRecruiterSession();
         router.replace("/recruiter/login");
         return;
