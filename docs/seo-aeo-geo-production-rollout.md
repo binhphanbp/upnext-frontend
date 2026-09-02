@@ -181,6 +181,12 @@ Mọi dòng dưới đây có đường dẫn file cụ thể và đã được 
 | Job detail là **client component** — không SSR nội dung lẫn metadata                            | `src/features/public/jobs/jobs-route.tsx` dòng 1: `"use client"`                                                                 |
 | Route job truyền thẳng param xuống client                                                       | `src/app/[locale]/(public)/jobs/[slug]/page.tsx` → `<JobDetailRoute slug={slug} />` → `PublicJobDetailPage path={/jobs/${slug}}` |
 | Không có `middleware.ts`                                                                        | `git ls-files \| grep -i middleware` → rỗng. Xem P0-2                                                                            |
+| **Hai root layout cùng render `<html>`**                                                        | `src/app/[locale]/layout.tsx` (có `generateMetadata`) và `src/app/(root)/layout.tsx` (chỉ `metadata` tĩnh: icons). Xem §6 B1     |
+| `/conversations/chat` có title/description nhưng **không có `robots: noindex`**                 | `src/app/(root)/conversations/chat/page.tsx` dòng 5. Trang riêng tư, hiện crawl được                                             |
+| **Cả ba** loại trang chi tiết public đều là client component                                    | `jobs-route.tsx`, `companies-route.tsx`, `posts-page-content.tsx`, `post-detail-content.tsx` — đều `"use client"` ở dòng 1       |
+| `generateMetadata` của posts detail trả **chuỗi tĩnh theo locale**, giống hệt nhau cho mọi bài  | `posts/[slug]/page.tsx` trả `postCopy[locale].metadata.detailTitle` — có metadata ≠ có metadata riêng cho từng bài               |
+| Không có `(workspace)/layout.tsx`                                                               | chỉ có `admin/`, `candidate/`, `recruiter/layout.tsx` riêng lẻ. Ảnh hưởng chỗ đặt `noindex` — xem §6 B2                          |
+| Job detail lấy id từ **segment thứ 2 của path** rồi gọi API                                     | `job-detail-page.tsx` `getJobId(path)` dòng 170 → backend validate UUID, nên segment đó là UUID chứ không phải slug              |
 | Chỉ có 1 API route: proxy                                                                       | `src/app/api/v1/[...proxy]/route.ts`. **Chưa có endpoint revalidate** — xem §7 C4                                                |
 | Không có `src/app/not-found.tsx` ở root, trong khi `experimental.globalNotFound: true` đang bật | chỉ có `src/app/[locale]/not-found.tsx`; `next.config.ts` dòng ~20                                                               |
 | `public/mockServiceWorker.js` (artifact dev của MSW) được ship vào image production             | `Dockerfile` copy nguyên `public/`                                                                                               |
@@ -206,10 +212,25 @@ Infra:
 
 ### 2.3. Ba dòng audit ban đầu cần sửa cách hiểu
 
-1. **`s-maxage=31536000` không phải lỗi cấu hình.** Giá trị này không xuất hiện ở bất kỳ đâu trong
-   `next.config.ts`, mã nguồn, hay nginx. Đây là **`Cache-Control` mặc định Next.js phát cho một
-   trang được prerender tĩnh hoàn toàn**. Cách sửa đúng là chuyển các route indexable sang
-   SSR/ISR có `revalidate` (§6 B4) — khi đó Next tự phát header đúng.
+1. **`s-maxage=31536000` không phải lỗi cấu hình, và chỉ đúng với một nửa số trang.** Giá trị này
+   không xuất hiện ở bất kỳ đâu trong `next.config.ts`, mã nguồn, hay nginx. Đây là
+   **`Cache-Control` mặc định Next.js phát cho trang được prerender tĩnh**.
+
+   Chạy `pnpm build` trên commit hiện tại cho thấy hai nhóm khác hẳn nhau:
+
+   | Route                        | Chế độ build | Hệ quả cache hiện tại                     |
+   | ---------------------------- | ------------ | ----------------------------------------- |
+   | `/[locale]` (trang chủ)      | `●` SSG      | `s-maxage=31536000` — cache một năm       |
+   | `/[locale]/jobs`             | `●` SSG      | như trên                                  |
+   | `/[locale]/companies`        | `●` SSG      | như trên                                  |
+   | `/[locale]/jobs/[slug]`      | `ƒ` Dynamic  | **không cache gì cả**, render mọi request |
+   | `/[locale]/companies/[slug]` | `ƒ` Dynamic  | như trên                                  |
+   | `/[locale]/posts/[slug]`     | `ƒ` Dynamic  | như trên                                  |
+
+   Nghĩa là có **hai vấn đề ngược nhau**, không phải một: trang danh sách cache quá lâu, trang
+   chi tiết không cache gì. Cả hai đều được ISR ở §6 B4 giải quyết, nhưng đừng mô tả chúng như
+   cùng một triệu chứng.
+
    **Không được "sửa" bằng cách thêm `add_header Cache-Control` ở nginx**; làm vậy sẽ che triệu
    chứng và phá luôn cache của asset tĩnh.
 
@@ -415,6 +436,17 @@ Tạo helper **server-only**, ví dụ `src/shared/seo/`, chịu trách nhiệm:
 
 Đặt `import "server-only"` ở đầu file để build fail ngay nếu bị import vào client component.
 
+> **Repo này có HAI root layout, không phải một.** Cả hai đều render `<html>`:
+>
+> - `src/app/[locale]/layout.tsx` — phục vụ mọi route có locale, đã có `generateMetadata`;
+> - `src/app/(root)/layout.tsx` — phục vụ các route **không** có locale (`/auth/callback`,
+>   `/conversations/chat`), `<html lang>` hardcode `defaultLocale`, chỉ có `metadata` tĩnh gồm
+>   icons và **không có robots**.
+>
+> Cấu hình SEO chỉ ở `[locale]/layout.tsx` sẽ bỏ sót nhánh thứ hai. `/conversations/chat` hiện
+> còn tự khai title/description riêng mà không có `noindex` — tức một trang riêng tư đang mời
+> crawler vào.
+
 Trong root locale layout (`src/app/[locale]/layout.tsx`, hiện đã có `generateMetadata`):
 
 - đặt `metadataBase` là `PUBLIC_ORIGIN`; canonical production chỉ sinh khi `SEO_INDEXING_ENABLED=true`;
@@ -436,7 +468,25 @@ Trong root locale layout (`src/app/[locale]/layout.tsx`, hiện đã có `genera
 | Post                  | Tiêu đề/summary/author/date thật             | Self      | index khi published (locale có bản dịch thật)      |
 | Workspace/auth/API    | Không cần social/meta công khai              | Không     | noindex, nofollow                                  |
 
-Không dùng một title/description chung cho job/company/post detail.
+Không dùng một title/description chung cho job/company/post detail. **Posts detail hiện đang vi
+phạm đúng điều này**: `posts/[slug]/page.tsx` có `generateMetadata` nhưng trả
+`postCopy[locale].metadata.detailTitle` — một chuỗi tĩnh giống hệt nhau cho mọi bài viết. Có
+`generateMetadata` không có nghĩa là hạng mục này đã xong; nó phải fetch bài thật rồi sinh
+title/description riêng cho từng bài.
+
+**Đặt `robots: noindex` ở đâu — bản đồ cụ thể.** Không có `(workspace)/layout.tsx`, nên không có
+một chỗ duy nhất chặn được cả khu vực riêng tư. Năm nơi phải xử lý:
+
+| Nơi                                         | Che phủ                                           |
+| ------------------------------------------- | ------------------------------------------------- |
+| `[locale]/(workspace)/admin/layout.tsx`     | `/admin/**`                                       |
+| `[locale]/(workspace)/candidate/layout.tsx` | `/candidate/**`                                   |
+| `[locale]/(workspace)/recruiter/layout.tsx` | `/recruiter/**`                                   |
+| `[locale]/(auth)/layout.tsx`                | login, register, reset-password, portal-access, … |
+| `(root)/layout.tsx`                         | `/auth/callback`, `/conversations/chat`           |
+
+Gọn hơn thì tạo `[locale]/(workspace)/layout.tsx` để gộp ba dòng đầu; nhưng đừng giả định nó đã
+tồn tại.
 
 ### B2.1. Default locale và duplicate URL
 
@@ -458,8 +508,21 @@ Không dùng một title/description chung cho job/company/post detail.
 ### B3. `robots.ts` và `sitemap.ts`
 
 - Tạo `src/app/robots.ts` và `src/app/sitemap.ts` (hoặc sitemap index).
-- **Không cần sửa matcher i18n** — repo không có middleware (P0-2). Hai route này sẽ phục vụ ở
-  root ngay. Vẫn phải test để chắc chắn chúng không bị `[locale]` bắt nhầm.
+- **Không cần sửa matcher i18n** — repo không có middleware (P0-2).
+- **Đã kiểm chứng bằng build thật, không phải suy đoán.** Tạo thử `src/app/robots.ts` và
+  `src/app/sitemap.ts` rồi chạy `pnpm build` trên commit hiện tại: build thành công (exit 0) và
+  bảng route liệt kê
+
+  ```txt
+  ├ ○ /robots.txt
+  └ ○ /sitemap.xml
+  ```
+
+  `○` = static. Artifact có thật trên đĩa (`.next/server/app/robots.txt.body`, cả trong
+  `.next/standalone/`) với đúng nội dung mong đợi. Segment `[locale]` **không** nuốt hai route
+  này — metadata file convention của Next được khớp trước dynamic segment. Hai file thử nghiệm
+  đã được xoá sau khi đo.
+
 - Production robots nêu rõ sitemap canonical. Chỉ `Disallow` các endpoint không-HTML/không cần crawl; với route HTML private dùng authentication/redirect hoặc HTTP/meta `noindex` **nhưng không đồng thời chặn bằng robots**, để bot có thể đọc noindex nếu URL đã từng bị phát hiện:
 
 ```text
@@ -488,10 +551,21 @@ Các route indexable phải fetch read model ở Server Component và render:
 - JSON-LD;
 - trạng thái 404/expired.
 
-Hiện `src/features/public/jobs/jobs-route.tsx` là `"use client"` — job detail và jobs list phải
-được tách: phần fetch + metadata + JSON-LD lên Server Component, phần tương tác (filter, save
-job, apply modal) giữ ở client. Đây là hạng mục **tốn công nhất** của workstream B; ước lượng
-riêng cho nó khi lập lịch.
+**Cả ba** loại trang chi tiết public hiện đều là client component, không chỉ jobs:
+`jobs-route.tsx`, `companies-route.tsx`, `posts-page-content.tsx`, `post-detail-content.tsx` —
+tất cả đều `"use client"` ở dòng 1. Cả ba phải được tách: phần fetch + metadata + JSON-LD lên
+Server Component, phần tương tác (filter, save job, apply modal) giữ ở client.
+
+Điểm xuất phát khác nhau theo route, đo bằng `pnpm build` trên commit hiện tại:
+
+- `/[locale]/jobs` và `/[locale]/companies` là `●` SSG — đang bị cache một năm (§2.3);
+- `/[locale]/jobs/[slug]`, `/[locale]/companies/[slug]`, `/[locale]/posts/[slug]` là `ƒ` Dynamic
+  — đã server-render mỗi request nhưng **không cache gì**, và vẫn không có nội dung trong HTML
+  vì component con là client.
+
+Nên với trang chi tiết, việc cần làm không phải "chuyển từ static sang dynamic" (đã dynamic rồi)
+mà là **đưa dữ liệu lên Server Component và thêm `revalidate`**. Đây là hạng mục **tốn công
+nhất** của workstream B; ước lượng riêng cho nó khi lập lịch.
 
 > **Chặn:** nội dung JD hiện **không được sanitize** ở cả backend lẫn frontend (xem §8 D3).
 > SSR chuỗi đó vào response của server mở rộng bề mặt stored-XSS so với render client hiện tại.
@@ -558,11 +632,21 @@ GET /public/seo/posts/:slug
 
 Read model chỉ chứa field public cần thiết. Không trả recruiter account, member, CV, email, private location, internal moderation note, plan/subscription hay token.
 
-**Lưu ý bắt buộc:** không được xây sitemap trên `GET /job-posts` hiện tại. Endpoint đó
-(`job-posts.service.ts` `findAll()`) **không có `take`/`skip`** — nó trả về _toàn bộ_ job đã
-publish kèm `publicJobPostInclude()` đầy đủ (company, skills, locations, specializations). Đây đã
-là rủi ro latency ở hiện tại và sẽ sập khi số job tăng. Endpoint SEO mới phải có cursor pagination
-ngay từ đầu, và nên coi việc thêm phân trang cho `GET /job-posts` là một hạng mục riêng.
+**Phân trang: chỉ jobs thiếu, posts và companies đã có.** Đã kiểm từng module:
+
+| Endpoint public  | Phân trang                               | Tra cứu theo slug                            |
+| ---------------- | ---------------------------------------- | -------------------------------------------- |
+| `GET /job-posts` | ❌ `findAll()` không có `take`/`skip`    | ❌ `GET /job-posts/:id` dùng `ParseUUIDPipe` |
+| `GET /posts`     | ✅ `skip`/`take` từ `PaginationQueryDto` | ✅ `GET /posts/by-slug/:slug`                |
+| `GET /companies` | ✅ `toPagination(query)`                 | ✅ `GET /companies/:idOrSlug`                |
+
+Không được xây sitemap job trên `GET /job-posts` hiện tại: nó trả _toàn bộ_ job đã publish kèm
+`publicJobPostInclude()` đầy đủ (company, skills, locations, specializations). Đây đã là rủi ro
+latency ở hiện tại và sẽ sập khi số job tăng. Endpoint SEO mới phải có cursor pagination ngay từ
+đầu, và thêm phân trang cho `GET /job-posts` là một hạng mục riêng.
+
+Với posts và companies, read model SEO chủ yếu là việc **lọc field** (§C1) chứ không phải thêm
+phân trang — nhẹ hơn jobs đáng kể.
 
 ### C2. Job lifecycle contract
 
@@ -896,11 +980,11 @@ Cột "Chặn bởi" là điều kiện tiên quyết cứng — không bắt đ
 | 1   | Staging/placeholder production noindex header; tách `www` 301; monitoring healthy                                                                                       | Infra           | 0a       | Có                |
 | 2   | Compose dùng digest/`sha-*` thay tag động; migration rehearsal                                                                                                          | Infra/BE        | 0a       | Có                |
 | 3   | Production chạy đầy đủ public routes                                                                                                                                    | FE/BE/Infra     | 2        | Có                |
-| 4   | Site config server-only, `metadataBase`, canonical, route noindex, `permanentRedirect`, root `not-found.tsx`                                                            | FE              | 0b       | Có                |
+| 4   | Site config server-only, `metadataBase`, canonical, `permanentRedirect`, root `not-found.tsx`; `noindex` ở **cả 5 nơi** (§6 B2), gồm `(root)/layout.tsx`                | FE              | 0b       | Có                |
 | 5   | Root `robots.ts` + sitemap index (có giới hạn 50k)                                                                                                                      | FE              | 4        | Có                |
 | 6   | BE: format slug job + history + endpoint tra cứu slug; public SEO read model có cursor; lifecycle events qua outbox                                                     | BE              | 2        | Có                |
 | 6b  | **Sanitize JD** (`description`/`requirements`/`benefits`) ở backend khi ghi + rà lại `getCleanHtml` ở FE. PR bảo mật riêng, ngoài phạm vi SEO nhưng chặn #7 — xem §8 D3 | BE (+FE)        | —        | Có                |
-| 7   | FE: `/api/revalidate` có HMAC; SSR/ISR job/company/article + metadata/H1 riêng                                                                                          | FE              | 4, 6, 6b | Có                |
+| 7   | FE: `/api/revalidate` có HMAC; đưa **cả ba** trang chi tiết (job/company/post) lên Server Component + ISR, metadata/H1 riêng từng entity                                | FE              | 4, 6, 6b | Có                |
 | 8   | JobPosting/Organization/Article/Breadcrumb schema + escaping                                                                                                            | FE/BE           | 7        | Có                |
 | 9   | CI SEO tests, i18n parity test, redirect table test, rich-result fixtures, link checks                                                                                  | FE/BE/QA        | 5, 7, 8  | Có                |
 | 10  | Search Console/Bing (DNS TXT), analytics dashboard                                                                                                                      | SEO/Infra       | 1        | Có                |
@@ -934,9 +1018,9 @@ ngay hôm nay, đừng để nó thành thứ chặn #7 vào phút chót.
 SEO production launch chỉ được đánh dấu hoàn thành khi:
 
 1. `upnext.works` là website product thật, không còn placeholder/404 ở public routes.
-2. Staging và preview đều noindex ở response đầu tiên; các private HTML route production cũng noindex hoặc không thể truy cập anonymous, nhưng không bị `robots.txt` chặn trước khi bot đọc noindex.
+2. Staging và preview đều noindex ở response đầu tiên; các private HTML route production cũng noindex hoặc không thể truy cập anonymous, nhưng không bị `robots.txt` chặn trước khi bot đọc noindex. Bao gồm cả nhánh không-locale dưới `(root)/layout.tsx` (`/auth/callback`, `/conversations/chat`).
 3. Production có robots, sitemap, canonical, hreflang đúng theo §4.4 và Search Console xác nhận fetch được.
-4. Public job/company/article được SSR/ISR với nội dung và metadata riêng trong HTML ban đầu.
+4. Public job/company/article được SSR/ISR với nội dung và metadata **riêng từng entity** trong HTML ban đầu — kể cả posts, hiện đang dùng một title/description chung cho mọi bài.
 5. Public SEO API không lộ PII/private data, có contract test và cursor pagination.
 6. Job lifecycle xử lý publish/update/expiry đúng trong page, sitemap, schema và cache.
 7. JobPosting validation sạch với mẫu dữ liệu production thật.
