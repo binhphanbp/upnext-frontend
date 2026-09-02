@@ -62,6 +62,7 @@ export type CreateCompanyPayload = Readonly<{
   benefits?: string;
   offerLetterTemplate?: string;
   rejectionLetterTemplate?: string;
+  applicationInvitationTemplate?: string;
 }>;
 
 export type CompanyResponse = Readonly<{
@@ -82,6 +83,7 @@ export type CompanyDetail = Readonly<{
   benefits: string | null;
   offerLetterTemplate: string | null;
   rejectionLetterTemplate: string | null;
+  applicationInvitationTemplate: string | null;
   status: string;
   verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
   businessLicenseFileId: string | null;
@@ -215,7 +217,7 @@ export function scanCompanyBusinessLicensePreview(file: File, token: string) {
 
 export function generateCompanyLetterTemplate(
   companyId: string,
-  type: "OFFER" | "REJECTION",
+  type: "OFFER" | "REJECTION" | "INVITATION",
   token: string,
 ) {
   return apiRequest<{ template: string }>(`/companies/${companyId}/letter-templates/generate`, {

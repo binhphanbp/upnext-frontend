@@ -27,6 +27,9 @@ type RecruiterLayoutProps = Readonly<{
 const routePermissionMap: Record<string, string[]> = {
   "/recruiter/job-posts": ["jobs:manage"],
   "/recruiter/candidates": ["applications:manage", "applications:review_assigned"],
+  // Bắt buộc phải có dòng này: `hasPermissionForHref` trả `true` cho mọi href
+  // **không** có row ở đây, nên thiếu nó thì cả reviewer cũng thấy mục này.
+  "/recruiter/talent-pool": ["applications:manage", "applications:review_assigned"],
   "/recruiter/interviews": ["interviews:manage", "interviews:review_assigned"],
   "/recruiter/messages": ["applications:manage", "applications:review_assigned"],
   "/recruiter/company-profile": ["company:manage"],
@@ -58,6 +61,7 @@ const routeTierMap: Record<string, CompanyTier> = {
   "/recruiter/job-posts/create/ai": 2,
   "/recruiter/job-posts/create/import": 2,
   "/recruiter/candidates": 2,
+  "/recruiter/talent-pool": 2,
   "/recruiter/interviews": 2,
   "/recruiter/messages": 1,
   "/recruiter/team": 2,
@@ -193,6 +197,8 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
         itemLabel = t("nav.jobPosts");
       } else if (item.label === "Ứng viên") {
         itemLabel = t("nav.candidates");
+      } else if (item.label === "Kho CV" || item.label === "Tìm ứng viên") {
+        itemLabel = t("nav.talentPool");
       } else if (item.label === "Phỏng vấn") {
         itemLabel = t("nav.interviews");
         badge = undefined;

@@ -100,6 +100,12 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "i.pravatar.cc",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "img.vietqr.io",
         port: "",
         pathname: "/**",
@@ -152,6 +158,10 @@ const nextConfig: NextConfig = {
       {
         source: "/api/v1/:path*",
         destination: `${proxyOrigin}/api/v1/:path*`,
+      },
+      {
+        source: "/uploads/:path*",
+        destination: `${proxyOrigin}/uploads/:path*`,
       },
     ];
   },

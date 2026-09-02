@@ -1,4 +1,5 @@
 import {
+  Archive,
   Article,
   Bell,
   Briefcase,
@@ -37,6 +38,15 @@ export const recruiterNavGroups: WorkspaceNavGroup[] = [
         label: "Ứng viên",
         href: "/recruiter/candidates",
         icon: Users,
+      },
+      // Tách khỏi "Ứng viên" có chủ ý: mục đó là application-scoped (người đã
+      // nộp hồ sơ), còn Kho CV là những ứng viên **chưa** ứng tuyển tin nào của
+      // công ty, chỉ công khai hồ sơ cho phép liên hệ chủ động. Gộp hai thứ vào
+      // một mục sẽ làm cả pricing lẫn UX sai.
+      {
+        label: "Tìm ứng viên",
+        href: "/recruiter/talent-pool",
+        icon: Archive,
       },
       { label: "Phỏng vấn", href: "/recruiter/interviews", icon: Bell },
     ],
