@@ -16,6 +16,7 @@ import {
 } from "../types";
 import { InterviewEngine } from "./interviewEngine";
 import { appLogger } from "./logger";
+import { correctSpeechTranscript } from "./textCorrection";
 
 export class ApiClient {
   private get baseUrl(): string {
@@ -173,13 +174,17 @@ export class ApiClient {
     audioBase64?: string | null,
     isFollowUpAnswer?: boolean,
   ): Promise<EvaluateAnswerResponse> {
+    // 1. Contextually clean speech-to-text typos & software engineering terms
+    const cleanTranscript = correctSpeechTranscript(transcript).correctedText || transcript;
+
     try {
       const res = await fetch(`${this.baseUrl}/api/sessions/${sessionId}/evaluate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           questionId: question.id,
-          transcript,
+          transcript: cleanTranscript,
+          rawTranscript: transcript,
           faceTimeline,
           audioTimeline,
           fillerWords,
@@ -192,6 +197,13 @@ export class ApiClient {
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
+          // If Backend AI returned a follow-up question, sanitize its text to ensure no gibberish terms
+          if (data.isFollowUp && data.followUpQuestion) {
+            const cleanedFollowUp = correctSpeechTranscript(
+              data.followUpQuestion.text,
+            ).correctedText;
+            data.followUpQuestion.text = cleanedFollowUp || data.followUpQuestion.text;
+          }
           return data;
         }
       }
@@ -201,9 +213,24 @@ export class ApiClient {
 
     // Local fallback evaluation
     const localEngine = new InterviewEngine(config);
+
+    // Check if Deep Mode should generate a Gemini 2.5 Follow-up Question
+    if (config.interviewMode === "deep" && !isFollowUpAnswer) {
+      const followUpQ = await localEngine.generateFollowUpQuestion(question, cleanTranscript, 1, 1);
+      if (followUpQ) {
+        return {
+          success: true,
+          isFollowUp: true,
+          followUpIndex: 1,
+          maxFollowUps: 1,
+          followUpQuestion: followUpQ,
+        };
+      }
+    }
+
     const localRecord = await localEngine.evaluateQuestionAnswer(
       question,
-      transcript,
+      cleanTranscript,
       faceTimeline,
       audioTimeline,
       fillerWords,
@@ -320,7 +347,7 @@ export class ApiClient {
 
     // Local fallback report generation
     const localEngine = new InterviewEngine(config);
-    return localEngine.generateFinalReport(answers, totalDurationSeconds);
+    return localEngine.generateFinalReport(sessionId, answers, totalDurationSeconds);
   }
 }
 

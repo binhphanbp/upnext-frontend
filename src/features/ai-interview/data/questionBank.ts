@@ -2,385 +2,444 @@ import { Question, InterviewRole, ExperienceLevel, Language } from "../types";
 
 export const QUESTION_BANK: Record<Language, Question[]> = {
   vi: [
-    // --- FRONTEND ---
+    // ==========================================
+    // --- FRONTEND DEVELOPER ---
+    // ==========================================
+
+    // [FRONTEND - INTERN] (Cơ bản, thân thiện, kiến thức trường học & nền tảng Web)
     {
-      id: "fe-01",
+      id: "fe-intern-01",
       role: "frontend",
-      level: "junior",
+      level: "intern",
       category: "intro",
-      text: "Bạn hãy giới thiệu đôi nét về bản thân và kinh nghiệm phát triển Frontend gần đây của bạn?",
+      text: "Bạn hãy giới thiệu đôi nét về bản thân, ngành học và đồ án hoặc bài tập lớn về Frontend đầu tiên mà bạn từng tự làm?",
       expectedKeyPoints: [
-        "Kinh nghiệm làm việc",
-        "Công nghệ chính (React, TypeScript, CSS)",
-        "Dự án tiêu biểu",
+        "Giới thiệu trường / ngành học",
+        "Kiến thức HTML/CSS/JavaScript cơ bản",
+        "Đồ án môn học hoặc project tự học",
+        "Mong muốn học hỏi trong kỳ thực tập",
+      ],
+      sampleGoodAnswer:
+        "Em chào anh/chị, em là sinh viên năm cuối chuyên ngành CNTT. Em đã tự học và làm đồ án môn học xây dựng một trang web bán hàng cơ bản bằng HTML, CSS, JavaScript và React. Trong kỳ thực tập này, em mong muốn được cọ xát thực tế, học hỏi quy trình làm việc nhóm và nâng cao kỹ năng code của mình...",
+      timeLimitSeconds: 90,
+    },
+    {
+      id: "fe-intern-02",
+      role: "frontend",
+      level: "intern",
+      category: "technical",
+      text: "Trong JavaScript, bạn hiểu như thế nào về sự khác biệt giữa let, const và var? Khi nào bạn sẽ ưu tiên dùng const?",
+      expectedKeyPoints: [
+        "Block scope (let/const) vs Function scope (var)",
+        "Hoisting",
+        "const không cho phép gán lại (re-assign)",
+        "Ưu tiên dùng const cho biến không đổi để code an toàn",
+      ],
+      sampleGoodAnswer:
+        "Dạ, var có phạm vi function scope và bị hoisting, dễ gây lỗi ngoài ý muốn. Còn let và const có block scope trong cặp ngoặc nhọn. Điểm khác là const không thể gán lại giá trị sau khi khai báo. Em luôn ưu tiên dùng const cho tất cả các biến, chỉ dùng let khi biến đó thực sự cần thay đổi giá trị như vòng lặp...",
+      timeLimitSeconds: 90,
+    },
+    {
+      id: "fe-intern-03",
+      role: "frontend",
+      level: "intern",
+      category: "technical",
+      text: "Khi bắt đầu làm quen với React, bạn hiểu Component và State là gì? Bạn đã từng dùng useState để làm tính năng gì cơ bản?",
+      expectedKeyPoints: [
+        "Component là khối giao diện tái sử dụng",
+        "State là dữ liệu nội bộ có thể thay đổi và kích hoạt giao diện cập nhật",
+        "useState hook",
+        "Ví dụ: nút tăng giảm số lượng, bật tắt popup hoặc nhập form",
+      ],
+      sampleGoodAnswer:
+        "Component trong React giống như các mảnh ghép Lego giúp chia nhỏ giao diện để dễ quản lý và tái sử dụng. Còn State là dữ liệu riêng của component, khi state thay đổi thì React sẽ tự vẽ lại giao diện. Em đã dùng useState để làm chức năng đếm số lượng giỏ hàng và bật tắt menu trên thanh navbar...",
+      timeLimitSeconds: 90,
+    },
+
+    // [FRONTEND - FRESHER] (Có đồ án hoàn chỉnh, hiểu React cơ bản, Props & API)
+    {
+      id: "fe-fresher-01",
+      role: "frontend",
+      level: "fresher",
+      category: "intro",
+      text: "Hãy giới thiệu về bản thân và ngăn xếp công nghệ (React, Tailwind CSS, TypeScript...) mà bạn đã sử dụng trong dự án tốt nghiệp hoặc đồ án gần nhất?",
+      expectedKeyPoints: [
+        "Kinh nghiệm làm đồ án thực tế",
+        "Stack công nghệ (React, TypeScript, CSS)",
+        "Cách tổ chức code và Git",
         "Định hướng phát triển",
       ],
       sampleGoodAnswer:
-        "Em là lập trình viên Frontend có kinh nghiệm làm việc với React, TypeScript và Tailwind CSS. Trong dự án gần nhất, em đã xây dựng dashboard quản lý với khả năng tối ưu render và tích hợp RESTful API...",
+        "Em là Fresher Frontend Developer thành thạo React, TypeScript và Tailwind CSS. Trong đồ án tốt nghiệp, em đã xây dựng một web app đặt vé xem phim có tích hợp REST API, quản lý routing với React Router và lưu trữ mã nguồn trên GitHub...",
       timeLimitSeconds: 90,
     },
     {
-      id: "fe-02",
+      id: "fe-fresher-02",
       role: "frontend",
-      level: "middle",
+      level: "fresher",
       category: "technical",
-      text: "Bạn hãy giải thích cơ chế Virtual DOM trong React và cách tối ưu hóa re-render trong một ứng dụng lớn?",
+      text: "Bạn hãy phân biệt sự khác nhau giữa Props và State trong React? Làm thế nào để truyền dữ liệu từ Component con lên Component cha?",
       expectedKeyPoints: [
-        "Virtual DOM",
-        "Diffing Algorithm",
-        "useMemo",
-        "useCallback",
-        "React.memo",
-        "State colocation",
-        "Code splitting",
+        "Props là dữ liệu truyền từ cha xuống (read-only)",
+        "State là trạng thái nội bộ của component",
+        "Truyền callback function từ cha xuống con để con gọi và gửi dữ liệu lên",
       ],
       sampleGoodAnswer:
-        "Virtual DOM là bản sao nhẹ dạng JavaScript object của DOM thật. Khi state thay đổi, React tạo VDOM mới và so sánh với VDOM cũ bằng thuật toán Diffing (Reconciliation). Để tối ưu re-render, ta sử dụng React.memo, useCallback, useMemo và tách nhỏ component để cô lập state...",
+        "Props là tham số truyền từ component cha xuống và mang tính bất biến (read-only), còn State là dữ liệu do chính component đó quản lý và có thể thay đổi. Để truyền dữ liệu từ con lên cha, ta truyền một hàm callback từ cha xuống qua props, khi con có sự kiện sẽ gọi hàm đó và truyền dữ liệu kèm theo...",
+      timeLimitSeconds: 90,
+    },
+    {
+      id: "fe-fresher-03",
+      role: "frontend",
+      level: "fresher",
+      category: "technical",
+      text: "Bạn thường gọi API và xử lý bất đồng bộ (Async/Await) trong React như thế nào (ví dụ với useEffect, trạng thái loading và error)?",
+      expectedKeyPoints: [
+        "useEffect hook với dependency array",
+        "async/await hoặc fetch/axios",
+        "Xử lý 3 trạng thái: Loading, Success, Error",
+        "Hiển thị skeleton/spinner",
+      ],
+      sampleGoodAnswer:
+        "Em thường dùng useEffect với dependency array rỗng để gọi API một lần khi mount. Trong hàm async, em đặt state isLoading = true, dùng khối try-catch để lấy dữ liệu qua axios/fetch, nếu thành công thì lưu vào state data, nếu lỗi thì bắt catch và hiển thị thông báo lỗi cho người dùng...",
+      timeLimitSeconds: 90,
+    },
+
+    // [FRONTEND - JUNIOR] (1-2 năm kinh nghiệm, tự chủ tính năng, Custom Hooks)
+    {
+      id: "fe-junior-01",
+      role: "frontend",
+      level: "junior",
+      category: "intro",
+      text: "Bạn hãy giới thiệu về kinh nghiệm làm việc thực tế của mình và một tính năng phức tạp mà bạn từng tự tay xây dựng gần đây?",
+      expectedKeyPoints: [
+        "1-2 năm kinh nghiệm thực tế",
+        "Dự án thương mại / sản phẩm",
+        "Tính năng phức tạp (Form validation, Table pagination, Real-time)",
+        "Giải quyết vấn đề",
+      ],
+      sampleGoodAnswer:
+        "Em đã có hơn 1 năm làm việc với React, Next.js và TypeScript. Gần đây em chịu trách nhiệm xây dựng tính năng Dynamic Form Builder cho phép người dùng tự kéo thả các trường thông tin, tích hợp React Hook Form và Zod schema để validate dữ liệu chặt chẽ...",
+      timeLimitSeconds: 90,
+    },
+    {
+      id: "fe-junior-02",
+      role: "frontend",
+      level: "junior",
+      category: "technical",
+      text: "Bạn hiểu như thế nào về vòng đời useEffect trong React? Khi nào ta cần viết hàm Cleanup trong useEffect?",
+      expectedKeyPoints: [
+        "Mount, Update (theo dependency array), Unmount",
+        "Cleanup function chạy khi unmount hoặc trước effect tiếp theo",
+        "Ví dụ: hủy event listener, clearTimeout/clearInterval, cancel fetch request (AbortController)",
+      ],
+      sampleGoodAnswer:
+        "useEffect thực thi logic phụ sau khi DOM đã render. Hàm cleanup return bên trong useEffect sẽ chạy khi component unmount hoặc trước khi effect kế tiếp chạy lại. Cleanup cực kỳ quan trọng để tránh memory leak, ví dụ như gỡ addEventListener window, hủy setInterval hoặc hủy AbortController khi người dùng chuyển trang...",
       timeLimitSeconds: 120,
     },
     {
-      id: "fe-03",
+      id: "fe-junior-03",
       role: "frontend",
-      level: "senior",
+      level: "junior",
       category: "technical",
-      text: "Làm thế nào để bạn đo lường và tối ưu các chỉ số Core Web Vitals (LCP, FID/INP, CLS) cho một trang web thương mại điện tử có lượng truy cập cao?",
+      text: "Bạn đã từng tạo Custom Hook nào chưa? Khi nào chúng ta nên trừu tượng hóa logic thành một Custom Hook?",
       expectedKeyPoints: [
-        "Core Web Vitals",
-        "LCP tối ưu ảnh / CDN",
-        "INP/FID giảm JavaScript execution",
-        "CLS giữ kích thước cố định layout",
-        "SSR / SSG",
-        "Lazy loading",
+        "Tái sử dụng logic stateful giữa nhiều component",
+        'Đặt tên bắt đầu bằng "use"',
+        "Ví dụ: useDebounce, useLocalStorage, useWindowSize, useFetch",
       ],
       sampleGoodAnswer:
-        "Để tối ưu LCP, ta ưu tiên load hero image với fetchpriority=high, dùng CDN và nén WebP/AVIF. Với INP, chia nhỏ Long Tasks bằng Web Workers hoặc yield to main thread. Để tránh CLS, luôn khai báo width/height cho hình ảnh và khung quảng cáo...",
+        "Ta nên tạo Custom Hook khi có logic xử lý state hoặc side effect lặp lại ở nhiều nơi. Em đã từng viết hook useDebounce để giảm số lần gọi API tìm kiếm khi người dùng gõ phím, và hook useLocalStorage để tự động đồng bộ state với LocalStorage của trình duyệt...",
       timeLimitSeconds: 120,
     },
 
-    // --- BACKEND ---
+    // [FRONTEND - MIDDLE] (3-4 năm kinh nghiệm, tối ưu hiệu năng, kiến trúc State)
     {
-      id: "be-01",
+      id: "fe-middle-01",
+      role: "frontend",
+      level: "middle",
+      category: "technical",
+      text: "Bạn hãy giải thích cơ chế Virtual DOM trong React và các kỹ thuật tối ưu hóa re-render trong một ứng dụng lớn (React.memo, useMemo, useCallback, State Colocation)?",
+      expectedKeyPoints: [
+        "Virtual DOM & Diffing Algorithm (Reconciliation)",
+        "React.memo, useMemo, useCallback",
+        "State Colocation & Component Splitting",
+        "Code Splitting (React.lazy, dynamic import)",
+      ],
+      sampleGoodAnswer:
+        "Virtual DOM là cây object biểu diễn UI trong bộ nhớ. Khi state đổi, React chạy Diffing algorithm để tính toán patch nhỏ nhất vào real DOM. Để tối ưu re-render, ta dùng React.memo cho pure component, useMemo cho phép tính nặng, useCallback để giữ nguyên tham chiếu hàm, và quan trọng nhất là đưa state xuống component thấp nhất có thể (State Colocation)...",
+      timeLimitSeconds: 120,
+    },
+    {
+      id: "fe-middle-02",
+      role: "frontend",
+      level: "middle",
+      category: "technical",
+      text: "Khi nào bạn chọn Context API và khi nào bạn sử dụng thư viện quản lý State tập trung như Zustand hoặc Redux Toolkit?",
+      expectedKeyPoints: [
+        "Context API phù hợp cho dữ liệu ít thay đổi (Theme, Auth, Language)",
+        "Vấn đề re-render toàn bộ consumer của Context",
+        "Zustand / Redux Toolkit với selector subscription tối ưu cho dữ liệu phức tạp",
+      ],
+      sampleGoodAnswer:
+        "Context API phù hợp với global state có tần suất cập nhật thấp như Theme, thông tin User đã login, đa ngôn ngữ. Tuy nhiên Context dễ gây re-render không cần thiết cho toàn bộ consumer. Với state phức tạp, cập nhật liên tục như E-commerce Cart hay Table Dashboard, em ưu tiên dùng Zustand vì nhẹ, dùng selector subscription chính xác và không cần Provider bọc ngoài...",
+      timeLimitSeconds: 120,
+    },
+
+    // [FRONTEND - SENIOR] (5+ năm kinh nghiệm, Core Web Vitals, Security, Kiến trúc lớn)
+    {
+      id: "fe-senior-01",
+      role: "frontend",
+      level: "senior",
+      category: "technical",
+      text: "Làm thế nào để bạn đo lường và tối ưu các chỉ số Core Web Vitals (LCP, INP, CLS) cho một hệ thống Web thương mại điện tử có hàng triệu lượt truy cập?",
+      expectedKeyPoints: [
+        "LCP tối ưu ảnh CDN / SSR / Preload",
+        "INP tối ưu Long Tasks & Web Workers",
+        "CLS giữ kích thước layout ổn định",
+        "RUM (Real User Monitoring) Datadog/Sentry",
+      ],
+      sampleGoodAnswer:
+        "Để tối ưu LCP, ta áp dụng SSR/SSG, preload Hero image với fetchpriority=high, tối ưu CDN và nén WebP/AVIF. Với INP, ta chia nhỏ Long Tasks, tránh blocking main thread và chuyển tác vụ nặng sang Web Worker. Để loại bỏ CLS, luôn khai báo explicit aspect-ratio cho ảnh và khung quảng cáo...",
+      timeLimitSeconds: 120,
+    },
+
+    // ==========================================
+    // --- BACKEND DEVELOPER ---
+    // ==========================================
+
+    // [BACKEND - INTERN]
+    {
+      id: "be-intern-01",
+      role: "backend",
+      level: "intern",
+      category: "intro",
+      text: "Bạn hãy giới thiệu về bản thân, ngôn ngữ lập trình Backend bạn đã học (Node.js/Python/Java) và đồ án quản lý dữ liệu bạn từng thực hiện?",
+      expectedKeyPoints: [
+        "Giới thiệu ngành học",
+        "Ngôn ngữ backend & Database cơ bản (SQL/MongoDB)",
+        "Đồ án CRUD cơ bản",
+        "Tinh thần học hỏi",
+      ],
+      sampleGoodAnswer:
+        "Em chào anh/chị, em là sinh viên năm cuối chuyên ngành Công nghệ phần mềm. Em đã học và thực hành Node.js Express cùng cơ sở dữ liệu MySQL. Em đã xây dựng một website quản lý thư viện sinh viên hỗ trợ các thao tác thêm, sửa, xóa, tìm kiếm sách cơ bản...",
+      timeLimitSeconds: 90,
+    },
+    {
+      id: "be-intern-02",
+      role: "backend",
+      level: "intern",
+      category: "technical",
+      text: "Bạn hiểu RESTful API là gì? Các HTTP Method phổ biến (GET, POST, PUT, DELETE) có ý nghĩa như thế nào?",
+      expectedKeyPoints: [
+        "Kiến trúc REST client-server qua HTTP",
+        "GET lấy dữ liệu",
+        "POST tạo mới",
+        "PUT cập nhật toàn bộ",
+        "DELETE xóa dữ liệu",
+        "Status codes 200, 201, 400, 404, 500",
+      ],
+      sampleGoodAnswer:
+        "RESTful API là chuẩn giao tiếp giữa client và server thông qua giao thức HTTP. GET dùng để đọc dữ liệu, POST dùng để tạo mới bản ghi, PUT dùng để cập nhật dữ liệu đã có, và DELETE dùng để xóa bản ghi. Server trả về mã HTTP status như 200 thành công, 404 không tìm thấy hoặc 500 lỗi máy chủ...",
+      timeLimitSeconds: 90,
+    },
+    {
+      id: "be-intern-03",
+      role: "backend",
+      level: "intern",
+      category: "technical",
+      text: "Trong cơ sở dữ liệu quan hệ (SQL), bạn hiểu Khóa chính (Primary Key) và Khóa ngoại (Foreign Key) dùng để làm gì?",
+      expectedKeyPoints: [
+        "Primary Key định danh duy nhất cho mỗi dòng",
+        "Foreign Key liên kết dữ liệu giữa hai bảng",
+        "Ràng buộc toàn vẹn dữ liệu (Referential Integrity)",
+      ],
+      sampleGoodAnswer:
+        "Khóa chính là cột có giá trị duy nhất và không được null để nhận diện chính xác từng bản ghi trong bảng. Còn khóa ngoại là cột liên kết tới khóa chính của một bảng khác, giúp thiết lập mối quan hệ giữa các bảng và đảm bảo tính toàn vẹn dữ liệu...",
+      timeLimitSeconds: 90,
+    },
+
+    // [BACKEND - JUNIOR]
+    {
+      id: "be-junior-01",
       role: "backend",
       level: "junior",
       category: "intro",
-      text: "Hãy giới thiệu về bản thân và ngăn xếp công nghệ (tech stack) backend mà bạn tự tin nhất?",
+      text: "Hãy giới thiệu về kinh nghiệm làm việc backend của bạn và cách bạn thiết kế, phân quyền API (JWT, Middleware) trong dự án gần nhất?",
       expectedKeyPoints: [
-        "Ngôn ngữ (Node.js/Go/Java/Python)",
-        "Cơ sở dữ liệu (PostgreSQL/MongoDB)",
-        "REST API",
-        "Kiến thức nền tảng",
+        "1-2 năm kinh nghiệm Backend",
+        "Node.js/Python/Java stack",
+        "JWT Authentication & Role-based Authorization Middleware",
       ],
       sampleGoodAnswer:
-        "Chào anh/chị, em là Backend Developer chuyên sâu về Node.js/TypeScript và cơ sở dữ liệu PostgreSQL. Em đã từng thiết kế hệ thống REST API, quản lý xác thực JWT và xử lý lưu trữ cache với Redis...",
+        "Em có hơn 1 năm kinh nghiệm phát triển REST API với Node.js và PostgreSQL. Trong dự án gần nhất, em xây dựng hệ thống xác thực người dùng bằng JWT access token và refresh token, sử dụng middleware để kiểm tra quyền truy cập theo vai trò (Admin, User)...",
       timeLimitSeconds: 90,
     },
     {
-      id: "be-02",
+      id: "be-junior-02",
       role: "backend",
-      level: "middle",
+      level: "junior",
       category: "technical",
-      text: "Khi database gặp hiện tượng truy vấn chậm (slow query) khi dữ liệu tăng cao, bạn sẽ tiếp cận điều tra và tối ưu như thế nào?",
+      text: "Database Index là gì? Khi nào nên đánh Index và việc lạm dụng quá nhiều Index sẽ gây tác hại gì?",
       expectedKeyPoints: [
-        "EXPLAIN ANALYZE",
-        "Database Indexing (B-Tree, Composite)",
-        "N+1 query problem",
-        "Connection Pooling",
-        "Caching Redis",
-        "Read Replica / Sharding",
+        "Cấu trúc B-Tree giúp tăng tốc truy vấn tìm kiếm",
+        "Đánh index trên cột hay WHERE, JOIN, ORDER BY",
+        "Tác hại: tốn dung lượng và làm chậm thao tác ghi (INSERT, UPDATE, DELETE)",
       ],
       sampleGoodAnswer:
-        "Bước đầu tiên là bật Slow Query Log và dùng lệnh EXPLAIN ANALYZE để kiểm tra execution plan xem có Sequential Scan không. Sau đó đánh Index thích hợp (B-Tree hoặc Composite index), tối ưu câu lệnh SQL, dùng Caching với Redis và phân tách Read/Write replica nếu tải đọc quá lớn...",
+        "Index giống như mục lục sách, giúp Database tìm bản ghi nhanh hơn mà không cần quét toàn bộ bảng (Full Table Scan). Ta nên đánh index trên các trường thường xuyên tìm kiếm, JOIN hay sắp xếp. Tuy nhiên nếu đánh quá nhiều index sẽ làm chậm thao tác INSERT, UPDATE vì mỗi lần ghi đều phải cập nhật lại cây index...",
       timeLimitSeconds: 120,
     },
+
+    // [BACKEND - SENIOR]
     {
-      id: "be-03",
+      id: "be-senior-01",
       role: "backend",
       level: "senior",
       category: "technical",
-      text: "Bạn hãy so sánh kiến trúc Monolith và Microservices, đồng thời nêu các chiến lược đảm bảo tính nhất quán dữ liệu (Data Consistency) trong Microservices?",
+      text: "Bạn hãy so sánh kiến trúc Monolith và Microservices, đồng thời nêu các chiến lược đảm bảo tính nhất quán dữ liệu (Saga Pattern, Outbox Pattern) trong hệ thống phân tán?",
       expectedKeyPoints: [
-        "Saga Pattern (Choreography/Orchestration)",
-        "Event-Driven Architecture",
-        "Two-Phase Commit",
-        "Outbox Pattern",
+        "Monolith vs Microservices",
+        "Saga Pattern (Orchestration/Choreography)",
+        "Transactional Outbox Pattern",
+        "Event-Driven với Kafka/RabbitMQ",
         "Idempotency",
-        "CAP Theorem",
       ],
       sampleGoodAnswer:
-        "Monolith phù hợp cho giai đoạn đầu với tốc độ phát triển nhanh và ACID tự nhiên. Với Microservices, để đảm bảo eventual consistency, ta áp dụng Saga Pattern (Choreography hoặc Orchestrator), Transactional Outbox Pattern kết hợp Message Broker như Kafka/RabbitMQ để tránh phân tán dữ liệu lỗi...",
+        "Monolith đơn giản và dễ duy trì tính ACID trong giai đoạn đầu. Khi hệ thống lớn, Microservices tách biệt domain nhưng đối mặt với thách thức phân tán dữ liệu. Để đảm bảo Eventual Consistency, ta áp dụng Saga Pattern cùng Transactional Outbox Pattern với Message Broker như Kafka, đảm bảo mọi consumer đều có tính Idempotent...",
       timeLimitSeconds: 120,
     },
 
-    // --- FULLSTACK ---
+    // ==========================================
+    // --- FULLSTACK DEVELOPER ---
+    // ==========================================
     {
-      id: "fs-01",
+      id: "fs-intern-01",
       role: "fullstack",
-      level: "middle",
-      category: "technical",
-      text: "Bạn hãy trình bày quy trình bảo mật một ứng dụng web từ Frontend đến Backend (Authentication, XSS, CSRF, SQL Injection)?",
+      level: "intern",
+      category: "intro",
+      text: "Bạn hãy giới thiệu về bản thân và một ứng dụng web từ giao diện đến máy chủ (Frontend + Backend) mà bạn từng xây dựng?",
       expectedKeyPoints: [
-        "HttpOnly Cookies vs JWT",
-        "Sanitization XSS",
-        "CORS & CSRF Tokens",
-        "Prepared Statements / ORM",
-        "Rate Limiting",
-        "Content Security Policy (CSP)",
+        "Giới thiệu trường học / kỹ năng",
+        "Frontend (React/HTML/CSS) + Backend (Node/Python/PHP)",
+        "Database cơ bản",
+        "Đam mê học hỏi",
       ],
       sampleGoodAnswer:
-        "Về Authentication, lưu trữ JWT trong HttpOnly SameSite Cookie để chống XSS đánh cắp token. Ở Backend dùng Prepared Statements/Parameterized Queries chống SQL Injection, bật CORS nghiêm ngặt, áp dụng Helmet CSP và Rate Limiting chống Brute-force/DDoS...",
-      timeLimitSeconds: 120,
+        "Em là sinh viên định hướng Fullstack. Em đã tự tay làm một dự án website Blog cá nhân có giao diện React, kết nối Backend Node.js Express và lưu trữ bài viết trong cơ sở dữ liệu MongoDB...",
+      timeLimitSeconds: 90,
     },
     {
-      id: "fs-02",
+      id: "fs-junior-01",
       role: "fullstack",
-      level: "senior",
-      category: "situational",
-      text: "Nếu hệ thống web đột ngột sập trong đợt siêu sale lớn, bạn sẽ điều tra nguyên nhân gốc rễ và xử lý như thế nào?",
-      expectedKeyPoints: [
-        "Monitoring APM (Datadog/Prometheus)",
-        "Kiểm tra CPU/RAM/DB Connections",
-        "Failover / Auto-scaling",
-        "Circuit Breaker",
-        "Post-mortem Report",
-      ],
-      sampleGoodAnswer:
-        "Đầu tiên kiểm tra APM và log tập trung để xác định điểm nghẽn (DB connection pool cạn kiệt hay CPU spike). Tạm thời bật Rate Limit / Queue chờ cho user, kích hoạt Auto-scaling hoặc cache cứng các trang tĩnh. Sau khi phục hồi, tổ chức Post-mortem để tìm root-cause và vá lỗ hổng...",
-      timeLimitSeconds: 120,
-    },
-
-    // --- PRODUCT MANAGER ---
-    {
-      id: "pm-01",
-      role: "product_manager",
-      level: "middle",
-      category: "situational",
-      text: "Khi có quá nhiều tính năng được yêu cầu từ ban giám đốc, khách hàng và đội Sales nhưng nguồn lực dev có hạn, bạn sẽ ưu tiên (Prioritize) như thế nào?",
-      expectedKeyPoints: [
-        "Khung ưu tiên (RICE, MoSCoW, ICE)",
-        "Business Impact vs Engineering Effort",
-        "Dữ liệu người dùng & Analytics",
-        "Truyền thông với các bên liên quan (Stakeholders)",
-      ],
-      sampleGoodAnswer:
-        "Tôi sử dụng mô hình RICE (Reach, Impact, Confidence, Effort) để định lượng giá trị của từng tính năng. Sau đó phân loại theo MoSCoW và đối chiếu với mục tiêu chiến lược OKRs của quý. Cuối cùng, tôi tổ chức họp minh bạch hóa dữ liệu với các bên liên quan...",
-      timeLimitSeconds: 120,
-    },
-
-    // --- DATA ANALYST ---
-    {
-      id: "da-01",
-      role: "data_analyst",
-      level: "middle",
+      level: "junior",
       category: "technical",
-      text: "Bạn hãy chia sẻ quy trình thực hiện một dự án phân tích dữ liệu từ dữ liệu thô đến việc tạo ra báo cáo mang lại giá trị hành động (Actionable Insights)?",
+      text: "Bạn hãy trình bày quy trình bảo mật cơ bản cho một ứng dụng web (chống XSS, CSRF, SQL Injection và cấu hình CORS)?",
       expectedKeyPoints: [
-        "Thu thập & Data Cleaning",
-        "EDA (Exploratory Data Analysis)",
-        "SQL / Python / Pandas",
-        "Visualization (Tableau/PowerBI)",
-        "Actionable Insights cho Business",
+        "Lưu JWT an toàn",
+        "Sanitize input chống XSS",
+        "Prepared Statements chống SQL Injection",
+        "CORS whitelist origin",
       ],
       sampleGoodAnswer:
-        "Quy trình gồm 5 bước: Xác định bài toán kinh doanh, Trích xuất và làm sạch dữ liệu thô (xử lý null/outliers), Phân tích khám phá (EDA), Trực quan hóa dữ liệu qua Dashboard trực quan và đề xuất các hành động cụ thể giúp cải thiện tỷ lệ chuyển đổi hoặc giảm chi phí...",
+        "Ở Frontend, ta cần sanitize input người dùng để chống XSS và lưu token trong HttpOnly Cookie. Ở Backend, ta dùng Parameterized Queries để chống SQL Injection, cấu hình CORS chỉ cho phép domain tin cậy và áp dụng Rate Limiting để ngăn chặn spam...",
       timeLimitSeconds: 120,
     },
 
-    // --- HR & BEHAVIORAL (STAR) ---
+    // ==========================================
+    // --- HR & BEHAVIORAL ---
+    // ==========================================
     {
-      id: "hr-01",
+      id: "hr-intern-01",
+      role: "hr_behavioral",
+      level: "intern",
+      category: "behavioral",
+      text: "Khi gặp một lỗi (bug) khó trong đồ án hoặc bài tập mà bạn chưa từng thấy trước đây, bạn thường làm các bước nào để tìm cách giải quyết?",
+      expectedKeyPoints: [
+        "Đọc kỹ thông báo lỗi và log",
+        "Tìm kiếm trên Google, StackOverflow, tài liệu chính thức",
+        "Thử nghiệm cô lập lỗi",
+        "Chủ động hỏi đồng đội hoặc mentor khi đã tìm hiểu kỹ",
+      ],
+      sampleGoodAnswer:
+        "Đầu tiên em đọc kỹ thông báo lỗi và vị trí dòng code gây lỗi trong console. Sau đó em tra cứu từ khóa lỗi trên StackOverflow và tài liệu chính thức của thư viện. Nếu sau 30 phút vẫn chưa tìm ra nguyên nhân, em sẽ tổng hợp lại những gì đã thử và nhờ anh/chị mentor hỗ trợ...",
+      timeLimitSeconds: 90,
+    },
+    {
+      id: "hr-junior-01",
       role: "hr_behavioral",
       level: "junior",
       category: "behavioral",
-      text: "Hãy kể lại một tình huống bạn gặp phải bất đồng ý kiến với đồng nghiệp trong công việc và cách bạn đã giải quyết nó (theo mô hình STAR)?",
+      text: "Bạn hãy kể về một lần bạn và đồng nghiệp có ý kiến bất đồng trong công việc. Bạn đã trao đổi và giải quyết tình huống đó như thế nào theo mô hình STAR?",
       expectedKeyPoints: [
         "Tình huống (Situation)",
         "Nhiệm vụ (Task)",
-        "Hành động (Action - lắng nghe, đối thoại, dựa trên dữ liệu)",
-        "Kết quả (Result - giải pháp tối ưu, quan hệ tốt đẹp)",
+        "Hành động (Action: lắng nghe, dựa trên dữ liệu/benchmark)",
+        "Kết quả (Result: thống nhất giải pháp tốt nhất)",
       ],
       sampleGoodAnswer:
-        "Trong dự án trước, em và một bạn dev có bất đồng về việc lựa chọn thư viện UI. Thay vì tranh cãi cá nhân, em đã đề xuất tạo bảng so sánh benchmark cụ thể về bundle size và khả năng mở rộng. Cuối cùng cả nhóm đã thống nhất phương án hiệu quả nhất và dự án về đích đúng hạn...",
+        "Trong một dự án trước, em và đồng đội có quan điểm khác nhau về việc chọn thư viện State Management. Em đã chủ động tạo buổi trao đổi ngắn, lập bảng so sánh ưu nhược điểm dựa trên nhu cầu thực tế của dự án. Cả hai đã thống nhất chọn giải pháp tối ưu nhất và hoàn thành đúng tiến độ...",
       timeLimitSeconds: 120,
-    },
-    {
-      id: "hr-02",
-      role: "hr_behavioral",
-      level: "middle",
-      category: "behavioral",
-      text: "Bạn hãy chia sẻ về một thất bại hoặc sai lầm lớn nhất bạn từng mắc phải trong công việc và bài học bạn rút ra được từ đó?",
-      expectedKeyPoints: [
-        "Thừa nhận sai lầm thẳng thắn",
-        "Hành động khắc phục sự cố ngay lập tức",
-        "Bài học kinh nghiệm & Quy trình phòng ngừa trong tương lai",
-      ],
-      sampleGoodAnswer:
-        "Tôi từng vô tình triển khai một cấu hình sai lên môi trường production khiến một số người dùng không thể đăng nhập trong 15 phút. Tôi đã ngay lập tức rollback, thông báo sự cố minh bạch và thiết lập thêm bước kiểm tra tự động CI/CD để lỗi này không bao giờ tái diễn...",
-      timeLimitSeconds: 120,
-    },
-
-    // --- ENGLISH COMM ---
-    {
-      id: "en-01",
-      role: "english_comm",
-      level: "junior",
-      category: "intro",
-      text: "Hãy giới thiệu ngắn gọn về bản thân, thế mạnh lớn nhất và lý do bạn muốn ứng tuyển vào vị trí này?",
-      expectedKeyPoints: [
-        "Giới thiệu kinh nghiệm",
-        "Điểm mạnh nổi bật",
-        "Đam mê nghề nghiệp",
-        "Sự phù hợp với công ty",
-      ],
-      sampleGoodAnswer:
-        "Tôi là người có tinh thần học hỏi cao, khả năng giải quyết vấn đề linh hoạt và làm việc nhóm hiệu quả. Tôi mong muốn được cống hiến vào các sản phẩm quy mô lớn của công ty...",
-      timeLimitSeconds: 90,
     },
   ],
 
   en: [
-    // --- FRONTEND ---
+    // [FRONTEND - INTERN]
     {
-      id: "en-fe-01",
+      id: "en-fe-intern-01",
       role: "frontend",
-      level: "junior",
+      level: "intern",
       category: "intro",
-      text: "Please introduce yourself and highlight your recent experience in frontend web development.",
+      text: "Please introduce yourself, your academic background, and the first frontend project you built while studying or learning.",
       expectedKeyPoints: [
-        "Background & Education",
-        "Core stack (React, TypeScript, CSS)",
-        "Key projects built",
-        "Growth mindset",
+        "Academic background",
+        "Fundamental HTML/CSS/JavaScript knowledge",
+        "First project experience",
+        "Eagerness to learn",
       ],
       sampleGoodAnswer:
-        "I am a Frontend Developer with strong expertise in React, TypeScript, and modern styling libraries like Tailwind CSS. In my recent project, I built an interactive dashboard focusing on performance optimization...",
+        "Hello, I am a final-year Computer Science student passionate about Frontend development. I have built personal projects using HTML, CSS, JavaScript and basic React...",
       timeLimitSeconds: 90,
     },
     {
-      id: "en-fe-02",
+      id: "en-fe-intern-02",
       role: "frontend",
-      level: "middle",
+      level: "intern",
       category: "technical",
-      text: "Can you explain how the React Virtual DOM works and what strategies you use to prevent unnecessary re-renders in large applications?",
+      text: "In JavaScript, what is the difference between var, let, and const? When do you prefer using const?",
       expectedKeyPoints: [
-        "Virtual DOM & Reconciliation diffing",
-        "React.memo",
-        "useMemo and useCallback",
-        "State colocation",
-        "Component breakdown",
+        "Block scope vs Function scope",
+        "Hoisting behavior",
+        "Re-assignment rules for const",
+        "Immutability best practice",
       ],
       sampleGoodAnswer:
-        "React maintains a lightweight JavaScript object representation of the real DOM. When state changes, it generates a new Virtual DOM tree and performs reconciliation using its diffing algorithm. To prevent unnecessary re-renders, we use React.memo, useCallback, useMemo, and colocate state...",
-      timeLimitSeconds: 120,
+        "var is function-scoped and hoisted, which can lead to bugs. let and const are block-scoped. const variables cannot be reassigned, so I default to const for safety and only use let when a value must change...",
+      timeLimitSeconds: 90,
     },
+    // [FRONTEND - JUNIOR]
     {
-      id: "en-fe-03",
+      id: "en-fe-junior-01",
       role: "frontend",
-      level: "senior",
-      category: "technical",
-      text: "How do you measure and optimize Core Web Vitals (LCP, INP, CLS) for high-traffic web applications?",
-      expectedKeyPoints: [
-        "LCP image optimization & CDN",
-        "INP breaking long tasks",
-        "CLS layout stability & aspect ratios",
-        "Code splitting",
-        "SSR/SSG",
-      ],
-      sampleGoodAnswer:
-        "To optimize LCP, we prioritize critical resources using fetchpriority=high, leverage modern formats like WebP/AVIF, and utilize CDNs. For INP, we break up long JavaScript tasks. For CLS, we always define width and height attributes for images and dynamic embeds...",
-      timeLimitSeconds: 120,
-    },
-
-    // --- BACKEND ---
-    {
-      id: "en-be-01",
-      role: "backend",
-      level: "middle",
-      category: "technical",
-      text: "When a database experiences slow query performance under heavy load, how do you diagnose and optimize it?",
-      expectedKeyPoints: [
-        "EXPLAIN ANALYZE",
-        "Indexing strategy (B-Tree/Composite)",
-        "N+1 query resolution",
-        "Connection pooling",
-        "Redis caching",
-        "Read replicas",
-      ],
-      sampleGoodAnswer:
-        "I start by inspecting slow query logs and running EXPLAIN ANALYZE to analyze execution plans. Next, I ensure appropriate indexing, eliminate N+1 queries, introduce Redis caching for read-heavy endpoints, and scale with read replicas if necessary...",
-      timeLimitSeconds: 120,
-    },
-    {
-      id: "en-be-02",
-      role: "backend",
-      level: "senior",
-      category: "technical",
-      text: "What are the main patterns to achieve data consistency across distributed microservices without distributed locking?",
-      expectedKeyPoints: [
-        "Saga Pattern (Orchestration vs Choreography)",
-        "Transactional Outbox Pattern",
-        "Event-Driven Architecture",
-        "Idempotent Consumers",
-        "Eventual Consistency",
-      ],
-      sampleGoodAnswer:
-        "Instead of two-phase commits, we rely on eventual consistency via the Saga Pattern (either choreographed or orchestrated). We combine this with the Transactional Outbox pattern to reliably publish events to brokers like Kafka, ensuring all consumers are idempotent...",
-      timeLimitSeconds: 120,
-    },
-
-    // --- HR & BEHAVIORAL ---
-    {
-      id: "en-hr-01",
-      role: "hr_behavioral",
-      level: "junior",
-      category: "behavioral",
-      text: "Describe a challenging situation where you had a disagreement with a team member. How did you handle it using the STAR method?",
-      expectedKeyPoints: [
-        "Situation",
-        "Task",
-        "Action (open communication, data-driven reasoning)",
-        "Result (positive outcome, mutual respect)",
-      ],
-      sampleGoodAnswer:
-        "In my previous project, a colleague and I had differing opinions on architectural design. I scheduled a constructive 1-on-1 session where we created a comparative benchmark matrix based on performance and maintainability. We aligned on the best objective approach and completed the milestone ahead of time...",
-      timeLimitSeconds: 120,
-    },
-    {
-      id: "en-hr-02",
-      role: "hr_behavioral",
-      level: "middle",
-      category: "behavioral",
-      text: "Tell me about a time you made a critical mistake in production and how you resolved it.",
-      expectedKeyPoints: [
-        "Taking full ownership",
-        "Rapid triage and mitigation/rollback",
-        "Transparent stakeholder communication",
-        "Post-mortem and prevention mechanisms",
-      ],
-      sampleGoodAnswer:
-        "I once deployed a configuration change that triggered intermittent authentication timeouts. I took immediate ownership, performed a rollback within 5 minutes, communicated status updates transparently, and instituted automated pre-deployment smoke tests to prevent recurrence...",
-      timeLimitSeconds: 120,
-    },
-
-    // --- ENGLISH COMM ---
-    {
-      id: "en-comm-01",
-      role: "english_comm",
       level: "junior",
       category: "intro",
-      text: "Tell me about yourself, your core strengths, and what motivates you to excel in this role.",
+      text: "Tell me about your practical frontend experience and a feature you recently implemented using React and TypeScript.",
       expectedKeyPoints: [
-        "Clear self-introduction",
-        "Key professional strengths",
-        "Passion for solving complex problems",
-        "Value alignment with the team",
+        "1-2 years experience",
+        "React, TypeScript, CSS framework",
+        "Feature implementation",
+        "Problem solving",
       ],
       sampleGoodAnswer:
-        "I am a passionate software engineer driven by building scalable, user-centric products. My core strengths are quick problem solving, proactive collaboration, and continuous learning. I am excited about this role because it allows me to contribute directly to impactful challenges...",
+        "I have over a year of experience working with React and TypeScript. Recently, I built a dynamic form module with schema validation using Zod and React Hook Form...",
       timeLimitSeconds: 90,
     },
   ],
 };
 
+/**
+ * Filter questions STRICTLY matching candidate's chosen Level & Role
+ */
 export function getQuestionsForSession(
   role: InterviewRole,
   level: ExperienceLevel,
@@ -389,16 +448,42 @@ export function getQuestionsForSession(
 ): Question[] {
   const bank = QUESTION_BANK[language] || QUESTION_BANK["vi"];
 
-  // Filter by matching role first
-  let matching = bank.filter((q) => q.role === role);
+  // 1. Exact match for both Role and Level
+  let matching = bank.filter((q) => q.role === role && q.level === level);
 
-  // If not enough questions for role, include general behavioral / intro questions
+  // 2. If fewer than count, pick from adjacent levels (e.g. intern -> fresher -> junior)
   if (matching.length < count) {
-    const general = bank.filter((q) => q.role === "hr_behavioral" || q.role === "english_comm");
-    matching = [...matching, ...general];
+    const levelOrder: ExperienceLevel[] = ["intern", "fresher", "junior", "middle", "senior"];
+    const currentIdx = levelOrder.indexOf(level);
+
+    // Check nearest levels
+    for (let offset = 1; offset < levelOrder.length && matching.length < count; offset++) {
+      const lower = currentIdx - offset >= 0 ? levelOrder[currentIdx - offset] : null;
+      const higher =
+        currentIdx + offset < levelOrder.length ? levelOrder[currentIdx + offset] : null;
+
+      if (lower) {
+        const extra = bank.filter(
+          (q) => q.role === role && q.level === lower && !matching.includes(q),
+        );
+        matching.push(...extra);
+      }
+      if (higher && matching.length < count) {
+        const extra = bank.filter(
+          (q) => q.role === role && q.level === higher && !matching.includes(q),
+        );
+        matching.push(...extra);
+      }
+    }
   }
 
-  // Deduplicate and slice count
-  const unique = Array.from(new Set(matching));
-  return unique.slice(0, count);
+  // 3. Fallback to behavioral if still needed
+  if (matching.length < count) {
+    const general = bank.filter(
+      (q) => (q.role === "hr_behavioral" || q.role === "english_comm") && !matching.includes(q),
+    );
+    matching.push(...general);
+  }
+
+  return matching.slice(0, count);
 }

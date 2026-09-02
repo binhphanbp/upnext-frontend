@@ -10,6 +10,7 @@ import {
   Settings as SettingsIcon,
   Shield,
   Volume2,
+  VolumeX,
   AlertCircle,
   Server,
   FastForward,
@@ -37,6 +38,7 @@ import { CandidateVideo } from "./candidate-video";
 import { LiveMetricsPanel } from "./live-metrics-panel";
 import { LiveTranscript } from "./live-transcript";
 import { SettingsModal } from "./settings-modal";
+import { ThreeAvatar3D } from "./three-avatar-3d";
 
 interface InterviewRoomProps {
   questions: Question[];
@@ -161,9 +163,9 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
     isEvaluatingRef.current = isEvaluating;
   }, [isEvaluating]);
 
-  const defaultQuestion: Question = {
+  const fallbackQuestion: Question = {
     id: "q-default",
-    text: "Đang tải nội dung câu hỏi phỏng vấn...",
+    text: "Đang chuẩn bị câu hỏi phỏng vấn...",
     role: config.role,
     level: config.level,
     category: "intro",
@@ -171,10 +173,8 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
     sampleGoodAnswer: "",
     timeLimitSeconds: 90,
   };
-  const currentMainQuestion = questions[currentIndex] || questions[0] || defaultQuestion;
-  const activeQuestion: Question = followUpState?.isActive
-    ? followUpState.question
-    : currentMainQuestion;
+  const currentMainQuestion = questions[currentIndex] ?? questions[0] ?? fallbackQuestion;
+  const activeQuestion = followUpState?.isActive ? followUpState.question : currentMainQuestion;
 
   // Process incoming text chunks & check for voice completion command
   const handleTranscriptAppend = (incomingText: string) => {
@@ -701,33 +701,113 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
         </div>
       </div>
 
-      {/* Main Split Grid */}
-      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-12">
-        {/* Left Column (5 cols): AI Avatar & Question Presentation */}
-        <div className="flex flex-col space-y-4 lg:col-span-5">
-          <AIAvatar
+      {/* Google Meet 16:9 Cinematic Main Stage */}
+      <div className="group relative flex aspect-video max-h-[66vh] min-h-[440px] w-full flex-col overflow-hidden rounded-3xl border-2 border-slate-800/90 bg-slate-950 shadow-2xl">
+        {/* Background Image Layer (anh-nen.png) */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat brightness-[0.90] contrast-[1.05] filter"
+          style={{ backgroundImage: "url('/anh-nen.png')" }}
+        />
+        {/* Subtle Vignette & Studio Lighting Overlay */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-slate-950/40" />
+
+        {/* 1. Full 16:9 Three.js 3D AI Recruiter Viewport */}
+        <div className="absolute inset-0 z-0">
+          <ThreeAvatar3D
             isSpeaking={isAiSpeaking}
             isEvaluating={isEvaluating}
             isLoadingVoice={isGeneratingVoice}
-            questionText={displayedQuestionText}
-            badge={
-              followUpState?.isActive ? (
-                <span className="flex items-center gap-1 rounded-full border border-purple-500/30 bg-purple-500/20 px-2.5 py-0.5 text-[11px] font-bold text-purple-300">
-                  <Sparkles className="h-3 w-3 animate-spin text-amber-400" />
-                  Câu hỏi đào sâu #{followUpState.index}/{followUpState.max}
-                </span>
-              ) : undefined
-            }
-            onReplayTTS={handleReplayTTS}
-            isMuted={isTtsMuted}
-            onToggleMute={() => setIsTtsMuted(!isTtsMuted)}
-            currentEmotion={currentFaceMetrics.dominantEmotion}
           />
+        </div>
 
-          <AudioVisualizer
-            audioService={audioServiceRef.current}
-            metrics={currentAudioMetrics}
-            isRecording={!isAiSpeaking}
+        {/* 2. Top Status & Controls Overlay (Glassmorphic) */}
+        <div className="pointer-events-none relative z-10 flex w-full items-center justify-between p-4">
+          {/* Left: AI HR Badge */}
+          <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-slate-700/70 bg-slate-950/85 px-3.5 py-1.5 shadow-lg backdrop-blur-md">
+            <div className="relative flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+              <span
+                className={`h-2 w-2 rounded-full ${isAiSpeaking ? "animate-ping bg-emerald-400" : "bg-emerald-500"}`}
+              />
+            </div>
+            <span className="flex items-center gap-1 text-xs font-bold text-slate-100">
+              UpNext AI Recruiter <Sparkles className="h-3 w-3 text-amber-400" />
+            </span>
+            <span className="border-l border-slate-700 pl-2 text-[11px] text-slate-400">
+              {isAiSpeaking
+                ? "Đang đọc câu hỏi..."
+                : isEvaluating
+                  ? "Đang phân tích..."
+                  : isGeneratingVoice
+                    ? "Đang chuẩn bị giọng đọc..."
+                    : "Đang lắng nghe câu trả lời..."}
+            </span>
+          </div>
+
+          {/* Right: Audio / Mute / Replay Buttons */}
+          <div className="pointer-events-auto flex items-center gap-2">
+            <button
+              onClick={handleReplayTTS}
+              disabled={isAiSpeaking || isEvaluating || isGeneratingVoice}
+              title="Đọc lại câu hỏi"
+              className="flex items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-950/80 p-2 text-xs text-slate-300 shadow-lg backdrop-blur-md transition hover:bg-slate-800 hover:text-white disabled:opacity-40"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Nghe lại</span>
+            </button>
+
+            <button
+              onClick={() => setIsTtsMuted(!isTtsMuted)}
+              title={isTtsMuted ? "Bật âm thanh AI" : "Tắt âm thanh AI"}
+              className={`rounded-xl border p-2 shadow-lg backdrop-blur-md transition ${
+                isTtsMuted
+                  ? "border-rose-500/40 bg-rose-950/80 text-rose-400 hover:bg-rose-900/80"
+                  : "border-slate-700/80 bg-slate-950/80 text-slate-300 hover:bg-slate-800 hover:text-white"
+              }`}
+            >
+              {isTtsMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* 3. Picture-in-Picture Candidate Video (Square PIP Floating Corner Tile like Google Meet) */}
+        <div className="absolute top-16 right-4 z-20 h-44 w-44 overflow-hidden rounded-2xl border-2 border-slate-700/90 bg-slate-950/90 shadow-2xl backdrop-blur-md transition-all duration-300 hover:border-emerald-500/80 sm:h-56 sm:w-56 md:h-64 md:w-64">
+          <CandidateVideo
+            stream={stream}
+            onMetricsUpdate={handleFaceMetricsUpdate}
+            isActive={true}
+          />
+        </div>
+
+        {/* 4. Bottom Subtitle / Current Question Glassmorphic Banner */}
+        <div className="pointer-events-none relative z-10 mt-auto w-full p-3">
+          <div className="pointer-events-auto mx-auto w-full max-w-3xl rounded-xl border border-slate-700/75 bg-slate-950/85 p-3 text-center shadow-2xl backdrop-blur-xl">
+            <div className="mb-0.5 flex items-center justify-center gap-1.5 text-[10px] font-bold tracking-wider text-emerald-400 uppercase">
+              <Sparkles className="h-3 w-3 text-amber-400" /> CÂU HỎI HIỆN TẠI (#{currentIndex + 1}/
+              {questions.length})
+            </div>
+            <p className="text-xs leading-snug font-bold text-slate-100 sm:text-sm md:text-base">
+              {displayedQuestionText ||
+                (isGeneratingVoice ? "Đang chuẩn bị câu hỏi..." : activeQuestion.text)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Deck: Live Subtitles, STT Transcription & Multimodal Telemetry */}
+      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-12">
+        {/* Left Column (7 cols): Live Transcript & Hint Pills */}
+        <div className="flex flex-col space-y-4 lg:col-span-7">
+          <LiveTranscript
+            transcript={transcript}
+            onTranscriptChange={(newT) => setTranscript(newT)}
+            wpm={currentWpm}
+            detectedFillers={detectedFillers}
+            isListening={!isAiSpeaking}
+            isAiSpeaking={isAiSpeaking}
+            language={config.language}
+            error={sttError}
+            isTranscribing={isTranscribingChunk}
+            onRestart={startCandidateSTT}
           />
 
           {showHint &&
@@ -753,28 +833,15 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
             )}
         </div>
 
-        {/* Right Column (7 cols): Candidate Live Feed, STT Subtitles & Multimodal Telemetry */}
-        <div className="flex flex-col space-y-4 lg:col-span-7">
-          <CandidateVideo
-            stream={stream}
-            onMetricsUpdate={handleFaceMetricsUpdate}
-            isActive={true}
-          />
-
-          <LiveTranscript
-            transcript={transcript}
-            onTranscriptChange={(newT) => setTranscript(newT)}
-            wpm={currentWpm}
-            detectedFillers={detectedFillers}
-            isListening={!isAiSpeaking}
-            isAiSpeaking={isAiSpeaking}
-            language={config.language}
-            error={sttError}
-            isTranscribing={isTranscribingChunk}
-            onRestart={startCandidateSTT}
-          />
-
+        {/* Right Column (5 cols): Live Telemetry Radar & Audio Visualizer */}
+        <div className="flex flex-col space-y-4 lg:col-span-5">
           <LiveMetricsPanel faceMetrics={currentFaceMetrics} audioMetrics={currentAudioMetrics} />
+
+          <AudioVisualizer
+            audioService={audioServiceRef.current}
+            metrics={currentAudioMetrics}
+            isRecording={!isAiSpeaking}
+          />
         </div>
       </div>
 

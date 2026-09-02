@@ -84,6 +84,7 @@ export interface AudioMetrics {
 export interface QuestionAnswerRecord {
   question: Question;
   transcript: string;
+  correctedTranscript?: string | undefined;
   audioDurationSeconds: number;
   faceMetricsTimeline: Array<{
     timestamp: number;
@@ -124,6 +125,8 @@ export interface QuestionEvaluation {
   confidenceScore: number; // 0-100
   communicationScore: number; // 0-100
   bodyLanguageScore: number; // 0-100
+  correctedTranscript?: string | undefined;
+  spellingAndGrammarCorrections?: string[] | undefined;
   keyPointsCovered: string[];
   keyPointsMissed: string[];
   feedback: string;

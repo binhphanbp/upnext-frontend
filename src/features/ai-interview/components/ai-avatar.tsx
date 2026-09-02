@@ -28,7 +28,13 @@ export const AIAvatar: React.FC<AIAvatarProps> = ({
   onToggleMute,
 }) => {
   return (
-    <div className="group relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/90 p-5 shadow-2xl backdrop-blur-xl">
+    <div
+      className="group relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/90 bg-cover bg-center bg-no-repeat p-5 shadow-2xl backdrop-blur-xl"
+      style={{
+        backgroundImage:
+          "linear-gradient(to bottom, rgba(15, 23, 42, 0.75), rgba(2, 6, 23, 0.90)), url('/anh-nen.png')",
+      }}
+    >
       {/* Background ambient glow */}
       <div
         className={`absolute -inset-1 rounded-2xl bg-gradient-to-r ${

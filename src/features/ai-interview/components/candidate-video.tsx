@@ -122,9 +122,9 @@ export const CandidateVideo: React.FC<CandidateVideoProps> = ({
   };
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl">
+    <div className="group relative flex h-full w-full flex-col overflow-hidden rounded-2xl bg-slate-950 shadow-2xl">
       {/* Video Viewport */}
-      <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden bg-slate-950">
+      <div className="relative flex h-full w-full flex-1 items-center justify-center overflow-hidden bg-slate-950">
         {stream ? (
           <>
             <video

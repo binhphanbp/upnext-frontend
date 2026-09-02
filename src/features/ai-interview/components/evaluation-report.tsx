@@ -22,12 +22,12 @@ import React, { useEffect, useState } from "react";
 
 import { FinalInterviewReport, EmotionType } from "../types";
 
-interface EvaluationReportProps {
+interface ReportDashboardProps {
   report: FinalInterviewReport;
   onRestart: () => void;
 }
 
-export const EvaluationReport: React.FC<EvaluationReportProps> = ({ report, onRestart }) => {
+export const EvaluationReport: React.FC<ReportDashboardProps> = ({ report, onRestart }) => {
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(0);
 
   // Trigger celebration confetti when report opens
@@ -399,15 +399,44 @@ export const EvaluationReport: React.FC<EvaluationReportProps> = ({ report, onRe
                 {/* Expanded Details */}
                 {isExpanded && (
                   <div className="space-y-4 border-t border-slate-800/80 p-4 pt-2 text-xs">
-                    {/* Spoken Transcript */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3">
-                      <div className="mb-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                        Lời thoại bạn đã trả lời (STT):
+                    {/* Spoken Transcript & AI Auto-Corrected Version */}
+                    <div className="space-y-2.5 rounded-xl border border-slate-800 bg-slate-900/90 p-3.5">
+                      <div>
+                        <div className="mb-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                          Lời thoại bạn đã trả lời (STT thô):
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-slate-300 italic">
+                          &quot;{record.transcript || "(Không ghi nhận câu trả lời rõ ràng)"}&quot;
+                        </p>
                       </div>
-                      <p className="leading-relaxed text-slate-200 italic">
-                        &quot;{record.transcript || "(Không ghi nhận câu trả lời rõ ràng)"}&quot;
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+
+                      {record.correctedTranscript &&
+                        record.correctedTranscript !== record.transcript && (
+                          <div className="rounded-lg border border-emerald-500/30 bg-emerald-950/40 p-2.5">
+                            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold tracking-wider text-emerald-400 uppercase">
+                              <Sparkles className="h-3 w-3 text-amber-400" /> AI Đã Tự Động Sửa Lỗi
+                              Chính Tả & Chuẩn Hóa Thuật Ngữ:
+                            </div>
+                            <p className="text-xs leading-relaxed font-medium text-slate-100">
+                              &quot;{record.correctedTranscript}&quot;
+                            </p>
+                            {evalData?.spellingAndGrammarCorrections &&
+                              evalData.spellingAndGrammarCorrections.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  {evalData.spellingAndGrammarCorrections.map((corr, cIdx) => (
+                                    <span
+                                      key={cIdx}
+                                      className="rounded border border-emerald-500/30 bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] text-emerald-300"
+                                    >
+                                      {corr}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                          </div>
+                        )}
+
+                      <div className="flex flex-wrap items-center gap-3 border-t border-slate-800/80 pt-1 text-[11px] text-slate-400">
                         <span>
                           Độ tự tin:{" "}
                           <strong className="text-slate-200">{record.averageConfidence}%</strong>
@@ -510,3 +539,5 @@ export const EvaluationReport: React.FC<EvaluationReportProps> = ({ report, onRe
     </div>
   );
 };
+
+export const ReportDashboard = EvaluationReport;

@@ -9,6 +9,7 @@ import {
   AudioMetrics,
 } from "../types";
 import { GeminiService } from "./geminiService";
+import { correctSpeechTranscript } from "./textCorrection";
 
 export class InterviewEngine {
   private config: InterviewSessionConfig;
@@ -22,7 +23,7 @@ export class InterviewEngine {
   }
 
   /**
-   * Evaluate a single question answer using Multimodal telemetry data + optional Gemini API
+   * Evaluate a single question answer using Multimodal telemetry data + AI Spell/Grammar correction
    */
   public async evaluateQuestionAnswer(
     question: Question,
@@ -32,6 +33,10 @@ export class InterviewEngine {
     fillerWords: string[],
     durationSeconds: number,
   ): Promise<QuestionAnswerRecord> {
+    // 0. Auto-correct Speech-to-Text typos, slangs, phonetic errors and tech terminology
+    const correctionResult = correctSpeechTranscript(transcript);
+    const cleanTranscript = correctionResult.correctedText || transcript;
+
     // 1. Compute aggregate Face metrics
     let totalConfidence = 0;
     let totalEyeContact = 0;
@@ -69,7 +74,7 @@ export class InterviewEngine {
     });
 
     // 2. Compute aggregate Audio metrics
-    const words = transcript.trim().split(/\s+/).filter(Boolean);
+    const words = cleanTranscript.trim().split(/\s+/).filter(Boolean);
     const wordCount = words.length;
     const durationMinutes = Math.max(0.1, durationSeconds / 60);
     const averageWPM = Math.round(wordCount / durationMinutes);
@@ -79,18 +84,18 @@ export class InterviewEngine {
     if (this.geminiService) {
       evaluation = await this.geminiService.evaluateAnswerWithGemini(
         question,
-        transcript,
+        cleanTranscript,
         { confidence: averageConfidence, eyeContact: averageEyeContact, dominantEmotion },
         { wpm: averageWPM, fillerCount: fillerWords.length, speakingSeconds: durationSeconds },
         this.config.language,
       );
     }
 
-    // 4. Fallback to Built-in Intelligent Heuristic Engine
+    // 4. Fallback to Built-in Intelligent Level-Aware Heuristic Engine
     if (!evaluation) {
       evaluation = this.evaluateBuiltInHeuristics(
         question,
-        transcript,
+        cleanTranscript,
         averageConfidence,
         averageEyeContact,
         averageWPM,
@@ -99,9 +104,15 @@ export class InterviewEngine {
       );
     }
 
+    if (evaluation) {
+      evaluation.correctedTranscript = cleanTranscript;
+      evaluation.spellingAndGrammarCorrections = correctionResult.corrections;
+    }
+
     return {
       question,
       transcript,
+      correctedTranscript: cleanTranscript,
       audioDurationSeconds: durationSeconds,
       faceMetricsTimeline: faceTimeline,
       audioMetricsTimeline: audioTimeline,
@@ -115,7 +126,28 @@ export class InterviewEngine {
   }
 
   /**
-   * Built-in intelligent multimodal heuristic evaluation engine
+   * Generate Follow-up Question using Gemini 2.5
+   */
+  public async generateFollowUpQuestion(
+    parentQuestion: Question,
+    transcript: string,
+    followUpIndex: number,
+    maxFollowUps: number,
+  ): Promise<Question | null> {
+    if (this.geminiService) {
+      return this.geminiService.generateFollowUpQuestionWithGemini(
+        parentQuestion,
+        transcript,
+        followUpIndex,
+        maxFollowUps,
+        this.config.language,
+      );
+    }
+    return null;
+  }
+
+  /**
+   * Built-in intelligent multimodal level-aware evaluation engine
    */
   private evaluateBuiltInHeuristics(
     question: Question,
@@ -132,7 +164,6 @@ export class InterviewEngine {
 
     // Analyze expected key points
     question.expectedKeyPoints.forEach((point) => {
-      // Split key point into significant words
       const keywords = point
         .toLowerCase()
         .replace(/[(),/]/g, " ")
@@ -152,26 +183,26 @@ export class InterviewEngine {
         ? covered.length / question.expectedKeyPoints.length
         : 0.8;
     const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
+    const isInternOrFresher = this.config.level === "intern" || this.config.level === "fresher";
 
-    // Content Score (0-100): based on key points covered + substantive length
-    let contentScore = Math.round(keyPointRatio * 70);
-    if (wordCount >= 30) contentScore += 15;
-    if (wordCount >= 60) contentScore += 15;
-    contentScore = Math.min(100, Math.max(25, contentScore));
+    // Content Score (0-100) tailored by Level
+    let contentScore = Math.round(keyPointRatio * (isInternOrFresher ? 60 : 70));
+    if (wordCount >= 20) contentScore += isInternOrFresher ? 25 : 15;
+    if (wordCount >= 50) contentScore += isInternOrFresher ? 20 : 15;
+    contentScore = Math.min(100, Math.max(isInternOrFresher ? 40 : 25, contentScore));
 
-    // Communication Score (0-100): based on WPM pace (ideal 110-160) and filler word frequency
+    // Communication Score (0-100)
     let commScore = 85;
-    if (wpm < 80)
-      commScore -= 15; // too slow / hesitant
-    else if (wpm > 185) commScore -= 10; // speaking too fast
+    if (wpm < 70) commScore -= 15;
+    else if (wpm > 195) commScore -= 10;
 
     // Penalize filler words
-    const fillerPenalty = Math.min(25, fillerCount * 4);
-    commScore = Math.max(30, Math.min(100, commScore - fillerPenalty));
+    const fillerPenalty = Math.min(20, fillerCount * 3);
+    commScore = Math.max(35, Math.min(100, commScore - fillerPenalty));
 
-    // Body Language Score (0-100): eye contact + face presence
+    // Body Language Score (0-100)
     const bodyLanguageScore = Math.max(
-      30,
+      35,
       Math.min(100, Math.round(eyeContact * 0.7 + confidence * 0.3)),
     );
 
@@ -185,24 +216,26 @@ export class InterviewEngine {
     const suggestions: string[] = [];
     const isVi = this.config.language === "vi";
 
-    if (confidence >= 75) {
+    if (confidence >= 70) {
       strengths.push(
         isVi ? "Thần thái tự tin, điềm tĩnh khi trả lời" : "Confident and composed demeanor",
       );
     }
-    if (eyeContact >= 75) {
+    if (eyeContact >= 70) {
       strengths.push(
         isVi ? "Duy trì giao tiếp mắt với camera rất tốt" : "Excellent camera eye contact",
       );
     }
-    if (covered.length >= question.expectedKeyPoints.length * 0.6) {
+    if (covered.length >= question.expectedKeyPoints.length * 0.5) {
       strengths.push(
         isVi
-          ? "Nắm vững các khái niệm trọng tâm của câu hỏi"
+          ? isInternOrFresher
+            ? "Nắm chắc kiến thức nền tảng cơ bản"
+            : "Nắm vững các khái niệm trọng tâm của câu hỏi"
           : "Good coverage of core technical key points",
       );
     }
-    if (wpm >= 110 && wpm <= 160) {
+    if (wpm >= 90 && wpm <= 165) {
       strengths.push(
         isVi
           ? "Tốc độ nói vừa phải, lưu loát và dễ nghe"
@@ -217,7 +250,7 @@ export class InterviewEngine {
           : `Reduce filler words (recorded ${fillerCount} fillers) by pausing before speaking`,
       );
     }
-    if (eyeContact < 65) {
+    if (eyeContact < 60) {
       suggestions.push(
         isVi
           ? "Nên nhìn thẳng vào ống kính camera nhiều hơn thay vì nhìn sang các hướng khác"
@@ -231,13 +264,6 @@ export class InterviewEngine {
           : `Consider addressing: ${missed.slice(0, 2).join(", ")}`,
       );
     }
-    if (wpm < 85 && durationSeconds > 15) {
-      suggestions.push(
-        isVi
-          ? "Tốc độ trả lời hơi chậm, hãy rèn luyện phản xạ trình bày mạch lạc hơn"
-          : "Pace was a bit slow; aim for smoother transitions between thoughts",
-      );
-    }
 
     if (strengths.length === 0) {
       strengths.push(
@@ -246,17 +272,27 @@ export class InterviewEngine {
           : "Completed answer within time limit",
       );
     }
-    if (suggestions.length === 0) {
-      suggestions.push(
-        isVi
-          ? "Tiếp tục duy trì phong độ và độ tự tin hiện tại"
-          : "Keep up the strong performance and composure",
-      );
-    }
 
-    const feedback = isVi
-      ? `Câu trả lời đạt ${score}/100 điểm. Bạn đã nêu được ${covered.length}/${question.expectedKeyPoints.length} ý trọng tâm với độ tự tin ${confidence}%. ${suggestions[0] || ""}`
-      : `Answer scored ${score}/100. You addressed ${covered.length}/${question.expectedKeyPoints.length} core concepts with ${confidence}% composure. ${suggestions[0] || ""}`;
+    let feedback = "";
+    if (score >= 80) {
+      feedback = isVi
+        ? isInternOrFresher
+          ? "Rất tốt! Bạn nắm vững kiến thức nền tảng và diễn đạt rành mạch, rất phù hợp với tiêu chuẩn thực tập sinh."
+          : "Xuất sắc! Bạn trình bày rất đầy đủ, sâu sắc và chuyên nghiệp."
+        : "Outstanding answer with solid technical depth.";
+    } else if (score >= 60) {
+      feedback = isVi
+        ? isInternOrFresher
+          ? "Khá tốt! Bạn đã nêu được ý chính. Hãy mở rộng thêm ví dụ thực tế trong đồ án để câu trả lời thuyết phục hơn."
+          : "Tốt! Câu trả lời đạt yêu cầu cơ bản, cần bổ sung thêm dẫn chứng thực tế."
+        : "Good answer, covering core fundamentals.";
+    } else {
+      feedback = isVi
+        ? isInternOrFresher
+          ? "Tiềm năng! Bạn có cố gắng trả lời. Hãy ôn tập thêm các khái niệm cơ bản để tự tin hơn."
+          : "Cần trau dồi thêm các từ khóa chuyên môn để hoàn thiện câu trả lời."
+        : "Needs more technical depth on the core topics.";
+    }
 
     return {
       score,
@@ -267,15 +303,16 @@ export class InterviewEngine {
       keyPointsCovered: covered,
       keyPointsMissed: missed,
       feedback,
-      strengths,
       suggestions,
+      strengths,
     };
   }
 
   /**
-   * Generate final comprehensive report after completing all questions
+   * Aggregate complete session into Final Interview Report
    */
   public generateFinalReport(
+    sessionId: string,
     answers: QuestionAnswerRecord[],
     totalDurationSeconds: number,
   ): FinalInterviewReport {
@@ -343,27 +380,35 @@ export class InterviewEngine {
     const keyStrengths = Array.from(allStrengths).slice(0, 4);
     const criticalImprovements = Array.from(allImprovements).slice(0, 4);
 
+    const isIntern = this.config.level === "intern";
+
     let overallFeedback = "";
-    if (overallScore >= 85) {
+    if (overallScore >= 80) {
       overallFeedback = isVi
-        ? "Xuất sắc! Bạn thể hiện sự am hiểu kiến trúc chuyên môn vững vàng, phong thái đĩnh đạc tự tin và khả năng truyền đạt rất cuốn hút."
-        : "Outstanding performance! You demonstrated solid technical depth, composed body language, and articulate communication.";
-    } else if (overallScore >= 70) {
+        ? isIntern
+          ? "Xuất sắc! Bạn thể hiện nền tảng học thuật rất tốt, tư duy sáng sủa và thái độ ham học hỏi, hoàn toàn sẵn sàng cho kỳ thực tập thực tế."
+          : "Xuất sắc! Bạn thể hiện sự am hiểu kiến trúc chuyên môn vững vàng, phong thái đĩnh đạc tự tin và khả năng truyền đạt rất cuốn hút."
+        : "Outstanding performance! You demonstrated solid competence and composed communication.";
+    } else if (overallScore >= 65) {
       overallFeedback = isVi
-        ? "Tốt! Bạn có nền tảng kiến thức chắc chắn và tác phong phỏng vấn chuyên nghiệp. Cần chú ý tinh chỉnh thêm tốc độ nói và giảm từ đệm để bài phỏng vấn sắc bén hơn."
-        : "Good performance! Strong core competence and professional presence. Fine-tuning your speaking pace and eliminating fillers will elevate your delivery.";
+        ? isIntern
+          ? "Rất tiềm năng! Bạn nắm được các khái niệm cơ bản. Hãy tự tin hơn khi trình bày các dự án đã làm ở trường."
+          : "Tốt! Bạn có nền tảng kiến thức chắc chắn và tác phong phỏng vấn chuyên nghiệp."
+        : "Good performance! Strong core competence and professional presence.";
     } else {
       overallFeedback = isVi
-        ? "Tiềm năng! Bạn đã hoàn thành các câu hỏi phỏng vấn. Hãy luyện tập thêm để làm sâu sắc hơn các câu trả lời kỹ thuật và tăng cường sự tự tin khi đối diện ống kính."
-        : "Solid effort! Practice refining technical answer structures and maintaining steady camera eye contact to boost overall confidence.";
+        ? "Tiềm năng! Bạn đã hoàn thành buổi phỏng vấn. Hãy tiếp tục thực hành làm các dự án nhỏ và luyện tập nói trước gương/camera để nâng cao phản xạ."
+        : "Solid effort! Practice refining technical answer structures and maintaining steady camera eye contact.";
     }
 
     return {
-      sessionId: "session_" + Date.now().toString(36),
+      sessionId,
       candidateName: this.config.candidateName || (isVi ? "Ứng viên" : "Candidate"),
       role: this.config.role,
       level: this.config.level,
+      educationType: this.config.educationType,
       language: this.config.language,
+      interviewMode: this.config.interviewMode,
       startTime: new Date().toISOString(),
       totalDurationSeconds,
       overallScore,

@@ -14,4 +14,5 @@ export * from "./components/live-metrics-panel";
 export * from "./components/live-transcript";
 export * from "./components/settings-modal";
 export * from "./services/apiClient";
+export * from "./services/textCorrection";
 export * from "./config/api";
