@@ -36,6 +36,7 @@ import {
   type ApplicationAiScoreResponse,
   type ScoreCriterionKey,
 } from "@/features/recruiter/api/cv-screening-api";
+import { getCvScreeningConfig } from "@/features/recruiter/api/cv-screening-config-api";
 import { getRecruiterAccount } from "@/features/recruiter/api/onboarding";
 import {
   addToShortlist,
@@ -1738,6 +1739,31 @@ function CvRankingTable({
   // Dropdown states
   const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
   const [jobSearch, setJobSearch] = useState("");
+  /** "Top N": ranks by embedding similarity to the JD first, then only AI-scores
+   * that shortlist -- both cheaper (fewer AI_CV_MATCHING credits) and much
+   * faster than scoring every applicant. */
+  const [scoreLimit, setScoreLimit] = useState<10 | 20>(10);
+
+  // Pre-fill from the company's configured default (Cài đặt > Cấu hình AI lọc
+  // CV) so recruiters don't have to reselect it every run. Only 10/20 fit this
+  // screen's two-button toggle -- a company default of 50/"Tất cả" is applied
+  // server-side only (via CvScreeningConfigService), not shown here.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    void getCvScreeningConfig(token)
+      .then((config) => {
+        if (!cancelled && (config.defaultTopN === 10 || config.defaultTopN === 20)) {
+          setScoreLimit(config.defaultTopN);
+        }
+      })
+      .catch(() => {
+        // Non-critical: the hardcoded default (10) still works fine.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const {
     selectedJobId,
@@ -1745,9 +1771,11 @@ function CvRankingTable({
     progress,
     results,
     isRunning,
+    isCancelling,
     error,
     hasFiltered,
     startScreening,
+    cancelScreening,
   } = cvScreening;
 
   useEffect(() => {
@@ -2033,8 +2061,39 @@ function CvRankingTable({
               </DropdownMenu>
             </div>
 
+            {/* Embedding pre-filter shortlist size: ranks all applicants by CV/JD
+                similarity first, then only sends this many to the slow, metered AI
+                scorer. */}
+            <div
+              className="flex h-11 items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-1"
+              role="group"
+              aria-label="Số lượng ứng viên chấm điểm"
+            >
+              {(
+                [
+                  { value: 10 as const, label: "Top 10" },
+                  { value: 20 as const, label: "Top 20" },
+                ] satisfies Array<{ value: 10 | 20; label: string }>
+              ).map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  disabled={isRunning}
+                  onClick={() => setScoreLimit(option.value)}
+                  className={cn(
+                    "h-full cursor-pointer rounded-md px-3 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                    scoreLimit === option.value
+                      ? "bg-white text-emerald-700 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
             <Button
-              onClick={startScreening}
+              onClick={() => void startScreening(scoreLimit)}
               disabled={isRunning || !selectedJobId}
               className="flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-6 font-bold text-white shadow-none hover:bg-emerald-700"
             >
@@ -2104,6 +2163,24 @@ function CvRankingTable({
                         : `Failed to process ${progress.failedCount} resumes. The remaining results will still be shown.`}
                     </div>
                   )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void cancelScreening()}
+                    disabled={isCancelling}
+                    className="cursor-pointer border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isCancelling ? (
+                      <>
+                        <CircleNotch className="mr-1.5 size-4 animate-spin" />
+                        {locale === "vi" ? "Đang hủy..." : "Cancelling..."}
+                      </>
+                    ) : locale === "vi" ? (
+                      "Hủy lọc CV"
+                    ) : (
+                      "Cancel"
+                    )}
+                  </Button>
                 </div>
               </td>
             </tr>
@@ -2121,7 +2198,7 @@ function CvRankingTable({
                     {error}
                   </p>
                   <Button
-                    onClick={startScreening}
+                    onClick={() => void startScreening(scoreLimit)}
                     className="mt-2 h-9 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700"
                   >
                     Thử lại

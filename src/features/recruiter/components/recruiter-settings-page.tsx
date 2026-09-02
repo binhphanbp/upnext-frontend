@@ -18,6 +18,11 @@ import Swal from "sweetalert2";
 
 import { requestAndRegisterFcmToken } from "@/features/notifications/lib/firebase-fcm";
 import {
+  getCvScreeningConfig,
+  updateCvScreeningConfig,
+  type CvScreeningConfig,
+} from "@/features/recruiter/api/cv-screening-config-api";
+import {
   changePassword,
   getRecruiterAccount,
   createRecruiterProfile,
@@ -182,9 +187,9 @@ export function RecruiterSettingsPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [activeTab, setActiveTab] = useState<"account" | "notification" | "bills" | "security">(
-    "account",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "account" | "notification" | "bills" | "security" | "ai-screening"
+  >("account");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -219,6 +224,66 @@ export function RecruiterSettingsPage() {
 
   // Security tab state
   const [tfaEnabled, setTfaEnabled] = useState(false);
+
+  // AI CV-screening config tab state
+  const [aiConfigLoading, setAiConfigLoading] = useState(true);
+  const [aiConfigSaving, setAiConfigSaving] = useState(false);
+  const [aiCustomInstructions, setAiCustomInstructions] = useState("");
+  const [aiDefaultTopN, setAiDefaultTopN] = useState<CvScreeningConfig["defaultTopN"]>(null);
+  const [aiMinSimilarityScore, setAiMinSimilarityScore] = useState<number | null>(null);
+
+  const fetchAiScreeningConfig = useCallback(async (accessToken: string) => {
+    try {
+      setAiConfigLoading(true);
+      const config = await getCvScreeningConfig(accessToken);
+      setAiCustomInstructions(config.customInstructions ?? "");
+      setAiDefaultTopN(config.defaultTopN);
+      setAiMinSimilarityScore(config.minSimilarityScore);
+    } catch (error) {
+      console.error("Failed to load CV screening config:", error);
+    } finally {
+      setAiConfigLoading(false);
+    }
+  }, []);
+
+  const handleSaveAiScreeningConfig = async () => {
+    if (!token) return;
+
+    setAiConfigSaving(true);
+    try {
+      const trimmed = aiCustomInstructions.trim();
+      const saved = await updateCvScreeningConfig(
+        {
+          customInstructions: trimmed.length > 0 ? trimmed : null,
+          defaultTopN: aiDefaultTopN,
+          minSimilarityScore: aiMinSimilarityScore,
+        },
+        token,
+      );
+      setAiCustomInstructions(saved.customInstructions ?? "");
+      setAiDefaultTopN(saved.defaultTopN);
+      setAiMinSimilarityScore(saved.minSimilarityScore);
+      void Swal.fire({
+        icon: "success",
+        title: "Đã lưu cấu hình AI lọc CV!",
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (error) {
+      const isForbidden = error instanceof ApiError && error.status === 403;
+      void Swal.fire({
+        icon: "error",
+        title: isForbidden ? "Không đủ quyền" : "Lỗi lưu cấu hình",
+        text: isForbidden
+          ? "Chỉ quản trị viên công ty mới có quyền chỉnh cấu hình AI lọc CV."
+          : "Không thể lưu cấu hình. Vui lòng thử lại.",
+      });
+    } finally {
+      setAiConfigSaving(false);
+    }
+  };
 
   const fetchDetails = useCallback(
     async (id: string, accessToken: string) => {
@@ -265,7 +330,8 @@ export function RecruiterSettingsPage() {
     setToken(session.accessToken);
     setAccountId(session.user.id);
     void fetchDetails(session.user.id, session.accessToken);
-  }, [fetchDetails, router]);
+    void fetchAiScreeningConfig(session.accessToken);
+  }, [fetchDetails, fetchAiScreeningConfig, router]);
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -510,6 +576,20 @@ export function RecruiterSettingsPage() {
           >
             <SecurityIcon />
             Bảo mật
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "ai-screening"}
+            className={`flex items-center justify-center gap-2 border-b-2 p-4 text-sm font-medium whitespace-nowrap transition-all ${
+              activeTab === "ai-screening"
+                ? "border-emerald-600 font-semibold text-emerald-600"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+            onClick={() => setActiveTab("ai-screening")}
+          >
+            <Sparkle size={20} />
+            Cấu hình AI lọc CV
           </button>
         </div>
 
@@ -1402,6 +1482,131 @@ export function RecruiterSettingsPage() {
                   className="h-10 rounded-md bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700"
                 >
                   Lưu thiết lập
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Panel: AI CV Screening Config */}
+        {activeTab === "ai-screening" && (
+          <div className="mt-2 border-none p-6">
+            <div className="max-w-2xl rounded-xl border border-slate-100 bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h5 className="mb-1 text-base font-bold text-slate-800 dark:text-white">
+                Cấu hình AI lọc CV
+              </h5>
+              <p className="mb-6 text-xs text-slate-400 dark:text-slate-500">
+                Tùy chỉnh cách AI chấm điểm và rút gọn danh sách ứng viên cho công ty của bạn. Thang
+                điểm chấm (kỹ năng, kinh nghiệm, dự án, học vấn) luôn cố định — các thiết lập dưới
+                đây chỉ bổ sung thêm bối cảnh và mặc định cho mỗi lượt lọc.
+              </p>
+
+              {aiConfigLoading ? (
+                <div className="flex items-center gap-2 py-8 text-sm text-slate-400">
+                  <CircleNotch className="h-5 w-5 animate-spin" />
+                  Đang tải cấu hình...
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div>
+                    <label
+                      htmlFor="ai_custom_instructions"
+                      className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
+                    >
+                      Hướng dẫn tùy chỉnh cho AI
+                    </label>
+                    <textarea
+                      id="ai_custom_instructions"
+                      rows={4}
+                      maxLength={2000}
+                      value={aiCustomInstructions}
+                      onChange={(e) => setAiCustomInstructions(e.target.value)}
+                      placeholder='Ví dụ: "Ưu tiên ứng viên có chứng chỉ AWS", "Không yêu cầu bằng đại học", "Ưu tiên kinh nghiệm ngành fintech"...'
+                      className="w-full rounded-lg border border-slate-200 p-3 text-sm text-slate-700 focus:border-emerald-500 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950/30 dark:text-slate-200"
+                    />
+                    <p className="mt-1 text-right text-[11px] text-slate-400">
+                      {aiCustomInstructions.length}/2000 ký tự
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
+                      Số lượng chấm điểm mặc định
+                    </p>
+                    <p className="mb-2 text-xs text-slate-400">
+                      Áp dụng khi bấm &quot;Lọc xếp hạng&quot; mà không tự chọn Top 10/Top 20.
+                    </p>
+                    <div
+                      className="flex h-11 w-fit items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-950/30"
+                      role="group"
+                      aria-label="Số lượng chấm điểm mặc định"
+                    >
+                      {(
+                        [
+                          { value: 10 as const, label: "Top 10" },
+                          { value: 20 as const, label: "Top 20" },
+                          { value: 50 as const, label: "Top 50" },
+                          { value: null, label: "Tất cả" },
+                        ] satisfies Array<{
+                          value: CvScreeningConfig["defaultTopN"];
+                          label: string;
+                        }>
+                      ).map((option) => (
+                        <button
+                          key={option.label}
+                          type="button"
+                          onClick={() => setAiDefaultTopN(option.value)}
+                          className={cn(
+                            "h-full cursor-pointer rounded-md px-3 text-xs font-bold transition-colors",
+                            aiDefaultTopN === option.value
+                              ? "bg-white text-emerald-700 shadow-sm dark:bg-slate-900"
+                              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300",
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="ai_min_similarity"
+                      className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
+                    >
+                      Ngưỡng độ tương đồng tối thiểu (%)
+                    </label>
+                    <p className="mb-2 text-xs text-slate-400">
+                      CV có độ tương đồng với tin tuyển dụng thấp hơn ngưỡng này sẽ không lọt vào
+                      danh sách chấm điểm. Để trống nếu không muốn giới hạn.
+                    </p>
+                    <FormInput
+                      id="ai_min_similarity"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={aiMinSimilarityScore ?? ""}
+                      onChange={(e) =>
+                        setAiMinSimilarityScore(
+                          e.target.value === "" ? null : Number(e.target.value),
+                        )
+                      }
+                      placeholder="Không giới hạn"
+                      className="max-w-[160px]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-6 dark:border-slate-800">
+                <button
+                  type="button"
+                  disabled={aiConfigLoading || aiConfigSaving}
+                  onClick={() => void handleSaveAiScreeningConfig()}
+                  className="flex h-10 items-center gap-2 rounded-md bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {aiConfigSaving && <CircleNotch className="h-4 w-4 animate-spin" />}
+                  Lưu cấu hình
                 </button>
               </div>
             </div>

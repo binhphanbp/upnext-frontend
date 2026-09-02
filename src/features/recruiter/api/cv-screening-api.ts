@@ -1,6 +1,12 @@
 import { recruiterApiRequest } from "@/features/recruiter/api/client";
 
-export type RunStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "PARTIAL_FAILED";
+export type RunStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED"
+  | "PARTIAL_FAILED"
+  | "CANCELLED";
 
 export interface RunCvScreeningPayload {
   jobPostId: string;
@@ -22,9 +28,18 @@ export interface CvScreeningRunResponse {
   failedCount: number;
   limit: number | null;
   errorMessage?: string | null;
+  /** Set once a cancel was requested for this run -- while `status` is still
+   * PROCESSING, this means the recruiter asked to stop and the run is
+   * winding down (current batch finishes, then no more are started). */
+  cancelRequestedAt?: string | null;
   startedAt?: string | null;
   finishedAt?: string | null;
 }
+
+export type CancelCvScreeningRunResponse = {
+  runId: string;
+  status: RunStatus | "CANCEL_REQUESTED";
+};
 
 export interface CvScreeningResultItem {
   applicationId: string;
@@ -104,6 +119,14 @@ export function runCvScreening(payload: RunCvScreeningPayload, token: string) {
     body: JSON.stringify(payload),
     headers: { "Content-Type": "application/json" },
   });
+}
+
+export function cancelCvScreeningRun(runId: string, token: string) {
+  return recruiterApiRequest<CancelCvScreeningRunResponse>(
+    `/recruiter/cv-screening/runs/${runId}/cancel`,
+    token,
+    { method: "POST" },
+  );
 }
 
 export function getCvScreeningRun(runId: string, token: string) {
