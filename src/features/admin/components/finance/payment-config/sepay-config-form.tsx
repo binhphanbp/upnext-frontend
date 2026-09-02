@@ -234,7 +234,10 @@ export function SepayConfigForm() {
       const message =
         error instanceof Error
           ? error.message
-          : txt("testMode.simulateError", "Mô phỏng thanh toán thất bại. Vui lòng kiểm tra mã hóa đơn.");
+          : txt(
+              "testMode.simulateError",
+              "Mô phỏng thanh toán thất bại. Vui lòng kiểm tra mã hóa đơn.",
+            );
       void Swal.fire({
         icon: "error",
         title: "Mô phỏng thất bại",
@@ -302,7 +305,7 @@ export function SepayConfigForm() {
                     "Cổng SePay đang kết nối Chế độ Thử nghiệm (Sandbox)",
                   )}
                 </h4>
-                <span className="rounded-full border border-amber-300 bg-amber-200/90 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-amber-900">
+                <span className="rounded-full border border-amber-300 bg-amber-200/90 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-amber-900 uppercase">
                   Sandbox
                 </span>
               </div>
@@ -343,16 +346,17 @@ export function SepayConfigForm() {
             onCheckedChange={(checked) =>
               setForm((prev) => ({ ...prev, isEnabled: checked === true }))
             }
-            className="size-5 rounded-md border-slate-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+            className="size-5 rounded-md border-slate-300 data-[state=checked]:border-emerald-600 data-[state=checked]:bg-emerald-600"
           />
-          <Label htmlFor="sepayIsEnabled" className="cursor-pointer text-sm font-bold text-slate-800">
+          <Label
+            htmlFor="sepayIsEnabled"
+            className="cursor-pointer text-sm font-bold text-slate-800"
+          >
             {txt("fields.isEnabled", "Bật cổng thanh toán qua SePay")}
           </Label>
           <span
             className={`ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-              form.isEnabled
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-slate-200 text-slate-600"
+              form.isEnabled ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"
             }`}
           >
             {form.isEnabled ? "Đang bật" : "Đang tắt"}
@@ -361,7 +365,7 @@ export function SepayConfigForm() {
 
         {/* Bank Information Grid */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-          <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+          <h3 className="mb-4 text-xs font-bold tracking-wider text-slate-400 uppercase">
             Thông tin tài khoản nhận tiền
           </h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -383,14 +387,18 @@ export function SepayConfigForm() {
               label={txt("fields.accountNumber", "Số tài khoản ngân hàng")}
               placeholder="VD: 10001291241"
               value={form.accountNumber}
-              onChange={(event) => setForm((prev) => ({ ...prev, accountNumber: event.target.value }))}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, accountNumber: event.target.value }))
+              }
             />
 
             <FormInput
               label={txt("fields.accountName", "Tên chủ tài khoản (In hoa không dấu)")}
               placeholder={txt("fields.accountNamePlaceholder", "VD: PHAN QUOC DUY")}
               value={form.accountName}
-              onChange={(event) => setForm((prev) => ({ ...prev, accountName: event.target.value }))}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, accountName: event.target.value }))
+              }
             />
           </div>
           <p className="mt-3 flex items-center gap-1 text-[11px] text-slate-400">
@@ -404,7 +412,7 @@ export function SepayConfigForm() {
 
         {/* Virtual Account Prefix (With anti-autofill to prevent email injection) */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-          <h3 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-400">
+          <h3 className="mb-1 text-xs font-bold tracking-wider text-slate-400 uppercase">
             Cấu hình nội dung chuyển khoản
           </h3>
           <div className="mt-3 flex flex-col gap-1.5">
@@ -418,12 +426,14 @@ export function SepayConfigForm() {
               autoComplete="new-password"
               data-1p-ignore="true"
               data-lpignore="true"
-              onChange={(event) => setForm((prev) => ({ ...prev, contentPrefix: event.target.value }))}
+              onChange={(event) =>
+                setForm((prev) => ({ ...prev, contentPrefix: event.target.value }))
+              }
             />
             <p className="text-[11px] text-slate-400">
               {txt(
                 "fields.contentPrefixHint",
-                "Chỉ cần điền nếu tài khoản ngân hàng có bật Virtual Account (VA) trên SePay -- lấy đúng chuỗi ở mục \"Phải có từ\" khi xem chi tiết VA.",
+                'Chỉ cần điền nếu tài khoản ngân hàng có bật Virtual Account (VA) trên SePay -- lấy đúng chuỗi ở mục "Phải có từ" khi xem chi tiết VA.',
               )}
             </p>
           </div>
@@ -441,7 +451,8 @@ export function SepayConfigForm() {
                   )}
                 </Label>
                 <p className="mt-0.5 text-[11px] text-sky-800/80">
-                  Hệ thống dùng token này để chủ động quét giao dịch chuyển khoản từ SePay. Hoạt động trên localhost mà không cần mở port hay Webhook.
+                  Hệ thống dùng token này để chủ động quét giao dịch chuyển khoản từ SePay. Hoạt
+                  động trên localhost mà không cần mở port hay Webhook.
                 </p>
               </div>
 
@@ -506,9 +517,17 @@ export function SepayConfigForm() {
                   }`}
                 >
                   {testApiResult.success ? (
-                    <CheckCircle size={18} weight="fill" className="mt-0.5 shrink-0 text-emerald-600" />
+                    <CheckCircle
+                      size={18}
+                      weight="fill"
+                      className="mt-0.5 shrink-0 text-emerald-600"
+                    />
                   ) : (
-                    <WarningCircle size={18} weight="fill" className="mt-0.5 shrink-0 text-amber-600" />
+                    <WarningCircle
+                      size={18}
+                      weight="fill"
+                      className="mt-0.5 shrink-0 text-amber-600"
+                    />
                   )}
                   <div>
                     <span className="font-bold">{testApiResult.message}</span>
@@ -521,7 +540,7 @@ export function SepayConfigForm() {
 
         {/* Webhook Secret Key & Webhook URL (Secondary / Optional) */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-          <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+          <h3 className="mb-4 text-xs font-bold tracking-wider text-slate-400 uppercase">
             Cấu hình Webhook SePay (Dành cho môi trường Production / Live có tên miền công khai)
           </h3>
           <div className="flex flex-col gap-4">
@@ -535,7 +554,9 @@ export function SepayConfigForm() {
                 )}
                 value={form.webhookSecret}
                 autoComplete="new-password"
-                onChange={(event) => setForm((prev) => ({ ...prev, webhookSecret: event.target.value }))}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, webhookSecret: event.target.value }))
+                }
                 suffix={
                   <button
                     type="button"
@@ -554,7 +575,7 @@ export function SepayConfigForm() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
+            <div className="flex flex-col gap-1.5 border-t border-slate-100 pt-2">
               <Label className="text-xs font-bold text-slate-700">
                 {txt("fields.webhookUrl", "Webhook URL")}
               </Label>
@@ -643,13 +664,16 @@ export function SepayConfigForm() {
               type="number"
               value={simAmount}
               onChange={(e) => setSimAmount(e.target.value)}
-              placeholder={txt("testMode.amountPlaceholder", "Để trống để lấy đúng số tiền hóa đơn")}
+              placeholder={txt(
+                "testMode.amountPlaceholder",
+                "Để trống để lấy đúng số tiền hóa đơn",
+              )}
               className="font-mono text-xs"
             />
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
             <WarningCircle size={15} />
             <span>Mô phỏng webhook chuyển khoản vào khớp mã hóa đơn.</span>

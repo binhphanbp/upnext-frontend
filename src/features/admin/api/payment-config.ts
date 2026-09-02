@@ -122,12 +122,11 @@ export type CheckSepayPaymentResponse = Readonly<{
  * Check if an invoice has received payment on SePay via API polling.
  * Can be called by recruiters or frontend checkout without admin JWT.
  */
-export function checkSepayPayment(
-  invoiceIdOrCode: string,
-): Promise<CheckSepayPaymentResponse> {
-  return apiRequest<CheckSepayPaymentResponse>(`/payments/sepay/check/${encodeURIComponent(invoiceIdOrCode)}`, {
-    method: "POST",
-  });
+export function checkSepayPayment(invoiceIdOrCode: string): Promise<CheckSepayPaymentResponse> {
+  return apiRequest<CheckSepayPaymentResponse>(
+    `/payments/sepay/check/${encodeURIComponent(invoiceIdOrCode)}`,
+    {
+      method: "POST",
+    },
+  );
 }
-
-
