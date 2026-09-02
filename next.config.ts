@@ -15,9 +15,10 @@ const apiProxyOrigin =
 
 const nextConfig: NextConfig = {
   output: process.env.NODE_ENV === "production" ? "standalone" : undefined,
+  devIndicators: false,
   onDemandEntries: {
-    maxInactiveAge: 60 * 1000,
-    pagesBufferLength: 5,
+    maxInactiveAge: 24 * 60 * 60 * 1000,
+    pagesBufferLength: 50,
   },
   experimental: {
     globalNotFound: true,
