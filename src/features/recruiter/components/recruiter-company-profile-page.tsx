@@ -14,6 +14,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 
+import { recruiterApiRequest } from "@/features/recruiter/api/client";
 import {
   createCompanyLocation,
   createCompany,
@@ -75,6 +76,7 @@ type CompanyForm = {
   benefits: string;
   offerLetterTemplate: string;
   rejectionLetterTemplate: string;
+  applicationInvitationTemplate: string;
 };
 
 const emptyForm: CompanyForm = {
@@ -90,6 +92,7 @@ const emptyForm: CompanyForm = {
   benefits: "",
   offerLetterTemplate: "",
   rejectionLetterTemplate: "",
+  applicationInvitationTemplate: "",
 };
 
 type TempPhoto = {
@@ -117,7 +120,9 @@ export function RecruiterCompanyProfilePage() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string>("");
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
-  const [generatingTemplate, setGeneratingTemplate] = useState<"OFFER" | "REJECTION" | null>(null);
+  const [generatingTemplate, setGeneratingTemplate] = useState<
+    "OFFER" | "REJECTION" | "INVITATION" | null
+  >(null);
 
   const companySizeOptions = [
     { value: "", label: t("companySizes.placeholder") },
@@ -191,6 +196,7 @@ export function RecruiterCompanyProfilePage() {
           benefits: nextCompany.benefits || "",
           offerLetterTemplate: nextCompany.offerLetterTemplate || "",
           rejectionLetterTemplate: nextCompany.rejectionLetterTemplate || "",
+          applicationInvitationTemplate: nextCompany.applicationInvitationTemplate || "",
         });
         setTempPhotos((current) => {
           current.forEach((p) => {
@@ -477,7 +483,7 @@ export function RecruiterCompanyProfilePage() {
     }
   }
 
-  async function handleGenerateLetterTemplate(type: "OFFER" | "REJECTION") {
+  async function handleGenerateLetterTemplate(type: "OFFER" | "REJECTION" | "INVITATION") {
     if (!companyId) return;
 
     try {
@@ -487,7 +493,9 @@ export function RecruiterCompanyProfilePage() {
         ...current,
         ...(type === "OFFER"
           ? { offerLetterTemplate: template }
-          : { rejectionLetterTemplate: template }),
+          : type === "REJECTION"
+            ? { rejectionLetterTemplate: template }
+            : { applicationInvitationTemplate: template }),
       }));
       void toast.fire({ icon: "success", title: "Đã tạo mẫu thư từ thông tin công ty." });
     } catch (error) {
@@ -686,6 +694,7 @@ export function RecruiterCompanyProfilePage() {
               })),
             ]}
           />
+
           <div className="flex flex-col gap-1.5 lg:col-span-2">
             <Label className="text-sm font-semibold text-slate-700">
               {t("fields.description")} <span className="ml-1 text-red-500">*</span>
@@ -758,6 +767,34 @@ export function RecruiterCompanyProfilePage() {
                 setForm((current) => ({ ...current, rejectionLetterTemplate: value }))
               }
               placeholder={t("fields.rejectionLetterTemplatePlaceholder")}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 lg:col-span-2">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-semibold text-slate-700">
+                {t("fields.applicationInvitationTemplate")}
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={generatingTemplate !== null}
+                onClick={() => void handleGenerateLetterTemplate("INVITATION")}
+              >
+                {generatingTemplate === "INVITATION" ? (
+                  <CircleNotch className="animate-spin" />
+                ) : (
+                  <Sparkle />
+                )}
+                Tạo bằng AI
+              </Button>
+            </div>
+            <RichTextEditor
+              value={form.applicationInvitationTemplate}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, applicationInvitationTemplate: value }))
+              }
+              placeholder={t("fields.applicationInvitationTemplatePlaceholder")}
             />
           </div>
           <CompanyLicenseSection

@@ -14,6 +14,7 @@ import {
   List,
   MapPin,
   PaperPlaneTilt,
+  Receipt,
   SignOut,
   User,
   UserCircle,
@@ -170,6 +171,7 @@ type PublicHeaderCopy = {
   overviewLabel: string;
   resumesLabel: string;
   jobPreferencesLabel: string;
+  billingLabel: string;
   applicationsLabel: string;
   recruiterChatLabel: string;
   savedJobsLabel: string;
@@ -553,6 +555,7 @@ const signedInCompactNavigationLinks: CompactNavigationLink[] = [
   ...publicCompactNavigationLinks.slice(0, -1),
   { label: localized("Hồ sơ của tôi", "My profile"), href: "/candidate/profile" },
   { label: localized("CV của tôi", "My CV"), href: "/candidate/cv-builder" },
+  { label: localized("Gói dịch vụ & Hóa đơn", "Plans & Billing"), href: "/candidate/billing" },
   publicCompactNavigationLinks.at(-1)!,
 ];
 
@@ -588,6 +591,7 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     overviewLabel: "Tổng quan",
     resumesLabel: "CV của tôi",
     jobPreferencesLabel: "Mong muốn việc làm",
+    billingLabel: "Gói dịch vụ & Hóa đơn",
     applicationsLabel: "Việc đã ứng tuyển",
     recruiterChatLabel: "Chat với nhà tuyển dụng",
     savedJobsLabel: "Việc đã lưu",
@@ -617,6 +621,7 @@ const copyByLocale: Record<"vi" | "en", PublicHeaderCopy> = {
     overviewLabel: "Overview",
     resumesLabel: "Resumes",
     jobPreferencesLabel: "Job Preferences",
+    billingLabel: "Plans & Invoices",
     applicationsLabel: "Applications",
     recruiterChatLabel: "Chat with recruiters",
     savedJobsLabel: "Saved Jobs",
@@ -1462,6 +1467,15 @@ export function PublicHeader({
                       onClick={() => {
                         setAccountOpen(false);
                         navigate("/candidate/profile?section=preferences");
+                      }}
+                    />
+                    <AccountMenuItem
+                      icon={<Receipt size={18} aria-hidden="true" />}
+                      label={copy.billingLabel}
+                      active={isCandidatePathActive("/candidate/billing")}
+                      onClick={() => {
+                        setAccountOpen(false);
+                        navigate("/candidate/billing");
                       }}
                     />
                   </AccountMenuGroup>

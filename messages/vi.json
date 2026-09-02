@@ -994,6 +994,7 @@
       "report": "Tổng quan tuyển dụng",
       "jobPosts": "Tin tuyển dụng",
       "candidates": "Ứng viên",
+      "talentPool": "Tìm ứng viên",
       "interviews": "Phỏng vấn",
       "messages": "Tin nhắn",
       "company": "Công ty",
@@ -1700,6 +1701,8 @@
           "benefitsPlaceholder": "Nhập các phúc lợi dành cho nhân viên...",
           "offerLetterTemplate": "Mẫu thư nhận việc",
           "offerLetterTemplatePlaceholder": "Soạn nội dung thư nhận việc gửi ứng viên...",
+          "applicationInvitationTemplate": "Mẫu thư mời ứng tuyển",
+          "applicationInvitationTemplatePlaceholder": "Soạn nội dung thư mời ứng tuyển gửi ứng viên...",
           "rejectionLetterTemplate": "Mẫu thư từ chối",
           "rejectionLetterTemplatePlaceholder": "Soạn nội dung thư từ chối gửi ứng viên...",
           "license": "Minh chứng doanh nghiệp",
@@ -2588,6 +2591,115 @@
         "successAll": "Đã cập nhật {count} hồ sơ.",
         "successPartial": "Cập nhật thành công {success}/{total} hồ sơ. Một số hồ sơ không đổi được trạng thái."
       }
+    },
+    "talentPool": {
+      "title": "Tìm ứng viên",
+      "subtitle": "Duyệt hồ sơ ứng viên đã công khai và cho phép liên hệ chủ động.",
+      "browse": {
+        "empty": "Chưa có ứng viên nào phù hợp với bộ lọc hiện tại."
+      },
+      "tabs": {
+        "browse": "Duyệt tất cả",
+        "aiSearch": "Lọc bằng AI theo JD",
+        "premiumBadge": "Trả phí"
+      },
+      "quota": {
+        "label": "Lượt xem chi tiết",
+        "unlimited": "Không giới hạn lượt xem",
+        "usageTemplate": "Đã dùng {used}/{limit} lượt tháng này",
+        "resetsOnTemplate": "làm mới ngày {date}",
+        "upgradeAction": "Nâng cấp gói",
+        "unlockedBadge": "Đã mở toàn bộ thông tin liên hệ"
+      },
+      "searchResultsCount": "{count} kết quả tìm kiếm",
+      "viewMode": {
+        "list": "Dạng danh sách",
+        "grid": "Dạng lưới"
+      },
+      "card": {
+        "noHeadline": "Chưa có mô tả nghề nghiệp",
+        "viewDetail": "Hồ sơ chi tiết",
+        "viewedBadge": "Đã xem tháng này",
+        "matchScoreLabel": "Phù hợp {score}%",
+        "activeSeeking": "Đang tìm việc",
+        "lastUpdated": "Lần cập nhật gần nhất: {date}",
+        "upgradeToViewCompany": "Mua gói Tìm kiếm ứng viên để xem đầy đủ ...",
+        "noExperience": "Chưa có kinh nghiệm",
+        "experienceYears": "{years} năm",
+        "salaryNegotiable": "Thoả thuận",
+        "hasCvTooltip": "Có đính kèm CV",
+        "saveCandidate": "Lưu hồ sơ",
+        "savedCandidate": "Đã lưu"
+      },
+      "detail": {
+        "title": "Chi tiết ứng viên",
+        "backToList": "Quay lại Tìm ứng viên",
+        "maskedNotice": "Nâng cấp gói để xem số điện thoại, email và tải CV gốc của ứng viên này.",
+        "upgradeAction": "Nâng cấp gói",
+        "viewContactAction": "Xem thông tin liên hệ",
+        "viewContactWithPoints": "Xem thông tin liên hệ (-2 Điểm)",
+        "inviteAction": "Gửi lời mời ứng tuyển",
+        "invitationDialogText": "Nội dung để trống sẽ dùng mẫu thư mời đã lưu trong Hồ sơ công ty.",
+        "invitationMessageLabel": "Nội dung thư mời ứng tuyển",
+        "invitationMessagePlaceholder": "Nhập nội dung riêng cho lời mời này (không bắt buộc)",
+        "sendInvitation": "Gửi lời mời",
+        "cancelInvitation": "Hủy",
+        "sendingInvitation": "Đang gửi...",
+        "invitationSentTitle": "Đã gửi lời mời",
+        "invitationSentText": "Email mời ứng tuyển đã được gửi đến ứng viên.",
+        "invitationErrorTitle": "Không thể gửi lời mời",
+        "invitationAlreadySent": "Đã gửi lời mời",
+        "shareAction": "Chia sẻ",
+        "shareCopied": "Đã sao chép liên kết hồ sơ vào khay nhớ tạm",
+        "quotaTrialNotice": "Bạn có {count} lượt dùng thử xem trước hồ sơ.",
+        "downloadCv": "Tải CV gốc",
+        "downloading": "Đang tải…",
+        "noContactInfo": "Ứng viên chưa cung cấp thông tin liên hệ.",
+        "experienceHeading": "Kinh nghiệm làm việc",
+        "educationHeading": "Học vấn",
+        "projectsHeading": "Dự án",
+        "certificationsHeading": "Chứng chỉ",
+        "languagesHeading": "Ngoại ngữ",
+        "noSourceFile": "Ứng viên chưa có file CV gốc để tải (chỉ dùng CV Builder).",
+        "current": "Hiện tại",
+        "generalInfoHeading": "Thông tin chung",
+        "currentPositionLabel": "Vị trí hiện tại",
+        "desiredLevelLabel": "Cấp bậc mong muốn",
+        "workingModelLabel": "Hình thức làm việc mong muốn",
+        "desiredSalaryLabel": "Mức lương mong muốn",
+        "birthdateLabel": "Ngày sinh",
+        "genderLabel": "Giới tính",
+        "addressLabel": "Địa chỉ",
+        "preferredWorkLocationLabel": "Nơi làm việc mong muốn",
+        "educationDegreeLabel": "Học vấn / Bằng cấp",
+        "languageSkillLabel": "Ngoại ngữ",
+        "desiredPositionLabel": "Vị trí mong muốn",
+        "attachedCvHeading": "Hồ sơ đính kèm",
+        "previewCvNotice": "Xem trước file CV gốc đính kèm của ứng viên",
+        "noCvAttached": "Ứng viên chưa đính kèm file CV gốc."
+      },
+      "aiSearch": {
+        "jobPostPlaceholder": "Chọn một tin tuyển dụng làm JD",
+        "searchAction": "Lọc ứng viên",
+        "searching": "Đang lọc…",
+        "remainingTemplate": "Còn {remaining} lượt lọc tháng này",
+        "emptyResult": "Chưa tìm thấy ứng viên nào khớp với JD này.",
+        "upsellTitle": "AI tìm ứng viên theo JD",
+        "upsellDescription": "Nâng cấp gói để AI tự động xếp hạng toàn bộ ứng viên theo mức độ phù hợp với một tin tuyển dụng cụ thể."
+      },
+      "errors": {
+        "viewDetailTitle": "Không xem được chi tiết",
+        "downloadTitle": "Không tải được CV",
+        "aiSearchTitle": "Không lọc được ứng viên",
+        "generic": "Đã có lỗi xảy ra. Vui lòng thử lại."
+      },
+      "pagination": {
+        "showingRange": "Hiển thị {from} - {to} trong {total} ứng viên",
+        "perPage": "{count} / trang",
+        "previous": "Trang trước",
+        "next": "Trang sau",
+        "pageLabel": "Trang {page}"
+      }
     }
   },
   "Pricing": {
@@ -2610,6 +2722,21 @@
       "free": "Bắt đầu miễn phí",
       "upgrade": "Nâng cấp ngay",
       "contact": "Liên hệ tư vấn"
+    },
+    "candidate": {
+      "headline": "Bứt phá sự nghiệp với trợ lý AI Copilot",
+      "subheadline": "Tối ưu hóa CV chuẩn ATS, luyện phỏng vấn thử cùng AI và mở khóa các cơ hội nghề nghiệp hàng đầu.",
+      "aiCopilot": "Lượt trợ lý AI Copilot",
+      "runsPerMonth": "{count} lượt / tháng",
+      "freePlanCta": "Gói miễn phí mặc định",
+      "upgradeCta": "Nâng cấp gói ngay",
+      "activeCta": "Đang sử dụng",
+      "features": {
+        "unlimitedCv": "Tạo CV chuẩn ATS không giới hạn",
+        "aiCopilot": "{count} lượt AI Copilot (viết CV, tối ưu hồ sơ, phỏng vấn)",
+        "prioritySupport": "Hỗ trợ kỹ thuật ưu tiên",
+        "badge": "Huy hiệu Ứng viên Nổi bật"
+      }
     },
     "comparison": {
       "title": "So sánh chi tiết các gói",
