@@ -25,7 +25,9 @@ import {
   createInvoice,
   getActiveSubscription,
   getPublicSubscriptionPlans,
+  getSubscriptionUsage,
   type CompanySubscriptionDetail,
+  type QuotaSnapshot,
   type SubscriptionFeature,
   type SubscriptionPlan,
 } from "@/features/recruiter/api/billing";
@@ -82,6 +84,7 @@ export function RecruiterPricingPage() {
   const [creatingPlanId, setCreatingPlanId] = useState<string | null>(null);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [activeSub, setActiveSub] = useState<CompanySubscriptionDetail | null>(null);
+  const [featuredJobQuota, setFeaturedJobQuota] = useState<QuotaSnapshot | null>(null);
   const [token, setToken] = useState("");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
@@ -100,6 +103,16 @@ export function RecruiterPricingPage() {
         } catch {
           // 404 simply means the company has never subscribed.
           setActiveSub(null);
+        }
+
+        // `boostCreditTotal/Used` on the subscription record is a legacy,
+        // rarely-updated snapshot (JOB_BOOST_ROLLOUT_PLAN.md mục 6.3) --
+        // `/subscriptions/usage` is the one place quota is actually enforced.
+        try {
+          const usage = await getSubscriptionUsage(accessToken);
+          setFeaturedJobQuota(usage.find((q) => q.feature === "featured_job") ?? null);
+        } catch {
+          setFeaturedJobQuota(null);
         }
       } catch (err) {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
@@ -193,8 +206,12 @@ export function RecruiterPricingPage() {
                 Gói hiện tại: {activeSub.plan.subscriptionName}
               </h2>
               <p className="text-xs text-slate-300">
-                Đăng tin không giới hạn &bull; {activeSub.boostCreditUsed} /{" "}
-                {activeSub.boostCreditTotal} điểm Boost
+                Đăng tin không giới hạn &bull;{" "}
+                {featuredJobQuota
+                  ? featuredJobQuota.limit === null
+                    ? "Boost không giới hạn"
+                    : `${featuredJobQuota.used} / ${featuredJobQuota.limit} lượt Boost`
+                  : `${activeSub.boostCreditUsed} / ${activeSub.boostCreditTotal} điểm Boost`}
               </p>
             </div>
             <Button

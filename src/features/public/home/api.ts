@@ -58,9 +58,13 @@ export interface PublicJob {
       slug: string;
     };
   }>;
+  /** At most 1 entry -- the API only ever includes a live (ACTIVE) boost.
+   * Label-only, for the "Nổi bật"/"Tuyển gấp" badge; not the sponsored-slot
+   * placement (see `getSponsoredJobs` in `public/jobs/api/sponsored.ts`). */
+  boosts?: Array<{ type: "FEATURED" | "URGENT"; endsAt: string }>;
 }
 
-type PublicJobWire = Omit<PublicJob, "salaryMin" | "salaryMax"> & {
+export type PublicJobWire = Omit<PublicJob, "salaryMin" | "salaryMax"> & {
   salaryMin: number | string | null;
   salaryMax: number | string | null;
 };
@@ -325,7 +329,7 @@ export async function recordPublicJobView(id: string, visitorKey?: string) {
   });
 }
 
-function normalizePublicJob(job: PublicJobWire): PublicJob {
+export function normalizePublicJob(job: PublicJobWire): PublicJob {
   return {
     ...job,
     salaryMin: normalizeNullableNumber(job.salaryMin),

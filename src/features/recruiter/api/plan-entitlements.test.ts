@@ -13,13 +13,13 @@ describe("recruiter job-post entitlement", () => {
     [true, 30],
     [true, null],
   ] as const)("is unlimited even when plan metadata is legacy (%p, %p)", (enabled, limit) => {
-    expect(isUnlimitedRecruiterFeature("JOB_POST")).toBe(true);
-    expect(isRecruiterFeatureAvailable("JOB_POST", enabled)).toBe(true);
-    expect(recruiterFeatureLimit("JOB_POST", limit)).toBeNull();
+    expect(isUnlimitedRecruiterFeature("job_post")).toBe(true);
+    expect(isRecruiterFeatureAvailable("job_post", enabled)).toBe(true);
+    expect(recruiterFeatureLimit("job_post", limit)).toBeNull();
   });
 
   it("keeps paid-feature metadata meaningful", () => {
-    expect(isRecruiterFeatureAvailable("AI_JD_GENERATE", false)).toBe(false);
-    expect(recruiterFeatureLimit("AI_JD_GENERATE", 5)).toBe(5);
+    expect(isRecruiterFeatureAvailable("ai_jd_generate", false)).toBe(false);
+    expect(recruiterFeatureLimit("ai_jd_generate", 5)).toBe(5);
   });
 });

@@ -5,10 +5,10 @@ import { emptyFeatureFormState, toSetFeaturesPayload } from "./plan-feature-edit
 describe("toSetFeaturesPayload", () => {
   it("always preserves unlimited job posting for recruiter plans", () => {
     const state = emptyFeatureFormState();
-    state.JOB_POST = { enabled: false, limitValue: "3" };
+    state.job_post = { enabled: false, limitValue: "3" };
 
     expect(toSetFeaturesPayload(state, "RECRUITER")).toContainEqual({
-      feature: "JOB_POST",
+      feature: "job_post",
       enabled: true,
       limitValue: null,
     });
@@ -18,7 +18,7 @@ describe("toSetFeaturesPayload", () => {
     const state = emptyFeatureFormState();
 
     expect(toSetFeaturesPayload(state, "CANDIDATE")).not.toContainEqual(
-      expect.objectContaining({ feature: "JOB_POST" }),
+      expect.objectContaining({ feature: "job_post" }),
     );
   });
 });

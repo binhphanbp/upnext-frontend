@@ -6,7 +6,7 @@ import type { SubscriptionFeature } from "./billing";
  * recruiter-facing screen advertise a job-post quota again.
  */
 export function isUnlimitedRecruiterFeature(feature: SubscriptionFeature) {
-  return feature === "JOB_POST";
+  return feature === "job_post";
 }
 
 export function isRecruiterFeatureAvailable(

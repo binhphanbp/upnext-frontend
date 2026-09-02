@@ -50,7 +50,7 @@ export function featureFormStateFromPlan(
  * Empty limit means unlimited (`null`), matching how the backend already reads it.
  */
 export function toSetFeaturesPayload(state: PlanFeatureFormState, audience: PlanAudience) {
-  const editableFeatures = SUBSCRIPTION_FEATURES.filter((feature) => feature !== "JOB_POST");
+  const editableFeatures = SUBSCRIPTION_FEATURES.filter((feature) => feature !== "job_post");
   const payload: Array<{
     feature: SubscriptionFeature;
     enabled: boolean;
@@ -69,7 +69,7 @@ export function toSetFeaturesPayload(state: PlanFeatureFormState, audience: Plan
   // Job posting is always available and unlimited for recruiters. The server
   // enforces this invariant too; including it here keeps admin saves explicit.
   if (audience === "RECRUITER") {
-    payload.push({ feature: "JOB_POST", enabled: true, limitValue: null });
+    payload.push({ feature: "job_post", enabled: true, limitValue: null });
   }
   return payload;
 }
@@ -101,10 +101,10 @@ export function PlanFeatureEditor({ audience, value, onChange }: PlanFeatureEdit
   return (
     <div className="flex flex-col gap-3">
       {SUBSCRIPTION_FEATURES.filter(
-        (feature) => audience === "RECRUITER" || feature !== "JOB_POST",
+        (feature) => audience === "RECRUITER" || feature !== "job_post",
       ).map((feature) => {
         const row = value[feature];
-        const isPlatformJobPosting = audience === "RECRUITER" && feature === "JOB_POST";
+        const isPlatformJobPosting = audience === "RECRUITER" && feature === "job_post";
         return (
           <div key={feature} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
             {isPlatformJobPosting ? (

@@ -1823,7 +1823,14 @@
         "reputationCurrentPrefix": "Current: {current}. ",
         "companyNotVerified": "Your company must be verified before you can publish job posts.",
         "serverError": "The system is having trouble processing this job post.",
-        "unknown": "Could not process this job post. Please try again."
+        "unknown": "Could not process this job post. Please try again.",
+        "boost": {
+          "quotaExhausted": "You've used all your boost credits this period. Upgrade your plan to continue.",
+          "alreadyActive": "This post is already boosted and can't be boosted again.",
+          "notEligible": "This post isn't eligible for a boost yet (hidden, expired, or not yet approved).",
+          "notPublished": "Only a publicly visible post can be boosted.",
+          "notStoppable": "This boost has already ended or been cancelled."
+        }
       },
       "aiErrors": {
         "connectionFailed": "Could not connect to the AI service. Please try again.",
@@ -1954,7 +1961,54 @@
           "reopen": "Reopen job post",
           "publish": "Publish",
           "close": "Close job post",
-          "delete": "Delete job post"
+          "delete": "Delete job post",
+          "boost": "Boost job post",
+          "stopBoost": "Stop boost",
+          "viewBoostMetrics": "View boost metrics"
+        }
+      },
+      "boost": {
+        "badge": "Sponsored · {days} days left",
+        "toasts": {
+          "started": "Job post boosted successfully.",
+          "stoppedRefunded": "Boost stopped and the credit was refunded.",
+          "stoppedNoRefund": "Boost stopped."
+        },
+        "dialog": {
+          "title": "Boost job post",
+          "description": "Boost \"{title}\" for 7 days to reach more candidates.",
+          "typeFeatured": "Featured Boost (7-day duration)",
+          "typeFeaturedHint": "Your job post will receive the Sponsored badge and priority sponsored placement across search and homepage.",
+          "rules": "Each boost consumes 1 credit from your plan's allowance, lasts exactly 7 days, and does not roll over. Once the post has been shown to candidates, stopping early does not refund the credit.",
+          "quotaRemaining": "{count} boost credit(s) left this period.",
+          "quotaUnlimited": "Your plan has unlimited boost credits.",
+          "outOfQuota": "You've used all your boost credits this period. Upgrade your plan to boost more posts.",
+          "cancel": "Cancel",
+          "confirm": "Boost now",
+          "submitting": "Processing..."
+        },
+        "stopDialog": {
+          "title": "Stop this boost?",
+          "textWillRefund": "This post hasn't been shown yet, so the credit will be refunded to your allowance.",
+          "textMayNotRefund": "This post has already been shown to candidates, so this boost's credit will NOT be refunded.",
+          "confirm": "Stop boost",
+          "cancel": "Close"
+        },
+        "metricsDialog": {
+          "title": "Job Boost Performance Report",
+          "description": "Engagement metrics for \"{title}\" during its sponsored promotion.",
+          "statusActive": "Active Boost",
+          "statusEnded": "Ended",
+          "daysLeft": "{days} days left",
+          "impressions": "Impressions",
+          "clicks": "Clicks",
+          "ctr": "Click Rate",
+          "applications": "Applications",
+          "saves": "Saves",
+          "dailyBreakdown": "Daily Breakdown",
+          "date": "Date",
+          "noData": "No metric data available yet for this period.",
+          "close": "Close"
         }
       },
       "form": {

@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Briefcase,
   CheckCircle,
+  ChartLineUp,
+  CursorClick,
   DotsThreeVertical,
   Eye,
   FileArrowUp,
@@ -15,7 +17,9 @@ import {
   PencilSimple,
   Plus,
   Prohibit,
+  Rocket,
   Sparkle,
+  StopCircle,
   Trash,
   Users,
   UsersThree,
@@ -28,6 +32,7 @@ import { Controller, useForm, type FieldErrors, type UseFormRegisterReturn } fro
 import Swal, { type SweetAlertIcon } from "sweetalert2";
 import { z } from "zod";
 
+import { getSubscriptionUsage, type QuotaSnapshot } from "@/features/recruiter/api/billing";
 import {
   getCompany,
   getCompanyLocations,
@@ -36,13 +41,17 @@ import {
   type RecruiterAccountDetail,
 } from "@/features/recruiter/api/onboarding";
 import {
+  boostJobPost,
   closeRecruiterJobPost,
   createRecruiterJobPost,
   createSkillOption,
   createSpecializationOption,
   deleteRecruiterJobPost,
+  getJobBoostMetrics,
   getJobPostCatalogs,
   getRecruiterJobPosts,
+  type JobBoostMetricsResponse,
+  type JobBoostType,
   type JobLocationOption,
   type JobOption,
   type JobPostAiDraftResponse,
@@ -54,6 +63,7 @@ import {
   setJobPostLocations,
   setJobPostSkills,
   setJobPostSpecializations,
+  stopJobBoost,
   updateRecruiterJobPost,
 } from "@/features/recruiter/job-posts/api";
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
@@ -288,6 +298,33 @@ function getJobPostErrorMessage(t: JobPostTranslator, error: unknown, reputation
   return t("jobPostsPage.errors.unknown");
 }
 
+/** Backend trả `{ code, message }` cho các lỗi nghiệp vụ Boost (xem
+ * `job-boost.service.ts`) -- map theo `code` để hiện đúng bản dịch vi/en thay
+ * vì hiện thẳng câu tiếng Việt server trả về. */
+function getBoostErrorMessage(t: JobPostTranslator, error: unknown) {
+  if (error instanceof ApiError) {
+    const code =
+      typeof error.payload === "object" && error.payload !== null && "code" in error.payload
+        ? String((error.payload as { code?: unknown }).code)
+        : undefined;
+    switch (code) {
+      case "QUOTA_EXHAUSTED":
+        return t("jobPostsPage.errors.boost.quotaExhausted");
+      case "JOB_BOOST_ALREADY_ACTIVE":
+        return t("jobPostsPage.errors.boost.alreadyActive");
+      case "JOB_NOT_ELIGIBLE_FOR_BOOST":
+        return t("jobPostsPage.errors.boost.notEligible");
+      case "JOB_NOT_PUBLISHED":
+        return t("jobPostsPage.errors.boost.notPublished");
+      case "JOB_BOOST_NOT_CANCELLABLE":
+        return t("jobPostsPage.errors.boost.notStoppable");
+      default:
+        break;
+    }
+  }
+  return getJobPostErrorMessage(t, error);
+}
+
 type RecruiterJobPostsPageProps = Readonly<{
   initialView?: "list" | "create";
   openCreateOptions?: boolean;
@@ -313,6 +350,10 @@ export function RecruiterJobPostsPage({
   const [tableRefreshing, setTableRefreshing] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
+  const [featuredJobQuota, setFeaturedJobQuota] = useState<QuotaSnapshot | null>(null);
+  const [boostDialogJob, setBoostDialogJob] = useState<RecruiterJobPost | null>(null);
+  const [boostMetricsJob, setBoostMetricsJob] = useState<RecruiterJobPost | null>(null);
+  const [boosting, setBoosting] = useState(false);
 
   const [editorResetKey, setEditorResetKey] = useState(0);
   const [view, setView] = useState<"list" | "create" | "details" | "edit">(initialView);
@@ -704,11 +745,13 @@ export function RecruiterJobPostsPage({
       setAccountId(id);
 
       try {
-        const [nextAccount, nextCatalogs, nextJobs] = await Promise.all([
+        const [nextAccount, nextCatalogs, nextJobs, nextQuotas] = await Promise.all([
           getRecruiterAccount(id, token),
           getJobPostCatalogs(),
           getRecruiterJobPosts(token, id),
+          getSubscriptionUsage(token).catch(() => [] as QuotaSnapshot[]),
         ]);
+        setFeaturedJobQuota(nextQuotas.find((q) => q.feature === "featured_job") ?? null);
 
         const isCompanyOnboarded =
           nextAccount.company &&
@@ -778,7 +821,16 @@ export function RecruiterJobPostsPage({
 
     setTableRefreshing(true);
     try {
-      setJobs(await getRecruiterJobPosts(token, accountId));
+      const [nextJobs, nextQuotas] = await Promise.all([
+        getRecruiterJobPosts(token, accountId),
+        getSubscriptionUsage(token).catch(() => null),
+      ]);
+      setJobs(nextJobs);
+      // Boost tiêu/hoàn quota -- làm mới ngay để nút "Đẩy tin" disable đúng lúc
+      // hết lượt, không cần recruiter tự F5.
+      if (nextQuotas) {
+        setFeaturedJobQuota(nextQuotas.find((q) => q.feature === "featured_job") ?? null);
+      }
     } finally {
       setTableRefreshing(false);
     }
@@ -1032,6 +1084,58 @@ export function RecruiterJobPostsPage({
       showToast("success", t("jobPostsPage.toasts.deleted"));
     } catch (error) {
       showToast("error", getJobPostErrorMessage(t, error));
+    } finally {
+      setActionJobId(null);
+    }
+  }
+
+  async function confirmBoost(job: RecruiterJobPost, type: JobBoostType) {
+    try {
+      setBoosting(true);
+      // Sinh một lần cho lượt bấm này -- gửi lại y nguyên nếu component tự
+      // retry, KHÔNG sinh lại mỗi lần gọi hàm, nếu không backend không có gì
+      // để nhận biết đây là cùng một hành động.
+      await boostJobPost(job.id, type, crypto.randomUUID(), token);
+      setBoostDialogJob(null);
+      await reloadJobs();
+      showToast("success", t("jobPostsPage.boost.toasts.started"));
+    } catch (error) {
+      showToast("error", getBoostErrorMessage(t, error));
+    } finally {
+      setBoosting(false);
+    }
+  }
+
+  async function handleStopBoost(job: RecruiterJobPost) {
+    const boost = job.boosts?.[0];
+    if (!boost) return;
+
+    const hasImpressions = boost.status === "ACTIVE";
+    const result = await Swal.fire({
+      icon: "warning",
+      title: t("jobPostsPage.boost.stopDialog.title"),
+      text: hasImpressions
+        ? t("jobPostsPage.boost.stopDialog.textMayNotRefund")
+        : t("jobPostsPage.boost.stopDialog.textWillRefund"),
+      showCancelButton: true,
+      confirmButtonText: t("jobPostsPage.boost.stopDialog.confirm"),
+      cancelButtonText: t("jobPostsPage.boost.stopDialog.cancel"),
+      confirmButtonColor: "#dc2626",
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      setActionJobId(job.id);
+      const stopped = await stopJobBoost(boost.id, token);
+      await reloadJobs();
+      showToast(
+        "success",
+        stopped.creditRefunded
+          ? t("jobPostsPage.boost.toasts.stoppedRefunded")
+          : t("jobPostsPage.boost.toasts.stoppedNoRefund"),
+      );
+    } catch (error) {
+      showToast("error", getBoostErrorMessage(t, error));
     } finally {
       setActionJobId(null);
     }
@@ -1886,6 +1990,9 @@ export function RecruiterJobPostsPage({
                     onEdit={(selectedJob) =>
                       router.push(`/recruiter/job-posts/${selectedJob.id}/edit`)
                     }
+                    onBoost={setBoostDialogJob}
+                    onStopBoost={(selectedJob) => void handleStopBoost(selectedJob)}
+                    onViewBoostMetrics={setBoostMetricsJob}
                   />
                 ))}
                 {paginatedJobs.length === 0 ? (
@@ -1923,6 +2030,7 @@ export function RecruiterJobPostsPage({
       {view === "details" && activeJob && (
         <RecruiterJobDetailView
           job={activeJob}
+          onViewBoostMetrics={setBoostMetricsJob}
           onBack={() => {
             setView("list");
             setActiveJob(null);
@@ -1938,6 +2046,23 @@ export function RecruiterJobPostsPage({
         }}
         open={Boolean(accessManagementJob)}
         token={token}
+      />
+
+      <BoostConfirmDialog
+        job={boostDialogJob}
+        quota={featuredJobQuota}
+        submitting={boosting}
+        onCancel={() => setBoostDialogJob(null)}
+        onConfirm={(type) => {
+          if (boostDialogJob) void confirmBoost(boostDialogJob, type);
+        }}
+      />
+
+      <BoostMetricsDialog
+        job={boostMetricsJob}
+        boostId={boostMetricsJob?.boosts?.[0]?.id ?? null}
+        token={token}
+        onClose={() => setBoostMetricsJob(null)}
       />
 
       {/* Modal 0: Lựa chọn hình thức tạo tin tuyển dụng */}
@@ -2132,6 +2257,9 @@ function JobRow({
   onManageAccess,
   onViewDetails,
   onEdit,
+  onBoost,
+  onStopBoost,
+  onViewBoostMetrics,
 }: {
   actionJobId: string | null;
   canManage: boolean;
@@ -2145,6 +2273,9 @@ function JobRow({
   onManageAccess: (job: RecruiterJobPost) => void;
   onViewDetails: (job: RecruiterJobPost) => void;
   onEdit: (job: RecruiterJobPost) => void;
+  onBoost: (job: RecruiterJobPost) => void;
+  onStopBoost: (job: RecruiterJobPost) => void;
+  onViewBoostMetrics: (job: RecruiterJobPost) => void;
 }) {
   const t = useTranslations("Recruiter");
   const pending = actionJobId === job.id;
@@ -2153,6 +2284,10 @@ function JobRow({
     tone: statusTone,
     className: statusClassName,
   } = getJobStatusBadge(t, job);
+  const activeBoost = job.boosts?.[0] ?? null;
+  const boostDaysLeft = activeBoost
+    ? Math.max(0, Math.ceil((new Date(activeBoost.endsAt).getTime() - Date.now()) / 86_400_000))
+    : 0;
   const notUpdated = t("jobPostsPage.notUpdated");
   const publishedDate = job.publishedAt
     ? formatAppDate(job.publishedAt)
@@ -2221,9 +2356,24 @@ function JobRow({
         </div>
       </td>
       <td aria-label={t("jobPostsPage.row.statusAria")}>
-        <Badge tone={statusTone} className={statusClassName}>
-          {statusText}
-        </Badge>
+        <div className="flex flex-col items-start gap-1">
+          <Badge tone={statusTone} className={statusClassName}>
+            {statusText}
+          </Badge>
+          {activeBoost ? (
+            <button
+              type="button"
+              onClick={() => onViewBoostMetrics(job)}
+              className="cursor-pointer transition hover:opacity-80"
+              title={t("jobPostsPage.row.menu.viewBoostMetrics")}
+            >
+              <Badge tone="premium" className="gap-1">
+                <Rocket size={12} weight="fill" />
+                {t("jobPostsPage.boost.badge", { days: boostDaysLeft })}
+              </Badge>
+            </button>
+          ) : null}
+        </div>
       </td>
       <td aria-label={t("jobPostsPage.row.performanceAria")}>
         <div
@@ -2264,6 +2414,16 @@ function JobRow({
                 {t("jobPostsPage.row.menu.viewDetails")}
               </DropdownMenuItem>
 
+              {activeBoost ? (
+                <DropdownMenuItem
+                  onClick={() => onViewBoostMetrics(job)}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm font-medium text-indigo-700 transition hover:bg-indigo-50 focus:outline-hidden"
+                >
+                  <ChartLineUp size={18} className="shrink-0 text-indigo-600" />
+                  {t("jobPostsPage.row.menu.viewBoostMetrics")}
+                </DropdownMenuItem>
+              ) : null}
+
               {canManageAccess ? (
                 <DropdownMenuItem
                   onClick={() => onManageAccess(job)}
@@ -2281,6 +2441,28 @@ function JobRow({
                 >
                   <PencilSimple size={18} className="shrink-0 text-slate-400" />
                   {t("jobPostsPage.row.menu.edit")}
+                </DropdownMenuItem>
+              ) : null}
+
+              {canManage && job.status === "PUBLISHED" && !activeBoost ? (
+                <DropdownMenuItem
+                  disabled={pending}
+                  onClick={() => onBoost(job)}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm font-medium text-indigo-600 transition hover:bg-indigo-50 focus:outline-hidden disabled:opacity-50"
+                >
+                  <Rocket size={18} className="shrink-0" />
+                  {t("jobPostsPage.row.menu.boost")}
+                </DropdownMenuItem>
+              ) : null}
+
+              {canManage && activeBoost ? (
+                <DropdownMenuItem
+                  disabled={pending}
+                  onClick={() => onStopBoost(job)}
+                  className="flex min-h-11 cursor-pointer items-center gap-3 px-4 py-2.5 text-sm font-medium text-indigo-600 transition hover:bg-indigo-50 focus:outline-hidden disabled:opacity-50"
+                >
+                  <StopCircle size={18} className="shrink-0" />
+                  {t("jobPostsPage.row.menu.stopBoost")}
                 </DropdownMenuItem>
               ) : null}
 
@@ -2331,6 +2513,254 @@ function JobRow({
   );
 }
 
+function BoostConfirmDialog({
+  job,
+  quota,
+  submitting,
+  onCancel,
+  onConfirm,
+}: {
+  job: RecruiterJobPost | null;
+  quota: QuotaSnapshot | null;
+  submitting: boolean;
+  onCancel: () => void;
+  onConfirm: (type: JobBoostType) => void;
+}) {
+  const t = useTranslations("Recruiter");
+
+  const remaining = quota?.remaining ?? null;
+  const outOfQuota = remaining !== null && remaining <= 0;
+
+  return (
+    <Dialog open={Boolean(job)} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="max-w-lg rounded-2xl p-6 sm:p-8">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-800">
+            <Rocket size={22} weight="fill" className="text-indigo-600" />
+            {t("jobPostsPage.boost.dialog.title")}
+          </DialogTitle>
+          <DialogDescription className="text-sm text-slate-500">
+            {job ? t("jobPostsPage.boost.dialog.description", { title: job.title }) : null}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4 py-2">
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm">
+                <Rocket size={20} weight="fill" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  {t("jobPostsPage.boost.dialog.typeFeatured")}
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                  {t("jobPostsPage.boost.dialog.typeFeaturedHint")}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+            <p>{t("jobPostsPage.boost.dialog.rules")}</p>
+            <p className="mt-1 font-medium text-slate-700">
+              {remaining === null
+                ? t("jobPostsPage.boost.dialog.quotaUnlimited")
+                : t("jobPostsPage.boost.dialog.quotaRemaining", { count: remaining })}
+            </p>
+          </div>
+
+          {outOfQuota ? (
+            <p className="text-sm font-medium text-rose-600">
+              {t("jobPostsPage.boost.dialog.outOfQuota")}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
+            {t("jobPostsPage.boost.dialog.cancel")}
+          </Button>
+          <Button
+            type="button"
+            onClick={() => onConfirm("FEATURED")}
+            disabled={submitting || outOfQuota}
+            className="bg-indigo-600 font-semibold text-white hover:bg-indigo-700"
+          >
+            {submitting
+              ? t("jobPostsPage.boost.dialog.submitting")
+              : t("jobPostsPage.boost.dialog.confirm")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function BoostMetricsDialog({
+  job,
+  boostId,
+  token,
+  onClose,
+}: {
+  job: RecruiterJobPost | null;
+  boostId: string | null;
+  token: string;
+  onClose: () => void;
+}) {
+  const t = useTranslations("Recruiter");
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<JobBoostMetricsResponse | null>(null);
+
+  useEffect(() => {
+    if (!boostId || !token) return;
+    setLoading(true);
+    getJobBoostMetrics(boostId, token)
+      .then((res) => setData(res))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [boostId, token]);
+
+  const activeBoost = job?.boosts?.[0] ?? null;
+  const boostDaysLeft = activeBoost
+    ? Math.max(0, Math.ceil((new Date(activeBoost.endsAt).getTime() - Date.now()) / 86_400_000))
+    : 0;
+
+  const totals = data?.totals ?? { impressions: 0, clicks: 0, applications: 0, saves: 0 };
+  const ctr =
+    totals.impressions > 0 ? `${((totals.clicks / totals.impressions) * 100).toFixed(1)}%` : "0.0%";
+
+  return (
+    <Dialog open={Boolean(boostId)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl rounded-2xl p-6 sm:p-8">
+        <DialogHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-800">
+              <Rocket size={22} weight="fill" className="text-indigo-600" />
+              {t("jobPostsPage.boost.metricsDialog.title")}
+            </DialogTitle>
+            {activeBoost ? (
+              <Badge tone="premium" className="gap-1">
+                {t("jobPostsPage.boost.metricsDialog.statusActive")} ·{" "}
+                {t("jobPostsPage.boost.metricsDialog.daysLeft", { days: boostDaysLeft })}
+              </Badge>
+            ) : (
+              <Badge tone="neutral">{t("jobPostsPage.boost.metricsDialog.statusEnded")}</Badge>
+            )}
+          </div>
+          <DialogDescription className="text-sm text-slate-500">
+            {job ? t("jobPostsPage.boost.metricsDialog.description", { title: job.title }) : null}
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex h-48 items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6 py-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center sm:p-4">
+                <span className="flex items-center justify-center gap-1.5 text-[11px] font-semibold whitespace-nowrap text-slate-500 uppercase sm:text-xs">
+                  <Eye size={15} className="shrink-0 text-indigo-600" />
+                  {t("jobPostsPage.boost.metricsDialog.impressions")}
+                </span>
+                <p className="mt-2 text-2xl font-bold text-slate-800">
+                  {totals.impressions.toLocaleString()}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center sm:p-4">
+                <span className="flex items-center justify-center gap-1.5 text-[11px] font-semibold whitespace-nowrap text-slate-500 uppercase sm:text-xs">
+                  <CursorClick size={15} className="shrink-0 text-emerald-600" />
+                  {t("jobPostsPage.boost.metricsDialog.clicks")}
+                </span>
+                <p className="mt-2 text-2xl font-bold text-slate-800">
+                  {totals.clicks.toLocaleString()}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center sm:p-4">
+                <span className="flex items-center justify-center gap-1.5 text-[11px] font-semibold whitespace-nowrap text-slate-500 uppercase sm:text-xs">
+                  <ChartLineUp size={15} className="shrink-0 text-amber-600" />
+                  {t("jobPostsPage.boost.metricsDialog.ctr")}
+                </span>
+                <p className="mt-2 text-2xl font-bold text-slate-800">{ctr}</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-center sm:p-4">
+                <span className="flex items-center justify-center gap-1.5 text-[11px] font-semibold whitespace-nowrap text-slate-500 uppercase sm:text-xs">
+                  <PaperPlaneTilt size={15} className="shrink-0 text-blue-600" />
+                  {t("jobPostsPage.boost.metricsDialog.applications")}
+                </span>
+                <p className="mt-2 text-2xl font-bold text-slate-800">
+                  {totals.applications.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="mb-3 text-xs font-bold tracking-wider text-slate-700 uppercase">
+                {t("jobPostsPage.boost.metricsDialog.dailyBreakdown")}
+              </h4>
+              {data?.daily && data.daily.length > 0 ? (
+                <div className="max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full text-left text-xs">
+                    <thead className="sticky top-0 border-b border-slate-100 bg-slate-50 font-semibold text-slate-600">
+                      <tr>
+                        <th className="px-4 py-2.5">
+                          {t("jobPostsPage.boost.metricsDialog.date")}
+                        </th>
+                        <th className="px-4 py-2.5 text-right">
+                          {t("jobPostsPage.boost.metricsDialog.impressions")}
+                        </th>
+                        <th className="px-4 py-2.5 text-right">
+                          {t("jobPostsPage.boost.metricsDialog.clicks")}
+                        </th>
+                        <th className="px-4 py-2.5 text-right">
+                          {t("jobPostsPage.boost.metricsDialog.applications")}
+                        </th>
+                        <th className="px-4 py-2.5 text-right">
+                          {t("jobPostsPage.boost.metricsDialog.saves")}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {data.daily.map((row) => (
+                        <tr key={row.date} className="hover:bg-slate-50/50">
+                          <td className="px-4 py-2 font-medium">{formatAppDate(row.date)}</td>
+                          <td className="px-4 py-2 text-right">
+                            {row.impressions.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-2 text-right">{row.clicks.toLocaleString()}</td>
+                          <td className="px-4 py-2 text-right font-semibold text-emerald-600">
+                            {row.applicationsCount}
+                          </td>
+                          <td className="px-4 py-2 text-right">{row.savedCount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-200 py-8 text-center text-xs text-slate-400">
+                  {t("jobPostsPage.boost.metricsDialog.noData")}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end pt-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {t("jobPostsPage.boost.metricsDialog.close")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function getEducationLevelLabel(t: JobPostTranslator, level?: string) {
   switch (level) {
     case "ANY":
@@ -2363,7 +2793,15 @@ function getCleanHtml(html: string | null | undefined) {
   return cleaned.trim();
 }
 
-function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack: () => void }) {
+function RecruiterJobDetailView({
+  job,
+  onBack,
+  onViewBoostMetrics,
+}: {
+  job: RecruiterJobPost;
+  onBack: () => void;
+  onViewBoostMetrics?: (job: RecruiterJobPost) => void;
+}) {
   const router = useRouter();
   const t = useTranslations("Recruiter");
   const salary = formatSalary(t, job);
@@ -2461,6 +2899,38 @@ function RecruiterJobDetailView({ job, onBack }: { job: RecruiterJobPost; onBack
               </Button>
             </div>
           </Card>
+
+          {job.boosts?.[0] ? (
+            <Card className="space-y-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-6 shadow-sm">
+              <div className="flex items-center justify-between border-b border-indigo-100 pb-2">
+                <h3 className="flex items-center gap-1.5 text-sm font-bold tracking-wider text-indigo-900 uppercase">
+                  <Rocket size={16} weight="fill" className="text-indigo-600" />
+                  {t("jobPostsPage.boost.metricsDialog.title")}
+                </h3>
+                <Badge tone="premium">
+                  {t("jobPostsPage.boost.badge", {
+                    days: Math.max(
+                      0,
+                      Math.ceil(
+                        (new Date(job.boosts[0].endsAt).getTime() - Date.now()) / 86_400_000,
+                      ),
+                    ),
+                  })}
+                </Badge>
+              </div>
+              <p className="text-xs leading-relaxed text-slate-600">
+                {t("jobPostsPage.boost.dialog.typeFeaturedHint")}
+              </p>
+              <Button
+                type="button"
+                onClick={() => onViewBoostMetrics?.(job)}
+                className="flex h-10 w-full items-center justify-center gap-2 bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-700"
+              >
+                <ChartLineUp size={16} />
+                {t("jobPostsPage.row.menu.viewBoostMetrics")}
+              </Button>
+            </Card>
+          ) : null}
 
           <Card className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 text-sm shadow-sm">
             <h3 className="border-b border-slate-100 pb-2 text-sm font-bold tracking-wider text-slate-900 uppercase">

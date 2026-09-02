@@ -76,6 +76,45 @@ export type RecruiterJobPost = Readonly<{
     applications: number;
     views: number;
   };
+  /** Tối đa 1 phần tử -- lượt đẩy tin đang SCHEDULED/ACTIVE, nếu có. Mảng rỗng
+   * nghĩa là tin chưa từng được đẩy hoặc lượt đẩy gần nhất đã kết thúc. */
+  boosts?: ReadonlyArray<{
+    id: string;
+    type: JobBoostType;
+    status: "SCHEDULED" | "ACTIVE";
+    startsAt: string;
+    endsAt: string;
+  }>;
+}>;
+
+export type JobBoostType = "FEATURED" | "URGENT";
+export type JobBoostStatus = "SCHEDULED" | "ACTIVE" | "ENDED" | "CANCELLED";
+
+export type JobBoost = Readonly<{
+  id: string;
+  jobPostId: string;
+  companyId: string;
+  type: JobBoostType;
+  status: JobBoostStatus;
+  creditCost: number;
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
+  jobPost?: { id: string; title: string; slug: string };
+}>;
+
+export type StopJobBoostResult = JobBoost & { creditRefunded: boolean };
+
+export type JobBoostMetricsResponse = Readonly<{
+  boost: JobBoost;
+  daily: ReadonlyArray<{
+    date: string;
+    impressions: number;
+    clicks: number;
+    applicationsCount: number;
+    savedCount: number;
+  }>;
+  totals: { impressions: number; clicks: number; applications: number; saves: number };
 }>;
 
 export type JobPostAccessMember = Readonly<{
@@ -414,6 +453,64 @@ export function extractJobPostDraft(text: string, token: string, clientRequestId
     headers: jsonAuthHeaders(token),
     method: "POST",
   });
+}
+
+/**
+ * `idempotencyKey` phải ổn định qua các lần retry mạng của CÙNG một lượt bấm
+ * (sinh một lần bằng `crypto.randomUUID()` ở nơi gọi, không sinh lại mỗi lần
+ * gọi hàm này) -- đó là điều kiện để backend chống trừ quota hai lần.
+ */
+export function boostJobPost(
+  jobPostId: string,
+  type: JobBoostType,
+  idempotencyKey: string,
+  token: string,
+) {
+  return apiRequest<JobBoost>(`/recruiter/job-posts/${jobPostId}/boost`, {
+    body: JSON.stringify({ type }),
+    headers: {
+      ...jsonAuthHeaders(token),
+      "Idempotency-Key": idempotencyKey,
+    },
+    method: "POST",
+  });
+}
+
+export function stopJobBoost(boostId: string, token: string) {
+  return apiRequest<StopJobBoostResult>(`/recruiter/job-posts/boosts/${boostId}/stop`, {
+    headers: authHeaders(token),
+    method: "POST",
+  });
+}
+
+export function getJobBoostHistory(
+  token: string,
+  params: { status?: JobBoostStatus; page?: number; limit?: number } = {},
+) {
+  const search = new URLSearchParams();
+  if (params.status) search.set("status", params.status);
+  if (params.page) search.set("page", String(params.page));
+  if (params.limit) search.set("limit", String(params.limit));
+  const query = search.toString();
+  return apiRequest<{ items: JobBoost[]; total: number; page: number; limit: number }>(
+    `/recruiter/job-posts/boosts${query ? `?${query}` : ""}`,
+    { headers: authHeaders(token) },
+  );
+}
+
+export function getJobBoostMetrics(
+  boostId: string,
+  token: string,
+  range: { from?: string; to?: string } = {},
+) {
+  const search = new URLSearchParams();
+  if (range.from) search.set("from", range.from);
+  if (range.to) search.set("to", range.to);
+  const query = search.toString();
+  return apiRequest<JobBoostMetricsResponse>(
+    `/recruiter/job-posts/boosts/${boostId}/metrics${query ? `?${query}` : ""}`,
+    { headers: authHeaders(token) },
+  );
 }
 
 export function extractJobPostDraftFile(file: File, token: string, clientRequestId?: string) {
