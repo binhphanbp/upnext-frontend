@@ -43,6 +43,18 @@ export function loginRecruiter(payload: RecruiterLoginPayload) {
   });
 }
 
+/**
+ * Đổi token trong link email thành session, không cần mật khẩu. Trả về đúng shape với
+ * `loginRecruiter` nên chỗ lưu y hệt như đăng nhập thường.
+ */
+export function loginRecruiterWithMagicLink(token: string) {
+  return apiRequest<RecruiterLoginResponse>("/recruiter/auth/magic-link", {
+    body: JSON.stringify({ token }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+}
+
 export function refreshRecruiter(refreshToken: string) {
   return apiRequest<RecruiterLoginResponse>("/recruiter/auth/refresh", {
     body: JSON.stringify({ refreshToken }),

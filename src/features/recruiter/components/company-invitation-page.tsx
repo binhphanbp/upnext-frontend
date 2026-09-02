@@ -111,7 +111,13 @@ export function RecruiterCompanyInvitationPage() {
       })
       .catch((err) => {
         console.error(err);
-        setErrorMsg(t("companyInvitation.invalidInvitation"));
+        // 410 = link có thật nhưng đã quá hạn: nói rõ để người được mời biết phải xin
+        // gửi lại, thay vì tưởng mình mở sai link.
+        setErrorMsg(
+          err instanceof ApiError && err.status === 410
+            ? err.message || t("companyInvitation.expiredInvitation")
+            : t("companyInvitation.invalidInvitation"),
+        );
         setLoading(false);
       });
   }, [id, t]);

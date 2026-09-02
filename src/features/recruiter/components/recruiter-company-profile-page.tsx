@@ -216,7 +216,9 @@ export function RecruiterCompanyProfilePage() {
     const session = getRecruiterSession();
 
     if (!session) {
-      router.replace("/recruiter/login");
+      router.replace(
+        `/recruiter/login?redirect=${encodeURIComponent("/recruiter/company-profile")}`,
+      );
       return;
     }
 
@@ -968,7 +970,7 @@ function handleAuthError(
 ) {
   if (error instanceof ApiError && error.status === 401) {
     clearRecruiterSession();
-    router.replace("/recruiter/login");
+    router.replace(`/recruiter/login?redirect=${encodeURIComponent("/recruiter/company-profile")}`);
     return;
   }
 

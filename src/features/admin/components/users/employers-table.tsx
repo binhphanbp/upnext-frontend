@@ -15,10 +15,15 @@ import {
   getAdminSubscriptionPlans,
   getAdminEmployers,
   getAdminCompanyDetails,
+  uploadVerificationEvidenceIds,
   verifyCompany,
   type AdminCompanyResponse,
 } from "@/features/admin/api/employers";
 import { AdminTableLayout } from "@/features/admin/components/admin-table-layout";
+import {
+  CompanyRejectDialog,
+  type CompanyRejectInput,
+} from "@/features/admin/components/users/company-reject-dialog";
 import { getAdminSession, clearAdminSession } from "@/features/admin/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
@@ -44,19 +49,27 @@ export type Employer = {
   representative: string;
   email: string;
   plan: string;
-  status: "Chờ duyệt" | "Đã xác thực" | "Bị khóa";
+  status: "Chờ duyệt" | "Đã xác thực" | "Hồ sơ bị từ chối" | "Chưa xác thực" | "Bị khóa";
   activeJobs: number;
   joinDate: string;
   lockedAt?: string;
 };
 
+const VERIFICATION_LABELS: Record<AdminCompanyResponse["verificationStatus"], Employer["status"]> =
+  {
+    VERIFIED: "Đã xác thực",
+    PENDING: "Chờ duyệt",
+    REJECTED: "Hồ sơ bị từ chối",
+    UNVERIFIED: "Chưa xác thực",
+  };
+
 function mapToEmployer(apiCompany: AdminCompanyResponse): Employer {
-  let mappedStatus: Employer["status"] = "Đã xác thực";
-  if (apiCompany.status === "LOCKED") {
-    mappedStatus = "Bị khóa";
-  } else if (apiCompany.verificationStatus !== "VERIFIED") {
-    mappedStatus = "Chờ duyệt";
-  }
+  // Trước đây mọi trạng thái khác VERIFIED đều hiện là "Chờ duyệt", nên hồ sơ đã bị từ
+  // chối vẫn mời admin bấm Duyệt/Từ chối một lần nữa và server trả 409.
+  const mappedStatus: Employer["status"] =
+    apiCompany.status === "LOCKED"
+      ? "Bị khóa"
+      : (VERIFICATION_LABELS[apiCompany.verificationStatus] ?? "Chưa xác thực");
 
   let representative = "Chưa cập nhật";
   if (apiCompany.members && apiCompany.members.length > 0) {
@@ -97,12 +110,14 @@ function EmployerRow({
   selected,
   onSelect,
   onVerify,
+  onReject,
   tone,
 }: {
   employer: Employer;
   selected: boolean;
   onSelect: (id: string, checked: boolean) => void;
   onVerify: (id: string, status: "VERIFIED" | "REJECTED") => void;
+  onReject: (employer: Employer) => void;
   tone: "success" | "warning" | "error";
 }) {
   const t = useTranslations("Admin.users.employers.table");
@@ -200,13 +215,23 @@ function EmployerRow({
               Chi tiết hồ sơ
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {/* Chỉ hồ sơ đang chờ duyệt mới có gì để quyết định — gọi lại cùng một
+                trạng thái sẽ bị server trả 409. */}
             {employer.status === "Chờ duyệt" && (
-              <DropdownMenuItem
-                className="text-success cursor-pointer"
-                onClick={() => onVerify(employer.id, "VERIFIED")}
-              >
-                {t("actionOptions.approve")}
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem
+                  className="text-success cursor-pointer"
+                  onClick={() => onVerify(employer.id, "VERIFIED")}
+                >
+                  {t("actionOptions.approve")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-error cursor-pointer"
+                  onClick={() => onReject(employer)}
+                >
+                  {t("actionOptions.reject")}
+                </DropdownMenuItem>
+              </>
             )}
             <DropdownMenuItem>{t("actionOptions.upgrade")}</DropdownMenuItem>
             {employer.status !== "Bị khóa" && (
@@ -226,6 +251,7 @@ export function EmployersTable() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(10);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [rejectTarget, setRejectTarget] = React.useState<Employer | null>(null);
 
   const t = useTranslations("Admin.users.employers.table");
   const router = useRouter();
@@ -257,6 +283,43 @@ export function EmployersTable() {
     },
     [verifyMutation],
   );
+
+  // Từ chối không thể là một cú bấm: cần lý do, và lý do đó đi vào email cho NTD.
+  const rejectMutation = useMutation({
+    mutationFn: async ({ id, input }: { id: string; input: CompanyRejectInput }) => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      const evidenceFileIds = await uploadVerificationEvidenceIds(
+        input.evidence,
+        session.accessToken,
+      );
+      return verifyCompany(session.accessToken, id, "REJECTED", {
+        reason: input.reason,
+        guidance: input.guidance,
+        evidenceFileIds,
+      });
+    },
+    onSuccess: () => {
+      setRejectTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["adminEmployers"] });
+      void Swal.fire({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2800,
+        timerProgressBar: true,
+        icon: "success",
+        title: "Đã từ chối hồ sơ và gửi email cho nhà tuyển dụng",
+      });
+    },
+    onError: (mutationError) => {
+      const message =
+        mutationError instanceof ApiError && mutationError.status === 409
+          ? mutationError.message
+          : "Không thể từ chối hồ sơ. Vui lòng thử lại.";
+      void Swal.fire({ icon: "error", title: message });
+    },
+  });
 
   const {
     data: apiCompanies = [],
@@ -396,6 +459,8 @@ export function EmployersTable() {
                 <SelectItem value="all">{t("allStatuses")}</SelectItem>
                 <SelectItem value="Đã xác thực">{t("statusOptions.verified")}</SelectItem>
                 <SelectItem value="Chờ duyệt">{t("statusOptions.pending")}</SelectItem>
+                <SelectItem value="Hồ sơ bị từ chối">{t("statusOptions.rejected")}</SelectItem>
+                <SelectItem value="Chưa xác thực">{t("statusOptions.unverified")}</SelectItem>
                 <SelectItem value="Bị khóa">{t("statusOptions.locked")}</SelectItem>
               </SelectContent>
             </Select>
@@ -494,7 +559,7 @@ export function EmployersTable() {
               const tone =
                 employer.status === "Đã xác thực"
                   ? "success"
-                  : employer.status === "Chờ duyệt"
+                  : employer.status === "Chờ duyệt" || employer.status === "Chưa xác thực"
                     ? "warning"
                     : "error";
 
@@ -505,6 +570,7 @@ export function EmployersTable() {
                   selected={selectedIds.includes(employer.id)}
                   onSelect={handleSelectOne}
                   onVerify={handleVerify}
+                  onReject={setRejectTarget}
                   tone={tone}
                 />
               );
@@ -512,6 +578,23 @@ export function EmployersTable() {
           )}
         </tbody>
       </AdminTableLayout>
+
+      <CompanyRejectDialog
+        open={rejectTarget !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setRejectTarget(null);
+        }}
+        companyName={rejectTarget?.companyName ?? ""}
+        isSubmitting={rejectMutation.isPending}
+        onSubmit={async (input) => {
+          if (!rejectTarget) return;
+          try {
+            await rejectMutation.mutateAsync({ id: rejectTarget.id, input });
+          } catch {
+            // `onError` đã báo lỗi; giữ dialog mở để admin thử lại.
+          }
+        }}
+      />
     </div>
   );
 }
