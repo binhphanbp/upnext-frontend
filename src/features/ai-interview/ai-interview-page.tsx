@@ -43,13 +43,7 @@ export const AiInterviewPage: React.FC = () => {
   };
 
   return (
-    <main className="flex min-h-screen flex-col justify-between bg-[#0B0F19] text-slate-100 selection:bg-indigo-500 selection:text-white">
-      {/* Background ambient lighting */}
-      <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-indigo-600/10 blur-3xl" />
-        <div className="absolute right-1/4 bottom-10 h-96 w-96 rounded-full bg-purple-600/10 blur-3xl" />
-      </div>
-
+    <main className="flex min-h-screen flex-col justify-between bg-slate-50/50 text-slate-900 transition-colors selection:bg-emerald-500 selection:text-white dark:bg-slate-950 dark:text-slate-100">
       <div className="relative z-10 flex flex-1 flex-col">
         {stage === "setup" && <SetupScreen onStartInterview={handleStartInterview} />}
 
@@ -69,10 +63,10 @@ export const AiInterviewPage: React.FC = () => {
       </div>
 
       {/* Footer Branding */}
-      <footer className="relative z-10 border-t border-slate-900/80 py-3 text-center text-xs text-slate-500">
+      <footer className="dark:border-slate-850 relative z-10 border-t border-slate-200/80 py-4 text-center text-xs text-slate-500 dark:text-slate-400">
         <p>
-          AI Realtime Multimodal Interviewer Studio • Face Expression 60 FPS • Web Audio & Speech
-          API • Powered by Microsoft Edge-TTS & Gemini AI
+          UpNext AI Interview Studio • Đánh Giá Năng Lực Đa Phương Thức 60 FPS • Microsoft Edge-TTS
+          & Gemini AI
         </p>
       </footer>
     </main>
