@@ -21,7 +21,6 @@ import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Logo } from "@/shared/ui/logo";
-import { ScrollArea } from "@/shared/ui/scroll-area";
 
 import type { WorkspaceIdentity, WorkspaceNavGroup, WorkspaceRole } from "./types";
 
@@ -63,6 +62,9 @@ export function WorkspaceSidebar({
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get("tab");
+  const tNamespace = workspaceRole.charAt(0).toUpperCase() + workspaceRole.slice(1);
+  const t = useTranslations(tNamespace as any);
+  const tShell = useTranslations("WorkspaceShell");
 
   const [localCollapsed, setLocalCollapsed] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -85,13 +87,15 @@ export function WorkspaceSidebar({
   const handleLockedClick = (reason?: string) => {
     void Swal.fire({
       icon: "info",
-      title: reason || "Tính năng này chưa khả dụng",
+      title: tShell("lockedFeature.title"),
+      text: reason || tShell("lockedFeature.description"),
       showCancelButton: true,
-      confirmButtonText: "Hoàn tất hồ sơ công ty",
-      cancelButtonText: "Đóng",
+      confirmButtonText: tShell("lockedFeature.action"),
+      cancelButtonText: tShell("lockedFeature.close"),
+      confirmButtonColor: "#059669",
     }).then((result) => {
       if (result.isConfirmed) {
-        router.push("/recruiter");
+        router.push("/recruiter/company-profile");
       }
     });
   };
@@ -154,10 +158,6 @@ export function WorkspaceSidebar({
     // Remove hover reset logic
   }, [pathname]);
 
-  const tNamespace = workspaceRole.charAt(0).toUpperCase() + workspaceRole.slice(1);
-  const t = useTranslations(tNamespace as any);
-  const tShell = useTranslations("WorkspaceShell");
-
   const isCurrentGroupStandalone = !!(
     navGroups[activeGroupIndex]?.href && navGroups[activeGroupIndex]?.items?.length === 0
   );
@@ -171,7 +171,7 @@ export function WorkspaceSidebar({
             isCurrentGroupStandalone
               ? "w-0 opacity-0 overflow-hidden border-r-0"
               : !activeCollapsed
-                ? "w-[260px]"
+                ? "w-[272px]"
                 : "w-[80px]",
           )}
         >
@@ -181,7 +181,7 @@ export function WorkspaceSidebar({
               isCurrentGroupStandalone
                 ? "w-0 overflow-hidden"
                 : !activeCollapsed
-                  ? "w-[260px]"
+                  ? "w-[272px]"
                   : "w-[80px]",
             )}
           >
@@ -207,6 +207,10 @@ export function WorkspaceSidebar({
                                 <button
                                   type="button"
                                   onClick={() => {
+                                    if (item.locked) {
+                                      handleLockedClick(item.lockedReason);
+                                      return;
+                                    }
                                     if (activeCollapsed) {
                                       handleToggleCollapse();
                                     } else {
@@ -217,13 +221,15 @@ export function WorkspaceSidebar({
                                     }
                                   }}
                                   className={cn(
-                                    "rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
+                                    "rounded-lg font-medium text-[14.5px] transition-all duration-150 text-left cursor-pointer",
                                     !activeCollapsed
                                       ? "flex w-full items-center gap-3 px-4 py-[10px]"
                                       : "flex h-10 w-10 mx-auto items-center justify-center p-0",
-                                    isAnyChildActive
-                                      ? "bg-slate-100 text-slate-900 font-semibold"
-                                      : "text-slate-600 hover:bg-slate-50 hover:text-primary",
+                                    item.locked
+                                      ? "text-slate-500 opacity-65 hover:bg-slate-50"
+                                      : isAnyChildActive
+                                        ? "bg-primary text-white font-medium"
+                                        : "text-slate-600 hover:bg-slate-50 hover:text-primary",
                                   )}
                                   title={activeCollapsed ? item.label : undefined}
                                 >
@@ -236,18 +242,27 @@ export function WorkspaceSidebar({
                                           {item.badge}
                                         </Badge>
                                       ) : null}
-                                      <CaretDown
-                                        size={16}
-                                        className={cn(
-                                          "text-slate-400 transition-transform duration-200",
-                                          isMenuOpen && "rotate-180",
-                                        )}
-                                      />
+                                      {item.locked ? (
+                                        <LockSimple
+                                          size={15}
+                                          weight="bold"
+                                          className="text-slate-400"
+                                        />
+                                      ) : (
+                                        <CaretDown
+                                          size={16}
+                                          className={cn(
+                                            "transition-transform duration-200",
+                                            isAnyChildActive ? "text-white" : "text-slate-400",
+                                            isMenuOpen && "rotate-180",
+                                          )}
+                                        />
+                                      )}
                                     </>
                                   )}
                                 </button>
 
-                                {!activeCollapsed && isMenuOpen && (
+                                {!item.locked && !activeCollapsed && isMenuOpen && (
                                   <div className="space-y-1 pl-9 transition-all">
                                     {item.children?.map((child) => {
                                       const active = isChildNavActive(
@@ -262,11 +277,16 @@ export function WorkspaceSidebar({
                                             key={child.href}
                                             type="button"
                                             onClick={() => handleLockedClick(child.lockedReason)}
-                                            className="flex w-full cursor-not-allowed items-center gap-1.5 rounded-lg px-4 py-[8px] text-left text-[13px] font-medium text-slate-800 opacity-70"
+                                            className="flex w-full cursor-pointer items-center gap-1.5 rounded-lg px-4 py-[8px] text-left text-[13.5px] font-medium text-slate-500 opacity-70 hover:bg-slate-50"
                                           >
                                             <span className="min-w-0 flex-1 truncate">
                                               {child.label}
                                             </span>
+                                            <LockSimple
+                                              size={13}
+                                              weight="bold"
+                                              className="shrink-0"
+                                            />
                                           </button>
                                         );
                                       }
@@ -276,7 +296,7 @@ export function WorkspaceSidebar({
                                           key={child.href}
                                           href={child.href}
                                           className={cn(
-                                            "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
+                                            "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13.5px] transition-all duration-150",
                                             active
                                               ? "text-primary bg-emerald-50 font-semibold"
                                               : "text-slate-500 hover:text-primary hover:bg-slate-50",
@@ -309,9 +329,9 @@ export function WorkspaceSidebar({
                                 type="button"
                                 onClick={() => handleLockedClick(item.lockedReason)}
                                 className={cn(
-                                  "rounded-lg cursor-not-allowed items-center font-medium text-slate-800 opacity-70 transition-all duration-150",
+                                  "rounded-lg cursor-pointer items-center font-medium text-slate-500 opacity-65 transition-all duration-150 hover:bg-slate-50",
                                   !activeCollapsed
-                                    ? "flex w-full gap-3 px-4 py-[10px] text-left text-[14px]"
+                                    ? "flex w-full gap-3 px-4 py-[10px] text-left text-[14.5px]"
                                     : "flex h-10 w-10 mx-auto justify-center p-0",
                                 )}
                                 title={activeCollapsed ? item.label : undefined}
@@ -320,6 +340,7 @@ export function WorkspaceSidebar({
                                 {!activeCollapsed && (
                                   <>
                                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                                    <LockSimple size={15} weight="bold" className="shrink-0" />
                                   </>
                                 )}
                               </button>
@@ -331,7 +352,7 @@ export function WorkspaceSidebar({
                               key={item.href}
                               href={item.href}
                               className={cn(
-                                "rounded-lg items-center font-medium text-[14px] transition-all duration-150",
+                                "rounded-lg items-center font-medium text-[14.5px] transition-all duration-150",
                                 !activeCollapsed
                                   ? "flex w-full gap-3 px-4 py-[10px]"
                                   : "flex h-10 w-10 mx-auto justify-center p-0",
@@ -367,7 +388,7 @@ export function WorkspaceSidebar({
                   className={cn(
                     "rounded-lg font-bold text-red-500 transition-all duration-150 hover:bg-red-50 hover:text-red-600",
                     !activeCollapsed
-                      ? "flex w-full items-center gap-3 px-4 py-[10px] text-[14px]"
+                      ? "flex w-full items-center gap-3 px-4 py-[10px] text-[14.5px]"
                       : "flex h-10 w-10 mx-auto items-center justify-center p-0",
                   )}
                   title={tShell("account.logout")}
@@ -497,7 +518,7 @@ export function WorkspaceSidebar({
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col bg-white shadow-xl transition-transform duration-200 lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col bg-white shadow-xl transition-transform duration-200 lg:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -552,7 +573,7 @@ export function WorkspaceSidebar({
                     href={group.href}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
+                      "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14.5px] transition-all duration-150",
                       active
                         ? "bg-primary text-white"
                         : "text-slate-700 hover:bg-slate-50 hover:text-primary",
@@ -582,39 +603,50 @@ export function WorkspaceSidebar({
                             <button
                               type="button"
                               onClick={() => {
+                                if (item.locked) {
+                                  handleLockedClick(item.lockedReason);
+                                  return;
+                                }
                                 setOpenMenus((prev) => ({
                                   ...prev,
                                   [item.label]: !prev[item.label],
                                 }));
                               }}
                               className={cn(
-                                "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150 text-left cursor-pointer",
-                                isAnyChildActive
-                                  ? "bg-slate-100 text-slate-900 font-semibold"
-                                  : "text-slate-600 hover:bg-slate-50 hover:text-primary",
+                                "flex w-full items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14.5px] transition-all duration-150 text-left cursor-pointer",
+                                item.locked
+                                  ? "text-slate-500 opacity-65 hover:bg-slate-50"
+                                  : isAnyChildActive
+                                    ? "bg-primary text-white font-medium"
+                                    : "text-slate-600 hover:bg-slate-50 hover:text-primary",
                               )}
                             >
                               <Icon
                                 size={18}
                                 className={cn(
                                   "flex-shrink-0",
-                                  isAnyChildActive ? "text-slate-900" : "text-slate-400",
+                                  isAnyChildActive ? "text-white" : "text-slate-400",
                                 )}
                               />
                               <span className="min-w-0 flex-1 truncate">{item.label}</span>
                               {item.badge ? (
                                 <Badge tone={item.badgeTone || "neutral"}>{item.badge}</Badge>
                               ) : null}
-                              <CaretDown
-                                size={14}
-                                className={cn(
-                                  "text-slate-400 transition-transform duration-200",
-                                  isMenuOpen && "rotate-180",
-                                )}
-                              />
+                              {item.locked ? (
+                                <LockSimple size={14} weight="bold" className="text-slate-400" />
+                              ) : (
+                                <CaretDown
+                                  size={14}
+                                  className={cn(
+                                    "transition-transform duration-200",
+                                    isAnyChildActive ? "text-white" : "text-slate-400",
+                                    isMenuOpen && "rotate-180",
+                                  )}
+                                />
+                              )}
                             </button>
 
-                            {isMenuOpen && (
+                            {!item.locked && isMenuOpen && (
                               <div className="space-y-1 pl-9 transition-all">
                                 {item.children?.map((child) => {
                                   const active = isChildNavActive(pathname, currentTab, child.href);
@@ -625,11 +657,12 @@ export function WorkspaceSidebar({
                                         key={child.href}
                                         type="button"
                                         onClick={() => handleLockedClick(child.lockedReason)}
-                                        className="flex w-full cursor-not-allowed items-center gap-1.5 rounded-lg px-4 py-[8px] text-left text-[13px] font-medium text-slate-800 opacity-70"
+                                        className="flex w-full cursor-pointer items-center gap-1.5 rounded-lg px-4 py-[8px] text-left text-[13.5px] font-medium text-slate-500 opacity-70 hover:bg-slate-50"
                                       >
                                         <span className="min-w-0 flex-1 truncate">
                                           {child.label}
                                         </span>
+                                        <LockSimple size={13} weight="bold" className="shrink-0" />
                                       </button>
                                     );
                                   }
@@ -640,7 +673,7 @@ export function WorkspaceSidebar({
                                       href={child.href}
                                       onClick={() => setMobileOpen(false)}
                                       className={cn(
-                                        "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13px] transition-all duration-150",
+                                        "flex items-center px-4 py-[8px] rounded-lg font-medium text-[13.5px] transition-all duration-150",
                                         active
                                           ? "text-primary bg-emerald-50 font-semibold"
                                           : "text-slate-500 hover:text-primary hover:bg-slate-50",
@@ -665,10 +698,11 @@ export function WorkspaceSidebar({
                             key={item.href}
                             type="button"
                             onClick={() => handleLockedClick(item.lockedReason)}
-                            className="flex w-full cursor-not-allowed items-center gap-3 rounded-lg px-4 py-[10px] text-left text-[14px] font-medium text-slate-400 opacity-70"
+                            className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-4 py-[10px] text-left text-[14.5px] font-medium text-slate-500 opacity-65 hover:bg-slate-50"
                           >
                             <Icon size={18} className="flex-shrink-0 text-slate-400" />
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                            <LockSimple size={14} weight="bold" className="shrink-0" />
                           </button>
                         );
                       }
@@ -679,7 +713,7 @@ export function WorkspaceSidebar({
                           href={item.href}
                           onClick={() => setMobileOpen(false)}
                           className={cn(
-                            "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14px] transition-all duration-150",
+                            "flex items-center gap-3 px-4 py-[10px] rounded-lg font-medium text-[14.5px] transition-all duration-150",
                             active
                               ? "bg-primary text-white"
                               : "text-slate-600 hover:bg-slate-50 hover:text-primary",

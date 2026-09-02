@@ -1,7 +1,4 @@
-import {
-  syncFcmTokenIfPermitted,
-  unregisterCurrentFcmToken,
-} from "@/features/notifications/lib/firebase-fcm";
+import { unregisterCurrentFcmToken } from "@/features/notifications/lib/firebase-fcm";
 
 export type RecruiterSessionUser = Readonly<{
   id: string;

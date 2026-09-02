@@ -1,15 +1,8 @@
 "use client";
 
-import {
-  ArrowsClockwise,
-  CaretDown,
-  Clock,
-  Funnel,
-  MagnifyingGlass,
-  Plus,
-  X,
-} from "@phosphor-icons/react";
+import { Clock, Funnel, Plus, X } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 import type { InterviewStatus, InterviewType } from "@/features/recruiter/api/interviews";
@@ -20,17 +13,11 @@ import { getRecruiterSession } from "@/features/recruiter/session";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/shared/ui/dropdown-menu";
 
 import { InterviewResultBadge, InterviewStatusBadge, InterviewTypeBadge } from "./interview-badges";
 import { ScheduleInterviewDialog } from "./schedule-interview-dialog";
 import { SearchInput } from "./search-input";
-import { SelectFilter } from "./select-filter";
+import { SelectFilter, type SelectFilterOption } from "./select-filter";
 
 export function RecruiterInterviewsPage() {
   const t = useTranslations("Recruiter");
@@ -39,11 +26,9 @@ export function RecruiterInterviewsPage() {
   const [token, setToken] = useState<string | null>(null);
   const [jobs, setJobs] = useState<RecruiterJobPost[]>([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [jobFilter, setJobFilter] = useState("all");
-  const [jobSearch, setJobSearch] = useState("");
-  const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [jobFilter, setJobFilter] = useState("ALL");
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
 
   const [nextRoundSeed, setNextRoundSeed] = useState<{
@@ -56,9 +41,9 @@ export function RecruiterInterviewsPage() {
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (statusFilter !== "all") count++;
-    if (typeFilter !== "all") count++;
-    if (jobFilter !== "all") count++;
+    if (statusFilter !== "ALL") count++;
+    if (typeFilter !== "ALL") count++;
+    if (jobFilter !== "ALL") count++;
     return count;
   }, [statusFilter, typeFilter, jobFilter]);
 
@@ -72,8 +57,16 @@ export function RecruiterInterviewsPage() {
 
   const { data: interviews, isLoading, isError, refetch } = useRecruiterInterviews(token);
 
-  const statusOptions = [
-    { label: t("interviews.filters.allStatus"), value: "all" },
+  const jobFilterOptions: SelectFilterOption[] = useMemo(
+    () => [
+      { value: "ALL", label: t("candidates.filters.allJobs") },
+      ...jobs.map((job) => ({ value: job.id, label: job.title })),
+    ],
+    [jobs, t],
+  );
+
+  const statusOptions: SelectFilterOption[] = [
+    { label: t("interviews.filters.allStatus"), value: "ALL" },
     { label: t("interviews.status.SCHEDULED"), value: "SCHEDULED" },
     { label: t("interviews.status.RESCHEDULED"), value: "RESCHEDULED" },
     { label: t("interviews.status.COMPLETED"), value: "COMPLETED" },
@@ -81,30 +74,24 @@ export function RecruiterInterviewsPage() {
     { label: t("interviews.status.NO_SHOW"), value: "NO_SHOW" },
   ];
 
-  const typeOptions = [
-    { label: t("interviews.filters.allTypes"), value: "all" },
+  const typeOptions: SelectFilterOption[] = [
+    { label: t("interviews.filters.allTypes"), value: "ALL" },
     { label: t("interviews.type.ONLINE"), value: "ONLINE" },
     { label: t("interviews.type.ONSITE"), value: "ONSITE" },
   ];
-
-  const filteredJobsForSelect = useMemo(() => {
-    const query = jobSearch.trim().toLowerCase();
-    if (!query) return jobs;
-    return jobs.filter((job) => job.title.toLowerCase().includes(query));
-  }, [jobs, jobSearch]);
 
   const filteredInterviews = useMemo(() => {
     const list = interviews ?? [];
     const query = search.trim().toLowerCase();
 
     return list.filter((interview) => {
-      if (statusFilter !== "all" && interview.status !== (statusFilter as InterviewStatus)) {
+      if (statusFilter !== "ALL" && interview.status !== (statusFilter as InterviewStatus)) {
         return false;
       }
-      if (typeFilter !== "all" && interview.type !== (typeFilter as InterviewType)) {
+      if (typeFilter !== "ALL" && interview.type !== (typeFilter as InterviewType)) {
         return false;
       }
-      if (jobFilter !== "all" && interview.application?.jobPost.id !== jobFilter) {
+      if (jobFilter !== "ALL" && interview.application?.jobPost.id !== jobFilter) {
         return false;
       }
       if (query) {
@@ -140,16 +127,15 @@ export function RecruiterInterviewsPage() {
 
   const hasActiveFilters =
     search.trim().length > 0 ||
-    statusFilter !== "all" ||
-    typeFilter !== "all" ||
-    jobFilter !== "all";
+    statusFilter !== "ALL" ||
+    typeFilter !== "ALL" ||
+    jobFilter !== "ALL";
 
   const handleClearFilters = () => {
     setSearch("");
-    setStatusFilter("all");
-    setTypeFilter("all");
-    setJobFilter("all");
-    setJobSearch("");
+    setStatusFilter("ALL");
+    setTypeFilter("ALL");
+    setJobFilter("ALL");
   };
 
   if (isLoading) {
@@ -236,107 +222,20 @@ export function RecruiterInterviewsPage() {
 
             {/* Desktop Filters (Hidden on Mobile) */}
             <div className="hidden items-center gap-2 sm:flex">
-              <DropdownMenu
-                open={jobDropdownOpen}
-                onOpenChange={(open) => {
-                  setJobDropdownOpen(open);
-                  if (!open) setJobSearch("");
-                }}
-              >
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    role="combobox"
-                    aria-expanded={jobDropdownOpen}
-                    className={cn(
-                      "flex h-10 w-64 cursor-pointer items-center justify-between rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500",
-                      jobFilter !== "all" &&
-                        "border-emerald-500 text-emerald-600 font-semibold bg-emerald-50/10",
-                    )}
-                  >
-                    <span className="flex-1 truncate text-left">
-                      {jobFilter === "all"
-                        ? locale === "vi"
-                          ? "Chọn tin tuyển dụng"
-                          : "Select Job Post"
-                        : (jobs.find((j) => j.id === jobFilter)?.title ??
-                          t("candidates.filters.allJobs"))}
-                    </span>
-                    <CaretDown
-                      size={16}
-                      className={cn(
-                        "ml-2 shrink-0 text-slate-400",
-                        jobFilter !== "all" && "text-emerald-600",
-                      )}
-                    />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="z-50 flex max-h-80 w-72 flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
-                >
-                  <div className="relative flex items-center px-1 py-1">
-                    <MagnifyingGlass size={16} className="absolute left-3 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
-                      aria-label={locale === "vi" ? "Tìm tin tuyển dụng" : "Search jobs"}
-                      value={jobSearch}
-                      onChange={(e) => setJobSearch(e.target.value)}
-                      className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-8 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => {
-                        if (e.key === " ") e.stopPropagation();
-                      }}
-                    />
-                    {jobSearch && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setJobSearch("");
-                        }}
-                        className="absolute right-3 rounded-full p-0.5 text-slate-400 hover:text-slate-600"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-                  <div className="min-h-0 flex-1 overflow-y-auto">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setJobFilter("all");
-                        setJobDropdownOpen(false);
-                      }}
-                      className={cn(
-                        "cursor-pointer flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium hover:bg-slate-50",
-                        jobFilter === "all" && "text-emerald-600 bg-emerald-50/30",
-                      )}
-                    >
-                      {t("candidates.filters.allJobs")}
-                    </DropdownMenuItem>
-                    {filteredJobsForSelect.map((job) => (
-                      <DropdownMenuItem
-                        key={job.id}
-                        onClick={() => {
-                          setJobFilter(job.id);
-                          setJobDropdownOpen(false);
-                        }}
-                        className={cn(
-                          "cursor-pointer flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium hover:bg-slate-50",
-                          jobFilter === job.id && "text-emerald-600 bg-emerald-50/30",
-                        )}
-                      >
-                        {job.title}
-                      </DropdownMenuItem>
-                    ))}
-                    {filteredJobsForSelect.length === 0 && (
-                      <div className="py-4 text-center text-xs font-medium text-slate-400">
-                        {locale === "vi" ? "Không tìm thấy tin tuyển dụng" : "No job posts found"}
-                      </div>
-                    )}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <SelectFilter
+                ariaLabel={t("candidates.filters.jobAria")}
+                value={jobFilter}
+                onChange={setJobFilter}
+                options={jobFilterOptions}
+                placeholder={t("candidates.filters.allJobs")}
+                className="w-56"
+                showSearch
+                triggerClassName={cn(
+                  "rounded-full",
+                  jobFilter !== "ALL" &&
+                    "border-emerald-500 text-emerald-600 font-semibold bg-emerald-50/10",
+                )}
+              />
 
               <SelectFilter
                 value={statusFilter}
@@ -345,7 +244,7 @@ export function RecruiterInterviewsPage() {
                 className="w-48"
                 triggerClassName={cn(
                   "rounded-full",
-                  statusFilter !== "all" &&
+                  statusFilter !== "ALL" &&
                     "border-emerald-500 text-emerald-600 font-semibold bg-emerald-50/10",
                 )}
               />
@@ -356,127 +255,42 @@ export function RecruiterInterviewsPage() {
                 className="w-48"
                 triggerClassName={cn(
                   "rounded-full",
-                  typeFilter !== "all" &&
+                  typeFilter !== "ALL" &&
                     "border-emerald-500 text-emerald-600 font-semibold bg-emerald-50/10",
                 )}
               />
 
-              <Button
-                variant="outline"
-                onClick={handleClearFilters}
-                disabled={!hasActiveFilters}
-                className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
-              >
-                <ArrowsClockwise size={14} />
-                {t("interviews.filters.clearFilters")}
-              </Button>
+              {hasActiveFilters ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClearFilters}
+                  className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
+                >
+                  <X size={14} aria-hidden="true" />
+                  <span>{locale === "vi" ? "Đặt lại" : "Reset"}</span>
+                </Button>
+              ) : null}
             </div>
           </div>
 
           {/* Collapsible Mobile-only filters panel */}
           {showFiltersMobile && (
             <div className="animate-in fade-in slide-in-from-top-2 flex flex-col gap-3 border-t border-slate-100 pt-3 duration-200 sm:hidden">
-              <DropdownMenu
-                open={jobDropdownOpen}
-                onOpenChange={(open) => {
-                  setJobDropdownOpen(open);
-                  if (!open) setJobSearch("");
-                }}
-              >
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    role="combobox"
-                    aria-expanded={jobDropdownOpen}
-                    className={cn(
-                      "flex h-10 w-full cursor-pointer items-center justify-between rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500",
-                      jobFilter !== "all" &&
-                        "border-emerald-500 text-emerald-600 font-semibold bg-emerald-50/10",
-                    )}
-                  >
-                    <span className="flex-1 truncate text-left">
-                      {jobFilter === "all"
-                        ? locale === "vi"
-                          ? "Chọn tin tuyển dụng"
-                          : "Select Job Post"
-                        : (jobs.find((j) => j.id === jobFilter)?.title ??
-                          t("candidates.filters.allJobs"))}
-                    </span>
-                    <CaretDown
-                      size={16}
-                      className={cn(
-                        "ml-2 shrink-0 text-slate-400",
-                        jobFilter !== "all" && "text-emerald-600",
-                      )}
-                    />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="start"
-                  className="z-50 flex max-h-80 w-72 flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
-                >
-                  <div className="relative flex items-center px-1 py-1">
-                    <MagnifyingGlass size={16} className="absolute left-3 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder={locale === "vi" ? "Tìm tin tuyển dụng..." : "Search jobs..."}
-                      aria-label={locale === "vi" ? "Tìm tin tuyển dụng" : "Search jobs"}
-                      value={jobSearch}
-                      onChange={(e) => setJobSearch(e.target.value)}
-                      className="focus:border-primary h-9 w-full rounded-lg border border-slate-200 pr-8 pl-9 text-xs font-semibold placeholder:text-slate-400 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => {
-                        if (e.key === " ") e.stopPropagation();
-                      }}
-                    />
-                    {jobSearch && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setJobSearch("");
-                        }}
-                        className="absolute right-3 rounded-full p-0.5 text-slate-400 hover:text-slate-600"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-                  <div className="min-h-0 flex-1 overflow-y-auto">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setJobFilter("all");
-                        setJobDropdownOpen(false);
-                      }}
-                      className={cn(
-                        "cursor-pointer flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium hover:bg-slate-50",
-                        jobFilter === "all" && "text-emerald-600 bg-emerald-50/30",
-                      )}
-                    >
-                      {t("candidates.filters.allJobs")}
-                    </DropdownMenuItem>
-                    {filteredJobsForSelect.map((job) => (
-                      <DropdownMenuItem
-                        key={job.id}
-                        onClick={() => {
-                          setJobFilter(job.id);
-                          setJobDropdownOpen(false);
-                        }}
-                        className={cn(
-                          "cursor-pointer flex items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium hover:bg-slate-50",
-                          jobFilter === job.id && "text-emerald-600 bg-emerald-50/30",
-                        )}
-                      >
-                        {job.title}
-                      </DropdownMenuItem>
-                    ))}
-                    {filteredJobsForSelect.length === 0 && (
-                      <div className="py-4 text-center text-xs font-medium text-slate-400">
-                        {locale === "vi" ? "Không tìm thấy tin tuyển dụng" : "No job posts found"}
-                      </div>
-                    )}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <SelectFilter
+                ariaLabel={t("candidates.filters.jobAria")}
+                value={jobFilter}
+                onChange={setJobFilter}
+                options={jobFilterOptions}
+                placeholder={t("candidates.filters.allJobs")}
+                className="w-full"
+                showSearch
+                triggerClassName={cn(
+                  "rounded-full",
+                  jobFilter !== "ALL" &&
+                    "border-emerald-500 text-emerald-600 font-semibold bg-emerald-50/10",
+                )}
+              />
 
               <SelectFilter
                 value={statusFilter}
@@ -485,7 +299,7 @@ export function RecruiterInterviewsPage() {
                 className="w-full"
                 triggerClassName={cn(
                   "rounded-full",
-                  statusFilter !== "all" &&
+                  statusFilter !== "ALL" &&
                     "border-emerald-500 text-emerald-600 font-semibold bg-emerald-50/10",
                 )}
               />
@@ -496,20 +310,22 @@ export function RecruiterInterviewsPage() {
                 className="w-full"
                 triggerClassName={cn(
                   "rounded-full",
-                  typeFilter !== "all" &&
+                  typeFilter !== "ALL" &&
                     "border-emerald-500 text-emerald-600 font-semibold bg-emerald-50/10",
                 )}
               />
 
-              <Button
-                variant="outline"
-                onClick={handleClearFilters}
-                disabled={!hasActiveFilters}
-                className="flex h-10 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
-              >
-                <ArrowsClockwise size={14} />
-                {t("interviews.filters.clearFilters")}
-              </Button>
+              {hasActiveFilters ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClearFilters}
+                  className="flex h-10 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
+                >
+                  <X size={14} aria-hidden="true" />
+                  <span>{locale === "vi" ? "Đặt lại" : "Reset"}</span>
+                </Button>
+              ) : null}
             </div>
           )}
         </div>
@@ -664,69 +480,100 @@ export function RecruiterInterviewsPage() {
             setPageSize(size);
             setCurrentPage(1);
           }}
+          emptyState={
+            filteredInterviews.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center">
+                <Image
+                  src="/assets/recruiter/icon/icon_cv.png"
+                  alt="Empty"
+                  width={200}
+                  height={150}
+                  unoptimized
+                  className="mx-auto h-auto w-[200px] max-w-full object-contain select-none"
+                />
+                <span className="mt-2 text-sm font-medium text-slate-600">
+                  {(interviews ?? []).length === 0
+                    ? locale === "vi"
+                      ? "Hiện tại chưa có lịch phỏng vấn nào"
+                      : "No interviews scheduled yet"
+                    : locale === "vi"
+                      ? "Không tìm thấy lịch phỏng vấn phù hợp"
+                      : "No matching interviews found"}
+                </span>
+              </div>
+            ) : null
+          }
           actionBar={
             <Button
               onClick={() => setScheduleDialogOpen(true)}
-              className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border-none bg-emerald-600 px-4 text-xs font-semibold text-white shadow-none hover:bg-emerald-700"
+              className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-none bg-emerald-600 px-4 text-xs font-semibold text-white shadow-none hover:bg-emerald-700"
             >
               <Plus size={16} weight="bold" />
               <span>{t("interviews.scheduleBtn")}</span>
             </Button>
           }
         >
-          <thead className="bg-slate-50/75 text-left text-xs font-bold tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-2.5" scope="col">
+          <thead>
+            <tr className="border-b border-slate-300 bg-slate-200">
+              <th
+                className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0"
+                scope="col"
+              >
                 {t("interviews.table.candidate")}
               </th>
-              <th className="px-4 py-2.5" scope="col">
+              <th
+                className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0"
+                scope="col"
+              >
                 {t("interviews.table.job")}
               </th>
-              <th className="px-4 py-2.5 text-center" scope="col">
+              <th
+                className="w-16 border-r border-slate-300 px-4 py-3 text-center text-xs font-bold text-slate-900 last:border-r-0"
+                scope="col"
+              >
                 {t("interviews.table.round")}
               </th>
-              <th className="px-4 py-2.5" scope="col">
+              <th
+                className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0"
+                scope="col"
+              >
                 {t("interviews.table.type")}
               </th>
-              <th className="px-4 py-2.5" scope="col">
+              <th
+                className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0"
+                scope="col"
+              >
                 {t("interviews.table.schedule")}
               </th>
-              <th className="px-4 py-2.5" scope="col">
+              <th
+                className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0"
+                scope="col"
+              >
                 {t("interviews.table.status")}
               </th>
-              <th className="px-4 py-2.5" scope="col">
+              <th
+                className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0"
+                scope="col"
+              >
                 {t("interviews.table.result")}
               </th>
-              <th className="px-4 py-2.5" scope="col">
+              <th
+                className="border-r border-slate-300 px-4 py-3 text-left text-xs font-bold text-slate-900 last:border-r-0"
+                scope="col"
+              >
                 {t("interviews.table.interviewer")}
               </th>
-              <th className="px-4 py-2.5 text-right" scope="col">
+              <th
+                className="w-24 px-4 py-3 text-right text-xs font-bold text-slate-900"
+                scope="col"
+              >
                 {t("interviews.table.actions")}
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredInterviews.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="py-12 text-center text-sm font-medium text-slate-400">
-                  <div className="flex flex-col items-center justify-center">
-                    <p className="font-bold text-slate-800">{t("interviews.emptyState.title")}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {t("interviews.emptyState.description")}
-                    </p>
-                    {hasActiveFilters && (
-                      <button
-                        onClick={handleClearFilters}
-                        className="mt-3 cursor-pointer rounded-lg border border-emerald-200/50 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100/70"
-                      >
-                        {t("interviews.emptyState.clearFilters")}
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              paginatedInterviews.map((interview) => (
+          {filteredInterviews.length > 0 ? (
+            <tbody className="divide-y divide-slate-100">
+              {paginatedInterviews.map((interview) => (
                 <tr key={interview.id} className="hover:bg-slate-50/50">
                   <td className="max-w-[180px] truncate px-4 py-3 font-bold text-slate-800">
                     {interview.application?.candidateProfile.account.fullName ?? "—"}
@@ -764,9 +611,9 @@ export function RecruiterInterviewsPage() {
                     </Link>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
+              ))}
+            </tbody>
+          ) : null}
         </RecruiterTableLayout>
       </div>
 
@@ -782,9 +629,9 @@ export function RecruiterInterviewsPage() {
         onScheduled={() => {
           setCurrentPage(1);
           setSearch("");
-          setStatusFilter("all");
-          setTypeFilter("all");
-          setJobFilter("all");
+          setStatusFilter("ALL");
+          setTypeFilter("ALL");
+          setJobFilter("ALL");
           void refetch();
         }}
       />

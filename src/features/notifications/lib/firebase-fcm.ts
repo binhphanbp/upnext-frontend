@@ -107,7 +107,7 @@ export async function requestAndRegisterFcmToken(userAccessToken: string): Promi
       );
       serviceWorkerRegistration = await Promise.race([swReadyPromise, timeoutPromise]);
       console.log("[FCM] Step 3 done: Active SW found");
-    } catch (e) {
+    } catch {
       console.log("[FCM] Step 3: No active SW (ok), proceeding without registration");
     }
 

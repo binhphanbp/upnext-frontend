@@ -87,16 +87,17 @@ export function JobPostFilters({
           category !== "ALL" && "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
         )}
       />
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onClear}
-        disabled={!hasActiveFilters}
-        className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
-      >
-        <ArrowsClockwise size={14} aria-hidden="true" />
-        {t("jobPostsPage.filters.reset")}
-      </Button>
+      {hasActiveFilters ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClear}
+          className="flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border-slate-200 px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
+        >
+          <ArrowsClockwise size={14} aria-hidden="true" />
+          {t("jobPostsPage.filters.reset")}
+        </Button>
+      ) : null}
     </div>
   );
 

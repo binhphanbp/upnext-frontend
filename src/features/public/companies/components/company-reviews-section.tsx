@@ -8,8 +8,12 @@ import Swal from "sweetalert2";
 import { CompanyReviewFormDialog } from "@/features/candidate/company-reviews/review-form-dialog";
 import { useCandidateCompanyReview } from "@/features/candidate/company-reviews/use-candidate-company-review";
 import { getPublicCompanyReviews, type PublicCompanyReview } from "@/features/public/companies/api";
-import { promptReviewReport } from "@/features/recruiter/company-reviews/prompt-review-report";
+import {
+  ReviewReportDialog,
+  type ReviewReportInput,
+} from "@/features/recruiter/company-reviews/review-report-dialog";
 import { useRecruiterReviewReporter } from "@/features/recruiter/company-reviews/use-recruiter-review-reporter";
+import { ApiError } from "@/shared/api/http";
 import { ReviewerByline } from "@/shared/ui/reviewer-byline";
 import { toast } from "@/shared/ui/toast";
 
@@ -20,15 +24,6 @@ const toastMixin = Swal.mixin({
   timer: 2600,
   timerProgressBar: true,
 });
-
-const SUB_RATING_LABELS: Record<string, string> = {
-  salaryBenefits: "Lương & phúc lợi",
-  trainingLearning: "Đào tạo & học hỏi",
-  managementCare: "Sự quan tâm của quản lý",
-  cultureFun: "Văn hóa & hoạt động",
-  officeWorkspace: "Văn phòng, không gian làm việc",
-  overtimeSatisfaction: "Mức hài lòng về tăng ca",
-};
 
 function StarDisplay({ value, size = 16 }: { value: number; size?: number }) {
   return (
@@ -53,6 +48,7 @@ export function CompanyReviewsSection({
   navigate: (path: string) => void;
 }) {
   const [formOpen, setFormOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<PublicCompanyReview | null>(null);
 
   const reviewsQuery = useQuery({
     queryKey: ["public-company-reviews", companyId],
@@ -103,15 +99,38 @@ export function CompanyReviewsSection({
     }
   }
 
-  async function handleReportReview(review: PublicCompanyReview) {
-    const input = await promptReviewReport();
-    if (!input) return;
+  /**
+   * Reporting a review belongs to the reported company alone — a candidate cannot report
+   * one at all, and the server refuses it (`POST /reports` rejects COMPANY_REVIEW from a
+   * candidate). So anyone browsing with a candidate session sees no report button, even
+   * on someone else's review.
+   *
+   * Both sessions can be signed in at once in the same browser, which is exactly how a
+   * recruiter used to end up with the button on their own review. Waiting for the
+   * candidate session to resolve keeps it from flashing in before that is known.
+   */
+  const canReportReviews =
+    recruiterReporter.canReport &&
+    candidateReview.isSessionResolved &&
+    !candidateReview.isAuthenticated;
+
+  async function handleSubmitReport(input: ReviewReportInput) {
+    if (!reportTarget) return;
 
     try {
-      await recruiterReporter.report(review.id, input.reason, input.evidence);
+      await recruiterReporter.report(reportTarget.id, input.reason, input.evidence);
+      setReportTarget(null);
       void toastMixin.fire({ icon: "success", title: "Đã gửi báo cáo tới quản trị viên." });
-    } catch {
-      void toastMixin.fire({ icon: "error", title: "Không thể gửi báo cáo. Vui lòng thử lại." });
+    } catch (error) {
+      // 403 là server từ chối (không phải công ty của bạn, hoặc đánh giá do chính bạn viết)
+      // và message của nó đã nói rõ; 409 là đã báo cáo đánh giá này rồi.
+      const title =
+        error instanceof ApiError && error.status === 409
+          ? "Bạn đã báo cáo đánh giá này rồi."
+          : error instanceof ApiError && error.status === 403
+            ? error.message
+            : "Không thể gửi báo cáo. Vui lòng thử lại.";
+      void toastMixin.fire({ icon: "error", title });
     }
   }
 
@@ -138,15 +157,6 @@ export function CompanyReviewsSection({
             <StarDisplay value={summary.averageOverallRating ?? 0} size={20} />
             <strong className="text-lg">{summary.averageOverallRating?.toFixed(1)}</strong>
             <span className="text-sm text-slate-500">({summary.totalReviews} đánh giá)</span>
-          </div>
-          <div className="flex flex-wrap gap-3 text-xs text-slate-600">
-            {Object.entries(summary.averageBySection)
-              .filter(([, value]) => value !== null)
-              .map(([key, value]) => (
-                <span key={key}>
-                  {SUB_RATING_LABELS[key] ?? key}: <strong>{value?.toFixed(1)}</strong>
-                </span>
-              ))}
           </div>
         </div>
       ) : null}
@@ -176,11 +186,11 @@ export function CompanyReviewsSection({
                   />
                   <StarDisplay value={review.overallRating} />
                 </div>
-                {recruiterReporter.canReport ? (
+                {canReportReviews ? (
                   <button
                     type="button"
                     className="company-review-report"
-                    onClick={() => void handleReportReview(review)}
+                    onClick={() => setReportTarget(review)}
                     disabled={recruiterReporter.isReporting}
                   >
                     <Flag size={14} /> Báo cáo
@@ -190,20 +200,20 @@ export function CompanyReviewsSection({
               {review.summary ? (
                 <p className="mt-2 text-sm text-slate-700">{review.summary}</p>
               ) : null}
-              {review.whatILove ? (
-                <p className="mt-1 text-sm text-slate-600">
-                  <strong>Điều yêu thích:</strong> {review.whatILove}
-                </p>
-              ) : null}
-              {review.improvementSuggestion ? (
-                <p className="mt-1 text-sm text-slate-600">
-                  <strong>Đề xuất cải thiện:</strong> {review.improvementSuggestion}
-                </p>
-              ) : null}
             </li>
           ))}
         </ul>
       )}
+
+      <ReviewReportDialog
+        open={reportTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setReportTarget(null);
+        }}
+        reviewerName={reportTarget?.reviewer.fullName}
+        isSubmitting={recruiterReporter.isReporting}
+        onSubmit={handleSubmitReport}
+      />
 
       <CompanyReviewFormDialog
         open={formOpen}

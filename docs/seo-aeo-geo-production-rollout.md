@@ -38,44 +38,66 @@ Hệ quả: image staging và image production là **hai build khác nhau, từ 
 Promote digest staging sang production sẽ khiến website production gọi API staging. Bước A3 và
 DoD #9 không thể thực hiện được, và cũng không thể "đánh dấu hoàn thành" một cách trung thực.
 
-**Quyết định bắt buộc — chọn một trước khi bắt đầu:**
+**TRẠNG THÁI QUYẾT ĐỊNH (cập nhật 2026-09-02): nhóm hoãn phương án A, hiện vận hành theo B.**
 
-**Phương án A (khuyến nghị): build một lần, cấu hình origin ở runtime.**
+Nghĩa là staging và production tiếp tục là **hai image khác nhau**, và giới hạn ở cuối mục này
+áp dụng. Trước khi bật index production, đọc lại mục này và §16 DoD #9.
 
-Codebase đã hỗ trợ sẵn phần lớn đường này:
+---
 
-- `src/shared/lib/env.ts` dòng 4 cho phép `NEXT_PUBLIC_API_BASE_URL` là **đường dẫn tương đối** và
-  mặc định đúng bằng `/api/v1`. `.env.example` dòng 1 cũng dùng giá trị này.
-- `next.config.ts` `rewrites()` đã map `/api/v1/:path*` → `API_PROXY_ORIGIN`, là biến **server-only,
-  đọc lúc runtime**.
+**Phương án A: build một lần, cấu hình origin ở runtime.**
 
-Việc cần làm:
+> ⚠️ **Cơ chế mô tả ở bản trước là SAI, đã đo lại.** Bản trước viết rằng `next.config.ts`
+> `rewrites()` map `/api/v1/*` → `API_PROXY_ORIGIN` "đọc lúc runtime". Không đúng. Ba thí nghiệm
+> trên commit hiện tại:
+>
+> 1. `rewrites()` chạy **lúc build** và kết quả bị đóng băng vào `.next/routes-manifest.json`.
+>    Build không đặt `API_PROXY_ORIGIN` cho ra `/api/v1/:path* -> http://localhost:3001/api/v1/:path*`
+>    nằm cứng trong manifest.
+> 2. Chạy standalone server với `API_PROXY_ORIGIN=http://127.0.0.1:9999` rồi gọi `/api/v1/ping`:
+>    log trả `Failed to proxy http://localhost:3001/api/v1/ping` — dùng giá trị **đã bake**, bỏ
+>    qua biến runtime.
+> 3. Route handler `src/app/api/v1/[...proxy]/route.ts` log `[Proxy Error]` **0 lần** trong thí
+>    nghiệm đó → rewrite khớp trước, **route handler là dead code**, chưa từng chạy.
+>
+> Thêm một hệ quả: nếu đặt `NEXT_PUBLIC_API_BASE_URL=/api/v1` mà không sửa gì khác, chuỗi fallback
+> trong `next.config.ts` cho ra `"/api/v1".replace(/\/api\/v1\/?$/u,"")` = `""`, và `"" ?? default`
+> trả `""` (toán tử `??` chỉ bắt null/undefined). Rewrite sẽ trỏ về chính nó.
+
+Phương án A vẫn đúng về **mục tiêu** (một image cho mọi môi trường) nhưng cần một cơ chế runtime
+thật. Hai lựa chọn, khác nhau đáng kể:
+
+|                  | **A3 — inject runtime config vào HTML**                                                                                                            | **A1 — bỏ rewrite, dùng route handler**                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Cách làm         | Server component đọc env lúc runtime, nhúng `window.__UPNEXT_ENV__`; `env.ts`/`http.ts`/`chat-socket.ts` đọc từ đó, fallback về giá trị build-time | Xoá rewrite `/api/v1` và `/api/home`, thêm handler cho `/api/home`; cả hai đọc `API_PROXY_ORIGIN` lúc runtime |
+| Đường đi request | Trình duyệt gọi **thẳng** `api.upnext.works` như hiện nay                                                                                          | Mọi request API đi **vòng qua container frontend**                                                            |
+| Chi phí vận hành | Không đổi                                                                                                                                          | Frontend container (`cpus: 0.75`, `768M` trong compose) gánh thêm toàn bộ traffic API                         |
+| Chi phí code     | Sửa 3–4 file client + phần inject                                                                                                                  | Ít hơn, tận dụng handler đã có                                                                                |
+
+Khuyến nghị **A3** nếu quay lại phương án A: thêm một hop cho _toàn bộ_ traffic API qua một
+container giới hạn 0.75 CPU là cái giá không nên trả để tránh sửa vài file client.
+
+Dù chọn A1 hay A3, ba việc sau vẫn cần và đi cùng nhau:
 
 1. Đổi build args trong `docker-publish.yml` và ARG mặc định trong `Dockerfile` thành
-   `NEXT_PUBLIC_API_BASE_URL=/api/v1` và `NEXT_PUBLIC_SOCKET_URL=` (rỗng).
-2. Đặt `API_PROXY_ORIGIN` trong `env/frontend.prod.env` và `env/frontend.staging.env`.
-3. `getSocketBaseUrl()` (`src/features/chat/socket/chat-socket.ts`) đã fallback về
+   `NEXT_PUBLIC_API_BASE_URL=/api/v1` (A1) hoặc giữ tuyệt đối làm fallback (A3), và
+   `NEXT_PUBLIC_SOCKET_URL=` (rỗng).
+2. Đặt biến origin tương ứng trong `env/frontend.prod.env` và `env/frontend.staging.env`.
+3. `getSocketBaseUrl()` (`src/features/chat/socket/chat-socket.ts`) fallback về
    `window.location.origin` khi `NEXT_PUBLIC_SOCKET_URL` rỗng — nên **nginx phải thêm
    `location /socket.io/` proxy sang backend** cho cả hai host. Hiện `location /` proxy toàn bộ
-   sang frontend (:3000/:3100), nên nếu bỏ `NEXT_PUBLIC_SOCKET_URL` mà không thêm route này,
-   **chat sẽ hỏng**. Đây là dependency cứng, không được bỏ qua.
-4. Bỏ nhánh `if main / elif develop` sinh URL trong workflow; giữ nguyên phần sinh tag.
+   sang frontend (:3000/:3100), nên bỏ `NEXT_PUBLIC_SOCKET_URL` mà không thêm route này thì
+   **chat hỏng**. Dependency cứng.
 
-Chi phí: một PR frontend nhỏ + một PR infra (nginx). Đổi lại A3, DoD #9 và toàn bộ mô hình
-release trở nên thực hiện được.
+Lưu ý: phương án A biến "chưa có client gọi API phía server" (§6 B3.1) từ bất tiện thành **điều
+kiện tiên quyết** của B3/B4.
 
-Lưu ý kèm theo: phương án A cố định `NEXT_PUBLIC_API_BASE_URL` ở dạng **tương đối** cho mọi môi
-trường, nên nó biến "chưa có client gọi API phía server" (§6 B3.1) từ một bất tiện thành **điều
-kiện tiên quyết** của B3/B4. Hai việc dùng chung một nguồn `API_PROXY_ORIGIN`, nên làm cùng đợt.
+**Phương án B (đang áp dụng): bỏ yêu cầu cùng-digest cho frontend.**
 
-**Phương án B (fallback): bỏ yêu cầu cùng-digest cho frontend.**
-
-Sửa A3 và DoD #9 thành: "cùng **commit SHA**, hai digest riêng cho staging/production, cả hai
-digest đều được ghi lại trong deploy log". Rẻ hơn nhưng **soak trên staging không còn chứng minh
-được artifact production** — client bundle khác nhau. Nếu chọn B, phải viết rõ giới hạn này vào
-§16 thay vì để DoD hứa điều không kiểm chứng được.
-
-**Không được chọn "để sau".** Mọi mốc release trong §13 phụ thuộc vào quyết định này.
+A3 (mục §5) và DoD #9 đọc là: "cùng **commit SHA**, hai digest riêng cho staging/production, cả
+hai digest đều được ghi lại trong deploy log". Rẻ, nhưng **soak trên staging không chứng minh
+được artifact production** — client bundle khác nhau. Giới hạn này phải xuất hiện trong release
+note, không được để DoD hứa điều không kiểm chứng được.
 
 ### P0-2. Frontend KHÔNG có `middleware.ts` — hướng dẫn B3 tham chiếu thứ không tồn tại
 
@@ -1038,27 +1060,27 @@ Quy trình DNS đã có tại `upnext-infra/docs/02-dns-namecom.md`. Domain prop
 
 Cột "Chặn bởi" là điều kiện tiên quyết cứng — không bắt đầu hạng mục khi mục chặn chưa xong.
 
-| #   | Hạng mục                                                                                                                                                                | Repo/owner      | Chặn bởi     | Blocker launch    |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------ | ----------------- |
-| 0a  | **P0-1: quyết định artifact promotion** (chọn A hoặc B; nếu A: đổi build args + nginx `/socket.io/`)                                                                    | Infra + FE      | —            | **Có**            |
-| 0b  | **P0-2/P0-3: đo lại hreflang và `/` redirect trên deployment thật**, cập nhật §2.1                                                                                      | FE              | —            | **Có**            |
-| 1   | Staging/placeholder production noindex header; tách `www` 301; monitoring healthy                                                                                       | Infra           | 0a           | Có                |
-| 2   | Compose dùng digest/`sha-*` thay tag động; migration rehearsal                                                                                                          | Infra/BE        | 0a           | Có                |
-| 3   | Production chạy đầy đủ public routes                                                                                                                                    | FE/BE/Infra     | 2            | Có                |
-| 4   | Site config server-only, `metadataBase`, canonical, `permanentRedirect`, root `not-found.tsx`; `noindex` ở **cả 5 nơi** (§6 B2), gồm `(root)/layout.tsx`                | FE              | 0b           | Có                |
-| 4b  | **Client gọi API phía server** (`server-http.ts` dùng `API_PROXY_ORIGIN`) — B3 và B4 đều đứng trên nó, xem §6 B3.1                                                      | FE              | 0a           | Có                |
-| 5   | Root `robots.ts` + sitemap index (có giới hạn 50k, route phải revalidate)                                                                                               | FE              | 4, 4b        | Có                |
-| 6   | BE: format slug job + history + endpoint tra cứu slug; public SEO read model có cursor; lifecycle events qua outbox                                                     | BE              | 2            | Có                |
-| 6b  | **Sanitize JD** (`description`/`requirements`/`benefits`) ở backend khi ghi + rà lại `getCleanHtml` ở FE. PR bảo mật riêng, ngoài phạm vi SEO nhưng chặn #7 — xem §8 D3 | BE (+FE)        | —            | Có                |
-| 7   | FE: `/api/revalidate` có HMAC; đưa **cả ba** trang chi tiết (job/company/post) lên Server Component + ISR, metadata/H1 riêng từng entity                                | FE              | 4, 4b, 6, 6b | Có                |
-| 8   | JobPosting/Organization/Article/Breadcrumb schema + escaping                                                                                                            | FE/BE           | 7            | Có                |
-| 9   | CI SEO tests, i18n parity test, redirect table test, rich-result fixtures, link checks                                                                                  | FE/BE/QA        | 5, 7, 8      | Có                |
-| 10  | Search Console/Bing (DNS TXT), analytics dashboard                                                                                                                      | SEO/Infra       | 1            | Có                |
-| 11  | Trang About/Contact/Policy/Editorial                                                                                                                                    | Content/FE      | 4            | Có (F3 phụ thuộc) |
-| 12  | Curated landing pages, editorial governance                                                                                                                             | Content/Product | 9            | Không             |
-| 13  | AEO/GEO content program                                                                                                                                                 | Content/Product | 11, 12       | Không             |
+| #   | Hạng mục                                                                                                                                                                                                       | Repo/owner      | Chặn bởi     | Blocker launch    |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ------------ | ----------------- |
+| 0a  | ~~P0-1: quyết định artifact promotion~~ — **đã chốt: hoãn A, vận hành theo B** (§0 P0-1). Không còn chặn gì                                                                                                    | Infra + FE      | —            | Không             |
+| 0b  | **P0-2/P0-3: đo lại hreflang và `/` redirect trên deployment thật**, cập nhật §2.1                                                                                                                             | FE              | —            | **Có**            |
+| 1   | Staging/placeholder production noindex header; tách `www` 301; monitoring healthy                                                                                                                              | Infra           | 0a           | Có                |
+| 2   | Compose dùng digest/`sha-*` thay tag động; migration rehearsal                                                                                                                                                 | Infra/BE        | 0a           | Có                |
+| 3   | Production chạy đầy đủ public routes                                                                                                                                                                           | FE/BE/Infra     | 2            | Có                |
+| 4   | Site config server-only, `metadataBase`, canonical, `permanentRedirect`, root `not-found.tsx`; `noindex` ở **cả 5 nơi** (§6 B2), gồm `(root)/layout.tsx`                                                       | FE              | 0b           | Có                |
+| 4b  | **Client gọi API phía server** — B3 và B4 đều đứng trên nó, xem §6 B3.1. Lưu ý `API_PROXY_ORIGIN` **không** đọc được lúc runtime qua `rewrites()` (§0 P0-1), client này phải tự đọc `process.env` của chính nó | FE              | —            | Có                |
+| 5   | Root `robots.ts` + sitemap index (có giới hạn 50k, route phải revalidate)                                                                                                                                      | FE              | 4, 4b        | Có                |
+| 6   | BE: format slug job + history + endpoint tra cứu slug; public SEO read model có cursor; lifecycle events qua outbox                                                                                            | BE              | 2            | Có                |
+| 6b  | **Sanitize JD** (`description`/`requirements`/`benefits`) ở backend khi ghi + rà lại `getCleanHtml` ở FE. PR bảo mật riêng, ngoài phạm vi SEO nhưng chặn #7 — xem §8 D3                                        | BE (+FE)        | —            | Có                |
+| 7   | FE: `/api/revalidate` có HMAC; đưa **cả ba** trang chi tiết (job/company/post) lên Server Component + ISR, metadata/H1 riêng từng entity                                                                       | FE              | 4, 4b, 6, 6b | Có                |
+| 8   | JobPosting/Organization/Article/Breadcrumb schema + escaping                                                                                                                                                   | FE/BE           | 7            | Có                |
+| 9   | CI SEO tests, i18n parity test, redirect table test, rich-result fixtures, link checks                                                                                                                         | FE/BE/QA        | 5, 7, 8      | Có                |
+| 10  | Search Console/Bing (DNS TXT), analytics dashboard                                                                                                                                                             | SEO/Infra       | 1            | Có                |
+| 11  | Trang About/Contact/Policy/Editorial                                                                                                                                                                           | Content/FE      | 4            | Có (F3 phụ thuộc) |
+| 12  | Curated landing pages, editorial governance                                                                                                                                                                    | Content/Product | 9            | Không             |
+| 13  | AEO/GEO content program                                                                                                                                                                                        | Content/Product | 11, 12       | Không             |
 
-Đường găng: **0a → 4b → 2 → 6 → 7 → 8 → 9**. #4b nhỏ nhưng nằm trên đường găng: không có client
+Đường găng: **4b → 2 → 6 → 7 → 8 → 9** (0a đã chốt, không còn chặn). #4b nhỏ nhưng nằm trên đường găng: không có client
 gọi API phía server thì cả sitemap lẫn SSR đều không bắt đầu được. Backend (#6) là hạng mục dài nhất vì có migration backfill;
 bắt đầu nó song song với #1 ngay sau khi #0a chốt. #6b không phụ thuộc gì cả — mở PR bảo mật đó
 ngay hôm nay, đừng để nó thành thứ chặn #7 vào phút chót.
@@ -1092,7 +1114,7 @@ SEO production launch chỉ được đánh dấu hoàn thành khi:
 6. Job lifecycle xử lý publish/update/expiry đúng trong page, sitemap, schema và cache.
 7. JobPosting validation sạch với mẫu dữ liệu production thật.
 8. Core Web Vitals, logs, alerting và rollback runbook hoạt động.
-9. Release được deploy từ artifact đã soak trên staging (7 ngày cho release lớn hiện tại) và migration rehearsal pass.
+9. Release được deploy từ artifact đã soak trên staging (7 ngày cho release lớn hiện tại) và migration rehearsal pass. **Nhóm đang theo phương án B**, nên mục này chỉ đảm bảo cùng commit SHA — client bundle staging và production là hai build khác nhau, soak KHÔNG chứng minh được artifact production. Ghi rõ giới hạn đó vào release note.
    **Nếu P0-1 chọn phương án B, mục này chỉ đảm bảo cùng commit SHA — soak KHÔNG chứng minh
    được client bundle production, và giới hạn đó phải được nêu trong release note.**
 10. `/` redirect một hop 308 tới `/vi`; `www.` redirect 301 về apex; không còn duplicate locale/legacy job URL indexable.

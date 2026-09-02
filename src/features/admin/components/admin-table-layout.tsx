@@ -33,7 +33,7 @@ export function AdminTableLayout({
   loading = false,
   filterBar,
   actionBar,
-  title,
+  title: _title,
   totalItems,
   currentPage,
   pageSize,

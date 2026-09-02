@@ -6,14 +6,6 @@ const COMPANY_SLUG = "spec-company-co";
 const EMPTY_SUMMARY = {
   totalReviews: 0,
   averageOverallRating: null,
-  averageBySection: {
-    salaryBenefits: null,
-    trainingLearning: null,
-    managementCare: null,
-    cultureFun: null,
-    officeWorkspace: null,
-    overtimeSatisfaction: null,
-  },
 };
 
 async function mockCompanyApi(page: Page) {
