@@ -404,7 +404,7 @@ test("extracts a pasted existing JD and fills the same recruiter form", async ({
     0,
   );
   await expect(page.getByRole("button", { name: "Lưu bản nháp" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Đăng tin (gửi duyệt)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đăng tin" })).toBeVisible();
 });
 
 test("redirects an unverified company before mounting the create form", async ({ page }) => {
