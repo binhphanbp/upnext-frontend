@@ -1,19 +1,12 @@
 import { Suspense } from "react";
 
-import { AddMasterDataDialog } from "@/features/admin/components/system/master-data/add-master-data-dialog";
-import { MasterDataTable } from "@/features/admin/components/system/master-data/master-data-table";
+import { TaxonomyManagementPage } from "@/features/admin/components/system/taxonomy/taxonomy-management-page";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 export default function AdminMasterDataPage() {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
-        <AddMasterDataDialog />
-      </div>
-
-      <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
-        <MasterDataTable />
-      </Suspense>
-    </div>
+    <Suspense fallback={<Skeleton className="h-[500px] w-full rounded-2xl" />}>
+      <TaxonomyManagementPage />
+    </Suspense>
   );
 }

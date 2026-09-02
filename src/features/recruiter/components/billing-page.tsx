@@ -1,11 +1,12 @@
 "use client";
 
-import { Copy, Info, QrCode, Spinner } from "@phosphor-icons/react";
+import { CheckCircle, Copy, Info, QrCode, Spinner } from "@phosphor-icons/react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
 
+import { checkSepayPayment } from "@/features/admin/api/payment-config";
 import {
   getActiveSubscription,
   getInvoice,
@@ -89,6 +90,7 @@ export function RecruiterBillingPage() {
   // so no paymentMethod state.
   const [checkoutInvoice, setCheckoutInvoice] = useState<InvoiceDetail | null>(null);
   const [sepayConfig, setSepayConfig] = useState<PublicSepayConfig | null>(null);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
 
   const invoice = checkoutInvoice;
   const invoiceAmountInt = invoice ? (invoice.amount.split(".")[0] ?? "") : "";
@@ -205,29 +207,65 @@ export function RecruiterBillingPage() {
     void loadBillingData(token);
   }
 
-  // SePay is a real, webhook-verified gateway: once the recruiter's transfer
-  // lands, the backend flips the invoice to PAID on its own. Poll for that
-  // instead of asking the recruiter to self-report "I paid" -- there is no
-  // manual confirm button anymore, SePay is the only payment method left.
+  const handleManualCheckPayment = async () => {
+    if (!checkoutInvoice) return;
+    try {
+      setIsCheckingPayment(true);
+      const res = await checkSepayPayment(checkoutInvoice.id);
+      if (res.paid) {
+        handlePaymentConfirmed();
+      } else {
+        void Toast.fire({
+          icon: "info",
+          title: res.message || "Chưa thấy tiền vào tài khoản. Hệ thống vẫn đang tự động quét...",
+        });
+      }
+    } catch {
+      if (token) {
+        try {
+          const updated = await getInvoice(checkoutInvoice.id, token);
+          if (updated.paymentStatus === "PAID") {
+            handlePaymentConfirmed();
+            return;
+          }
+        } catch {}
+      }
+      void Toast.fire({
+        icon: "info",
+        title: "Đang chờ ngân hàng xử lý. Vui lòng thử lại sau ít giây.",
+      });
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  };
+
+  // Actively poll SePay API via backend or fallback to getInvoice
   useEffect(() => {
     if (!checkoutInvoice || checkoutInvoice.paymentStatus !== "PENDING") return;
-    if (!token) return;
 
     const invoiceId = checkoutInvoice.id;
     const intervalId = window.setInterval(() => {
-      getInvoice(invoiceId, token)
-        .then((updated) => {
-          if (updated.paymentStatus === "PAID") {
+      checkSepayPayment(invoiceId)
+        .then((res) => {
+          if (res.paid) {
             handlePaymentConfirmed();
           }
         })
         .catch(() => {
-          // Transient network hiccup -- just try again on the next tick.
+          if (token) {
+            getInvoice(invoiceId, token)
+              .then((updated) => {
+                if (updated.paymentStatus === "PAID") {
+                  handlePaymentConfirmed();
+                }
+              })
+              .catch(() => {});
+          }
         });
     }, 4000);
 
     return () => window.clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- token/handlePaymentConfirmed are stable for the life of one open dialog
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkoutInvoice, token]);
 
   // Copy to clipboard helper
@@ -586,9 +624,19 @@ export function RecruiterBillingPage() {
                       sepayConfig.accountName ? (
                         <div className="flex flex-col gap-5 md:flex-row md:items-center">
                           <div className="flex flex-1 flex-col gap-2.5 text-xs text-slate-600">
-                            <h4 className="text-sm font-bold text-slate-800">
-                              Thông tin chuyển khoản
-                            </h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-bold text-slate-800">
+                                Thông tin chuyển khoản
+                              </h4>
+                              {(sepayConfig.bankName?.toLowerCase().includes("sandbox") ||
+                                sepayConfig.bankName?.toLowerCase().includes("test") ||
+                                sepayConfig.accountName?.toLowerCase().includes("sandbox") ||
+                                sepayConfig.accountName?.toLowerCase().includes("test")) && (
+                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                                  🧪 Sandbox / Test Mode
+                                </span>
+                              )}
+                            </div>
                             <div className="grid grid-cols-[100px_1fr] gap-y-2">
                               <span>Ngân hàng:</span>
                               <span className="font-bold text-slate-800">
@@ -674,19 +722,39 @@ export function RecruiterBillingPage() {
                 )}
               </div>
 
-              {/* Modal Footer -- SePay is webhook-verified, so there is no
-                  self-confirm button here, only a passive status. */}
-              <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
-                <Button
-                  variant="ghost"
-                  className="h-10 cursor-pointer border border-slate-200 px-4 text-xs font-bold text-slate-600 hover:bg-slate-100"
-                  onClick={() => setCheckoutInvoice(null)}
-                >
-                  Hủy bỏ
-                </Button>
-                <div className="flex h-10 items-center gap-1.5 px-2 text-xs font-bold text-slate-500">
+              {/* Modal Footer */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
                   <Spinner className="size-4 animate-spin text-emerald-600" />
-                  Đang chờ SePay xác nhận tự động...
+                  <span>Đang tự động quét giao dịch SePay...</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    className="h-10 cursor-pointer border border-slate-200 px-4 text-xs font-bold text-slate-600 hover:bg-slate-100"
+                    onClick={() => setCheckoutInvoice(null)}
+                  >
+                    Đóng
+                  </Button>
+                  <Button
+                    type="button"
+                    className="flex h-10 cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-70"
+                    disabled={isCheckingPayment}
+                    onClick={handleManualCheckPayment}
+                  >
+                    {isCheckingPayment ? (
+                      <>
+                        <Spinner className="size-4 animate-spin" />
+                        Đang kiểm tra từ ngân hàng...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={16} weight="bold" />
+                        Tôi đã chuyển khoản (Kiểm tra ngay)
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             </DialogPrimitive.Content>

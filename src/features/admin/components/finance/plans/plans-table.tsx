@@ -196,20 +196,29 @@ export function PlansTable() {
     error,
   } = useQuery({
     queryKey: ["adminSubscriptionPlans"],
-    // `GET /subscription-plans` needs no auth, but every write action below does --
-    // the table itself renders for anyone, same as the rest of this admin screen.
-    queryFn: () => getSubscriptionPlans(),
+    queryFn: () => {
+      const session = getAdminSession();
+      const token =
+        session?.accessToken ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem("upnext.admin.accessToken") ||
+            localStorage.getItem("adminAccessToken") ||
+            localStorage.getItem("accessToken") ||
+            ""
+          : "");
+      return getSubscriptionPlans(token);
+    },
   });
 
   const handleAuthError = React.useCallback(
     (thrown: unknown): boolean => {
       if (thrown instanceof Error && thrown.message === "No session") {
-        router.replace("/admin/login");
+        router.replace("/portal-access");
         return true;
       }
       if (thrown instanceof ApiError && thrown.status === 401) {
         clearAdminSession();
-        router.replace("/admin/login");
+        router.replace("/portal-access");
         return true;
       }
       return false;

@@ -14,7 +14,12 @@ const apiProxyOrigin =
   "http://localhost:3001";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: process.env.NODE_ENV === "production" ? "standalone" : undefined,
+  devIndicators: false,
+  onDemandEntries: {
+    maxInactiveAge: 24 * 60 * 60 * 1000,
+    pagesBufferLength: 50,
+  },
   experimental: {
     globalNotFound: true,
     optimizePackageImports: [

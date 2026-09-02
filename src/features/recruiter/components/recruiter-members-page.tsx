@@ -8,6 +8,7 @@ import {
   MagnifyingGlass,
   Lock,
   LockOpen,
+  PaperPlaneTilt,
   Plus,
   Trash,
 } from "@phosphor-icons/react";
@@ -23,6 +24,7 @@ import {
   getRecruiterRoles,
   inviteCompanyMember,
   removeCompanyMember,
+  resendCompanyInvitation,
   updateCompanyMemberRole,
   updateCompanyMemberStatus,
   type CompanyMember,
@@ -356,6 +358,30 @@ export function RecruiterMembersPage() {
       await updateCompanyMemberStatus(member.id, nextStatus, token);
       await reload();
       void toast.fire({ icon: "success", title: `Đã ${statusText} thành viên thành công.` });
+    } catch (error) {
+      showActionError(error, t);
+    }
+  };
+
+  // Lời mời sống 7 ngày. Hết hạn thì đây là đường duy nhất để người được mời vào được:
+  // mở lại hạn và gửi lại email cùng link đó.
+  const resendInvitation = async (member: CompanyMember) => {
+    const email = member.recruiterAccount?.email ?? member.invitedEmail ?? "";
+    const result = await Swal.fire({
+      icon: "question",
+      title: "Gửi lại lời mời?",
+      text: `Gửi lại email lời mời tới ${email} và gia hạn thêm 7 ngày.`,
+      showCancelButton: true,
+      confirmButtonText: "Gửi lại",
+      cancelButtonText: t("team.actions.cancel"),
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await resendCompanyInvitation(member.id, token);
+      await reload();
+      void toast.fire({ icon: "success", title: `Đã gửi lại lời mời tới ${email}.` });
     } catch (error) {
       showActionError(error, t);
     }
@@ -777,6 +803,19 @@ export function RecruiterMembersPage() {
                         <span className="font-medium text-slate-400">-</span>
                       ) : (
                         <>
+                          {member.status === "INVITED" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Resend invitation to ${email}`}
+                              className="size-8 rounded-full border border-slate-200 bg-white text-slate-400 shadow-none transition-all hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
+                              disabled={!memberCanBeModified}
+                              onClick={() => void resendInvitation(member)}
+                              title="Gửi lại lời mời (gia hạn 7 ngày)"
+                            >
+                              <PaperPlaneTilt size={14} />
+                            </Button>
+                          )}
                           {isOwner && member.status === "ACTIVE" && (
                             <Button
                               variant="ghost"

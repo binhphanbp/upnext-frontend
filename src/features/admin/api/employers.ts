@@ -78,20 +78,59 @@ export async function getAdminEmployers(
   return [];
 }
 
+/** Khớp với `MAX_VERIFICATION_EVIDENCE_FILES` ở backend. */
+export const MAX_VERIFICATION_EVIDENCE_FILES = 5;
+
+export type VerifyCompanyInput = {
+  reason?: string | undefined;
+  guidance?: string | undefined;
+  evidenceFileIds?: string[] | undefined;
+};
+
 export async function verifyCompany(
   token: string,
   id: string,
   status: "VERIFIED" | "REJECTED",
-  reason?: string,
+  input: VerifyCompanyInput = {},
 ) {
+  const reason = input.reason?.trim();
+  const guidance = input.guidance?.trim();
+  const evidenceFileIds = input.evidenceFileIds ?? [];
+
   return apiRequest(`/companies/${id}/verify`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ status, reason }),
+    body: JSON.stringify({
+      status,
+      ...(reason ? { reason } : {}),
+      ...(guidance ? { guidance } : {}),
+      ...(evidenceFileIds.length > 0 ? { evidenceFileIds } : {}),
+    }),
   });
+}
+
+/**
+ * Ảnh minh chứng admin gửi kèm lý do từ chối. Upload PUBLIC vì ảnh này được đính kèm
+ * vào email gửi cho nhà tuyển dụng — server phải đọc được URL để attach.
+ */
+export async function uploadVerificationEvidenceIds(files: File[], token: string) {
+  if (files.length === 0) return [];
+
+  const formData = new FormData();
+  for (const file of files) formData.append("files", file);
+  formData.append("purpose", "COMPANY_VERIFICATION_EVIDENCE");
+  formData.append("visibility", "PUBLIC");
+
+  const response = await apiRequest<{ files: Array<{ id: string }> }>("/files/upload-many", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  return response.files.map((file) => file.id);
 }
 
 export type AdminCompanyDetailResponse = {
