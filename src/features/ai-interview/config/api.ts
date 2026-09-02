@@ -1,5 +1,5 @@
 export const DEFAULT_API_BASE_URL =
-  process.env.NEXT_PUBLIC_AI_INTERVIEW_BACKEND_URL || "http://100.85.145.47:5000";
+  process.env.NEXT_PUBLIC_AI_INTERVIEW_BACKEND_URL || "http://192.168.54.16:5000";
 
 const STORAGE_KEY = "ai_interview_backend_url";
 
