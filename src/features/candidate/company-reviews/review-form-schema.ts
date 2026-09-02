@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-const optionalRating = z.number().int().min(0).max(5);
-
+/** Một đánh giá = 1 số sao tổng thể + 1 ô nhận xét. Không còn chấm điểm theo hạng mục. */
 export const companyReviewFormSchema = z.object({
   overallRating: z
     .number({ error: "Vui lòng chọn số sao." })
@@ -9,15 +8,6 @@ export const companyReviewFormSchema = z.object({
     .min(1, "Vui lòng chọn số sao.")
     .max(5),
   summary: z.string().trim().max(2000, "Không được vượt quá 2000 ký tự."),
-  overtimeSatisfaction: optionalRating,
-  overtimeReason: z.string().trim().max(2000, "Không được vượt quá 2000 ký tự."),
-  whatILove: z.string().trim().max(2000, "Không được vượt quá 2000 ký tự."),
-  improvementSuggestion: z.string().trim().max(2000, "Không được vượt quá 2000 ký tự."),
-  salaryBenefitsRating: optionalRating,
-  trainingLearningRating: optionalRating,
-  managementCareRating: optionalRating,
-  cultureFunRating: optionalRating,
-  officeWorkspaceRating: optionalRating,
 });
 
 export type CompanyReviewFormValues = z.infer<typeof companyReviewFormSchema>;

@@ -131,7 +131,6 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
         label: "financeAndBusiness.transactions",
         href: "/admin/finance/transactions",
         icon: Receipt,
-        disabled: true,
       },
     ],
   },
@@ -143,19 +142,16 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
         label: "systemAdmin.masterData",
         href: "/admin/system/master-data",
         icon: Database,
-        disabled: true,
       },
       {
         label: "systemAdmin.roles",
         href: "/admin/system/roles",
         icon: IdentificationBadge,
-        disabled: true,
       },
       {
         label: "systemAdmin.auditLog",
         href: "/admin/system/audit-log",
         icon: ListChecks,
-        disabled: true,
       },
       {
         label: "systemAdmin.searchKeywords",

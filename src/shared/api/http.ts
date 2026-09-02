@@ -112,11 +112,13 @@ export async function apiRequest<TResponse>(
 }
 
 async function readResponsePayload(response: Response) {
-  const contentType = response.headers.get("content-type");
-
-  if (contentType?.includes("application/json")) {
-    return response.json();
+  try {
+    const text = await response.text();
+    if (!text || text.trim() === "") {
+      return null;
+    }
+    return JSON.parse(text);
+  } catch {
+    return null;
   }
-
-  return response.text();
 }

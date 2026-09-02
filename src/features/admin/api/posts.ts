@@ -183,3 +183,118 @@ export function uploadPostImage(
     body: formData,
   });
 }
+
+// ─── Post Categories CRUD ───────────────────────────────────────────────────
+
+export type FullPostCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  parentId?: string | null | undefined;
+  createdAt: string;
+  updatedAt: string;
+  _count?:
+    | {
+        posts: number;
+      }
+    | undefined;
+};
+
+export function adminGetPostCategories(token: string): Promise<FullPostCategory[]> {
+  return apiRequest<FullPostCategory[]>("/admin/post-categories", {
+    headers: authHeaders(token),
+  });
+}
+
+export function adminCreatePostCategory(
+  token: string,
+  data: {
+    name: string;
+    slug?: string | undefined;
+  },
+): Promise<FullPostCategory> {
+  return apiRequest<FullPostCategory>("/admin/post-categories", {
+    method: "POST",
+    headers: jsonAuthHeaders(token),
+    body: JSON.stringify(data),
+  });
+}
+
+export function adminUpdatePostCategory(
+  token: string,
+  id: string,
+  data: {
+    name?: string | undefined;
+    slug?: string | undefined;
+  },
+): Promise<FullPostCategory> {
+  return apiRequest<FullPostCategory>(`/admin/post-categories/${id}`, {
+    method: "PATCH",
+    headers: jsonAuthHeaders(token),
+    body: JSON.stringify(data),
+  });
+}
+
+export function adminDeletePostCategory(token: string, id: string): Promise<void> {
+  return apiRequest<void>(`/admin/post-categories/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+}
+
+// ─── Post Tags CRUD ─────────────────────────────────────────────────────────
+
+export type FullPostTag = {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
+  _count?:
+    | {
+        postTags: number;
+      }
+    | undefined;
+};
+
+export function adminGetPostTags(token: string): Promise<FullPostTag[]> {
+  return apiRequest<FullPostTag[]>("/admin/post-tags", {
+    headers: authHeaders(token),
+  });
+}
+
+export function adminCreatePostTag(
+  token: string,
+  data: {
+    name: string;
+    slug?: string | undefined;
+  },
+): Promise<FullPostTag> {
+  return apiRequest<FullPostTag>("/admin/post-tags", {
+    method: "POST",
+    headers: jsonAuthHeaders(token),
+    body: JSON.stringify(data),
+  });
+}
+
+export function adminUpdatePostTag(
+  token: string,
+  id: string,
+  data: {
+    name?: string | undefined;
+    slug?: string | undefined;
+  },
+): Promise<FullPostTag> {
+  return apiRequest<FullPostTag>(`/admin/post-tags/${id}`, {
+    method: "PATCH",
+    headers: jsonAuthHeaders(token),
+    body: JSON.stringify(data),
+  });
+}
+
+export function adminDeletePostTag(token: string, id: string): Promise<void> {
+  return apiRequest<void>(`/admin/post-tags/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+}

@@ -54,10 +54,10 @@ export function AdminLoginPage() {
       setAdminSession(response.accessToken, response.tokenType, response.user);
       router.push("/admin");
     } catch (error) {
-      console.error("[Admin Login Error]", error);
       if (error instanceof ApiError && error.status === 401) {
-        setErrorMsg("Email hoặc mật khẩu không hợp lệ");
+        setErrorMsg("Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.");
       } else {
+        console.warn("[Admin Login]", error);
         setErrorMsg("Không thể đăng nhập. Vui lòng thử lại sau.");
       }
     }
@@ -150,6 +150,28 @@ export function AdminLoginPage() {
           >
             {form.formState.isSubmitting ? "Đang xử lý..." : t("submit")}
           </button>
+
+          <div style={{ marginTop: 14, textAlign: "center" }}>
+            <button
+              type="button"
+              onClick={() => {
+                form.setValue("email", "admin.super@upnext.dev");
+                form.setValue("password", "Password123!");
+              }}
+              style={{
+                fontSize: 12,
+                color: "#059669",
+                background: "#ecfdf5",
+                border: "1px dashed #10b981",
+                borderRadius: 8,
+                padding: "6px 12px",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+            >
+              ⚡ Điền nhanh Super Admin (admin.super@upnext.dev)
+            </button>
+          </div>
         </form>
 
         <div className="admin-login-footer">

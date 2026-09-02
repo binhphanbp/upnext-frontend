@@ -84,6 +84,17 @@ const companies: PublicCompany[] = [
 
 // The header's jobs mega menu shares this hook and expects an array, so the stub answers by key.
 vi.mock("@tanstack/react-query", () => ({
+  useMutation: () => ({
+    isPending: false,
+    mutate: vi.fn<(input: unknown) => void>(),
+    variables: undefined,
+  }),
+  useQueryClient: () => ({
+    getQueryData: () => undefined,
+    setQueryData: () => undefined,
+    invalidateQueries: () => Promise.resolve(),
+    cancelQueries: () => Promise.resolve(),
+  }),
   useQuery: ({ queryKey }: { queryKey: readonly unknown[] }) => ({
     data: queryKey.includes("public-companies")
       ? {

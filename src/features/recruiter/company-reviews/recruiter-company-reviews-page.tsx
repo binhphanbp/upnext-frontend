@@ -8,11 +8,13 @@ import Swal from "sweetalert2";
 import {
   getMyCompanyReviews,
   reportCompanyReview,
-  uploadReviewReportEvidence,
+  uploadReviewReportEvidenceIds,
   type MyCompanyReview,
-  type MyCompanyReviewsSummary,
 } from "@/features/recruiter/company-reviews/api";
-import { promptReviewReport } from "@/features/recruiter/company-reviews/prompt-review-report";
+import {
+  ReviewReportDialog,
+  type ReviewReportInput,
+} from "@/features/recruiter/company-reviews/review-report-dialog";
 import { getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
@@ -35,18 +37,6 @@ const toast = Swal.mixin({
 const PAGE_SIZE = 10;
 const ALL_RATINGS = "all";
 const STARS = [5, 4, 3, 2, 1] as const;
-
-const SECTION_LABELS: Array<{
-  key: keyof MyCompanyReviewsSummary["averageBySection"];
-  label: string;
-}> = [
-  { key: "salaryBenefits", label: "Lương & phúc lợi" },
-  { key: "trainingLearning", label: "Đào tạo & học hỏi" },
-  { key: "managementCare", label: "Sự quan tâm của quản lý" },
-  { key: "cultureFun", label: "Văn hóa & hoạt động" },
-  { key: "officeWorkspace", label: "Văn phòng, không gian" },
-  { key: "overtimeSatisfaction", label: "Mức hài lòng tăng ca" },
-];
 
 function StarRow({ value, size = 16 }: { value: number; size?: number }) {
   return (
@@ -107,6 +97,7 @@ export function RecruiterCompanyReviewsPage() {
   const [token, setToken] = useState<string | null>(null);
   const [ratingFilter, setRatingFilter] = useState<string>(ALL_RATINGS);
   const [page, setPage] = useState(1);
+  const [reportTarget, setReportTarget] = useState<MyCompanyReview | null>(null);
 
   useEffect(() => {
     const session = getRecruiterSession();
@@ -140,35 +131,41 @@ export function RecruiterCompanyReviewsPage() {
     }: {
       reviewId: string;
       reason: string;
-      evidence: File | null;
+      evidence: File[];
     }) => {
-      const evidenceFileId = evidence
-        ? (await uploadReviewReportEvidence(evidence, token!)).file.id
-        : undefined;
-      return reportCompanyReview(token!, reviewId, reason, evidenceFileId);
+      const evidenceFileIds = await uploadReviewReportEvidenceIds(evidence, token!);
+      return reportCompanyReview(token!, reviewId, reason, evidenceFileIds);
     },
     onSuccess: async () => {
+      setReportTarget(null);
       await queryClient.invalidateQueries({ queryKey: ["recruiter-company-reviews"] });
       void toast.fire({ icon: "success", title: "Đã gửi báo cáo tới quản trị viên." });
     },
     onError: (error) => {
+      // 403 is the server refusing a report on a review the caller wrote themselves, and
+      // its message says so — passing it through beats a generic retry prompt.
       const message =
         error instanceof ApiError && error.status === 409
           ? "Bạn đã báo cáo đánh giá này rồi."
-          : "Không thể gửi báo cáo. Vui lòng thử lại.";
+          : error instanceof ApiError && error.status === 403
+            ? error.message
+            : "Không thể gửi báo cáo. Vui lòng thử lại.";
       void toast.fire({ icon: "error", title: message });
     },
   });
 
-  async function handleReport(review: MyCompanyReview) {
-    const input = await promptReviewReport();
-    if (!input) return;
+  async function handleSubmitReport(input: ReviewReportInput) {
+    if (!reportTarget) return;
 
-    reportMutation.mutate({
-      reviewId: review.id,
-      reason: input.reason,
-      evidence: input.evidence,
-    });
+    try {
+      await reportMutation.mutateAsync({
+        reviewId: reportTarget.id,
+        reason: input.reason,
+        evidence: input.evidence,
+      });
+    } catch {
+      // `onError` đã báo lỗi bằng toast; giữ dialog mở để thử lại.
+    }
   }
 
   // A recruiter with no company gets a 403 from the endpoint rather than an empty list.
@@ -255,17 +252,6 @@ export function RecruiterCompanyReviewsPage() {
               );
             })}
           </div>
-
-          <div className="grid shrink-0 gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2 lg:w-80">
-            {SECTION_LABELS.map(({ key, label }) => (
-              <div key={key} className="flex items-center justify-between gap-3">
-                <span className="text-slate-500">{label}</span>
-                <span className="font-semibold text-slate-900">
-                  {summary.averageBySection[key]?.toFixed(1) ?? "—"}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       </Card>
 
@@ -325,58 +311,13 @@ export function RecruiterCompanyReviewsPage() {
                 <ReportState
                   review={review}
                   isReporting={reportMutation.isPending}
-                  onReport={() => void handleReport(review)}
+                  onReport={() => setReportTarget(review)}
                 />
               </div>
 
               {review.summary ? (
                 <p className="mt-3 text-sm leading-relaxed text-slate-700">{review.summary}</p>
               ) : null}
-
-              <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                {review.whatILove ? (
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs font-semibold text-slate-500">Điều yêu thích</dt>
-                    <dd className="text-slate-700">{review.whatILove}</dd>
-                  </div>
-                ) : null}
-                {review.improvementSuggestion ? (
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs font-semibold text-slate-500">Đề xuất cải thiện</dt>
-                    <dd className="text-slate-700">{review.improvementSuggestion}</dd>
-                  </div>
-                ) : null}
-                {review.overtimeReason ? (
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs font-semibold text-slate-500">Lý do (về tăng ca)</dt>
-                    <dd className="text-slate-700">{review.overtimeReason}</dd>
-                  </div>
-                ) : null}
-              </dl>
-
-              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t border-slate-100 pt-3 text-xs text-slate-500">
-                {SECTION_LABELS.map(({ key, label }) => {
-                  const field =
-                    key === "overtimeSatisfaction"
-                      ? review.overtimeSatisfaction
-                      : key === "salaryBenefits"
-                        ? review.salaryBenefitsRating
-                        : key === "trainingLearning"
-                          ? review.trainingLearningRating
-                          : key === "managementCare"
-                            ? review.managementCareRating
-                            : key === "cultureFun"
-                              ? review.cultureFunRating
-                              : review.officeWorkspaceRating;
-
-                  if (field === null) return null;
-                  return (
-                    <span key={key}>
-                      {label}: <strong className="text-slate-700">{field}★</strong>
-                    </span>
-                  );
-                })}
-              </div>
             </Card>
           ))}
         </div>
@@ -407,6 +348,16 @@ export function RecruiterCompanyReviewsPage() {
           </Button>
         </div>
       ) : null}
+
+      <ReviewReportDialog
+        open={reportTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setReportTarget(null);
+        }}
+        reviewerName={reportTarget?.reviewer.fullName}
+        isSubmitting={reportMutation.isPending}
+        onSubmit={handleSubmitReport}
+      />
     </div>
   );
 }

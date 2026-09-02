@@ -217,7 +217,7 @@ export function scanCompanyBusinessLicensePreview(file: File, token: string) {
 
 export function generateCompanyLetterTemplate(
   companyId: string,
-  type: "OFFER" | "REJECTION",
+  type: "OFFER" | "REJECTION" | "INVITATION",
   token: string,
 ) {
   return apiRequest<{ template: string }>(`/companies/${companyId}/letter-templates/generate`, {

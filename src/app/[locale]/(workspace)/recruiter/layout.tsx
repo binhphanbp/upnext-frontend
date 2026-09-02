@@ -305,7 +305,11 @@ export default function RecruiterLayout({ children }: RecruiterLayoutProps) {
     pathname.includes("/reset-password") ||
     pathname.includes("/email-verification") ||
     pathname.includes("/auth/callback") ||
-    pathname.includes("/company-invitations");
+    pathname.includes("/company-invitations") ||
+    // Chặng trung gian cho link trong email: phải render trần. Nằm trong shell thì nó
+    // kéo cả sidebar, header và khởi tạo FCM (kèm hộp thoại xin quyền thông báo) chỉ để
+    // chuyển hướng đi ngay — đó là lý do bấm link từ email vào rất lâu.
+    pathname.includes("/recruiter/continue");
 
   // Chỉ chặn ngược lại /login và /register — các trang auth khác (quên mật khẩu,
   // xác thực email, lời mời công ty...) vẫn phải xem được kể cả khi đã đăng nhập.

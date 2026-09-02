@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretDown, CaretLeft, CaretUp, Prohibit } from "@phosphor-icons/react";
+import { CaretDown, CaretLeft, CaretUp, Check, Prohibit, X } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import Swal from "sweetalert2";
@@ -9,9 +9,16 @@ import {
   banCompanyForFraud,
   getAdminCompanyDetails,
   getAdminCompanyReputationActivities,
+  uploadVerificationEvidenceIds,
+  verifyCompany,
 } from "@/features/admin/api/employers";
+import {
+  CompanyRejectDialog,
+  type CompanyRejectInput,
+} from "@/features/admin/components/users/company-reject-dialog";
 import { getAdminSession } from "@/features/admin/session";
 import { Link } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { formatAppDate } from "@/shared/lib/date";
 import { Badge } from "@/shared/ui/badge";
@@ -30,6 +37,7 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
   const [isCoverBroken, setIsCoverBroken] = useState(false);
   const [isLogoBroken, setIsLogoBroken] = useState(false);
   const [areBenefitsExpanded, setAreBenefitsExpanded] = useState(false);
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
 
   const {
     data: company,
@@ -67,6 +75,65 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
     },
     onError: () => {
       void Swal.fire({ icon: "error", title: "Ban công ty thất bại." });
+    },
+  });
+
+  function invalidateCompany() {
+    void queryClient.invalidateQueries({ queryKey: ["adminCompanyDetails", employerId] });
+    void queryClient.invalidateQueries({ queryKey: ["adminEmployers"] });
+  }
+
+  const approveMutation = useMutation({
+    mutationFn: async () => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      return verifyCompany(session.accessToken, employerId, "VERIFIED");
+    },
+    onSuccess: () => {
+      invalidateCompany();
+      void Swal.fire({ icon: "success", title: "Đã duyệt hồ sơ và gửi email cho nhà tuyển dụng." });
+    },
+    onError: (mutationError) => {
+      void Swal.fire({
+        icon: "error",
+        title:
+          mutationError instanceof ApiError && mutationError.status === 409
+            ? mutationError.message
+            : "Duyệt hồ sơ thất bại.",
+      });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async (input: CompanyRejectInput) => {
+      const session = getAdminSession();
+      if (!session) throw new Error("No session");
+      const evidenceFileIds = await uploadVerificationEvidenceIds(
+        input.evidence,
+        session.accessToken,
+      );
+      return verifyCompany(session.accessToken, employerId, "REJECTED", {
+        reason: input.reason,
+        guidance: input.guidance,
+        evidenceFileIds,
+      });
+    },
+    onSuccess: () => {
+      setIsRejectOpen(false);
+      invalidateCompany();
+      void Swal.fire({
+        icon: "success",
+        title: "Đã từ chối hồ sơ và gửi email cho nhà tuyển dụng.",
+      });
+    },
+    onError: (mutationError) => {
+      void Swal.fire({
+        icon: "error",
+        title:
+          mutationError instanceof ApiError && mutationError.status === 409
+            ? mutationError.message
+            : "Từ chối hồ sơ thất bại.",
+      });
     },
   });
 
@@ -187,10 +254,22 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Badge
-                  tone={company.verificationStatus === "VERIFIED" ? "success" : "warning"}
+                  tone={
+                    company.verificationStatus === "VERIFIED"
+                      ? "success"
+                      : company.verificationStatus === "REJECTED"
+                        ? "error"
+                        : "warning"
+                  }
                   className="px-3 py-1 text-sm"
                 >
-                  {company.verificationStatus === "VERIFIED" ? "Đã xác thực" : "Chờ duyệt"}
+                  {company.verificationStatus === "VERIFIED"
+                    ? "Đã xác thực"
+                    : company.verificationStatus === "REJECTED"
+                      ? "Hồ sơ bị từ chối"
+                      : company.verificationStatus === "PENDING"
+                        ? "Chờ duyệt"
+                        : "Chưa xác thực"}
                 </Badge>
                 <Badge
                   tone={company.status === "ACTIVE" ? "success" : "error"}
@@ -210,7 +289,31 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
               </div>
             </div>
             {company.status !== "LOCKED" ? (
-              <div className="shrink-0 pt-2 sm:pt-4">
+              <div className="flex shrink-0 flex-wrap gap-2 pt-2 sm:pt-4">
+                {/* Chỉ hồ sơ đang chờ duyệt mới có gì để quyết định; gọi lại cùng một
+                    trạng thái sẽ bị server trả 409. */}
+                {company.verificationStatus === "PENDING" ? (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => approveMutation.mutate()}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
+                    >
+                      <Check size={16} weight="bold" />
+                      {approveMutation.isPending ? "Đang duyệt…" : "Duyệt hồ sơ"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-error text-error"
+                      onClick={() => setIsRejectOpen(true)}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
+                    >
+                      <X size={16} weight="bold" />
+                      Từ chối
+                    </Button>
+                  </>
+                ) : null}
                 <Button
                   variant="destructive"
                   size="sm"
@@ -402,6 +505,20 @@ export function EmployerDetailsPage({ employerId }: EmployerDetailsPageProps) {
       </div>
 
       {/* Future sections like Members, Job Posts can go here */}
+
+      <CompanyRejectDialog
+        open={isRejectOpen}
+        onOpenChange={setIsRejectOpen}
+        companyName={company.name}
+        isSubmitting={rejectMutation.isPending}
+        onSubmit={async (input) => {
+          try {
+            await rejectMutation.mutateAsync(input);
+          } catch {
+            // `onError` đã báo lỗi; giữ dialog mở để admin thử lại.
+          }
+        }}
+      />
     </div>
   );
 }

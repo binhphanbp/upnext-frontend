@@ -420,6 +420,17 @@ export function acceptCompanyInvitationAndSetPassword(id: string, password: stri
   });
 }
 
+/**
+ * Gửi lại lời mời và gia hạn. Cần có vì lời mời đã có hạn: hết hạn thì người được mời
+ * không accept được, mà OWNER cũng không mời lại được (unique invitedEmail + companyId).
+ */
+export function resendCompanyInvitation(id: string, token: string) {
+  return apiRequest<{ id: string; invitedEmail: string; invitationExpiresAt: string | null }>(
+    `/company-members/invitations/${id}/resend`,
+    { headers: authHeaders(token), method: "POST" },
+  );
+}
+
 export function acceptCompanyInvitation(id: string, token: string) {
   return apiRequest<{ id: string; status: string }>(`/company-members/invitations/${id}/accept`, {
     headers: authHeaders(token),

@@ -4,7 +4,18 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next-intl", () => ({ useLocale: () => "vi" }));
 vi.mock("@tanstack/react-query", () => ({
+  useMutation: () => ({
+    isPending: false,
+    mutate: vi.fn<(input: unknown) => void>(),
+    variables: undefined,
+  }),
   useQuery: () => ({ data: [], isError: false, isPending: false }),
+  useQueryClient: () => ({
+    getQueryData: () => undefined,
+    setQueryData: () => undefined,
+    invalidateQueries: () => Promise.resolve(),
+    cancelQueries: () => Promise.resolve(),
+  }),
 }));
 vi.mock("@/i18n/navigation", () => ({
   Link: ({

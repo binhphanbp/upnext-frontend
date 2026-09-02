@@ -8,21 +8,13 @@ function jsonAuthHeaders(token: string) {
   return { ...authHeaders(token), "Content-Type": "application/json" };
 }
 
+/** Một đánh giá = 1 số sao tổng thể + 1 ô nhận xét (`summary`). */
 export type CandidateCompanyReview = Readonly<{
   id: string;
   candidateProfileId: string;
   companyId: string;
   overallRating: number;
   summary: string | null;
-  overtimeSatisfaction: number | null;
-  overtimeReason: string | null;
-  whatILove: string | null;
-  improvementSuggestion: string | null;
-  salaryBenefitsRating: number | null;
-  trainingLearningRating: number | null;
-  managementCareRating: number | null;
-  cultureFunRating: number | null;
-  officeWorkspaceRating: number | null;
   status: "PENDING" | "APPROVED" | "REJECTED" | "HIDDEN";
   createdAt: string;
   updatedAt: string;
@@ -31,15 +23,6 @@ export type CandidateCompanyReview = Readonly<{
 export type CompanyReviewPayload = Readonly<{
   overallRating: number;
   summary?: string | undefined;
-  overtimeSatisfaction?: number | undefined;
-  overtimeReason?: string | undefined;
-  whatILove?: string | undefined;
-  improvementSuggestion?: string | undefined;
-  salaryBenefitsRating?: number | undefined;
-  trainingLearningRating?: number | undefined;
-  managementCareRating?: number | undefined;
-  cultureFunRating?: number | undefined;
-  officeWorkspaceRating?: number | undefined;
 }>;
 
 export function getMyCompanyReview(token: string, companyId: string) {

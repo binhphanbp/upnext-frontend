@@ -3871,7 +3871,7 @@
     },
     "systemAdmin": {
       "title": "Quản trị Hệ thống",
-      "masterData": "Dữ liệu gốc",
+      "masterData": "Kỹ năng & Ngành nghề",
       "roles": "Phân quyền",
       "auditLog": "Nhật ký hệ thống",
       "searchKeywords": "Phân tích từ khóa"
@@ -3983,12 +3983,15 @@
           "statusOptions": {
             "pending": "Chờ duyệt",
             "verified": "Đã xác thực",
+            "rejected": "Hồ sơ bị từ chối",
+            "unverified": "Chưa xác thực",
             "locked": "Bị khóa"
           },
           "actionOptions": {
             "copyId": "Copy ID Công ty",
             "viewProfile": "Xem hồ sơ công ty",
             "approve": "Duyệt tài khoản (KYC)",
+            "reject": "Từ chối hồ sơ",
             "upgrade": "Nâng cấp gói dịch vụ",
             "lock": "Khóa tài khoản"
           }
@@ -4433,19 +4436,45 @@
             "webhookSecretPlaceholder": "Để trống nếu không muốn đổi secret hiện tại",
             "webhookSecretCurrentHint": "Secret hiện tại: {masked}",
             "webhookSecretEmptyHint": "Chưa cấu hình secret nào.",
+            "apiToken": "SePay API Token (Dùng quét API Polling - Không cần Webhook)",
+            "apiTokenPlaceholder": "Dán API Token lấy từ SePay -> API Access",
+            "apiTokenCurrentHint": "Token hiện tại: {masked}",
+            "apiTokenEmptyHint": "Chưa cấu hình API Token.",
+            "apiTokenHint": "Dùng để tự động kiểm tra giao dịch (Polling) mà không cần cấu hình Webhook hay mở cổng Ngrok. Lấy tại: my.sepay.vn -> Cài đặt công ty -> API Access (hoặc Test mode -> API Access).",
             "webhookUrl": "Webhook URL",
-            "webhookUrlHint": "Dán URL này vào phần cấu hình Webhook trên trang quản trị SePay."
+            "webhookUrlHint": "Dán URL này vào phần cấu hình Webhook trên trang quản trị SePay (nếu có sử dụng Webhook)."
           },
           "buttons": {
             "save": "Lưu cấu hình",
             "saving": "Đang lưu...",
-            "copy": "Sao chép"
+            "copy": "Sao chép",
+            "testApi": "Kiểm tra kết nối API",
+            "testingApi": "Đang kiểm tra...",
+            "loadTestPreset": "Nạp cấu hình Test Mode mẫu",
+            "simulatePayment": "Mô phỏng thanh toán SePay",
+            "sendSimulation": "Gửi thanh toán thử",
+            "sendingSimulation": "Đang gửi..."
+          },
+          "testMode": {
+            "badge": "Chế độ Thử nghiệm (Test Mode / Sandbox)",
+            "bannerTitle": "Cổng SePay đang kết nối Chế độ Thử nghiệm (Sandbox)",
+            "bannerDesc": "Tài khoản và giao dịch mang tính chất thử nghiệm, không ảnh hưởng tài khoản thật. Nhà tuyển dụng quét mã hoặc dùng công cụ mô phỏng để kích hoạt gói dịch vụ tức thì mà không trừ tiền thật.",
+            "simulateTitle": "Mô phỏng thanh toán SePay (Sandbox Simulation)",
+            "simulateDesc": "Nhập mã hóa đơn hoặc chọn hóa đơn đang PENDING để giả lập SePay webhook gửi tiền vào hệ thống và duyệt gói tức thì.",
+            "invoiceCodeLabel": "Mã hóa đơn cần thanh toán",
+            "invoiceCodePlaceholder": "VD: INV-20260903-XXXX",
+            "amountLabel": "Số tiền (VND - tùy chọn)",
+            "amountPlaceholder": "Để trống để lấy đúng số tiền gói",
+            "simulateSuccess": "Mô phỏng thanh toán thành công!",
+            "simulateSuccessDesc": "Hệ thống đã nhận webhook và cập nhật hóa đơn thành PAID.",
+            "simulateError": "Mô phỏng thanh toán thất bại. Vui lòng kiểm tra mã hóa đơn."
           },
           "toasts": {
             "saveSuccess": "Đã lưu cấu hình SePay.",
             "saveError": "Không lưu được cấu hình, vui lòng thử lại.",
             "loadError": "Không tải được cấu hình thanh toán.",
-            "copied": "Đã sao chép"
+            "copied": "Đã sao chép",
+            "presetLoaded": "Đã nạp thông tin Test Mode SePay mẫu vào form."
           }
         }
       }
@@ -4700,6 +4729,7 @@
       "submitting": "Đang xử lý...",
       "success": "Chúc mừng! Bạn đã tham gia công ty thành công.",
       "invalidInvitation": "Lời mời không hợp lệ hoặc đã hết hạn.",
+      "expiredInvitation": "Lời mời đã hết hạn. Vui lòng liên hệ công ty để được gửi lại lời mời.",
       "backToLogin": "Quay lại trang Đăng nhập",
       "alreadyAccepted": "Lời mời này đã được chấp nhận hoặc không còn hiệu lực.",
       "alreadyLoggedInTitle": "Chấp nhận lời mời",
@@ -4831,6 +4861,7 @@
     "citations": {
       "title": "Dẫn chứng",
       "open": "Mở nguồn: {title}",
+      "version": "Phiên bản {version}",
       "source": {
         "CV": "CV",
         "JOB": "Tin tuyển dụng",
@@ -4839,6 +4870,16 @@
         "POLICY": "Chính sách",
         "INTERVIEW": "Phỏng vấn"
       }
+    },
+    "knowledgeSource": {
+      "back": "Quay lại AI Copilot",
+      "badge": "Hướng dẫn UpNext đã được duyệt",
+      "version": "Phiên bản {version}",
+      "effective": "Có hiệu lực từ {date}",
+      "review": "Rà soát trước {date}",
+      "unavailableTitle": "Nguồn này hiện không khả dụng",
+      "unavailableDetail": "Nguồn có thể không còn được xuất bản hoặc phiên đăng nhập của bạn đã hết hạn.",
+      "retry": "Thử lại"
     },
     "match": {
       "fit": "Phù hợp",

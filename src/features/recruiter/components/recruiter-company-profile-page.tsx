@@ -20,6 +20,7 @@ import {
   createCompany,
   deleteCompanyPhoto,
   getCompany,
+  generateCompanyLetterTemplate,
   getCompanyBusinessLicenseUrl,
   getCompanyLocations,
   getRecruiterAccount,
@@ -221,7 +222,9 @@ export function RecruiterCompanyProfilePage() {
     const session = getRecruiterSession();
 
     if (!session) {
-      router.replace("/recruiter/login");
+      router.replace(
+        `/recruiter/login?redirect=${encodeURIComponent("/recruiter/company-profile")}`,
+      );
       return;
     }
 
@@ -485,15 +488,7 @@ export function RecruiterCompanyProfilePage() {
 
     try {
       setGeneratingTemplate(type);
-      const { template } = await recruiterApiRequest<{ template: string }>(
-        `/companies/${companyId}/letter-templates/generate`,
-        token,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type }),
-        },
-      );
+      const { template } = await generateCompanyLetterTemplate(companyId, type, token);
       setForm((current) => ({
         ...current,
         ...(type === "OFFER"
@@ -1012,7 +1007,7 @@ function handleAuthError(
 ) {
   if (error instanceof ApiError && error.status === 401) {
     clearRecruiterSession();
-    router.replace("/recruiter/login");
+    router.replace(`/recruiter/login?redirect=${encodeURIComponent("/recruiter/company-profile")}`);
     return;
   }
 
