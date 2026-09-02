@@ -536,6 +536,9 @@ Disallow: /api/
 Sitemap: https://upnext.works/sitemap.xml
 ```
 
+> Khối trên chỉ đúng với phương án **một sitemap duy nhất**. Nếu chia nhỏ, dòng `Sitemap:` phải
+> đổi — đọc bẫy ở cuối mục này trước khi copy.
+
 - Khi `SEO_INDEXING_ENABLED=false`, `robots.ts` trả `Disallow: /` **và** header `X-Robots-Tag`
   vẫn phải có ở nginx — hai lớp độc lập, không thay thế nhau.
 - Không đưa staging URL vào sitemap production.
@@ -1094,7 +1097,14 @@ SEO production launch chỉ được đánh dấu hoàn thành khi:
    được client bundle production, và giới hạn đó phải được nêu trong release note.**
 10. `/` redirect một hop 308 tới `/vi`; `www.` redirect 301 về apex; không còn duplicate locale/legacy job URL indexable.
 11. Dashboard theo dõi organic/crawl/conversion có owner chịu trách nhiệm vận hành.
-12. Ba mục **[cần đo lại]** ở §2.1 đã được đo trên deployment thật và bảng audit đã cập nhật.
+12. Ba phép đo **[cần đo lại]** (nằm ở 2 dòng của bảng §2.1) đã chạy trên deployment thật và
+    bảng audit đã cập nhật:
+
+    ```bash
+    curl -sI https://staging.upnext.works/vi | grep -i '^link:'   # hreflang staging
+    curl -sI https://upnext.works/vi        | grep -i '^link:'   # hreflang production
+    curl -sI https://staging.upnext.works/  | head -1            # / -> /vi là 307 hay 308
+    ```
 
     > Không đóng được từ môi trường agent: đã thử `curl https://staging.upnext.works/vi`, gateway
     > trả **403 CONNECT (policy denial)** — host không nằm trong allowlist. Ba lệnh ở §2.1 phải
