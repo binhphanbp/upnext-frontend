@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 
 import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/shared/api/http";
 
+import { resolveAiError } from "./ai-error-message";
 import { extractJobPostDraft, extractJobPostDraftFile } from "./api";
 import { saveJobPostAiDraft } from "./job-post-ai-draft-storage";
 import { JobPostAiImport } from "./job-post-ai-import";
@@ -34,17 +34,14 @@ export function JobPostAiImportPage() {
   }, [router]);
 
   const getAiErrorMessage = (error: unknown) => {
-    if (!(error instanceof ApiError)) {
-      return t("jobPostsPage.aiErrors.connectionFailed");
-    }
-    if (error.status === 401 || error.status === 403) {
+    const resolved = resolveAiError(error);
+    // Chỉ 401 mới xoá session. Trước đây nhánh này bắt cả 403, nên hết lượt AI hoặc
+    // gói không có tính năng cũng làm recruiter bị đăng xuất giữa lúc upload JD.
+    if (resolved.signOut) {
       clearRecruiterSession();
       router.replace("/recruiter/login");
-      return t("jobPostsPage.errors.sessionExpired");
     }
-    if (error.status === 429) return t("jobPostsPage.aiErrors.rateLimited");
-    if (error.status >= 500) return t("jobPostsPage.aiErrors.busy");
-    return error.message || t("jobPostsPage.aiGenerator.genericError");
+    return resolved.fallbackMessage ?? t(resolved.messageKey);
   };
 
   const handleExtracted = (response: Parameters<typeof saveJobPostAiDraft>[0]) => {

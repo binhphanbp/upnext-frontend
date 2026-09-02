@@ -13,7 +13,6 @@ import {
   MapPin,
   PaperPlaneTilt,
   SignOut,
-  SquaresFour,
   User,
   UserCircle,
 } from "@phosphor-icons/react";
@@ -23,7 +22,6 @@ import Image from "next/image";
 import { useRouter as useNativeRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
-import Swal from "sweetalert2";
 
 import { getMyCandidateProfile } from "@/features/candidate/api/profile";
 import { clearCandidateSession, getCandidateSession } from "@/features/candidate/session";

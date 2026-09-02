@@ -1,7 +1,5 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-
 import { Skeleton } from "@/shared/ui/skeleton";
 
 import { RecentActivity } from "./recent-activity";
@@ -10,7 +8,6 @@ import { StatCards } from "./stat-cards";
 import { useAdminDashboard } from "./use-admin-dashboard";
 
 export function AdminDashboard() {
-  const t = useTranslations("Admin.dashboard");
   const { data, isLoading } = useAdminDashboard();
 
   return (

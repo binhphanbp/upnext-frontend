@@ -196,7 +196,6 @@ function createJobStatusFilterOptions(t: JobPostTranslator) {
     { label: t("jobPostsPage.jobStatus.all"), value: "ALL" },
     { label: t("jobPostsPage.jobStatus.active"), value: "ACTIVE" },
     { label: t("jobPostsPage.jobStatus.expiringSoon"), value: "EXPIRING_SOON" },
-    { label: t("jobPostsPage.jobStatus.pendingReview"), value: "PENDING_REVIEW" },
     { label: t("jobPostsPage.jobStatus.draft"), value: "DRAFT" },
     { label: t("jobPostsPage.jobStatus.closed"), value: "CLOSED" },
   ];
@@ -753,27 +752,14 @@ export function RecruiterJobPostsPage({
         ]);
         setFeaturedJobQuota(nextQuotas.find((q) => q.feature === "featured_job") ?? null);
 
-        const isCompanyOnboarded =
-          nextAccount.company &&
-          (nextAccount.company.verificationStatus === "VERIFIED" ||
-            nextAccount.company.businessLicenseFileId);
-
-        const blocked = !nextAccount.profile || !isCompanyOnboarded;
+        const blocked =
+          view === "create" &&
+          (!nextAccount.profile || nextAccount.company?.verificationStatus !== "VERIFIED");
 
         if (blocked) {
           setRedirecting(true);
           setLoading(false);
-          const result = await Swal.fire({
-            icon: "warning",
-            title: t("jobPostsPage.onboardingBlockedTitle"),
-            text: t("jobPostsPage.onboardingBlockedText"),
-            confirmButtonColor: "#10a778",
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-          });
-          if (result.isConfirmed) {
-            router.replace("/recruiter/company-profile");
-          }
+          router.replace("/recruiter/company-profile");
           return;
         }
 
@@ -801,7 +787,7 @@ export function RecruiterJobPostsPage({
         setLoading(false);
       }
     },
-    [router, t],
+    [router, t, view],
   );
 
   useEffect(() => {
@@ -840,7 +826,7 @@ export function RecruiterJobPostsPage({
     async (error: unknown) => {
       showToast("error", getJobPostErrorMessage(t, error, account?.company?.reputationScore));
     },
-    [account?.company?.reputationScore, showToast, t],
+    [account?.company?.reputationScore, t],
   );
 
   async function submit(values: JobPostFormValues) {
@@ -2002,15 +1988,16 @@ export function RecruiterJobPostsPage({
                       colSpan={4}
                       className="pt-12 pb-20 text-center"
                     >
-                      <div className="flex flex-col items-center justify-center gap-1">
+                      <div className="flex flex-col items-center justify-center py-4">
                         <Image
-                          src="/assets/recruiter/icon/cv-find.png"
+                          src="/assets/recruiter/icon/icon_cv.png"
                           alt={t("jobPostsPage.emptyList.iconAlt")}
-                          height={192}
-                          width={192}
-                          className="h-48 w-48 object-contain"
+                          width={200}
+                          height={150}
+                          unoptimized
+                          className="mx-auto h-auto w-[220px] max-w-full object-contain select-none"
                         />
-                        <span className="-mt-6 pb-4 text-sm font-medium text-slate-700">
+                        <span className="mt-2 text-sm font-medium text-slate-600">
                           {searchTerm ||
                           statusFilter !== "ALL" ||
                           posterFilter !== "ALL" ||

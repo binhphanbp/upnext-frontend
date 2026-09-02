@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Plus, Trash, PencilSimple, CircleNotch } from "@phosphor-icons/react";
+import { Plus, Trash, PencilSimple, CircleNotch } from "@phosphor-icons/react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
@@ -110,6 +110,10 @@ export function RecruiterCompanyAddressesPage() {
             title: t("companyAddresses.errors.noCompanyTitle"),
             text: t("companyAddresses.errors.noCompanyText"),
             confirmButtonColor: "#10a778",
+            customClass: {
+              icon: "company-incomplete-alert__icon",
+              title: "company-incomplete-alert__title",
+            },
             allowOutsideClick: false,
             allowEscapeKey: false,
           });
@@ -126,6 +130,10 @@ export function RecruiterCompanyAddressesPage() {
             title: t("companyAddresses.errors.noCompanyTitle"),
             text: t("companyAddresses.errors.noCompanyText"),
             confirmButtonColor: "#10a778",
+            customClass: {
+              icon: "company-incomplete-alert__icon",
+              title: "company-incomplete-alert__title",
+            },
             allowOutsideClick: false,
             allowEscapeKey: false,
           });

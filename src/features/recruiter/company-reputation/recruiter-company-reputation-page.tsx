@@ -2,13 +2,9 @@
 
 import {
   ArrowsClockwise,
-  Buildings,
   CalendarBlank,
   CheckCircle,
   Clock,
-  Crown,
-  FileText,
-  Info,
   MagnifyingGlass,
   SealCheck,
   ShieldCheck,
@@ -17,7 +13,8 @@ import {
   TrendUp,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   getCompany,
@@ -28,23 +25,25 @@ import {
   getReputationActivities,
   type ReputationActivity,
 } from "@/features/recruiter/api/reputation";
-import { getRecruiterSession } from "@/features/recruiter/session";
+import { clearRecruiterSession, getRecruiterSession } from "@/features/recruiter/session";
 import { useRouter } from "@/i18n/navigation";
+import { ApiError } from "@/shared/api/http";
 import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 
+import { SelectFilter } from "../components/interviews/select-filter";
+import { RecruiterTableLayout } from "../components/recruiter-table-layout";
+
 type ReputationTier = "elite" | "trusted" | "standard" | "warning" | "locked";
 
 const REPUTATION_TIERS: ReadonlyArray<{
   id: ReputationTier;
-  label: string;
   range: string;
   min: number;
   max: number;
-  description: string;
   badgeTone: "success" | "info" | "warning" | "error" | "neutral";
   barColor: string;
   textColor: string;
@@ -52,11 +51,9 @@ const REPUTATION_TIERS: ReadonlyArray<{
 }> = [
   {
     id: "locked",
-    label: "Bị khóa",
     range: "< 30",
     min: 0,
     max: 29,
-    description: "Tài khoản bị tạm ngừng hoạt động tuyển dụng, ẩn toàn bộ bài đăng.",
     badgeTone: "error",
     barColor: "bg-red-500",
     textColor: "text-red-700",
@@ -64,12 +61,9 @@ const REPUTATION_TIERS: ReadonlyArray<{
   },
   {
     id: "warning",
-    label: "Cảnh báo",
     range: "30 - 49",
     min: 30,
     max: 49,
-    description:
-      "Giảm mức độ hiển thị tin tuyển dụng trên hệ thống, yêu cầu cải thiện chất lượng phản hồi.",
     badgeTone: "warning",
     barColor: "bg-orange-500",
     textColor: "text-orange-700",
@@ -77,12 +71,9 @@ const REPUTATION_TIERS: ReadonlyArray<{
   },
   {
     id: "standard",
-    label: "Tiêu chuẩn",
     range: "50 - 69",
     min: 50,
     max: 69,
-    description:
-      "Hồ sơ doanh nghiệp cơ bản, sử dụng các tính năng tuyển dụng theo hạn mức tiêu chuẩn.",
     badgeTone: "info",
     barColor: "bg-blue-500",
     textColor: "text-blue-700",
@@ -90,12 +81,9 @@ const REPUTATION_TIERS: ReadonlyArray<{
   },
   {
     id: "trusted",
-    label: "Tin cậy",
     range: "70 - 89",
     min: 70,
     max: 89,
-    description:
-      "Doanh nghiệp đã xác thực thông tin đầy đủ, sử dụng toàn bộ tính năng và hỗ trợ ưu tiên.",
     badgeTone: "success",
     barColor: "bg-emerald-500",
     textColor: "text-emerald-700",
@@ -103,12 +91,9 @@ const REPUTATION_TIERS: ReadonlyArray<{
   },
   {
     id: "elite",
-    label: "Ưu tú (Top Company)",
     range: "90 - 100",
     min: 90,
     max: 100,
-    description:
-      "Gắn nhãn Nhà tuyển dụng uy tín, ưu tiên vị trí hiển thị đầu trong kết quả tìm kiếm việc làm.",
     badgeTone: "success",
     barColor: "bg-emerald-600",
     textColor: "text-emerald-800",
@@ -118,54 +103,101 @@ const REPUTATION_TIERS: ReadonlyArray<{
 
 const REPUTATION_SCALE_MAX = 100;
 
+function formatReputationAction(
+  actionType: string,
+  t: ReturnType<typeof useTranslations<"Recruiter.dashboard.companyReputation">>,
+) {
+  if (!actionType) return t("action.default");
+  try {
+    const key = `action.${actionType}`;
+    if (typeof t.has === "function" && t.has(key)) {
+      return t(key as any);
+    }
+  } catch {
+    // Fall back to transformed string
+  }
+  return actionType
+    .toLowerCase()
+    .split("_")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 function getReputationTier(score: number) {
   return [...REPUTATION_TIERS].reverse().find((tier) => score >= tier.min) ?? REPUTATION_TIERS[0]!;
 }
 
 export function RecruiterCompanyReputationPage() {
+  const t = useTranslations("Recruiter.dashboard.companyReputation");
+  const locale = useLocale();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [company, setCompany] = useState<CompanyDetail | null>(null);
   const [activities, setActivities] = useState<ReputationActivity[]>([]);
+  const [reputationScore, setReputationScore] = useState(0);
+  const [publishThreshold, setPublishThreshold] = useState(50);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<"ALL" | "GAIN" | "LOSS">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const loadData = async (showSpinner = false) => {
-    if (showSpinner) setRefreshing(true);
-    try {
-      const session = getRecruiterSession();
-      if (!session) {
-        router.replace("/recruiter/login");
-        return;
-      }
+  const loadData = useCallback(
+    async (showSpinner = false) => {
+      if (showSpinner) setRefreshing(true);
+      setLoadError(null);
+      try {
+        const session = getRecruiterSession();
+        if (!session) {
+          router.replace("/recruiter/login");
+          return;
+        }
 
-      const account = await getRecruiterAccount(session.user.id, session.accessToken);
-      if (account?.company?.id) {
+        const account = await getRecruiterAccount(session.user.id, session.accessToken);
+        const accountCompany = account.company;
+        if (!accountCompany?.id) {
+          setCompany(null);
+          setActivities([]);
+          setReputationScore(0);
+          return;
+        }
+
+        setReputationScore(Number(accountCompany.reputationScore));
+        setPublishThreshold(accountCompany.minReputationScoreToPublish ?? 50);
+
         const [companyData, activitiesData] = await Promise.all([
-          getCompany(account.company.id, session.accessToken),
-          getReputationActivities(account.company.id, session.accessToken),
+          getCompany(accountCompany.id, session.accessToken),
+          getReputationActivities(accountCompany.id, session.accessToken),
         ]);
         setCompany(companyData);
         setActivities(activitiesData);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          clearRecruiterSession();
+          router.replace("/recruiter/login");
+          return;
+        }
+        setLoadError(t("state.loadErrorDesc"));
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    } catch (error) {
-      console.error("Lỗi khi tải dữ liệu điểm uy tín:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+    },
+    [router, t],
+  );
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [loadData]);
 
   const score = useMemo(() => {
-    const raw = Number(company?.reputationScore ?? 100);
-    return Number.isFinite(raw) ? Math.max(0, Math.min(REPUTATION_SCALE_MAX, raw)) : 100;
-  }, [company?.reputationScore]);
+    return Number.isFinite(reputationScore)
+      ? Math.max(0, Math.min(REPUTATION_SCALE_MAX, reputationScore))
+      : 0;
+  }, [reputationScore]);
 
   const currentTier = useMemo(() => getReputationTier(score), [score]);
   const scorePercent = Math.round((score / REPUTATION_SCALE_MAX) * 100);
@@ -179,13 +211,13 @@ export function RecruiterCompanyReputationPage() {
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const text =
-          `${act.reason || ""} ${act.actionType} ${act.byAdmin?.fullName || ""}`.toLowerCase();
+          `${act.reason || ""} ${act.actionType} ${formatReputationAction(act.actionType, t)} ${act.byAdmin?.fullName || ""}`.toLowerCase();
         if (!text.includes(query)) return false;
       }
 
       return true;
     });
-  }, [activities, filterType, searchQuery]);
+  }, [activities, filterType, searchQuery, t]);
 
   const totalGain = useMemo(() => {
     return activities.filter((a) => Number(a.score) > 0).length;
@@ -194,6 +226,15 @@ export function RecruiterCompanyReputationPage() {
   const totalLoss = useMemo(() => {
     return activities.filter((a) => Number(a.score) < 0).length;
   }, [activities]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, searchQuery, pageSize]);
+
+  const paginatedActivities = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredActivities.slice(start, start + pageSize);
+  }, [currentPage, filteredActivities, pageSize]);
 
   if (loading) {
     return (
@@ -211,42 +252,42 @@ export function RecruiterCompanyReputationPage() {
     );
   }
 
+  if (loadError) {
+    return (
+      <Card className="flex min-h-72 flex-col items-center justify-center border-slate-200 bg-white p-8 text-center">
+        <WarningCircle size={40} weight="duotone" className="text-red-500" />
+        <h1 className="mt-3 text-lg font-bold text-slate-900">{t("state.loadErrorTitle")}</h1>
+        <p className="mt-1 text-sm text-slate-500">{loadError}</p>
+        <Button className="mt-5" onClick={() => void loadData(true)} disabled={refreshing}>
+          <ArrowsClockwise size={16} className={cn(refreshing && "animate-spin")} />
+          {t("state.retry")}
+        </Button>
+      </Card>
+    );
+  }
+
+  if (!company) {
+    return (
+      <Card className="flex min-h-72 flex-col items-center justify-center border-slate-200 bg-white p-8 text-center">
+        <ShieldWarning size={40} weight="duotone" className="text-amber-500" />
+        <h1 className="mt-3 text-lg font-bold text-slate-900">{t("state.noCompanyTitle")}</h1>
+        <p className="mt-1 max-w-md text-sm text-slate-500">{t("state.noCompanyDesc")}</p>
+        <Button className="mt-5" onClick={() => router.push("/recruiter/company-profile")}>
+          {t("state.completeCompanyProfile")}
+        </Button>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-            Điểm uy tín doanh nghiệp
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Hệ thống chấm điểm tín nhiệm và quản lý lịch sử biến động điểm của doanh nghiệp
-          </p>
-        </div>
-        <div className="flex items-center gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void loadData(true)}
-            disabled={refreshing}
-            className="h-9 border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            <ArrowsClockwise
-              size={14}
-              className={cn("mr-1.5", refreshing && "animate-spin text-emerald-600")}
-            />
-            {refreshing ? "Đang đồng bộ..." : "Làm mới dữ liệu"}
-          </Button>
-        </div>
-      </div>
-
       {/* 4 Thống kê tổng quan dạng thẻ */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Điểm hiện tại */}
         <Card className="border-slate-200/90 bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-              Điểm tín nhiệm
+            <span className="text-xs font-semibold tracking-wide text-slate-500">
+              {t("kpi.trustScore")}
             </span>
             <div className="flex size-7 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
               <ShieldCheck size={16} weight="bold" />
@@ -254,11 +295,11 @@ export function RecruiterCompanyReputationPage() {
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
             <span className="text-2xl font-bold text-slate-900">{Math.round(score)}</span>
-            <span className="text-xs font-medium text-slate-400">/ 100 điểm</span>
+            <span className="text-xs font-medium text-slate-400">{t("kpi.scoreUnit")}</span>
           </div>
           <div className="mt-2">
             <Badge tone={currentTier.badgeTone} className="text-[11px] font-semibold">
-              {currentTier.label}
+              {t(`tier.${currentTier.id}.label`)}
             </Badge>
           </div>
         </Card>
@@ -266,40 +307,42 @@ export function RecruiterCompanyReputationPage() {
         {/* Trạng thái xác thực */}
         <Card className="border-slate-200/90 bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-              Hồ sơ pháp lý
+            <span className="text-xs font-semibold tracking-wide text-slate-500">
+              {t("kpi.legalProfile")}
             </span>
             <div className="flex size-7 items-center justify-center rounded-md bg-blue-50 text-blue-700">
               <SealCheck size={16} weight="bold" />
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-base font-bold text-slate-900">
+            <span className="text-base font-semibold text-slate-800">
               {company?.verificationStatus === "VERIFIED"
-                ? "Đã xác thực"
+                ? t("kpi.verified")
                 : company?.verificationStatus === "PENDING"
-                  ? "Đang chờ duyệt"
-                  : "Chưa xác thực"}
+                  ? t("kpi.pending")
+                  : t("kpi.unverified")}
             </span>
           </div>
           <p className="mt-2 text-xs text-slate-500">
-            {company?.taxCode ? `MST: ${company.taxCode}` : "Chưa cập nhật mã số thuế"}
+            {company?.taxCode ? t("kpi.taxCode", { code: company.taxCode }) : t("kpi.noTaxCode")}
           </p>
         </Card>
 
         {/* Điều kiện đăng tin */}
         <Card className="border-slate-200/90 bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-              Quyền đăng tuyển
+            <span className="text-xs font-semibold tracking-wide text-slate-500">
+              {t("kpi.publishEligibility")}
             </span>
             <div
               className={cn(
                 "flex size-7 items-center justify-center rounded-md",
-                score >= 30 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700",
+                score >= publishThreshold
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-red-50 text-red-700",
               )}
             >
-              {score >= 30 ? (
+              {score >= publishThreshold ? (
                 <CheckCircle size={16} weight="bold" />
               ) : (
                 <WarningCircle size={16} weight="bold" />
@@ -310,20 +353,24 @@ export function RecruiterCompanyReputationPage() {
             <span
               className={cn(
                 "text-base font-bold",
-                score >= 30 ? "text-emerald-700" : "text-red-700",
+                score >= publishThreshold ? "text-emerald-700" : "text-red-700",
               )}
             >
-              {score >= 30 ? "Đủ điều kiện đăng bài" : "Bị hạn chế đăng bài"}
+              {score >= publishThreshold
+                ? t("kpi.eligibleToPublish")
+                : t("kpi.ineligibleToPublish")}
             </span>
           </div>
-          <p className="mt-2 text-xs text-slate-500">Yêu cầu tối thiểu: 30 điểm</p>
+          <p className="mt-2 text-xs text-slate-500">
+            {t("kpi.minScoreRequirement", { threshold: publishThreshold })}
+          </p>
         </Card>
 
         {/* Biến động điểm */}
         <Card className="border-slate-200/90 bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-              Lịch sử ghi nhận
+            <span className="text-xs font-semibold tracking-wide text-slate-500">
+              {t("kpi.historySummary")}
             </span>
             <div className="flex size-7 items-center justify-center rounded-md bg-slate-100 text-slate-700">
               <Clock size={16} weight="bold" />
@@ -331,12 +378,18 @@ export function RecruiterCompanyReputationPage() {
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
             <span className="text-2xl font-bold text-slate-900">{activities.length}</span>
-            <span className="text-xs font-medium text-slate-400">lần biến động</span>
+            <span className="text-xs font-medium text-slate-400">
+              {t("kpi.changesCount", { count: activities.length })}
+            </span>
           </div>
           <div className="mt-2 flex items-center gap-3 text-xs">
-            <span className="font-medium text-emerald-700">+{totalGain} cộng</span>
+            <span className="font-medium text-emerald-700">
+              {t("kpi.gainsCount", { count: totalGain })}
+            </span>
             <span className="text-slate-300">|</span>
-            <span className="font-medium text-red-700">-{totalLoss} trừ</span>
+            <span className="font-medium text-red-700">
+              {t("kpi.lossesCount", { count: totalLoss })}
+            </span>
           </div>
         </Card>
       </div>
@@ -345,11 +398,12 @@ export function RecruiterCompanyReputationPage() {
       <Card className="border-slate-200/90 bg-white p-6 shadow-xs">
         <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Thang điểm tín nhiệm tuyển dụng</h2>
+            <h2 className="text-base font-bold text-slate-900">{t("scale.title")}</h2>
             <p className="text-xs text-slate-500">
-              Điểm số hiện tại của công ty:{" "}
-              <strong className="text-slate-800">{Math.round(score)}/100</strong> — Hạng:{" "}
-              <strong className={currentTier.textColor}>{currentTier.label}</strong>
+              {t("scale.subtitle", {
+                score: Math.round(score),
+                tier: t(`tier.${currentTier.id}.label`),
+              })}
             </p>
           </div>
         </div>
@@ -364,7 +418,7 @@ export function RecruiterCompanyReputationPage() {
               )}
               style={{ width: `${scorePercent}%` }}
             />
-            {REPUTATION_TIERS.filter((t) => t.min > 0).map((tier) => (
+            {REPUTATION_TIERS.filter((tItem) => tItem.min > 0).map((tier) => (
               <span
                 key={tier.id}
                 className="absolute top-0 h-full w-px bg-white/90 shadow-xs"
@@ -375,10 +429,10 @@ export function RecruiterCompanyReputationPage() {
 
           <div className="flex justify-between text-[11px] font-semibold text-slate-500">
             <span>0</span>
-            <span>30 (Cảnh báo)</span>
-            <span>50 (Tiêu chuẩn)</span>
-            <span>70 (Tin cậy)</span>
-            <span>90 (Ưu tú)</span>
+            <span>{t("scale.tickWarning")}</span>
+            <span>{t("scale.tickStandard")}</span>
+            <span>{t("scale.tickTrusted")}</span>
+            <span>{t("scale.tickElite")}</span>
             <span>100</span>
           </div>
         </div>
@@ -399,16 +453,22 @@ export function RecruiterCompanyReputationPage() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-800">{tier.label}</span>
+                    <span className="text-xs font-bold text-slate-800">
+                      {t(`tier.${tier.id}.label`)}
+                    </span>
                     {isCurrent && (
                       <span className="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                        Hiện tại
+                        {t("scale.currentBadge")}
                       </span>
                     )}
                   </div>
-                  <span className="text-xs font-semibold text-slate-500">{tier.range} đ</span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    {t("scale.pts", { range: tier.range })}
+                  </span>
                 </div>
-                <p className="mt-2 text-xs leading-relaxed text-slate-600">{tier.description}</p>
+                <p className="mt-2 text-xs leading-relaxed text-slate-600">
+                  {t(`tier.${tier.id}.description`)}
+                </p>
               </div>
             );
           })}
@@ -416,234 +476,143 @@ export function RecruiterCompanyReputationPage() {
       </Card>
 
       {/* Bảng Lịch sử biến động điểm uy tín */}
-      <Card className="border-slate-200/90 bg-white shadow-xs">
-        <div className="border-b border-slate-100 p-5">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Lịch sử biến động điểm uy tín</h2>
-              <p className="text-xs text-slate-500">
-                Nhật ký chi tiết các sự kiện cộng hoặc trừ điểm tín nhiệm của doanh nghiệp
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Filter Tabs */}
-              <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs font-semibold text-slate-600">
-                <button
-                  type="button"
-                  onClick={() => setFilterType("ALL")}
-                  className={cn(
-                    "rounded-md px-3 py-1 transition",
-                    filterType === "ALL"
-                      ? "bg-white font-bold text-slate-900 shadow-xs"
-                      : "hover:text-slate-900",
-                  )}
-                >
-                  Tất cả ({activities.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterType("GAIN")}
-                  className={cn(
-                    "rounded-md px-3 py-1 transition",
-                    filterType === "GAIN"
-                      ? "bg-white font-bold text-emerald-700 shadow-xs"
-                      : "hover:text-slate-900",
-                  )}
-                >
-                  Điểm cộng (+{totalGain})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterType("LOSS")}
-                  className={cn(
-                    "rounded-md px-3 py-1 transition",
-                    filterType === "LOSS"
-                      ? "bg-white font-bold text-red-700 shadow-xs"
-                      : "hover:text-slate-900",
-                  )}
-                >
-                  Điểm trừ (-{totalLoss})
-                </button>
+      <section>
+        <RecruiterTableLayout
+          loading={refreshing}
+          totalItems={filteredActivities.length}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          filterBar={
+            <div className="flex w-full min-w-0 flex-col gap-3 xl:flex-row xl:items-center">
+              <div className="min-w-0 xl:mr-auto xl:shrink-0">
+                <h2 className="text-base font-bold text-slate-900">{t("history.title")}</h2>
               </div>
 
-              {/* Search input */}
-              <div className="relative">
-                <MagnifyingGlass
-                  size={14}
-                  className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+              <div className="grid w-full min-w-0 gap-2 sm:grid-cols-[176px_minmax(220px,1fr)_auto] xl:w-auto xl:min-w-[590px]">
+                <SelectFilter
+                  ariaLabel={t("history.filterAria")}
+                  value={filterType}
+                  onChange={(value) => setFilterType(value as typeof filterType)}
+                  placeholder={t("history.filterPlaceholder")}
+                  options={[
+                    { value: "ALL", label: t("history.filterAll") },
+                    { value: "GAIN", label: t("history.filterGain") },
+                    { value: "LOSS", label: t("history.filterLoss") },
+                  ]}
+                  className="w-full min-w-0"
+                  triggerClassName={cn(
+                    "rounded-full",
+                    filterType !== "ALL" &&
+                      "border-emerald-500 bg-emerald-50/10 font-medium text-emerald-600",
+                  )}
                 />
-                <input
-                  type="text"
-                  placeholder="Tìm theo lý do / hành động..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-8 rounded-lg border border-slate-200 bg-white pr-3 pl-8 text-xs font-normal text-slate-800 placeholder:text-slate-400 focus:border-emerald-600 focus:outline-none"
-                />
+
+                <label className="relative min-w-0">
+                  <span className="sr-only">{t("history.searchAria")}</span>
+                  <MagnifyingGlass
+                    size={16}
+                    className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    aria-label={t("history.searchAria")}
+                    placeholder={t("history.searchPlaceholder")}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-10 w-full rounded-full border border-slate-200 bg-white pr-3 pl-9 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  />
+                </label>
+
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-full border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 shadow-none hover:bg-slate-50"
+                  onClick={() => void loadData(true)}
+                  disabled={refreshing}
+                >
+                  <ArrowsClockwise size={15} className={cn(refreshing && "animate-spin")} />
+                  {t("history.refresh")}
+                </Button>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Data Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold text-slate-500 uppercase">
+          }
+        >
+          <thead>
+            <tr>
+              <th>{t("history.columns.action")}</th>
+              <th>{t("history.columns.change")}</th>
+              <th>{t("history.columns.reason")}</th>
+              <th>{t("history.columns.time")}</th>
+              <th>{t("history.columns.performedBy")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredActivities.length === 0 ? (
               <tr>
-                <th className="py-3.5 pr-4 pl-5">Thời gian</th>
-                <th className="px-4 py-3.5">Hành động / Sự kiện</th>
-                <th className="px-4 py-3.5">Biến động</th>
-                <th className="px-4 py-3.5">Lý do & Diễn giải</th>
-                <th className="py-3.5 pr-5 pl-4">Thực hiện bởi</th>
+                <td colSpan={5} className="py-14 text-center text-slate-500">
+                  <CalendarBlank size={32} className="mx-auto mb-2 text-slate-300" />
+                  {activities.length === 0 ? t("history.emptyAll") : t("history.emptyFiltered")}
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredActivities.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
-                    <CalendarBlank size={32} className="mx-auto mb-2 text-slate-300" />
-                    Chưa có sự kiện biến động điểm nào được ghi nhận.
-                  </td>
-                </tr>
-              ) : (
-                filteredActivities.map((act) => {
-                  const delta = Number(act.score);
-                  const isPositive = delta > 0;
-                  const isNegative = delta < 0;
+            ) : (
+              paginatedActivities.map((act) => {
+                const delta = Number(act.score);
+                const isPositive = delta > 0;
+                const isNegative = delta < 0;
 
-                  return (
-                    <tr key={act.id} className="transition hover:bg-slate-50/50">
-                      <td className="py-3.5 pr-4 pl-5 font-medium whitespace-nowrap text-slate-600">
-                        {new Date(act.createdAt).toLocaleString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td className="px-4 py-3.5 font-semibold text-slate-800">
-                        {act.actionType || "Điều chỉnh điểm uy tín"}
-                      </td>
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold",
-                            isPositive
-                              ? "bg-emerald-50 text-emerald-700"
-                              : isNegative
-                                ? "bg-red-50 text-red-700"
-                                : "bg-slate-100 text-slate-700",
-                          )}
-                        >
-                          {isPositive && <TrendUp size={12} weight="bold" />}
-                          {isNegative && <TrendDown size={12} weight="bold" />}
-                          {isPositive ? `+${delta}` : delta} điểm
-                        </span>
-                      </td>
-                      <td className="max-w-xs px-4 py-3.5 text-slate-600">
-                        {act.reason || "Cập nhật hệ thống định kỳ"}
-                      </td>
-                      <td className="py-3.5 pr-5 pl-4 whitespace-nowrap text-slate-500">
-                        {act.byAdmin ? (
-                          <span className="font-medium text-slate-700">
-                            {act.byAdmin.fullName} (Admin)
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">Hệ thống tự động</span>
+                return (
+                  <tr key={act.id}>
+                    <td className="font-semibold text-slate-700">
+                      {formatReputationAction(act.actionType, t)}
+                    </td>
+                    <td className="whitespace-nowrap">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                          isPositive
+                            ? "bg-emerald-50 text-emerald-700"
+                            : isNegative
+                              ? "bg-red-50 text-red-700"
+                              : "bg-slate-100 text-slate-700",
                         )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Quy định & Hướng dẫn nghiệp vụ tính điểm */}
-      <div className="grid gap-5 md:grid-cols-2">
-        {/* Tiêu chuẩn cộng điểm */}
-        <Card className="border-slate-200/90 bg-white p-5 shadow-xs">
-          <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
-              <TrendUp size={16} weight="bold" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900">Cách gia tăng điểm uy tín</h3>
-          </div>
-          <ul className="mt-4 space-y-2.5 text-xs leading-relaxed text-slate-600">
-            <li className="flex items-start gap-2">
-              <CheckCircle size={15} className="mt-0.5 shrink-0 text-emerald-600" />
-              <span>
-                <strong>Hoàn thiện 100% hồ sơ:</strong> Cung cấp đầy đủ thông tin pháp lý, hình ảnh
-                văn phòng, địa chỉ làm việc rõ ràng (+5 đến +10 điểm).
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle size={15} className="mt-0.5 shrink-0 text-emerald-600" />
-              <span>
-                <strong>Xác thực giấy phép kinh doanh:</strong> Được Quản trị viên duyệt minh chứng
-                doanh nghiệp hợp lệ (+20 điểm).
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle size={15} className="mt-0.5 shrink-0 text-emerald-600" />
-              <span>
-                <strong>Tỷ lệ phản hồi CV đúng hạn:</strong> Phản hồi kết quả ứng tuyển cho ứng viên
-                trong vòng 7 ngày làm việc (+5 điểm định kỳ).
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle size={15} className="mt-0.5 shrink-0 text-emerald-600" />
-              <span>
-                <strong>Đánh giá tích cực:</strong> Nhận các phản hồi và đánh giá hài lòng từ ứng
-                viên sau quá trình phỏng vấn.
-              </span>
-            </li>
-          </ul>
-        </Card>
-
-        {/* Tiêu chuẩn trừ điểm & Chế tài */}
-        <Card className="border-slate-200/90 bg-white p-5 shadow-xs">
-          <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-md bg-red-50 text-red-700">
-              <ShieldWarning size={16} weight="bold" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900">Quy định trừ điểm & Chế tài</h3>
-          </div>
-          <ul className="mt-4 space-y-2.5 text-xs leading-relaxed text-slate-600">
-            <li className="flex items-start gap-2">
-              <WarningCircle size={15} className="mt-0.5 shrink-0 text-red-600" />
-              <span>
-                <strong>Bỏ rơi CV ứng viên:</strong> Không xem xét hoặc để hồ sơ ứng tuyển quá hạn
-                trên 14 ngày liên tục (-5 điểm).
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <WarningCircle size={15} className="mt-0.5 shrink-0 text-red-600" />
-              <span>
-                <strong>Tin tuyển dụng sai sự thật:</strong> Đăng tải thông tin mức lương hoặc địa
-                điểm không chính xác (-10 đến -20 điểm).
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <WarningCircle size={15} className="mt-0.5 shrink-0 text-red-600" />
-              <span>
-                <strong>Bị ứng viên khiếu nại:</strong> Bị báo cáo thu phí ứng viên hoặc hành vi
-                thiếu chuyên nghiệp sau kiểm duyệt (-30 điểm).
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <WarningCircle size={15} className="mt-0.5 shrink-0 text-red-600" />
-              <span>
-                <strong>Dưới 30 điểm (Bị khóa):</strong> Tài khoản tự động bị khóa đăng tin và phải
-                gửi kháng cáo giải trình để mở lại.
-              </span>
-            </li>
-          </ul>
-        </Card>
-      </div>
+                      >
+                        {isPositive && <TrendUp size={12} weight="bold" />}
+                        {isNegative && <TrendDown size={12} weight="bold" />}
+                        {isPositive
+                          ? t("history.pointsAdded", { points: delta })
+                          : t("history.pointsDeducted", { points: delta })}
+                      </span>
+                    </td>
+                    <td className="max-w-sm whitespace-normal text-slate-600">
+                      {act.reason || t("history.noReason")}
+                    </td>
+                    <td className="max-w-sm whitespace-normal text-slate-600">
+                      {new Date(act.createdAt).toLocaleString(locale === "vi" ? "vi-VN" : "en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="max-w-sm whitespace-normal text-slate-600">
+                      {act.byAdmin ? (
+                        <span className="max-w-sm whitespace-normal text-slate-600">
+                          {t("history.byAdmin", { name: act.byAdmin.fullName })}
+                        </span>
+                      ) : (
+                        <span className="max-w-sm whitespace-normal text-slate-600">
+                          {t("history.bySystem")}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </RecruiterTableLayout>
+      </section>
     </div>
   );
 }

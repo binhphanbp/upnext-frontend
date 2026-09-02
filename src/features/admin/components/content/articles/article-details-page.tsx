@@ -17,7 +17,6 @@ import {
   Image as ImageIcon,
   Clock,
   Article,
-  FolderSimple,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
@@ -28,7 +27,6 @@ import {
   deleteAdminPost,
   getAdminPostDetails,
   publishAdminPost,
-  type AdminPostResponse,
 } from "@/features/admin/api/posts";
 import { getAdminSession, clearAdminSession } from "@/features/admin/session";
 import { Link, useRouter } from "@/i18n/navigation";

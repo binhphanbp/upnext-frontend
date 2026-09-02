@@ -991,13 +991,14 @@
   "Recruiter": {
     "nav": {
       "recruitment": "Tuyển dụng",
-      "report": "Dashboard tuyển dụng",
+      "report": "Tổng quan tuyển dụng",
       "jobPosts": "Tin tuyển dụng",
       "candidates": "Ứng viên",
       "interviews": "Phỏng vấn",
       "messages": "Tin nhắn",
       "company": "Công ty",
       "companyProfile": "Hồ sơ công ty",
+      "companyVerificationRequired": "Xác thực công ty để sử dụng tính năng này.",
       "team": "Đội ngũ & quyền",
       "analytics": "Phân tích",
       "billing": "Thanh toán",
@@ -1135,7 +1136,8 @@
         "funnelTitle": "Phễu ứng viên",
         "funnelSubtitle": "Tổng {count} hồ sơ của công ty",
         "empty": "Chưa có hồ sơ ứng tuyển nào",
-        "loadError": "Chưa tải được số liệu ứng viên. Kiểm tra kết nối, hoặc tài khoản của bạn chưa được gắn với công ty nào.",
+        "funnelLoadError": "Chưa có dữ liệu phễu ứng viên",
+        "recentLoadError": "Chưa có hồ sơ ứng viên mới",
         "stat": {
           "unviewed": "Chưa xem",
           "new": "Mới trong 7 ngày",
@@ -1235,7 +1237,108 @@
           "lossText": "Điểm trừ được thực hiện khi tỷ lệ phản hồi với ứng viên kém, hoặc đăng tin tuyển dụng vi phạm tiêu chuẩn cộng đồng. Điểm trừ khi đạt tới mức cảnh báo sẽ làm giảm mức hiển thị của doanh nghiệp trên hệ thống, nặng hơn sẽ bị khóa tài khoản vĩnh viễn. Đặc biệt khi tài khoản công ty bị báo cáo lừa đảo từ ứng viên có minh chứng rõ ràng (hệ thống xác nhận lại) thì tài khoản sẽ bị xóa vĩnh viễn.",
           "tiersTitle": "Các thang điểm",
           "historyTitle": "Lịch sử biến động điểm",
-          "historyEmpty": "Chưa có biến động điểm nào."
+          "historyEmpty": "Chưa có biến động điểm nào.",
+          "historyLoading": "Đang tải lịch sử biến động..."
+        },
+        "currentScore": "Điểm số hiện tại",
+        "scoreUnit": "/ 100 điểm"
+      },
+      "companyReputation": {
+        "state": {
+          "loadErrorTitle": "Không thể tải điểm uy tín",
+          "loadErrorDesc": "Không thể tải dữ liệu điểm uy tín. Vui lòng thử lại.",
+          "retry": "Thử lại",
+          "noCompanyTitle": "Chưa có hồ sơ công ty",
+          "noCompanyDesc": "Hoàn tất hồ sơ công ty trước khi theo dõi điểm uy tín và lịch sử biến động.",
+          "completeCompanyProfile": "Hoàn tất hồ sơ công ty"
+        },
+        "kpi": {
+          "trustScore": "Điểm tín nhiệm",
+          "scoreUnit": "/ 100 điểm",
+          "legalProfile": "Hồ sơ pháp lý",
+          "verified": "Đã xác thực",
+          "pending": "Đang chờ duyệt",
+          "unverified": "Chưa xác thực",
+          "taxCode": "MST: {code}",
+          "noTaxCode": "Chưa cập nhật mã số thuế",
+          "publishEligibility": "Quyền đăng tuyển",
+          "eligibleToPublish": "Đủ điều kiện đăng bài",
+          "ineligibleToPublish": "Chưa đủ điểm đăng bài",
+          "minScoreRequirement": "Yêu cầu tối thiểu: {threshold} điểm",
+          "historySummary": "Lịch sử ghi nhận",
+          "changesCount": "{count} lần biến động",
+          "gainsCount": "{count} lần cộng",
+          "lossesCount": "{count} lần trừ"
+        },
+        "scale": {
+          "title": "Thang điểm tín nhiệm tuyển dụng",
+          "subtitle": "Điểm số hiện tại của công ty: {score}/100 — Hạng: {tier}",
+          "currentBadge": "Hiện tại",
+          "pts": "{range} đ",
+          "tickWarning": "30 (Cảnh báo)",
+          "tickStandard": "50 (Tiêu chuẩn)",
+          "tickTrusted": "70 (Tin cậy)",
+          "tickElite": "90 (Ưu tú)"
+        },
+        "tier": {
+          "locked": {
+            "label": "Bị khóa",
+            "description": "Tài khoản bị tạm ngừng hoạt động tuyển dụng, ẩn toàn bộ bài đăng."
+          },
+          "warning": {
+            "label": "Cảnh báo",
+            "description": "Giảm mức độ hiển thị tin tuyển dụng trên hệ thống, yêu cầu cải thiện chất lượng phản hồi."
+          },
+          "standard": {
+            "label": "Tiêu chuẩn",
+            "description": "Hồ sơ doanh nghiệp cơ bản, sử dụng các tính năng tuyển dụng theo hạn mức tiêu chuẩn."
+          },
+          "trusted": {
+            "label": "Tin cậy",
+            "description": "Doanh nghiệp đã xác thực thông tin đầy đủ, sử dụng toàn bộ tính năng và hỗ trợ ưu tiên."
+          },
+          "elite": {
+            "label": "Ưu tú (Top Company)",
+            "description": "Gắn nhãn Nhà tuyển dụng uy tín, ưu tiên vị trí hiển thị đầu trong kết quả tìm kiếm việc làm."
+          }
+        },
+        "history": {
+          "title": "Lịch sử biến động điểm uy tín",
+          "filterAria": "Lọc theo loại biến động điểm",
+          "filterPlaceholder": "Tất cả biến động",
+          "filterAll": "Tất cả biến động",
+          "filterGain": "Điểm cộng",
+          "filterLoss": "Điểm trừ",
+          "searchAria": "Tìm trong lịch sử điểm uy tín",
+          "searchPlaceholder": "Tìm theo lý do / hành động...",
+          "refresh": "Làm mới",
+          "columns": {
+            "action": "Hành động / Sự kiện",
+            "change": "Biến động",
+            "reason": "Lý do & Diễn giải",
+            "time": "Thời gian",
+            "performedBy": "Thực hiện bởi"
+          },
+          "pointsAdded": "+{points} điểm",
+          "pointsDeducted": "{points} điểm",
+          "noReason": "Không có diễn giải",
+          "byAdmin": "{name} (Admin)",
+          "bySystem": "Hệ thống tự động",
+          "emptyAll": "Chưa có biến động điểm nào được ghi nhận.",
+          "emptyFiltered": "Không tìm thấy biến động phù hợp với bộ lọc."
+        },
+        "action": {
+          "COMPANY_INFO_COMPLETED": "Hoàn tất thông tin công ty",
+          "TAX_CODE_VERIFIED": "Xác thực mã số thuế",
+          "REJECTED_VERIFICATION": "Từ chối xác thực doanh nghiệp",
+          "NEGLECTED_CV_PENALTY": "Hồ sơ ứng viên chưa được xử lý",
+          "CV_PROCESSING_EVALUATED": "Đánh giá tỷ lệ xử lý hồ sơ",
+          "EXPIRY_UNRESOLVED_PENALTY": "Tin hết hạn còn hồ sơ chưa xử lý",
+          "HIRING_RESULT_REPORTED": "Báo cáo kết quả tuyển dụng",
+          "RESTRICTED_BY_REPORT": "Hạn chế do báo cáo vi phạm",
+          "RESTRICTION_LIFTED_APPEAL": "Khôi phục sau khiếu nại",
+          "BANNED_FOR_FRAUD": "Khóa do gian lận",
+          "default": "Điều chỉnh điểm uy tín"
         }
       },
       "restricted": {
@@ -1333,9 +1436,11 @@
       "table": {
         "candidate": "Ứng viên",
         "job": "Vị trí",
+        "jobPost": "Vị trí",
         "round": "Vòng",
         "type": "Hình thức",
         "schedule": "Thời gian",
+        "scheduledAt": "Thời gian",
         "status": "Trạng thái",
         "result": "Kết quả",
         "interviewer": "Người phỏng vấn",
@@ -1534,6 +1639,7 @@
         "messages": {
           "saveSuccess": "Đã lưu hồ sơ công ty.",
           "autofillSuccess": "Đã tự động điền thông tin doanh nghiệp.",
+          "scanMissingField": "GPKD chưa có thông tin này, vui lòng bổ sung.",
           "scanSuccessTitle": "Quét thông tin thành công!",
           "scanSuccessConfirmText": "Bạn có muốn tự động điền các thông tin này vào form không?",
           "agree": "Đồng ý",
@@ -1544,7 +1650,8 @@
             "address": "Địa chỉ",
             "email": "Email",
             "phone": "Điện thoại",
-            "website": "Website"
+            "website": "Website",
+            "description": "Mô tả công ty"
           }
         },
         "loading": "Đang tải hồ sơ công ty...",
@@ -1836,7 +1943,11 @@
         "connectionFailed": "Không thể kết nối đến dịch vụ AI. Vui lòng thử lại.",
         "rateLimited": "Bạn đang thao tác quá nhanh. Vui lòng chờ một phút rồi thử lại.",
         "busy": "Dịch vụ AI đang bận. Vui lòng thử lại sau ít phút.",
-        "generic": "Không thể xử lý JD. Vui lòng kiểm tra lại dữ liệu."
+        "generic": "Không thể xử lý JD. Vui lòng kiểm tra lại dữ liệu.",
+        "planNotIncluded": "Gói của bạn không bao gồm công cụ AI cho tin tuyển dụng. Vui lòng nâng cấp để tiếp tục sử dụng.",
+        "companyRestricted": "Tài khoản công ty đang bị hạn chế nên không thực hiện được thao tác này. Vui lòng liên hệ hỗ trợ.",
+        "quotaExhausted": "Bạn đã dùng hết lượt AI tạo tin tuyển dụng của gói trong kỳ này.",
+        "inProgress": "Yêu cầu này đang được xử lý. Vui lòng đợi kết quả thay vì gửi lại."
       },
       "confirmDraftReplace": {
         "title": "Thay thế nội dung đang soạn?",
@@ -1860,7 +1971,7 @@
       "toasts": {
         "updatedPendingReview": "Đã cập nhật tin tuyển dụng, tin sẽ được duyệt lại trước khi hiển thị công khai.",
         "draftCreated": "Đã tạo bản nháp tin tuyển dụng thành công.",
-        "published": "Tin tuyển dụng đã được gửi duyệt.",
+        "published": "Tin tuyển dụng đã được đăng.",
         "reloadFailed": "Tin tuyển dụng đã lưu nhưng chưa tải lại được danh sách mới nhất.",
         "notFoundOrNoPermission": "Không tìm thấy tin tuyển dụng hoặc bạn không có quyền chỉnh sửa.",
         "reopened": "Tin tuyển dụng đã được mở lại, đang chờ admin duyệt.",
@@ -1883,7 +1994,7 @@
       },
       "jobStatus": {
         "all": "Tất cả",
-        "active": "Đang đăng",
+        "active": "Đã đăng",
         "expiringSoon": "Sắp hết hạn",
         "pendingReview": "Chờ duyệt",
         "draft": "Bản nháp",
@@ -2090,8 +2201,8 @@
         "saveDraftSubmitting": "Đang tạo...",
         "saveChanges": "Lưu thay đổi",
         "saveChangesSubmitting": "Đang lưu...",
-        "publish": "Đăng tin (gửi duyệt)",
-        "publishSubmitting": "Đang gửi..."
+        "publish": "Đăng tin",
+        "publishSubmitting": "Đang đăng..."
       },
       "detail": {
         "descriptionTitle": "Mô tả công việc",
@@ -2540,6 +2651,12 @@
     }
   },
   "WorkspaceShell": {
+    "lockedFeature": {
+      "title": "Tính năng đang bị khóa",
+      "description": "Xác thực công ty để sử dụng tính năng này.",
+      "action": "Hoàn tất xác thực",
+      "close": "Đóng"
+    },
     "searchPlaceholder": "Tìm việc, CV, công ty, kỹ năng...",
     "roles": {
       "candidate": "Ứng viên"

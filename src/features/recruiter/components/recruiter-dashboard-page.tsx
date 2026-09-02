@@ -309,6 +309,18 @@ function isCompanyProfileComplete(
   );
 }
 
+function isCompanyProfileChecklistComplete(
+  account: RecruiterAccountDetail,
+  companyDetail: CompanyDetail | null,
+) {
+  return Boolean(
+    isCompanyProfileComplete(account, companyDetail) &&
+    companyDetail?.benefits?.trim() &&
+    companyDetail.logoFile?.publicUrl &&
+    companyDetail.coverFile?.publicUrl,
+  );
+}
+
 function isCompanyLicenseSubmitted(account: RecruiterAccountDetail) {
   return Boolean(
     account.company &&
@@ -443,13 +455,18 @@ function getAiScoreClass(score: number) {
  * Khi API số liệu ứng viên lỗi, khối vẫn phải ở nguyên chỗ và nói rõ là không tải được —
  * ẩn cả khối đi thì lỗi thật (mất mạng, chưa gắn công ty) trông hệt như "chưa có dữ liệu".
  */
-function CandidateSummaryUnavailable({ message }: { message: string }) {
+function CandidateSummaryUnavailable({ message, imageSrc }: { message: string; imageSrc: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
-      <span className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-        <WarningCircle size={20} weight="bold" />
-      </span>
-      <p className="max-w-xs text-xs font-medium text-slate-500">{message}</p>
+      <Image
+        src={imageSrc}
+        alt=""
+        width={160}
+        height={120}
+        unoptimized
+        className="h-auto w-60 object-contain select-none"
+      />
+      <p className="pb-4 text-center text-sm font-medium text-slate-600">{message}</p>
     </div>
   );
 }
@@ -626,15 +643,20 @@ export function RecruiterDashboardPage() {
     async (accountId: string, accessToken: string) => {
       try {
         setLoading(true);
-        const [accountData, statsData, jobPostsData, candidateSummaryData, notificationsData] =
-          await Promise.all([
-            getRecruiterAccount(accountId, accessToken),
-            getRecruiterStats(accountId, accessToken),
-            getRecruiterJobPosts(accessToken, accountId).catch(() => [] as RecruiterJobPost[]),
-            // Nhà tuyển dụng chưa gắn công ty sẽ nhận 400 ở đây; dashboard vẫn phải hiện được.
-            getRecruiterCandidateSummary(accessToken).catch(() => null),
-            getNotifications(accessToken, 1, 5).catch(() => null),
-          ]);
+        const [accountData, statsData, notificationsData] = await Promise.all([
+          getRecruiterAccount(accountId, accessToken),
+          getRecruiterStats(accountId, accessToken),
+          getNotifications(accessToken, 1, 5).catch(() => null),
+        ]);
+        const companyId = accountData.company?.id;
+        const [jobPostsData, candidateSummaryData, loadedCompanyDetail] = companyId
+          ? await Promise.all([
+              getRecruiterJobPosts(accessToken).catch(() => [] as RecruiterJobPost[]),
+              getRecruiterCandidateSummary(accessToken).catch(() => null),
+              getCompany(companyId, accessToken).catch(() => null),
+            ])
+          : [[], null, null];
+
         setAccount(accountData);
         setStats(statsData);
         setJobPosts(jobPostsData);
@@ -643,14 +665,11 @@ export function RecruiterDashboardPage() {
           setNotifications(notificationsData.data);
         }
 
-        const companyId = accountData.company?.id;
-        setCompanyDetail(
-          companyId ? await getCompany(companyId, accessToken).catch(() => null) : null,
-        );
+        setCompanyDetail(loadedCompanyDetail);
       } catch (error) {
         showToast("error", getOnboardingErrorMessage(error, t));
 
-        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        if (error instanceof ApiError && error.status === 401) {
           clearRecruiterSession();
           router.replace("/recruiter/login");
         }
@@ -677,7 +696,9 @@ export function RecruiterDashboardPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const hasPhone = Boolean(account?.profile?.phoneNumber);
-  const hasCompanyInfo = Boolean(account && isCompanyProfileComplete(account, companyDetail));
+  const hasCompanyInfo = Boolean(
+    account && isCompanyProfileChecklistComplete(account, companyDetail),
+  );
   const hasPostedJob = Boolean(stats && stats.totalJobPosts > 0);
 
   const totalViews = useMemo(
@@ -874,7 +895,9 @@ export function RecruiterDashboardPage() {
   }
 
   return (
-    <div className="space-y-6 [font-family:var(--font-sans)] [--ring:#10a778]">
+    <main className="space-y-6 [font-family:var(--font-sans)] [--ring:#10a778]">
+      <h1 className="sr-only">{t("dashboard.title")} - UpNext</h1>
+
       {isCompanyRestricted ? (
         <div className="upnext-shadow flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
@@ -902,7 +925,7 @@ export function RecruiterDashboardPage() {
         </div>
       ) : null}
       {/* Banners Slider */}
-      <div className="relative hidden w-full overflow-visible md:block">
+      <section aria-label="Banners" className="relative hidden w-full overflow-visible md:block">
         {/* Left Arrow Button */}
         <button
           type="button"
@@ -943,7 +966,7 @@ export function RecruiterDashboardPage() {
             <div className="w-full min-w-full overflow-hidden rounded-xl border border-slate-100/80 bg-white md:w-[calc(50%-8px)] md:min-w-[calc(50%-8px)]">
               <img
                 src="/assets/recruiter/banner/banner1.png"
-                alt="Banner 1"
+                alt="Banner tuyển dụng UpNext 1"
                 className="h-auto w-full object-cover"
               />
             </div>
@@ -951,7 +974,7 @@ export function RecruiterDashboardPage() {
             <div className="w-full min-w-full overflow-hidden rounded-xl border border-slate-100/80 bg-white md:w-[calc(50%-8px)] md:min-w-[calc(50%-8px)]">
               <img
                 src="/assets/recruiter/banner/banner2.png"
-                alt="Banner 2"
+                alt="Banner tuyển dụng UpNext 2"
                 className="h-auto w-full object-cover"
               />
             </div>
@@ -959,15 +982,18 @@ export function RecruiterDashboardPage() {
             <div className="w-full min-w-full overflow-hidden rounded-xl border border-slate-100/80 bg-white md:w-[calc(50%-8px)] md:min-w-[calc(50%-8px)]">
               <img
                 src="/assets/recruiter/banner/banner3.png"
-                alt="Banner 3"
+                alt="Banner tuyển dụng UpNext 3"
                 className="h-auto w-full object-cover"
               />
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="recruiter-onboarding-card upnext-shadow relative overflow-hidden rounded-2xl border border-slate-100/90 p-6 shadow-sm">
+      <section
+        aria-labelledby="onboarding-section-title"
+        className="recruiter-onboarding-card upnext-shadow relative overflow-hidden rounded-2xl border border-slate-100/90 p-6 shadow-sm"
+      >
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -1023,13 +1049,16 @@ export function RecruiterDashboardPage() {
           <div className="z-10 flex flex-col gap-4 lg:col-span-10">
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-1">
-                <h3 className="text-[clamp(16px,2vw,18px)] font-bold text-slate-800">
+                <h2
+                  id="onboarding-section-title"
+                  className="text-lg font-bold text-slate-800 sm:text-xl"
+                >
                   {t("dashboard.onboardingWidget.title", { name: "" })}
                   <span className="text-emerald-600">
                     {account?.profile?.fullName || t("dashboard.defaultName")}
                   </span>
-                </h3>
-                <p className="max-w-xl text-[12px] leading-relaxed font-normal text-slate-500">
+                </h2>
+                <p className="max-w-xl text-sm leading-relaxed font-normal text-slate-500">
                   {allCompleted
                     ? t("dashboard.onboardingWidget.completeSubtitle")
                     : t("dashboard.onboardingWidget.subtitle")}
@@ -1081,7 +1110,7 @@ export function RecruiterDashboardPage() {
                     <div className="flex items-center gap-3">
                       <div
                         className={cn(
-                          "flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all",
+                          "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all",
                           allCompleted || task.completed
                             ? "bg-emerald-500 text-white"
                             : "bg-slate-100 text-slate-500 group-hover:bg-slate-200",
@@ -1091,7 +1120,7 @@ export function RecruiterDashboardPage() {
                       </div>
                       <span
                         className={cn(
-                          "text-xs font-semibold leading-tight transition-colors",
+                          "text-sm font-semibold leading-tight transition-colors",
                           allCompleted || task.completed
                             ? "text-emerald-700"
                             : "text-slate-600 group-hover:text-slate-800",
@@ -1157,10 +1186,13 @@ export function RecruiterDashboardPage() {
             className="animate-fade-in h-full w-auto object-contain object-right opacity-20 duration-500 lg:opacity-100"
           />
         </div>
-      </div>
+      </section>
 
       {/* ROW: Welcome + verification + job status distribution */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+      <section
+        aria-label="Tổng quan tuyển dụng và trạng thái"
+        className="grid grid-cols-1 gap-6 xl:grid-cols-12"
+      >
         {/* Left: Mini Cards (Chiếm 5 cột) */}
         <div className="flex flex-col gap-6 xl:col-span-5">
           {/* Mini Cards: Job posts & Candidates (real data) */}
@@ -1169,8 +1201,10 @@ export function RecruiterDashboardPage() {
             <div className="upnext-shadow flex h-40 flex-col justify-between rounded-2xl bg-white p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="mb-1 text-sm text-slate-400">{t("dashboard.totalJobPosts")}</p>
-                  <h3 className="text-[clamp(20px,2.5vw,24px)] font-bold text-slate-800">
+                  <p className="mb-1 text-sm font-medium text-slate-500">
+                    {t("dashboard.totalJobPosts")}
+                  </p>
+                  <h3 className="text-2xl font-bold text-slate-800 sm:text-3xl">
                     {jobPosts.length.toLocaleString()}
                   </h3>
                 </div>
@@ -1179,7 +1213,7 @@ export function RecruiterDashboardPage() {
                 </span>
               </div>
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2 text-xs font-semibold">
+                <div className="flex items-center gap-2 text-sm font-semibold">
                   <span className="text-emerald-600">
                     {t("dashboard.miniCard.publishedCount", { count: publishedCount })}
                   </span>
@@ -1194,8 +1228,10 @@ export function RecruiterDashboardPage() {
             <div className="upnext-shadow flex h-40 flex-col justify-between rounded-2xl bg-white p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="mb-1 text-sm text-slate-400">{t("dashboard.totalApplications")}</p>
-                  <h3 className="text-[clamp(20px,2.5vw,24px)] font-bold text-slate-800">
+                  <p className="mb-1 text-sm font-medium text-slate-500">
+                    {t("dashboard.totalApplications")}
+                  </p>
+                  <h3 className="text-2xl font-bold text-slate-800 sm:text-3xl">
                     {totalApplications.toLocaleString()}
                   </h3>
                 </div>
@@ -1203,7 +1239,7 @@ export function RecruiterDashboardPage() {
                   <Users size={20} weight="bold" />
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
                 <span>{t("dashboard.miniCard.applicationsHint")}</span>
               </div>
             </div>
@@ -1212,16 +1248,18 @@ export function RecruiterDashboardPage() {
           {/* Reputation score (real data) */}
           <div className="upnext-shadow flex flex-1 flex-col rounded-2xl bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Crown size={18} weight="fill" className="text-amber-500" />
-                <h3 className="text-[clamp(14px,1.8vw,16px)] font-bold text-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-500">
+                  <Crown size={22} weight="fill" />
+                </div>
+                <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
                   {t("dashboard.reputation.title")}
-                </h3>
+                </h2>
               </div>
               <button
                 type="button"
                 onClick={() => setReputationDialogOpen(true)}
-                className="text-primary flex items-center gap-1 text-xs font-bold hover:underline"
+                className="text-primary flex items-center gap-1 text-sm font-semibold hover:underline"
               >
                 <Info size={14} weight="bold" />
                 {t("dashboard.reputation.learnMore")}
@@ -1230,7 +1268,7 @@ export function RecruiterDashboardPage() {
 
             <div className="mb-4 flex items-end justify-between">
               <div>
-                <span className="text-[clamp(24px,3.5vw,30px)] font-bold text-slate-800">
+                <span className="text-2xl font-bold text-slate-800 sm:text-3xl">
                   {Math.round(reputationScore)}
                 </span>
                 <span className="ml-1 text-sm font-semibold text-slate-400">/ 100</span>
@@ -1261,7 +1299,7 @@ export function RecruiterDashboardPage() {
                 />
               ))}
             </div>
-            <div className="mb-4 flex justify-between text-[10px] font-semibold text-slate-400">
+            <div className="mb-4 flex justify-between text-xs font-medium text-slate-400">
               <span>0</span>
               <span>30</span>
               <span>50</span>
@@ -1270,7 +1308,7 @@ export function RecruiterDashboardPage() {
               <span>100</span>
             </div>
 
-            <p className="text-xs leading-relaxed text-slate-500">
+            <p className="text-sm leading-relaxed text-slate-600">
               {t(`dashboard.reputation.tier.${reputationTier.id}.description`)}
             </p>
           </div>
@@ -1284,11 +1322,11 @@ export function RecruiterDashboardPage() {
                 <ChartBar size={24} weight="bold" />
               </div>
               <div>
-                <h3 className="text-[clamp(16px,2vw,18px)] font-bold text-slate-800">
+                <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
                   {t("dashboard.statusDistribution.title")}
-                </h3>
-                <div className="flex items-center gap-1.5 text-[13px] text-slate-400">
-                  <Eye size={15} weight="bold" className="text-slate-400" />
+                </h2>
+                <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                  <Eye size={16} weight="bold" className="text-slate-400" />
                   <span>{t("dashboard.miniCard.totalViews", { count: totalViews })}</span>
                 </div>
               </div>
@@ -1299,19 +1337,19 @@ export function RecruiterDashboardPage() {
             {jobPosts.length === 0 ? (
               <div className="col-span-full flex flex-col items-center justify-center py-6 text-center">
                 <Image
-                  src="/assets/recruiter/icon/cv-find.png"
-                  alt="Chưa có tin tuyển dụng"
+                  src="/assets/recruiter/icon/icon_cv.png"
+                  alt={t("dashboard.statusDistribution.empty")}
                   width={240}
-                  height={180}
+                  height={160}
                   priority
                   unoptimized
-                  className="mx-auto h-auto w-[240px] max-w-full object-contain select-none"
+                  className="mx-auto h-auto w-[220px] max-w-full object-contain select-none"
                 />
 
-                <h4 className="-mt-6 text-[clamp(14px,1.8vw,16px)] font-bold text-slate-700">
+                <h4 className="text-base font-bold text-slate-700">
                   {t("dashboard.statusDistribution.empty")}
                 </h4>
-                <p className="mt-1 max-w-md text-xs font-medium text-balance text-slate-500">
+                <p className="mt-1 max-w-md text-sm font-medium text-balance text-slate-500">
                   {t("dashboard.statusDistribution.emptySubtitle")}
                 </p>
               </div>
@@ -1350,10 +1388,8 @@ export function RecruiterDashboardPage() {
                         <Icon size={20} weight="bold" />
                       </span>
                       <div className="mt-4 flex items-baseline gap-2">
-                        <p className="text-[clamp(20px,2.5vw,24px)] font-bold text-slate-800">
-                          {count}
-                        </p>
-                        <p className="truncate text-sm font-semibold text-slate-600">
+                        <p className="text-2xl font-bold text-slate-800">{count}</p>
+                        <p className="truncate text-base font-semibold text-slate-700">
                           {t(`dashboard.statusDistribution.status.${status}`)}
                         </p>
                       </div>
@@ -1383,10 +1419,13 @@ export function RecruiterDashboardPage() {
             )}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ROW: Candidate funnel + latest applications (real data) */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+      <section
+        aria-label="Phễu ứng viên và hồ sơ ứng tuyển mới nhất"
+        className="grid grid-cols-1 gap-6 xl:grid-cols-12"
+      >
         {/* Left: candidate funnel + quick stats */}
         <div className="upnext-shadow flex flex-col rounded-2xl bg-white p-6 xl:col-span-5">
           <div className="mb-5 flex items-start justify-between gap-3">
@@ -1395,10 +1434,10 @@ export function RecruiterDashboardPage() {
                 <Funnel size={22} weight="bold" />
               </div>
               <div>
-                <h3 className="text-[clamp(14px,1.8vw,16px)] font-bold text-slate-800">
+                <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
                   {t("dashboard.candidates.funnelTitle")}
-                </h3>
-                <p className="text-[13px] text-slate-400">
+                </h2>
+                <p className="text-sm text-slate-500">
                   {t("dashboard.candidates.funnelSubtitle", {
                     count: candidateSummary?.totals.total ?? 0,
                   })}
@@ -1408,59 +1447,64 @@ export function RecruiterDashboardPage() {
           </div>
 
           {!candidateSummary ? (
-            <CandidateSummaryUnavailable message={t("dashboard.candidates.loadError")} />
+            <CandidateSummaryUnavailable
+              message={t("dashboard.candidates.funnelLoadError")}
+              imageSrc="/assets/recruiter/icon/icon_phieu_ung_vien.png"
+            />
           ) : (
             <>
-              <div className="mb-5 grid grid-cols-2 gap-3">
-                {candidateStatCards.map((stat) => {
-                  const StatIcon = stat.icon;
-                  const href = stat.href;
-                  const Tag = href ? "button" : "div";
-                  return (
-                    <Tag
-                      key={stat.id}
-                      {...(href
-                        ? { type: "button" as const, onClick: () => router.push(href) }
-                        : {})}
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-left",
-                        href && "transition hover:border-slate-200 hover:bg-slate-50/60",
-                      )}
-                    >
-                      <span
+              {candidateSummary.totals.total > 0 && (
+                <div className="mb-5 grid grid-cols-2 gap-3">
+                  {candidateStatCards.map((stat) => {
+                    const StatIcon = stat.icon;
+                    const href = stat.href;
+                    const Tag = href ? "button" : "div";
+                    return (
+                      <Tag
+                        key={stat.id}
+                        {...(href
+                          ? { type: "button" as const, onClick: () => router.push(href) }
+                          : {})}
                         className={cn(
-                          "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                          stat.toneBg,
-                          stat.tone,
+                          "flex items-center gap-3 rounded-xl border border-slate-100 p-3 text-left",
+                          href && "transition hover:border-slate-200 hover:bg-slate-50/60",
                         )}
                       >
-                        <StatIcon size={18} weight="bold" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-[clamp(16px,2vw,20px)] leading-tight font-bold text-slate-800">
-                          {stat.value.toLocaleString()}
+                        <span
+                          className={cn(
+                            "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                            stat.toneBg,
+                            stat.tone,
+                          )}
+                        >
+                          <StatIcon size={18} weight="bold" />
                         </span>
-                        <span className="block truncate text-[11px] font-semibold text-slate-500">
-                          {stat.label}
+                        <span className="min-w-0">
+                          <span className="block text-xl leading-tight font-bold text-slate-800">
+                            {stat.value.toLocaleString()}
+                          </span>
+                          <span className="block truncate text-xs font-medium text-slate-600 sm:text-sm">
+                            {stat.label}
+                          </span>
                         </span>
-                      </span>
-                    </Tag>
-                  );
-                })}
-              </div>
+                      </Tag>
+                    );
+                  })}
+                </div>
+              )}
 
               {candidateSummary.totals.total === 0 ? (
                 <div className="flex flex-1 flex-col items-center justify-center text-center">
                   <Image
-                    src="/assets/recruiter/icon/cv-find.png"
+                    src="/assets/recruiter/icon/icon_phieu_ung_vien.png"
                     alt=""
                     width={200}
                     height={150}
                     unoptimized
                     className="mx-auto h-auto w-[200px] max-w-full object-contain select-none"
                   />
-                  <p className="-mt-5 text-sm font-medium text-slate-600">
-                    {t("dashboard.candidates.empty")}
+                  <p className="text-sm font-medium text-slate-600">
+                    {t("dashboard.candidates.funnelLoadError")}
                   </p>
                 </div>
               ) : (
@@ -1470,7 +1514,7 @@ export function RecruiterDashboardPage() {
                     const pct = Math.round((stage.count / funnelMax) * 100);
                     return (
                       <div key={stage.status} className="flex items-center gap-3">
-                        <span className="w-[104px] shrink-0 truncate text-xs font-semibold text-slate-600">
+                        <span className="w-[110px] shrink-0 truncate text-sm font-semibold text-slate-700">
                           {t(`dashboard.candidates.status.${stage.status}` as never)}
                         </span>
                         <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
@@ -1482,14 +1526,14 @@ export function RecruiterDashboardPage() {
                             style={{ width: `${stage.count > 0 ? Math.max(pct, 4) : 0}%` }}
                           />
                         </span>
-                        <span className="w-9 shrink-0 text-right text-xs font-bold text-slate-700">
+                        <span className="w-9 shrink-0 text-right text-sm font-bold text-slate-800">
                           {stage.count}
                         </span>
                       </div>
                     );
                   })}
 
-                  <div className="mt-auto space-y-1 border-t border-slate-100 pt-3 text-[11px] font-medium text-slate-400">
+                  <div className="mt-auto space-y-1 border-t border-slate-100 pt-3 text-xs font-medium text-slate-500 sm:text-sm">
                     <p>
                       {t("dashboard.candidates.aiSummary", {
                         excellent: candidateSummary.aiScoreBuckets.excellent,
@@ -1517,9 +1561,9 @@ export function RecruiterDashboardPage() {
               <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                 <Users size={22} weight="bold" />
               </div>
-              <h3 className="text-[clamp(14px,1.8vw,16px)] font-bold text-slate-800">
+              <h2 className="text-lg font-bold text-slate-800 sm:text-xl">
                 {t("dashboard.candidates.recentTitle")}
-              </h3>
+              </h2>
             </div>
             <button
               type="button"
@@ -1531,24 +1575,27 @@ export function RecruiterDashboardPage() {
           </div>
 
           {!candidateSummary ? (
-            <CandidateSummaryUnavailable message={t("dashboard.candidates.loadError")} />
+            <CandidateSummaryUnavailable
+              message={t("dashboard.candidates.recentLoadError")}
+              imageSrc="/assets/recruiter/icon/icon_ho_so_moi_nhat.png"
+            />
           ) : candidateSummary.recentApplications.length === 0 ? (
             <>
               <Image
-                src="/assets/recruiter/icon/cv-find.png"
-                alt=""
+                src="/assets/recruiter/icon/icon_ho_so_moi_nhat.png"
+                alt={t("dashboard.candidates.recentLoadError")}
                 width={240}
                 height={180}
                 unoptimized
-                className="mx-auto h-auto w-[240px] max-w-full object-contain select-none"
+                className="mx-auto h-auto w-[220px] max-w-full object-contain select-none"
               />
-              <p className="-mt-6 pb-4 text-center text-sm font-medium text-slate-600">
-                {t("dashboard.candidates.empty")}
+              <p className="pb-4 text-center text-sm font-medium text-slate-600">
+                {t("dashboard.candidates.recentLoadError")}
               </p>
             </>
           ) : (
             <RecruiterTableLayout loading={false}>
-              <thead className="text-left text-xs font-bold text-slate-900">
+              <thead className="text-left text-xs font-semibold text-slate-800 sm:text-sm">
                 <tr>
                   <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
                     {t("dashboard.candidates.table.candidate")}
@@ -1589,13 +1636,13 @@ export function RecruiterDashboardPage() {
                         <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                           <User size={14} weight="bold" />
                         </span>
-                        <span className="min-w-0 truncate text-sm font-semibold text-slate-600">
+                        <span className="min-w-0 truncate text-sm font-semibold text-slate-700">
                           {application.candidateName || application.candidateEmail}
                         </span>
                       </button>
                     </td>
                     <td className="max-w-[200px] border-r border-slate-100/50 px-4 py-3 last:border-r-0">
-                      <span className="block max-w-full truncate font-medium text-slate-600">
+                      <span className="block max-w-full truncate text-sm font-medium text-slate-700">
                         {application.jobPostTitle}
                       </span>
                     </td>
@@ -1605,18 +1652,20 @@ export function RecruiterDashboardPage() {
                           {t("dashboard.candidates.notScored")}
                         </span>
                       ) : (
-                        <span className={cn("font-bold", getAiScoreClass(application.aiScore))}>
+                        <span
+                          className={cn("text-sm font-bold", getAiScoreClass(application.aiScore))}
+                        >
                           {Math.round(application.aiScore)}
                         </span>
                       )}
                     </td>
-                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-medium text-slate-600 last:border-r-0">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center text-sm font-medium text-slate-600 last:border-r-0">
                       {formatAppDate(application.submittedAt, locale === "en" ? "en" : "vi")}
                     </td>
                     <td className="border-r border-slate-100/50 px-4 py-3 text-center last:border-r-0">
                       <span
                         className={cn(
-                          "rounded-full px-2 py-1 text-[11px] font-bold",
+                          "rounded-full px-2.5 py-1 text-xs font-semibold",
                           getApplicationStatusStyle(application.status).badge,
                         )}
                       >
@@ -1629,19 +1678,22 @@ export function RecruiterDashboardPage() {
             </RecruiterTableLayout>
           )}
         </div>
-      </div>
+      </section>
 
       {/* ROW: Top jobs by applications (real data, full width) */}
-      <div className="upnext-shadow flex flex-col rounded-2xl bg-white p-6">
+      <section
+        aria-labelledby="top-jobs-heading"
+        className="upnext-shadow flex flex-col rounded-2xl bg-white p-6"
+      >
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#5d87ff]">
               <TrendUp size={22} weight="bold" />
             </div>
             <div>
-              <h3 className="text-[clamp(14px,1.8vw,16px)] font-bold text-slate-800">
+              <h2 id="top-jobs-heading" className="text-lg font-bold text-slate-800 sm:text-xl">
                 {t("dashboard.topJobs.title")}
-              </h3>
+              </h2>
             </div>
           </div>
           <button
@@ -1656,22 +1708,22 @@ export function RecruiterDashboardPage() {
         {topJobs.length === 0 ? (
           <>
             <Image
-              src="/assets/recruiter/icon/cv-find.png"
-              alt="Chưa có tin tuyển dụng"
+              src="/assets/recruiter/icon/icon_cv.png"
+              alt={t("dashboard.topJobs.empty")}
               width={240}
-              height={180}
+              height={160}
               priority
               unoptimized
-              className="mx-auto h-auto w-[240px] max-w-full object-contain select-none"
+              className="mx-auto h-auto w-[260px] max-w-full object-contain select-none"
             />
 
-            <p className="-mt-6 pb-4 text-center text-sm font-medium text-slate-600">
+            <p className="pb-4 text-center text-sm font-medium text-slate-600">
               {t("dashboard.topJobs.empty")}
             </p>
           </>
         ) : (
           <RecruiterTableLayout loading={false}>
-            <thead className="text-left text-xs font-bold text-slate-900">
+            <thead className="text-left text-xs font-semibold text-slate-800 sm:text-sm">
               <tr>
                 <th className="border-r border-slate-300 px-4 py-2.5 last:border-r-0" scope="col">
                   {t("dashboard.topJobs.table.job")}
@@ -1709,11 +1761,11 @@ export function RecruiterDashboardPage() {
                 const publishedDate = jp.publishedAt ?? jp.createdAt;
                 return (
                   <tr key={jp.id}>
-                    <td className="max-w-[220px] border-r border-slate-100/50 px-4 py-3 font-semibold text-slate-600 last:border-r-0">
+                    <td className="max-w-[220px] border-r border-slate-100/50 px-4 py-3 text-sm font-semibold text-slate-700 last:border-r-0">
                       <button
                         type="button"
                         onClick={() => router.push("/recruiter/job-posts")}
-                        className="hover:text-primary max-w-full truncate text-left text-slate-600 hover:underline"
+                        className="hover:text-primary max-w-full truncate text-left text-slate-700 hover:underline"
                       >
                         {jp.title}
                       </button>
@@ -1721,21 +1773,21 @@ export function RecruiterDashboardPage() {
                     <td className="border-r border-slate-100/50 px-4 py-3 text-center last:border-r-0">
                       <span
                         className={cn(
-                          "rounded-full px-2 py-1 text-[11px] font-medium text-white",
+                          "rounded-full px-2.5 py-1 text-xs font-semibold text-white",
                           config.badgeBg,
                         )}
                       >
                         {t(`dashboard.statusDistribution.status.${displayStatus}`)}
                       </span>
                     </td>
-                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-medium text-slate-600 last:border-r-0">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center text-sm font-medium text-slate-700 last:border-r-0">
                       {jp._count?.applications ?? 0} /{" "}
                       <span className="text-primary font-semibold">{jp.vacanciesCount}</span>
                     </td>
-                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-medium text-slate-600 last:border-r-0">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center text-sm font-medium text-slate-700 last:border-r-0">
                       {jp._count?.views ?? 0}
                     </td>
-                    <td className="border-r border-slate-100/50 px-4 py-3 text-center font-medium text-slate-600 last:border-r-0">
+                    <td className="border-r border-slate-100/50 px-4 py-3 text-center text-sm font-medium text-slate-600 last:border-r-0">
                       {formatAppDate(publishedDate, locale === "en" ? "en" : "vi")}
                     </td>
                   </tr>
@@ -1744,29 +1796,32 @@ export function RecruiterDashboardPage() {
             </tbody>
           </RecruiterTableLayout>
         )}
-      </div>
+      </section>
 
       {/* ROW: Latest updates */}
-      <div className="upnext-shadow flex flex-col rounded-2xl bg-white p-6">
+      <section
+        aria-labelledby="notifications-heading"
+        className="upnext-shadow flex flex-col rounded-2xl bg-white p-6"
+      >
         <div className="mb-5 flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
             <Bell size={22} weight="fill" />
           </div>
-          <h3 className="text-[clamp(14px,1.8vw,16px)] font-bold text-slate-800">
+          <h2 id="notifications-heading" className="text-lg font-bold text-slate-800 sm:text-xl">
             {t("dashboard.notifications.title")}
-          </h3>
+          </h2>
         </div>
 
         {notifications.length === 0 ? (
           <>
             <Image
               src="/assets/recruiter/icon/notification.png"
-              alt="Chưa có tin tuyển dụng"
+              alt={t("dashboard.notifications.empty")}
               width={240}
               height={180}
               priority
               unoptimized
-              className="mx-auto h-auto w-[240px] max-w-full object-contain select-none"
+              className="mx-auto h-auto w-[220px] max-w-full object-contain select-none"
             />
             <p className="py-6 text-center text-sm font-medium text-slate-600">
               {t("dashboard.notifications.empty")}
@@ -1788,16 +1843,16 @@ export function RecruiterDashboardPage() {
                   className="cursor-pointer rounded-xl border border-slate-100 p-4 transition-all duration-200 hover:border-slate-200 hover:bg-slate-50/20"
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <span className="rounded-md bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-500">
+                    <span className="rounded-md bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
                       {t("dashboard.notifications.badge")}
                     </span>
-                    <span className="text-xs font-medium text-slate-400">{dateStr}</span>
+                    <span className="text-xs font-medium text-slate-400 sm:text-sm">{dateStr}</span>
                   </div>
-                  <p className="mt-2 text-sm leading-relaxed font-medium text-slate-700">
+                  <p className="mt-2 text-base leading-relaxed font-semibold text-slate-800">
                     {notif.title}
                   </p>
                   {notif.body && (
-                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                    <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-slate-600">
                       {notif.body}
                     </p>
                   )}
@@ -1806,7 +1861,7 @@ export function RecruiterDashboardPage() {
             })}
           </div>
         )}
-      </div>
+      </section>
 
       <DialogPrimitive.Root open={reputationDialogOpen} onOpenChange={setReputationDialogOpen}>
         <DialogPrimitive.Portal>
@@ -2052,7 +2107,7 @@ export function RecruiterDashboardPage() {
           }}
         />
       ) : null}
-    </div>
+    </main>
   );
 }
 
@@ -2136,13 +2191,28 @@ function RecruiterOnboardingDialog({
 
   const watchedAvatar = form.watch("avatar");
   const selectedGender = form.watch("gender");
+  const watchedCompanySize = form.watch("companySize");
+  const watchedBenefits = form.watch("benefits");
   const [avatarPreview, setAvatarPreview] = useState(profile?.avatarUrl ?? "");
 
   const [onboardingCompanyId, setOnboardingCompanyId] = useState(account.company?.id || "");
   const [scanning, setScanning] = useState(false);
+  const [showScanMissingFields, setShowScanMissingFields] = useState(false);
   const [aiLicenseFile, setAiLicenseFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const aiLicenseInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open || !form.formState.isDirty) return;
+
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [form.formState.isDirty, open]);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
@@ -2192,6 +2262,7 @@ function RecruiterOnboardingDialog({
   useEffect(() => {
     if (open) {
       setStep(initialStep);
+      setShowScanMissingFields(false);
     }
   }, [initialStep, open]);
 
@@ -2231,6 +2302,14 @@ function RecruiterOnboardingDialog({
         normalizeProvinceName(data.city) || extractProvinceFromAddress(data.address);
       const normalizedAddress = stripProvinceFromAddress(data.address, normalizedCity);
       const normalizedWebsite = normalizeWebsite(data.website);
+      const generatedDescription =
+        data.description?.trim() ||
+        `Công ty ${data.name} có mã số thuế ${data.taxCode}, đặt trụ sở tại ${[
+          normalizedAddress,
+          normalizedCity,
+        ]
+          .filter(Boolean)
+          .join(", ")}.`;
 
       const result = await Swal.fire({
         title:
@@ -2244,6 +2323,7 @@ function RecruiterOnboardingDialog({
             ${data.email ? `<p class="break-words"><strong>Email:</strong> ${data.email}</p>` : ""}
             ${data.phone ? `<p class="break-words"><strong>SĐT:</strong> ${data.phone}</p>` : ""}
             ${normalizedWebsite ? `<p class="break-words"><strong>Website:</strong> ${normalizedWebsite}</p>` : ""}
+            <p class="break-words"><strong>${t("onboarding.companyProfile.messages.scanFields.description") || "Mô tả công ty"}:</strong> ${generatedDescription}</p>
           </div>
           <p class="mt-4 text-center font-bold text-slate-700 font-sans">${t("onboarding.companyProfile.messages.scanSuccessConfirmText") || "Bạn có muốn tự động điền các thông tin này?"}</p>
         `,
@@ -2269,6 +2349,11 @@ function RecruiterOnboardingDialog({
           form.setValue("companyPhone", data.phone, { shouldValidate: true, shouldDirty: true });
         if (normalizedWebsite)
           form.setValue("website", normalizedWebsite, { shouldValidate: true, shouldDirty: true });
+        form.setValue("description", generatedDescription, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+        setShowScanMissingFields(true);
 
         // Programmatically populate the businessLicense field in step 3 using DataTransfer
         const dataTransfer = new DataTransfer();
@@ -3093,7 +3178,18 @@ function RecruiterOnboardingDialog({
                         <select
                           id="recruiter-onboarding-company-size"
                           {...form.register("companySize")}
-                          className="upnext-focus flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors focus:border-emerald-600 focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-describedby={
+                            showScanMissingFields && !watchedCompanySize
+                              ? "company-size-scan-hint"
+                              : undefined
+                          }
+                          aria-invalid={showScanMissingFields && !watchedCompanySize}
+                          className={cn(
+                            "upnext-focus flex h-11 w-full rounded-lg border bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+                            showScanMissingFields && !watchedCompanySize
+                              ? "border-red-500"
+                              : "border-slate-200",
+                          )}
                         >
                           {companySizeOptions.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -3101,6 +3197,11 @@ function RecruiterOnboardingDialog({
                             </option>
                           ))}
                         </select>
+                        {showScanMissingFields && !watchedCompanySize ? (
+                          <p id="company-size-scan-hint" className="text-xs text-red-600">
+                            {t("onboarding.companyProfile.messages.scanMissingField")}
+                          </p>
+                        ) : null}
                       </div>
 
                       <OnboardingField
@@ -3118,7 +3219,7 @@ function RecruiterOnboardingDialog({
                         <select
                           id="recruiter-onboarding-city"
                           {...form.register("city")}
-                          className="upnext-focus flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors focus:border-emerald-600 focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          className="upnext-focus flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-none transition-colors focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <option value="">
                             {t("onboarding.companyProfile.fields.cityPlaceholder")}
@@ -3155,10 +3256,26 @@ function RecruiterOnboardingDialog({
 
                       <textarea
                         id="recruiter-onboarding-benefits"
-                        className="upnext-focus min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-none placeholder:text-slate-400"
+                        aria-describedby={
+                          showScanMissingFields && !watchedBenefits
+                            ? "benefits-scan-hint"
+                            : undefined
+                        }
+                        aria-invalid={showScanMissingFields && !watchedBenefits}
+                        className={cn(
+                          "upnext-focus min-h-24 w-full rounded-lg border bg-white px-3 py-2 text-sm shadow-none placeholder:text-slate-400",
+                          showScanMissingFields && !watchedBenefits
+                            ? "border-red-500"
+                            : "border-slate-200",
+                        )}
                         placeholder={t("onboarding.companyProfile.fields.benefitsPlaceholder")}
                         {...form.register("benefits")}
                       />
+                      {showScanMissingFields && !watchedBenefits ? (
+                        <p id="benefits-scan-hint" className="text-xs text-red-600">
+                          {t("onboarding.companyProfile.messages.scanMissingField")}
+                        </p>
+                      ) : null}
                     </div>
                   </section>
                 ) : null}

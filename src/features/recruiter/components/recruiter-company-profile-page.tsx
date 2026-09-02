@@ -19,6 +19,7 @@ import {
   createCompany,
   deleteCompanyPhoto,
   getCompany,
+  generateCompanyLetterTemplate,
   getCompanyBusinessLicenseUrl,
   getCompanyLocations,
   getRecruiterAccount,
@@ -116,6 +117,7 @@ export function RecruiterCompanyProfilePage() {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string>("");
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [generatingTemplate, setGeneratingTemplate] = useState<"OFFER" | "REJECTION" | null>(null);
 
   const companySizeOptions = [
     { value: "", label: t("companySizes.placeholder") },
@@ -473,6 +475,30 @@ export function RecruiterCompanyProfilePage() {
     }
   }
 
+  async function handleGenerateLetterTemplate(type: "OFFER" | "REJECTION") {
+    if (!companyId) return;
+
+    try {
+      setGeneratingTemplate(type);
+      const { template } = await generateCompanyLetterTemplate(companyId, type, token);
+      setForm((current) => ({
+        ...current,
+        ...(type === "OFFER"
+          ? { offerLetterTemplate: template }
+          : { rejectionLetterTemplate: template }),
+      }));
+      void toast.fire({ icon: "success", title: "Đã tạo mẫu thư từ thông tin công ty." });
+    } catch (error) {
+      void Swal.fire({
+        icon: "error",
+        title: "Không thể tạo mẫu thư",
+        text: getCompanyErrorMessage(error, t),
+      });
+    } finally {
+      setGeneratingTemplate(null);
+    }
+  }
+
   async function handleScanLicense() {
     if (!licenseFile) {
       void Swal.fire({
@@ -490,6 +516,14 @@ export function RecruiterCompanyProfilePage() {
         normalizeProvinceName(data.city) || extractProvinceFromAddress(data.address);
       const normalizedAddress = stripProvinceFromAddress(data.address, normalizedCity);
       const normalizedWebsite = normalizeWebsite(data.website);
+      const generatedDescription =
+        data.description?.trim() ||
+        `Công ty ${data.name} có mã số thuế ${data.taxCode}, đặt trụ sở tại ${[
+          normalizedAddress,
+          normalizedCity,
+        ]
+          .filter(Boolean)
+          .join(", ")}.`;
 
       const result = await Swal.fire({
         title: t("messages.scanSuccessTitle"),
@@ -502,6 +536,7 @@ export function RecruiterCompanyProfilePage() {
             ${data.email ? `<p class="break-words"><strong>${t("messages.scanFields.email")}:</strong> ${data.email}</p>` : ""}
             ${data.phone ? `<p class="break-words"><strong>${t("messages.scanFields.phone")}:</strong> ${data.phone}</p>` : ""}
             ${normalizedWebsite ? `<p class="break-words"><strong>${t("messages.scanFields.website")}:</strong> ${normalizedWebsite}</p>` : ""}
+            <p class="break-words"><strong>${t("messages.scanFields.description")}:</strong> ${generatedDescription}</p>
           </div>
           <p class="mt-4 text-center font-bold text-slate-700">${t("messages.scanSuccessConfirmText")}</p>
         `,
@@ -522,6 +557,7 @@ export function RecruiterCompanyProfilePage() {
           email: data.email || current.email,
           phone: data.phone || current.phone,
           website: normalizedWebsite || current.website,
+          description: generatedDescription,
         }));
         void toast.fire({ icon: "success", title: t("messages.autofillSuccess") });
       }
@@ -667,9 +703,25 @@ export function RecruiterCompanyProfilePage() {
             />
           </div>
           <div className="flex flex-col gap-1.5 lg:col-span-2">
-            <Label className="text-sm font-semibold text-slate-700">
-              {t("fields.offerLetterTemplate")}
-            </Label>
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-semibold text-slate-700">
+                {t("fields.offerLetterTemplate")}
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={generatingTemplate !== null}
+                onClick={() => void handleGenerateLetterTemplate("OFFER")}
+              >
+                {generatingTemplate === "OFFER" ? (
+                  <CircleNotch className="animate-spin" />
+                ) : (
+                  <Sparkle />
+                )}
+                Tạo bằng AI
+              </Button>
+            </div>
             <RichTextEditor
               value={form.offerLetterTemplate}
               onChange={(value) =>
@@ -679,9 +731,25 @@ export function RecruiterCompanyProfilePage() {
             />
           </div>
           <div className="flex flex-col gap-1.5 lg:col-span-2">
-            <Label className="text-sm font-semibold text-slate-700">
-              {t("fields.rejectionLetterTemplate")}
-            </Label>
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-semibold text-slate-700">
+                {t("fields.rejectionLetterTemplate")}
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={generatingTemplate !== null}
+                onClick={() => void handleGenerateLetterTemplate("REJECTION")}
+              >
+                {generatingTemplate === "REJECTION" ? (
+                  <CircleNotch className="animate-spin" />
+                ) : (
+                  <Sparkle />
+                )}
+                Tạo bằng AI
+              </Button>
+            </div>
             <RichTextEditor
               value={form.rejectionLetterTemplate}
               onChange={(value) =>
@@ -826,7 +894,7 @@ function CompanySelectField({
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="upnext-focus text-foreground placeholder:text-muted-foreground flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal shadow-none transition-colors focus:border-emerald-600 focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="upnext-focus text-foreground placeholder:text-muted-foreground flex h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-normal shadow-none transition-colors focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -864,7 +932,7 @@ function CompanyField({
       required={required || false}
       placeholder={placeholder}
       labelClassName="font-semibold"
-      className="h-12 rounded-xl border-slate-200 bg-white text-sm font-normal shadow-none placeholder:font-normal focus:border-emerald-600 focus:outline-none focus-visible:outline-none"
+      className="h-12 rounded-xl border-slate-200 bg-white text-sm font-normal shadow-none placeholder:font-normal focus:outline-none focus-visible:outline-none"
       value={value}
       onChange={(event) => onChange(event.target.value)}
     />
@@ -898,7 +966,7 @@ function handleAuthError(
   router: ReturnType<typeof useRouter>,
   t: (key: string) => string,
 ) {
-  if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+  if (error instanceof ApiError && error.status === 401) {
     clearRecruiterSession();
     router.replace("/recruiter/login");
     return;
@@ -1075,7 +1143,7 @@ function CompanyScannerBanner({
           <div className="space-y-0.5">
             <h4 className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 sm:text-sm">
               {t("aiScan.title")}
-              <span className="py-0.2 rounded-full bg-emerald-100 px-1.5 text-[8px] font-black text-emerald-800 uppercase">
+              <span className="py-0.2 rounded-full bg-emerald-100 px-1.5 text-[12px] font-black text-emerald-800">
                 {t("aiScan.badgeNew")}
               </span>
             </h4>
@@ -1096,7 +1164,7 @@ function CompanyScannerBanner({
             <button
               type="button"
               onClick={triggerSelect}
-              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-98"
+              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-emerald-700 active:scale-98"
             >
               <UploadSimple size={14} weight="bold" />
               <span>{t("aiScan.uploadBtn")}</span>

@@ -487,6 +487,15 @@ body.swal2-shown {
   pointer-events: auto !important;
 }
 
+.company-incomplete-alert__icon {
+  margin: 1.5rem auto 0.75rem;
+}
+
+.company-incomplete-alert__title {
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
 /*
  * Rendered job-post rich text (description / requirements / benefits).
  *
@@ -589,10 +598,10 @@ body.swal2-shown {
  * fell back to whatever the browser drew. Defined once here against the brand
  * ring token; `:focus-visible` keeps it off pointer interactions.
  */
-.upnext-focus:focus-visible {
+/* .upnext-focus:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
-}
+} */
 
 /* ── AI Copilot ─────────────────────────────────────────────────────────── */
 

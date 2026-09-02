@@ -998,6 +998,7 @@
       "messages": "Messages",
       "company": "Company",
       "companyProfile": "Company Profile",
+      "companyVerificationRequired": "Verify your company to use this feature.",
       "team": "Team & Permissions",
       "analytics": "Analytics",
       "billing": "Billing",
@@ -1135,7 +1136,8 @@
         "funnelTitle": "Candidate funnel",
         "funnelSubtitle": "{count} applications company-wide",
         "empty": "No applications yet",
-        "loadError": "Could not load candidate data. Check your connection, or your account may not be attached to a company yet.",
+        "funnelLoadError": "No candidate funnel data yet.",
+        "recentLoadError": "No new candidate applications yet.",
         "stat": {
           "unviewed": "Unviewed",
           "new": "New in 7 days",
@@ -1235,7 +1237,108 @@
           "lossText": "Points are deducted for poor response rates to candidates and for job posts that violate community standards. Reaching a warning threshold lowers your company's visibility on the platform, and severe cases can lead to a permanent account lock. If a company is reported for fraud by a candidate with clear evidence (confirmed by the system), the account will be permanently deleted.",
           "tiersTitle": "Score tiers",
           "historyTitle": "Score change history",
-          "historyEmpty": "No score changes yet."
+          "historyEmpty": "No score changes yet.",
+          "historyLoading": "Loading score change history..."
+        },
+        "currentScore": "Current score",
+        "scoreUnit": "/ 100 points"
+      },
+      "companyReputation": {
+        "state": {
+          "loadErrorTitle": "Failed to load trust score",
+          "loadErrorDesc": "Could not load reputation score data. Please try again.",
+          "retry": "Retry",
+          "noCompanyTitle": "No company profile yet",
+          "noCompanyDesc": "Complete your company profile before tracking reputation score and change history.",
+          "completeCompanyProfile": "Complete company profile"
+        },
+        "kpi": {
+          "trustScore": "Trust Score",
+          "scoreUnit": "/ 100 points",
+          "legalProfile": "Legal Profile",
+          "verified": "Verified",
+          "pending": "Pending Approval",
+          "unverified": "Unverified",
+          "taxCode": "Tax ID: {code}",
+          "noTaxCode": "Tax ID not provided",
+          "publishEligibility": "Posting Eligibility",
+          "eligibleToPublish": "Eligible to post jobs",
+          "ineligibleToPublish": "Insufficient points to post",
+          "minScoreRequirement": "Minimum requirement: {threshold} points",
+          "historySummary": "Recorded History",
+          "changesCount": "{count} changes",
+          "gainsCount": "{count} additions",
+          "lossesCount": "{count} deductions"
+        },
+        "scale": {
+          "title": "Recruiter Trust Score Scale",
+          "subtitle": "Current company score: {score}/100 — Tier: {tier}",
+          "currentBadge": "Current",
+          "pts": "{range} pts",
+          "tickWarning": "30 (Warning)",
+          "tickStandard": "50 (Standard)",
+          "tickTrusted": "70 (Trusted)",
+          "tickElite": "90 (Elite)"
+        },
+        "tier": {
+          "locked": {
+            "label": "Locked",
+            "description": "Account recruitment activities are suspended, all job posts hidden."
+          },
+          "warning": {
+            "label": "Warning",
+            "description": "Reduced job post visibility on the platform, requires improving response quality."
+          },
+          "standard": {
+            "label": "Standard",
+            "description": "Basic company profile, using recruitment features with standard quota."
+          },
+          "trusted": {
+            "label": "Trusted",
+            "description": "Fully verified company, access to all features and priority support."
+          },
+          "elite": {
+            "label": "Elite (Top Company)",
+            "description": "Badged as a Trusted Employer, prioritized top position in job search results."
+          }
+        },
+        "history": {
+          "title": "Reputation Score History",
+          "filterAria": "Filter by score change type",
+          "filterPlaceholder": "All changes",
+          "filterAll": "All changes",
+          "filterGain": "Points added",
+          "filterLoss": "Points deducted",
+          "searchAria": "Search reputation score history",
+          "searchPlaceholder": "Search by reason or action...",
+          "refresh": "Refresh",
+          "columns": {
+            "action": "Action / Event",
+            "change": "Change",
+            "reason": "Reason & Explanation",
+            "time": "Time",
+            "performedBy": "Performed by"
+          },
+          "pointsAdded": "+{points} pts",
+          "pointsDeducted": "{points} pts",
+          "noReason": "No explanation provided",
+          "byAdmin": "{name} (Admin)",
+          "bySystem": "Automated system",
+          "emptyAll": "No score changes recorded yet.",
+          "emptyFiltered": "No matching score changes found."
+        },
+        "action": {
+          "COMPANY_INFO_COMPLETED": "Company info completed",
+          "TAX_CODE_VERIFIED": "Tax ID verified",
+          "REJECTED_VERIFICATION": "Business verification rejected",
+          "NEGLECTED_CV_PENALTY": "Unprocessed candidate application penalty",
+          "CV_PROCESSING_EVALUATED": "Application processing rate evaluated",
+          "EXPIRY_UNRESOLVED_PENALTY": "Expired post with unresolved applications penalty",
+          "HIRING_RESULT_REPORTED": "Hiring result reported",
+          "RESTRICTED_BY_REPORT": "Restricted due to violation report",
+          "RESTRICTION_LIFTED_APPEAL": "Restored after appeal",
+          "BANNED_FOR_FRAUD": "Banned for fraud",
+          "default": "Trust score adjustment"
         }
       },
       "restricted": {
@@ -1333,9 +1436,11 @@
       "table": {
         "candidate": "Candidate",
         "job": "Role",
+        "jobPost": "Role",
         "round": "Round",
         "type": "Type",
         "schedule": "Schedule",
+        "scheduledAt": "Schedule",
         "status": "Status",
         "result": "Result",
         "interviewer": "Interviewer",
@@ -1534,6 +1639,7 @@
         "messages": {
           "saveSuccess": "Company profile saved.",
           "autofillSuccess": "Company information auto-filled.",
+          "scanMissingField": "This information is not available on the business license. Please add it.",
           "scanSuccessTitle": "Information Scanned Successfully!",
           "scanSuccessConfirmText": "Do you want to auto-fill this information into the form?",
           "agree": "Agree",
@@ -1544,7 +1650,8 @@
             "address": "Address",
             "email": "Email",
             "phone": "Phone",
-            "website": "Website"
+            "website": "Website",
+            "description": "Company description"
           }
         },
         "loading": "Loading company profile...",
@@ -1836,7 +1943,11 @@
         "connectionFailed": "Could not connect to the AI service. Please try again.",
         "rateLimited": "You're moving a bit fast. Please wait a minute and try again.",
         "busy": "The AI service is busy. Please try again in a few minutes.",
-        "generic": "Could not process this JD. Please check your data."
+        "generic": "Could not process this JD. Please check your data.",
+        "planNotIncluded": "Your plan does not include AI job-description tools. Upgrade to keep using them.",
+        "companyRestricted": "Your company account is restricted, so this action is unavailable. Please contact support.",
+        "quotaExhausted": "You have used all the AI job-description credits in your plan for this period.",
+        "inProgress": "This request is already being processed. Please wait for the result instead of resubmitting."
       },
       "confirmDraftReplace": {
         "title": "Replace the content you're editing?",
@@ -1860,7 +1971,7 @@
       "toasts": {
         "updatedPendingReview": "Job post updated. It will be reviewed again before it appears publicly.",
         "draftCreated": "Draft job post created successfully.",
-        "published": "Job post has been submitted for review.",
+        "published": "Job post published.",
         "reloadFailed": "The job post was saved, but the latest list could not be reloaded.",
         "notFoundOrNoPermission": "Job post not found, or you don't have permission to edit it.",
         "reopened": "Job post has been reopened and is awaiting admin review.",
@@ -2090,8 +2201,8 @@
         "saveDraftSubmitting": "Creating...",
         "saveChanges": "Save changes",
         "saveChangesSubmitting": "Saving...",
-        "publish": "Publish (submit for review)",
-        "publishSubmitting": "Submitting..."
+        "publish": "Publish job",
+        "publishSubmitting": "Publishing..."
       },
       "detail": {
         "descriptionTitle": "Job description",
@@ -2540,6 +2651,12 @@
     }
   },
   "WorkspaceShell": {
+    "lockedFeature": {
+      "title": "Feature locked",
+      "description": "Verify your company to use this feature.",
+      "action": "Complete verification",
+      "close": "Close"
+    },
     "searchPlaceholder": "Search jobs, resumes, companies, skills...",
     "roles": {
       "candidate": "Candidate"

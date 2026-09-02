@@ -20,7 +20,6 @@ import {
   getAdminPostCategories,
   getAdminPostDetails,
   getAdminPostTags,
-  publishAdminPost,
   updateAdminPost,
   uploadPostImage,
   type AdminPostCategory,
@@ -32,7 +31,6 @@ import {
 import { clearAdminSession, getAdminSession } from "@/features/admin/session";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/shared/api/http";
-import { cn } from "@/shared/lib/cn";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
@@ -290,7 +288,6 @@ export function ArticleForm(props: ArticleFormProps) {
   const {
     control,
     formState: { errors, isSubmitting },
-    getValues,
     handleSubmit,
     register,
     reset,
