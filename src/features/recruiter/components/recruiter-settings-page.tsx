@@ -39,6 +39,9 @@ import { FormInput } from "@/shared/ui/input";
 
 import {
   CvScreeningConfigForm,
+  DEFAULT_CONFIG_FORM_VALUES,
+  isValidWeights,
+  toConfigPayload,
   type CvScreeningConfigFormValues,
 } from "./cv-screening-config-form";
 import { RecruiterTableLayout } from "./recruiter-table-layout";
@@ -231,14 +234,9 @@ export function RecruiterSettingsPage() {
   // AI CV-screening config tab state
   const [aiConfigLoading, setAiConfigLoading] = useState(true);
   const [aiConfigSaving, setAiConfigSaving] = useState(false);
-  const [aiConfigValues, setAiConfigValues] = useState<CvScreeningConfigFormValues>({
-    skillsInstructions: null,
-    experienceInstructions: null,
-    projectsInstructions: null,
-    ignoreEducationRequirement: false,
-    defaultTopN: null,
-    minSimilarityScore: null,
-  });
+  const [aiConfigValues, setAiConfigValues] = useState<CvScreeningConfigFormValues>(
+    DEFAULT_CONFIG_FORM_VALUES,
+  );
 
   const fetchAiScreeningConfig = useCallback(async (accessToken: string) => {
     try {
@@ -255,19 +253,18 @@ export function RecruiterSettingsPage() {
   const handleSaveAiScreeningConfig = async () => {
     if (!token) return;
 
+    if (!isValidWeights(aiConfigValues.weights)) {
+      void Swal.fire({
+        icon: "warning",
+        title: "Trọng số chưa hợp lệ",
+        text: "Tổng trọng số 4 tiêu chí phải bằng 100%.",
+      });
+      return;
+    }
+
     setAiConfigSaving(true);
     try {
-      const saved = await updateCvScreeningConfig(
-        {
-          skillsInstructions: aiConfigValues.skillsInstructions?.trim() || null,
-          experienceInstructions: aiConfigValues.experienceInstructions?.trim() || null,
-          projectsInstructions: aiConfigValues.projectsInstructions?.trim() || null,
-          ignoreEducationRequirement: aiConfigValues.ignoreEducationRequirement,
-          defaultTopN: aiConfigValues.defaultTopN,
-          minSimilarityScore: aiConfigValues.minSimilarityScore,
-        },
-        token,
-      );
+      const saved = await updateCvScreeningConfig(toConfigPayload(aiConfigValues), token);
       setAiConfigValues(saved);
       void Swal.fire({
         icon: "success",
@@ -1523,7 +1520,9 @@ export function RecruiterSettingsPage() {
               <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-6 dark:border-slate-800">
                 <button
                   type="button"
-                  disabled={aiConfigLoading || aiConfigSaving}
+                  disabled={
+                    aiConfigLoading || aiConfigSaving || !isValidWeights(aiConfigValues.weights)
+                  }
                   onClick={() => void handleSaveAiScreeningConfig()}
                   className="flex h-10 items-center gap-2 rounded-md bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >

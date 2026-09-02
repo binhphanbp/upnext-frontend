@@ -55,6 +55,12 @@ export interface CvScreeningResultItem {
   missingSkills: string[];
   summary: string;
   recommendation: string;
+  /** The configured "Đạt tiêu chuẩn" threshold, null if the company set none. */
+  passingScore?: number | null;
+  /** null on scores from before a passing score existed -- hide the badge. */
+  meetsPassingScore?: boolean | null;
+  /** How many of the recruiter's must-have criteria the CV missed (warning only). */
+  missingMustHaveCount?: number;
   cvFileUrl?: string | null;
 }
 
@@ -91,6 +97,12 @@ export interface ScoreCriterionBreakdown {
   items: ScoreBreakdownItem[];
 }
 
+export interface CriterionVerdict {
+  criterion: string;
+  met: boolean;
+  evidence: string | null;
+}
+
 export interface ApplicationAiScoreResponse {
   applicationId: string;
   status?: string | null;
@@ -109,7 +121,19 @@ export interface ApplicationAiScoreResponse {
   summary: string;
   recommendation: string;
   criteriaBreakdown: ScoreCriterionBreakdown[];
+  /** Already scaled to the weights this score was computed with, so awarded
+   * points and maxima always add up to the group totals above. */
   evaluationRubric: EvaluationRubricCriterion[];
+  scoringWeights?: {
+    skills: number;
+    experience: number;
+    projects: number;
+    education: number;
+  } | null;
+  passingScore?: number | null;
+  meetsPassingScore?: boolean | null;
+  mustHaveResults?: CriterionVerdict[];
+  niceToHaveResults?: CriterionVerdict[];
   cvFileUrl?: string | null;
 }
 
