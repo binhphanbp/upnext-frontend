@@ -3759,7 +3759,7 @@
     },
     "systemAdmin": {
       "title": "System Administration",
-      "masterData": "Master Data",
+      "masterData": "Skills & Taxonomies",
       "roles": "Roles & Permissions",
       "auditLog": "Audit Log",
       "searchKeywords": "Search Keywords"

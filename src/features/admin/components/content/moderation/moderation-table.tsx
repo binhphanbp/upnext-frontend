@@ -206,8 +206,27 @@ export function ModerationTable() {
   };
 
   const getReasonLabel = (reason?: string) => {
+    if (!reason) return t("unknownReason") || "Không rõ lý do";
+
+    const lower = reason.toLowerCase();
+    if (lower.includes("plagiarized directly") || lower.includes("plagiarized")) {
+      return "Bài viết sao chép vi phạm bản quyền";
+    }
+    if (lower.includes("inappropriate language") && lower.includes("fake certificate")) {
+      return "Hồ sơ chứa chứng chỉ giả mạo và từ ngữ không phù hợp";
+    }
+    if (lower.includes("misleading salary") || lower.includes("scam link")) {
+      return "Tin đăng chứa thông tin lương sai lệch và link lừa đảo";
+    }
+    if (lower.includes("inappropriate language")) {
+      return "Ngôn từ thô tục, không phù hợp chuẩn mực";
+    }
+    if (lower.includes("fake certificate") || lower.includes("fake info")) {
+      return "Thông tin giả mạo hoặc sai sự thật";
+    }
+
     let reasonKey = "unknown";
-    const normalizedReason = reason?.toUpperCase() || "";
+    const normalizedReason = reason.toUpperCase();
 
     if (normalizedReason.includes("SPAM")) reasonKey = "spam";
     else if (normalizedReason.includes("HATE")) reasonKey = "hateSpeech";
@@ -254,8 +273,8 @@ export function ModerationTable() {
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
         filterBar={
-          <>
-            <div className="relative w-full sm:w-[350px]">
+          <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+            <div className="relative w-full sm:w-[240px] lg:w-[260px]">
               <MagnifyingGlass
                 className="absolute top-1/2 left-3 z-10 -translate-y-1/2 text-slate-400"
                 size={18}
@@ -268,7 +287,7 @@ export function ModerationTable() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[210px]">
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[155px]">
                 <SelectValue placeholder={t("allStatuses")} />
               </SelectTrigger>
               <SelectContent>
@@ -280,7 +299,7 @@ export function ModerationTable() {
               </SelectContent>
             </Select>
             <Select value={reporterFilter} onValueChange={setReporterFilter}>
-              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[210px]">
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[160px]">
                 <SelectValue placeholder={t("allReporters")} />
               </SelectTrigger>
               <SelectContent>
@@ -290,14 +309,11 @@ export function ModerationTable() {
               </SelectContent>
             </Select>
             <Select value={targetTypeFilter} onValueChange={setTargetTypeFilter}>
-              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[210px]">
+              <SelectTrigger className="bg-card h-10 w-full rounded-xl sm:w-[165px]">
                 <SelectValue placeholder={t("allContentTypes")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("allContentTypes")}</SelectItem>
-                {/* Only the three kinds of report the product actually accepts. CANDIDATE
-                    and POST have no report entry point, so filtering by them found nothing
-                    — TARGET_TYPE_KEYS still labels them in case a legacy row exists. */}
                 <SelectItem value="COMPANY">{t("contentTypeOptions.company")}</SelectItem>
                 <SelectItem value="JOB_POST">{t("contentTypeOptions.job")}</SelectItem>
                 <SelectItem value="COMPANY_REVIEW">
@@ -305,10 +321,10 @@ export function ModerationTable() {
                 </SelectItem>
               </SelectContent>
             </Select>
-          </>
+          </div>
         }
         actionBar={
-          <>
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               variant="outline"
               size="icon"
@@ -326,36 +342,36 @@ export function ModerationTable() {
             >
               <DotsThree size={24} weight="bold" />
             </Button>
-          </>
+          </div>
         }
       >
         <thead>
-          <tr className="border-b border-slate-300 !bg-[#bfe9d6] text-slate-900">
-            <th className="w-12 border-r border-slate-300 px-4 py-3 text-center last:border-r-0">
+          <tr className="border-b border-slate-200 bg-slate-50/90 text-slate-700">
+            <th className="w-12 px-4 py-3.5 text-center">
               <input
                 type="checkbox"
                 aria-label="Chọn tất cả"
-                className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
+                className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                 checked={isAllPageSelected}
                 onChange={(e) => handleSelectAll(e.target.checked)}
               />
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-left font-semibold last:border-r-0">
+            <th className="px-4 py-3.5 text-left text-xs font-bold tracking-wider text-slate-600 uppercase">
               {t("contentType")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-left font-semibold last:border-r-0">
+            <th className="px-4 py-3.5 text-left text-xs font-bold tracking-wider text-slate-600 uppercase">
               {t("reporter")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-left font-semibold last:border-r-0">
+            <th className="px-4 py-3.5 text-left text-xs font-bold tracking-wider text-slate-600 uppercase">
               {t("reason")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-center font-semibold last:border-r-0">
+            <th className="px-4 py-3.5 text-center text-xs font-bold tracking-wider text-slate-600 uppercase">
               {t("status")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-left font-semibold last:border-r-0">
+            <th className="px-4 py-3.5 text-left text-xs font-bold tracking-wider text-slate-600 uppercase">
               {t("reportedDate")}
             </th>
-            <th className="border-r border-slate-300 px-4 py-3 text-right font-semibold last:border-r-0">
+            <th className="px-4 py-3.5 text-right text-xs font-bold tracking-wider text-slate-600 uppercase">
               {t("actions")}
             </th>
           </tr>
@@ -380,8 +396,8 @@ export function ModerationTable() {
                   : report.status === "PENDING"
                     ? "warning"
                     : report.status === "REVIEWING"
-                      ? "neutral"
-                      : "error";
+                      ? "info"
+                      : "neutral";
 
               const statusKey =
                 report.status === "RESOLVED"
@@ -395,46 +411,52 @@ export function ModerationTable() {
               return (
                 <tr
                   key={report.id}
-                  className={`transition-colors hover:bg-slate-50 ${isSelected ? "bg-slate-50" : ""}`}
+                  className={`transition-colors hover:bg-slate-50/80 ${isSelected ? "bg-emerald-50/30" : ""}`}
                 >
-                  <td className="border-r border-slate-200 px-4 py-3 text-center align-middle">
+                  <td className="px-4 py-3.5 text-center align-middle">
                     <input
                       type="checkbox"
                       aria-label={`Chọn báo cáo ${getTypeLabel(report.targetType)}`}
-                      className="text-primary focus:ring-primary h-4 w-4 rounded border-slate-300"
+                      className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                       checked={isSelected}
                       onChange={(e) => handleSelectOne(report.id, e.target.checked)}
                     />
                   </td>
-                  <td className="border-r border-slate-200 px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-900">
                         {getTypeLabel(report.targetType)}
                       </span>
-                      <span className="text-muted-foreground mt-1 text-xs" title={targetName}>
-                        {targetName.length > 30 ? targetName.substring(0, 30) + "..." : targetName}
+                      <span
+                        className="mt-0.5 max-w-[220px] truncate text-xs text-slate-500"
+                        title={targetName}
+                      >
+                        {targetName}
                       </span>
                     </div>
                   </td>
-                  <td className="border-r border-slate-200 px-4 py-3">{reporter}</td>
-                  <td className="border-r border-slate-200 px-4 py-3">
+                  <td className="px-4 py-3.5 font-medium text-slate-700">{reporter}</td>
+                  <td className="px-4 py-3.5 text-slate-600">
                     <span
-                      className="inline-block max-w-[200px] truncate"
+                      className="inline-block max-w-[280px] truncate lg:max-w-[340px]"
                       title={getReasonLabel(report.reason)}
                     >
                       {getReasonLabel(report.reason)}
                     </span>
                   </td>
-                  <td className="border-r border-slate-200 px-4 py-3 text-center">
+                  <td className="px-4 py-3.5 text-center">
                     <Badge tone={tone}>{t(`statusOptions.${statusKey}`)}</Badge>
                   </td>
-                  <td className="border-r border-slate-200 px-4 py-3">
+                  <td className="px-4 py-3.5 text-slate-500">
                     {report.createdAt ? formatAppDate(report.createdAt) : "—"}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3.5 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-slate-500 hover:text-slate-800"
+                        >
                           <span className="sr-only">Mở menu thao tác</span>
                           <DotsThree size={20} weight="bold" />
                         </Button>

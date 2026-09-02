@@ -3759,7 +3759,7 @@
     },
     "systemAdmin": {
       "title": "Quản trị Hệ thống",
-      "masterData": "Dữ liệu gốc",
+      "masterData": "Kỹ năng & Ngành nghề",
       "roles": "Phân quyền",
       "auditLog": "Nhật ký hệ thống",
       "searchKeywords": "Phân tích từ khóa"

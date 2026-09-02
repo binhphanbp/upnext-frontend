@@ -143,7 +143,22 @@ export type UpdateSubscriptionPlanPayload = Readonly<
   Partial<Omit<CreateSubscriptionPlanPayload, "code" | "audience">>
 >;
 
-export function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+export function getSubscriptionPlans(token?: string): Promise<SubscriptionPlan[]> {
+  const sessionToken =
+    token ||
+    (typeof window !== "undefined"
+      ? window.localStorage.getItem("upnext.admin.accessToken") ||
+        window.localStorage.getItem("adminAccessToken") ||
+        window.localStorage.getItem("accessToken") ||
+        ""
+      : "");
+
+  if (sessionToken) {
+    return apiRequest<SubscriptionPlan[]>("/subscription-plans", {
+      headers: authHeaders(sessionToken),
+    });
+  }
+
   return apiRequest<SubscriptionPlan[]>("/subscription-plans");
 }
 

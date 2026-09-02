@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo --disable-source-maps",
-    "dev:webpack": "next dev --webpack --disable-source-maps",
+    "dev": "node --max-old-space-size=8192 ./node_modules/next/dist/bin/next dev --turbo --disable-source-maps",
+    "dev:webpack": "node --max-old-space-size=8192 ./node_modules/next/dist/bin/next dev --webpack --disable-source-maps",
     "proxy": "vite",
     "build": "next build",
     "start": "next start",
