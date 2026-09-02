@@ -154,55 +154,55 @@ Không dùng `staging.upnext.works` làm domain SEO lâu dài.
 
 ### 2.1. Đo qua HTTP (2026-09-02)
 
-| Hạng mục                    | `staging.upnext.works`                | `upnext.works`           | Mức độ                       |
-| --------------------------- | ------------------------------------- | ------------------------ | ---------------------------- |
-| Trang chủ `/vi`             | 200, có title/description/H1          | 200 nhưng là placeholder | Blocker production           |
-| Jobs, companies, posts      | Có trên staging                       | 404 trên production      | Blocker production           |
-| `/robots.txt`               | 404                                   | 404                      | P0                           |
-| `/sitemap.xml`              | 404                                   | 404                      | P0                           |
-| `rel=canonical`             | Không có                              | Không có                 | P0                           |
-| JSON-LD                     | Không có                              | Không có                 | P1                           |
-| Metadata jobs/companies     | Dùng title/description chung          | Không có route thật      | P1                           |
-| HTML ban đầu jobs/companies | Không có H1/nội dung chính            | —                        | P1                           |
-| `hreflang`                  | **[cần đo lại]** — xem P0-2           | **[cần đo lại]**         | Coi như chưa có              |
-| Cache HTML                  | `s-maxage=31536000`                   | `s-maxage=31536000`      | P1 — xem 2.3, nguyên nhân khác với mô tả ban đầu |
-| `/` → `/vi`                 | **[cần đo lại]** — mã nguồn trả 307   | **[cần đo lại]**         | P1, sửa 1 dòng               |
+| Hạng mục                    | `staging.upnext.works`              | `upnext.works`           | Mức độ                                           |
+| --------------------------- | ----------------------------------- | ------------------------ | ------------------------------------------------ |
+| Trang chủ `/vi`             | 200, có title/description/H1        | 200 nhưng là placeholder | Blocker production                               |
+| Jobs, companies, posts      | Có trên staging                     | 404 trên production      | Blocker production                               |
+| `/robots.txt`               | 404                                 | 404                      | P0                                               |
+| `/sitemap.xml`              | 404                                 | 404                      | P0                                               |
+| `rel=canonical`             | Không có                            | Không có                 | P0                                               |
+| JSON-LD                     | Không có                            | Không có                 | P1                                               |
+| Metadata jobs/companies     | Dùng title/description chung        | Không có route thật      | P1                                               |
+| HTML ban đầu jobs/companies | Không có H1/nội dung chính          | —                        | P1                                               |
+| `hreflang`                  | **[cần đo lại]** — xem P0-2         | **[cần đo lại]**         | Coi như chưa có                                  |
+| Cache HTML                  | `s-maxage=31536000`                 | `s-maxage=31536000`      | P1 — xem 2.3, nguyên nhân khác với mô tả ban đầu |
+| `/` → `/vi`                 | **[cần đo lại]** — mã nguồn trả 307 | **[cần đo lại]**         | P1, sửa 1 dòng                                   |
 
 ### 2.2. Đối chiếu mã nguồn — đã kiểm chứng
 
 Mọi dòng dưới đây có đường dẫn file cụ thể và đã được grep xác nhận.
 
-| Phát hiện | Bằng chứng |
-| --- | --- |
-| Không có `robots.ts`, `sitemap.ts`, và cũng không có `public/robots.txt`, `public/sitemap.xml` | `find src -name "robots.*" -o -name "sitemap.*"` → rỗng; `ls public/` → chỉ có `manifest.webmanifest` |
-| `generateMetadata` chỉ tồn tại ở **4 file** | `[locale]/layout.tsx`, `(public)/pricing/page.tsx`, `(public)/posts/page.tsx`, `(public)/posts/[slug]/page.tsx` |
-| **0 chỗ** dùng `metadataBase`, `alternates`, hay canonical | grep toàn `src/` |
-| **0 chỗ** có JSON-LD | grep `application/ld+json` toàn `src/` |
-| Job detail là **client component** — không SSR nội dung lẫn metadata | `src/features/public/jobs/jobs-route.tsx` dòng 1: `"use client"` |
-| Route job truyền thẳng param xuống client | `src/app/[locale]/(public)/jobs/[slug]/page.tsx` → `<JobDetailRoute slug={slug} />` → `PublicJobDetailPage path={/jobs/${slug}}` |
-| Không có `middleware.ts` | `git ls-files \| grep -i middleware` → rỗng. Xem P0-2 |
-| Chỉ có 1 API route: proxy | `src/app/api/v1/[...proxy]/route.ts`. **Chưa có endpoint revalidate** — xem §7 C4 |
-| Không có `src/app/not-found.tsx` ở root, trong khi `experimental.globalNotFound: true` đang bật | chỉ có `src/app/[locale]/not-found.tsx`; `next.config.ts` dòng ~20 |
-| `public/mockServiceWorker.js` (artifact dev của MSW) được ship vào image production | `Dockerfile` copy nguyên `public/` |
+| Phát hiện                                                                                       | Bằng chứng                                                                                                                       |
+| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Không có `robots.ts`, `sitemap.ts`, và cũng không có `public/robots.txt`, `public/sitemap.xml`  | `find src -name "robots.*" -o -name "sitemap.*"` → rỗng; `ls public/` → chỉ có `manifest.webmanifest`                            |
+| `generateMetadata` chỉ tồn tại ở **4 file**                                                     | `[locale]/layout.tsx`, `(public)/pricing/page.tsx`, `(public)/posts/page.tsx`, `(public)/posts/[slug]/page.tsx`                  |
+| **0 chỗ** dùng `metadataBase`, `alternates`, hay canonical                                      | grep toàn `src/`                                                                                                                 |
+| **0 chỗ** có JSON-LD                                                                            | grep `application/ld+json` toàn `src/`                                                                                           |
+| Job detail là **client component** — không SSR nội dung lẫn metadata                            | `src/features/public/jobs/jobs-route.tsx` dòng 1: `"use client"`                                                                 |
+| Route job truyền thẳng param xuống client                                                       | `src/app/[locale]/(public)/jobs/[slug]/page.tsx` → `<JobDetailRoute slug={slug} />` → `PublicJobDetailPage path={/jobs/${slug}}` |
+| Không có `middleware.ts`                                                                        | `git ls-files \| grep -i middleware` → rỗng. Xem P0-2                                                                            |
+| Chỉ có 1 API route: proxy                                                                       | `src/app/api/v1/[...proxy]/route.ts`. **Chưa có endpoint revalidate** — xem §7 C4                                                |
+| Không có `src/app/not-found.tsx` ở root, trong khi `experimental.globalNotFound: true` đang bật | chỉ có `src/app/[locale]/not-found.tsx`; `next.config.ts` dòng ~20                                                               |
+| `public/mockServiceWorker.js` (artifact dev của MSW) được ship vào image production             | `Dockerfile` copy nguyên `public/`                                                                                               |
 
 Backend:
 
-| Phát hiện | Bằng chứng |
-| --- | --- |
+| Phát hiện                                                                                               | Bằng chứng                                                                                                      |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `GET /job-posts` (public list) **không có phân trang** — trả về toàn bộ job đã publish kèm full include | `job-posts.service.ts` `findAll()` không có `take`/`skip`; `PublicJobPostQueryDto` chỉ có `keyword`, `location` |
-| `GET /job-posts/:id` dùng `ParseUUIDPipe` — **không có endpoint tra cứu theo slug** | `job-posts.controller.ts` |
-| `GET /companies/:idOrSlug` **đã hỗ trợ slug** | `companies.controller.ts` dòng ~120–126 |
-| Response company detail chứa field không nên dùng cho SEO/public render | `companies.service.ts`, xem §7 C1 |
+| `GET /job-posts/:id` dùng `ParseUUIDPipe` — **không có endpoint tra cứu theo slug**                     | `job-posts.controller.ts`                                                                                       |
+| `GET /companies/:idOrSlug` **đã hỗ trợ slug**                                                           | `companies.controller.ts` dòng ~120–126                                                                         |
+| Response company detail chứa field không nên dùng cho SEO/public render                                 | `companies.service.ts`, xem §7 C1                                                                               |
 
 Infra:
 
-| Phát hiện | Bằng chứng |
-| --- | --- |
-| `upnext.works` và `www.upnext.works` nằm **cùng một server block**, cùng proxy `:3000` → cả hai trả 200, không có redirect canonical | `nginx/conf.d/upnext.works.conf` dòng 4 |
-| Conf trong repo chỉ có `listen 80` — bản chạy thật trên VPS đã được certbot ghi đè để thêm 443. **Sửa file trong repo không đồng nghĩa sửa file đang chạy** | so sánh `nginx/conf.d/*.conf` với `README.md` bước certbot |
-| Compose dùng **tag động**, không dùng digest | `env/compose.env.example`: `FRONTEND_IMAGE_TAG=production`, `BACKEND_IMAGE_TAG=production` |
-| `env/frontend.*.env.example` đang set `NEXT_PUBLIC_APP_ENV`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_API_URL` ở **runtime** — nhưng `NEXT_PUBLIC_*` inline lúc build và `src/shared/lib/env.ts` **không đọc** ba biến này. Đây là **dead config** | đối chiếu `env/frontend.prod.env.example` với `src/shared/lib/env.ts` |
-| Không có `location /socket.io/` trong nginx | grep toàn `nginx/` → rỗng. Xem P0-1 phương án A bước 3 |
+| Phát hiện                                                                                                                                                                                                                                     | Bằng chứng                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `upnext.works` và `www.upnext.works` nằm **cùng một server block**, cùng proxy `:3000` → cả hai trả 200, không có redirect canonical                                                                                                          | `nginx/conf.d/upnext.works.conf` dòng 4                                                    |
+| Conf trong repo chỉ có `listen 80` — bản chạy thật trên VPS đã được certbot ghi đè để thêm 443. **Sửa file trong repo không đồng nghĩa sửa file đang chạy**                                                                                   | so sánh `nginx/conf.d/*.conf` với `README.md` bước certbot                                 |
+| Compose dùng **tag động**, không dùng digest                                                                                                                                                                                                  | `env/compose.env.example`: `FRONTEND_IMAGE_TAG=production`, `BACKEND_IMAGE_TAG=production` |
+| `env/frontend.*.env.example` đang set `NEXT_PUBLIC_APP_ENV`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_API_URL` ở **runtime** — nhưng `NEXT_PUBLIC_*` inline lúc build và `src/shared/lib/env.ts` **không đọc** ba biến này. Đây là **dead config** | đối chiếu `env/frontend.prod.env.example` với `src/shared/lib/env.ts`                      |
+| Không có `location /socket.io/` trong nginx                                                                                                                                                                                                   | grep toàn `nginx/` → rỗng. Xem P0-1 phương án A bước 3                                     |
 
 ### 2.3. Ba dòng audit ban đầu cần sửa cách hiểu
 
@@ -424,17 +424,17 @@ Trong root locale layout (`src/app/[locale]/layout.tsx`, hiện đã có `genera
 
 ### B2. Metadata theo route
 
-| Route              | Title/description                            | Canonical | Robots                                             |
-| ------------------ | -------------------------------------------- | --------- | -------------------------------------------------- |
-| Home               | Theo locale, value proposition rõ            | Self      | index, follow (production)                         |
-| Jobs list          | `Việc làm IT tại Việt Nam – UpNext`          | Self      | index nếu trang gốc; filtered URL noindex mặc định |
-| Job detail (`vi`)  | Job + company + location                     | Self      | index khi job đang mở                              |
-| Job detail (`en`)  | Như trên                                     | Self      | **noindex** (§4.4)                                 |
-| Companies list     | `Công ty công nghệ đang tuyển dụng – UpNext` | Self      | index trang gốc                                    |
-| Company detail (`vi`) | Company + việc làm/văn hóa                | Self      | index khi đủ điều kiện                             |
-| Company detail (`en`) | Như trên                                  | Self      | **noindex** (§4.4)                                 |
-| Post               | Tiêu đề/summary/author/date thật             | Self      | index khi published (locale có bản dịch thật)      |
-| Workspace/auth/API | Không cần social/meta công khai              | Không     | noindex, nofollow                                  |
+| Route                 | Title/description                            | Canonical | Robots                                             |
+| --------------------- | -------------------------------------------- | --------- | -------------------------------------------------- |
+| Home                  | Theo locale, value proposition rõ            | Self      | index, follow (production)                         |
+| Jobs list             | `Việc làm IT tại Việt Nam – UpNext`          | Self      | index nếu trang gốc; filtered URL noindex mặc định |
+| Job detail (`vi`)     | Job + company + location                     | Self      | index khi job đang mở                              |
+| Job detail (`en`)     | Như trên                                     | Self      | **noindex** (§4.4)                                 |
+| Companies list        | `Công ty công nghệ đang tuyển dụng – UpNext` | Self      | index trang gốc                                    |
+| Company detail (`vi`) | Company + việc làm/văn hóa                   | Self      | index khi đủ điều kiện                             |
+| Company detail (`en`) | Như trên                                     | Self      | **noindex** (§4.4)                                 |
+| Post                  | Tiêu đề/summary/author/date thật             | Self      | index khi published (locale có bản dịch thật)      |
+| Workspace/auth/API    | Không cần social/meta công khai              | Không     | noindex, nofollow                                  |
 
 Không dùng một title/description chung cho job/company/post detail.
 
@@ -559,7 +559,7 @@ GET /public/seo/posts/:slug
 Read model chỉ chứa field public cần thiết. Không trả recruiter account, member, CV, email, private location, internal moderation note, plan/subscription hay token.
 
 **Lưu ý bắt buộc:** không được xây sitemap trên `GET /job-posts` hiện tại. Endpoint đó
-(`job-posts.service.ts` `findAll()`) **không có `take`/`skip`** — nó trả về *toàn bộ* job đã
+(`job-posts.service.ts` `findAll()`) **không có `take`/`skip`** — nó trả về _toàn bộ_ job đã
 publish kèm `publicJobPostInclude()` đầy đủ (company, skills, locations, specializations). Đây đã
 là rủi ro latency ở hiện tại và sẽ sập khi số job tăng. Endpoint SEO mới phải có cursor pagination
 ngay từ đầu, và nên coi việc thêm phân trang cho `GET /job-posts` là một hạng mục riêng.
@@ -591,11 +591,11 @@ Google chỉ cho JobPosting trên một trang đại diện cho đúng một job
 Kế hoạch bản đầu viết "Thêm/chuẩn hoá SEO slug unique". Thực tế slug **đã tồn tại**, nhưng mức độ
 hoàn thiện khác nhau:
 
-| Entity | Cột slug | Bất biến khi sửa nội dung | Tra cứu public theo slug | Lịch sử slug (301) |
-| --- | --- | --- | --- | --- |
-| `JobPost` | ✅ `@unique @db.VarChar(220)` | ✅ chỉ set lúc `create`; `CreateJobPostDto` không có `slug` nên `UpdateJobPostDto` (PartialType) cũng không | ❌ `GET /job-posts/:id` dùng `ParseUUIDPipe` | ❌ chưa có |
-| `Company` | ✅ `@unique` | ✅ | ✅ `GET /companies/:idOrSlug` | ❌ chưa có |
-| `Post` | ✅ `@unique` | ✅ | ✅ | ✅ `PostSlugHistory` + `post-slug.service.ts` |
+| Entity    | Cột slug                      | Bất biến khi sửa nội dung                                                                                   | Tra cứu public theo slug                     | Lịch sử slug (301)                            |
+| --------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------- |
+| `JobPost` | ✅ `@unique @db.VarChar(220)` | ✅ chỉ set lúc `create`; `CreateJobPostDto` không có `slug` nên `UpdateJobPostDto` (PartialType) cũng không | ❌ `GET /job-posts/:id` dùng `ParseUUIDPipe` | ❌ chưa có                                    |
+| `Company` | ✅ `@unique`                  | ✅                                                                                                          | ✅ `GET /companies/:idOrSlug`                | ❌ chưa có                                    |
+| `Post`    | ✅ `@unique`                  | ✅                                                                                                          | ✅                                           | ✅ `PostSlugHistory` + `post-slug.service.ts` |
 
 Phần việc thực sự:
 
@@ -681,12 +681,11 @@ Không đặt nhiều `JobPosting` trên list page. Không để schema tồn t�
 
   **Rủi ro thật trong codebase này — đọc kỹ trước khi làm D2.** `JobPost.description`,
   `requirements`, `benefits` là rich text recruiter nhập, và **không được sanitize ở bất kỳ đâu**:
-
   - Backend: `CreateJobPostDto` chỉ có `@IsString()`, không `MaxLength`, không sanitize.
     `sanitize-html` **có** trong repo nhưng chỉ dùng cho module `posts`
     (`post-content.policy.ts`) và `job-post-ai` (`rich-text.ts`) — **không** cho `job-posts`.
   - Frontend: `job-detail-page.tsx` render bằng `dangerouslySetInnerHTML={{ __html:
-    getCleanHtml(...) }}`. `getCleanHtml` (dòng ~90) chỉ bóc `<details>`/`<summary>` và xoá
+getCleanHtml(...) }}`. `getCleanHtml` (dòng ~90) chỉ bóc `<details>`/`<summary>` và xoá
     heading trùng — **thuần mỹ quan, không phải sanitizer**.
 
   Nghĩa là hôm nay đã có sẵn một đường stored-XSS từ recruiter tới mọi khách truy cập trang job
@@ -697,6 +696,7 @@ Không đặt nhiều `JobPosting` trên list page. Không để schema tồn t�
 
   Hạng mục này **nằm ngoài phạm vi kế hoạch SEO** và cần một PR bảo mật riêng, nhưng B4 không
   được merge trước nó.
+
 - Không dùng CV/candidate data trong schema.
 - Có unit test schema required fields, null handling, expiry, locale và escaping.
 - Schema là dữ liệu mô tả, không phải công cụ thao túng ranking.
@@ -889,24 +889,24 @@ Quy trình DNS đã có tại `upnext-infra/docs/02-dns-namecom.md`. Domain prop
 
 Cột "Chặn bởi" là điều kiện tiên quyết cứng — không bắt đầu hạng mục khi mục chặn chưa xong.
 
-| # | Hạng mục | Repo/owner | Chặn bởi | Blocker launch |
-| --- | --- | --- | --- | --- |
-| 0a | **P0-1: quyết định artifact promotion** (chọn A hoặc B; nếu A: đổi build args + nginx `/socket.io/`) | Infra + FE | — | **Có** |
-| 0b | **P0-2/P0-3: đo lại hreflang và `/` redirect trên deployment thật**, cập nhật §2.1 | FE | — | **Có** |
-| 1 | Staging/placeholder production noindex header; tách `www` 301; monitoring healthy | Infra | 0a | Có |
-| 2 | Compose dùng digest/`sha-*` thay tag động; migration rehearsal | Infra/BE | 0a | Có |
-| 3 | Production chạy đầy đủ public routes | FE/BE/Infra | 2 | Có |
-| 4 | Site config server-only, `metadataBase`, canonical, route noindex, `permanentRedirect`, root `not-found.tsx` | FE | 0b | Có |
-| 5 | Root `robots.ts` + sitemap index (có giới hạn 50k) | FE | 4 | Có |
-| 6 | BE: format slug job + history + endpoint tra cứu slug; public SEO read model có cursor; lifecycle events qua outbox | BE | 2 | Có |
-| 6b | **Sanitize JD** (`description`/`requirements`/`benefits`) ở backend khi ghi + rà lại `getCleanHtml` ở FE. PR bảo mật riêng, ngoài phạm vi SEO nhưng chặn #7 — xem §8 D3 | BE (+FE) | — | Có |
-| 7 | FE: `/api/revalidate` có HMAC; SSR/ISR job/company/article + metadata/H1 riêng | FE | 4, 6, 6b | Có |
-| 8 | JobPosting/Organization/Article/Breadcrumb schema + escaping | FE/BE | 7 | Có |
-| 9 | CI SEO tests, i18n parity test, redirect table test, rich-result fixtures, link checks | FE/BE/QA | 5, 7, 8 | Có |
-| 10 | Search Console/Bing (DNS TXT), analytics dashboard | SEO/Infra | 1 | Có |
-| 11 | Trang About/Contact/Policy/Editorial | Content/FE | 4 | Có (F3 phụ thuộc) |
-| 12 | Curated landing pages, editorial governance | Content/Product | 9 | Không |
-| 13 | AEO/GEO content program | Content/Product | 11, 12 | Không |
+| #   | Hạng mục                                                                                                                                                                | Repo/owner      | Chặn bởi | Blocker launch    |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | -------- | ----------------- |
+| 0a  | **P0-1: quyết định artifact promotion** (chọn A hoặc B; nếu A: đổi build args + nginx `/socket.io/`)                                                                    | Infra + FE      | —        | **Có**            |
+| 0b  | **P0-2/P0-3: đo lại hreflang và `/` redirect trên deployment thật**, cập nhật §2.1                                                                                      | FE              | —        | **Có**            |
+| 1   | Staging/placeholder production noindex header; tách `www` 301; monitoring healthy                                                                                       | Infra           | 0a       | Có                |
+| 2   | Compose dùng digest/`sha-*` thay tag động; migration rehearsal                                                                                                          | Infra/BE        | 0a       | Có                |
+| 3   | Production chạy đầy đủ public routes                                                                                                                                    | FE/BE/Infra     | 2        | Có                |
+| 4   | Site config server-only, `metadataBase`, canonical, route noindex, `permanentRedirect`, root `not-found.tsx`                                                            | FE              | 0b       | Có                |
+| 5   | Root `robots.ts` + sitemap index (có giới hạn 50k)                                                                                                                      | FE              | 4        | Có                |
+| 6   | BE: format slug job + history + endpoint tra cứu slug; public SEO read model có cursor; lifecycle events qua outbox                                                     | BE              | 2        | Có                |
+| 6b  | **Sanitize JD** (`description`/`requirements`/`benefits`) ở backend khi ghi + rà lại `getCleanHtml` ở FE. PR bảo mật riêng, ngoài phạm vi SEO nhưng chặn #7 — xem §8 D3 | BE (+FE)        | —        | Có                |
+| 7   | FE: `/api/revalidate` có HMAC; SSR/ISR job/company/article + metadata/H1 riêng                                                                                          | FE              | 4, 6, 6b | Có                |
+| 8   | JobPosting/Organization/Article/Breadcrumb schema + escaping                                                                                                            | FE/BE           | 7        | Có                |
+| 9   | CI SEO tests, i18n parity test, redirect table test, rich-result fixtures, link checks                                                                                  | FE/BE/QA        | 5, 7, 8  | Có                |
+| 10  | Search Console/Bing (DNS TXT), analytics dashboard                                                                                                                      | SEO/Infra       | 1        | Có                |
+| 11  | Trang About/Contact/Policy/Editorial                                                                                                                                    | Content/FE      | 4        | Có (F3 phụ thuộc) |
+| 12  | Curated landing pages, editorial governance                                                                                                                             | Content/Product | 9        | Không             |
+| 13  | AEO/GEO content program                                                                                                                                                 | Content/Product | 11, 12   | Không             |
 
 Đường găng: **0a → 2 → 6 → 7 → 8 → 9**. Backend (#6) là hạng mục dài nhất vì có migration backfill;
 bắt đầu nó song song với #1 ngay sau khi #0a chốt. #6b không phụ thuộc gì cả — mở PR bảo mật đó
