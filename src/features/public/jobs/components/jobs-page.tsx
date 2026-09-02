@@ -12,6 +12,7 @@ import {
   BookOpen,
   MagnifyingGlass,
   MapPin,
+  Rocket,
   Rows,
   Sparkle,
   SquaresFour,
@@ -63,7 +64,9 @@ import {
 import { getPublicJobsWithFilters } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
-import { SponsoredJobsSection } from "../sponsored-jobs-section";
+import { interleaveSponsored } from "../interleave-sponsored";
+import { SponsoredCardImpressionBoundary } from "../sponsored-card-impression-boundary";
+import { getSponsoredJobs, recordBoostClick, type SponsoredJob } from "../sponsored-jobs-api";
 import { startJobApplication } from "../start-job-application";
 import { ApplyModal } from "./apply-modal";
 
@@ -153,7 +156,58 @@ export type Job = {
   experienceYears?: number[];
   salaryMinMillions?: number | undefined;
   salaryMaxMillions?: number | undefined;
+  /** True for a card inserted from the paid Job Boost sponsored feed rather
+   * than derived from `apiJobsData` -- controls the "Được tài trợ" label and
+   * impression/click tracking. See `mapSponsoredJobToCard` below. */
+  sponsored?: boolean;
+  /** Required to report impression/click when `sponsored` is true. */
+  deliveryToken?: string;
 };
+
+/**
+ * Sponsored feed entry -> the same `Job` shape organic cards use, so a
+ * sponsored card renders inline in the results list instead of a visually
+ * distinct block (JOB_BOOST_ROLLOUT_PLAN.md mục 5.2 allows either; this
+ * project inserts into the list). Deliberately smaller than the organic
+ * `apiJobsData` mapping in the `jobs` useMemo below: sponsored cards are
+ * never filtered by category/skill facets, so the category-guessing logic
+ * there does not apply here.
+ */
+function mapSponsoredJobToCard(entry: SponsoredJob, locale: string): Job {
+  const { job, boostType, deliveryToken } = entry;
+  const jobLocations = job.jobPostLocations ?? [];
+
+  return {
+    id: job.id,
+    title: job.title,
+    company: job.company?.name || "UpNext Partner",
+    ...(job.company?.id ? { companyId: job.company.id } : {}),
+    logo: job.company?.logoUrl || job.company?.logoFile?.publicUrl || "",
+    logoColor: "#10b981",
+    verified: job.company?.verificationStatus === "VERIFIED",
+    salary: formatJobSalaryDisplay(job),
+    location: jobLocations[0]?.jobLocation?.city || "Việt Nam",
+    mode: "Full-time",
+    level: job.experienceLevel?.name || "Middle",
+    type: job.employmentType?.name || "Full-time",
+    posted: job.publishedAt ? formatRelativeTime(job.publishedAt, locale as any) : "Mới đăng",
+    publishedAt: job.publishedAt,
+    tags: Array.from(
+      new Set(
+        [
+          ...(job.jobPostSkills ?? []).map((item) => item.skill?.name),
+          job.jobCategory?.name,
+        ].filter((tag): tag is string => Boolean(tag)),
+      ),
+    ).slice(0, 5),
+    description: job.description || "",
+    categories: [],
+    urgent: boostType === "URGENT",
+    featured: boostType === "FEATURED",
+    sponsored: true,
+    deliveryToken,
+  };
+}
 
 type FilterGroup = {
   title: string;
@@ -677,6 +731,31 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const deferredKeyword = useDeferredValue(keyword);
   const locationPreference = useLocationPreference();
 
+  const [sponsoredJobs, setSponsoredJobs] = useState<SponsoredJob[]>([]);
+
+  // Hits the network per call (unlike the organic list, already loaded
+  // client-side), so it needs its own light debounce on keyword changes.
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void getSponsoredJobs({
+        placement: "SEARCH",
+        keyword: deferredKeyword,
+        location: location === ALL_LOCATIONS ? undefined : location,
+      })
+        .then((rows) => {
+          if (!cancelled) setSponsoredJobs(rows);
+        })
+        .catch(() => {
+          if (!cancelled) setSponsoredJobs([]);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [deferredKeyword, location]);
+
   const appliedJobIds = useAppliedJobIds();
 
   function handleApply(job: Job) {
@@ -1139,6 +1218,19 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const currentPage = resultRange.page;
   const shownJobs = filteredJobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  const sponsoredCards = useMemo(
+    () => sponsoredJobs.map((entry) => mapSponsoredJobToCard(entry, locale)),
+    [sponsoredJobs, locale],
+  );
+  // Sponsored slots only ever appear on page 1 -- the feed is not paginated,
+  // so repeating the same 2 cards on every page would be both wrong and
+  // visibly stale. A job already organically present on this page is not
+  // duplicated as a sponsored card; the sponsored version replaces it.
+  const displayJobs =
+    currentPage === 1 && sponsoredCards.length > 0
+      ? interleaveSponsored(shownJobs, sponsoredCards)
+      : shownJobs;
+
   const salaryRangesList = useMemo(
     () =>
       salaryRanges.map((range) => ({
@@ -1544,14 +1636,6 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
             ))}
           </div>
 
-          <SponsoredJobsSection
-            placement="SEARCH"
-            keyword={deferredKeyword}
-            location={location === ALL_LOCATIONS ? undefined : location}
-            navigate={navigate}
-            containerClassName="jobs-container"
-          />
-
           {/* Main Section: List & Filter */}
           <div className="jobs-container mt-2 grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* Left Column: Job Cards List */}
@@ -1715,7 +1799,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                     Thử lại
                   </button>
                 </div>
-              ) : shownJobs.length > 0 ? (
+              ) : displayJobs.length > 0 ? (
                 <div
                   className={
                     view === "grid"
@@ -1723,217 +1807,244 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
                       : "flex flex-col gap-4"
                   }
                 >
-                  {shownJobs.map((job) => (
-                    <div
-                      key={job.id}
-                      className="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition duration-200 hover:border-emerald-500 hover:shadow-lg"
-                    >
-                      {/* Saving is a bookmark on the card itself, not a step in applying, so it sits
+                  {displayJobs.map((job) => {
+                    // Sponsored click is reported before navigating away, and only
+                    // for a card that actually came from the sponsored feed.
+                    const goToJobDetail = () => {
+                      if (job.sponsored && job.deliveryToken) {
+                        void recordBoostClick(job.deliveryToken).catch(() => {
+                          // Tracking is best-effort -- never block navigation for it.
+                        });
+                      }
+                      navigate(`/jobs/${job.id}`);
+                    };
+                    return (
+                      <SponsoredCardImpressionBoundary
+                        key={job.id}
+                        deliveryToken={job.deliveryToken}
+                      >
+                        {(impressionRef) => (
+                          <div
+                            ref={impressionRef}
+                            className="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 transition duration-200 hover:border-emerald-500 hover:shadow-lg"
+                          >
+                            {/* Saving is a bookmark on the card itself, not a step in applying, so it sits
                           in the corner instead of competing for width with Chi tiết and Ứng tuyển. */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!toggleSaveJob(job.id)) {
-                            toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
-                            navigate("/login?redirect=/jobs");
-                          }
-                        }}
-                        disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
-                        className={`absolute top-3 right-3 z-10 flex size-9 cursor-pointer items-center justify-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                          savedJobIds.includes(job.id)
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                            : "border-transparent text-slate-400 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700"
-                        }`}
-                        aria-label={savedJobIds.includes(job.id) ? "Bỏ lưu tin" : "Lưu tin"}
-                        aria-pressed={savedJobIds.includes(job.id)}
-                      >
-                        <BookmarkSimple
-                          size={18}
-                          weight={savedJobIds.includes(job.id) ? "fill" : "regular"}
-                        />
-                      </button>
-
-                      {/* In the grid the card is a narrow column, so the same content stacks
-                          instead of running edge to edge. */}
-                      <div
-                        className={
-                          view === "grid"
-                            ? "flex flex-1 flex-col gap-4"
-                            : "flex flex-col gap-5 sm:flex-row"
-                        }
-                      >
-                        {/* Logo */}
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/jobs/${job.id}`)}
-                          className="cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                          aria-label={`Xem chi tiết ${job.title}`}
-                        >
-                          <LogoMark src={job.logo} name={job.company} color={job.logoColor} />
-                        </button>
-
-                        {/* Body. Right padding keeps a long title clear of the corner bookmark. */}
-                        <div className="flex min-w-0 flex-1 flex-col gap-1 pr-10">
-                          <div className="flex min-w-0 items-center gap-1.5">
-                            <span className="truncate text-xs font-semibold text-slate-500">
-                              {job.company}
-                            </span>
-                            {job.verified && (
-                              <CheckCircle
-                                size={14}
-                                className="shrink-0 text-emerald-500"
-                                weight="fill"
-                              />
-                            )}
-                            {/* Status markers live beside the company, not trailing the title: inline
-                                after a long title they push it onto a second line, and in a grid
-                                column there is no width to spare. */}
-                            {job.urgent && (
-                              <span className="shrink-0 rounded border border-red-100 bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">
-                                Tuyển gấp
-                              </span>
-                            )}
-                            {job.featured && (
-                              <span className="shrink-0 rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
-                                Nổi bật
-                              </span>
-                            )}
-                          </div>
-                          <h3 className="text-base font-bold text-slate-900">
                             <button
                               type="button"
-                              onClick={() => navigate(`/jobs/${job.id}`)}
-                              title={job.title}
-                              className="block w-full cursor-pointer text-left transition group-hover:text-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                            >
-                              {/* The clamp has to sit on the element that directly wraps the text.
-                                  On the h3 it only ever clamped this button's single line, which is
-                                  why long titles still ran to two rows. */}
-                              <span className="line-clamp-1">{job.title}</span>
-                            </button>
-                          </h3>
-                          {/* One line, never wrapping: the city is what gives, since the posted date
-                              is short and fixed-width. */}
-                          <div className="mt-1 flex min-w-0 items-center gap-x-3 text-xs text-slate-500">
-                            <span className="flex min-w-0 items-center gap-1">
-                              <MapPin size={14} className="shrink-0" />
-                              <span className="truncate">{job.location}</span>
-                            </span>
-                            {job.applicants && view !== "grid" ? (
-                              <span className="flex shrink-0 items-center gap-1">
-                                <Users size={14} /> {job.applicants} ứng viên
-                              </span>
-                            ) : null}
-                            <span className="flex shrink-0 items-center gap-1">
-                              <Clock size={14} /> {job.posted}
-                            </span>
-                          </div>
-                          <div className="mt-3 flex gap-1.5 overflow-hidden">
-                            {(() => {
-                              /* Budgeted per layout: the grid column is roughly half the width of a
-                                 list row, so the same three tags that fit a row wrapped onto a
-                                 second line in the grid. */
-                              const maxTags = view === "grid" ? 2 : 3;
-                              const maxChars = view === "grid" ? 18 : 22;
-                              const shown: string[] = [];
-                              let currentChars = 0;
-                              for (const tag of job.tags) {
-                                if (shown.length >= maxTags) break;
-                                if (shown.length >= 1 && currentChars + tag.length > maxChars) {
-                                  break;
+                              onClick={() => {
+                                if (!toggleSaveJob(job.id)) {
+                                  toast.info("Vui lòng đăng nhập để lưu công việc yêu thích.");
+                                  navigate("/login?redirect=/jobs");
                                 }
-                                shown.push(tag);
-                                currentChars += tag.length;
+                              }}
+                              disabled={!isSavedJobsSessionResolved || isSavedJobPending(job.id)}
+                              className={`absolute top-3 right-3 z-10 flex size-9 cursor-pointer items-center justify-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                savedJobIds.includes(job.id)
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                                  : "border-transparent text-slate-400 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700"
+                              }`}
+                              aria-label={savedJobIds.includes(job.id) ? "Bỏ lưu tin" : "Lưu tin"}
+                              aria-pressed={savedJobIds.includes(job.id)}
+                            >
+                              <BookmarkSimple
+                                size={18}
+                                weight={savedJobIds.includes(job.id) ? "fill" : "regular"}
+                              />
+                            </button>
+
+                            {/* In the grid the card is a narrow column, so the same content stacks
+                          instead of running edge to edge. */}
+                            <div
+                              className={
+                                view === "grid"
+                                  ? "flex flex-1 flex-col gap-4"
+                                  : "flex flex-col gap-5 sm:flex-row"
                               }
-                              const extraCount = job.tags.length - shown.length;
-                              return (
-                                <>
-                                  {shown.map((tag) => (
-                                    <span
-                                      key={tag}
-                                      className="shrink-0 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-slate-600"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                  {extraCount > 0 && (
-                                    <span
-                                      className="shrink-0 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-400"
-                                      title={job.tags.slice(shown.length).join(", ")}
-                                    >
-                                      +{extraCount}
+                            >
+                              {/* Logo */}
+                              <button
+                                type="button"
+                                onClick={goToJobDetail}
+                                className="cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                                aria-label={`Xem chi tiết ${job.title}`}
+                              >
+                                <LogoMark src={job.logo} name={job.company} color={job.logoColor} />
+                              </button>
+
+                              {/* Body. Right padding keeps a long title clear of the corner bookmark. */}
+                              <div className="flex min-w-0 flex-1 flex-col gap-1 pr-10">
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                  <span className="truncate text-xs font-semibold text-slate-500">
+                                    {job.company}
+                                  </span>
+                                  {job.verified && (
+                                    <CheckCircle
+                                      size={14}
+                                      className="shrink-0 text-emerald-500"
+                                      weight="fill"
+                                    />
+                                  )}
+                                  {/* Status markers live beside the company, not trailing the title: inline
+                                after a long title they push it onto a second line, and in a grid
+                                column there is no width to spare. */}
+                                  {job.sponsored && (
+                                    <span className="flex shrink-0 items-center gap-0.5 rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600">
+                                      <Rocket size={10} weight="fill" /> Được tài trợ
                                     </span>
                                   )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </div>
+                                  {job.urgent && (
+                                    <span className="shrink-0 rounded border border-red-100 bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-500">
+                                      Tuyển gấp
+                                    </span>
+                                  )}
+                                  {job.featured && (
+                                    <span className="shrink-0 rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                                      Nổi bật
+                                    </span>
+                                  )}
+                                </div>
+                                <h3 className="text-base font-bold text-slate-900">
+                                  <button
+                                    type="button"
+                                    onClick={goToJobDetail}
+                                    title={job.title}
+                                    className="block w-full cursor-pointer text-left transition group-hover:text-emerald-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                                  >
+                                    {/* The clamp has to sit on the element that directly wraps the text.
+                                  On the h3 it only ever clamped this button's single line, which is
+                                  why long titles still ran to two rows. */}
+                                    <span className="line-clamp-1">{job.title}</span>
+                                  </button>
+                                </h3>
+                                {/* One line, never wrapping: the city is what gives, since the posted date
+                              is short and fixed-width. */}
+                                <div className="mt-1 flex min-w-0 items-center gap-x-3 text-xs text-slate-500">
+                                  <span className="flex min-w-0 items-center gap-1">
+                                    <MapPin size={14} className="shrink-0" />
+                                    <span className="truncate">{job.location}</span>
+                                  </span>
+                                  {job.applicants && view !== "grid" ? (
+                                    <span className="flex shrink-0 items-center gap-1">
+                                      <Users size={14} /> {job.applicants} ứng viên
+                                    </span>
+                                  ) : null}
+                                  <span className="flex shrink-0 items-center gap-1">
+                                    <Clock size={14} /> {job.posted}
+                                  </span>
+                                </div>
+                                <div className="mt-3 flex gap-1.5 overflow-hidden">
+                                  {(() => {
+                                    /* Budgeted per layout: the grid column is roughly half the width of a
+                                 list row, so the same three tags that fit a row wrapped onto a
+                                 second line in the grid. */
+                                    const maxTags = view === "grid" ? 2 : 3;
+                                    const maxChars = view === "grid" ? 18 : 22;
+                                    const shown: string[] = [];
+                                    let currentChars = 0;
+                                    for (const tag of job.tags) {
+                                      if (shown.length >= maxTags) break;
+                                      if (
+                                        shown.length >= 1 &&
+                                        currentChars + tag.length > maxChars
+                                      ) {
+                                        break;
+                                      }
+                                      shown.push(tag);
+                                      currentChars += tag.length;
+                                    }
+                                    const extraCount = job.tags.length - shown.length;
+                                    return (
+                                      <>
+                                        {shown.map((tag) => (
+                                          <span
+                                            key={tag}
+                                            className="shrink-0 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-slate-600"
+                                          >
+                                            {tag}
+                                          </span>
+                                        ))}
+                                        {extraCount > 0 && (
+                                          <span
+                                            className="shrink-0 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-400"
+                                            title={job.tags.slice(shown.length).join(", ")}
+                                          >
+                                            +{extraCount}
+                                          </span>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
 
-                        {/* Side Actions. In the grid a card is one narrow column, so the salary and
+                              {/* Side Actions. In the grid a card is one narrow column, so the salary and
                             the buttons stack; side by side they overflowed the card. */}
-                        <div
-                          className={
-                            view === "grid"
-                              ? "mt-auto flex flex-col gap-2.5 border-t border-slate-100 pt-3"
-                              : "flex min-w-[140px] items-end justify-between gap-2.5 sm:flex-col sm:justify-start"
-                          }
-                        >
-                          {/* In the list layout this sits directly below the corner bookmark, so it
+                              <div
+                                className={
+                                  view === "grid"
+                                    ? "mt-auto flex flex-col gap-2.5 border-t border-slate-100 pt-3"
+                                    : "flex min-w-[140px] items-end justify-between gap-2.5 sm:flex-col sm:justify-start"
+                                }
+                              >
+                                {/* In the list layout this sits directly below the corner bookmark, so it
                               is padded clear of it; in the grid it lives in the footer instead. */}
-                          <span
-                            className={`text-base font-bold whitespace-nowrap text-slate-900 ${
-                              view === "grid" ? "" : "sm:pr-11"
-                            }`}
-                          >
-                            {job.salary}
-                          </span>
-                          <div
-                            className={
-                              view === "grid"
-                                ? "flex w-full items-center gap-2"
-                                : "mt-auto flex w-full items-center gap-2 sm:w-auto"
-                            }
-                          >
-                            {/* In the grid the pair fills the card, so no dead strip is left beside
+                                <span
+                                  className={`text-base font-bold whitespace-nowrap text-slate-900 ${
+                                    view === "grid" ? "" : "sm:pr-11"
+                                  }`}
+                                >
+                                  {job.salary}
+                                </span>
+                                <div
+                                  className={
+                                    view === "grid"
+                                      ? "flex w-full items-center gap-2"
+                                      : "mt-auto flex w-full items-center gap-2 sm:w-auto"
+                                  }
+                                >
+                                  {/* In the grid the pair fills the card, so no dead strip is left beside
                                 them; `sm:flex-initial` is what used to shrink them back to their
                                 text and leave that gap. In the list they hug their labels, because
                                 the row already ends at the card edge. */}
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/jobs/${job.id}`)}
-                              className={`flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 ${
-                                view === "grid" ? "" : "sm:flex-initial"
-                              }`}
-                            >
-                              Chi tiết <ArrowRight size={12} />
-                            </button>
-                            {appliedJobIds.has(job.id) ? (
-                              <button
-                                type="button"
-                                disabled
-                                className={`flex-1 cursor-default rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold whitespace-nowrap text-emerald-700 ${
-                                  view === "grid" ? "" : "sm:flex-initial"
-                                }`}
-                              >
-                                Đã ứng tuyển
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleApply(job)}
-                                className={`flex-1 cursor-pointer rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700 ${
-                                  view === "grid" ? "" : "sm:flex-initial"
-                                }`}
-                              >
-                                Ứng tuyển
-                              </button>
-                            )}
+                                  <button
+                                    type="button"
+                                    onClick={goToJobDetail}
+                                    className={`flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 ${
+                                      view === "grid" ? "" : "sm:flex-initial"
+                                    }`}
+                                  >
+                                    Chi tiết <ArrowRight size={12} />
+                                  </button>
+                                  {appliedJobIds.has(job.id) ? (
+                                    <button
+                                      type="button"
+                                      disabled
+                                      className={`flex-1 cursor-default rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold whitespace-nowrap text-emerald-700 ${
+                                        view === "grid" ? "" : "sm:flex-initial"
+                                      }`}
+                                    >
+                                      Đã ứng tuyển
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApply(job)}
+                                      className={`flex-1 cursor-pointer rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold whitespace-nowrap text-white shadow-sm transition hover:bg-emerald-700 ${
+                                        view === "grid" ? "" : "sm:flex-initial"
+                                      }`}
+                                    >
+                                      Ứng tuyển
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                        )}
+                      </SponsoredCardImpressionBoundary>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-10 text-center">

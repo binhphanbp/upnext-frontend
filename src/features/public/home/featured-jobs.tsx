@@ -1,11 +1,14 @@
 "use client";
 
+import { Rocket } from "@phosphor-icons/react";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { formatJobSalaryDisplay } from "@/features/public/jobs/components/jobs-page";
+import { SponsoredCardImpressionBoundary } from "@/features/public/jobs/sponsored-card-impression-boundary";
+import { recordBoostClick } from "@/features/public/jobs/sponsored-jobs-api";
 import { toast } from "@/shared/ui/toast";
 
 import type { PublicJob } from "./api";
@@ -47,6 +50,12 @@ type FeaturedJobsProps = {
   sectionId?: string | undefined;
   /** View counts communicate community interest; other feeds retain the application deadline. */
   footerMetric?: "deadline" | "views" | undefined;
+  /** Job ids that came from the paid Job Boost sponsored feed rather than
+   * organic ranking, mapped to the delivery token needed to report
+   * impression/click -- drives the "Được tài trợ" badge and tracking.
+   * Optional and additive: a section that never passes this (recommended
+   * jobs, urgent jobs) renders exactly as before. */
+  sponsoredDeliveryTokenByJobId?: ReadonlyMap<string, string> | undefined;
 };
 
 type JobCard = {
@@ -251,6 +260,7 @@ export function FeaturedJobs({
   sectionDescription,
   sectionId = "latest-jobs",
   footerMetric = "deadline",
+  sponsoredDeliveryTokenByJobId,
 }: FeaturedJobsProps) {
   const locale = useLocale();
   const copy = locale === "en" ? interestCopy.en : interestCopy.vi;
@@ -595,134 +605,153 @@ export function FeaturedJobs({
                     currentChars += tag.length;
                   }
                   const extraTags = job.tags.length - shownTags.length;
+                  const deliveryToken = sponsoredDeliveryTokenByJobId?.get(job.id);
+                  const goToJobDetail = () => {
+                    if (deliveryToken) {
+                      void recordBoostClick(deliveryToken).catch(() => {
+                        // Tracking is best-effort -- never block navigation for it.
+                      });
+                    }
+                    navigate(`/jobs/${job.id}`);
+                  };
 
                   return (
-                    <article
-                      key={job.id}
-                      className={`featured-job-card${
-                        previewJobId === job.id ? " is-previewed" : ""
-                      }`}
-                      onMouseLeave={schedulePreviewClose}
-                    >
-                      <div className="featured-job-company" style={{ marginTop: 0 }}>
-                        <CompanyLogo src={job.logo} name={job.company} color={job.logoColor} />
-                        <span className="featured-job-company-row">
-                          <span className="featured-job-company-name" title={job.company}>
-                            {job.company}
-                          </span>
-                          {job.verified && <VerifiedBadge locale={locale} />}
-                        </span>
-                        <button
-                          type="button"
-                          className={`featured-job-save ml-auto${saved ? " is-saved" : ""}`}
-                          aria-label={
-                            saved ? previewCopy.unsave(job.title) : previewCopy.save(job.title)
-                          }
-                          aria-pressed={saved}
-                          disabled={
-                            !isSavedJobsSessionResolved ||
-                            saveUnavailable ||
-                            isSavedJobPending(job.id)
-                          }
-                          title={
-                            saveUnavailable
-                              ? "Tin tuyển dụng này chưa đồng bộ với hệ thống lưu tin."
-                              : undefined
-                          }
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleSaveJob(job);
-                          }}
+                    <SponsoredCardImpressionBoundary key={job.id} deliveryToken={deliveryToken}>
+                      {(impressionRef) => (
+                        <article
+                          ref={impressionRef}
+                          className={`featured-job-card${
+                            previewJobId === job.id ? " is-previewed" : ""
+                          }`}
+                          onMouseLeave={schedulePreviewClose}
                         >
-                          <Bookmark size={18} weight={saved ? "fill" : "regular"} />
-                        </button>
-                      </div>
+                          <div className="featured-job-company" style={{ marginTop: 0 }}>
+                            <CompanyLogo src={job.logo} name={job.company} color={job.logoColor} />
+                            <span className="featured-job-company-row">
+                              <span className="featured-job-company-name" title={job.company}>
+                                {job.company}
+                              </span>
+                              {job.verified && <VerifiedBadge locale={locale} />}
+                              {deliveryToken && (
+                                <span className="inline-flex shrink-0 items-center gap-0.5 rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600">
+                                  <Rocket size={10} weight="fill" />
+                                  {locale === "en" ? "Sponsored" : "Được tài trợ"}
+                                </span>
+                              )}
+                            </span>
+                            <button
+                              type="button"
+                              className={`featured-job-save ml-auto${saved ? " is-saved" : ""}`}
+                              aria-label={
+                                saved ? previewCopy.unsave(job.title) : previewCopy.save(job.title)
+                              }
+                              aria-pressed={saved}
+                              disabled={
+                                !isSavedJobsSessionResolved ||
+                                saveUnavailable ||
+                                isSavedJobPending(job.id)
+                              }
+                              title={
+                                saveUnavailable
+                                  ? "Tin tuyển dụng này chưa đồng bộ với hệ thống lưu tin."
+                                  : undefined
+                              }
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleSaveJob(job);
+                              }}
+                            >
+                              <Bookmark size={18} weight={saved ? "fill" : "regular"} />
+                            </button>
+                          </div>
 
-                      <h3>
-                        <button
-                          type="button"
-                          className="featured-job-title"
-                          id={`${sectionId}-job-title-${job.id}`}
-                          title={job.title}
-                          onClick={() => navigate(`/jobs/${job.id}`)}
-                          onMouseEnter={(event) => openPreview(job.id, event.currentTarget)}
-                          onFocus={(event) => openPreview(job.id, event.currentTarget)}
-                          onBlur={schedulePreviewClose}
-                          onKeyDown={(event) => {
-                            if (event.key === "Escape") {
-                              event.preventDefault();
-                              closePreviewAndRestoreFocus();
-                            }
-                          }}
-                          aria-controls={`${sectionId}-preview`}
-                          aria-expanded={previewJobId === job.id}
-                          aria-haspopup="dialog"
-                        >
-                          {job.title}
-                        </button>
-                      </h3>
+                          <h3>
+                            <button
+                              type="button"
+                              className="featured-job-title"
+                              id={`${sectionId}-job-title-${job.id}`}
+                              title={job.title}
+                              onClick={goToJobDetail}
+                              onMouseEnter={(event) => openPreview(job.id, event.currentTarget)}
+                              onFocus={(event) => openPreview(job.id, event.currentTarget)}
+                              onBlur={schedulePreviewClose}
+                              onKeyDown={(event) => {
+                                if (event.key === "Escape") {
+                                  event.preventDefault();
+                                  closePreviewAndRestoreFocus();
+                                }
+                              }}
+                              aria-controls={`${sectionId}-preview`}
+                              aria-expanded={previewJobId === job.id}
+                              aria-haspopup="dialog"
+                            >
+                              {job.title}
+                            </button>
+                          </h3>
 
-                      <div className="featured-job-salary">
-                        <Coins size={16} />
-                        {job.salary}
-                      </div>
+                          <div className="featured-job-salary">
+                            <Coins size={16} />
+                            {job.salary}
+                          </div>
 
-                      <div className="featured-job-meta">
-                        <span>
-                          <MapPin size={15} />
-                          {job.location}
-                        </span>
-                        <span>
-                          <Briefcase size={15} />
-                          {job.experience}
-                        </span>
-                      </div>
+                          <div className="featured-job-meta">
+                            <span>
+                              <MapPin size={15} />
+                              {job.location}
+                            </span>
+                            <span>
+                              <Briefcase size={15} />
+                              {job.experience}
+                            </span>
+                          </div>
 
-                      <div className="featured-job-tags">
-                        {shownTags.map((tag) => (
-                          <i key={tag}>{tag}</i>
-                        ))}
-                        {extraTags > 0 && (
-                          <i
-                            className="featured-job-tag-more"
-                            title={job.tags.slice(shownTags.length).join(", ")}
-                          >
-                            +{extraTags}
-                          </i>
-                        )}
-                      </div>
+                          <div className="featured-job-tags">
+                            {shownTags.map((tag) => (
+                              <i key={tag}>{tag}</i>
+                            ))}
+                            {extraTags > 0 && (
+                              <i
+                                className="featured-job-tag-more"
+                                title={job.tags.slice(shownTags.length).join(", ")}
+                              >
+                                +{extraTags}
+                              </i>
+                            )}
+                          </div>
 
-                      {job.matchReasons.length > 0 && (
-                        <p className="featured-job-match-reason">
-                          <Sparkles size={13} aria-hidden="true" />
-                          {reasonLabels[job.matchReasons[0]!]}
-                        </p>
+                          {job.matchReasons.length > 0 && (
+                            <p className="featured-job-match-reason">
+                              <Sparkles size={13} aria-hidden="true" />
+                              {reasonLabels[job.matchReasons[0]!]}
+                            </p>
+                          )}
+
+                          <footer className="featured-job-foot">
+                            {footerMetric === "views" && job.viewCount !== null ? (
+                              <span className="featured-job-interest">
+                                <Eye size={14} aria-hidden="true" />
+                                {formatViewCount(job.viewCount, locale)} {copy.views}
+                              </span>
+                            ) : (
+                              <span className="featured-job-deadline">
+                                <Clock size={14} aria-hidden="true" />
+                                {job.deadline}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              className="featured-job-apply"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onApply(job);
+                              }}
+                            >
+                              {previewCopy.apply} <ArrowRight size={15} />
+                            </button>
+                          </footer>
+                        </article>
                       )}
-
-                      <footer className="featured-job-foot">
-                        {footerMetric === "views" && job.viewCount !== null ? (
-                          <span className="featured-job-interest">
-                            <Eye size={14} aria-hidden="true" />
-                            {formatViewCount(job.viewCount, locale)} {copy.views}
-                          </span>
-                        ) : (
-                          <span className="featured-job-deadline">
-                            <Clock size={14} aria-hidden="true" />
-                            {job.deadline}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          className="featured-job-apply"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onApply(job);
-                          }}
-                        >
-                          {previewCopy.apply} <ArrowRight size={15} />
-                        </button>
-                      </footer>
-                    </article>
+                    </SponsoredCardImpressionBoundary>
                   );
                 })}
               </div>

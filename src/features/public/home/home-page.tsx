@@ -16,7 +16,8 @@ import { toast } from "@/shared/ui/toast";
 import { useLocationPreference } from "@/shared/utils/location-preference";
 import { removeVietnameseAccents } from "@/shared/utils/natural-search";
 
-import { SponsoredJobsSection } from "../jobs/sponsored-jobs-section";
+import { interleaveSponsored } from "../jobs/interleave-sponsored";
+import { getSponsoredJobs, type SponsoredJob } from "../jobs/sponsored-jobs-api";
 import { PublicFooter } from "../shared/public-footer";
 import { PublicHeader } from "../shared/public-header";
 import {
@@ -458,6 +459,39 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
       }),
     [homeData?.jobsSection.latest.items, latestFallbackExcludedJobIds, now],
   );
+
+  const [sponsoredJobs, setSponsoredJobs] = useState<SponsoredJob[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void getSponsoredJobs({ placement: "HOMEPAGE" })
+      .then((rows) => {
+        if (!cancelled) setSponsoredJobs(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setSponsoredJobs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const sponsoredDeliveryTokenByJobId = useMemo(
+    () => new Map(sponsoredJobs.map((entry) => [entry.job.id, entry.deliveryToken])),
+    [sponsoredJobs],
+  );
+  // "Việc làm mới nhất" is where sponsored slots land -- whichever of the two
+  // feeds that section is actually showing (mục 5.2: same fixed position
+  // regardless of section content, so a candidate always sees the same ad
+  // slot on their first visit to the job list).
+  const latestSectionJobs = showInterestedJobs ? interestedJobs : latestFallbackJobs;
+  const latestSectionJobsWithSponsored = useMemo(
+    () =>
+      interleaveSponsored(
+        latestSectionJobs,
+        sponsoredJobs.map((entry) => entry.job),
+      ),
+    [latestSectionJobs, sponsoredJobs],
+  );
+
   const recommendationReasons = useMemo(
     () =>
       new Map(candidateRecommendationJobs.map((item) => [item.job.id, item.reasonCodes] as const)),
@@ -811,11 +845,6 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
               copy={copy}
               candidateState={candidateState}
             />
-            <SponsoredJobsSection
-              placement="HOMEPAGE"
-              navigate={navigate}
-              containerClassName="mb-2"
-            />
             {showCandidateRecommendations ? (
               <FeaturedJobs
                 navigate={navigate}
@@ -859,17 +888,18 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
             <FeaturedJobs
               navigate={navigate}
               onApply={handleApply}
-              jobs={showInterestedJobs ? interestedJobs : latestFallbackJobs}
+              jobs={latestSectionJobsWithSponsored}
               excludedJobIds={
                 showInterestedJobs ? interestedExcludedJobIds : latestFallbackExcludedJobIds
               }
-              selectedJobs={showInterestedJobs ? interestedJobs : latestFallbackJobs}
+              selectedJobs={latestSectionJobsWithSponsored}
               sectionId={showInterestedJobs ? "interested-jobs" : "latest-jobs"}
               sectionTitle={showInterestedJobs ? copy.interestedJobsTitle : copy.latestJobsTitle}
               sectionDescription={
                 showInterestedJobs ? copy.interestedJobsDescription : copy.latestJobsDescription
               }
               footerMetric={showInterestedJobs ? "views" : "deadline"}
+              sponsoredDeliveryTokenByJobId={sponsoredDeliveryTokenByJobId}
               isLoading={isHomePending}
               isError={false}
               onRetry={() => void refetchHome()}
