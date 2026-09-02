@@ -156,10 +156,16 @@ export function RecruiterPricingPage() {
       const invoice = await createInvoice(planId, token);
       router.push(`/recruiter/billing?invoice=${invoice.id}`);
     } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Đã có lỗi xảy ra, vui lòng thử lại.";
       void Swal.fire({
-        icon: "error",
-        title: "Không thể tạo hóa đơn",
-        text: err instanceof Error ? err.message : "Đã có lỗi xảy ra, vui lòng thử lại.",
+        icon: "warning",
+        title: "Thông báo",
+        text: message,
       });
       setCreatingPlanId(null);
     }
@@ -270,6 +276,25 @@ export function RecruiterPricingPage() {
             const isHighlighted = Boolean(plan.highlightLabel);
             const isFree = parseFloat(plan.price) === 0;
 
+            const daysUntilExpiry =
+              activeSub?.expiredAt != null
+                ? (new Date(activeSub.expiredAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+                : null;
+
+            const canRenew = Boolean(
+              isCurrent && !isFree && daysUntilExpiry !== null && daysUntilExpiry <= 3,
+            );
+
+            const isCurrentBlocked = Boolean(isCurrent && (!canRenew || isFree));
+
+            const hasAnotherPaidPlanActive = Boolean(
+              activeSub &&
+              !isCurrent &&
+              parseFloat(activeSub.plan?.price || "0") > 0 &&
+              daysUntilExpiry !== null &&
+              daysUntilExpiry > 0,
+            );
+
             return (
               <div
                 key={plan.id}
@@ -369,13 +394,41 @@ export function RecruiterPricingPage() {
 
                 {/* CTA Action */}
                 <div className="mt-8 pt-2">
-                  {isCurrent ? (
+                  {canRenew ? (
+                    <Button
+                      className={cn(
+                        "w-full h-11 text-sm font-bold rounded-xl transition-all shadow-md",
+                        "bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-500 hover:to-orange-500 shadow-amber-600/25",
+                      )}
+                      disabled={creatingPlanId !== null}
+                      onClick={() => void handleSubscribe(plan.id)}
+                    >
+                      {creatingPlanId === plan.id ? (
+                        <>
+                          <Spinner className="mr-2 size-4 animate-spin" />
+                          Đang khởi tạo...
+                        </>
+                      ) : (
+                        <>Gia hạn gói (còn {Math.max(1, Math.ceil(daysUntilExpiry ?? 0))} ngày)</>
+                      )}
+                    </Button>
+                  ) : isCurrentBlocked ? (
                     <Button
                       className="w-full cursor-not-allowed border border-emerald-200 bg-emerald-50 font-bold text-emerald-700 hover:bg-emerald-50"
                       disabled
                     >
                       <CheckCircle className="mr-1.5 size-4 text-emerald-600" weight="fill" />
-                      Gói hiện tại của bạn
+                      {activeSub?.expiredAt && !isFree
+                        ? `Đang sử dụng (Hạn: ${new Date(activeSub.expiredAt).toLocaleDateString("vi-VN")})`
+                        : "Gói hiện tại của bạn"}
+                    </Button>
+                  ) : hasAnotherPaidPlanActive ? (
+                    <Button
+                      className="w-full cursor-not-allowed border border-slate-200 bg-slate-100 font-semibold text-slate-400 hover:bg-slate-100"
+                      disabled
+                      title="Không thể đổi gói giữa chu kỳ khi gói hiện tại đang có hiệu lực"
+                    >
+                      Không thể đổi gói giữa kỳ
                     </Button>
                   ) : (
                     <Button

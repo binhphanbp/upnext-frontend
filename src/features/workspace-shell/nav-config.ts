@@ -151,6 +151,17 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
         href: "/admin/system/audit-log",
         icon: ListChecks,
       },
+      {
+        label: "systemAdmin.searchKeywords",
+        href: "/admin/system/search-keywords",
+        icon: MagnifyingGlass,
+      },
+      {
+        label: "operationsAndContent.support",
+        href: "/admin/content/support",
+        icon: Headset,
+        disabled: true,
+      },
     ],
   },
 ];

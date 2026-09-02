@@ -61,9 +61,9 @@ import {
   Search,
   Sparkles,
 } from "./marketing-icons";
-import { getPopularKeywordsForLocale } from "./popular-keywords";
 import { useAnchoredJobPreview } from "./use-anchored-job-preview";
 import { useJobPreviewDetail } from "./use-job-preview-detail";
+import { usePopularKeywords } from "./use-popular-keywords";
 
 type MarketingHomeExperienceProps = {
   navigate: (path: string) => void;
@@ -342,10 +342,8 @@ export function MarketingHomeExperience({ navigate }: MarketingHomeExperiencePro
   const [candidateSession, setCandidateSession] = useState<CandidateSession | null | undefined>(
     undefined,
   );
-  const popularKeywords = useMemo(
-    () => getPopularKeywordsForLocale(locale === "en" ? "en" : "vi"),
-    [locale],
-  );
+  // Chip lấy từ bảng `popular_search_keywords`; danh sách cứng chỉ là fallback lần đầu.
+  const popularKeywords = usePopularKeywords("HOME_HERO", locale === "en" ? "en" : "vi");
   const heroPopularKeywords = popularKeywords.slice(0, 6);
 
   const searchCardRef = useRef<HTMLElement | null>(null);

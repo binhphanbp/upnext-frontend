@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildPopularKeywordSlides,
+  fetchPopularKeywords,
   getPopularKeywordsForLocale,
   normalizePopularKeywords,
   type PopularKeyword,
@@ -64,5 +65,72 @@ describe("popular keywords", () => {
       shortLabel: "BA",
       query: "Business Analyst",
     });
+  });
+});
+
+describe("fetchPopularKeywords", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubFetch(response: unknown, ok = true) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok,
+        status: ok ? 200 : 500,
+        headers: new Headers({ "content-type": "application/json" }),
+        json: async () => response,
+        text: async () => JSON.stringify(response),
+      }),
+    );
+  }
+
+  it("maps the API payload onto the keyword shape", async () => {
+    stubFetch({
+      items: [
+        {
+          label: "Kubernetes",
+          shortLabel: "K8s",
+          query: "Kubernetes",
+          priority: 200,
+          category: "skill",
+        },
+      ],
+    });
+
+    const keywords = await fetchPopularKeywords("HOME_HERO", "vi", 24);
+
+    expect(keywords).toEqual([
+      {
+        label: "Kubernetes",
+        shortLabel: "K8s",
+        query: "Kubernetes",
+        locale: "vi",
+        priority: 200,
+        category: "skill",
+      },
+    ]);
+  });
+
+  it("leaves shortLabel and category off when the API sends null", async () => {
+    stubFetch({
+      items: [
+        { label: "Frontend", shortLabel: null, query: "Frontend", priority: 10, category: null },
+      ],
+    });
+
+    const [keyword] = await fetchPopularKeywords("JOBS_SEARCH", "en", 8);
+
+    // `PopularKeyword` khai báo hai field này là optional, dùng `undefined` chứ không phải null.
+    expect(keyword).not.toHaveProperty("shortLabel");
+    expect(keyword).not.toHaveProperty("category");
+  });
+
+  it("returns nothing when the request fails, so the caller can keep its current chips", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+
+    // Chip là thành phần điều hướng; API lỗi không được làm trống ô tìm kiếm.
+    await expect(fetchPopularKeywords("HOME_HERO", "vi")).resolves.toEqual([]);
   });
 });

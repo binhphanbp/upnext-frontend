@@ -25,6 +25,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import { useAppliedJobIds } from "@/features/candidate/applications/use-applied-job-ids";
 import { useCandidateSavedJobs } from "@/features/candidate/saved-jobs";
 import { getCandidateSession } from "@/features/candidate/session";
+import { usePopularKeywords } from "@/features/public/home/use-popular-keywords";
 import {
   countFacetOption,
   type FacetGroupKey,
@@ -65,6 +66,7 @@ import { getPublicJobsWithFilters } from "../../home/api";
 import { PublicFooter } from "../../shared/public-footer";
 import { PublicHeader } from "../../shared/public-header";
 import { interleaveSponsored } from "../interleave-sponsored";
+import { getSearchSessionId } from "../search-session-id";
 import { SponsoredCardImpressionBoundary } from "../sponsored-card-impression-boundary";
 import { getSponsoredJobs, recordBoostClick, type SponsoredJob } from "../sponsored-jobs-api";
 import { startJobApplication } from "../start-job-application";
@@ -671,6 +673,8 @@ function getPageNumbers(currentPage: number, totalPages: number) {
 
 export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const locale = useLocale();
+  // Chip "Tìm kiếm phổ biến" của trang này là danh sách riêng, không dùng chung trang chủ.
+  const popularKeywords = usePopularKeywords("JOBS_SEARCH", locale === "en" ? "en" : "vi", 8);
   const params = useSearchParams();
   const titleFilter = params.get("title")?.trim() ?? "";
   const skillFilter = params.get("skill")?.trim() ?? "";
@@ -722,7 +726,7 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const [applyJob, setApplyJob] = useState<Job | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(queryPage);
-  const lastLoggedKeywordRef = useRef<string>("");
+  const lastLoggedSearchRef = useRef<string>("");
   const lastObservedQueryRef = useRef(querySignature);
   const skipNextFilterReplaceRef = useRef(false);
   const filterDialogRef = useRef<HTMLElement | null>(null);
@@ -847,8 +851,9 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
   const logKeyword = async (term: string, count: number) => {
     const normalizedTerm = term.trim();
     if (normalizedTerm.length < 2) return;
-    if (lastLoggedKeywordRef.current === normalizedTerm) return;
-    lastLoggedKeywordRef.current = normalizedTerm;
+
+    if (lastLoggedSearchRef.current === normalizedTerm) return;
+    lastLoggedSearchRef.current = normalizedTerm;
 
     try {
       const session = getCandidateSession();
@@ -859,12 +864,15 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
         headers["Authorization"] = `Bearer ${session.accessToken}`;
       }
 
+      const sessionId = getSearchSessionId();
+
       await apiRequest("/search-keywords/log", {
         method: "POST",
         body: JSON.stringify({
           keyword: normalizedTerm,
           source: "main_search",
           resultCount: count,
+          ...(sessionId ? { sessionId } : {}),
         }),
         headers,
       });
@@ -1207,11 +1215,24 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
     [facetGroupMatchers, naturalSearchScores, searchScopedJobs, sort],
   );
 
+  /**
+   * Ghi lại từ khóa cho phần thống kê, sau khi số kết quả đã ổn định.
+   *
+   * Bản trước ghi ngay trong lần chạy đầu của hiệu ứng, lúc đó danh sách còn rỗng, nên
+   * `resultCount` gửi lên luôn là 0 — và vì mỗi từ khóa chỉ ghi một lần, lần ghi đúng
+   * không bao giờ xảy ra. Vì vậy phải chờ query xong (`isJobsPending`) và thêm một nhịp
+   * debounce cho phần lọc phía client.
+   */
   useEffect(() => {
-    if (queryKeyword.trim().length >= 2) {
-      logKeyword(queryKeyword, filteredJobs.length);
-    }
-  }, [filteredJobs.length, queryKeyword]);
+    if (isJobsPending) return;
+    if (queryKeyword.trim().length < 2) return;
+
+    const timer = setTimeout(() => {
+      void logKeyword(queryKeyword, filteredJobs.length);
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [filteredJobs.length, isJobsPending, queryKeyword]);
 
   const resultRange = getResultRange(page, pageSize, filteredJobs.length);
   const totalPages = resultRange.totalPages;
@@ -1575,27 +1596,18 @@ export function PublicJobsPage({ navigate, replace }: PublicJobsPageProps) {
           <div className="jobs-container flex flex-wrap items-center gap-3 text-xs">
             <span className="font-medium text-slate-500">Tìm kiếm phổ biến:</span>
             <div className="flex flex-wrap gap-2">
-              {[
-                "ReactJS",
-                "NodeJS",
-                "Frontend",
-                "Backend",
-                "Fullstack",
-                ".NET",
-                "Python",
-                "DevOps",
-              ].map((tech) => (
+              {popularKeywords.map((chip) => (
                 <button
-                  key={tech}
+                  key={chip.query}
                   type="button"
                   onClick={() => {
-                    setKeyword(tech);
+                    setKeyword(chip.query);
                     setPage(1);
-                    navigateToSearch(tech);
+                    navigateToSearch(chip.query);
                   }}
                   className="cursor-pointer rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-600 transition hover:border-emerald-500 hover:bg-emerald-50/20 hover:text-emerald-600"
                 >
-                  {tech}
+                  {chip.label}
                 </button>
               ))}
             </div>

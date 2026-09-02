@@ -465,6 +465,14 @@ export function RecruiterBillingPage() {
               ) : (
                 paginatedInvoices.map((inv) => {
                   const isPending = inv.paymentStatus === "PENDING";
+                  const isDuplicatePendingForActivePlan = Boolean(
+                    isPending &&
+                    activeSub &&
+                    activeSub.status === "ACTIVE" &&
+                    activeSub.planId === inv.subscriptionPlanId &&
+                    parseFloat(activeSub.plan?.price || "0") > 0 &&
+                    new Date(activeSub.expiredAt).getTime() - Date.now() > 3 * 24 * 60 * 60 * 1000,
+                  );
                   return (
                     <tr key={inv.id} className="hover:bg-slate-50/50">
                       <td className="px-5 py-4 font-mono text-xs font-bold text-slate-600">
@@ -501,12 +509,22 @@ export function RecruiterBillingPage() {
                       </td>
                       <td className="px-5 py-4 text-center">
                         {isPending ? (
-                          <Button
-                            className="h-8 bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700"
-                            onClick={() => setCheckoutInvoice(inv)}
-                          >
-                            Thanh toán
-                          </Button>
+                          isDuplicatePendingForActivePlan ? (
+                            <Button
+                              disabled
+                              className="h-8 cursor-not-allowed border border-slate-200 bg-slate-100 px-3 text-xs font-semibold text-slate-400 hover:bg-slate-100"
+                              title="Gói cước này hiện đang hoạt động. Bạn chỉ có thể gia hạn khi gói còn dưới 3 ngày."
+                            >
+                              Đã kích hoạt
+                            </Button>
+                          ) : (
+                            <Button
+                              className="h-8 bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700"
+                              onClick={() => setCheckoutInvoice(inv)}
+                            >
+                              Thanh toán
+                            </Button>
+                          )
                         ) : (
                           <span className="text-xs font-semibold text-slate-400">—</span>
                         )}
