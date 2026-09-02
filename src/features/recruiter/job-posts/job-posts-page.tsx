@@ -2627,10 +2627,6 @@ function BoostMetricsDialog({
     : 0;
 
   const totals = data?.totals ?? { impressions: 0, clicks: 0, applications: 0, saves: 0 };
-  const ctr =
-    totals.impressions > 0
-      ? `${((totals.clicks / totals.impressions) * 100).toFixed(1)}%`
-      : "0.0%";
 
   return (
     <Dialog open={Boolean(boostId)} onOpenChange={(open) => !open && onClose()}>
@@ -2661,41 +2657,33 @@ function BoostMetricsDialog({
           </div>
         ) : (
           <div className="flex flex-col gap-6 py-2">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 text-center">
-                <span className="flex items-center justify-center gap-1 text-xs font-semibold text-slate-500 uppercase">
-                  <Eye size={14} className="text-indigo-600" />
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 text-center">
+                <span className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">
+                  <Eye size={15} className="shrink-0 text-indigo-600" />
                   {t("jobPostsPage.boost.metricsDialog.impressions")}
                 </span>
-                <p className="mt-1 text-2xl font-bold text-slate-800">
+                <p className="mt-2 text-2xl font-bold text-slate-800">
                   {totals.impressions.toLocaleString()}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 text-center">
-                <span className="flex items-center justify-center gap-1 text-xs font-semibold text-slate-500 uppercase">
-                  <CursorClick size={14} className="text-emerald-600" />
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 text-center">
+                <span className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">
+                  <CursorClick size={15} className="shrink-0 text-emerald-600" />
                   {t("jobPostsPage.boost.metricsDialog.clicks")}
                 </span>
-                <p className="mt-1 text-2xl font-bold text-slate-800">
+                <p className="mt-2 text-2xl font-bold text-slate-800">
                   {totals.clicks.toLocaleString()}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 text-center">
-                <span className="flex items-center justify-center gap-1 text-xs font-semibold text-slate-500 uppercase">
-                  <ChartLineUp size={14} className="text-amber-600" />
-                  {t("jobPostsPage.boost.metricsDialog.ctr")}
-                </span>
-                <p className="mt-1 text-2xl font-bold text-slate-800">{ctr}</p>
-              </div>
-
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 text-center">
-                <span className="flex items-center justify-center gap-1 text-xs font-semibold text-slate-500 uppercase">
-                  <PaperPlaneTilt size={14} className="text-blue-600" />
+              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 text-center">
+                <span className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">
+                  <PaperPlaneTilt size={15} className="shrink-0 text-blue-600" />
                   {t("jobPostsPage.boost.metricsDialog.applications")}
                 </span>
-                <p className="mt-1 text-2xl font-bold text-slate-800">
+                <p className="mt-2 text-2xl font-bold text-slate-800">
                   {totals.applications.toLocaleString()}
                 </p>
               </div>
