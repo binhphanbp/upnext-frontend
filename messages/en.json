@@ -4303,19 +4303,45 @@
             "webhookSecretPlaceholder": "Leave blank to keep the current secret",
             "webhookSecretCurrentHint": "Current secret: {masked}",
             "webhookSecretEmptyHint": "No secret configured yet.",
+            "apiToken": "SePay API Token (API Polling - No Webhook Needed)",
+            "apiTokenPlaceholder": "Paste API Token from SePay -> API Access",
+            "apiTokenCurrentHint": "Current token: {masked}",
+            "apiTokenEmptyHint": "No API Token configured yet.",
+            "apiTokenHint": "Enables polling transactions via SePay API without configuring Webhooks or ngrok tunnels. Obtain from: my.sepay.vn -> Company Settings -> API Access (or Test mode -> API Access).",
             "webhookUrl": "Webhook URL",
-            "webhookUrlHint": "Paste this into SePay's dashboard webhook settings."
+            "webhookUrlHint": "Paste this into SePay's dashboard webhook settings (if using Webhooks)."
           },
           "buttons": {
             "save": "Save configuration",
             "saving": "Saving...",
-            "copy": "Copy"
+            "copy": "Copy",
+            "testApi": "Test API Connection",
+            "testingApi": "Testing...",
+            "loadTestPreset": "Load Test Mode Preset",
+            "simulatePayment": "Simulate SePay Payment",
+            "sendSimulation": "Send Simulation",
+            "sendingSimulation": "Sending..."
+          },
+          "testMode": {
+            "badge": "Test Mode / Sandbox",
+            "bannerTitle": "SePay Gateway is operating in Test Mode (Sandbox)",
+            "bannerDesc": "Bank accounts and transactions are simulated only and do not affect real money. Recruiters can scan QR or use the simulation tool to activate packages without actual funds.",
+            "simulateTitle": "Simulate SePay Payment (Sandbox Simulation)",
+            "simulateDesc": "Enter an invoice code or select a PENDING invoice to simulate SePay sending an inbound transfer webhook to activate the subscription instantly.",
+            "invoiceCodeLabel": "Invoice Code to pay",
+            "invoiceCodePlaceholder": "e.g. INV-20260903-XXXX",
+            "amountLabel": "Amount (VND - optional)",
+            "amountPlaceholder": "Leave blank to match the original invoice amount",
+            "simulateSuccess": "Payment simulated successfully!",
+            "simulateSuccessDesc": "The system received the webhook and marked the invoice as PAID.",
+            "simulateError": "Payment simulation failed. Please check the invoice code."
           },
           "toasts": {
             "saveSuccess": "SePay configuration saved.",
             "saveError": "Could not save the configuration, please try again.",
             "loadError": "Could not load the payment configuration.",
-            "copied": "Copied"
+            "copied": "Copied",
+            "presetLoaded": "Loaded SePay Test Mode presets into the form."
           }
         }
       }

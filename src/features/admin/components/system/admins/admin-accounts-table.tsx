@@ -68,9 +68,18 @@ export function AdminAccountsTable() {
 
   // Filters
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState<string>("ALL");
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
   const [page, setPage] = React.useState(1);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Dialog States
   const [addOpen, setAddOpen] = React.useState(false);
@@ -105,7 +114,7 @@ export function AdminAccountsTable() {
       const res = await getAdminAccounts(session.accessToken, {
         page,
         limit: 20,
-        q: searchTerm.trim() || undefined,
+        q: debouncedSearch.trim() || undefined,
         roleId: roleFilter !== "ALL" ? roleFilter : undefined,
         status:
           statusFilter !== "ALL" ? (statusFilter as "ACTIVE" | "INACTIVE" | "LOCKED") : undefined,
@@ -120,7 +129,7 @@ export function AdminAccountsTable() {
     } finally {
       setLoading(false);
     }
-  }, [page, searchTerm, roleFilter, statusFilter]);
+  }, [page, debouncedSearch, roleFilter, statusFilter]);
 
   React.useEffect(() => {
     fetchAccounts();
