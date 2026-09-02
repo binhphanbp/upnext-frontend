@@ -13,125 +13,229 @@ import {
   MicrophoneSlash,
   Sparkle,
   CheckCircle,
-  ShieldCheck,
-  Clock,
   Play,
-  Sliders,
+  SpeakerHigh,
   User,
+  Lightning,
+  ArrowsClockwise,
+  Globe,
+  Student,
 } from "@phosphor-icons/react";
 import React, { useState, useEffect, useRef } from "react";
 
-import { ROLE_PRESETS } from "../mock-data";
-import { RolePreset, SeniorityLevel, InterviewType } from "../types";
+import { checkBackendHealth } from "../config/api";
+import { apiClient } from "../services/apiClient";
+import { loadFaceDetectionModels } from "../services/faceDetection";
+import { SpeechSynthesisService } from "../services/speechSynthesis";
+import {
+  InterviewRole,
+  ExperienceLevel,
+  EducationType,
+  Language,
+  InterviewMode,
+  InterviewSessionConfig,
+  TTSVoiceInfo,
+} from "../types";
 
 interface SetupScreenProps {
-  onStartInterview: (config: {
-    role: RolePreset;
-    level: SeniorityLevel;
-    interviewType: InterviewType;
-    isCameraEnabled: boolean;
-    isMicEnabled: boolean;
-    candidateName: string;
-  }) => void;
+  onStartInterview: (config: InterviewSessionConfig, stream: MediaStream | null) => void;
 }
 
-const defaultRole: RolePreset = ROLE_PRESETS[0] ?? {
-  id: "frontend-developer",
-  category: "frontend",
-  title: "Senior Frontend Developer",
-  titleVi: "Lập trình viên Frontend (React/Next.js)",
-  description:
-    "Deep dive into React 19, Next.js App Router, Performance Optimization, State Management & Modern CSS.",
-  descriptionVi:
-    "Phỏng vấn chuyên sâu React 19, Next.js App Router, Tối ưu hiệu năng Core Web Vitals, Quản lý State & Kiến trúc Frontend.",
-  iconName: "Code",
-  tags: ["React", "Next.js", "TypeScript", "Tailwind CSS"],
-  recommendedLevel: "senior",
-  totalQuestions: 5,
-  durationMinutes: 20,
-};
+interface RoleOption {
+  value: InterviewRole;
+  label: string;
+  labelVi: string;
+  desc: string;
+  iconName: string;
+  tags: string[];
+}
+
+const ROLES: RoleOption[] = [
+  {
+    value: "frontend",
+    label: "Frontend Developer",
+    labelVi: "Lập trình viên Frontend",
+    desc: "React 19, Next.js App Router, TypeScript, Virtual DOM & Core Web Vitals",
+    iconName: "Code",
+    tags: ["React", "Next.js", "TypeScript", "Tailwind CSS"],
+  },
+  {
+    value: "backend",
+    label: "Backend Developer",
+    labelVi: "Kỹ sư Backend",
+    desc: "RESTful API, Microservices, PostgreSQL indexing, Redis & Security",
+    iconName: "Server",
+    tags: ["Node.js", "NestJS", "PostgreSQL", "Redis", "Docker"],
+  },
+  {
+    value: "fullstack",
+    label: "Fullstack Developer",
+    labelVi: "Lập trình viên Fullstack",
+    desc: "Kiến trúc toàn diện từ Web UI, Server API, CSDL quan hệ đến Cloud DevOps",
+    iconName: "Layers",
+    tags: ["Next.js", "NestJS", "PostgreSQL", "Prisma", "DevOps"],
+  },
+  {
+    value: "product_manager",
+    label: "Product Manager",
+    labelVi: "Quản lý Sản phẩm (PM)",
+    desc: "Khung RICE, Discovery người dùng, Định hướng Roadmap & Phân tích KPIs",
+    iconName: "BrainCircuit",
+    tags: ["Product Strategy", "RICE", "User Journey", "KPIs"],
+  },
+  {
+    value: "data_analyst",
+    label: "Data Analyst",
+    labelVi: "Chuyên viên Phân tích Dữ liệu",
+    desc: "Truy vấn SQL nâng cao, EDA, Mô hình hóa dữ liệu & Trực quan hóa Dashboard",
+    iconName: "Cloud",
+    tags: ["SQL", "PostgreSQL", "Python", "Data Viz"],
+  },
+  {
+    value: "hr_behavioral",
+    label: "HR Behavioral (STAR)",
+    labelVi: "Phỏng vấn Nhân sự & Tác phong",
+    desc: "Kỹ thuật phỏng vấn hành vi STAR, Xử lý xung đột nhóm, Đạo đức & Thích ứng",
+    iconName: "Palette",
+    tags: ["STAR Method", "Leadership", "Teamwork", "Culture Fit"],
+  },
+];
+
+const LEVELS: { value: ExperienceLevel; label: string; desc: string }[] = [
+  { value: "intern", label: "Intern", desc: "Thực tập sinh, sinh viên năm 3-4" },
+  { value: "fresher", label: "Fresher", desc: "Mới tốt nghiệp, 0-1 năm kinh nghiệm" },
+  { value: "junior", label: "Junior", desc: "1-2 năm kinh nghiệm thực chiến" },
+  { value: "middle", label: "Middle", desc: "2-4 năm kinh nghiệm chuyên sâu" },
+  { value: "senior", label: "Senior", desc: "5+ năm kinh nghiệm & cố vấn" },
+];
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) => {
-  const [selectedRole, setSelectedRole] = useState<RolePreset>(defaultRole);
-  const [selectedLevel, setSelectedLevel] = useState<SeniorityLevel>("senior");
-  const [interviewType, setInterviewType] = useState<InterviewType>("technical");
-  const [candidateName, setCandidateName] = useState<string>("Nguyễn Quốc Vượng");
+  // Config Form State
+  const [candidateName, setCandidateName] = useState<string>("Ứng viên");
+  const [role, setRole] = useState<InterviewRole>("frontend");
+  const [level, setLevel] = useState<ExperienceLevel>("intern");
+  const [educationType, setEducationType] = useState<EducationType>("university");
+  const [language, setLanguage] = useState<Language>("vi");
+  const [interviewMode, setInterviewMode] = useState<InterviewMode>("deep");
+  const [questionCount, setQuestionCount] = useState<number>(3);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>("vi-VN-HoaiMyNeural");
+  const [enableNoiseSuppression, setEnableNoiseSuppression] = useState<boolean>(true);
+  const [geminiApiKey, setGeminiApiKey] = useState<string>("");
 
+  // Devices & Hardware State
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [isCameraOn, setIsCameraOn] = useState<boolean>(true);
   const [isMicOn, setIsMicOn] = useState<boolean>(true);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [micVolume, setMicVolume] = useState<number>(0);
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+
+  // Backend Health State
+  const [backendStatus, setBackendStatus] = useState<"checking" | "online" | "offline">("checking");
+  const [availableVoices, setAvailableVoices] = useState<TTSVoiceInfo[]>([]);
+  const [isPlayingTestVoice, setIsPlayingTestVoice] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const ttsServiceRef = useRef<SpeechSynthesisService>(new SpeechSynthesisService());
 
-  // Initialize Camera & Mic stream
+  // 1. Check Backend Health & Fetch Voices
   useEffect(() => {
-    let audioContext: AudioContext | null = null;
-    let analyser: AnalyserNode | null = null;
-    let animationFrameId: number;
+    let isMounted = true;
+    const initBackend = async () => {
+      try {
+        const isHealthy = await checkBackendHealth();
+        if (isMounted) {
+          setBackendStatus(isHealthy ? "online" : "offline");
+        }
+
+        const voices = await apiClient.getTTSVoices(language);
+        if (isMounted && voices.length > 0) {
+          setAvailableVoices(voices);
+          const defaultVoice = voices.find((v: TTSVoiceInfo) => v.isDefault) || voices[0];
+          if (defaultVoice) {
+            setSelectedVoiceId(defaultVoice.id);
+          }
+        }
+      } catch (err) {
+        console.warn("[SetupScreen] Backend init warning:", err);
+        if (isMounted) setBackendStatus("offline");
+      }
+    };
+
+    initBackend();
+    loadFaceDetectionModels();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [language]);
+
+  // 2. Initialize Camera & Mic Stream
+  useEffect(() => {
+    let animFrame: number;
+    let localStream: MediaStream | null = null;
 
     const startMedia = async () => {
       try {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-          });
-          streamRef.current = stream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-          setHasCameraPermission(true);
+        setDeviceError(null);
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
+          audio: { echoCancellation: true, noiseSuppression: true },
+        });
 
-          try {
-            audioContext = new (
-              window.AudioContext ||
-              (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-            )();
-            const source = audioContext.createMediaStreamSource(stream);
-            analyser = audioContext.createAnalyser();
-            analyser.fftSize = 64;
-            source.connect(analyser);
+        localStream = mediaStream;
+        setStream(mediaStream);
 
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            const updateAudio = () => {
-              if (analyser) {
-                analyser.getByteFrequencyData(dataArray);
-                const average = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
-                setAudioLevel(Math.min(100, Math.round((average / 128) * 100)));
-              }
-              animationFrameId = requestAnimationFrame(updateAudio);
-            };
-            updateAudio();
-          } catch {
-            // Audio context fallback
-          }
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
         }
-      } catch {
-        setHasCameraPermission(false);
+
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const audioCtx = new AudioContextClass();
+        audioContextRef.current = audioCtx;
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        const source = audioCtx.createMediaStreamSource(mediaStream);
+        source.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const updateMeter = () => {
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i] ?? 0;
+          }
+          const avg = sum / dataArray.length;
+          setMicVolume(Math.min(100, Math.round((avg / 128) * 100)));
+          animFrame = requestAnimationFrame(updateMeter);
+        };
+        updateMeter();
+      } catch (err) {
+        console.warn("[SetupScreen] Device access error:", err);
+        setDeviceError(
+          "Không thể truy cập Camera/Microphone. Vui lòng cấp quyền trên trình duyệt.",
+        );
       }
     };
 
     startMedia();
 
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+      if (animFrame) cancelAnimationFrame(animFrame);
+      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+        audioContextRef.current.close();
       }
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      if (audioContext) {
-        audioContext.close();
+      if (localStream) {
+        localStream.getTracks().forEach((t) => t.stop());
       }
     };
   }, []);
 
   const toggleCamera = () => {
-    if (streamRef.current) {
-      const videoTracks = streamRef.current.getVideoTracks();
-      videoTracks.forEach((track) => {
+    if (stream) {
+      stream.getVideoTracks().forEach((track) => {
         track.enabled = !isCameraOn;
       });
     }
@@ -139,67 +243,92 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
   };
 
   const toggleMic = () => {
-    if (streamRef.current) {
-      const audioTracks = streamRef.current.getAudioTracks();
-      audioTracks.forEach((track) => {
+    if (stream) {
+      stream.getAudioTracks().forEach((track) => {
         track.enabled = !isMicOn;
       });
     }
     setIsMicOn(!isMicOn);
   };
 
-  const getRoleIcon = (name: string) => {
-    switch (name) {
-      case "Code":
-        return <Code size={18} weight="duotone" />;
-      case "Server":
-        return <HardDrives size={18} weight="duotone" />;
-      case "Layers":
-        return <Stack size={18} weight="duotone" />;
-      case "BrainCircuit":
-        return <Cpu size={18} weight="duotone" />;
-      case "Cloud":
-        return <Cloud size={18} weight="duotone" />;
-      case "Palette":
-        return <Palette size={18} weight="duotone" />;
-      default:
-        return <Code size={18} weight="duotone" />;
-    }
-  };
+  const handleTestVoice = () => {
+    if (isPlayingTestVoice) return;
+    setIsPlayingTestVoice(true);
 
-  const handleStart = () => {
-    onStartInterview({
-      role: selectedRole,
-      level: selectedLevel,
-      interviewType,
-      isCameraEnabled: isCameraOn,
-      isMicEnabled: isMicOn,
-      candidateName,
+    const testText =
+      language === "vi"
+        ? "Xin chào! Tôi là AI phỏng vấn viên của UpNext. Hệ thống âm thanh đã sẵn sàng!"
+        : "Hello! I am your UpNext AI interviewer. The speech system is ready!";
+
+    ttsServiceRef.current.speak(testText, {
+      language,
+      voiceId: selectedVoiceId,
+      onEnd: () => setIsPlayingTestVoice(false),
+      onError: () => setIsPlayingTestVoice(false),
     });
   };
 
+  const handleStart = () => {
+    const config: InterviewSessionConfig = {
+      candidateName: candidateName.trim() || "Ứng viên",
+      role,
+      level,
+      educationType,
+      language,
+      interviewMode,
+      questionCount,
+      enableTTS: true,
+      enableCamera: isCameraOn,
+      enableMic: isMicOn,
+      enableNoiseSuppression,
+      selectedVoiceId,
+      geminiApiKey: geminiApiKey.trim() || undefined,
+    };
+
+    onStartInterview(config, stream);
+  };
+
+  const getRoleIcon = (name: string) => {
+    switch (name) {
+      case "Code":
+        return <Code size={20} weight="duotone" />;
+      case "Server":
+        return <HardDrives size={20} weight="duotone" />;
+      case "Layers":
+        return <Stack size={20} weight="duotone" />;
+      case "BrainCircuit":
+        return <Cpu size={20} weight="duotone" />;
+      case "Cloud":
+        return <Cloud size={20} weight="duotone" />;
+      case "Palette":
+        return <Palette size={20} weight="duotone" />;
+      default:
+        return <Code size={20} weight="duotone" />;
+    }
+  };
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 md:py-12 lg:px-8">
-      {/* Top Refined Header */}
-      <div className="mx-auto mb-10 max-w-2xl space-y-2.5 text-center">
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1 text-xs font-medium tracking-wide text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300">
-          <Sparkle size={14} weight="fill" className="text-emerald-500" />
+    <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 md:py-10 lg:px-8">
+      {/* Top UpNext Header */}
+      <div className="mx-auto mb-8 max-w-2xl space-y-2.5 text-center">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50 px-3.5 py-1 text-xs font-semibold tracking-wide text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <Sparkle size={15} weight="fill" className="text-emerald-500" />
           UpNext AI Interview Studio
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl lg:text-4xl dark:text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl lg:text-4xl dark:text-white">
           Luyện Phỏng Vấn{" "}
           <span className="text-emerald-600 dark:text-emerald-400">AI Trực Tiếp</span>
         </h1>
         <p className="text-sm leading-relaxed font-normal text-slate-500 sm:text-base dark:text-slate-400">
-          Mô phỏng phỏng vấn video 1-on-1 theo vị trí chuyên môn. Nhận bộ câu hỏi thực chiến và phản
-          hồi phân tích đa chiều ngay sau buổi phỏng vấn.
+          Mô phỏng phỏng vấn video 1-on-1 theo vị trí chuyên môn. Trải nghiệm hệ thống AI Lead chấm
+          điểm đa phương thức, phân tích giọng nói & cử chỉ thời gian thực.
         </p>
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-        {/* Left Column: Role & Level Configuration (7 cols) */}
+        {/* LEFT COLUMN: Role, Level, Mode & Language Configuration (7 cols) */}
         <div className="space-y-5 lg:col-span-7">
-          {/* Step 1: Role Selection */}
+          {/* Step 1: Vị Trí Chuyên Môn */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:border-slate-800 dark:bg-slate-900/90">
             <div className="mb-3.5 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
@@ -209,21 +338,21 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
                 Vị Trí Chuyên Môn
               </h2>
               <span className="text-xs font-normal text-slate-400">
-                {ROLE_PRESETS.length} chuyên ngành
+                {ROLES.length} chuyên ngành
               </span>
             </div>
 
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {ROLE_PRESETS.map((role) => {
-                const isSelected = selectedRole.id === role.id;
+              {ROLES.map((r) => {
+                const isSelected = role === r.value;
                 return (
                   <button
-                    key={role.id}
+                    key={r.value}
                     type="button"
-                    onClick={() => setSelectedRole(role)}
-                    className={`relative flex flex-col justify-between rounded-xl border p-3.5 text-left transition-all ${
+                    onClick={() => setRole(r.value)}
+                    className={`relative flex cursor-pointer flex-col justify-between rounded-xl border p-3.5 text-left transition-all ${
                       isSelected
-                        ? "border-emerald-500 bg-emerald-50/40 ring-1 ring-emerald-500/30 dark:bg-emerald-950/20"
+                        ? "border-emerald-500 bg-emerald-50/40 ring-1 ring-emerald-500/30 dark:border-emerald-500 dark:bg-emerald-950/25"
                         : "border-slate-200/70 bg-white hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-900 dark:hover:border-slate-700"
                     }`}
                   >
@@ -236,7 +365,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
                               : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                           }`}
                         >
-                          {getRoleIcon(role.iconName)}
+                          {getRoleIcon(r.iconName)}
                         </div>
                         {isSelected && (
                           <CheckCircle
@@ -247,18 +376,18 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
                         )}
                       </div>
                       <h3 className="mb-0.5 text-xs font-semibold text-slate-900 dark:text-white">
-                        {role.titleVi}
+                        {r.labelVi}
                       </h3>
                       <p className="line-clamp-2 text-[11px] leading-relaxed font-normal text-slate-500 dark:text-slate-400">
-                        {role.descriptionVi}
+                        {r.desc}
                       </p>
                     </div>
 
                     <div className="mt-2.5 flex flex-wrap gap-1">
-                      {role.tags.slice(0, 3).map((tag, idx) => (
+                      {r.tags.slice(0, 3).map((tag, idx) => (
                         <span
                           key={idx}
-                          className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-normal text-slate-600 dark:bg-slate-800/80 dark:text-slate-400"
+                          className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
                         >
                           {tag}
                         </span>
@@ -270,116 +399,232 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
             </div>
           </div>
 
-          {/* Step 2: Seniority Level & Interview Type */}
+          {/* Step 2: Cấp Bậc & Chế Độ Phỏng Vấn */}
           <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:border-slate-800 dark:bg-slate-900/90">
-            <div>
-              <h2 className="mb-2.5 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200/60 bg-emerald-50 text-xs font-semibold text-emerald-600 dark:border-emerald-800/60 dark:bg-emerald-950 dark:text-emerald-400">
                   2
                 </span>
-                Cấp Bậc & Dạng Phỏng Vấn
+                Cấp Bậc & Chế Độ Luyện Tập
               </h2>
+            </div>
 
-              <label className="mb-1.5 block text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                Cấp bậc kinh nghiệm
+            {/* Cấp bậc pills */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Cấp Bậc Mục Tiêu
               </label>
-              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-                {(
-                  [
-                    { key: "intern", label: "Intern" },
-                    { key: "fresher", label: "Fresher" },
-                    { key: "junior", label: "Junior" },
-                    { key: "mid", label: "Middle" },
-                    { key: "senior", label: "Senior" },
-                    { key: "lead", label: "Tech Lead" },
-                  ] as const
-                ).map((lvl) => (
-                  <button
-                    key={lvl.key}
-                    type="button"
-                    onClick={() => setSelectedLevel(lvl.key)}
-                    className={`rounded-lg px-2 py-1.5 text-xs font-medium transition-all ${
-                      selectedLevel === lvl.key
-                        ? "bg-emerald-600 font-semibold text-white shadow-xs"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200/70 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                    }`}
-                  >
-                    {lvl.label}
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {LEVELS.map((lvl) => {
+                  const isSelected = level === lvl.value;
+                  return (
+                    <button
+                      key={lvl.value}
+                      type="button"
+                      onClick={() => setLevel(lvl.value)}
+                      className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border p-2 text-center transition-all ${
+                        isSelected
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-500/30 dark:border-emerald-500 dark:bg-emerald-950/30 dark:text-emerald-300"
+                          : "border-slate-200 bg-slate-50/60 text-slate-600 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300"
+                      }`}
+                    >
+                      <span className="text-xs font-bold">{lvl.label}</span>
+                      <span className="line-clamp-1 text-[10px] text-slate-500 dark:text-slate-400">
+                        {lvl.desc.split(",")[0]}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
+            {/* Chế độ phỏng vấn (Basic vs Deep) */}
             <div>
-              <label className="mb-1.5 block text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                Loại hình phỏng vấn
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Chế Độ Phỏng Vấn
               </label>
-              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                {(
-                  [
-                    { key: "technical", label: "Kỹ thuật Chuyên sâu" },
-                    { key: "system-design", label: "System Design" },
-                    { key: "behavioral", label: "Văn hóa & Xử lý" },
-                    { key: "live-coding", label: "Live Coding" },
-                  ] as const
-                ).map((type) => (
-                  <button
-                    key={type.key}
-                    type="button"
-                    onClick={() => setInterviewType(type.key)}
-                    className={`rounded-lg border px-2.5 py-2 text-center text-xs font-medium transition-all ${
-                      interviewType === type.key
-                        ? "border-emerald-500 bg-emerald-50/50 font-semibold text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300"
-                        : "border-slate-200/70 text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800/40"
-                    }`}
-                  >
-                    {type.label}
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setInterviewMode("basic")}
+                  className={`flex cursor-pointer flex-col rounded-xl border p-3 text-left transition-all ${
+                    interviewMode === "basic"
+                      ? "border-emerald-500 bg-emerald-50/40 ring-1 ring-emerald-500/30 dark:border-emerald-500 dark:bg-emerald-950/25"
+                      : "border-slate-200 bg-slate-50/50 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40"
+                  }`}
+                >
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
+                      <Lightning size={14} className="text-amber-500" /> Phỏng Vấn Cơ Bản
+                    </span>
+                    {interviewMode === "basic" && (
+                      <CheckCircle size={16} weight="fill" className="text-emerald-600" />
+                    )}
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                    Hỏi 1 lượt các câu hỏi trọng tâm, chuyển tiếp nhanh. Phù hợp làm quen phản xạ và
+                    kiểm tra tổng quát.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInterviewMode("deep")}
+                  className={`flex cursor-pointer flex-col rounded-xl border p-3 text-left transition-all ${
+                    interviewMode === "deep"
+                      ? "border-emerald-500 bg-emerald-50/40 ring-1 ring-emerald-500/30 dark:border-emerald-500 dark:bg-emerald-950/25"
+                      : "border-slate-200 bg-slate-50/50 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-800/40"
+                  }`}
+                >
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
+                      <Sparkle size={14} weight="fill" className="text-emerald-500" /> Đào Sâu Ngữ
+                      Cảnh (Deep Dive)
+                    </span>
+                    {interviewMode === "deep" && (
+                      <CheckCircle size={16} weight="fill" className="text-emerald-600" />
+                    )}
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                    AI Lead tự động lắng nghe câu trả lời và đặt câu hỏi đào sâu bám sát ý thực tế
+                    như phỏng vấn thật.
+                  </p>
+                </button>
               </div>
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                Họ và tên ứng viên
-              </label>
-              <div className="relative">
-                <User
-                  size={16}
-                  className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  type="text"
-                  value={candidateName}
-                  onChange={(e) => setCandidateName(e.target.value)}
-                  placeholder="Nhập họ và tên của bạn..."
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2 pr-3.5 pl-9 text-xs font-normal text-slate-900 focus:ring-1 focus:ring-emerald-500 focus:outline-none dark:border-slate-800 dark:bg-slate-800/40 dark:text-white"
-                />
+            {/* Thông số phụ: Ngôn ngữ, Số câu hỏi, Giọng đọc AI */}
+            <div className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block flex items-center gap-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <Globe size={14} className="text-emerald-600" /> Ngôn Ngữ
+                </label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as Language)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                >
+                  <option value="vi">Tiếng Việt</option>
+                  <option value="en">English</option>
+                </select>
               </div>
+
+              <div>
+                <label className="mb-1 block flex items-center gap-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <Student size={14} className="text-emerald-600" /> Khối Đào Tạo
+                </label>
+                <select
+                  value={educationType}
+                  onChange={(e) => setEducationType(e.target.value as EducationType)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                >
+                  <option value="university">Đại học</option>
+                  <option value="college">Cao đẳng / Nghề</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Số Lượng Câu Hỏi
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {[3, 5, 7].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setQuestionCount(num)}
+                      className={`flex-1 cursor-pointer rounded-xl py-1.5 text-xs font-semibold transition ${
+                        questionCount === num
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "border border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      }`}
+                    >
+                      {num} câu
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Giọng đọc AI & Thử âm thanh */}
+            <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800/80 dark:bg-slate-800/40">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  <SpeakerHigh size={15} className="text-emerald-600" /> Giọng Đọc AI Phỏng Vấn
+                  (Edge-TTS Studio)
+                </span>
+                <button
+                  type="button"
+                  onClick={handleTestVoice}
+                  disabled={isPlayingTestVoice}
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2 py-0.5 text-[11px] font-medium text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50 dark:border-emerald-800 dark:bg-slate-900 dark:text-emerald-400"
+                >
+                  {isPlayingTestVoice ? (
+                    <>
+                      <ArrowsClockwise size={12} className="animate-spin" /> Đang phát...
+                    </>
+                  ) : (
+                    <>
+                      <SpeakerHigh size={12} /> Nghe thử giọng
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <select
+                value={selectedVoiceId}
+                onChange={(e) => setSelectedVoiceId(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:ring-1 focus:ring-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+              >
+                {availableVoices.length > 0 ? (
+                  availableVoices.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} — {v.description}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="vi-VN-HoaiMyNeural">
+                      Hoài My (Nữ VTV - Truyền cảm, tự nhiên)
+                    </option>
+                    <option value="vi-VN-NamMinhNeural">
+                      Nam Minh (Nam - Trầm ấm, chuyên nghiệp)
+                    </option>
+                    <option value="en-US-JennyNeural">Jenny (English US - Female Studio)</option>
+                    <option value="en-US-GuyNeural">Guy (English US - Male Professional)</option>
+                  </>
+                )}
+              </select>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Device Check & Preview (5 cols) */}
-        <div className="space-y-5 lg:col-span-5">
-          <div className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:border-slate-800 dark:bg-slate-900/90">
-            <div className="flex items-center justify-between">
+        {/* RIGHT COLUMN: Camera & Microphone Preview & Action (5 cols) */}
+        <div className="space-y-4 lg:col-span-5">
+          {/* Hardware Testing Card */}
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:border-slate-800 dark:bg-slate-900/90">
+            <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-                <Sliders
-                  size={18}
-                  weight="duotone"
-                  className="text-emerald-600 dark:text-emerald-400"
-                />
-                Kiểm Tra Thiết Bị
+                <Camera size={18} className="text-emerald-600" />
+                Kiểm Tra Thiết Bị & Âm Thanh
               </h2>
-              <span className="rounded-full border border-emerald-200/50 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/60 dark:text-emerald-300">
-                Sẵn sàng
-              </span>
+              {backendStatus === "online" ? (
+                <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  Backend Online
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  Local AI Ready
+                </span>
+              )}
             </div>
 
-            {/* Video Camera Preview */}
-            <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-xl border border-slate-800/80 bg-slate-950">
-              {isCameraOn && hasCameraPermission ? (
+            {/* Video Viewport Preview */}
+            <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-slate-200/80 bg-slate-950 shadow-inner dark:border-slate-800">
+              {stream && isCameraOn ? (
                 <video
                   ref={videoRef}
                   autoPlay
@@ -388,113 +633,116 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
                   className="h-full w-full -scale-x-100 transform object-cover"
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center space-y-2 p-4 text-center text-slate-400">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-base font-semibold text-slate-300">
-                    {candidateName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(-2)
-                      .join("")
-                      .toUpperCase() || "UN"}
-                  </div>
-                  <p className="text-[11px] font-normal text-slate-400">
-                    {hasCameraPermission === false
-                      ? "Chưa cấp quyền Camera. Hệ thống sẽ sử dụng Avatar."
-                      : "Camera đang tắt"}
-                  </p>
+                <div className="flex h-full w-full flex-col items-center justify-center p-6 text-slate-400">
+                  <CameraSlash size={36} className="mb-1.5 text-slate-600" />
+                  <p className="text-xs">Camera đang tắt</p>
                 </div>
               )}
 
-              {/* Status Badge overlay */}
-              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded-md border border-slate-700/40 bg-slate-900/80 px-2 py-0.5 text-[10px] font-medium text-slate-200 backdrop-blur-sm">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                <span>{candidateName}</span>
-              </div>
-
-              {/* Media Controls Bar inside preview */}
-              <div className="absolute inset-x-0 bottom-2.5 flex items-center justify-center gap-2">
+              {/* Top controls on camera */}
+              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={toggleCamera}
-                  className={`rounded-full p-2 transition-all ${
+                  className={`cursor-pointer rounded-lg p-2 transition ${
                     isCameraOn
-                      ? "bg-slate-800/90 text-slate-200 hover:bg-slate-700"
+                      ? "bg-slate-900/80 text-white backdrop-blur-md hover:bg-slate-800"
                       : "bg-red-500 text-white hover:bg-red-600"
                   }`}
                   title={isCameraOn ? "Tắt Camera" : "Bật Camera"}
                 >
-                  {isCameraOn ? (
-                    <Camera size={16} weight="bold" />
-                  ) : (
-                    <CameraSlash size={16} weight="bold" />
-                  )}
+                  {isCameraOn ? <Camera size={16} /> : <CameraSlash size={16} />}
                 </button>
-
                 <button
                   type="button"
                   onClick={toggleMic}
-                  className={`rounded-full p-2 transition-all ${
+                  className={`cursor-pointer rounded-lg p-2 transition ${
                     isMicOn
-                      ? "bg-slate-800/90 text-slate-200 hover:bg-slate-700"
+                      ? "bg-slate-900/80 text-white backdrop-blur-md hover:bg-slate-800"
                       : "bg-red-500 text-white hover:bg-red-600"
                   }`}
                   title={isMicOn ? "Tắt Micro" : "Bật Micro"}
                 >
-                  {isMicOn ? (
-                    <Microphone size={16} weight="bold" />
-                  ) : (
-                    <MicrophoneSlash size={16} weight="bold" />
-                  )}
+                  {isMicOn ? <Microphone size={16} /> : <MicrophoneSlash size={16} />}
                 </button>
+              </div>
+
+              {/* Bottom tag on camera */}
+              <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-md bg-slate-950/80 px-2 py-0.5 text-[10px] text-slate-200 backdrop-blur-xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span>Camera 60 FPS HUD Ready</span>
               </div>
             </div>
 
-            {/* Audio Meter */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                <span className="flex items-center gap-1">
-                  <Microphone size={13} className="text-emerald-500" />
-                  Mức độ âm thanh Micro
+            {deviceError && <p className="mt-2 text-xs font-medium text-red-500">{deviceError}</p>}
+
+            {/* Live Audio Level Meter */}
+            <div className="mt-3.5 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
+                  <Microphone size={14} className="text-emerald-600" /> Mức Tín Hiệu Micro
                 </span>
-                <span className="font-mono">{isMicOn ? `${audioLevel}%` : "Tắt"}</span>
+                <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                  {micVolume > 5 ? `${micVolume}%` : "Chờ giọng nói..."}
+                </span>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                 <div
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-75"
-                  style={{ width: `${isMicOn ? audioLevel : 0}%` }}
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-75"
+                  style={{ width: `${Math.min(100, micVolume * 1.3)}%` }}
                 />
               </div>
             </div>
 
-            {/* Interview Session Info Summary */}
-            <div className="space-y-2 rounded-xl border border-slate-200/60 bg-slate-50 p-3.5 text-xs dark:border-slate-800 dark:bg-slate-800/40">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 font-normal text-slate-500 dark:text-slate-400">
-                  <Clock size={14} /> Thời lượng ước tính:
-                </span>
-                <span className="font-medium text-slate-700 dark:text-slate-200">
-                  ~{selectedRole.durationMinutes} phút ({selectedRole.totalQuestions} câu hỏi)
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 font-normal text-slate-500 dark:text-slate-400">
-                  <ShieldCheck size={14} className="text-emerald-500" /> Người phỏng vấn:
-                </span>
-                <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                  Mrs. Tania Shahira (AI Lead)
-                </span>
-              </div>
+            {/* Candidate Name Input */}
+            <div className="mt-4 space-y-1.5">
+              <label className="block flex items-center gap-1 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <User size={14} className="text-emerald-600" /> Họ & Tên Ứng Viên
+              </label>
+              <input
+                type="text"
+                value={candidateName}
+                onChange={(e) => setCandidateName(e.target.value)}
+                placeholder="Nhập tên của bạn để hiển thị trong báo cáo..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-medium text-slate-900 focus:ring-1 focus:ring-emerald-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              />
             </div>
 
-            {/* Start Interview Action Button */}
-            <button
-              type="button"
-              onClick={handleStart}
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-[0.99] sm:text-sm"
-            >
-              <Play size={16} weight="fill" />
-              Bắt Đầu Phỏng Vấn
-            </button>
+            {/* Optional Gemini API Key */}
+            <div className="mt-3">
+              <details className="text-[11px] text-slate-500">
+                <summary className="cursor-pointer font-medium hover:text-slate-700 dark:hover:text-slate-300">
+                  Cấu hình nâng cao (Tùy chọn Gemini API Key)
+                </summary>
+                <div className="mt-2 space-y-1 rounded-xl border border-slate-100 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-slate-800/40">
+                  <p className="text-[10px] text-slate-400">
+                    Nếu để trống, hệ thống sẽ tự động dùng máy chủ Backend AI tại
+                    100.85.145.47:5000.
+                  </p>
+                  <input
+                    type="password"
+                    value={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                  />
+                </div>
+              </details>
+            </div>
+
+            {/* Start Button */}
+            <div className="mt-5 pt-1">
+              <button
+                type="button"
+                onClick={handleStart}
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-700"
+              >
+                <Play size={18} weight="fill" /> Bắt Đầu Phỏng Vấn Ngay
+              </button>
+              <p className="mt-2 text-center text-[11px] text-slate-400">
+                Buổi phỏng vấn được ghi nhận bảo mật và chỉ sử dụng để đánh giá năng lực của bạn.
+              </p>
+            </div>
           </div>
         </div>
       </div>
