@@ -493,6 +493,10 @@ Hiện `src/features/public/jobs/jobs-route.tsx` là `"use client"` — job deta
 job, apply modal) giữ ở client. Đây là hạng mục **tốn công nhất** của workstream B; ước lượng
 riêng cho nó khi lập lịch.
 
+> **Chặn:** nội dung JD hiện **không được sanitize** ở cả backend lẫn frontend (xem §8 D3).
+> SSR chuỗi đó vào response của server mở rộng bề mặt stored-XSS so với render client hiện tại.
+> Phải có PR sanitize trước khi merge B4.
+
 Không chỉ dựa vào React Query/client hydration. Google có thể render JavaScript, nhưng SSR/ISR giúp metadata và nội dung chính có sẵn ngay từ response, ổn định hơn cho crawl và AEO.
 
 Cache bắt buộc theo vòng đời dữ liệu:
@@ -673,9 +677,26 @@ Không đặt nhiều `JobPosting` trên list page. Không để schema tồn t�
 ### D3. Schema safety
 
 - JSON-LD serialize bằng safe JSON escaping, tránh user-generated `</script>` injection.
-  **Rủi ro thật trong codebase này:** `JobPost.description`/`requirements`/`benefits` là rich text
-  do recruiter nhập qua TipTap, và backend có `sanitize-html` — nhưng sanitize cho HTML hiển thị
-  **không** bảo vệ JSON-LD. Escape `<`, `>`, `&` khi nhúng vào `<script type="application/ld+json">`.
+  Escape `<`, `>`, `&` khi nhúng vào `<script type="application/ld+json">`.
+
+  **Rủi ro thật trong codebase này — đọc kỹ trước khi làm D2.** `JobPost.description`,
+  `requirements`, `benefits` là rich text recruiter nhập, và **không được sanitize ở bất kỳ đâu**:
+
+  - Backend: `CreateJobPostDto` chỉ có `@IsString()`, không `MaxLength`, không sanitize.
+    `sanitize-html` **có** trong repo nhưng chỉ dùng cho module `posts`
+    (`post-content.policy.ts`) và `job-post-ai` (`rich-text.ts`) — **không** cho `job-posts`.
+  - Frontend: `job-detail-page.tsx` render bằng `dangerouslySetInnerHTML={{ __html:
+    getCleanHtml(...) }}`. `getCleanHtml` (dòng ~90) chỉ bóc `<details>`/`<summary>` và xoá
+    heading trùng — **thuần mỹ quan, không phải sanitizer**.
+
+  Nghĩa là hôm nay đã có sẵn một đường stored-XSS từ recruiter tới mọi khách truy cập trang job
+  public, và JSON-LD sẽ nhúng đúng chuỗi đó. Escaping JSON-LD là **bắt buộc nhưng chưa đủ** —
+  phải sanitize ở backend khi ghi (hoặc ít nhất ở tầng render). Đây là **điều kiện tiên quyết
+  của §6 B4**: SSR nội dung này vào response của server làm bề mặt tấn công rộng hơn so với
+  render phía client hiện tại.
+
+  Hạng mục này **nằm ngoài phạm vi kế hoạch SEO** và cần một PR bảo mật riêng, nhưng B4 không
+  được merge trước nó.
 - Không dùng CV/candidate data trong schema.
 - Có unit test schema required fields, null handling, expiry, locale và escaping.
 - Schema là dữ liệu mô tả, không phải công cụ thao túng ranking.
@@ -878,7 +899,8 @@ Cột "Chặn bởi" là điều kiện tiên quyết cứng — không bắt đ
 | 4 | Site config server-only, `metadataBase`, canonical, route noindex, `permanentRedirect`, root `not-found.tsx` | FE | 0b | Có |
 | 5 | Root `robots.ts` + sitemap index (có giới hạn 50k) | FE | 4 | Có |
 | 6 | BE: format slug job + history + endpoint tra cứu slug; public SEO read model có cursor; lifecycle events qua outbox | BE | 2 | Có |
-| 7 | FE: `/api/revalidate` có HMAC; SSR/ISR job/company/article + metadata/H1 riêng | FE | 4, 6 | Có |
+| 6b | **Sanitize JD** (`description`/`requirements`/`benefits`) ở backend khi ghi + rà lại `getCleanHtml` ở FE. PR bảo mật riêng, ngoài phạm vi SEO nhưng chặn #7 — xem §8 D3 | BE (+FE) | — | Có |
+| 7 | FE: `/api/revalidate` có HMAC; SSR/ISR job/company/article + metadata/H1 riêng | FE | 4, 6, 6b | Có |
 | 8 | JobPosting/Organization/Article/Breadcrumb schema + escaping | FE/BE | 7 | Có |
 | 9 | CI SEO tests, i18n parity test, redirect table test, rich-result fixtures, link checks | FE/BE/QA | 5, 7, 8 | Có |
 | 10 | Search Console/Bing (DNS TXT), analytics dashboard | SEO/Infra | 1 | Có |
@@ -887,7 +909,8 @@ Cột "Chặn bởi" là điều kiện tiên quyết cứng — không bắt đ
 | 13 | AEO/GEO content program | Content/Product | 11, 12 | Không |
 
 Đường găng: **0a → 2 → 6 → 7 → 8 → 9**. Backend (#6) là hạng mục dài nhất vì có migration backfill;
-bắt đầu nó song song với #1 ngay sau khi #0a chốt.
+bắt đầu nó song song với #1 ngay sau khi #0a chốt. #6b không phụ thuộc gì cả — mở PR bảo mật đó
+ngay hôm nay, đừng để nó thành thứ chặn #7 vào phút chót.
 
 ---
 
