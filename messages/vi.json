@@ -1963,7 +1963,8 @@
           "close": "Đóng tin tuyển dụng",
           "delete": "Xóa tin tuyển dụng",
           "boost": "Đẩy tin",
-          "stopBoost": "Dừng đẩy tin"
+          "stopBoost": "Dừng đẩy tin",
+          "viewBoostMetrics": "Xem hiệu quả đẩy tin"
         }
       },
       "boost": {
@@ -1992,6 +1993,22 @@
           "textMayNotRefund": "Tin đã được hiển thị cho ứng viên nên lượt đẩy này sẽ KHÔNG được hoàn lại.",
           "confirm": "Dừng đẩy tin",
           "cancel": "Đóng"
+        },
+        "metricsDialog": {
+          "title": "Báo cáo hiệu quả Đẩy tin",
+          "description": "Số liệu tương tác của tin tuyển dụng \"{title}\" trong thời gian được tài trợ.",
+          "statusActive": "Đang tài trợ",
+          "statusEnded": "Đã kết thúc",
+          "daysLeft": "Còn {days} ngày",
+          "impressions": "Lượt hiển thị",
+          "clicks": "Lượt click",
+          "ctr": "Tỷ lệ Click (CTR)",
+          "applications": "Lượt nộp đơn",
+          "saves": "Lượt lưu tin",
+          "dailyBreakdown": "Hiệu quả phân phối theo ngày",
+          "date": "Ngày",
+          "noData": "Chưa có dữ liệu thống kê trong kỳ này.",
+          "close": "Đóng"
         }
       },
       "form": {

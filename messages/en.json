@@ -1963,7 +1963,8 @@
           "close": "Close job post",
           "delete": "Delete job post",
           "boost": "Boost job post",
-          "stopBoost": "Stop boost"
+          "stopBoost": "Stop boost",
+          "viewBoostMetrics": "View boost metrics"
         }
       },
       "boost": {
@@ -1992,6 +1993,22 @@
           "textMayNotRefund": "This post has already been shown to candidates, so this boost's credit will NOT be refunded.",
           "confirm": "Stop boost",
           "cancel": "Close"
+        },
+        "metricsDialog": {
+          "title": "Job Boost Performance Report",
+          "description": "Engagement metrics for \"{title}\" during its sponsored promotion.",
+          "statusActive": "Active Boost",
+          "statusEnded": "Ended",
+          "daysLeft": "{days} days left",
+          "impressions": "Impressions",
+          "clicks": "Clicks",
+          "ctr": "CTR",
+          "applications": "Applications",
+          "saves": "Saves",
+          "dailyBreakdown": "Daily Breakdown",
+          "date": "Date",
+          "noData": "No metric data available yet for this period.",
+          "close": "Close"
         }
       },
       "form": {
