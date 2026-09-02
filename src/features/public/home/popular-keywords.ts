@@ -1,4 +1,9 @@
+import { apiRequest } from "@/shared/api/http";
+
 export type PopularKeywordLocale = "vi" | "en";
+
+/** Chỗ hiển thị chip — trang chủ và trang việc làm dùng hai danh sách khác nhau. */
+export type PopularKeywordPlacement = "HOME_HERO" | "JOBS_SEARCH";
 
 export type PopularKeywordCategory = "skill" | "role" | "location" | "level" | "work-mode";
 
@@ -21,6 +26,13 @@ type SlideOptions = {
   itemsPerSlide: number;
 };
 
+/**
+ * Chỉ dùng khi API chưa trả về: giữ chip hiện ngay lúc trang mở và đỡ trường hợp API lỗi.
+ *
+ * Nguồn thật là bảng `popular_search_keywords` ở backend
+ * (`prisma/data/popular-search-keywords.json` + `scripts/seed-popular-keywords.ts`).
+ * Sửa danh sách thì sửa ở đó, không sửa ở đây.
+ */
 export const fallbackPopularKeywords: PopularKeyword[] = [
   { label: "Frontend", query: "Frontend", locale: "vi", priority: 10, category: "role" },
   { label: "Backend", query: "Backend", locale: "vi", priority: 20, category: "role" },
@@ -157,4 +169,40 @@ export function buildPopularKeywordSlides(
   }
 
   return slides;
+}
+
+type PopularKeywordApiItem = {
+  label: string;
+  shortLabel: string | null;
+  query: string;
+  priority: number;
+  category: string | null;
+};
+
+/**
+ * Lấy chip từ backend. Trả về mảng rỗng khi lỗi hoặc chưa có dữ liệu, để chỗ gọi tự
+ * quyết định dùng `fallbackPopularKeywords` — chip là phần trang trí điều hướng, không
+ * đáng để một API lỗi làm hỏng cả ô tìm kiếm.
+ */
+export async function fetchPopularKeywords(
+  placement: PopularKeywordPlacement,
+  locale: PopularKeywordLocale,
+  limit = 24,
+): Promise<PopularKeyword[]> {
+  try {
+    const response = await apiRequest<{ items: PopularKeywordApiItem[] }>(
+      `/search-keywords/popular?placement=${placement}&locale=${locale}&limit=${limit}`,
+    );
+
+    return response.items.map((item) => ({
+      label: item.label,
+      ...(item.shortLabel ? { shortLabel: item.shortLabel } : {}),
+      query: item.query,
+      locale,
+      priority: item.priority,
+      ...(item.category ? { category: item.category as PopularKeywordCategory } : {}),
+    }));
+  } catch {
+    return [];
+  }
 }

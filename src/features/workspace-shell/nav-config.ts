@@ -151,7 +151,6 @@ export const adminNavGroups: WorkspaceNavGroup[] = [
         label: "systemAdmin.searchKeywords",
         href: "/admin/system/search-keywords",
         icon: MagnifyingGlass,
-        disabled: true,
       },
       {
         label: "operationsAndContent.support",
