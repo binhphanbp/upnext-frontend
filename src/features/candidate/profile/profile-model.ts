@@ -56,17 +56,17 @@ export function getProfileReadiness(
     },
     {
       id: "experience",
-      complete: profile.experiences.length > 0,
+      complete: (profile.experiences?.length ?? 0) > 0,
       section: "experience",
     },
     {
       id: "skills",
-      complete: profile.skills.length > 0,
+      complete: (profile.skills?.length ?? 0) > 0,
       section: "skills",
     },
     {
       id: "education",
-      complete: profile.educations.length > 0,
+      complete: (profile.educations?.length ?? 0) > 0,
       section: "education",
     },
     {
