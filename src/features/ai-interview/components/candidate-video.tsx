@@ -13,26 +13,33 @@ interface CandidateVideoProps {
   stream: MediaStream | null;
   onMetricsUpdate?: (metrics: FaceMetrics) => void;
   isActive?: boolean;
+  candidateName?: string;
 }
 
 export const CandidateVideo: React.FC<CandidateVideoProps> = ({
   stream,
   onMetricsUpdate,
   isActive = true,
+  candidateName,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [currentMetrics, setCurrentMetrics] = useState<FaceMetrics | null>(null);
-  const [showLandmarks, setShowLandmarks] = useState(true);
-  const [showBox, setShowBox] = useState(true);
-  const [showEmotionBadge, setShowEmotionBadge] = useState(true);
+  const [showLandmarks, setShowLandmarks] = useState(false);
+  const [showBox, setShowBox] = useState(false);
+  const [showEmotionBadge, setShowEmotionBadge] = useState(false);
   const [showControls, setShowControls] = useState(false);
 
   // Bind media stream to video element
   useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
+      videoRef.current.play().catch((err) => {
+        if (err.name !== "AbortError") {
+          console.warn("[CandidateVideo] Autoplay error:", err);
+        }
+      });
     }
   }, [stream]);
 
@@ -146,30 +153,24 @@ export const CandidateVideo: React.FC<CandidateVideoProps> = ({
           </div>
         )}
 
-        {/* Live Recording Pulsing Dot & Face Lock Tag */}
-        <div className="absolute top-3 left-3 z-20 flex items-center space-x-2">
-          <div className="flex items-center space-x-2 rounded-full border border-slate-800 bg-slate-950/70 px-2.5 py-1 text-xs font-semibold backdrop-blur-md">
-            <span className="h-2 w-2 animate-ping rounded-full bg-red-500" />
-            <span className="text-slate-200">LIVE FEED</span>
-          </div>
-
-          <div className="hidden items-center space-x-1 rounded-full border border-emerald-500/40 bg-emerald-950/80 px-2.5 py-1 text-[11px] font-bold text-emerald-300 shadow-md backdrop-blur-md sm:flex">
-            <span>🔒 ĐÃ KHÓA ỨNG VIÊN</span>
-          </div>
+        {/* Minimalist Live Pill */}
+        <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 rounded-full border border-slate-800 bg-slate-950/70 px-2 py-0.5 text-[10px] font-semibold text-slate-200 backdrop-blur-md">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+          <span>LIVE</span>
         </div>
 
-        {/* Controls Overlay Button */}
+        {/* HUD Toggle Button (Subtle, top-right) */}
         <button
           onClick={() => setShowControls(!showControls)}
           title="Tùy chỉnh lớp phủ AI HUD"
-          className="absolute top-3 right-3 z-20 rounded-lg border border-slate-800 bg-slate-950/70 p-1.5 text-slate-300 backdrop-blur-md transition hover:bg-slate-800"
+          className="absolute top-2.5 right-2.5 z-20 rounded-lg border border-slate-800 bg-slate-950/70 p-1.5 text-slate-400 opacity-60 backdrop-blur-md transition hover:text-white hover:opacity-100"
         >
-          <Sliders className="h-4 w-4" />
+          <Sliders className="h-3.5 w-3.5" />
         </button>
 
         {/* HUD Layer Toggle Menu */}
         {showControls && (
-          <div className="absolute top-12 right-3 z-30 flex flex-col space-y-2 rounded-xl border border-slate-700 bg-slate-900/95 p-3 text-xs shadow-2xl backdrop-blur-md">
+          <div className="absolute top-10 right-2.5 z-30 flex flex-col space-y-2 rounded-xl border border-slate-700 bg-slate-900/95 p-3 text-xs shadow-2xl backdrop-blur-md">
             <div className="mb-1 flex items-center gap-1 font-bold text-slate-200">
               <Layers className="h-3.5 w-3.5 text-indigo-400" /> Lớp phủ AI Vision
             </div>
@@ -180,7 +181,7 @@ export const CandidateVideo: React.FC<CandidateVideoProps> = ({
                 onChange={(e) => setShowBox(e.target.checked)}
                 className="rounded border-slate-700 text-indigo-600 focus:ring-0"
               />
-              <span>Khung khuôn mặt & Khóa đối tượng</span>
+              <span>Khung khuôn mặt</span>
             </label>
             <label className="flex cursor-pointer items-center space-x-2 text-slate-300 hover:text-white">
               <input
@@ -189,7 +190,7 @@ export const CandidateVideo: React.FC<CandidateVideoProps> = ({
                 onChange={(e) => setShowLandmarks(e.target.checked)}
                 className="rounded border-slate-700 text-indigo-600 focus:ring-0"
               />
-              <span>68 Điểm mốc & Khẩu hình miệng</span>
+              <span>68 Điểm mốc khuôn mặt</span>
             </label>
             <label className="flex cursor-pointer items-center space-x-2 text-slate-300 hover:text-white">
               <input
@@ -198,69 +199,39 @@ export const CandidateVideo: React.FC<CandidateVideoProps> = ({
                 onChange={(e) => setShowEmotionBadge(e.target.checked)}
                 className="rounded border-slate-700 text-indigo-600 focus:ring-0"
               />
-              <span>Hộp chỉ số cảm xúc & Trạng thái nói</span>
+              <span>Hộp chỉ số cảm xúc</span>
             </label>
           </div>
         )}
 
-        {/* Real-time Status Overlay Bar at Bottom of Video */}
-        {currentMetrics && (
-          <div className="absolute inset-x-2 bottom-2 z-20 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800/80 bg-slate-950/85 px-3 py-1.5 text-xs backdrop-blur-md">
-            {/* Dominant Emotion & Mouth Tracker */}
-            <div className="flex items-center space-x-2">
+        {/* Clean Bottom Candidate Name Strip (Doesn't cover face) */}
+        <div className="absolute inset-x-2 bottom-2 z-20 flex items-center justify-between rounded-lg border border-slate-800/80 bg-slate-950/75 px-2.5 py-1 text-xs backdrop-blur-md">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isActive
+                  ? "animate-pulse bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+                  : "bg-slate-500"
+              }`}
+            />
+            <span className="truncate text-[11px] font-medium text-slate-200">
+              {candidateName || "Ứng viên"}
+            </span>
+          </div>
+
+          {currentMetrics && (
+            <div className="flex items-center gap-1.5 text-[10px]">
               <span
-                className={`rounded-md border px-2 py-0.5 text-[11px] font-bold tracking-wider uppercase ${
+                className={`rounded px-1.5 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
                   emotionColorMap[currentMetrics.dominantEmotion]
                 }`}
               >
-                {currentMetrics.dominantEmotion} (
-                {currentMetrics.emotions[currentMetrics.dominantEmotion]}%)
+                {currentMetrics.dominantEmotion}
               </span>
-
-              {/* Real-time Mouth Talking Status */}
-              <span
-                className={`flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-bold transition-all duration-200 ${
-                  currentMetrics.isMouthTalking
-                    ? "animate-pulse border-emerald-500/40 bg-emerald-500/20 text-emerald-300"
-                    : "border-slate-700 bg-slate-800/90 text-slate-400"
-                }`}
-              >
-                {currentMetrics.isMouthTalking
-                  ? `👄 Đang nói (${currentMetrics.mouthOpenness}%)`
-                  : "🤐 Im lặng (Khoảng nghỉ 1s)"}
-              </span>
+              <span className="font-medium text-slate-400">{currentMetrics.confidenceScore}%</span>
             </div>
-
-            {/* Metrics Chips */}
-            <div className="flex items-center space-x-3">
-              {/* Eye Contact */}
-              <div className="flex items-center space-x-1" title="Điểm giao tiếp mắt với Camera">
-                <Eye
-                  className={`h-3.5 w-3.5 ${
-                    currentMetrics.isLookingAtCamera ? "text-emerald-400" : "text-amber-400"
-                  }`}
-                />
-                <span className="font-semibold text-slate-200">
-                  {currentMetrics.eyeContactScore}%
-                </span>
-              </div>
-
-              {/* Confidence */}
-              <div className="flex items-center space-x-1" title="Chỉ số tự tin & thần thái">
-                <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-                <span className="font-semibold text-slate-200">
-                  {currentMetrics.confidenceScore}%
-                </span>
-              </div>
-
-              {/* Smile */}
-              <div className="flex items-center space-x-1" title="Mức độ tươi cười">
-                <Smile className="h-3.5 w-3.5 text-amber-400" />
-                <span className="font-semibold text-slate-200">{currentMetrics.smileScore}%</span>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

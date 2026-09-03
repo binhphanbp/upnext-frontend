@@ -57,6 +57,7 @@ export class SpeechRecognitionService {
   private detectedFillers: string[] = [];
 
   constructor() {
+    if (typeof window === "undefined") return;
     // Check support
     const win = window as unknown as IWindow;
     const SpeechRecognitionAPI = win.SpeechRecognition || win.webkitSpeechRecognition;
@@ -66,6 +67,7 @@ export class SpeechRecognitionService {
   }
 
   public isSupported(): boolean {
+    if (typeof window === "undefined") return false;
     const win = window as unknown as IWindow;
     return !!(win.SpeechRecognition || win.webkitSpeechRecognition);
   }
