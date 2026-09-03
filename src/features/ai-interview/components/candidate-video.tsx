@@ -163,7 +163,7 @@ export const CandidateVideo: React.FC<CandidateVideoProps> = ({
         <button
           onClick={() => setShowControls(!showControls)}
           title="Tùy chỉnh lớp phủ AI HUD"
-          className="absolute top-2.5 right-2.5 z-20 rounded-lg border border-slate-800 bg-slate-950/70 p-1.5 text-slate-400 opacity-60 backdrop-blur-md transition hover:opacity-100 hover:text-white"
+          className="absolute top-2.5 right-2.5 z-20 rounded-lg border border-slate-800 bg-slate-950/70 p-1.5 text-slate-400 opacity-60 backdrop-blur-md transition hover:text-white hover:opacity-100"
         >
           <Sliders className="h-3.5 w-3.5" />
         </button>
@@ -228,9 +228,7 @@ export const CandidateVideo: React.FC<CandidateVideoProps> = ({
               >
                 {currentMetrics.dominantEmotion}
               </span>
-              <span className="font-medium text-slate-400">
-                {currentMetrics.confidenceScore}%
-              </span>
+              <span className="font-medium text-slate-400">{currentMetrics.confidenceScore}%</span>
             </div>
           )}
         </div>

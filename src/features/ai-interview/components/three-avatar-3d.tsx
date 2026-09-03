@@ -354,12 +354,15 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
   return (
     <div className="relative h-full w-full select-none">
       {/* 3D WebGL Canvas Container (Full size of 16:9 Stage - Locked Fixed Camera) */}
-      <div ref={containerRef} className="pointer-events-none h-full w-full cursor-default select-none" />
+      <div
+        ref={containerRef}
+        className="pointer-events-none h-full w-full cursor-default select-none"
+      />
 
       {/* Fallback Mascot Avatar while 3D Model loads */}
       {modelType !== "glb" && (
         <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center">
-          <div className="relative -mt-4 flex flex-col items-center animate-pulse">
+          <div className="relative -mt-4 flex animate-pulse flex-col items-center">
             <img
               src="/upnext_avatar.png"
               alt="AI Recruiter"

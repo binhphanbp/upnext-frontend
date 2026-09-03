@@ -1090,7 +1090,7 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
 
         {/* RIGHT COLUMN: Tabbed Sidebar (4 cols) */}
         <div className="space-y-3.5 lg:col-span-4">
-          <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] min-h-[460px] lg:min-h-[490px] dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex min-h-[460px] flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] lg:min-h-[490px] dark:border-slate-800 dark:bg-slate-900">
             <div className="space-y-3.5">
               {/* Tabs Header */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
@@ -1143,38 +1143,39 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
                 <div className="space-y-3 pt-1">
                   {isEvaluating || isGeneratingVoice ? (
                     /* Animation suy nghĩ câu hỏi & phân tích khi kết thúc câu */
-                    <div className="flex flex-col items-center justify-center py-8 px-2 text-center space-y-4 animate-fadeIn">
+                    <div className="animate-fadeIn flex flex-col items-center justify-center space-y-4 px-2 py-8 text-center">
                       <div className="relative flex h-16 w-16 items-center justify-center">
-                        <div className="absolute inset-0 rounded-2xl bg-emerald-500/20 animate-ping" />
+                        <div className="absolute inset-0 animate-ping rounded-2xl bg-emerald-500/20" />
                         <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 shadow-xl shadow-emerald-500/25">
                           <Sparkle
                             size={28}
                             weight="fill"
-                            className="text-white animate-spin [animation-duration:3s]"
+                            className="animate-spin text-white [animation-duration:3s]"
                           />
                         </div>
                       </div>
 
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce" />
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.15s]" />
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.3s]" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-500" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-500 [animation-delay:0.15s]" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-500 [animation-delay:0.3s]" />
                           <span>AI Lead đang suy nghĩ...</span>
                         </div>
                         <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                           Đang phân tích câu trả lời &amp; chuẩn bị câu hỏi
                         </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[270px] mx-auto leading-relaxed">
-                          Hệ thống đang đo lường năng lực, kiểm tra chiều sâu kiến thức và soạn câu hỏi tiếp theo phù hợp với bạn
+                        <p className="mx-auto max-w-[270px] text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                          Hệ thống đang đo lường năng lực, kiểm tra chiều sâu kiến thức và soạn câu
+                          hỏi tiếp theo phù hợp với bạn
                         </p>
                       </div>
 
                       {/* Animated Thinking Shimmer Skeleton */}
-                      <div className="w-full space-y-2 pt-1 max-w-[260px]">
-                        <div className="h-2 w-full rounded-full bg-emerald-500/20 animate-pulse" />
-                        <div className="h-2 w-4/5 mx-auto rounded-full bg-emerald-500/15 animate-pulse [animation-delay:0.2s]" />
-                        <div className="h-2 w-3/5 mx-auto rounded-full bg-emerald-500/10 animate-pulse [animation-delay:0.4s]" />
+                      <div className="w-full max-w-[260px] space-y-2 pt-1">
+                        <div className="h-2 w-full animate-pulse rounded-full bg-emerald-500/20" />
+                        <div className="mx-auto h-2 w-4/5 animate-pulse rounded-full bg-emerald-500/15 [animation-delay:0.2s]" />
+                        <div className="mx-auto h-2 w-3/5 animate-pulse rounded-full bg-emerald-500/10 [animation-delay:0.4s]" />
                       </div>
                     </div>
                   ) : (
@@ -1200,7 +1201,7 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
                       </div>
 
                       <div className="rounded-xl border border-emerald-500/40 bg-emerald-50/25 p-3.5 dark:border-emerald-500/20 dark:bg-emerald-950/20">
-                        <p className="text-xs sm:text-sm font-semibold leading-relaxed text-slate-900 dark:text-slate-100">
+                        <p className="text-xs leading-relaxed font-semibold text-slate-900 sm:text-sm dark:text-slate-100">
                           {displayedQuestionText || activeQuestion.text}
                         </p>
                       </div>
@@ -1225,7 +1226,7 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
                         )}
 
                       {answersList.length > 0 && (
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 pt-1">
+                        <div className="flex items-center gap-1.5 pt-1 text-[11px] text-slate-400">
                           <CheckCircle size={13} weight="fill" className="text-emerald-500" />
                           <span>
                             Đã hoàn thành {answersList.length}/{questions.length} câu hỏi
@@ -1237,133 +1238,133 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
                 </div>
               )}
 
-            {/* TAB 2: AI Telemetry (Real-time Vision & Voice Meters) */}
-            {activeTab === "telemetry" && (
-              <div className="space-y-3">
-                <div className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-                  Cảm biến thời gian thực (60 FPS)
-                </div>
+              {/* TAB 2: AI Telemetry (Real-time Vision & Voice Meters) */}
+              {activeTab === "telemetry" && (
+                <div className="space-y-3">
+                  <div className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+                    Cảm biến thời gian thực (60 FPS)
+                  </div>
 
-                {/* Vision Meters */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 dark:border-slate-800 dark:bg-slate-800/50">
-                    <div className="mb-1 flex items-center justify-between text-slate-500">
-                      <span className="flex items-center gap-1 text-[11px]">
-                        <Eye size={13} className="text-indigo-500" /> Giao tiếp mắt
-                      </span>
-                      <span className="font-mono font-bold text-slate-800 dark:text-white">
-                        {currentFaceMetrics.isLookingAtCamera ? "Tốt" : "Thấp"}
-                      </span>
+                  {/* Vision Meters */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 dark:border-slate-800 dark:bg-slate-800/50">
+                      <div className="mb-1 flex items-center justify-between text-slate-500">
+                        <span className="flex items-center gap-1 text-[11px]">
+                          <Eye size={13} className="text-indigo-500" /> Giao tiếp mắt
+                        </span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-white">
+                          {currentFaceMetrics.isLookingAtCamera ? "Tốt" : "Thấp"}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                        <div
+                          className="h-full bg-indigo-500 transition-all duration-300"
+                          style={{ width: `${currentFaceMetrics.isLookingAtCamera ? 95 : 40}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                      <div
-                        className="h-full bg-indigo-500 transition-all duration-300"
-                        style={{ width: `${currentFaceMetrics.isLookingAtCamera ? 95 : 40}%` }}
-                      />
+
+                    <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 dark:border-slate-800 dark:bg-slate-800/50">
+                      <div className="mb-1 flex items-center justify-between text-slate-500">
+                        <span className="flex items-center gap-1 text-[11px]">
+                          <ShieldCheck size={13} className="text-emerald-500" /> Độ tự tin
+                        </span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-white">
+                          {currentFaceMetrics.detected ? "85%" : "70%"}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                        <div
+                          className="h-full bg-emerald-500 transition-all duration-300"
+                          style={{ width: `${currentFaceMetrics.detected ? 85 : 70}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 dark:border-slate-800 dark:bg-slate-800/50">
+                      <div className="mb-1 flex items-center justify-between text-slate-500">
+                        <span className="flex items-center gap-1 text-[11px]">
+                          <Smiley size={13} className="text-amber-500" /> Cảm xúc
+                        </span>
+                        <span className="font-mono font-bold text-slate-800 capitalize dark:text-white">
+                          {currentFaceMetrics.dominantEmotion}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                        <div
+                          className="h-full bg-amber-500 transition-all duration-300"
+                          style={{ width: "80%" }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 dark:border-slate-800 dark:bg-slate-800/50">
+                      <div className="mb-1 flex items-center justify-between text-slate-500">
+                        <span className="flex items-center gap-1 text-[11px]">
+                          <Waveform size={13} className="text-teal-500" /> Độ ổn định
+                        </span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-white">
+                          {Math.round(currentAudioMetrics.pitchStability)}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                        <div
+                          className="h-full bg-teal-500 transition-all duration-300"
+                          style={{ width: `${Math.round(currentAudioMetrics.pitchStability)}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 dark:border-slate-800 dark:bg-slate-800/50">
-                    <div className="mb-1 flex items-center justify-between text-slate-500">
-                      <span className="flex items-center gap-1 text-[11px]">
-                        <ShieldCheck size={13} className="text-emerald-500" /> Độ tự tin
+                  {/* Voice Pacing Card */}
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-800/50">
+                    <div className="mb-1 flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">
+                        Tốc độ nói trung bình
                       </span>
-                      <span className="font-mono font-bold text-slate-800 dark:text-white">
-                        {currentFaceMetrics.detected ? "85%" : "70%"}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                      <div
-                        className="h-full bg-emerald-500 transition-all duration-300"
-                        style={{ width: `${currentFaceMetrics.detected ? 85 : 70}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 dark:border-slate-800 dark:bg-slate-800/50">
-                    <div className="mb-1 flex items-center justify-between text-slate-500">
-                      <span className="flex items-center gap-1 text-[11px]">
-                        <Smiley size={13} className="text-amber-500" /> Cảm xúc
-                      </span>
-                      <span className="font-mono font-bold text-slate-800 capitalize dark:text-white">
-                        {currentFaceMetrics.dominantEmotion}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                      <div
-                        className="h-full bg-amber-500 transition-all duration-300"
-                        style={{ width: "80%" }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-2.5 dark:border-slate-800 dark:bg-slate-800/50">
-                    <div className="mb-1 flex items-center justify-between text-slate-500">
-                      <span className="flex items-center gap-1 text-[11px]">
-                        <Waveform size={13} className="text-teal-500" /> Độ ổn định
-                      </span>
-                      <span className="font-mono font-bold text-slate-800 dark:text-white">
-                        {Math.round(currentAudioMetrics.pitchStability)}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                      <div
-                        className="h-full bg-teal-500 transition-all duration-300"
-                        style={{ width: `${Math.round(currentAudioMetrics.pitchStability)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Voice Pacing Card */}
-                <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-800/50">
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      Tốc độ nói trung bình
-                    </span>
-                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {currentWpm} WPM
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400">
-                    {currentWpm < 90
-                      ? "Tốc độ hơi chậm, hãy nói dõng dạc hơn."
-                      : currentWpm > 150
-                        ? "Tốc độ nói hơi nhanh, hãy điều chỉnh nhịp thở."
-                        : "Tốc độ nói tự nhiên, lý tưởng cho phỏng vấn."}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: AI Radar Chart */}
-            {activeTab === "radar" && (
-              <div className="flex flex-col items-center justify-center space-y-3 py-2">
-                <AiScoreRadar competencies={currentRadarScores} size={230} />
-                <div className="grid w-full grid-cols-2 gap-1.5 pt-1 text-xs">
-                  {currentRadarScores.map((c, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/70 p-1.5 text-[10px] dark:border-slate-800 dark:bg-slate-800/40"
-                    >
-                      <span className="truncate text-slate-500">{c.nameVi}</span>
                       <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        {c.score}%
+                        {currentWpm} WPM
                       </span>
                     </div>
-                  ))}
+                    <p className="text-[10px] text-slate-400">
+                      {currentWpm < 90
+                        ? "Tốc độ hơi chậm, hãy nói dõng dạc hơn."
+                        : currentWpm > 150
+                          ? "Tốc độ nói hơi nhanh, hãy điều chỉnh nhịp thở."
+                          : "Tốc độ nói tự nhiên, lý tưởng cho phỏng vấn."}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* TAB 3: AI Radar Chart */}
+              {activeTab === "radar" && (
+                <div className="flex flex-col items-center justify-center space-y-3 py-2">
+                  <AiScoreRadar competencies={currentRadarScores} size={230} />
+                  <div className="grid w-full grid-cols-2 gap-1.5 pt-1 text-xs">
+                    {currentRadarScores.map((c, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/70 p-1.5 text-[10px] dark:border-slate-800 dark:bg-slate-800/40"
+                      >
+                        <span className="truncate text-slate-500">{c.nameVi}</span>
+                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          {c.score}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Dòng cố định ở dưới cùng ngang hàng với cạnh đáy khung HR: Khẩu lệnh kết thúc */}
-            <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="mt-auto border-t border-slate-100 pt-3 dark:border-slate-800">
               <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-50/90 px-3 py-2 text-xs text-emerald-900 shadow-xs dark:border-emerald-500/30 dark:bg-emerald-950/50 dark:text-emerald-200">
                 <Microphone
                   size={16}
                   weight="fill"
-                  className="shrink-0 text-emerald-600 animate-pulse dark:text-emerald-400"
+                  className="shrink-0 animate-pulse text-emerald-600 dark:text-emerald-400"
                 />
                 <div className="flex-1 text-[11px] leading-snug">
                   Khẩu lệnh kết thúc: Nói{" "}
