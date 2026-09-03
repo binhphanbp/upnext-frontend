@@ -33,7 +33,7 @@ export class SpeechSynthesisService {
 
     try {
       const selectedVoice =
-        options.voiceId || (options.language === "vi" ? "vi-VN-HoaiMyNeural" : "en-US-JennyNeural");
+        options.voiceId || (options.language === "vi" ? "vi-VN-NamMinhNeural" : "en-US-GuyNeural");
 
       const streamUrl = apiClient.getTTSStreamUrl(cleanText, selectedVoice, options.rate ?? 1.0);
 
@@ -52,13 +52,15 @@ export class SpeechSynthesisService {
 
       await this.speakWithBackendAudio(audioUrl, options);
     } catch (backendError) {
-      console.warn("[TTS] Backend Neural TTS error, attempting browser fallback:", backendError);
-      this.speakWithBrowserFallback(cleanText, options);
+      console.error("[TTS] Backend Neural TTS error (No browser fallback used):", backendError);
+      this.isSpeaking = false;
+      options.onError?.(backendError);
+      options.onEnd?.();
     }
   }
 
   /**
-   * Play in-memory audio blob
+   * Play in-memory audio blob generated strictly by Backend Neural TTS
    */
   private speakWithBackendAudio(audioSrc: string, options: TTSOptions): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -101,41 +103,6 @@ export class SpeechSynthesisService {
         });
       }
     });
-  }
-
-  private speakWithBrowserFallback(text: string, options: TTSOptions) {
-    if (typeof window === "undefined" || !window.speechSynthesis) {
-      options.onEnd?.();
-      return;
-    }
-
-    try {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = options.language === "vi" ? "vi-VN" : "en-US";
-      utterance.rate = options.rate ?? 1.0;
-      utterance.pitch = options.pitch ?? 1.0;
-
-      utterance.onstart = () => {
-        this.isSpeaking = true;
-        options.onStart?.();
-      };
-
-      utterance.onend = () => {
-        this.isSpeaking = false;
-        options.onEnd?.();
-      };
-
-      utterance.onerror = (err) => {
-        this.isSpeaking = false;
-        options.onError?.(err);
-        options.onEnd?.();
-      };
-
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      options.onError?.(e);
-      options.onEnd?.();
-    }
   }
 
   public stop() {

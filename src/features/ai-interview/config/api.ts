@@ -5,7 +5,9 @@ const STORAGE_KEY = "ai_interview_backend_url";
 
 export function getApiBaseUrl(): string {
   if (typeof window === "undefined") return DEFAULT_API_BASE_URL;
-  return localStorage.getItem(STORAGE_KEY) || DEFAULT_API_BASE_URL;
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved && saved !== "http://localhost:5000") return saved;
+  return DEFAULT_API_BASE_URL;
 }
 
 export function setApiBaseUrl(url: string): void {

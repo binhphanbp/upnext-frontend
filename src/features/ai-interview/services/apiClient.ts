@@ -40,27 +40,19 @@ export class ApiClient {
     // Default fallback voices
     const defaultVoices: TTSVoiceInfo[] = [
       {
-        id: "vi-VN-HoaiMyNeural",
-        name: "Hoài My (Nữ)",
-        gender: "Female",
-        language: "vi",
-        description: "Giọng đọc truyền cảm, chuẩn phát thanh viên / MC VTV",
-        isDefault: true,
-      },
-      {
         id: "vi-VN-NamMinhNeural",
         name: "Nam Minh (Nam)",
         gender: "Male",
         language: "vi",
         description: "Giọng nam trầm ấm, chuyên nghiệp, tự nhiên",
+        isDefault: true,
       },
       {
-        id: "en-US-JennyNeural",
-        name: "Jenny (US Female)",
+        id: "vi-VN-HoaiMyNeural",
+        name: "Hoài My (Nữ)",
         gender: "Female",
-        language: "en",
-        description: "Giọng nữ Mỹ chuẩn mực, phong thái phỏng vấn quốc tế",
-        isDefault: true,
+        language: "vi",
+        description: "Giọng đọc truyền cảm, chuẩn phát thanh viên / MC VTV",
       },
       {
         id: "en-US-GuyNeural",
@@ -68,6 +60,14 @@ export class ApiClient {
         gender: "Male",
         language: "en",
         description: "Giọng nam Mỹ tự nhiên, rõ ràng, dứt khoát",
+        isDefault: true,
+      },
+      {
+        id: "en-US-JennyNeural",
+        name: "Jenny (US Female)",
+        gender: "Female",
+        language: "en",
+        description: "Giọng nữ Mỹ chuẩn mực, phong thái phỏng vấn quốc tế",
       },
     ];
     if (!lang) return defaultVoices;

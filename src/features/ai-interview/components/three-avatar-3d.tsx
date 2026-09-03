@@ -1,5 +1,4 @@
 "use client";
-import { Box, RotateCcw, Sliders } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -26,9 +25,6 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
   const bonesRef = useRef<{ [key: string]: THREE.Bone }>({});
 
   const [modelType, setModelType] = useState<"glb" | "procedural">("procedural");
-  const [showSliders, setShowSliders] = useState<boolean>(false);
-  const [rotationYDeg, setRotationYDeg] = useState<number>(0);
-
   const rotationYRadRef = useRef<number>(0);
 
   // Dynamic state refs (read directly inside 60 FPS requestAnimationFrame loop)
@@ -53,10 +49,6 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
   useEffect(() => {
     isLoadingVoiceRef.current = isLoadingVoice;
   }, [isLoadingVoice]);
-
-  useEffect(() => {
-    rotationYRadRef.current = (rotationYDeg * Math.PI) / 180;
-  }, [rotationYDeg]);
 
   // Subscribe to real-time Web Audio API Lip-Sync Analyser
   useEffect(() => {
@@ -94,13 +86,12 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
-    // 4. Orbit Controls (Rotate 3D character in 360 degrees)
+    // 4. Fixed Cinematic Camera (All interactions locked: no rotation, no zoom, no pan)
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.minDistance = 0.4;
-    controls.maxDistance = 2.5;
-    controls.maxPolarAngle = Math.PI / 1.7;
+    controls.enabled = false;
+    controls.enableRotate = false;
+    controls.enableZoom = false;
+    controls.enablePan = false;
     controls.target.set(0, -0.02, 0); // Focus on head/face in chair
     controlsRef.current = controls;
 
@@ -141,11 +132,11 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
         // Focus on Head & Chest level (Head is at Y~1.65, Chest is at Y~1.35)
         // Shift model so head is placed right inside the chair headrest
         const headLevel = 1.62;
-        const scaleFactor = 0.95;
+        const scaleFactor = 0.855; // Reduced 10% from 0.95
 
         root.scale.set(scaleFactor, scaleFactor, scaleFactor);
         root.position.x = -center.x * scaleFactor;
-        root.position.y = -headLevel * scaleFactor + 0.08; // Place head at Y ~ +0.08 (chair headrest level)
+        root.position.y = -headLevel * scaleFactor + 0.05; // Placed inside chair headrest
         root.position.z = -center.z * scaleFactor;
 
         // Default rotation facing front (0 rad)
@@ -236,11 +227,11 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
 
     // 7. 60 FPS GPU Render, Skeleton Bone Articulation & Morph Target Animation Loop
     let animFrameId: number;
-    const clock = new THREE.Clock();
+    const startPerfTime = performance.now();
 
     const animate = () => {
       animFrameId = requestAnimationFrame(animate);
-      const elapsed = clock.getElapsedTime();
+      const elapsed = (performance.now() - startPerfTime) * 0.001;
       const currentLip = lipFrameRef.current;
       const isCurrentlySpeaking = isSpeakingRef.current;
       const isCurrentlyEvaluating = isEvaluatingRef.current || isLoadingVoiceRef.current;
@@ -339,97 +330,48 @@ export const ThreeAvatar3D: React.FC<ThreeAvatar3DProps> = ({
 
     window.addEventListener("resize", handleResize);
 
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width: w, height: h } = entry.contentRect;
+        if (w > 0 && h > 0) {
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
+          renderer.setSize(w, h, false);
+        }
+      }
+    });
+    resizeObserver.observe(container);
+
     return () => {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       renderer.dispose();
       scene.clear();
     };
   }, []);
 
-  const handleResetCamera = () => {
-    if (controlsRef.current) {
-      controlsRef.current.reset();
-    }
-  };
-
   return (
     <div className="relative h-full w-full select-none">
-      {/* 3D WebGL Canvas Container (Full size of 16:9 Stage) */}
-      <div ref={containerRef} className="h-full w-full cursor-grab active:cursor-grabbing" />
+      {/* 3D WebGL Canvas Container (Full size of 16:9 Stage - Locked Fixed Camera) */}
+      <div ref={containerRef} className="pointer-events-none h-full w-full cursor-default select-none" />
 
-      {/* Top Left Model Badge */}
-      <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-lg border border-slate-700/80 bg-slate-950/80 px-2.5 py-1 text-xs font-bold text-emerald-400 shadow backdrop-blur-md">
-        <Box className="h-3.5 w-3.5 text-emerald-400" />
-        <span>{modelType === "glb" ? "3D AI Recruiter" : "3D UpNext"}</span>
-      </div>
-
-      {/* Top Right Controls (Angle & Reset) */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
-        <button
-          onClick={() => setShowSliders(!showSliders)}
-          title="Mở thanh chỉnh góc xoay"
-          className="rounded-lg border border-slate-700/80 bg-slate-950/80 p-2 text-xs text-slate-400 shadow backdrop-blur-md transition hover:bg-slate-800 hover:text-emerald-400"
-        >
-          <Sliders className="h-3.5 w-3.5" />
-        </button>
-        <button
-          onClick={handleResetCamera}
-          title="Xoay lại góc nhìn ban đầu"
-          className="rounded-lg border border-slate-700/80 bg-slate-950/80 p-2 text-xs text-slate-400 shadow backdrop-blur-md transition hover:bg-slate-800 hover:text-white"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {/* Visual Angle Slider Overlay */}
-      {showSliders && (
-        <div className="absolute inset-x-4 top-14 z-20 ml-auto flex max-w-sm flex-col gap-2 rounded-xl border border-slate-700 bg-slate-950/95 p-3.5 shadow-2xl backdrop-blur-md">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-200">
-            <span>Chỉnh góc quay mặt:</span>
-            <span className="font-mono text-emerald-400">{rotationYDeg}°</span>
-          </div>
-          <input
-            type="range"
-            min="-180"
-            max="180"
-            step="5"
-            value={rotationYDeg}
-            onChange={(e) => setRotationYDeg(parseInt(e.target.value))}
-            className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-800 accent-emerald-400"
-          />
-          <div className="flex justify-between text-[10px] text-slate-400">
-            <button
-              onClick={() => setRotationYDeg(0)}
-              className="rounded bg-slate-800 px-2 py-0.5 font-semibold text-emerald-400 hover:bg-slate-700"
-            >
-              Nhìn thẳng (0°)
-            </button>
-            <button
-              onClick={() => setRotationYDeg(-90)}
-              className="rounded bg-slate-800 px-2 py-0.5 hover:bg-slate-700"
-            >
-              Góc -90°
-            </button>
-            <button
-              onClick={() => setRotationYDeg(90)}
-              className="rounded bg-slate-800 px-2 py-0.5 hover:bg-slate-700"
-            >
-              Góc +90°
-            </button>
-            <button
-              onClick={() => setShowSliders(false)}
-              className="rounded bg-emerald-600/30 px-2 py-0.5 font-bold text-emerald-300 hover:bg-emerald-600/50"
-            >
-              Đóng
-            </button>
+      {/* Fallback Mascot Avatar while 3D Model loads */}
+      {modelType !== "glb" && (
+        <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center">
+          <div className="relative -mt-4 flex flex-col items-center animate-pulse">
+            <img
+              src="/upnext_avatar.png"
+              alt="AI Recruiter"
+              className="h-44 w-auto object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)]"
+            />
+            <div className="mt-2 flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-0.5 text-[10px] text-emerald-400 backdrop-blur-md">
+              <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400" />
+              <span>Đang tải 3D Avatar...</span>
+            </div>
           </div>
         </div>
       )}
-
-      <div className="pointer-events-none absolute bottom-2 left-3 rounded bg-slate-950/60 px-2 py-0.5 text-[10px] text-slate-500 backdrop-blur-sm">
-        Kéo chuột để xoay 3D
-      </div>
     </div>
   );
 };

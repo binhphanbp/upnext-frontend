@@ -168,9 +168,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
   const [language, setLanguage] = useState<Language>("vi");
   const [interviewMode, setInterviewMode] = useState<InterviewMode>("deep");
   const [questionCount, setQuestionCount] = useState<number>(3);
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string>("vi-VN-HoaiMyNeural");
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>("vi-VN-NamMinhNeural");
   const [enableNoiseSuppression, setEnableNoiseSuppression] = useState<boolean>(true);
-  const [geminiApiKey, setGeminiApiKey] = useState<string>("");
+  const [geminiApiKey, setGeminiApiKey] = useState<string>(
+    () => process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+  );
 
   // Devices & Hardware State
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -186,6 +188,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const hasStartedRef = useRef<boolean>(false);
   const ttsServiceRef = useRef<SpeechSynthesisService>(new SpeechSynthesisService());
   const cvFileInputRef = useRef<HTMLInputElement | null>(null);
   const jdFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -203,7 +206,14 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
         const voices = await apiClient.getTTSVoices(language);
         if (isMounted && voices.length > 0) {
           setAvailableVoices(voices);
-          const defaultVoice = voices.find((v: TTSVoiceInfo) => v.isDefault) || voices[0];
+          const maleVoice = voices.find(
+            (v: TTSVoiceInfo) =>
+              v.gender?.toLowerCase() === "male" ||
+              v.id.includes("NamMinh") ||
+              v.id.includes("Guy"),
+          );
+          const defaultVoice =
+            maleVoice || voices.find((v: TTSVoiceInfo) => v.isDefault) || voices[0];
           if (defaultVoice) {
             setSelectedVoiceId(defaultVoice.id);
           }
@@ -279,11 +289,22 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
         audioContextRef.current.close();
       }
-      if (localStream) {
+      // Only release hardware if user didn't start the interview
+      if (!hasStartedRef.current && localStream) {
         localStream.getTracks().forEach((t) => t.stop());
       }
     };
   }, []);
+
+  // Sync stream to video element whenever stream or camera state updates
+  useEffect(() => {
+    if (videoRef.current && stream && isCameraOn) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch((e) => {
+        console.warn("[SetupScreen] Autoplay video error:", e);
+      });
+    }
+  }, [stream, isCameraOn]);
 
   const toggleCamera = () => {
     if (stream) {
@@ -429,6 +450,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStartInterview }) =>
       customQuestions: questionsToUse,
     };
 
+    hasStartedRef.current = true;
     onStartInterview(config, stream);
   };
 

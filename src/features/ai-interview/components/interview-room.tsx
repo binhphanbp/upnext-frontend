@@ -149,7 +149,12 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
   const [answersList, setAnswersList] = useState<QuestionAnswerRecord[]>([]);
 
   // STT / TTS & Audio Service Instances
-  const [transcript, setTranscript] = useState("");
+  // Live Preview Subtitle (Google Web Speech - chỉ làm phụ đề xem trước cho vui)
+  const [liveCaption, setLiveCaption] = useState("");
+  // Official Answer Text (Backend STT - nội dung câu trả lời thật sự do Backend phiên âm và gửi lên)
+  const [backendTranscript, setBackendTranscript] = useState("");
+  const backendTranscriptRef = useRef<string>("");
+
   const [answerDraft, setAnswerDraft] = useState("");
   const [currentWpm, setCurrentWpm] = useState(0);
   const [detectedFillers, setDetectedFillers] = useState<string[]>([]);
@@ -200,15 +205,16 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
   const currentMainQuestion = questions[currentIndex] ?? questions[0] ?? fallbackQuestion;
   const activeQuestion = followUpState?.isActive ? followUpState.question : currentMainQuestion;
 
-  // Process incoming text chunks & check for voice completion command
-  const handleTranscriptAppend = (incomingText: string) => {
+  // Process incoming official text chunks from Backend STT
+  const handleBackendTranscriptAppend = (incomingText: string) => {
     if (isAiSpeakingRef.current || isGeneratingVoiceRef.current || isEvaluatingRef.current) {
       return;
     }
 
-    setTranscript((prev) => {
+    setBackendTranscript((prev) => {
       const full = prev ? `${prev} ${incomingText}` : incomingText;
       const { isCompleted, cleanText } = checkAnswerCompletionKeyword(full);
+      backendTranscriptRef.current = cleanText.trim();
 
       const words = cleanText.split(/\s+/).filter(Boolean);
       const elapsedMinutes = Math.max(0.05, (Date.now() - questionStartTimeRef.current) / 60000);
@@ -222,7 +228,7 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
       ) {
         appLogger.info(
           "VAD",
-          '🎯 Voice completion keyword detected: "Câu trả lời của mình đã kết thúc". Auto-submitting in 500ms...',
+          '🎯 Voice completion keyword detected by Backend STT: "Câu trả lời của mình đã kết thúc". Auto-submitting in 500ms...',
         );
         setIsVoiceSubmitting(true);
         if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
@@ -284,7 +290,7 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
           !isGeneratingVoiceRef.current &&
           !isEvaluatingRef.current
         ) {
-          handleTranscriptAppend(text);
+          handleBackendTranscriptAppend(text);
         }
       } catch (err) {
         console.warn("[InterviewRoom] Chunk transcription error:", err);
@@ -310,7 +316,9 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
     questionStartTimeRef.current = now;
     setQuestionStartTime(now);
     setElapsedQuestionSeconds(0);
-    setTranscript("");
+    setLiveCaption("");
+    setBackendTranscript("");
+    backendTranscriptRef.current = "";
     setAnswerDraft("");
     setCurrentWpm(0);
     setDetectedFillers([]);
@@ -343,7 +351,9 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
         onEnd: () => {
           isAiSpeakingRef.current = false;
           setIsAiSpeaking(false);
-          setTranscript("");
+          setLiveCaption("");
+          setBackendTranscript("");
+          backendTranscriptRef.current = "";
           beginCandidateAnswering(q.id);
         },
         onError: () => {
@@ -352,7 +362,9 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
           setDisplayedQuestionText(q.text);
           isAiSpeakingRef.current = false;
           setIsAiSpeaking(false);
-          setTranscript("");
+          setLiveCaption("");
+          setBackendTranscript("");
+          backendTranscriptRef.current = "";
           beginCandidateAnswering(q.id);
         },
       });
@@ -362,7 +374,9 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
       setDisplayedQuestionText(q.text);
       isAiSpeakingRef.current = false;
       setIsAiSpeaking(false);
-      setTranscript("");
+      setLiveCaption("");
+      setBackendTranscript("");
+      backendTranscriptRef.current = "";
       beginCandidateAnswering(q.id);
     }
   };
@@ -372,7 +386,8 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
     setSttError(null);
     sttServiceRef.current.start(config.language, {
       onTranscriptChange: (text) => {
-        setTranscript(text);
+        // Google Web Speech CHỈ làm phụ đề live preview
+        setLiveCaption(text);
         if (text) setSttError(null);
       },
       onWpmChange: (wpm) => {
@@ -470,14 +485,30 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
     const audioBase64 = await audioRecorderRef.current.getBase64();
     sttServiceRef.current?.stop();
 
+    // Câu trả lời chính thức được nộp:
+    // 1. Text do user tự gõ chỉnh sửa (customFinalText hoặc answerDraft)
+    // 2. Text CHÍNH THỨC do Backend phiên âm (backendTranscriptRef.current)
+    // 3. Fallback: gửi trọn vẹn file audioBlob lên Backend để phiên âm 100%
+    // (Google live caption chỉ là phụ đề tạm thời, không dùng làm câu trả lời chính thức)
     let rawText =
-      typeof customFinalText === "string" ? customFinalText : answerDraft.trim() || transcript;
+      typeof customFinalText === "string" && customFinalText.trim()
+        ? customFinalText
+        : answerDraft.trim() || backendTranscriptRef.current;
     let finalSpokenText = checkAnswerCompletionKeyword(rawText).cleanText;
 
     if (!finalSpokenText.trim() && audioBlob) {
-      const serverTranscript = await apiClient.transcribeAudio(audioBlob, config.language);
-      if (serverTranscript) {
-        finalSpokenText = checkAnswerCompletionKeyword(serverTranscript).cleanText;
+      try {
+        const serverTranscript = await apiClient.transcribeAudio(
+          audioBlob,
+          config.language,
+          config.sessionId,
+          activeQuestion.id,
+        );
+        if (serverTranscript) {
+          finalSpokenText = checkAnswerCompletionKeyword(serverTranscript).cleanText;
+        }
+      } catch (err) {
+        console.warn("[InterviewRoom] Final audio transcription error:", err);
       }
     }
 
@@ -516,7 +547,9 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
       questionStartTimeRef.current = now;
       setQuestionStartTime(now);
       setElapsedQuestionSeconds(0);
-      setTranscript("");
+      setLiveCaption("");
+      setBackendTranscript("");
+      backendTranscriptRef.current = "";
       setAnswerDraft("");
       setCurrentWpm(0);
       setDetectedFillers([]);
@@ -548,7 +581,9 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
           onEnd: () => {
             isAiSpeakingRef.current = false;
             setIsAiSpeaking(false);
-            setTranscript("");
+            setLiveCaption("");
+            setBackendTranscript("");
+            backendTranscriptRef.current = "";
             beginCandidateAnswering(response.followUpQuestion!.id);
           },
           onError: () => {
@@ -557,7 +592,9 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
             setDisplayedQuestionText(response.followUpQuestion!.text);
             isAiSpeakingRef.current = false;
             setIsAiSpeaking(false);
-            setTranscript("");
+            setLiveCaption("");
+            setBackendTranscript("");
+            backendTranscriptRef.current = "";
             beginCandidateAnswering(response.followUpQuestion!.id);
           },
         });
@@ -567,7 +604,9 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
         setDisplayedQuestionText(response.followUpQuestion.text);
         isAiSpeakingRef.current = false;
         setIsAiSpeaking(false);
-        setTranscript("");
+        setLiveCaption("");
+        setBackendTranscript("");
+        backendTranscriptRef.current = "";
         beginCandidateAnswering(response.followUpQuestion.id);
       }
       return;
@@ -771,21 +810,34 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
             </div>
 
             {/* Top Left Speaker Badge */}
-            <div className="absolute top-3.5 left-3.5 z-20 flex items-center gap-2 rounded-full border border-slate-700/50 bg-slate-900/80 px-3 py-1 text-xs text-slate-200 shadow-md backdrop-blur-md">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
-                TS
-              </span>
-              <span className="text-[11px] font-medium">Mrs. Tania Shahira — UpNext AI Lead</span>
-              <AudioWave isActive={isAiSpeaking} color="#10b981" barCount={10} height={14} />
-            </div>
+            {(() => {
+              const isFemale =
+                config.selectedVoiceId?.includes("HoaiMy") ||
+                config.selectedVoiceId?.includes("Jenny") ||
+                config.selectedVoiceId?.includes("Aria");
+              return (
+                <div className="absolute top-3.5 left-3.5 z-20 flex items-center gap-2 rounded-full border border-slate-700/50 bg-slate-900/80 px-3 py-1 text-xs text-slate-200 shadow-md backdrop-blur-md">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
+                    {isFemale ? "TS" : "NM"}
+                  </span>
+                  <span className="text-[11px] font-medium">
+                    {isFemale
+                      ? "Mrs. Tania Shahira — UpNext AI Lead"
+                      : "Mr. Nam Minh — UpNext AI Lead"}
+                  </span>
+                  <AudioWave isActive={isAiSpeaking} color="#10b981" barCount={10} height={14} />
+                </div>
+              );
+            })()}
 
-            {/* Candidate PiP Video (Top Right with Emotion & Live Tracking) */}
-            <div className="absolute top-3.5 right-3.5 z-20 aspect-video w-36 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900 shadow-2xl transition hover:scale-105 sm:w-48">
+            {/* Candidate PiP Video (Top Right with Clean Video Feed) */}
+            <div className="absolute top-3.5 right-3.5 z-20 aspect-video w-48 overflow-hidden rounded-2xl border-2 border-slate-700/80 bg-slate-900 shadow-2xl transition hover:scale-105 sm:w-60 md:w-72">
               {isCameraEnabled ? (
                 <CandidateVideo
                   stream={stream}
                   onMetricsUpdate={handleFaceMetricsUpdate}
                   isActive={currentAudioMetrics.isSpeaking}
+                  candidateName={config.candidateName}
                 />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center bg-slate-900 text-slate-400">
@@ -793,14 +845,6 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
                   <span className="text-[10px]">Camera tắt</span>
                 </div>
               )}
-
-              {/* Candidate Name Tag inside PiP */}
-              <div className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-between rounded-md bg-slate-950/85 px-2 py-0.5 text-[10px] text-slate-200 backdrop-blur-xs">
-                <span className="truncate font-medium">{config.candidateName}</span>
-                {currentAudioMetrics.isSpeaking && (
-                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400" />
-                )}
-              </div>
             </div>
 
             {/* Floating Center Control Bar (Bo tròn kính mờ phong cách UpNext) */}
@@ -934,11 +978,19 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
                   <ArrowsClockwise size={14} className="animate-spin" />
                   Hệ thống AI đang phân tích câu trả lời và đo đạc năng lực...
                 </p>
-              ) : transcript ? (
-                <p className="text-slate-800 dark:text-slate-200">
-                  <strong className="text-indigo-600 dark:text-indigo-400">Bạn: </strong>
-                  &quot;{transcript}&quot;
-                </p>
+              ) : liveCaption || backendTranscript ? (
+                <div className="space-y-1">
+                  <p className="text-slate-800 dark:text-slate-200">
+                    <strong className="text-indigo-600 dark:text-indigo-400">Bạn: </strong>
+                    &quot;{liveCaption || backendTranscript}&quot;
+                  </p>
+                  {backendTranscript && (
+                    <p className="flex items-center gap-1 font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
+                      <span>✓ Đã nhận diện qua Backend AI:</span>
+                      <span className="truncate italic">&quot;{backendTranscript}&quot;</span>
+                    </p>
+                  )}
+                </div>
               ) : (
                 <p className="flex items-center gap-1.5 text-slate-400 italic dark:text-slate-500">
                   <Microphone size={14} />
@@ -955,8 +1007,11 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
                 value={answerDraft}
                 onChange={(e) => setAnswerDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && (answerDraft.trim() || transcript.trim())) {
-                    handleSubmitAnswer(answerDraft.trim() || transcript.trim());
+                  if (
+                    e.key === "Enter" &&
+                    (answerDraft.trim() || backendTranscript.trim() || liveCaption.trim())
+                  ) {
+                    handleSubmitAnswer(answerDraft.trim() || backendTranscript.trim());
                   }
                 }}
                 disabled={isEvaluating || isAiSpeaking}
@@ -965,7 +1020,7 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
               />
               <button
                 type="button"
-                onClick={() => handleSubmitAnswer(answerDraft.trim() || transcript.trim())}
+                onClick={() => handleSubmitAnswer(answerDraft.trim() || backendTranscript.trim())}
                 disabled={isEvaluating || isAiSpeaking}
                 className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
               >
@@ -1035,97 +1090,152 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
 
         {/* RIGHT COLUMN: Tabbed Sidebar (4 cols) */}
         <div className="space-y-3.5 lg:col-span-4">
-          <div className="space-y-3.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:border-slate-800 dark:bg-slate-900">
-            {/* Tabs Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-              <div className="flex gap-1 rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800/80">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("questions")}
-                  className={`flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
-                    activeTab === "questions"
-                      ? "bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
-                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
-                  }`}
-                >
-                  <ListChecks size={15} />
-                  Câu Hỏi
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("telemetry")}
-                  className={`flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
-                    activeTab === "telemetry"
-                      ? "bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
-                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
-                  }`}
-                >
-                  <Waveform size={15} />
-                  Cảm Biến AI
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("radar")}
-                  className={`flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
-                    activeTab === "radar"
-                      ? "bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
-                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
-                  }`}
-                >
-                  <ChartBar size={15} />
-                  AI Radar
-                </button>
+          <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] min-h-[460px] lg:min-h-[490px] dark:border-slate-800 dark:bg-slate-900">
+            <div className="space-y-3.5">
+              {/* Tabs Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+                <div className="flex gap-1 rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800/80">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("questions")}
+                    className={`flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
+                      activeTab === "questions"
+                        ? "bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
+                        : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
+                    }`}
+                  >
+                    <ListChecks size={15} />
+                    Câu Hỏi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("telemetry")}
+                    className={`flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
+                      activeTab === "telemetry"
+                        ? "bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
+                        : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
+                    }`}
+                  >
+                    <Waveform size={15} />
+                    Cảm Biến AI
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("radar")}
+                    className={`flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all ${
+                      activeTab === "radar"
+                        ? "bg-white font-semibold text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white"
+                        : "text-slate-500 hover:text-slate-900 dark:text-slate-400"
+                    }`}
+                  >
+                    <ChartBar size={15} />
+                    AI Radar
+                  </button>
+                </div>
+
+                <span className="font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  {answersList.length}/{questions.length}
+                </span>
               </div>
 
-              <span className="font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                {answersList.length}/{questions.length}
-              </span>
-            </div>
+              {/* TAB 1: Single Active Question & Thinking Animation */}
+              {activeTab === "questions" && (
+                <div className="space-y-3 pt-1">
+                  {isEvaluating || isGeneratingVoice ? (
+                    /* Animation suy nghĩ câu hỏi & phân tích khi kết thúc câu */
+                    <div className="flex flex-col items-center justify-center py-8 px-2 text-center space-y-4 animate-fadeIn">
+                      <div className="relative flex h-16 w-16 items-center justify-center">
+                        <div className="absolute inset-0 rounded-2xl bg-emerald-500/20 animate-ping" />
+                        <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 shadow-xl shadow-emerald-500/25">
+                          <Sparkle
+                            size={28}
+                            weight="fill"
+                            className="text-white animate-spin [animation-duration:3s]"
+                          />
+                        </div>
+                      </div>
 
-            {/* TAB 1: Question List */}
-            {activeTab === "questions" && (
-              <div className="space-y-2.5">
-                {questions.map((q, idx) => {
-                  const record = answersList.find((r) => r.question.id === q.id);
-                  const isCurrent = currentIndex === idx && !followUpState?.isActive;
-                  const isAnswered = !!record;
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.15s]" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.3s]" />
+                          <span>AI Lead đang suy nghĩ...</span>
+                        </div>
+                        <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                          Đang phân tích câu trả lời &amp; chuẩn bị câu hỏi
+                        </h4>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-[270px] mx-auto leading-relaxed">
+                          Hệ thống đang đo lường năng lực, kiểm tra chiều sâu kiến thức và soạn câu hỏi tiếp theo phù hợp với bạn
+                        </p>
+                      </div>
 
-                  return (
-                    <div
-                      key={q.id}
-                      className={`rounded-xl border p-3 transition-all ${
-                        isCurrent
-                          ? "border-emerald-500 bg-emerald-50/40 ring-1 ring-emerald-500/20 dark:border-emerald-500 dark:bg-emerald-950/25"
-                          : isAnswered
-                            ? "border-slate-200/80 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-800/40"
-                            : "border-slate-200/60 bg-white opacity-60 dark:border-slate-800 dark:bg-slate-900"
-                      }`}
-                    >
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
-                          Câu {idx + 1} • {q.category.toUpperCase()}
+                      {/* Animated Thinking Shimmer Skeleton */}
+                      <div className="w-full space-y-2 pt-1 max-w-[260px]">
+                        <div className="h-2 w-full rounded-full bg-emerald-500/20 animate-pulse" />
+                        <div className="h-2 w-4/5 mx-auto rounded-full bg-emerald-500/15 animate-pulse [animation-delay:0.2s]" />
+                        <div className="h-2 w-3/5 mx-auto rounded-full bg-emerald-500/10 animate-pulse [animation-delay:0.4s]" />
+                      </div>
+                    </div>
+                  ) : (
+                    /* Chỉ hiển thị duy nhất 1 câu hỏi 1 lần */
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                          <span className="h-2 w-2 animate-ping rounded-full bg-emerald-500" />
+                          {followUpState?.isActive
+                            ? `CÂU HỎI ĐÀO SÂU #${followUpState.index}/${followUpState.max} • DEEP DIVE`
+                            : `CÂU ${currentIndex + 1}/${questions.length} • ${activeQuestion.category.toUpperCase()}`}
                         </span>
-                        {isAnswered ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                            <CheckCircle size={12} weight="fill" /> {record.evaluation?.score ?? 80}
-                            /100
-                          </span>
-                        ) : isCurrent ? (
-                          <span className="inline-flex animate-pulse items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                            Đang trả lời
+                        {isAiSpeaking ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                            <AudioWave isActive={true} color="#6366f1" barCount={4} height={10} />
+                            AI đang đọc
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-400">Chờ</span>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                            Đang trả lời
+                          </span>
                         )}
                       </div>
-                      <p className="line-clamp-2 text-xs font-medium text-slate-800 dark:text-slate-200">
-                        {q.text}
-                      </p>
+
+                      <div className="rounded-xl border border-emerald-500/40 bg-emerald-50/25 p-3.5 dark:border-emerald-500/20 dark:bg-emerald-950/20">
+                        <p className="text-xs sm:text-sm font-semibold leading-relaxed text-slate-900 dark:text-slate-100">
+                          {displayedQuestionText || activeQuestion.text}
+                        </p>
+                      </div>
+
+                      {activeQuestion.expectedKeyPoints &&
+                        activeQuestion.expectedKeyPoints.length > 0 && (
+                          <div className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-3 dark:border-slate-800/80 dark:bg-slate-800/40">
+                            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                              <Sparkle size={13} weight="fill" className="text-emerald-500" />
+                              Trọng tâm câu trả lời:
+                            </div>
+                            <ul className="list-inside list-disc space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                              {activeQuestion.expectedKeyPoints.map(
+                                (point: string, idx: number) => (
+                                  <li key={idx} className="line-clamp-2">
+                                    {point}
+                                  </li>
+                                ),
+                              )}
+                            </ul>
+                          </div>
+                        )}
+
+                      {answersList.length > 0 && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 pt-1">
+                          <CheckCircle size={13} weight="fill" className="text-emerald-500" />
+                          <span>
+                            Đã hoàn thành {answersList.length}/{questions.length} câu hỏi
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
 
             {/* TAB 2: AI Telemetry (Real-time Vision & Voice Meters) */}
             {activeTab === "telemetry" && (
@@ -1245,6 +1355,25 @@ export const InterviewRoom: React.FC<InterviewRoomProps> = ({
                 </div>
               </div>
             )}
+            </div>
+
+            {/* Dòng cố định ở dưới cùng ngang hàng với cạnh đáy khung HR: Khẩu lệnh kết thúc */}
+            <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-50/90 px-3 py-2 text-xs text-emerald-900 shadow-xs dark:border-emerald-500/30 dark:bg-emerald-950/50 dark:text-emerald-200">
+                <Microphone
+                  size={16}
+                  weight="fill"
+                  className="shrink-0 text-emerald-600 animate-pulse dark:text-emerald-400"
+                />
+                <div className="flex-1 text-[11px] leading-snug">
+                  Khẩu lệnh kết thúc: Nói{" "}
+                  <strong className="font-bold text-emerald-700 dark:text-emerald-300">
+                    &quot;Câu trả lời của mình đã kết thúc&quot;
+                  </strong>{" "}
+                  để nộp bài
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
